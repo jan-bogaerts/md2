@@ -202,6 +202,38 @@ describe('ActionConversationChatlogTracker', () => {
         expect(tracker.getEvolvingGroups()[1]).toEqual(expect.objectContaining({entry: expect.objectContaining({ content: 'updated' })}))
     })
 
+    it('keeps a stable terminal tool group reference during an evolving entry update', () => {
+        const firstUser = message('user-1', 'user')
+        const completedTool = event('tool-1', 'webSearch')
+        const failedTool = event('tool-2', 'mcpToolCall', { status: 'failed' })
+        const currentUser = message('user-2', 'user')
+        const evolvingAssistant = message('assistant-1', 'assistant', 'draft')
+        const value = conversation('conversation-1', [
+            firstUser,
+            completedTool,
+            failedTool,
+            currentUser,
+            evolvingAssistant,
+        ])
+        const { registry, tracker } = setup(run('run-1', value))
+        tracker.load()
+        const stableGroups = tracker.getStableGroups()
+        const terminalToolGroup = stableGroups.find(({ kind }) => kind === 'terminalToolCalls')
+        if (!terminalToolGroup) throw new Error('Missing terminal tool group')
+
+        registry.setRun({
+            ...run('run-1', {
+                ...value,
+                entries: [firstUser, completedTool, failedTool, currentUser, { ...evolvingAssistant, content: 'updated' }],
+            }),
+            conversationChange: { entryIndex: 4, kind: 'entry' },
+        })
+
+        expect(tracker.getStableGroups()).toBe(stableGroups)
+        expect(tracker.getStableGroups()).toContain(terminalToolGroup)
+        expect(tracker.getEvolvingGroups().at(-1)).toEqual(expect.objectContaining({entry: expect.objectContaining({ content: 'updated' })}))
+    })
+
     it('updates a stable entry and publishes only a new stable list', () => {
         const firstUser = message('user-1', 'user')
         const firstAssistant = message('assistant-1', 'assistant')

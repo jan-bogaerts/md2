@@ -916,7 +916,7 @@ describe('ActionConversationChat', () => {
 
         expect(screen.getByRole('button', { name: 'Web search details' })).toBeInTheDocument()
         expect(screen.getByText('Completed')).toBeInTheDocument()
-        expect(screen.queryByRole('group', { name: 'Completed tool calls' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('group', { name: 'Terminal tool calls' })).not.toBeInTheDocument()
     })
 
     it('groups every supported completed tool type in canonical order', () => {
@@ -933,13 +933,14 @@ describe('ActionConversationChat', () => {
 
         renderChat(conversation('tool-types.json', entries, 'codex'))
 
-        const group = screen.getByRole('group', { name: 'Completed tool calls' })
+        const group = screen.getByRole('group', { name: 'Terminal tool calls' })
         const summaryButton = within(group).getByRole('button', { name: 'Tools called (8)' })
         const summaryText = within(group).getByText('Tools called (8)')
         expect(group).toHaveStyle({ minWidth: '0', overflow: 'hidden' })
         expect(summaryButton).toHaveStyle({ minWidth: '0' })
         expect(summaryText).toHaveStyle({ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
         expect(summaryButton).toHaveAttribute('aria-expanded', 'false')
+        expect(within(group).queryByText(/errors:/u)).not.toBeInTheDocument()
         expect(within(group).queryByRole('button', { name: 'File change details' })).not.toBeInTheDocument()
 
         fireEvent.click(summaryButton)
@@ -1017,7 +1018,7 @@ describe('ActionConversationChat', () => {
         ]
         renderChat(conversation('tool-boundaries.json', entries, 'codex'))
 
-        const groups = screen.getAllByRole('group', { name: 'Completed tool calls' })
+        const groups = screen.getAllByRole('group', { name: 'Terminal tool calls' })
         expect(groups).toHaveLength(2)
         const firstSummary = within(groups[0]).getByRole('button', { name: 'Tools called (2)' })
         const secondSummary = within(groups[1]).getByRole('button', { name: 'Tools called (2)' })
@@ -1033,20 +1034,77 @@ describe('ActionConversationChat', () => {
         expect(screen.queryByText('Visible reasoning')).not.toBeInTheDocument()
     })
 
-    it('keeps non-completed tool calls standalone with their lifecycle status', () => {
+    it('groups mixed terminal outcomes with error count, original order, and error styling', () => {
         const entries = [
-            toolEvent('Started call', 'webSearch', 'started'),
-            toolEvent('In-progress call', 'mcpToolCall', 'inProgress'),
-            toolEvent('Running call', 'dynamicToolCall', 'running'),
+            toolEvent('Completed call', 'webSearch', 'completed'),
             toolEvent('Failed call', 'imageView', 'failed'),
-            toolEvent('Declined call', 'collabAgentToolCall', 'declined'),
+            toolEvent('Declined call', 'mcpToolCall', 'declined'),
         ]
-        renderChat(conversation('tool-statuses.json', entries, 'codex'))
+        renderChat(conversation('mixed-tool-statuses.json', entries, 'codex'))
 
-        expect(screen.queryByRole('group', { name: 'Completed tool calls' })).not.toBeInTheDocument()
-        expect(screen.getAllByText('Running')).toHaveLength(3)
-        expect(screen.getByText('Failed')).toBeInTheDocument()
+        const group = screen.getByRole('group', { name: 'Terminal tool calls' })
+        const summaryButton = within(group).getByRole('button', { name: /Tools called \(3\).*errors: 2/u })
+        expect(summaryButton).not.toHaveStyle({ color: 'rgb(211, 47, 47)' })
+
+        fireEvent.click(summaryButton)
+
+        const detailButtons = within(group).getAllByRole('button').slice(1)
+        expect(detailButtons.map(({ textContent }) => textContent)).toEqual([
+            'Completed callCompleted',
+            'Failed callFailed',
+            'Declined callDeclined',
+        ])
+        expect(screen.getAllByRole('button', { name: 'Completed call details' })).toHaveLength(1)
+        expect(screen.getAllByRole('button', { name: 'Failed call details' })).toHaveLength(1)
+        expect(screen.getAllByRole('button', { name: 'Declined call details' })).toHaveLength(1)
+        expect(screen.getByRole('button', { name: 'Failed call details' })).toHaveStyle({ color: 'rgb(211, 47, 47)' })
+        expect(screen.getByRole('button', { name: 'Declined call details' })).toHaveStyle({ color: 'rgb(211, 47, 47)' })
+    })
+
+    it('keeps running and unknown calls standalone and uses them as terminal-group boundaries', () => {
+        const entries = [
+            toolEvent('First completed', 'webSearch'),
+            toolEvent('First failed', 'mcpToolCall', 'failed'),
+            toolEvent('Running boundary', 'dynamicToolCall', 'running'),
+            toolEvent('Second completed', 'imageView'),
+            toolEvent('Second declined', 'fileChange', 'declined'),
+            toolEvent('Unknown boundary', 'webSearch', 'unknownStatus'),
+        ]
+        renderChat(conversation('tool-boundaries.json', entries, 'codex'))
+
+        const groups = screen.getAllByRole('group', { name: 'Terminal tool calls' })
+        expect(groups).toHaveLength(2)
+        expect(within(groups[0]).getByRole('button', { name: /Tools called \(2\).*errors: 1/u })).toBeInTheDocument()
+        expect(within(groups[1]).getByRole('button', { name: /Tools called \(2\).*errors: 1/u })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Running boundary details' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Unknown boundary details' })).toBeInTheDocument()
+        expect(screen.getByText('Running')).toBeInTheDocument()
+        expect(screen.getByText('unknownStatus')).toBeInTheDocument()
+    })
+
+    it('keeps one terminal call standalone', () => {
+        renderChat(conversation('single-terminal-tool.json', [
+            toolEvent('Only declined call', 'webSearch', 'declined'),
+        ], 'codex'))
+
+        expect(screen.queryByRole('group', { name: 'Terminal tool calls' })).not.toBeInTheDocument()
         expect(screen.getByText('Declined')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Only declined call details' })).toBeInTheDocument()
+    })
+
+    it('uses terminal grouping and error counts inside a sub-agent', () => {
+        const agentCall = toolEvent('Agent call', 'tool.Agent', 'completed', { content: JSON.stringify({ subagent_type: 'Explore' }) })
+        const completedCall = toolEvent('Nested completed', 'webSearch', 'completed', { parentItemId: agentCall.providerItemId })
+        const failedCall = toolEvent('Nested failed', 'mcpToolCall', 'failed', { parentItemId: agentCall.providerItemId })
+        renderChat(conversation('sub-agent-tools.json', [agentCall, completedCall, failedCall], 'codex'))
+
+        fireEvent.click(screen.getByRole('button', { name: 'Explore entries' }))
+
+        const group = screen.getByRole('group', { name: 'Terminal tool calls' })
+        const summaryButton = within(group).getByRole('button', { name: /Tools called \(2\).*errors: 1/u })
+        fireEvent.click(summaryButton)
+        expect(within(group).getByRole('button', { name: 'Nested completed details' })).toBeInTheDocument()
+        expect(within(group).getByRole('button', { name: 'Nested failed details' })).toHaveStyle({ color: 'rgb(211, 47, 47)' })
     })
 
     it('appends a newly completed call to an existing group without remounting or duplication', () => {
@@ -1084,7 +1142,7 @@ describe('ActionConversationChat', () => {
             </AppThemeProvider>,
         )
 
-        const group = screen.getByRole('group', { name: 'Completed tool calls' })
+        const group = screen.getByRole('group', { name: 'Terminal tool calls' })
         expect(screen.getByRole('button', { name: 'Tools called (3)' })).toBe(summaryButton)
         expect(summaryButton).toHaveAttribute('aria-expanded', 'true')
         const detailButtons = within(group).getAllByRole('button').slice(1)

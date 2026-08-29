@@ -2,8 +2,8 @@ import type { ActionConversationRenderGroup } from './action_conversation_render
 import type { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
 import { ActionConversationEventRow } from './action_conversation_event_row'
 import { ActionConversationMessage } from './action_conversation_message'
-import { CompletedToolCallGroup } from './completed_tool_call_group'
 import { SubAgentGroup } from './sub_agent_group'
+import { TerminalToolCallGroup } from './terminal_tool_call_group'
 
 interface ActionConversationGroupListProps {
     cardInternalId: string | null
@@ -14,9 +14,9 @@ interface ActionConversationGroupListProps {
 /** Maps stable conversation render groups to their leaf components. */
 export function ActionConversationGroupList({ cardInternalId, groups, tracker }: ActionConversationGroupListProps) {
     return groups.map((group) => {
-        if (group.kind === 'completedToolCalls') {
+        if (group.kind === 'terminalToolCalls') {
             return (
-                <CompletedToolCallGroup
+                <TerminalToolCallGroup
                     entries={group.entries}
                     groupKey={group.key}
                     key={group.key}

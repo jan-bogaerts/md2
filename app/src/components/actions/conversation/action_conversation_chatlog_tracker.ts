@@ -72,7 +72,7 @@ function reconcileRenderGroups(
         const prior = previousByKey.get(group.key)
         if (!prior || prior.kind !== group.kind) return group
         if (group.kind === 'entry' && prior.kind === 'entry') return prior.entry === group.entry ? prior : group
-        if (group.kind === 'completedToolCalls' && prior.kind === 'completedToolCalls') {
+        if (group.kind === 'terminalToolCalls' && prior.kind === 'terminalToolCalls') {
             return entriesMatch(prior.entries, group.entries) ? prior : group
         }
         if (group.kind !== 'subAgent' || prior.kind !== 'subAgent') return group
@@ -106,7 +106,7 @@ function currentTurnBoundary(entries: AgentConversationEntry[]) {
 
 function groupEntries(group: ActionConversationRenderGroup): AgentConversationEntry[] {
     if (group.kind === 'entry') return [group.entry]
-    if (group.kind === 'completedToolCalls') return group.entries
+    if (group.kind === 'terminalToolCalls') return group.entries
 
     return [group.entry, ...group.groups.flatMap(groupEntries)]
 }
@@ -160,7 +160,7 @@ function splitGroups(
 }
 
 function groupIsRunning(group: ActionConversationRenderGroup) {
-    if (group.kind === 'completedToolCalls' || group.entry.kind !== 'event') return false
+    if (group.kind === 'terminalToolCalls' || group.entry.kind !== 'event') return false
 
     return group.entry.status === 'inProgress'
         || group.entry.status === 'running'

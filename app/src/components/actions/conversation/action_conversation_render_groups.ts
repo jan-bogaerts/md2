@@ -18,7 +18,7 @@ const DEFAULT_SUB_AGENT_LABEL = 'Sub agent'
 export type ActionConversationRenderGroup = {
     entries: AgentConversationEventEntry[]
     key: string
-    kind: 'completedToolCalls'
+    kind: 'terminalToolCalls'
 } | {
     entry: AgentConversationEntry
     key: string
@@ -36,11 +36,13 @@ function isToolCall(entry: AgentConversationEventEntry) {
     return TOOL_CALL_EVENT_TYPES.has(entry.type) || entry.type.startsWith('tool.')
 }
 
-function isCompletedToolCall(entry: AgentConversationEventEntry) {
-    return entry.status === 'completed' && isToolCall(entry)
+function isTerminalToolCall(entry: AgentConversationEventEntry) {
+    const terminal = entry.status === 'completed' || entry.status === 'failed' || entry.status === 'declined'
+
+    return terminal && isToolCall(entry)
 }
 
-function appendCompletedToolCallRun(
+function appendTerminalToolCallRun(
     groups: ActionConversationRenderGroup[],
     entries: AgentConversationEventEntry[],
 ) {
@@ -51,7 +53,7 @@ function appendCompletedToolCallRun(
         return
     }
 
-    groups.push({ entries, key: eventIdentity(entries[0]), kind: 'completedToolCalls' })
+    groups.push({ entries, key: eventIdentity(entries[0]), kind: 'terminalToolCalls' })
 }
 
 function parsedToolInput(content: string) {
@@ -145,18 +147,18 @@ function buildGroups(
     childEntries: Map<string, AgentConversationEventEntry[]>,
 ) {
     const groups: ActionConversationRenderGroup[] = []
-    let completedToolCalls: AgentConversationEventEntry[] = []
+    let terminalToolCalls: AgentConversationEventEntry[] = []
 
     for (const entry of entries) {
         const descendants = isSpawningCall(entry) ? childEntries.get(entry.providerItemId as string) ?? [] : []
         const isAgentCall = isSpawningCall(entry) && shouldRenderSubAgentGroup(entry, descendants)
-        if (entry.kind === 'event' && !isAgentCall && isCompletedToolCall(entry)) {
-            completedToolCalls.push(entry)
+        if (entry.kind === 'event' && !isAgentCall && isTerminalToolCall(entry)) {
+            terminalToolCalls.push(entry)
             continue
         }
 
-        appendCompletedToolCallRun(groups, completedToolCalls)
-        completedToolCalls = []
+        appendTerminalToolCallRun(groups, terminalToolCalls)
+        terminalToolCalls = []
         if (isAgentCall) {
             groups.push({
                 entry,
@@ -172,7 +174,7 @@ function buildGroups(
         groups.push({ entry, key, kind: 'entry' })
     }
 
-    appendCompletedToolCallRun(groups, completedToolCalls)
+    appendTerminalToolCallRun(groups, terminalToolCalls)
 
     return groups
 }

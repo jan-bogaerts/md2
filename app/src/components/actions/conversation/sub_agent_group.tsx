@@ -4,9 +4,9 @@ import { Box, Button, Typography } from '@mui/material'
 import { memo, useCallback, useSyncExternalStore } from 'react'
 import type { AgentConversationEventEntry } from '../../../data/data_types'
 import { ActionConversationEventRow } from './action_conversation_event_row'
-import { CompletedToolCallGroup } from './completed_tool_call_group'
 import type { ActionConversationRenderGroup } from './action_conversation_render_groups'
 import type { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
+import { TerminalToolCallGroup } from './terminal_tool_call_group'
 
 interface SubAgentGroupProps {
     entry: AgentConversationEventEntry
@@ -19,7 +19,7 @@ interface SubAgentGroupProps {
 
 function groupEntryCount(groups: ActionConversationRenderGroup[]): number {
     return groups.reduce((count, group) => {
-        if (group.kind === 'completedToolCalls') return count + group.entries.length
+        if (group.kind === 'terminalToolCalls') return count + group.entries.length
         if (group.kind === 'subAgent') return count + 1 + groupEntryCount(group.groups)
 
         return count + 1
@@ -60,9 +60,9 @@ export const SubAgentGroup = memo(function SubAgentGroup(
                 </Typography>
             </Button>
             {expanded ? groups.map((group) => {
-                if (group.kind === 'completedToolCalls') {
+                if (group.kind === 'terminalToolCalls') {
                     return (
-                        <CompletedToolCallGroup
+                        <TerminalToolCallGroup
                             entries={group.entries}
                             groupKey={group.key}
                             key={group.key}
