@@ -1,0 +1,615 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "67aa408b-6038-40b7-a82d-76678ca7b201",
+      "cardPath": "design/feature_descriptions/F_251_action_popup_height_and_location.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_251_action_popup_height_and_location.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-29T14:40:00.309Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the feature doc first.",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-29T14:40:03.391Z"
+        },
+        {
+          "command": "cat \"design/feature_descriptions/F_251_action_popup_height_and_location.md\"",
+          "content": "---\nauthor: \nid: F_251\ninternalId: 67aa408b-6038-40b7-a82d-76678ca7b201\ntitle: action popup height and location\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__67aa408b-6038-40b7-a82d-76678ca7b201.json\npolicy:\n---\nwhen the height of the action popup wants to be bigger than the height of the app, it sort of shows up as max height, but the popup tries to leave some room at the bottom of the popup and perhaps also a little bit at the top.&#x20;\n\nAt the bottom, we don't need to do this, it can be at the edge of the bottom (not below), but it should remain a little more below the edge at the top, cause the close button in the upper right corner of the action popup can no longer be clicked on when it is behind the drag area of the main window (to move the window around), which is annoying.\n\nAlso when the action popup is fully expanded and on large screen (not mobile), then we also need to leave some room at the top.",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-3",
+          "kind": "event",
+          "label": "cat \"design/feature_descriptions/F_251_action_popup_height_and_location.md\"",
+          "providerItemId": "toolu_018qhD2UC2xWQYhGRgRGJcTC",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:04.812Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDJWMjH2gGP4SgQYZwo:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:40:06.425Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "ls; echo ---; grep -ril \"action.*popup\\|actionpopup\" --include=*.ts --include=*.tsx --include=*.css --include=*.md . | grep -v node_modules | head -50",
+          "content": "LICENSE\nREADME.md\nagents.md\napp\ndesign\ndesktop\ndocs\nmd2.config.json\nnode_modules\npackage-lock.json\npackage.json\nrelease\nscreenshots\nshared\ntemp.jpg\ntofix.jpg\n---\n./app/dist/assets/index-B1Jq9YIq.css\n./app/src/components/actions/agent/action_agent_preset_name_owner.tsx\n./app/src/components/actions/agent/action_agent_prompt_owner.tsx\n./app/src/components/actions/conversation/action_conversation_chat.test.tsx\n./app/src/components/actions/conversation/action_conversation_chat.tsx\n./app/src/components/actions/conversation/action_conversation_chatlog_tracker.ts\n./app/src/components/actions/conversation/action_conversation_chat_integration.test.tsx\n./app/src/components/actions/conversation/action_conversation_rendering.test.tsx\n./app/src/components/actions/conversation/action_conversation_reservation.ts\n./app/src/components/actions/conversation/action_conversation_store.ts\n./app/src/components/actions/conversation/conversation_meta_info.tsx\n./app/src/components/actions/conversation/conversation_timer.tsx\n./app/src/components/actions/editor/action_phrase_buttons_owner.tsx\n./app/src/components/actions/run/popup/action_agent_interaction.tsx\n./app/src/components/actions/run/popup/action_popup.test.tsx\n./app/src/components/actions/run/popup/action_popup.tsx\n./app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx\n./app/src/components/actions/run/popup/action_popup_bottom_row.tsx\n./app/src/components/actions/run/popup/action_popup_content.tsx\n./app/src/components/actions/run/popup/action_popup_defaults.node.test.ts\n./app/src/components/actions/run/popup/action_popup_finish_button.tsx\n./app/src/components/actions/run/popup/action_popup_frame.tsx\n./app/src/components/actions/run/popup/action_popup_initial_action.node.test.ts\n./app/src/components/actions/run/popup/action_popup_operations.node.test.ts\n./app/src/components/actions/run/popup/action_popup_operations.ts\n./app/src/components/actions/run/popup/action_popup_runtime.node.test.ts\n./app/src/components/actions/run/popup/action_popup_runtime.ts\n./app/src/components/actions/run/popup/action_popup_run_disabled.ts\n./app/src/components/actions/run/popup/action_popup_types.ts\n./app/src/components/actions/run/popup/action_run_disabled_message.tsx\n./app/src/components/actions/run/popup/action_selector.tsx\n./app/src/components/actions/run/popup/action_usage_scope_store.ts\n./app/src/components/actions/run/popup/action_usage_values_service.ts\n./app/src/components/actions/run/popup/agent_action.tsx\n./app/src/components/actions/run/popup/card_action_popup_host.tsx\n./app/src/components/actions/run/popup/card_action_popup_host_entry.test.tsx\n./app/src/components/actions/run/popup/card_action_popup_host_entry.tsx\n./app/src/components/actions/run/popup/command_action.tsx\n./app/src/components/actions/run/schedule/action_schedule_owner.tsx\n./app/src/components/actions/run/state/action_history_store.ts\n./app/src/components/actions/run/state/action_run_result_store.ts\n./app/src/components/actions/run/state/action_run_status_owner.tsx\n./app/src/components/actions/run/trigger/action_entry_points.test.tsx\n./app/src/components/actions/run/trigger/action_entry_points.tsx\n./app/src/components/actions/run/trigger/card_run_button.test.tsx\n./app/src/components/actions/run/trigger/card_run_button.tsx\n./app/src/components/agents/agent_chat_fab.test.tsx\n./app/src/components/agents/agent_chat_fab.tsx\n./app/src/components/card_view/card_body_popover_commit.test.tsx\n./app/src/components/card_view/card_view.test.tsx",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-5",
+          "kind": "event",
+          "label": "ls; echo ---; grep -ril \"action.*popup\\|actionpopup\" --include=*.ts --include=*.tsx --include=*.css --include=*.md . | grep -v node_modules | head -50",
+          "providerItemId": "toolu_011eg7JK9cngABBCC5AQiayB",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:12.934Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd app/src/components/actions/run/popup; wc -l action_popup.tsx action_popup_frame.tsx action_popup_content.tsx; echo \"=== FRAME ===\"; cat action_popup_frame.tsx",
+          "content": "  142 action_popup.tsx\n  169 action_popup_frame.tsx\n   69 action_popup_content.tsx\n  380 total\n=== FRAME ===\nimport { Box, IconButton, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material'\nimport ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'\nimport ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'\nimport Close from 'mdi-material-ui/Close'\nimport type { ReactNode } from 'react'\nimport type { ActionContext } from '../../../../data/action_context'\nimport { ResizablePopper } from '../../../resizable_popper'\nimport type { WorktreeAssignmentTarget } from '../../../worktree_selector'\nimport { MarkdownTypeaheadLayerProvider } from '../../../editor/markdown_typeahead_layer_provider'\nimport { ActionConversationPickerOwner } from '../../conversation/action_conversation_picker_owner'\nimport type { ActionConversationStore } from '../../conversation/action_conversation_store'\nimport type { ActionRunBindingStore } from '../state/action_run_binding_store'\nimport { ActionSelector } from './action_selector'\nimport type { ActionPopupContentProps } from './action_popup_types'\nimport { ActionWorktreeSelectorOwner } from './action_worktree_selector_owner'\n\nexport const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'\nexport const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'\n\ninterface ActionPopupFrameProps {\n    bindingStore: ActionRunBindingStore\n    children: ReactNode\n    contentProps: ActionPopupContentProps\n    conversationStore: ActionConversationStore\n}\n\nfunction worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTarget | null {\n    if (context.kind === 'project') return { kind: 'project' }\n    if ((context.kind === 'card' || context.kind === 'file') && context.file && context.cardInternalId) {\n        return { cardInternalId: context.cardInternalId, kind: 'card', path: context.file }\n    }\n\n    return null\n}\n\n/** Shared popup surface, toolbar, and action selector. */\nexport function ActionPopupFrame({ bindingStore, children, contentProps, conversationStore }: ActionPopupFrameProps) {\n    const {\n        action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,\n        onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,\n        target, targetTitle, titleId,\n    } = contentProps\n    const theme = useTheme()\n    const isMobile = useMediaQuery(theme.breakpoints.down('md'))\n    const sizeStorageKey = baseContext.kind === 'project'\n        ? PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY\n        : CARD_RUN_POPUP_SIZE_STORAGE_KEY\n    const parsedWorktree = assignmentContext.worktree && /^[1-9]\\d*$/u.test(assignmentContext.worktree)\n        ? Number.parseInt(assignmentContext.worktree, 10)\n        : null\n    const worktreeAssignment = {\n        worktree: parsedWorktree,\n        worktreeError: assignmentContext.worktreeError ?? null,\n        worktreeValue: assignmentContext.worktree ?? null,\n    }\n    const assignmentTarget = baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project'\n        ? worktreeAssignmentTarget(baseContext)\n        : null\n    // The badge stays a span carrying only tabIndex: a button or a role attribute would match the\n    // popper's INTERACTIVE_SELECTOR, which would stop a pointer press on the badge from dragging the popup.\n    const targetBadge = target ? (\n        <Box\n            component=\"span\"\n            sx={{\n                bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,\n                fontFamily: '\"Roboto Mono\", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,\n                px: 0.875, py: 0.25,\n            }}\n            tabIndex={0}\n        >\n            {target}\n        </Box>\n    ) : null\n\n    return (\n        <ResizablePopper\n            anchorElement={anchorElement}\n            draggable={isMobile ? false : draggable}\n            fullHeight={isMobile || fullHeight}\n            initialSize={{ height: 450, width: 400 }}\n            labelId=\n[522 characters omitted]\n              margin: isMobile ? '0 !important' : undefined,\n                maxHeight: isMobile ? 'none' : undefined,\n                maxWidth: isMobile ? 'none' : undefined,\n                top: isMobile ? '0 !important' : undefined,\n                transform: isMobile ? 'none !important' : undefined,\n                width: isMobile ? '100vw !important' : undefined,\n            }}\n            resizeFromAllSides\n            resizeHorizontallyWhenFullHeight={!isMobile}\n            resizeLabel=\"Resize action popup\"\n            stackPosition={stackPosition}\n            storageKey={isMobile ? undefined : sizeStorageKey}\n        >\n            <MarkdownTypeaheadLayerProvider stackPosition={stackPosition ?? 0}>\n                <Typography\n                    id={titleId}\n                    sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}\n                >\n                    {target ? `Run actions for ${target}` : 'Run actions'}\n                </Typography>\n                <Box\n                    data-drag-handle={!isMobile && draggable ? 'true' : undefined}\n                    sx={{\n                        borderBottom: 1, borderColor: 'divider', cursor: !isMobile && draggable ? 'move' : undefined,\n                        display: 'flex', flexDirection: 'column', flexShrink: 0, gap: 1, px: 1.5, py: 1.5,\n                    }}\n                >\n                    <Box data-testid=\"action-popup-toolbar\" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>\n                        {targetBadge && targetTitle ? <Tooltip title={targetTitle}>{targetBadge}</Tooltip> : targetBadge}\n                        {assignmentTarget && !readOnlyMessage ? (\n                            <ActionWorktreeSelectorOwner\n                                assignment={worktreeAssignment}\n                                assignmentTarget={assignmentTarget}\n                                bindingStore={bindingStore}\n                                primaryPath={primaryPath}\n                            />\n                        ) : null}\n                        {action.type === 'agent' ? (\n                            <ActionConversationPickerOwner\n                                actionId={action.id}\n                                bindingStore={bindingStore}\n                                context={assignmentContext}\n                                store={conversationStore}\n                            />\n                        ) : null}\n                        <Box sx={{ flex: 1 }} />\n                        {!isMobile ? (\n                            <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>\n                                <IconButton\n                                    aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}\n                                    onClick={onToggleFullHeight}\n                                    size=\"small\"\n                                    sx={{ flexShrink: 0, height: 30, width: 30 }}\n                                >\n                                    {fullHeight\n                                        ? <ArrowCollapseVertical sx={{ fontSize: 18 }} />\n                                        : <ArrowExpandVertical sx={{ fontSize: 18 }} />}\n                                </IconButton>\n                            </Tooltip>\n                        ) : null}\n                        <IconButton aria-label=\"Close\" onClick={onClose} size=\"small\" sx={{ flexShrink: 0, height: 30, width: 30 }}>\n                            <Close sx={{ fontSize: 18 }} />\n                        </IconButton>\n                    </Box>\n                    <ActionSelector\n                        actions={actions}\n                        context={assignmentContext}\n                        onSelect={onSelectAction}\n                        selectedAction={action}\n                    />\n                </Box>\n                {children}\n            </MarkdownTypeaheadLayerProvider>\n        </ResizablePopper>\n    )\n}",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-6",
+          "kind": "event",
+          "label": "cd app/src/components/actions/run/popup; wc -l action_popup.tsx action_popup_frame.tsx action_popup_content.tsx; echo \"=== FRAME ===\"; cat action_popup_frame.tsx",
+          "providerItemId": "toolu_01Gq2xYVyf2jUVceGg2WcH95",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:15.235Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDKGv83T3RFZdAQm2Jg:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:40:16.822Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd app/src/components; ls | grep -i resiz; echo ---; ls resizable_popper* 2>/dev/null; find . -name \"resizable_popper*\" -o -name \"*resizable*\" | head -20",
+          "content": "/usr/bin/bash: line 1: cd: app/src/components: No such file or directory\n---",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-8",
+          "kind": "event",
+          "label": "cd app/src/components; ls | grep -i resiz; echo ---; ls resizable_popper* 2>/dev/null; find . -name \"resizable_popper*\" -o -name \"*resizable*\" | head -20",
+          "providerItemId": "toolu_015ARfzHnvsDHUjfxknLT1Fw",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:17.718Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components && find . -iname \"*resizable*\" | head -20",
+          "content": "./resizable_popover.test.tsx\n./resizable_popover.tsx\n./resizable_popper.test.tsx\n./resizable_popper.tsx",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-9",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components && find . -iname \"*resizable*\" | head -20",
+          "providerItemId": "toolu_01L6pxWck2csQo5iEiom2eET",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:19.899Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "wc -l resizable_popper.tsx && cat resizable_popper.tsx",
+          "content": "461 resizable_popper.tsx\nimport { Box, Paper, Popper, ThemeProvider, useTheme } from '@mui/material'\nimport type { PopperPlacementType, PopperProps, SxProps, Theme } from '@mui/material'\nimport { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'\nimport type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'\nimport { dialogService } from '../services/dialog_service'\nimport { applicationStorage } from '../services/storage/application_storage'\nimport type { ResizeCorner } from './resizable_popover'\n\ninterface PopperSize {\n    height?: number\n    width?: number\n}\n\ninterface MinimumPopperSize {\n    height: number\n    width: number\n}\n\ninterface PopperPosition {\n    left: number\n    top: number\n}\n\ninterface ResizablePopperBaseProps {\n    anchorElement: HTMLElement | null\n    children: ReactNode\n    constrainSizeToViewport?: boolean\n    draggable?: boolean\n    focusOnMount?: boolean\n    fullHeight?: boolean\n    initialSize: PopperSize\n    labelId: string\n    minimumSize?: MinimumPopperSize\n    onActivate?: () => void\n    open: boolean\n    paperSx?: SxProps<Theme>\n    persistSizeOnResizeEndOnly?: boolean\n    placement?: PopperPlacementType\n    resizeCorner?: ResizeCorner\n    resizeFromAllSides?: boolean\n    resizeHorizontallyWhenFullHeight?: boolean\n    resizeLabel: string\n    stackPosition?: number\n    storageKey?: string\n}\n\ntype ResizablePopperProps = ResizablePopperBaseProps & ({\n    closeOnEscape: false\n    onClose?: never\n} | {\n    closeOnEscape?: true\n    onClose: () => void\n})\n\n// Controls that must keep their own click even when they sit inside a drag handle.\n// MUI selects render a div[role=\"combobox\"], so native tag names alone are not enough.\nconst INTERACTIVE_SELECTOR = [\n    'button', 'input', 'select', 'textarea', 'a', 'label',\n    '[role=\"button\"]', '[role=\"combobox\"]', '[role=\"option\"]', '[role=\"listbox\"]', '[role=\"tab\"]', '[role=\"switch\"]',\n    '[contenteditable=\"true\"]',\n].join(', ')\nconst MIN_WIDTH = 280\nconst MIN_HEIGHT = 200\nconst HANDLE_SIZE = 16\nconst EDGE_HANDLE_SIZE = 6\nconst VIEWPORT_MARGIN = 16\nconst OVERLAY_LAYER_OFFSET = 1\nconst ALL_RESIZE_DIRECTIONS = ['top', 'right', 'bottom', 'left', 'top-right', 'bottom-right', 'bottom-left', 'top-left'] as const\ntype ResizeDirection = typeof ALL_RESIZE_DIRECTIONS[number]\nconst FULL_HEIGHT_RESIZE_DIRECTIONS: ResizeDirection[] = ['left', 'right']\n\nconst PREVENT_VIEWPORT_OVERFLOW_MODIFIER = { name: 'preventOverflow', options: { altAxis: true, padding: VIEWPORT_MARGIN, tether: false } } as const\nconst VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [\n    PREVENT_VIEWPORT_OVERFLOW_MODIFIER,\n    { name: 'flip', options: { padding: VIEWPORT_MARGIN } },\n]\nconst FULL_HEIGHT_VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [PREVENT_VIEWPORT_OVERFLOW_MODIFIER]\nconst VIEWPORT_POPPER_OPTIONS: NonNullable<PopperProps['popperOptions']> = { strategy: 'fixed' }\n\nfunction clampSizeToViewport(size: PopperSize, minimumSize: MinimumPopperSize) {\n    const maximumHeight = Math.max(0, window.innerHeight - VIEWPORT_MARGIN * 2)\n    const maximumWidth = Math.max(0, window.innerWidth - VIEWPORT_MARGIN * 2)\n    const minimumHeight = Math.min(minimumSize.height, maximumHeight)\n    const minimumWidth = Math.min(minimumSize.width, maximumWidth)\n\n    return {\n        height: Math.min(Math.max(size.height as number, minimumHeight), maximumHeight),\n        width: Math.min(Math.max(size.width as number, minimumWidth), maximumWidth),\n    }\n}\n\nfunction loadSize(\n    initialSize: PopperSize,\n    minimumSize: MinimumPopperSize,\n    constrainSizeToViewport: boolean,\n    storageKey?: string,\n): PopperSize {\n    if (!storageKey) return initialSize\n\n    const storedValue = applicationStorage.getItem(storageKey)\n    if (!storedValue) return initialSize\n\n    try {\n        const storedSize = JSON.parse(storedValue) as Partial<PopperSize>\n        if (!Number.isFinite(storedSize.height) || !Number.isFinite(storedSize.width)) return initialSize\n\n        const size = {\n            h\n[11645 characters omitted]\n          resizeRef.current?.abort()\n            dialogService.error(error, { fallbackMessage: 'Popup resize could not be started' })\n        }\n    }\n\n    const paperStyle: CSSProperties = fullHeight\n        ? { height: '100vh', left: detachedLeft ?? 0, position: 'fixed', top: 0, width: size.width }\n        : position\n            ? { ...size, left: position.left, position: 'fixed', top: position.top }\n            : size\n    const detached = position !== null || fullHeight\n\n    return (\n        <Popper\n            anchorEl={anchorElement ?? (draggable ? document.body : null)}\n            modifiers={fullHeight ? FULL_HEIGHT_VIEWPORT_MODIFIERS : VIEWPORT_MODIFIERS}\n            open={open}\n            placement={placement}\n            popperOptions={VIEWPORT_POPPER_OPTIONS}\n            sx={{\n                left: detached ? '0 !important' : undefined,\n                top: detached ? '0 !important' : undefined,\n                transform: detached ? 'none !important' : undefined,\n                zIndex: stackPosition === undefined ? 'modal' : (theme) => theme.zIndex.modal + stackPosition,\n            }}\n        >\n            <Paper\n                aria-labelledby={labelId}\n                data-full-height={fullHeight ? 'true' : undefined}\n                onClickCapture={handlePaperClickCapture}\n                onFocusCapture={onActivate}\n                onKeyDown={handleKeyDown}\n                onPointerDownCapture={startDrag}\n                ref={setPaperElement}\n                role=\"dialog\"\n                style={paperStyle}\n                tabIndex={stackPosition === undefined ? undefined : -1}\n                sx={[{\n                    display: 'flex',\n                    maxHeight: fullHeight ? '100vh' : 'calc(100vh - 32px)',\n                    maxWidth: fullHeight ? '100vw' : 'calc(100vw - 32px)',\n                    overflow: 'hidden',\n                    position: 'relative',\n                }, paperSx] as SxProps<Theme>}\n            >\n                {stackPosition === undefined\n                    ? children\n                    : <ThemeProvider theme={overlayTheme}>{children}</ThemeProvider>}\n                {fullHeight && resizeHorizontallyWhenFullHeight ? FULL_HEIGHT_RESIZE_DIRECTIONS.map((direction) => (\n                    <Box\n                        aria-label={`${resizeLabel} from ${direction}`}\n                        data-direction={direction}\n                        key={direction}\n                        onPointerDown={startResize}\n                        role=\"separator\"\n                        sx={{ ...directionPosition(direction), position: 'absolute', touchAction: 'none' }}\n                    />\n                )) : !fullHeight && resizeFromAllSides ? ALL_RESIZE_DIRECTIONS.map((direction) => (\n                    <Box\n                        aria-label={`${resizeLabel} from ${direction}`}\n                        data-direction={direction}\n                        key={direction}\n                        onPointerDown={startResize}\n                        role=\"separator\"\n                        sx={{ ...directionPosition(direction), position: 'absolute', touchAction: 'none' }}\n                    />\n                )) : !fullHeight ? (\n                    <Box\n                        aria-label={resizeLabel}\n                        data-corner={resizeCorner}\n                        onPointerDown={startResize}\n                        role=\"separator\"\n                        sx={{\n                            bottom: 0,\n                            cursor: resizeCorner === 'lower-left' ? 'nesw-resize' : 'nwse-resize',\n                            height: HANDLE_SIZE,\n                            left: resizeCorner === 'lower-left' ? 0 : undefined,\n                            position: 'absolute',\n                            right: resizeCorner === 'lower-right' ? 0 : undefined,\n                            touchAction: 'none',\n                            width: HANDLE_SIZE,\n                        }}\n                    />\n                ) : null}\n            </Paper>\n        </Popper>\n    )\n}",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-10",
+          "kind": "event",
+          "label": "wc -l resizable_popper.tsx && cat resizable_popper.tsx",
+          "providerItemId": "toolu_01UvTGnTBg6kD1jtRxeRAPxE",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:21.857Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDKmDU5xRegQzyHHEYv:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:40:26.394Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2 && grep -rn \"app-region\\|titleBarStyle\\|titleBarOverlay\\|WebkitAppRegion\" --include=*.ts --include=*.tsx --include=*.css --include=*.json app/src desktop 2>/dev/null | grep -v node_modules | head -30",
+          "content": "app/src/components/selectable_alert_message.tsx:19:                WebkitAppRegion: 'no-drag',\napp/src/components/shell/drag_region.ts:3:// `-webkit-app-region` controls window dragging in the borderless Electron shell. It is not part of\napp/src/components/shell/drag_region.ts:5:export const DRAG_REGION = { WebkitAppRegion: 'drag' } as CSSProperties\napp/src/components/shell/drag_region.ts:6:export const NO_DRAG_REGION = { WebkitAppRegion: 'no-drag' } as CSSProperties\napp/src/components/shell/menu/main_toolbar.test.tsx:15:    return (element.style as unknown as Record<string, string>).WebkitAppRegion",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-12",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2 && grep -rn \"app-region\\|titleBarStyle\\|titleBarOverlay\\|WebkitAppRegion\" --include=*.ts --include=*.tsx --include=*.css --include=*.json app/src desktop 2>/dev/null | grep -v node_modules | head -30",
+          "providerItemId": "toolu_01GrpJjiqjYNFkLF77wAVPTx",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:28.604Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cat app/src/components/shell/drag_region.ts && echo \"=== USERS ===\" && grep -rn \"DRAG_REGION\" --include=*.tsx --include=*.ts app/src | grep -v \"drag_region.ts:\"",
+          "content": "import type { CSSProperties } from 'react'\n\n// `-webkit-app-region` controls window dragging in the borderless Electron shell. It is not part of\n// csstype's known properties, so these styles are cast to CSSProperties for use on the `style` prop.\nexport const DRAG_REGION = { WebkitAppRegion: 'drag' } as CSSProperties\nexport const NO_DRAG_REGION = { WebkitAppRegion: 'no-drag' } as CSSProperties\n=== USERS ===\napp/src/components/shell/menu/app_menu.tsx:54:import { NO_DRAG_REGION } from '../drag_region'\napp/src/components/shell/menu/app_menu.tsx:468:                                    style={NO_DRAG_REGION}\napp/src/components/shell/menu/main_toolbar.tsx:3:import { DRAG_REGION, NO_DRAG_REGION } from '../drag_region'\napp/src/components/shell/menu/main_toolbar.tsx:39:                style={DRAG_REGION}\napp/src/components/shell/menu/main_toolbar.tsx:57:                <Box style={NO_DRAG_REGION} sx={{ alignSelf: 'stretch', display: 'flex', flexShrink: 0 }}>\napp/src/components/shell/menu/main_toolbar.tsx:69:                    <Box style={NO_DRAG_REGION}>\napp/src/components/shell/menu/main_toolbar.tsx:74:                    <Box style={NO_DRAG_REGION}>\napp/src/components/shell/menu/main_toolbar.tsx:78:                    <Box style={NO_DRAG_REGION}>\napp/src/components/shell/menu/main_toolbar.tsx:84:                        style={NO_DRAG_REGION}\napp/src/components/shell/menu/main_toolbar.tsx:91:            <Box style={NO_DRAG_REGION}>\napp/src/components/shell/menu/mobile_menu_button.tsx:8:import { NO_DRAG_REGION } from '../drag_region'\napp/src/components/shell/menu/mobile_menu_button.tsx:31:            <IconButton aria-label=\"Open menu\" edge=\"start\" onClick={onOpenMenu} style={NO_DRAG_REGION} sx={{ mr: 1 }}>\napp/src/components/shell/search/search_control.tsx:12:import { NO_DRAG_REGION } from '../drag_region'\napp/src/components/shell/search/search_control.tsx:123:                style={NO_DRAG_REGION}\napp/src/components/shell/search/search_panel.tsx:21:import { NO_DRAG_REGION } from '../drag_region'\napp/src/components/shell/search/search_panel.tsx:227:            <Box style={NO_DRAG_REGION}>\napp/src/components/shell/search/search_panel.tsx:282:                    paperSx={{ ...NO_DRAG_REGION, flexDirection: 'column', overflow: 'auto' }}",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-13",
+          "kind": "event",
+          "label": "cat app/src/components/shell/drag_region.ts && echo \"=== USERS ===\" && grep -rn \"DRAG_REGION\" --include=*.tsx --include=*.ts app/src | grep -v \"drag_region.ts:\"",
+          "providerItemId": "toolu_01RmGiThYs4EVeLkZisAXpQD",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:31.108Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n 1,100p app/src/components/shell/menu/main_toolbar.tsx",
+          "content": "import { AppBar, Box, Toolbar } from '@mui/material'\nimport type { ReactNode } from 'react'\nimport { DRAG_REGION, NO_DRAG_REGION } from '../drag_region'\nimport { ThemeToggleButton } from '../theme_toggle_button'\nimport { isElectron } from '../../../services/electron_lifecycle_bridge'\nimport { ProjectNameLabel } from './project_name_label'\nimport { MobileMenuButton } from './mobile_menu_button'\n\nconst MENU_ROW_HEIGHT = 44\nconst SEARCH_WIDTH = 286\nconst PROJECT_NAME_MAX_WIDTH = 240\nconst APPLICATION_ICON_SOURCE = `${import.meta.env.BASE_URL}favicon.svg`\n\ninterface MainToolbarProps {\n    isMobile: boolean\n    mobileAction: ReactNode\n    onOpenMenu: () => void\n    panel: ReactNode\n    search: ReactNode\n    tabs: ReactNode\n}\n\n/**\n * Top application toolbar; hosts menu tabs, search, and the desktop drag region.\n * Interactive controls opt out of dragging so the remaining row space can move the window.\n */\nexport function MainToolbar(props: MainToolbarProps) {\n    const { isMobile, mobileAction, onOpenMenu, panel, search, tabs } = props\n\n    return (\n        <AppBar\n            color=\"default\"\n            elevation={0}\n            position=\"static\"\n            sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}\n        >\n            <Toolbar\n                disableGutters\n                style={DRAG_REGION}\n                sx={{ gap: 0.5, height: MENU_ROW_HEIGHT, minHeight: `${MENU_ROW_HEIGHT}px !important`, px: 1.5 }}\n                variant=\"dense\"\n            >\n                {isMobile ? (\n                    <MobileMenuButton onOpenMenu={onOpenMenu} />\n                ) : null}\n                <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0 }}>\n                    <Box\n                        alt=\"MD² application icon\"\n                        component=\"img\"\n                        src={APPLICATION_ICON_SOURCE}\n                        sx={{\n                            height: 24,\n                            width: 24,\n                        }}\n                    />\n                </Box>\n                <Box style={NO_DRAG_REGION} sx={{ alignSelf: 'stretch', display: 'flex', flexShrink: 0 }}>\n                    {tabs}\n                </Box>\n                <Box\n                    data-testid=\"project-name-region\"\n                    sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center', minWidth: 16, overflow: 'hidden' }}\n                >\n                    <Box sx={{ maxWidth: PROJECT_NAME_MAX_WIDTH, minWidth: 0 }}>\n                        <ProjectNameLabel />\n                    </Box>\n                </Box>\n                {isMobile ? (\n                    <Box style={NO_DRAG_REGION}>\n                        {mobileAction}\n                    </Box>\n                ) : null}\n                {isMobile ? (\n                    <Box style={NO_DRAG_REGION}>\n                        {search}\n                    </Box>\n                ) : (\n                    <Box style={NO_DRAG_REGION}>\n                        <ThemeToggleButton />\n                    </Box>\n                )}\n                {!isMobile ? (\n                    <Box\n                        style={NO_DRAG_REGION}\n                        sx={{ display: 'flex', flex: `0 0 ${SEARCH_WIDTH}px`, ml: 0.5, minWidth: 180, mr: isElectron() ? '130px' : 0 }}\n                    >\n                        {search}\n                    </Box>\n                ) : null}\n            </Toolbar>\n            <Box style={NO_DRAG_REGION}>\n                {panel}\n            </Box>\n        </AppBar>\n    )\n}",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-14",
+          "kind": "event",
+          "label": "sed -n 1,100p app/src/components/shell/menu/main_toolbar.tsx",
+          "providerItemId": "toolu_01FXoZsfA84WqMFUErS3o4pp",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:33.718Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDLdrEbj1mzUQJzTAMo:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:40:43.993Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions && ls | head -30; echo \"=== count ===\"; ls | wc -l",
+          "content": "20260614_075636.jpg\n20260614_075638.jpg\nB_121_attach_file_from_browser_not_working.md\nB_134_run_button_doesnt_show_unread_state.md\nB_140_unknown.md\nB_141_remotecontrolconnectionerror_remote_control_connection_was_replaced.md\nB_143_links_in_new_card_popup.md\nB_144_remotecontrolconnectionerror_remote_control_connection_was_replaced.md\nB_146_unknown.md\nB_147_unknown.md\nB_152_disbabled_input_while_running_agent.md\nB_154_conversation_selector_disabled_while_conversation_is_running.md\nB_157_project_action_popup_doesnt_report_tokens_or_fil.md\nB_158_remotecontrolconnectionerror_remote_control_connection_was_replaced.md\nB_159_unknown.md\nB_162_project_root_files_are_loaded_twice_on_project_open.md\nB_163_remove_generated_internal_id_memo_and_flush_before_snapshot_reload.md\nB_164_multiple_remote_control_connection_was_replaced.md\nB_165_card_file_change_drops_body.md\nB_166_input_incorrectly_disabled.md\nB_167_don_t_drop_input_when_agent_is_done.md\nB_169_prompt_editing_broken.md\nB_170_sub_agent_support_claude.md\nB_171_claude_account_usage_issues.md\nB_172_error_cannot_switch_markdown_history_before_editor_is_attached.md\nB_173_stats_crypto_randomuuid_not_supported_in_browser.md\nB_174_queued_prompt_not_working.md\nB_175_add_file_reference_popup_keeps_jumping.md\nB_180_error_error_invoking_remote_method_md2_local_bridge_invoke_error_linked_worktree_has_uncommitted_changes_c_users_janbo_documents_dev_vidsy_workers_dev1.md\nB_181_error_primary_worktree_cannot_be_added_as_a_linked_worktree.md\n=== count ===\n107",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-16",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions && ls | head -30; echo \"=== count ===\"; ls | wc -l",
+          "providerItemId": "toolu_01GPeJcaxFkryttSAPw6N5ve",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:45.295Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -l \"ready for implementation\" *.md | head -5",
+          "content": "B_175_add_file_reference_popup_keeps_jumping.md\nB_200_cant_save_command_action.md\nF_247_open_project_click_on_previous_selects.md",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-17",
+          "kind": "event",
+          "label": "grep -l \"ready for implementation\" *.md | head -5",
+          "providerItemId": "toolu_01YPmKN2ofj7N1oeEbtiggw3",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:48.473Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cat B_175_add_file_reference_popup_keeps_jumping.md",
+          "content": "---\nauthor: \nid: B_175\ninternalId: 22fa2af9-9b97-47c2-931f-ed5a5a62f89d\ntitle: add file reference popup keeps jumping\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__22fa2af9-9b97-47c2-931f-ed5a5a62f89d.json\npolicy:\nafter: d0c8354f-cfea-4ad6-b863-9bd2dbb54b52\n---\n\nWhen the user enters the 'at' character, we show a popup where the user can select a file reference to insert in the markdown text. this works, however, the popup behaves badly when the user keeps typing in order to refine the search in the popup: it keeps moving / repositioning itself and resizing. neither should happen. the anchor position should remain at where it was first opened when the 'at' char was typed and keep the popup the same size. in fact, it should use the already available resizable popup. the search results popup, card and action popups already use it.\n\n## Current state\n\n`MarkdownFileSearchTypeaheadPlugin` (`app/src/components/editor/markdown_file_search_typeahead_plugin.tsx`) renders Lexical's `LexicalTypeaheadMenuPlugin`. Lexical owns a single anchor `div` per typeahead session, created by `useMenuAnchorRef` and appended to the editor's `overlayContainer`. `MarkdownFileSearchMenu` is portalled into that anchor `div`, and passes it as `anchorElement` to `ResizablePopper`.\n\nTwo independent causes make the popup move and resize while the user keeps typing after `@`:\n\n* **Anchor keeps growing.** Lexical's `positionMenu` sizes the anchor `div` to the DOM range that runs from the `@` character to the caret, so every typed character re-runs `positionMenu` and widens (and re-tops) the anchor. MUI `Popper` re-measures its anchor and re-runs the `flip` and `preventOverflow` modifiers, so the paper shifts.\n* **Popup remounts per result count.** `MarkdownFileSearchMenu` derives `height` from `options.length * FILE_SEARCH_OPTION_ESTIMATED_HEIGHT` capped at `FILE_SEARCH_MENU_MAX_HEIGHT`, passes it as `initialSize.height`, and passes `key={height}`. Refining the query changes the result count, which changes the key, which unmounts and remounts `ResizablePopper`; the new instance re-runs `loadSize`, so the popup visibly resizes.\n* **Empty result set unmounts the popup.** `renderMenu` returns `null` when `itemProps.options.length === 0`, so the popup disappears and reappears at a new anchor as soon as matches return.\n\n`ResizablePopper` (`app/src/components/resizable_popper.tsx`) is already the shared resizable popup used by the search panel, the card body popover and the action popup frame; those callers do not jump because their anchor is a stationary button. Size persistence already works here through `storageKey` `md2.markdownFileSearchMenuSize` with `persistSizeOnResizeEndOnly`.\n\n## implementation details\n\n* **Frozen anchor.** Add a stable anchor element for the file-reference popup instead of using Lexical's growing anchor `div` directly. On mount of `MarkdownFileSearchMenu` (one mount per typeahead session), create a zero-width `div`, append it to the Lexical anchor's parent (the `overlayContainer`), copy the Lexical anchor's current `left`/`top` page coordinates and its height once, and remove it on unmount. **Frozen** means the element is positioned once, at the moment the `@` trigger opened the session, and is never repositioned while the query changes; because it lives in the same scrolling container as Lexical's anchor, it still travels with the editor when the user scrolls.\n* Pass that frozen element to `ResizablePopper` as `anchorElement`. Lexical may keep mutating its own anchor `div`; that must no longer influence popup placement.\n* **Fixed size.** Drop the content-derived `height` and the `key={height}` prop. Pass a constant `initialSize` of `FILE_SEARCH_MENU_DEFAULT_WIDTH` by `FILE_SEARCH_MENU_MAX_HEIGHT`. A size restored from `applicationStorage` still wins, and a user resize still persists on pointer-up. The popup keeps one size for the whole session regardless of how many files match.\n* **Keep open on zero matches.** `renderMenu` must stop returning `null` for an empty option list, and only bail when the anchor element is missing. `MarkdownFileSearchMenu` renders a \"No matching files\" message in place of the `Virtuoso` list when `options` is empty. Keyboard handling for an empty list stays with Lexical: no highlighted option, `Enter` selects nothing, `Escape` and typing a space or `@` still close the session through the existing trigger rules.\n* Do not change the trigger rules (`markdown_file_search_trigger.ts`), the filtering (`markdown_file_search_options.ts`), option rendering, selection/replacement (`markdown_file_search_selection.ts`), or `ResizablePopper` itself.\n* Leave `MarkdownPlaceholderTypeaheadPlugin` (`{{` placeholders) unchanged; this bug is scoped to the `@` file-reference popup.\n* Tests: extend `markdown_file_search_menu.test.tsx` for constant size across changing option counts, for the empty-state message, and for the frozen anchor surviving mutation of the Lexical anchor element. Add or extend a typeahead-plugin test covering that an empty option list still renders the menu. Run the focused editor tests, `npm run typecheck`, and app lint.\n\n## acceptance criteria\n\n* Typing `@` opens the file popup below the `@` character; typing further query characters leaves the popup's on-screen position unchanged.\n* The popup's width and height stay identical for the whole session, regardless of how many files match.\n* A size the user set by dragging a resize handle survives further typing in the same session and is restored on the next session.\n* A query with zero matches keeps the popup open, at the same position and size, showing a \"No matching files\" message; matches reappearing does not move or resize it.\n* Scrolling the editor while the popup is open keeps the popup aligned with the `@` character; the popup closes when Lexical detects the anchor left the view.\n* Closing the popup and typing a new `@` elsewhere opens it at the new `@` character.\n* Selecting a file with the mouse or with the arrow keys plus `Enter` still inserts the file link exactly as before; `Escape` still closes the popup.\n* The popup remains the shared `ResizablePopper` surface, on the same stacking layer as today when the editor sits inside another popup.\n* Placeholder (`{{`) typeahead behavior is unchanged.\n* Focused editor tests, `npm run typecheck`, and app lint pass.",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-18",
+          "kind": "event",
+          "label": "cat B_175_add_file_reference_popup_keeps_jumping.md",
+          "providerItemId": "toolu_017zMRwAVRDoTPa4WsAcUPxu",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:50.366Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-19",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDMsCh4aNsCjw3K7HCT:thinking:0",
+          "sequence": 19,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:40:53.563Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/actions/run/popup && cat action_popup.tsx && echo \"=== DEFAULTS ===\" && cat action_popup_defaults.node.test.ts | head -40",
+          "content": "import { useId, useMemo, useState } from 'react'\nimport { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../../../data/action_context'\nimport { dataService } from '../../../../services/data/data_service'\nimport { actionRunRegistry } from '../../../../services/actions/action_run_registry'\nimport { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'\nimport { cardAgentState } from '../../../../services/agents/card_agent_state'\nimport { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'\nimport { useActions } from '../../../hooks/use_actions'\nimport { useProjectState } from '../../../hooks/use_project_state'\nimport { useProjectActionWorktree } from '../../../hooks/use_worktrees'\nimport { ActionPopupContent } from './action_popup_content'\nimport { resolveInitialActionId, type PersistedActionStates } from './action_popup_initial_action'\n\nexport { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'\n\n/**\n * Badge id plus the title shown in its tooltip. The title comes from the live snapshot so it\n * follows a card renamed while the popup stays open, and falls back to the title captured in the\n * context when the card is not in the snapshot.\n */\nfunction resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n    if (context.kind === 'project') return { id: 'Project', title: null }\n    if (context.kind !== 'card') return { id: null, title: null }\n\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n    const card = cards.find(({ header }) => header.internalId === context.cardInternalId)\n\n    return { id: card?.header.id ?? null, title: card?.header.title ?? context.title ?? null }\n}\n\nfunction resolveCardInternalId(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\n    const card = context.cardInternalId\n        ? cards.find(({ header }) => header.internalId === context.cardInternalId)\n        : cards.find(({ path }) => path === context.file)\n\n    return card?.header.internalId ?? context.cardInternalId ?? null\n}\n\nfunction resolveColumnDefaultActionId(context: ActionContext) {\n    if (context.kind !== 'card' || !context.state) return undefined\n\n    return dataService.getConfig()?.states.find(({ state }) => state === context.state)?.defaultActionId\n}\n\nfunction persistedActionStates(\n    actions: ReturnType<typeof displayActionsForContext>,\n    context: ActionContext,\n    snapshot: ReturnType<typeof useProjectState>['snapshot'],\n) {\n    const cardInternalId = resolveCardInternalId(context, snapshot)\n    if (!cardInternalId) return {}\n\n    const conversations = dataService.agents.getAgentConversations(cardInternalId)\n\n    return Object.fromEntries(actions.map(({ id }) => [\n        id,\n        cardAgentState(conversations.filter((conversation) => conversation.actionId === id)),\n    ])) as PersistedActionStates\n}\n\ninterface ActionPopupProps {\n    anchorElement: HTMLElement | null\n    context: ActionContext\n    draggable?: boolean\n    initialActionId?: string\n    initialRunId?: string\n    onActivate?: () => void\n    onClose: () => void\n    open?: boolean\n    popupEntryId?: string\n    stackPosition?: number\n}\n\n/** Universal action selector and run popup for the supplied context. */\nexport function ActionPopup(props: ActionPopupProps) {\n    const { anchorElement, context, initialActionId, initialRunId, onClose, open } = props\n    const { actions: loadedActions } = useActions()\n    const { project, snapshot } = useProjectState()\n    const projectActionWorktree = useProjectActionWorktree()\n    const effectiveContext = useMemo(\n        () => projectContextWithWorktree(context, projectActionWorktree),\n        [context, projectActionWorktree],\n    )\n    const actions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext)\n[234 characters omitted]\nt(effectiveContext),\n        persistedActionStates(actions, effectiveContext, snapshot),\n        resolveColumnDefaultActionId(effectiveContext),\n    ))\n    const [fullHeight, setFullHeight] = useState(false)\n    const titleId = useId()\n    // A run that edits its own card changes the context (state, title, worktree), so the\n    // selected action can drop out of the filtered list mid-run. Keep it selectable instead\n    // of closing the popup or silently switching to another action.\n    const retainedAction = selectedActionId ? loadedActions.find(({ id }) => id === selectedActionId) ?? null : null\n    const selectedAction = actions.find(({ id }) => id === selectedActionId) ?? retainedAction ?? actions[0] ?? null\n    const selectableActions = selectedAction && !actions.some(({ id }) => id === selectedAction.id)\n        ? [...actions, selectedAction]\n        : actions\n    const { id: target, title: targetTitle } = resolvePopupTarget(context, snapshot)\n    const releasesFolder = dataService.getConfig()?.releasesFolder\n    const readOnlyMessage = releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)\n        ? RELEASED_CARD_RUN_MESSAGE\n        : null\n\n    const handleSelectAction = (actionId: string) => {\n        setSelectedActionId(actionId)\n    }\n\n    const handleClose = () => {\n        actionPromptDraftService.deleteEmptyDrafts()\n        onClose()\n    }\n\n    const handleToggleFullHeight = () => setFullHeight((current) => !current)\n\n    if (!selectedAction) return null\n\n    return (\n        <ActionPopupContent\n            {...props}\n            action={selectedAction}\n            actions={selectableActions}\n            assignmentContext={effectiveContext}\n            baseContext={context}\n            fullHeight={fullHeight}\n            initialRunId={selectedAction.id === initialActionId ? initialRunId : undefined}\n            onClose={handleClose}\n            onSelectAction={handleSelectAction}\n            onToggleFullHeight={handleToggleFullHeight}\n            open={open ?? !!anchorElement}\n            primaryPath={project?.rootPath ?? project?.id ?? null}\n            readOnlyMessage={readOnlyMessage}\n            target={target}\n            targetTitle={targetTitle}\n            titleId={titleId}\n        />\n    )\n}\n=== DEFAULTS ===\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport type { ActionDefinition } from '../../../../data/action_types'\nimport type { ElectronActionBridge } from '../../../../data/electron_action_bridge'\nimport { projectPersistenceService } from '../../../../services/project/project_persistence_service'\nimport { defaultPreparePrompt } from './action_popup_defaults'\n\nconst action = {id: 'review'} as ActionDefinition\nconst context = { file: 'design/F-1.md', kind: 'card' as const }\n\ndescribe('action popup defaults', () => {\n    afterEach(() => {\n        delete window.md2Actions\n        vi.restoreAllMocks()\n    })\n\n    it('flushes aggregate pending persistence before preparing the prompt', async () => {\n        const calls: string[] = []\n        vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockImplementation(async () => {\n            calls.push('persistence')\n        })\n        window.md2Actions = {\n            prepareActionPrompt: vi.fn(async () => {\n                calls.push('prepare')\n                return { prompt: 'Current prompt' }\n            }),\n        } as unknown as ElectronActionBridge\n\n        await expect(defaultPreparePrompt(action, context)).resolves.toBe('Current prompt')\n\n        expect(calls).toEqual(['persistence', 'prepare'])\n    })\n\n    it('does not prepare the prompt when pending persistence fails', async () => {\n        const saveError = new Error('disk unavailable')\n        vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockRejectedValue(saveError)\n        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stale prompt' }))\n        window.md2Actions = { prepareActionPrompt } as unknown as ElectronActionBridge\n\n        await expect(defaultPreparePrompt(action, context)).rejects.toBe(saveError)",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-20",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/actions/run/popup && cat action_popup.tsx && echo \"=== DEFAULTS ===\" && cat action_popup_defaults.node.test.ts | head -40",
+          "providerItemId": "toolu_013j8RRYHfAGVqidQbzuyxMX",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:55.059Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDNDFSzkXHPbx1nEqdD:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:40:58.369Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src && grep -rn \"ResizablePopper\" --include=*.tsx --include=*.ts . | grep -v \"resizable_popper\" ",
+          "content": "./components/actions/run/popup/action_popup_frame.tsx:76:        <ResizablePopper\n./components/actions/run/popup/action_popup_frame.tsx:167:        </ResizablePopper>\n./components/card_view/card_body_popover.tsx:268:            <ResizablePopper\n./components/card_view/card_body_popover.tsx:483:            </ResizablePopper>\n./components/editor/markdown_file_search_menu.tsx:68:        <ResizablePopper\n./components/editor/markdown_file_search_menu.tsx:110:        </ResizablePopper>\n./components/shell/search/search_panel.tsx:274:                <ResizablePopper\n./components/shell/search/search_panel.tsx:349:                </ResizablePopper>",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-22",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src && grep -rn \"ResizablePopper\" --include=*.tsx --include=*.ts . | grep -v \"resizable_popper\" ",
+          "providerItemId": "toolu_01TgiQrBkdoJXFDa1safC2oE",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:40:59.767Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n 255,300p components/card_view/card_body_popover.tsx; echo \"=== search_panel ===\"; sed -n 265,295p components/shell/search/search_panel.tsx",
+          "content": "    const titleId = card ? `card-body-popover-${card.header.internalId}` : 'card-body-popover'\n    const actionContext: ActionContext = {\n        ...(card?.header.internalId ? { cardInternalId: card.header.internalId } : {}),\n        ...(card ? { file: card.path } : {}),\n        kind: 'card',\n    }\n    const runningRun = useRunningActionForContext(actionContext)\n    const statusLabel = runningRun ? 'Running' : 'Idle'\n    const fullscreenSize = `calc(100vw - ${POPOVER_SIDE_MARGIN * 2}px)`\n    const fullscreenHeight = `calc(100vh - ${POPOVER_TOP_MARGIN + POPOVER_SIDE_MARGIN}px)`\n\n    return (\n        <>\n            <ResizablePopper\n                anchorElement={anchorElement}\n                constrainSizeToViewport\n                draggable={!isMobile && !isFullscreen}\n                fullHeight={isMobile}\n                initialSize={{ height: CARD_BODY_POPOVER_HEIGHT, width: CARD_BODY_POPOVER_WIDTH }}\n                labelId={titleId}\n                onActivate={() => cardPopupService.activate(entry.id)}\n                onClose={handlePopoverClose}\n                open={visible && !!card && !!anchorElement}\n                paperSx={{\n                    backgroundColor: 'background.paper',\n                    border: '1px solid',\n                    borderColor: 'divider',\n                    borderRadius: isMobile ? 0 : '14px',\n                    boxSizing: 'border-box',\n                    boxShadow: '0 24px 60px rgba(16, 24, 40, 0.28)',\n                    flexDirection: 'column',\n                    height: isMobile ? '100dvh !important' : isFullscreen ? `${fullscreenHeight} !important` : undefined,\n                    left: isMobile ? '0 !important' : isFullscreen ? `${POPOVER_SIDE_MARGIN}px !important` : undefined,\n                    margin: isMobile ? '0 !important' : undefined,\n                    maxHeight: isMobile || isFullscreen ? 'none' : undefined,\n                    maxWidth: isMobile || isFullscreen ? 'none' : undefined,\n                    top: isMobile ? '0 !important' : isFullscreen ? `${POPOVER_TOP_MARGIN}px !important` : undefined,\n                    transform: isMobile || isFullscreen ? 'none !important' : undefined,\n                    width: isMobile ? '100vw !important' : isFullscreen ? `${fullscreenSize} !important` : undefined,\n                }}\n                resizeFromAllSides={!isFullscreen}\n                resizeLabel=\"Resize card details popup\"\n                stackPosition={stackPosition}\n                storageKey={isMobile ? undefined : CARD_BODY_POPOVER_SIZE_KEY}\n            >\n                <MarkdownTypeaheadLayerProvider stackPosition={stackPosition}>\n=== search_panel ===\n                                '& fieldset': { borderColor: 'divider' },\n                            },\n                        },\n                    }}\n                    value={query}\n                    variant=\"outlined\"\n                />\n            </Box>\n            {isDropdownOpen ? (\n                <ResizablePopper\n                    anchorElement={controlElement}\n                    closeOnEscape={false}\n                    constrainSizeToViewport\n                    draggable={false}\n                    initialSize={{ height: RESULTS_MAX_HEIGHT, width: RESULTS_WIDTH }}\n                    labelId={SEARCH_DROPDOWN_LABEL_ID}\n                    open={isDropdownOpen}\n                    paperSx={{ ...NO_DRAG_REGION, flexDirection: 'column', overflow: 'auto' }}\n                    resizeCorner=\"lower-right\"\n                    resizeLabel=\"Resize search results\"\n                    storageKey={RESULTS_SIZE_STORAGE_KEY}\n                >\n                    <Typography\n                        id={SEARCH_DROPDOWN_LABEL_ID}\n                        sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}\n                    >\n                        Search dropdown\n                    </Typography>\n                    <Box aria-label=\"Search options\" role=\"group\" sx={{ alignItems: 'center', display: 'flex', gap: 1, p: 1 }}>\n                        <Tooltip title=\"RegExp mode\">\n                            <ToggleButton",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-23",
+          "kind": "event",
+          "label": "sed -n 255,300p components/card_view/card_body_popover.tsx; echo \"=== search_panel ===\"; sed -n 265,295p components/shell/search/search_panel.tsx",
+          "providerItemId": "toolu_01UUux6pUBMmJMK83VsuFmKW",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:41:02.441Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-24",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDNksxoonDU7TUvHC3x:thinking:0",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:41:04.358Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rn \"POPOVER_TOP_MARGIN\\|POPOVER_SIDE_MARGIN\" components/card_view/*.tsx components/card_view/*.ts | grep -v \"fullscreen\" | head",
+          "content": "components/card_view/card_body_popover.tsx:10:import { POPOVER_SIDE_MARGIN, POPOVER_TOP_MARGIN } from '../resizable_popover'\ncomponents/card_view/card_body_popover.tsx:287:                    left: isMobile ? '0 !important' : isFullscreen ? `${POPOVER_SIDE_MARGIN}px !important` : undefined,\ncomponents/card_view/card_body_popover.tsx:291:                    top: isMobile ? '0 !important' : isFullscreen ? `${POPOVER_TOP_MARGIN}px !important` : undefined,",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-25",
+          "kind": "event",
+          "label": "grep -rn \"POPOVER_TOP_MARGIN\\|POPOVER_SIDE_MARGIN\" components/card_view/*.tsx components/card_view/*.ts | grep -v \"fullscreen\" | head",
+          "providerItemId": "toolu_01MFdVVroPJiETZDRAoQmAF2",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:41:05.485Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -n \"POPOVER_TOP_MARGIN\\|POPOVER_SIDE_MARGIN\" components/resizable_popover.tsx",
+          "content": "36:export const POPOVER_TOP_MARGIN = 60\n37:export const POPOVER_SIDE_MARGIN = 16\n58:    return Math.max(MIN_HEIGHT, window.innerHeight - POPOVER_TOP_MARGIN - POPOVER_SIDE_MARGIN)\n62:    return Math.max(MIN_WIDTH, window.innerWidth - POPOVER_SIDE_MARGIN * 2)\n167:            marginThreshold={POPOVER_TOP_MARGIN}\n178:                        maxHeight: `calc(100vh - ${POPOVER_TOP_MARGIN + POPOVER_SIDE_MARGIN}px)`,\n179:                        maxWidth: `calc(100vw - ${POPOVER_SIDE_MARGIN * 2}px)`,",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-26",
+          "kind": "event",
+          "label": "grep -n \"POPOVER_TOP_MARGIN\\|POPOVER_SIDE_MARGIN\" components/resizable_popover.tsx",
+          "providerItemId": "toolu_01H4UXa5ZS8igzQRxkajRCPN",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:41:07.632Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-27",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDP96Skfxwx1REofFze:thinking:0",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:41:10.363Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"maxHeight\\|100vh\\|VIEWPORT_MARGIN\\|full-height\\|fullHeight\" components/resizable_popper.test.tsx | head -40; echo \"=== action_popup.test ===\"; grep -n \"fullHeight\\|full-height\\|Expand upward\\|100vh\" components/actions/run/popup/action_popup.test.tsx | head -30",
+          "content": "7:    const [fullHeight, setFullHeight] = useState(false)\n13:            fullHeight={fullHeight}\n25:                {fullHeight ? 'Collapse' : 'Expand'}\n408:    it('keeps full-height presentation constrained without overwriting normal size', () => {\n409:        const storageKey = 'test.fullHeightResizablePopperSize'\n432:                fullHeight\n445:        expect(dialog.style.height).toBe('100vh')\n470:        expect(dialog).not.toHaveAttribute('data-full-height')\n476:    it('resizes both full-height edges, persists width, and restores normal height on collapse', () => {\n482:            const fullHeight = dialog.getAttribute('data-full-height') === 'true'\n483:            const left = fullHeight ? Number.parseFloat(dialog.style.left) : 300\n485:            return new DOMRect(left, 0, width, fullHeight ? window.innerHeight : 300)\n502:        expect(dialog.style.height).toBe('100vh')\n514:    it('clamps full-height horizontal resizing to minimum width and viewport edges', () => {\n519:            const left = dialog.getAttribute('data-full-height') === 'true' ? Number.parseFloat(dialog.style.left) : 100\n=== action_popup.test ===\n1399:        expect(within(toolbar).getByRole('button', { name: 'Expand upward' })).toBeInTheDocument()\n2688:        expect(screen.queryByRole('button', { name: /Expand upward|Collapse downward/u })).not.toBeInTheDocument()\n2722:        fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))\n2723:        expect(dialog.style.height).toBe('100vh')\n2735:        fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-28",
+          "kind": "event",
+          "label": "grep -n \"maxHeight\\|100vh\\|VIEWPORT_MARGIN\\|full-height\\|fullHeight\" components/resizable_popper.test.tsx | head -40; echo \"=== action_popup.test ===\"; grep -n \"fullHeight\\|full-height\\|Expand upward\\|100vh\" components/actions/run/popup/action_popup.test.tsx | head -30",
+          "providerItemId": "toolu_01GDLGWNRZRwugv3aFdBuAZf",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:41:11.639Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n 2680,2760p components/actions/run/popup/action_popup.test.tsx",
+          "content": "        const { onClose } = renderPopup()\n        const dialog = screen.getByRole('dialog')\n\n        expect(dialog).toHaveStyle({\n            borderRadius: '0px', height: '100dvh', left: '0px', margin: '0px', maxHeight: 'none', maxWidth: 'none',\n            top: '0px', width: '100vw',\n        })\n        expect(screen.queryByRole('separator', { name: /Resize action popup/u })).not.toBeInTheDocument()\n        expect(screen.queryByRole('button', { name: /Expand upward|Collapse downward/u })).not.toBeInTheDocument()\n        expect(screen.getByTestId('action-popup-scroll-body')).toHaveStyle({ minHeight: '0', overflow: 'auto' })\n        expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument()\n\n        const actionGroup = screen.getByRole('group', { name: 'Actions' })\n        fireEvent.click(within(actionGroup).getByRole('button', { name: 'Second action' }))\n        expect(within(actionGroup).getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')\n        fireEvent.click(screen.getByRole('button', { name: 'Close' }))\n\n        expect(onClose).toHaveBeenCalledOnce()\n        expect(getStoredValue).not.toHaveBeenCalledWith(CARD_RUN_POPUP_SIZE_STORAGE_KEY)\n        expect(setStoredValue).not.toHaveBeenCalledWith(CARD_RUN_POPUP_SIZE_STORAGE_KEY, expect.any(String))\n        expect(window.localStorage.getItem(CARD_RUN_POPUP_SIZE_STORAGE_KEY)).toBe(storedSize)\n    })\n\n    it('keeps project conversation controls usable in the mobile layout', () => {\n        setMobileBreakpoint(true)\n        actionService.loadFromFiles([\n            file(agentDefinition('review', { appliesTo: { kind: 'project' }, label: 'Review project' })),\n        ])\n\n        renderPopup({ kind: 'project' })\n\n        expect(screen.getByRole('dialog')).toHaveStyle({ height: '100dvh', left: '0px', top: '0px', width: '100vw' })\n        expect(screen.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()\n        expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()\n        expect(screen.queryByRole('separator', { name: /Resize action popup/u })).not.toBeInTheDocument()\n    })\n\n    it('expands upward and restores the anchored size after collapse', () => {\n        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)\n        const { onClose } = renderPopup()\n        const dialog = screen.getByRole('dialog')\n\n        fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))\n        expect(dialog.style.height).toBe('100vh')\n        const leftResizeHandle = screen.getByRole('separator', { name: 'Resize action popup from left' })\n        const rightResizeHandle = screen.getByRole('separator', { name: 'Resize action popup from right' })\n        expect(leftResizeHandle).toHaveStyle({ cursor: 'ew-resize' })\n        expect(rightResizeHandle).toHaveStyle({ cursor: 'ew-resize' })\n        expect(screen.getAllByRole('separator', { name: /Resize action popup from/u })).toHaveLength(2)\n        expect(screen.queryByRole('separator', { name: 'Resize action popup from top' })).not.toBeInTheDocument()\n\n        fireEvent.click(screen.getByRole('button', { name: 'Collapse downward' }))\n        expect(dialog.style.height).toBe('450px')\n        expect(screen.getAllByRole('separator', { name: /Resize action popup from/u })).toHaveLength(8)\n\n        fireEvent.click(screen.getByRole('button', { name: 'Expand upward' }))\n        fireEvent.click(screen.getByRole('button', { name: 'Close' }))\n\n        expect(onClose).toHaveBeenCalledOnce()\n        expect(consoleError).not.toHaveBeenCalled()\n    })\n\n    describe('ActionPopup card id badge tooltip', () => {\n        function snapshotCard(id: string, internalId: string, title: string): Card {\n            return {\n                agentConversationErrors: [],\n                agentConversations: [],\n                content: '',\n                header: {\n                    affects: [], after: null, agentLogReferences: [], author: null, changedFiles: [], id, internalId,\n                    owner: null, policy: {}, references: [], status: 'design', title,\n                },\n                hasFrontmatter: true,\n                isActive: true,\n                path: `design/${id}.md`,\n            }\n        }\n\n        function mockSnapshotCards(cards: Card[]) {\n            vi.spyOn(dataService, 'getState').mockReturnValue({\n                project,",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-29",
+          "kind": "event",
+          "label": "sed -n 2680,2760p components/actions/run/popup/action_popup.test.tsx",
+          "providerItemId": "toolu_01Gg3guzu17C9o18Bf922se8",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:41:13.625Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-30",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDPb7s8RD5ZE6syZqYX:thinking:0",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:41:26.181Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRead popup frame, `ResizablePopper`, toolbar drag region, popover margins, tests. Two design choices need your call.",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 31,
+          "timestamp": "2026-08-29T14:41:26.827Z"
+        },
+        {
+          "content": "{\"questions\":[{\"question\":\"How big should the top gap be, and where should the value come from?\",\"header\":\"Top gap\",\"multiSelect\":false,\"options\":[{\"label\":\"Reuse POPOVER_TOP_MARGIN (60px) (Recommended)\",\"description\":\"resizable_popover.tsx already exports POPOVER_TOP_MARGIN = 60, used by the fullscreen card body popover. It clears the 44px drag toolbar with room to spare. Reusing it keeps one number for 'space under the title bar'.\"},{\"label\":\"New constant = toolbar height + 8px (52px)\",\"description\":\"Add a dedicated constant in resizable_popper.tsx derived from MENU_ROW_HEIGHT (44) plus a small gap. Tighter fit, but a second competing top-margin number in the codebase.\"},{\"label\":\"Keep current 16px, only mark popup no-drag\",\"description\":\"Instead of a spatial gap, put -webkit-app-region: no-drag on the popup paper (search_panel.tsx:282 already does this). Fixes the unclickable close button without moving the popup, but does not match your 'leave room at top' wording.\"}]},{\"question\":\"Should the top gap also constrain dragging the popup by its toolbar?\",\"header\":\"Drag clamp\",\"multiSelect\":false,\"options\":[{\"label\":\"Yes, clamp drag too (Recommended)\",\"description\":\"clampDetachedTop currently allows top = 0, so a user can drag the popup over the window drag region and lose the close button again. Clamping drag to the same top gap makes the rule consistent.\"},{\"label\":\"No, only auto-placement and full height\",\"description\":\"Leave manual dragging unrestricted; the user can still drag the popup under the title bar. Smaller change, but the reported annoyance is reproducible by dragging.\"}]},{\"question\":\"Where does the new behavior apply?\",\"header\":\"Scope\",\"multiSelect\":false,\"options\":[{\"label\":\"Action popup only (Recommended)\",\"description\":\"Add opt-in props to ResizablePopper; only action_popup_frame.tsx passes them. Card body popover, search dropdown and file-reference typeahead keep today's behavior.\"},{\"label\":\"All ResizablePopper surfaces\",\"description\":\"Change VIEWPORT_MARGIN handling inside ResizablePopper itself so every popup gets a flush bottom and a top gap. Broader consistency, larger blast radius and more test churn.\"}]}]}",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-32",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "output": "The user answered: \"How big should the top gap be, and where should the value come from?\"=\"Reuse POPOVER_TOP_MARGIN (60px) (Recommended)\", \"Should the top gap also constrain dragging the popup by its toolbar?\"=\"Yes, clamp drag too (Recommended)\", \"Where does the new behavior apply?\"=\"action popup and card popup\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
+          "providerItemId": "toolu_01Axbhtzcypc1PzNrSDkMLrp",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:47:14.806Z",
+          "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "claude-question-0: Reuse POPOVER_TOP_MARGIN (60px) (Recommended)\nclaude-question-1: Yes, clamp drag too (Recommended)\nclaude-question-2: action popup and card popup",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-answer-32",
+          "kind": "message",
+          "role": "user",
+          "sequence": 33,
+          "timestamp": "2026-08-29T14:47:14.800Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-34",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDrDqCWetqj426EXCXj:thinking:0",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:47:27.311Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"const VIEWPORT_MARGIN\\|function clampSizeToViewport\\|function clampDetachedTop\\|function centeredPosition\\|PREVENT_VIEWPORT_OVERFLOW_MODIFIER = \\|const paperStyle\\|maxHeight: fullHeight\\|const FULL_HEIGHT_VIEWPORT_MODIFIERS\\|height: '100vh'\" components/resizable_popper.tsx; echo \"=== popover ===\"; grep -n \"fullscreenHeight\\|fullscreenSize\\|CARD_BODY_POPOVER_HEIGHT =\\|POPOVER_TOP_MARGIN\\|isFullscreen =\" components/card_view/card_body_popover.tsx | head -20",
+          "content": "66:const VIEWPORT_MARGIN = 16\n72:const PREVENT_VIEWPORT_OVERFLOW_MODIFIER = { name: 'preventOverflow', options: { altAxis: true, padding: VIEWPORT_MARGIN, tether: false } } as const\n77:const FULL_HEIGHT_VIEWPORT_MODIFIERS: NonNullable<PopperProps['modifiers']> = [PREVENT_VIEWPORT_OVERFLOW_MODIFIER]\n80:function clampSizeToViewport(size: PopperSize, minimumSize: MinimumPopperSize) {\n147:function clampDetachedTop(top: number, height: number) {\n151:function centeredPosition(size: PopperSize): PopperPosition {\n379:    const paperStyle: CSSProperties = fullHeight\n380:        ? { height: '100vh', left: detachedLeft ?? 0, position: 'fixed', top: 0, width: size.width }\n413:                    maxHeight: fullHeight ? '100vh' : 'calc(100vh - 32px)',\n=== popover ===\n10:import { POPOVER_SIDE_MARGIN, POPOVER_TOP_MARGIN } from '../resizable_popover'\n40:const CARD_BODY_POPOVER_HEIGHT = 620\n263:    const fullscreenSize = `calc(100vw - ${POPOVER_SIDE_MARGIN * 2}px)`\n264:    const fullscreenHeight = `calc(100vh - ${POPOVER_TOP_MARGIN + POPOVER_SIDE_MARGIN}px)`\n286:                    height: isMobile ? '100dvh !important' : isFullscreen ? `${fullscreenHeight} !important` : undefined,\n291:                    top: isMobile ? '0 !important' : isFullscreen ? `${POPOVER_TOP_MARGIN}px !important` : undefined,\n293:                    width: isMobile ? '100vw !important' : isFullscreen ? `${fullscreenSize} !important` : undefined,",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-35",
+          "kind": "event",
+          "label": "grep -n \"const VIEWPORT_MARGIN\\|function clampSizeToViewport\\|function clampDetachedTop\\|function centeredPosition\\|PREVENT_VIEWPORT_OVERFLOW_MODIFIER = \\|const paperStyle\\|maxHeight: fullHeight\\|const FULL_HEIGHT_VIEWPORT_MODIFIERS\\|height: '100vh'\" components/resizable_popper.tsx; echo \"=== popover ===\"; grep -n \"fullscreenHeight\\|fullscreenSize\\|CARD_BODY_POPOVER_HEIGHT =\\|POPOVER_TOP_MARGIN\\|isFullscreen =\" components/card_view/card_body_popover.tsx | head -20",
+          "providerItemId": "toolu_01W3UDTpWqcD7iHEhPrhRs4U",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:47:30.026Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-36",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDsKyKgQcYC8PBX4Epb:thinking:0",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:47:33.261Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2 && grep -n \"state\" md2.config.json | head -20",
+          "content": "31:  \"states\": [\n35:      \"state\": \"new\"\n40:      \"state\": \"design\"\n45:      \"state\": \"ready for implementation\"\n50:      \"state\": \"to fix\"\n55:      \"state\": \"ready\"",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-37",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2 && grep -n \"state\" md2.config.json | head -20",
+          "providerItemId": "toolu_018H7mzozP74WhLNTureB4Se",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:47:33.836Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDsc6gUeMVZovvEwmD9:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:47:50.382Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow writing the doc.",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-08-29T14:47:50.382Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions && python -c \"\nimport io\np='F_251_action_popup_height_and_location.md'\ns=io.open(p,encoding='utf-8').read()\ns=s.replace('\\nstatus: design\\n','\\nstatus: ready for implementation\\n',1)\nio.open(p,'w',encoding='utf-8',newline='\\n').write(s)\nprint(s[:300])\n\"",
+          "content": "---\r\nauthor: \r\nid: F_251\r\ninternalId: 67aa408b-6038-40b7-a82d-76678ca7b201\r\ntitle: action popup height and location\r\nstatus: ready for implementation\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__67aa408b-6038-40b7-a82d-76678ca7b201.json\r\npolicy:\r\n---\r\nwhen the height of the action popup wants to be bi",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-40",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions && python -c \"\nimport io\np='F_251_action_popup_height_and_location.md'\ns=io.open(p,encoding='utf-8').read()\ns=s.replace('\\nstatus: design\\n','\\nstatus: ready for implementation\\n',1)\nio.open(p,'w',encoding='utf-8',newline='\\n').write(s)\nprint(s[:300])\n\"",
+          "providerItemId": "toolu_01HNfUdg5rh8ysX3rZ7StfYH",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:47:53.813Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cat >> F_251_action_popup_height_and_location.md <<'EOF'\n\n## Current state\n\nThe action popup surface is `ResizablePopper` (`app/src/components/resizable_popper.tsx`), configured by `ActionPopupFrame` (`app/src/components/actions/run/popup/action_popup_frame.tsx`). The same surface backs the card body popover (`app/src/components/card_view/card_body_popover.tsx`), the search dropdown and the file-reference typeahead.\n\n**Drag region** means the strip of the borderless Electron window that moves the window when pressed: `MainToolbar` (`app/src/components/shell/menu/main_toolbar.tsx`) puts `-webkit-app-region: drag` on a `Toolbar` of `MENU_ROW_HEIGHT` = 44px at the very top of the window, and its interactive children opt back out with `no-drag`. A popup paper that overlaps that strip is not marked `no-drag`, so the OS treats a press there as a window drag and the popup's own buttons — including the Close button in its upper-right corner — never receive the click.\n\n**Full height** means the state toggled by the toolbar's \"Expand upward\" / \"Collapse downward\" button: `ActionPopup` (`app/src/components/actions/run/popup/action_popup.tsx`) holds `fullHeight` state and passes it down; the button is hidden on mobile.\n\nToday `ResizablePopper` uses one symmetric margin for every edge, `VIEWPORT_MARGIN` = 16 (`resizable_popper.tsx:66`):\n\n* `PREVENT_VIEWPORT_OVERFLOW_MODIFIER` (`resizable_popper.tsx:72`) passes `padding: VIEWPORT_MARGIN` to Popper's `preventOverflow`, so an anchored popup is pushed 16px away from both the top and the bottom viewport edge.\n* The paper's `maxHeight` is `calc(100vh - 32px)` when not full height (`resizable_popper.tsx:413`), which is where \"it sort of shows up as max height\" comes from: the popup stops 16px short of the bottom and 16px short of the top.\n* `clampSizeToViewport` (`resizable_popper.tsx:80`) caps a stored or resized height at `window.innerHeight - VIEWPORT_MARGIN * 2`. Only callers passing `constrainSizeToViewport` use it; the card body popover does, the action popup does not.\n* `clampDetachedTop` (`resizable_popper.tsx:147`) clamps a dragged or centered popup to `0 .. window.innerHeight - height`, so the user can drag the popup fully under the 44px drag region and lose the Close button, and `centeredPosition` (`resizable_popper.tsx:151`) can place it there on open.\n* In full height the paper style is `{ height: '100vh', top: 0 }` (`resizable_popper.tsx:380`) with `maxHeight: '100vh'`, so an expanded popup sits flush against the top of the window and its Close button lands inside the drag region every time. This is the \"fully expanded on large screen\" case in the report.\n\nA precedent for the wanted top gap already exists: `POPOVER_TOP_MARGIN` = 60 in `app/src/components/resizable_popover.tsx:36`, used by the card body popover's fullscreen mode (`card_body_popover.tsx:264`, `:291`) exactly to stay clear of the top of the window. 60 clears the 44px drag region with room to spare. The card body popover's fullscreen height is `calc(100vh - ${POPOVER_TOP_MARGIN + POPOVER_SIDE_MARGIN}px)`, so it also leaves the unwanted 16px at the bottom.\n\nThe mobile layout is a separate branch and is not affected: both popups force `top: 0`, `height: 100dvh` and `width: 100vw` with `!important`, dragging and resizing are off, and the browser has no window drag region.\n\n## implementation details\n\n* **Asymmetric viewport insets on `ResizablePopper`.** Add two optional numeric props, `topInset` and `bottomInset`, both defaulting to `VIEWPORT_MARGIN` so every current caller keeps today's geometry. **Inset** here means the gap the popup must leave between its own edge and the corresponding viewport edge. Horizontal margins stay `VIEWPORT_MARGIN`. Thread the two values through every place that currently assumes symmetry:\n    * Build the `preventOverflow` modifier per instance (a `useMemo`, since `PREVENT_VIEWPORT_OVERFLOW_MODIFIER` is a module constant today) with `padding: { bottom: bottomInset, left: VIEWPORT_MARGIN, right: VIEWPORT_MARGIN, top: topInset }`. Popper's `padding` accepts that object form. Both `VIEWPORT_MODIFIERS` and `FULL_HEIGHT_VIEWPORT_MODIFIERS` must use it.\n    * Paper `maxHeight`: `calc(100vh - ${topInset + bottomInset}px)` when not full height, `calc(100vh - ${topInset}px)` when full height.\n    * Full-height paper style: `top: topInset` and `height: calc(100vh - ${topInset}px)` instead of `top: 0` / `height: '100vh'`.\n    * `clampSizeToViewport`: maximum height becomes `window.innerHeight - topInset - bottomInset`.\n    * `clampDetachedTop`: clamp to `topInset .. window.innerHeight - bottomInset - height`, keeping the existing guard that the lower bound never exceeds the upper one on a short viewport. This is what stops the user dragging the popup under the drag region, and it also constrains `centeredPosition` and the two `window.resize` handlers that re-clamp on viewport changes, because they all route through the same helper.\n* **Action popup wiring.** In `ActionPopupFrame`, pass `bottomInset={isMobile ? VIEWPORT_MARGIN : 0}` and `topInset={isMobile ? VIEWPORT_MARGIN : POPOVER_TOP_MARGIN}` (import `POPOVER_TOP_MARGIN` from `resizable_popover`). On mobile the `!important` paper overrides still win, so the values there only need to stay harmless. Nothing else in the frame changes; the \"Expand upward\" toggle keeps its current meaning, it just expands to the top gap instead of to the window edge.\n* **Card popup wiring.** Give `CardBodyPopover` the same two props on the non-mobile path. Its fullscreen height changes to `calc(100vh - ${POPOVER_TOP_MARGIN}px)` so fullscreen also reaches the bottom edge; its fullscreen `top` already is `POPOVER_TOP_MARGIN` and stays. Its `constrainSizeToViewport` clamping then follows the new insets automatically.\n* **Do not change** the search dropdown (`search_panel.tsx`), the file-reference typeahead (`markdown_file_search_menu.tsx`), or `resizable_popover.tsx`; they keep the default symmetric 16px insets.\n* Reaching the bottom edge is deliberate: flush with the bottom, never past it. The clamps above must never produce a negative height or a top above `topInset`.\n* Marking the popup paper `-webkit-app-region: no-drag` (as `search_panel.tsx:282` does) was considered as an alternative to the top gap and rejected: it would let the popup keep covering the toolbar, which is the layout the report asks to avoid.\n* Tests: extend `resizable_popper.test.tsx` for the inset props — anchored `maxHeight`, full-height `top` and `height`, drag clamping at the top and at the bottom, and `constrainSizeToViewport` with asymmetric insets. Extend `action_popup.test.tsx` (the existing full-height test at \"expands upward and restores the anchored size after collapse\" asserts `height === '100vh'` and must be updated) and the card body popover tests for the new fullscreen height. Run the focused popup tests, `npm run typecheck`, and app lint.\n\n## acceptance criteria\n\n* On desktop, an action popup whose wanted height exceeds the available space renders with its bottom edge flush against the bottom of the window — no gap below it, and no part of it below the window edge.\n* On desktop, the top edge of the action popup never rises above 60px from the top of the window, so its Close button, its \"Expand upward\" / \"Collapse downward\" button and its toolbar always sit below the 44px window drag region and always receive clicks.\n* Clicking \"Expand upward\" on desktop makes the popup span from 60px down to the bottom edge of the window; clicking \"Collapse downward\" restores the previous anchored size and position exactly as it does today.\n* Dragging the popup by its toolbar cannot move it above the 60px top gap, and cannot move it below the bottom edge; releasing the drag near either limit leaves it resting at the limit.\n* Resizing from the top edge, and a size restored from `md2.cardRunPopupSize` or `md2.projectAgentPopupSize`, obey the same limits.\n* Resizing the window while the popup is open re-clamps it to the same limits instead of leaving it under the drag region or off-screen.\n* The card body popover follows the same rules on desktop: bottom flush, top no higher than 60px, and its fullscreen mode now reaches the bottom edge.\n* The mobile layout of both popups is unchanged: full-bleed, `top: 0`, `height: 100dvh`, `width: 100vw`, no resize handles, no full-height toggle.\n* The search dropdown and the `@` file-reference popup keep their current 16px margins on all edges.\n* Focused popup tests, `npm run typecheck`, and app lint pass.\nEOF\necho done",
+          "content": "Exit code 2\n/usr/bin/bash: -c: line 36: unexpected EOF while looking for matching `''",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-41",
+          "kind": "event",
+          "label": "cat >> F_251_action_popup_height_and_location.md <<'EOF'\n\n## Current state\n\nThe action popup surface is `ResizablePopper` (`app/src/components/resizable_popper.tsx`), configured by `ActionPopupFrame` (`app/src/components/actions/run/popup/action_popup_frame.tsx`). The same surface backs the card body popover (`app/src/components/card_view/card_body_popover.tsx`), the search dropdown and the file-reference typeahead.\n\n**Drag region** means the strip of the borderless Electron window that moves the window when pressed: `MainToolbar` (`app/src/components/shell/menu/main_toolbar.tsx`) puts `-webkit-app-region: drag` on a `Toolbar` of `MENU_ROW_HEIGHT` = 44px at the very top of the window, and its interactive children opt back out with `no-drag`. A popup paper that overlaps that strip is not marked `no-drag`, so the OS treats a press there as a window drag and the popup's own buttons — including the Close button in its upper-right corner — never receive the click.\n\n**Full height** means the state toggled by the toolbar's \"Expand upward\" / \"Collapse downward\" button: `ActionPopup` (`app/src/components/actions/run/popup/action_popup.tsx`) holds `fullHeight` state and passes it down; the button is hidden on mobile.\n\nToday `ResizablePopper` uses one symmetric margin for every edge, `VIEWPORT_MARGIN` = 16 (`resizable_popper.tsx:66`):\n\n* `PREVENT_VIEWPORT_OVERFLOW_MODIFIER` (`resizable_popper.tsx:72`) passes `padding: VIEWPORT_MARGIN` to Popper's `preventOverflow`, so an anchored popup is pushed 16px away from both the top and the bottom viewport edge.\n* The paper's `maxHeight` is `calc(100vh - 32px)` when not full height (`resizable_popper.tsx:413`), which is where \"it sort of shows up as max height\" comes from: the popup stops 16px short of the bottom and 16px short of the top.\n* `clampSizeToViewport` (`resizable_popper.tsx:80`) caps a stored or resized height at `window.innerHeight - VIEWPORT_MARGIN * 2`. Only callers passing `constrainSizeToViewport` use it; the card body popover does, the action popup does not.\n* `clampDetachedTop` (`resizable_popper.tsx:147`) clamps a dragged or centered popup to `0 .. window.innerHeight - height`, so the user can drag the popup fully under the 44px drag region and lose the Close button, and `centeredPosition` (`resizable_popper.tsx:151`) can place it there on open.\n* In full height the paper style is `{ height: '100vh', top: 0 }` (`resizable_popper.tsx:380`) with `maxHeight: '100vh'`, so an expanded popup sits flush against the top of the window and its Close button lands inside the drag region every time. This is the \"fully expanded on large screen\" case in the report.\n\nA precedent for the wanted top gap already exists: `POPOVER_TOP_MARGIN` = 60 in `app/src/components/resizable_popover.tsx:36`, used by the card body popover's fullscreen mode (`card_body_popover.tsx:264`, `:291`) exactly to stay clear of the top of the window. 60 clears the 44px drag region with room to spare. The card body popover's fullscreen height is `calc(100vh - ${POPOVER_TOP_MARGIN + POPOVER_SIDE_MARGIN}px)`, so it also leaves the unwanted 16px at the bottom.\n\nThe mobile layout is a separate branch and is not affected: both popups force `top: 0`, `height: 100dvh` and `width: 100vw` with `!important`, dragging and resizing are off, and the browser has no window drag region.\n\n## implementation details\n\n* **Asymmetric viewport insets on `ResizablePopper`.** Add two optional numeric props, `topInset` and `bottomInset`, both defaulting to `VIEWPORT_MARGIN` so every current caller keeps today's geometry. **Inset** here means the gap the popup must leave between its own edge and the corresponding viewport edge. Horizontal margins stay `VIEWPORT_MARGIN`. Thread the two values through every place that currently assumes symmetry:\n    * Build the `preventOverflow` modifier per instance (a `useMemo`, since `PREVENT_VIEWPORT_OVERFLOW_MODIFIER` is a module constant today) with `padding: { bottom: bottomInset, left: VIEWPORT_MARGIN, right: VIEWPORT_MARGIN, top: topInset }`. Popper's `padding` accepts that object form. Both `VIEWPORT_MODIFIERS` and `FULL_HEIGHT_VIEWPORT_MODIFIERS` must use it.\n    * Paper `maxHeight`: `calc(100vh - ${topInset + bottomInset}px)` when not full height, `calc(100vh - ${topInset}px)` when full height.\n    * Full-height paper style: `top: topInset` and `height: calc(100vh - ${topInset}px)` instead of `top: 0` / `height: '100vh'`.\n    * `clampSizeToViewport`: maximum height becomes `window.innerHeight - topInset - bottomInset`.\n    * `clampDetachedTop`: clamp to `topInset .. window.innerHeight - bottomInset - height`, keeping the existing guard that the lower bound never exceeds the upper one on a short viewport. This is what stops the user dragging the popup under the drag region, and it also constrains `centeredPosition` and the two `window.resize` handlers that re-clamp on viewport changes, because they all route through the same helper.\n* **Action popup wiring.** In `ActionPopupFrame`, pass `bottomInset={isMobile ? VIEWPORT_MARGIN : 0}` and `topInset={isMobile ? VIEWPORT_MARGIN : POPOVER_TOP_MARGIN}` (import `POPOVER_TOP_MARGIN` from `resizable_popover`). On mobile the `!important` paper overrides still win, so the values there only need to stay harmless. Nothing else in the frame changes; the \"Expand upward\" toggle keeps its current meaning, it just expands to the top gap instead of to the window edge.\n* **Card popup wiring.** Give `CardBodyPopover` the same two props on the non-mobile path. Its fullscreen height changes to `calc(100vh - ${POPOVER_TOP_MARGIN}px)` so fullscreen also reaches the bottom edge; its fullscreen `top` already is `POPOVER_TOP_MARGIN` and stays. Its `constrainSizeToViewport` clamping then follows the new insets automatically.\n* **Do not change** the search dropdown (`search_panel.tsx`), the file-reference typeahead (`markdown_file_search_menu.tsx`), or `resizable_popover.tsx`; they keep the default symmetric 16px insets.\n* Reaching the bottom edge is deliberate: flush with the bottom, never past it. The clamps above must never produce a negative height or a top above `topInset`.\n* Marking the popup paper `-webkit-app-region: no-drag` (as `search_panel.tsx:282` does) was considered as an alternative to the top gap and rejected: it would let the popup keep covering the toolbar, which is the layout the report asks to avoid.\n* Tests: extend `resizable_popper.test.tsx` for the inset props — anchored `maxHeight`, full-height `top` and `height`, drag clamping at the top and at the bottom, and `constrainSizeToViewport` with asymmetric insets. Extend `action_popup.test.tsx` (the existing full-height test at \"expands upward and restores the anchored size after collapse\" asserts `height === '100vh'` and must be updated) and the card body popover tests for the new fullscreen height. Run the focused popup tests, `npm run typecheck`, and app lint.\n\n## acceptance criteria\n\n* On desktop, an action popup whose wanted height exceeds the available space renders with its bottom edge flush against the bottom of the window — no gap below it, and no part of it below the window edge.\n* On desktop, the top edge of the action popup never rises above 60px from the top of the window, so its Close button, its \"Expand upward\" / \"Collapse downward\" button and its toolbar always sit below the 44px window drag region and always receive clicks.\n* Clicking \"Expand upward\" on desktop makes the popup span from 60px down to the bottom edge of the window; clicking \"Collapse downward\" restores the previous anchored size and position exactly as it does today.\n* Dragging the popup by its toolbar cannot move it above the 60px top gap, and cannot move it below the bottom edge; releasing the drag near either limit leaves it resting at the limit.\n* Resizing from the top edge, and a size restored from `md2.cardRunPopupSize` or `md2.projectAgentPopupSize`, obey the same limits.\n* Resizing the window while the popup is open re-clamps it to the same limits instead of leaving it under the drag region or off-screen.\n* The card body popover follows the same rules on desktop: bottom flush, top no higher than 60px, and its fullscreen mode now reaches the bottom edge.\n* The mobile layout of both popups is unchanged: full-bleed, `top: 0`, `height: 100dvh`, `width: 100vw`, no resize handles, no full-height toggle.\n* The search dropdown and the `@` file-reference popup keep their current 16px margins on all edges.\n* Focused popup tests, `npm run typecheck`, and app lint pass.\nEOF\necho done",
+          "providerItemId": "toolu_01WCWPDCgsgzofn6Ugw7qfaX",
+          "sequence": 41,
+          "status": "failed",
+          "timestamp": "2026-08-29T14:48:35.920Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-42",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeXDxBvX8pr1eewN3Viqb:thinking:0",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-29T14:48:44.104Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_251_action_popup_height_and_location.md\"}",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-43",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_251\n4\tinternalId: 67aa408b-6038-40b7-a82d-76678ca7b201\n5\ttitle: action popup height and location\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__67aa408b-6038-40b7-a82d-76678ca7b201.json\n11\tpolicy:\n12\t---\n13\twhen the height of the action popup wants to be bigger than the height of the app, it sort of shows up as max height, but the popup tries to leave some room at the bottom of the popup and perhaps also a little bit at the top.&#x20;\n14\t\n15\tAt the bottom, we don't need to do this, it can be at the edge of the bottom (not below), but it should remain a little more below the edge at the top, cause the close button in the upper right corner of the action popup can no longer be clicked on when it is behind the drag area of the main window (to move the window around), which is annoying.\n16\t\n17\tAlso when the action popup is fully expanded and on large screen (not mobile), then we also need to leave some room at the top.",
+          "providerItemId": "toolu_01PaACDvQcBWjZu9GVQLhVWw",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:48:44.965Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_251_action_popup_height_and_location.md",
+          "deletions": 1,
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-event-44",
+          "insertions": 49,
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_251_action_popup_height_and_location.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01BjzY4jUq87sqtMfCj7JRKZ",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-08-29T14:49:19.444Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDoc done. `status` now `ready for implementation`.\n\nKey findings behind it:\n\n- **Root cause of unclickable Close button.** `MainToolbar` (`app/src/components/shell/menu/main_toolbar.tsx`) marks a 44px-tall toolbar as the Electron window drag region. The popup paper is not marked `no-drag`, so any press on the overlap is swallowed as a window drag.\n- **Where the symmetric margin lives.** `ResizablePopper` uses one `VIEWPORT_MARGIN` = 16 for all four edges, in four separate places: the `preventOverflow` padding, the paper `maxHeight`, `clampSizeToViewport`, and `clampDetachedTop`. The fix threads `topInset` / `bottomInset` through all four, defaulting to 16 so other callers are untouched.\n- **Full height ignores margins entirely** — `top: 0`, `height: 100vh` — which is why an expanded popup always lands in the drag region.\n- **Existing precedent reused:** `POPOVER_TOP_MARGIN` = 60 (`app/src/components/resizable_popover.tsx:36`), already used by the card popover's fullscreen mode for exactly this purpose.\n- **One test will break** and is called out in the doc: `action_popup.test.tsx`, \"expands upward and restores the anchored size after collapse\", asserts `height === '100vh'`.\n\nPer your answers: scope covers action popup **and** card body popover, drag is clamped too, gap is 60px. Card popover's fullscreen height also changes so it reaches the bottom edge. Nothing staged or committed.",
+          "id": "agent-turn-1e9860a3-a283-42ce-a2aa-5eeeb3b8cece-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 45,
+          "timestamp": "2026-08-29T14:49:28.875Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-b1fad02a-b0dc-46d6-982c-5af10342dac7",
+      "providerSessions": [],
+      "startedAt": "2026-08-29T14:40:00.309Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 96616,
+        "runningStartedAt": "2026-08-29T14:47:14.800Z"
+      },
+      "title": "complete",
+      "usage": {
+        "cachedInputTokens": 1365612,
+        "inputTokens": 54,
+        "outputTokens": 16776,
+        "reasoningTokens": 0,
+        "totalTokens": 1382442,
+        "costUsd": 1.6799144999999998
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "67aa408b-6038-40b7-a82d-76678ca7b201",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
