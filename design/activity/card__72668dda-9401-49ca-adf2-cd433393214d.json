@@ -2386,6 +2386,37 @@
       "startedAt": "2026-08-29T13:17:15.896Z",
       "status": "completed",
       "rootConversationId": "agent-ee671a9d-1224-47aa-a442-af2b718621fc"
+    },
+    {
+      "commits": [
+        {
+          "commit": "890511718e45f2751479aa6959f823940a951859",
+          "committedAt": "2026-08-29T15:44:04+02:00",
+          "deletions": 8,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup_bottom_row.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_run_disabled.ts",
+            "app/src/components/actions/run/popup/action_run_disabled_message.test.tsx",
+            "app/src/components/actions/run/popup/action_run_disabled_message.tsx",
+            "app/src/services/actions/action_definition_loader.node.test.ts",
+            "app/src/services/actions/action_service.node.test.ts",
+            "desktop/src/actions/action/action_definitions.test.mjs",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "shared/action_definitions.mjs"
+          ],
+          "filesChanged": 10,
+          "insertions": 173,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-29T15:44:04+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "72668dda-9401-49ca-adf2-cd433393214d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
