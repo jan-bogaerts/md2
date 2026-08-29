@@ -3,7 +3,7 @@ author:
 id: F_230
 internalId: 06a8af54-38c9-4b9b-a9a4-bbdf563f036b
 title: running agents popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,24 @@ policy:
 after: ae7bdbef-7d85-4837-ba58-6ab382b218b0
 branch: f_230_running_agents_popup
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.tsx
+  - app/src/components/actions/run/popup/action_popup_content.tsx
+  - app/src/components/actions/run/popup/action_popup_initial_action.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_runtime.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_runtime.ts
+  - app/src/components/actions/run/popup/action_popup_types.ts
+  - app/src/components/actions/run/popup/card_action_popup_host_entry.test.tsx
+  - app/src/components/actions/run/popup/card_action_popup_host_entry.tsx
+  - app/src/components/merge_conflict_dialog.test.tsx
+  - app/src/components/shell/running_agent_details_row.tsx
+  - app/src/components/shell/running_agents_details.tsx
+  - app/src/components/shell/running_agents_indicator.test.tsx
+  - app/src/components/shell/running_agents_indicator.tsx
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
+  - app/src/services/card_popup_service.test.ts
+  - app/src/services/card_popup_service.ts
 ---
 
 when user clicks on the 'running agents' button on the status bar, we show a popup containing a list of all agents currently running. it also includes an id, perhaps an internal id of the card it is running for.
