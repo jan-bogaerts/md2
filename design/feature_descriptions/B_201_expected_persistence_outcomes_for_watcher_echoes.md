@@ -22,8 +22,6 @@ changedFiles:
   - app/src/services/project/project_state.node.test.ts
   - app/src/services/project/project_state.ts
   - design/architecture/data_saving_and_commits.md
-branch: b_201_expected_persistence_outcomes_for_watcher_echoes
-worktree: 1
 ---
 Watcher notifications from local persistence can arrive after the storage call finishes and be misclassified as external changes. This can reload stale content, create false conflicts, or undo in-memory path reconciliation.
 
