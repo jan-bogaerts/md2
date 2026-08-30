@@ -3579,6 +3579,38 @@
       "startedAt": "2026-08-29T15:59:23.167Z",
       "status": "completed",
       "rootConversationId": "agent-97e43b13-c152-441c-9f55-9bae37fd5e25"
+    },
+    {
+      "commits": [
+        {
+          "commit": "8856eb00698c5558fe92efa16500d8ebaccf1cec",
+          "committedAt": "2026-08-30T13:13:30+02:00",
+          "deletions": 54,
+          "filePaths": [
+            "app/src/services/data/card_operation_context.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/project/expected_persistence_outcomes.test.ts",
+            "app/src/services/project/expected_persistence_outcomes.ts",
+            "app/src/services/project/expected_persistence_storage.test.ts",
+            "app/src/services/project/expected_persistence_storage.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_loading.ts",
+            "app/src/services/project/project_state.node.test.ts",
+            "app/src/services/project/project_state.ts",
+            "design/architecture/data_saving_and_commits.md"
+          ],
+          "filesChanged": 11,
+          "insertions": 869,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-30T13:13:30+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "279da862-4385-442f-9c26-10d3bdde07e5",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
