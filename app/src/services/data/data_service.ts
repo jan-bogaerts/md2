@@ -29,6 +29,7 @@ import type { CardParseError } from './markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { CARD_CHANGED_EVENT, CARD_FIELDS, cardCollectionFieldChangedEvent, cardFieldChangedEvent, type CardField } from './card_events'
 import { projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
+import { withExpectedPersistenceOutcomes } from '../project/expected_persistence_storage'
 
 export { CARD_CHANGED_EVENT, cardCollectionFieldChangedEvent, cardFieldChangedEvent } from './card_events'
 export type { CardField } from './card_events'
@@ -198,7 +199,7 @@ export class DataService extends EventTarget {
         this.projectState.resetLoadedProject()
         this.fullProjectLoaded = false
         this.remarkableBridge = dependencies.remarkableBridge ?? null
-        this.storage = withSaveStateTracking(dependencies.storage, this.saveStateService)
+        this.storage = this.trackStorage(dependencies.storage)
         this.initializeStorageServices()
         worktreeService.init({
             assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),
@@ -230,7 +231,7 @@ export class DataService extends EventTarget {
     replaceRemoteStorage(storage: StorageService) {
         if (!this.storage || !this.projectState.project) throw new Error('Cannot replace storage without a loaded project')
 
-        this.storage = withSaveStateTracking(storage, this.saveStateService)
+        this.storage = this.trackStorage(storage)
         this.initializeStorageServices()
         this.projectLoading.restartProjectWatch()
     }
@@ -344,7 +345,6 @@ export class DataService extends EventTarget {
             cardPathChanged: (fromPath, toPath) => this.dispatchCardPathChanged(fromPath, toPath),
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
-            commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             deleteFile: (path, committedFiles, workingFolder) => (
                 this.projectState.deleteFile(path, committedFiles, workingFolder)
             ),
@@ -390,7 +390,7 @@ export class DataService extends EventTarget {
                 return this.projectState.beginProjectLoad()
             },
             clearLoadedProject: () => this.projectState.resetLoadedProject(),
-            commitPathsInFlight: () => this.projectState.commitPathsInFlight,
+            expectedPersistenceOutcomes: () => this.projectState.expectedPersistenceOutcomes,
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
             dispatchRepositoryChanged: (event) => {
@@ -410,6 +410,7 @@ export class DataService extends EventTarget {
             },
             migrateAgentLogReferences: () => this.migrateAgentLogReferences(),
             project: () => this.projectState.project,
+            projectToken: () => this.projectState.projectToken,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
             replaceProject: (project) => {
                 const currentProject = this.projectState.project
@@ -432,6 +433,17 @@ export class DataService extends EventTarget {
             snapshot: () => this.projectState.snapshot,
             storage: () => this.storage,
         }
+    }
+
+    private trackStorage(storage: StorageService) {
+        const saveTrackedStorage = withSaveStateTracking(storage, this.saveStateService)
+
+        return withExpectedPersistenceOutcomes(saveTrackedStorage, {
+            outcomes: this.projectState.expectedPersistenceOutcomes,
+            project: () => this.projectState.project,
+            repositoryFiles: () => this.projectState.snapshot?.repositoryFiles ?? [],
+            verifyRetainedOutcomes: () => this.projectLoading.verifyExpectedPersistenceOutcomes(),
+        })
     }
 
     private createReleaseOperationsDependencies(): ReleaseOperationsDeps {

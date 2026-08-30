@@ -1842,7 +1842,7 @@ describe('ProjectLoading', () => {
         }
         let movedContent = ''
         const storage = createStorage({
-            commit: vi.fn(async (request: CommitRequest) => {
+            commit: vi.fn(async (request) => {
                 const move = request.moves?.[0]
                 if (move) movedContent = move.content
 
@@ -1998,5 +1998,250 @@ describe('ProjectLoading', () => {
         } finally {
             conflicts.stop()
         }
+    })
+
+    it('classifies a Markdown watcher event after commit completion from persisted content', async () => {
+        configService.init()
+        let persistedFile = files[0]
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadFile = vi.fn(async () => persistedFile)
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                persistedFile = request.files.find(({ path }) => path === persistedFile.path) ?? persistedFile
+
+                return []
+            }),
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        const conflicts = recordDialogMessages('error')
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        try {
+            service.cards.updateCardBody(persistedFile.path, '# Root\n\nLocal late echo')
+            await service.cards.flushPendingCommits()
+            watchChange({ changeKind: 'changed', path: persistedFile.path })
+
+            await vi.waitFor(() => expect(loadFile).toHaveBeenCalledOnce())
+            expect(conflicts.messages).toEqual([])
+            expect(service.getState().snapshot?.activeCards[0].content).toContain('Local late echo')
+        } finally {
+            conflicts.stop()
+        }
+    })
+
+    it('defers a watcher event during persistence and does not require another event', async () => {
+        configService.init()
+        const commit = createDeferred<MarkdownFile[]>()
+        let deferCommit = false
+        let persistedFile = files[0]
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadFile = vi.fn(async () => persistedFile)
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                persistedFile = request.files.find(({ path }) => path === persistedFile.path) ?? persistedFile
+                if (!deferCommit) return []
+
+                return await commit.promise
+            }),
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.mocked(storage.commit).mockClear()
+        deferCommit = true
+
+        service.cards.updateCardBody(persistedFile.path, '# Root\n\nDuring persistence')
+        const flush = service.cards.flushPendingCommits()
+        expect(storage.commit).toHaveBeenCalledOnce()
+        watchChange({ changeKind: 'unknown', path: persistedFile.path })
+        await Promise.resolve()
+        expect(loadFile).not.toHaveBeenCalled()
+
+        commit.resolve([])
+        await flush
+        await flushPromises()
+        expect(loadFile).toHaveBeenCalledOnce()
+        expect(service.getState().snapshot?.activeCards[0].content).toContain('During persistence')
+    })
+
+    it('treats late source and target rename notifications as local without action reload', async () => {
+        configService.init()
+        const sourcePath = 'actions/review.json'
+        const targetPath = 'actions/review-later.json'
+        const definition = actionDefinition('review', { label: 'Review later' })
+        let actionFiles = [{ content: JSON.stringify(actionDefinition('review')), path: sourcePath }]
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadActionFiles = vi.fn(async () => actionFiles)
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                const move = request.moves?.[0]
+                if (move) actionFiles = [{ content: move.content, path: move.toPath }]
+
+                return []
+            }),
+            listRepositoryFiles: vi.fn(async () => actionFiles.map(({ path }) => path)),
+            loadActionFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        const reloadFromFiles = vi.spyOn(actionService, 'reloadFromFiles')
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        loadActionFiles.mockClear()
+
+        await service.persistActionFile(
+            { content: JSON.stringify(definition), path: targetPath },
+            definition.id,
+            sourcePath,
+            vi.fn(),
+        )
+        await service.cards.flushPendingCommits()
+        watchChange({ changeKind: 'added', path: targetPath })
+        watchChange({ changeKind: 'removed', path: sourcePath })
+
+        await flushPromises()
+        expect(loadActionFiles).toHaveBeenCalledTimes(1)
+        expect(reloadFromFiles).not.toHaveBeenCalled()
+    })
+
+    it('routes persisted content that contradicts a local outcome through external conflict handling', async () => {
+        configService.init()
+        let persistedFile = files[0]
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                persistedFile = request.files.find(({ path }) => path === persistedFile.path) ?? persistedFile
+
+                return []
+            }),
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile: vi.fn(async () => persistedFile),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        service.cards.updateCardBody(persistedFile.path, '# Root\n\nExpected local')
+        await service.cards.flushPendingCommits()
+        persistedFile = { ...persistedFile, content: persistedFile.content.replace('Expected local', 'External overwrite') }
+        watchChange({ changeKind: 'changed', path: persistedFile.path })
+        await vi.waitFor(() => expect(service.getState().snapshot?.activeCards[0].content).toContain('External overwrite'))
+
+        expect(service.getState().snapshot?.activeCards[0].content).toContain('External overwrite')
+    })
+
+    it('recognizes filesystem effects after failure and keeps the restored batch retryable', async () => {
+        configService.init()
+        let persistedFile = files[0]
+        let failNextCommit = false
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const commit = vi.fn(async (request: CommitRequest) => {
+            persistedFile = request.files.find(({ path }) => path === persistedFile.path) ?? persistedFile
+            if (failNextCommit) {
+                failNextCommit = false
+                throw new Error('commit failed after write')
+            }
+
+            return []
+        })
+        const storage = createStorage({
+            commit,
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile: vi.fn(async () => persistedFile),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        const conflicts = recordDialogMessages('error')
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        commit.mockClear()
+        failNextCommit = true
+
+        try {
+            service.cards.updateCardBody(persistedFile.path, '# Root\n\nPartially written')
+            await expect(service.cards.flushPendingCommits()).rejects.toThrow('commit failed after write')
+            watchChange({ changeKind: 'changed', path: persistedFile.path })
+            await flushPromises()
+            expect(storage.loadFile).toHaveBeenCalledOnce()
+            expect(conflicts.messages.some((message) => message.includes('External change ignored'))).toBe(false)
+
+            await service.cards.flushPendingCommits()
+            expect(commit).toHaveBeenCalledTimes(2)
+        } finally {
+            conflicts.stop()
+        }
+    })
+
+    it('verifies retained local outcomes when project watching is restored', async () => {
+        configService.init()
+        let persistedFile = files[0]
+        let watchRestored = () => {
+            throw new Error('Watcher restoration callback not registered')
+        }
+        const loadFile = vi.fn(async () => persistedFile)
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                persistedFile = request.files.find(({ path }) => path === persistedFile.path) ?? persistedFile
+
+                return []
+            }),
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile,
+            loadProject: vi.fn(async () => ({ files: [persistedFile], workingFolder: 'design' })),
+            watchProject: vi.fn((_project, _onChange, onRestored) => {
+                watchRestored = onRestored
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        loadFile.mockClear()
+
+        service.cards.updateCardBody(persistedFile.path, '# Root\n\nSaved while disconnected')
+        await service.cards.flushPendingCommits()
+        watchRestored()
+
+        await vi.waitFor(() => expect(loadFile).toHaveBeenCalledOnce())
+        expect(service.getState().snapshot?.activeCards[0].content).toContain('Saved while disconnected')
     })
 })

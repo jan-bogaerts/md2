@@ -19,7 +19,6 @@ export interface CardOperationsDeps {
     addRepositoryFile(path: string): void
     applyMoves(moves: MoveFile[], workingFolder: string): void
     cardPathChanged(fromPath: string, toPath: string): void
-    commitPathsInFlight(): Set<string>
     deleteFile(path: string, committedFiles: MarkdownFile[], workingFolder: string): void
     dispatchChanged(): void
     dispatchPersistenceChanged(): void
@@ -128,27 +127,16 @@ export class CardOperationContext {
         })
     }
 
-    /** Commits while every touched path is marked in flight so snapshot reloads skip them. */
+    /** Commits through storage, which records expected persistence outcomes before mutation. */
     async commitTrackingPaths(request: CommitRequest): Promise<MarkdownFile[]> {
         const { storage } = this.dependencies.requireDependencies()
-        const commitPaths = [
-            ...request.files.map((file) => file.path),
-            ...(request.moves ?? []).flatMap(({ fromPath, toPath }) => [fromPath, toPath]),
-        ]
-        const inFlightCommitPaths = this.dependencies.commitPathsInFlight()
-        commitPaths.forEach((path) => inFlightCommitPaths.add(path))
+        const committedFiles = await storage.commit(request)
+        this.dependencies.recordCurrentContent([
+            ...request.files,
+            ...(request.moves ?? []).map(({ content, toPath }) => ({ content, path: toPath })),
+        ])
 
-        try {
-            const committedFiles = await storage.commit(request)
-            this.dependencies.recordCurrentContent([
-                ...request.files,
-                ...(request.moves ?? []).map(({ content, toPath }) => ({ content, path: toPath })),
-            ])
-
-            return committedFiles
-        } finally {
-            commitPaths.forEach((path) => inFlightCommitPaths.delete(path))
-        }
+        return committedFiles
     }
 
     /** Commits and merges the result into local state. */

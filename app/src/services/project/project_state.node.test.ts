@@ -154,4 +154,21 @@ describe('ProjectState', () => {
 
         expect(state.isCurrentLoad(project, firstProjectToken)).toBe(false)
     })
+
+    it('clears expected persistence outcomes when project or branch scope changes', () => {
+        const state = createState()
+        state.replaceProject(project)
+        state.expectedPersistenceOutcomes.registerOperation([
+            { content: 'main content', kind: 'present', path: 'design/F-1-first.md' },
+        ])
+
+        state.replaceProject({ ...project, branch: 'other' })
+        expect(state.expectedPersistenceOutcomes.retainedOutcomeCount).toBe(0)
+
+        state.expectedPersistenceOutcomes.registerOperation([
+            { content: 'other project', kind: 'present', path: 'design/F-2-second.md' },
+        ])
+        state.replaceProject({ branch: 'other', id: 'next-project' })
+        expect(state.expectedPersistenceOutcomes.retainedOutcomeCount).toBe(0)
+    })
 })

@@ -1,6 +1,7 @@
 import type { Card, MarkdownFile, MoveFile, ProjectReference, ProjectSnapshot, ProjectWatchEvent } from '../../data/data_types'
 import { markdownParsingService, type CardParseError } from '../data/markdown_parsing_service'
 import { mergeFiles } from '../data/data_service_context'
+import { ExpectedPersistenceOutcomes } from './expected_persistence_outcomes'
 
 type AttachAgentConversations = (card: Card) => Card
 type ReportCardParseErrors = (errors: CardParseError[]) => void
@@ -51,7 +52,7 @@ export class ProjectState {
     private currentCardsByPath = new Map<string, Card>()
     private currentProject: ProjectReference | null = null
     private currentSnapshot: ProjectSnapshot | null = null
-    private readonly inFlightCommitPaths: Set<string> = new Set()
+    readonly expectedPersistenceOutcomes = new ExpectedPersistenceOutcomes()
     private readonly currentContentHashByPath = new Map<string, number>()
     private projectLoadToken = 0
     private parseErrorPaths: Set<string> = new Set()
@@ -72,7 +73,6 @@ export class ProjectState {
     get files() { return this.currentFiles }
     get project() { return this.currentProject }
     get snapshot() { return this.currentSnapshot }
-    get commitPathsInFlight() { return this.inFlightCommitPaths }
     get projectToken() { return this.projectLoadToken }
 
     resetLoadedProject() {
@@ -81,13 +81,16 @@ export class ProjectState {
         this.currentCardsByPath.clear()
         this.currentProject = null
         this.currentSnapshot = null
-        this.inFlightCommitPaths.clear()
+        this.expectedPersistenceOutcomes.reset()
         this.currentContentHashByPath.clear()
         this.parseErrorPaths.clear()
         if (previousActiveCards.length > 0) this.activeCardsChanged(previousActiveCards, [])
     }
 
     replaceProject(project: ProjectReference | null) {
+        const projectChanged = this.currentProject?.id !== project?.id
+            || this.currentProject?.branch !== project?.branch
+        if (projectChanged) this.expectedPersistenceOutcomes.reset()
         this.currentProject = project
     }
 

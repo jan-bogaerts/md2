@@ -13,7 +13,7 @@ Editor change
   → domain service updates in-memory state
   → CommitBatcher replaces that domain object's pending change
   → configured delay or explicit flush
-  → CardOperations marks affected paths as locally in flight
+  → renderer registers exact expected present/absent persistence outcomes
   → StorageService.commit creates one repository commit
   → optional automatic push
   → committed files and path changes are reconciled into application state
@@ -98,7 +98,14 @@ All renderer workflows use `StorageService`:
 | GitHub | Creates content blobs, then one tree containing additions, updates, move targets, and null entries only for move sources present in the current tree. It creates one pending commit from that tree. |
 | Remote control | Forwards the same request to the connected desktop host, which applies local missing-source behavior. |
 
-`CardOperations` marks every write and both move paths as locally in flight, classifying their watcher events as local echoes rather than external conflicts.
+Renderer persistence tracking registers outcomes before watcher-producing storage calls. Writes expect exact target content; moves expect an absent
+source and exact target content; file and known folder descendants expect absence after deletion. Latest outcome owns each normalized repository path.
+Operation settlement does not consume outcomes and does not wait for watcher delivery.
+
+Watcher callbacks defer a tracked path while any local operation affecting it remains unresolved, then inspect current persisted state. Exact matches
+are local echoes: repository-path bookkeeping may update, but action and Markdown domain state do not reload. Contradictions use existing external
+reload and conflict handling. Project/branch replacement discards old-scope outcomes; watcher restoration verifies retained outcomes during full
+resynchronization. Local Electron and remote-control storage share this renderer behavior. GitHub storage has no watcher and bypasses tracking.
 
 ## Main implementation files
 
@@ -106,7 +113,10 @@ All renderer workflows use `StorageService`:
 | --- | --- |
 | `app/src/data/commit_batcher.ts` | Coalescing, delay, serialized flushes, retries, and path-change rebasing. |
 | `app/src/services/data/data_service.ts` | Batch lifecycle, action persistence gateway, save state, and flushing. |
-| `app/src/services/data/card_operations.ts` | File scheduling, storage commits, locally in-flight paths, and automatic push. |
+| `app/src/services/data/card_operations.ts` | File scheduling, storage commits, direct state reconciliation, and automatic push. |
+| `app/src/services/project/expected_persistence_outcomes.ts` | Project-scoped expected outcomes, unresolved operations, matching, bounds, and reset. |
+| `app/src/services/project/expected_persistence_storage.ts` | Central outcome derivation around watcher-producing storage mutations. |
+| `app/src/services/project/project_loading.ts` | Watcher classification, external reload routing, and restoration verification. |
 | `app/src/services/actions/action_service.ts` | Action drafts, validation, filename selection, and post-commit path reconciliation. |
 | `app/src/services/project/save_state_service.ts` | Queued and active save tracking. |
 | `app/src/data/data_types.ts` | `CommitRequest`, file, move, and storage contracts. |
