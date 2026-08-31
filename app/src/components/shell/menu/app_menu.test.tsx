@@ -28,6 +28,8 @@ const auth: UseGithubAuthResult = {
     user: null,
 }
 
+const LOCAL_PROJECT = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
 function createBridge(): ElectronDataBridge {
     const usageSummary = {
         content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()),
@@ -116,14 +118,18 @@ async function openLocalProject() {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Open project' })).toBeNull())
 }
 
+async function activateLocalProject(bridge: ElectronDataBridge) {
+    window.md2Data = bridge
+    await projectSessionService.openProject('local', LOCAL_PROJECT, null)
+}
+
 async function renderProjectWithPendingChanges() {
     const bridge = createBridge()
     const files = [{ content: '---\nid: F-1\ninternalId: f-1\ntitle: Root\nstatus: active\n---\n\n# Root', path: 'design/F-1-root.md' }]
     bridge.loadProject = vi.fn(async () => ({ files, workingFolder: 'design' }))
     bridge.loadProjectRoot = vi.fn(async () => ({ files, workingFolder: 'design' }))
-    window.md2Data = bridge
+    await activateLocalProject(bridge)
     const renderResult = renderMenu()
-    await openLocalProject()
 
     act(() => {
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed body')
@@ -220,13 +226,13 @@ describe('AppMenu', () => {
     it('prevents exact Ctrl+S without committing while Commit is disabled', async () => {
         const commit = vi.spyOn(projectSessionService, 'commit').mockResolvedValue()
         const bridge = createBridge()
-        window.md2Data = bridge
         renderMenu()
         const noProjectEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })
         fireEvent(window, noProjectEvent)
         expect(noProjectEvent.defaultPrevented).toBe(true)
 
-        await openLocalProject()
+        await activateLocalProject(bridge)
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Commit' })).toBeDisabled())
         const noChangesEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })
         fireEvent(window, noChangesEvent)
 
@@ -336,11 +342,10 @@ describe('AppMenu', () => {
 
     it('creates a valid action and opens its text-view tab from the Home tab', async () => {
         const bridge = createBridge()
-        window.md2Data = bridge
+        await activateLocalProject(bridge)
         const listener = vi.fn()
         workspaceNavigationService.addEventListener('open', listener)
         renderMenu()
-        await openLocalProject()
 
         fireEvent.click(screen.getByRole('button', { name: 'New action' }))
 
@@ -388,10 +393,9 @@ describe('AppMenu', () => {
                 path: 'design/actions/card-review.json',
             },
         ])
-        window.md2Data = bridge
+        await activateLocalProject(bridge)
 
         renderMenu()
-        await openLocalProject()
         fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
 
         expect(screen.getByRole('button', { name: 'Review project' })).toBeInTheDocument()
@@ -487,10 +491,9 @@ describe('AppMenu', () => {
         }))
         bridge.loadProject = vi.fn(async () => ({ files, workingFolder: 'design' }))
         bridge.loadProjectRoot = vi.fn(async () => ({ files, workingFolder: 'design' }))
-        window.md2Data = bridge
+        await activateLocalProject(bridge)
 
         renderMenu()
-        await openLocalProject()
         const commitButton = screen.getByRole('button', { name: 'Commit' })
         const pushButton = screen.getByRole('button', { name: 'Push' })
         expect(commitButton).toBeDisabled()
@@ -532,9 +535,8 @@ describe('AppMenu', () => {
 
             return vi.fn()
         })
-        window.md2Data = bridge
+        await activateLocalProject(bridge)
         renderMenu()
-        await openLocalProject()
         const pullButton = screen.getByRole('button', { name: 'Pull' })
         expect(pullButton).toBeDisabled()
 

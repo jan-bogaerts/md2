@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MenuItem } from '@mui/material'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { BranchMenuSelect } from './branch_menu_select'
 import { MenuSelect } from './menu_select'
@@ -14,6 +14,8 @@ function openSelect(label: string) {
 }
 
 describe('toolbar menu selects', () => {
+    afterEach(cleanup)
+
     it('hides the default agent tooltip while its select menu is open', async () => {
         render(
             <AppThemeProvider>

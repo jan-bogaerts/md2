@@ -171,7 +171,7 @@ describe('project dialog components', () => {
         expect(await screen.findByRole('option', { name: 'Personal' })).toBeInTheDocument()
         expect(screen.getByRole('option', { name: 'Public' })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('option', { name: 'Personal' }))
-        await waitFor(() => fireEvent.click(screen.getByRole('button', { name: 'Folder' })))
+        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))
         expect(screen.getByLabelText('Endpoint')).toBeInTheDocument()
         expect(screen.queryByLabelText('Local repository folder')).toBeNull()
     })

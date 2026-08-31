@@ -494,6 +494,7 @@ describe('ReleaseOperations', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.clearAllMocks()
 
         const message = 'Cannot complete release. Unassign worktrees from cards: F-1, F-3.'
         await expect(service.releases.getReleaseBranchCandidates()).rejects.toThrow(message)

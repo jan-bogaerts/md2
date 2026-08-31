@@ -1,0 +1,8 @@
+import './affects_editor_dialog.grouped.test'
+import './card_body_editor.grouped.test'
+import './card_commit_menu.grouped.test'
+import './card_drag_overlay.grouped.test'
+import './card_path_menu_items.grouped.test'
+import './card_worktree_indicator.grouped.test'
+import './mobile_card_view.grouped.test'
+import './mobile_card_view_menu.grouped.test'
