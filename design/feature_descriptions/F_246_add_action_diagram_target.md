@@ -3,7 +3,7 @@ author:
 id: F_246
 internalId: 8df7d3db-c367-4792-b4f9-a9bd3ec9d674
 title: add action diagram target
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,58 @@ policy:
 after: 4ac8932f-6819-43c3-a9a6-e7623a05c279
 branch: f_246_add_action_diagram_target
 worktree: 2
+changedFiles:
+  - app/src/App.test.tsx
+  - app/src/app/use_app_bootstrap.test.ts
+  - app/src/components/actions/agent/action_agent_prompt.test.tsx
+  - app/src/components/actions/conversation/action_conversation_link_navigation.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_store.node.test.ts
+  - app/src/components/actions/editor/action_filter_editor.grouped.test.tsx
+  - app/src/components/actions/editor/action_filter_editor.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_defaults.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_defaults.ts
+  - app/src/components/actions/run/popup/action_popup_operations.ts
+  - app/src/components/config/config_value_editor.grouped.test.tsx
+  - app/src/components/config/config_value_editor.tsx
+  - app/src/components/editor/markdown_placeholder_menu.grouped.test.tsx
+  - app/src/components/hooks/use_project_config.test.ts
+  - app/src/components/shell/project/project_dialogs.test.tsx
+  - app/src/components/shell/project/project_folder_setup_fields.tsx
+  - app/src/components/shell/remote_connect_button.grouped.test.tsx
+  - app/src/data/action_context.node.test.ts
+  - app/src/data/action_context.ts
+  - app/src/data/action_placeholders.ts
+  - app/src/data/action_run_types.ts
+  - app/src/data/data_types.ts
+  - app/src/data/electron_action_bridge.ts
+  - app/src/services/actions/action_prompt_draft_service.node.test.ts
+  - app/src/services/actions/action_prompt_draft_service.ts
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
+  - app/src/services/actions/action_service.node.test.ts
+  - app/src/services/actions/action_text.node.test.ts
+  - app/src/services/actions/action_text.ts
+  - app/src/services/config/config_entries.ts
+  - app/src/services/config/config_service.service.test.ts
+  - app/src/services/config/config_service.ts
+  - app/src/services/project/project_loading.test.ts
+  - app/src/services/project/project_session_service.service.test.ts
+  - app/src/services/project/project_session_service.ts
+  - desktop/src/actions/action/action_agent_executor.js
+  - desktop/src/actions/action/action_definitions.test.mjs
+  - desktop/src/actions/action/action_diagram_output.js
+  - desktop/src/actions/action/action_diagram_output.test.mjs
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run_request.js
+  - desktop/src/actions/action/action_run_request.test.mjs
+  - desktop/src/actions/action/action_runner_service.js
+  - desktop/src/actions/action/action_runner_service.test.mjs
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/action/action_text.js
+  - desktop/src/actions/action/action_text.test.mjs
+  - shared/action_definitions.mjs
 ---
 We can link actions to different types of targets like cards, project, merge,... we need a new target: diagram. these actions are available in diagram mode.
 
