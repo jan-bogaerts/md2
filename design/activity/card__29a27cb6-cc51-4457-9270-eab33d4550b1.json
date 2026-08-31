@@ -2385,6 +2385,39 @@
       "startedAt": "2026-08-31T18:14:58.921Z",
       "status": "completed",
       "rootConversationId": "agent-c890916e-c921-4eea-b929-516fbdcfdc2a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "641cc44e462ebd78106c72b385a70b26aae62ce3",
+          "committedAt": "2026-08-31T20:36:20+02:00",
+          "deletions": 48,
+          "filePaths": [
+            "app/src/components/stats_view/stats_content.test.tsx",
+            "app/src/components/stats_view/stats_controls.tsx",
+            "app/src/services/stats/project_stats_loader.ts",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_types.ts",
+            "app/src/services/stats/stats_activity_dataset.ts",
+            "app/src/services/stats/stats_options.node.test.ts",
+            "app/src/services/stats/stats_options.ts",
+            "app/src/services/stats/stats_performance_dataset.ts",
+            "app/src/services/stats/stats_snapshot_builder.ts",
+            "app/src/services/stats/stats_totals_dataset.ts",
+            "app/src/services/stats/stats_usage_comparison_dataset.ts"
+          ],
+          "filesChanged": 12,
+          "insertions": 297,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-08-31T20:36:20+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "29a27cb6-cc51-4457-9270-eab33d4550b1",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
