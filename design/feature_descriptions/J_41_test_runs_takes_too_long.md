@@ -3,11 +3,14 @@ author:
 id: J_41
 internalId: e2ffca78-6736-4ef9-ab31-224364a9ae4c
 title: test runs takes too long
-status: new
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
+after: 25d602ba-1743-4365-b35d-08224cd0b98e
+branch: j_41_test_runs_takes_too_long
+worktree: 1
 ---
 
 we have a serious issue on the test definitions. the full test for the react app takes over 3 minutes and just keeps running.
