@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "66c61696-aa0f-473b-bd5a-e241c64a933f",
       "cardPath": "design/feature_descriptions/F_264_check_input_on_command_agents.md",
-      "completedAt": null,
+      "completedAt": "2026-08-31T07:52:31.080Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 58823
@@ -218,17 +218,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 16,
-          "timestamp": "2026-08-31T07:51:34.207Z"
+          "timestamp": "2026-08-31T07:52:31.080Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-8adb7901-1666-4808-8fba-0ef2cd378269",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a056cc-4ace-7933-b72e-9a26a0e745ce",
+          "createdAt": "2026-08-31T07:51:34.207Z",
+          "lastUsedAt": "2026-08-31T07:52:31.080Z",
+          "synchronizedThroughMessageId": "agent-turn-930a0b11-1ac3-4ba5-92db-b3dc51aa7ccd-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-08-31T07:50:23.576Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-31T07:50:23.576Z"
+        "elapsedMs": 70631,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
