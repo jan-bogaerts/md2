@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 66135
+        "usedTokens": 68413
       },
       "entries": [
         {
@@ -640,24 +640,125 @@
           "role": "assistant",
           "sequence": 45,
           "timestamp": "2026-08-31T17:59:05.034Z"
+        },
+        {
+          "content": "Ok, default should be current release.",
+          "id": "agent-turn-70c4abaa-a8dd-484e-8e8c-0b2504920410-user-45",
+          "kind": "message",
+          "role": "user",
+          "sequence": 46,
+          "timestamp": "2026-08-31T18:01:18.051Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-70c4abaa-a8dd-484e-8e8c-0b2504920410-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_036b4f5d75aa0091016a95c172599487d2b7f5a7836577bae5",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-31T18:01:34.488Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Decision applied: one release selected; `Current release` default. Defining it as activity under configured current activity folder. Completed releases come from immediate subfolders under configured releases folder. Usage telemetry stays date-filtered because rows carry no card or release identity.\n\n",
+          "id": "agent-turn-70c4abaa-a8dd-484e-8e8c-0b2504920410-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 48,
+          "timestamp": "2026-08-31T18:01:36.772Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_263_stats_add_releases_filter.md",
+          "deletions": 2,
+          "id": "agent-turn-70c4abaa-a8dd-484e-8e8c-0b2504920410-event-49",
+          "insertions": 31,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-04a79171-23af-4fbe-a3d3-8ae8249ff63a",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-08-31T18:02:04.527Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-70c4abaa-a8dd-484e-8e8c-0b2504920410-event-50",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_036b4f5d75aa0091016a95c19fb67887d29e5e90823b539ab7",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-31T18:02:09.411Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_263_stats_add_releases_filter.md'\"",
+          "content": "",
+          "durationMs": 6,
+          "exitCode": 0,
+          "id": "agent-turn-70c4abaa-a8dd-484e-8e8c-0b2504920410-event-51",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_263_stats_add_releases_filter.md'\"",
+          "providerItemId": "exec-b3aa35cc-6871-4058-8cb8-fb138afadeea",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-08-31T18:02:12.505Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-70c4abaa-a8dd-484e-8e8c-0b2504920410-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_036b4f5d75aa0091016a95c1a83dac87d29320831632ec5feb",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-31T18:02:15.982Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_263_stats_add_releases_filter.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_263_stats_add_releases_filter.md).\n\nAdded requested sections. Status now `ready for implementation`. Default release: `Current release`. No staging, commit, or tests.\n\n",
+          "id": "agent-turn-70c4abaa-a8dd-484e-8e8c-0b2504920410-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 53,
+          "timestamp": "2026-08-31T18:02:18.627Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-dd24edc2-36d6-474b-a2fd-ff32952ab885",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a058f7-cdd0-7a80-b2e5-1cfe05448cf4",
+          "createdAt": "2026-08-31T17:59:05.034Z",
+          "lastUsedAt": "2026-08-31T17:59:05.034Z",
+          "synchronizedThroughMessageId": "agent-turn-70c4abaa-a8dd-484e-8e8c-0b2504920410-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-08-31T17:57:09.604Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-31T17:57:09.604Z"
+        "elapsedMs": 115430,
+        "runningStartedAt": "2026-08-31T18:01:18.051Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 478976,
-        "inputTokens": 66222,
-        "outputTokens": 1628,
-        "reasoningTokens": 806,
-        "totalTokens": 547632
+        "cachedInputTokens": 618496,
+        "inputTokens": 128515,
+        "outputTokens": 2590,
+        "reasoningTokens": 1329,
+        "totalTokens": 750930
       },
       "usageSchemaVersion": 1,
       "viewed": true
