@@ -1213,6 +1213,43 @@
     "cardInternalId": "db346664-48c2-4cf0-833c-3c5508a85591",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "7da1a972b1dce0e7a82e54817f6dac0e50e3d303",
+          "committedAt": "2026-08-31T20:08:45+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_266_include_project_agent_data_in_release.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 61
+        }
+      ],
+      "completedAt": "2026-08-31T18:08:45.821Z",
+      "conversationIds": [
+        "agent-9f7d3e5a-7ae2-43e9-bc59-ca8cd768e590"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-ab7f0c83-f8e0-4dc0-8223-7c7bfdce9067",
+      "origin": {
+        "cardInternalId": "db346664-48c2-4cf0-833c-3c5508a85591",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-9f7d3e5a-7ae2-43e9-bc59-ca8cd768e590",
+      "startedAt": "2026-08-31T17:59:50.049Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
