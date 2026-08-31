@@ -3,13 +3,13 @@ author:
 id: F_262
 internalId: 3331f545-2396-4bb7-b421-14107e79a0d8
 title: Add diagram view
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__3331f545-2396-4bb7-b421-14107e79a0d8.json
 policy:
-after: 3509c194-adbf-4e1c-ad64-6aa9560354b4
+after: 29a27cb6-cc51-4457-9270-eab33d4550b1
 branch: f_262_add_diagram_view
 worktree: 1
 changedFiles:
