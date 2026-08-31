@@ -10,6 +10,8 @@ agents:
   - design/activity/card__3331f545-2396-4bb7-b421-14107e79a0d8.json
 policy:
 after: 3509c194-adbf-4e1c-ad64-6aa9560354b4
+branch: f_262_add_diagram_view
+worktree: 1
 ---
 * Add toggle to app menu bar, before stats-view toggle. When clicked, shows diagram view
 * Diagram view shows:
