@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__db346664-48c2-4cf0-833c-3c5508a85591.json
 policy:
+branch: f_266_include_project_agent_data_in_release
+worktree: 2
 ---
 when we do a release, all the project agent's logs and activity data should also be moved into the release folder.
 
