@@ -10,6 +10,8 @@ agents:
   - design/activity/card__8df7d3db-c367-4792-b4f9-a9bd3ec9d674.json
 policy:
 after: 4ac8932f-6819-43c3-a9a6-e7623a05c279
+branch: f_246_add_action_diagram_target
+worktree: 2
 ---
 We can link actions to different types of targets like cards, project, merge,... we need a new target: diagram. these actions are available in diagram mode.
 
@@ -25,7 +27,7 @@ When action is started, we calculate filename and pass to prompt resolver.
 
 ## Current state
 
-Action targets are represented by `ActionContext.kind`. Renderer supports `card`, `file`, `folder`, `merge-conflict`, and `project`; Electron validates the same set. `appliesTo` can filter actions by `kind` and `type`, but no diagram context exists, so no action can be opened specifically for diagram view. F_262 diagram view is not implemented.
+Action targets are represented by `ActionContext.kind`. Renderer supports `card`, `file`, `folder`, `merge-conflict`, and `project`; Electron validates the same set. `appliesTo` can filter actions by `kind` and `type`, but no diagram context exists, so no action can be opened specifically for diagram view. F\_262 diagram view is not implemented.
 
 Renderer and Electron prompt resolvers support card, folder, and merge-conflict placeholders. They do not recognize `{{diagram-file}}`. Project config has no diagram footer, default, editor field, validation, or action-runner value. Existing SVG support only loads SVG files as project assets; it does not generate them.
 
@@ -37,7 +39,7 @@ Renderer and Electron prompt resolvers support card, folder, and merge-conflict 
 * Add `diagram-file` to supported prompt placeholders and editor insertion choices. Resolve it only for diagram context; use elsewhere fails with a clear error. Resolve to absolute path in active run checkout, under configured project folder.
 * Generate path when diagram prompt is first prepared, because action popup must show resolved prompt before run. Reuse that path when prepared prompt starts. If action starts without preparation, generate path at start. Filename is sanitized action label, hyphen, filesystem-safe UTC timestamp with milliseconds, then `.svg`; for example `Project-overview-20260831T142530123Z.svg`. Replace Windows-invalid characters and whitespace runs with hyphens. Each new run gets new filename.
 * Append footer after action prompt, separated by blank line, before placeholder resolution. Prepared root prompts and directly executed or chained diagram prompts use same composition helper, so footer appears exactly once. Non-diagram prompts remain unchanged.
-* Return generated repository-relative diagram path with prepared prompt and action result metadata so F_262 can load created file without parsing prompt text. Continue storing diagram-action conversations in project activity; diagram persistence and navigation remain F_262 scope.
+* Return generated repository-relative diagram path with prepared prompt and action result metadata so F\_262 can load created file without parsing prompt text. Continue storing diagram-action conversations in project activity; diagram persistence and navigation remain F\_262 scope.
 * Add focused tests for definition validation, context matching, config defaults/load/save/validation, placeholder errors and resolution, filename sanitization and uniqueness, footer placement, no duplication, prepared/direct/chained runs, and unchanged non-diagram prompts. Run affected app and desktop tests plus app and desktop lint.
 
 ## acceptance criteria
