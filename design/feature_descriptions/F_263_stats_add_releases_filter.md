@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 72313751-3701-45e2-8c8c-59b095a770e2
 ---
 
 we already have a date from and to filter, we should add a 'releases' filter which only includes cards in the results that belong to the selected release or the current release.

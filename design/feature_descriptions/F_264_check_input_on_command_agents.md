@@ -3,7 +3,7 @@ author:
 id: F_264
 internalId: 66c61696-aa0f-473b-bd5a-e241c64a933f
 title: check input on command agents
-status: new
+status: design
 owner: 
 affects:
 agents:
