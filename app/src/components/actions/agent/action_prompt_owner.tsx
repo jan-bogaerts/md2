@@ -20,7 +20,7 @@ import { useActionRunSettings } from '../shared/use_action_run_settings'
 import { ActionPhraseButtonsOwner } from '../editor/action_phrase_buttons_owner'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
-interface ActionAgentPromptOwnerProps {
+interface ActionPromptOwnerProps {
     action: ActionDefinition
     bindingStore: ActionRunBindingStore
     context: ActionContext
@@ -37,8 +37,8 @@ function selectSessionActive(run: ActionRun | null) {
     return run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
 }
 
-/** Owns prompt draft binding, preparation, and keyboard-run behavior. */
-export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
+/** Owns shared action-input draft binding, agent preparation, and keyboard-run behavior. */
+export function ActionPromptOwner(props: ActionPromptOwnerProps) {
     const {
         action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore, runValidationError,
         scheduleStore, settingsStore,
@@ -118,7 +118,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
     return (
         <ActionAgentPrompt
             attachmentHandler={attachmentHandler}
-            bottomRow={action.type === 'agent' || activeActionType === 'agent' ? (
+            bottomRow={(
                 <ActionPopupBottomRow
                     action={action}
                     assignmentContext={context}
@@ -132,11 +132,11 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
                     scheduleStore={scheduleStore}
                     settingsStore={settingsStore}
                 />
-            ) : undefined}
+            )}
             convertMessage={inputSnapshot.convertMessage}
             onRunShortcut={handleRunShortcut}
             promptDraft={promptDraft}
-            responsePrompts={(
+            responsePrompts={action.type === 'agent' ? (
                 <ActionPhraseButtonsOwner
                     action={action}
                     bindingStore={bindingStore}
@@ -148,7 +148,7 @@ export function ActionAgentPromptOwner(props: ActionAgentPromptOwnerProps) {
                     runValidationError={runValidationError}
                     settingsStore={settingsStore}
                 />
-            )}
+            ) : undefined}
         />
     )
 }

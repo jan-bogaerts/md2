@@ -106,6 +106,7 @@ export class ProjectFileOperations {
 
         if (repairFile && committedRepairFiles.length === 0) committedRepairFiles = [repairFile]
         dependencies.deleteFile(path, committedRepairFiles, config.workingFolder)
+        dependencies.reconcileDeletedActionFile(path)
         dependencies.dispatchChanged()
 
         return dependencies.snapshot()

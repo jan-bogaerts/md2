@@ -13,6 +13,7 @@ import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
 import { actionRunRegistry, notifyActionCardStateChange } from '../actions/action_run_registry'
+import { actionService } from '../actions/action_service'
 import { AgentIntegration, type AgentIntegrationDeps } from '../agents/agent_integration'
 import { ProjectLoading, type ProjectLoadingDeps } from '../project/project_loading'
 import { ProjectState } from '../project/project_state'
@@ -353,6 +354,7 @@ export class DataService extends EventTarget {
             mutateCard: (path, mutation, workingFolder) => this.projectState.mutateCard(path, mutation, workingFolder),
             project: () => this.projectState.project,
             recordCurrentContent: (files) => this.projectState.recordCurrentContent(files),
+            reconcileDeletedActionFile: (path) => actionService.reconcileCommittedDeletion(path),
             refreshSnapshot: (workingFolder) => this.refreshSnapshot(workingFolder),
             reloadCurrentProjectSnapshot: () => this.projectLoading.reloadCurrentProjectSnapshot(),
             removeFolder: (path, workingFolder) => this.projectState.removeFolder(path, workingFolder),

@@ -325,8 +325,102 @@ describe('ActionPopup', () => {
         expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
         expect(actionGroup.getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'false')
         expect(dialog.getByRole('button', { name: 'Run' })).toBeInTheDocument()
-        expect(bottomRow).not.toHaveAttribute('data-embedded')
-        expect(scrollBody.nextElementSibling).toBe(bottomRow)
+        expect(bottomRow).toHaveAttribute('data-embedded', 'true')
+        expect(scrollBody.contains(bottomRow)).toBe(true)
+    })
+
+    it('renders one idle command input without agent controls and preserves typed text through reopen', () => {
+        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Agent default' }))
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt,
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+
+        const promptSurface = screen.getByLabelText('Prompt')
+        const prompt = within(promptSurface).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'command input' } })
+
+        expect(prompt).toHaveValue('command input')
+        expect(within(promptSurface).getByTestId('action-popup-bottom-row')).toHaveAttribute('data-embedded', 'true')
+        expect(screen.getAllByRole('button', { name: 'Run' })).toHaveLength(1)
+        expect(screen.getAllByRole('button', { name: 'Schedule' })).toHaveLength(1)
+        expect(screen.queryByRole('group', { name: 'Agent settings' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument()
+        expect(prepareActionPrompt).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+        cleanup()
+        renderPopup()
+
+        expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('command input')
+        expect(prepareActionPrompt).not.toHaveBeenCalled()
+    })
+
+    it('submits latest command input and clears it only after Electron accepts the run', async () => {
+        const acceptance = deferredValue<string>()
+        const startAction = vi.fn(() => acceptance.promise)
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+
+        fireEvent.change(prompt, { target: { value: 'focus this run' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledOnce())
+        expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: 'first',
+            runInput: { extraPrompt: 'focus this run' },
+        }))
+        expect(prompt).toHaveValue('focus this run')
+
+        acceptance.resolve('run-1')
+
+        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue(''))
+        expect(startAction).toHaveBeenCalledOnce()
+    })
+
+    it('submits command input once through Ctrl+Enter', async () => {
+        const startAction = vi.fn(async () => 'run-1')
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+
+        fireEvent.change(prompt, { target: { value: 'keyboard input' } })
+        fireEvent.keyDown(prompt, { ctrlKey: true, key: 'Enter' })
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: 'first',
+            runInput: { extraPrompt: 'keyboard input' },
+        })))
+        expect(startAction).toHaveBeenCalledOnce()
+    })
+
+    it('retains command input and reports a start failure before Electron acceptance', async () => {
+        const failure = new Error('Start rejected')
+        const reportError = vi.spyOn(dialogService, 'error')
+        const startAction = vi.fn(async () => {
+            throw failure
+        })
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+
+        fireEvent.change(prompt, { target: { value: 'retry input' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, { fallbackMessage: 'Action run failed' }))
+        expect(prompt).toHaveValue('retry input')
+        expect(startAction).toHaveBeenCalledOnce()
     })
 
     it('opens card popup on matching column default action', () => {

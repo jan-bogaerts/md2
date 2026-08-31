@@ -914,8 +914,11 @@ describe('ProjectWorkspace', () => {
 
         expect(confirm).toHaveBeenCalledWith('Delete design/actions/test.json?')
         await waitFor(() => expect(bridge.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ path: actionFile.path })))
-        expect(openFilesService.getSnapshot().documents).toHaveLength(0)
-        expect(screen.queryByRole('tab', { name: /Test/u })).not.toBeInTheDocument()
+        await waitFor(() => {
+            expect(openFilesService.getSnapshot().documents).toHaveLength(0)
+            expect(screen.queryByRole('tab', { name: /Test/u })).not.toBeInTheDocument()
+            expect(tree.queryByRole('button', { name: 'Test' })).not.toBeInTheDocument()
+        })
     }, 10_000)
 
     it('reveals a navigated card and keeps the current card view', async () => {

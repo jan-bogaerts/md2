@@ -40,7 +40,7 @@ interface ActionPopupBottomRowProps {
     bindingStore: ActionRunBindingStore
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
-    /** 2 call sites: for agents it is embedded inside input. commands have no input, but need bottom row for config and info */
+    /** Embedded inside idle input surfaces; standalone while a command run is active. */
     embedded?: boolean
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore
@@ -135,6 +135,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const handlePrimaryRun = async () => {
         if (browsingHistory) return
 
+        promptDraft.requestFlush()
         await runPopupAction(operationInput)
     }
     const handleCancel = () => {

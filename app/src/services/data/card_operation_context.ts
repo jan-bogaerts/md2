@@ -27,6 +27,7 @@ export interface CardOperationsDeps {
     mutateCard(path: string, mutation: (card: Card) => void, workingFolder: string): Card
     project(): ProjectReference | null
     recordCurrentContent(files: MarkdownFile[]): void
+    reconcileDeletedActionFile(path: string): void
     refreshSnapshot(workingFolder: string): void
     reloadCurrentProjectSnapshot(): Promise<ProjectSnapshot | null>
     removeFolder(path: string, workingFolder: string): void

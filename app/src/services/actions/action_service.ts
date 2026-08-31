@@ -138,6 +138,13 @@ export class ActionService extends EventTarget {
         }
     }
 
+    /** Removes an action file from owned state after its local persistence deletion succeeds. */
+    reconcileCommittedDeletion(path: string) {
+        if (!this.files.some((file) => file.path === path)) return;
+
+        this.loadFiles(this.files.filter((file) => file.path !== path), true);
+    }
+
     private loadFiles(files: ActionFile[], preserveEditorState: boolean) {
         const previousActionIds = new Set(this.actions.map(({ id }) => id))
         const previousDefinitions = new Map(this.definitions.map((entry) => [entry.definition.id, entry]))

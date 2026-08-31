@@ -807,6 +807,16 @@ describe('ActionService', () => {
         expect(() => service.draftStore.getDraft(VALID.id)).toThrow(/unknown action/u)
     })
 
+    it('removes an action immediately after its local file deletion is committed', () => {
+        const service = new ActionService(() => deletionGateway())
+        service.loadFromFiles([file(VALID)])
+
+        service.reconcileCommittedDeletion('actions/action.json')
+
+        expect(service.getActionByPath('actions/action.json')).toBeNull()
+        expect(service.getFiles()).toEqual([])
+    })
+
     it('preserves a dirty deleted draft until explicit discard', async () => {
         const gateway = deletionGateway()
         const service = new ActionService(() => gateway)

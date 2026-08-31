@@ -3,7 +3,7 @@ import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
 import { ActionAgentApprovals } from '../../agent/action_agent_approvals'
-import { ActionAgentPromptOwner } from '../../agent/action_agent_prompt_owner'
+import { ActionPromptOwner } from '../../agent/action_prompt_owner'
 import { ActionAgentQuestionOwner } from '../../agent/action_agent_question_owner'
 import { ActionConversationChat } from '../../conversation/action_conversation_chat'
 import { ActionLogErrorOwner } from '../../conversation/action_log_error_owner'
@@ -33,8 +33,10 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
         ? usageValuesService
         : undefined
 
+    if (!visible) return null
+
     return (
-        <Stack sx={{ display: visible ? 'contents' : 'none' }}>
+        <Stack sx={{ display: 'contents' }}>
             <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
                 <ActionLogErrorOwner bindingStore={bindingStore} resultStore={resultStore} />
                 <ActionConversationChat
@@ -45,7 +47,7 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
                     store={conversationStore}
                     usageValuesService={displayedUsageValuesService}
                 />
-                <ActionAgentPromptOwner
+                <ActionPromptOwner
                     action={action}
                     bindingStore={bindingStore}
                     context={assignmentContext}
