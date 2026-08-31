@@ -30,6 +30,7 @@ interface ActionAgentPromptProps {
     attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
     bottomRow?: ReactNode
     convertMessage: string | null
+    monospace?: boolean
     onRunShortcut?: () => void
     promptDraft: ActionPromptDraft
     responsePrompts?: ReactNode
@@ -37,7 +38,7 @@ interface ActionAgentPromptProps {
 
 /** Resizable prompt editor shown below an agent conversation. */
 export function ActionAgentPrompt(props: ActionAgentPromptProps) {
-    const {attachmentHandler, bottomRow, convertMessage, onRunShortcut, promptDraft, responsePrompts} = props
+    const {attachmentHandler, bottomRow, convertMessage, monospace = false, onRunShortcut, promptDraft, responsePrompts} = props
     const promptEditorRef = useRef<MarkdownEditorHandle>(null)
     const promptHeightStartRef = useRef(0)
     const pointerStartYRef = useRef(0)
@@ -196,6 +197,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                         hideAttachmentControl
                         hideToolbar
                         localTextSearch={false}
+                        monospace={monospace}
                         onLiveChange={handleLivePromptChange}
                         placeholders={ACTION_PROMPT_PLACEHOLDERS}
                         readOnly={editorSnapshot.preparationStatus !== 'ready'}

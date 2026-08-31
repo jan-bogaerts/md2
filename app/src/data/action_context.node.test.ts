@@ -34,6 +34,7 @@ function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionD
         onState: null,
         phrases: [],
         prompt: null,
+        showCommandWindow: false,
         sourcePath: `actions/${name}.json`,
         thinkingLevel: null,
         trackFileChanges: false,

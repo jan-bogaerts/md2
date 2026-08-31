@@ -64,7 +64,8 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
         && !sessionActive
         && runStatus !== 'completed'
         && conversationSnapshot.selectedConversation === null
-    const promptDraft = currentActionPromptDraft(action, context, bindingStore, prepare)
+    const commandInitialValue = sessionActive && activeActionType === 'agent' ? '' : undefined
+    const promptDraft = currentActionPromptDraft(action, context, bindingStore, prepare, commandInitialValue)
     const handleAttachments = useCallback(async (files: File[], insertMarkdown: (markdown: string) => void) => {
         const attachmentWorkflow = await import('../../../services/attachments/attachment_workflow')
         if (context.file) {
@@ -134,6 +135,7 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
                 />
             )}
             convertMessage={inputSnapshot.convertMessage}
+            monospace={action.type === 'command'}
             onRunShortcut={handleRunShortcut}
             promptDraft={promptDraft}
             responsePrompts={action.type === 'agent' ? (

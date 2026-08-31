@@ -117,6 +117,7 @@ export function editableActionDefinition(action: ActionDefinition): RawActionDef
         ...(action.onAfter.length > 0 ? { onAfter: action.onAfter.map(({ id }) => id) } : {}),
         ...(action.onState !== null ? { onState: action.onState } : {}),
         ...(action.needsWorkTree ? { needsWorkTree: true } : {}),
+        ...(action.showCommandWindow ? { showCommandWindow: true } : {}),
         ...(action.agent !== null ? { agent: action.agent } : {}),
         ...(action.model !== null ? { model: action.model } : {}),
         ...(action.permissionMode !== null ? { permissionMode: action.permissionMode } : {}),

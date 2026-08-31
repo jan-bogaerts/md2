@@ -16,6 +16,7 @@ vi.mock('../../editor/markdown_editor', async () => {
             hideAttachmentControl?: boolean
             imagePasteHandler?: (file: File, insertMarkdown: (markdown: string) => void) => Promise<void>
             localTextSearch?: boolean
+            monospace?: boolean
             onChange?: (markdown: string) => void
             onLiveChange?: (markdown: string) => void
             placeholders?: readonly { name: string }[]
@@ -49,6 +50,7 @@ vi.mock('../../editor/markdown_editor', async () => {
                     data-hide-attachment-control={props.hideAttachmentControl ? 'true' : 'false'}
                     data-image-paste={props.imagePasteHandler ? 'true' : 'false'}
                     data-local-text-search={props.localTextSearch === false ? 'false' : 'true'}
+                    data-monospace={props.monospace ? 'true' : 'false'}
                     data-placeholders={props.placeholders?.map(({ name }) => name).join(',')}
                     value={value}
                     onBlur={(event) => props.onChange?.(event.currentTarget.value)}
@@ -140,6 +142,13 @@ describe('ActionAgentPrompt', () => {
         expect(screen.getByLabelText('Markdown prompt').getAttribute('data-placeholders')).toContain('active-cards-folder')
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-local-text-search', 'false')
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-image-paste', 'false')
+    })
+
+    it('enables monospace presentation for command editing', () => {
+        const promptDraft = new ActionPromptDraft('npm test', false)
+        render(<ActionAgentPrompt convertMessage={null} monospace promptDraft={promptDraft} />)
+
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-monospace', 'true')
     })
 
     it('keeps typing local when prompt loses focus', () => {

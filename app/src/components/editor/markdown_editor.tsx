@@ -57,6 +57,7 @@ interface MarkdownEditorPresentationProps {
     imagePasteHandler?: MarkdownImagePasteHandler
     /** Set false when containing surface owns Ctrl+F behavior. */
     localTextSearch?: boolean
+    monospace?: boolean
     overlayContainer?: HTMLElement | null
     placeholders?: readonly ActionPlaceholder[]
     readOnly?: boolean
@@ -126,6 +127,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         hideToolbar = false,
         imagePasteHandler,
         localTextSearch = true,
+        monospace = false,
         overlayContainer,
         placeholders = EMPTY_PLACEHOLDERS,
         readOnly = false,
@@ -365,6 +367,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     ])
     const editorSx = {
         ...markdownContentSx,
+        ...(monospace ? {'& .mdxeditor-content, & .mdxeditor-content *': { fontFamily: 'monospace !important' }} : {}),
         '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },
     }
     const historyPlugin = historyPluginConfig ? markdownDocumentHistoryPlugin(historyPluginConfig) : null

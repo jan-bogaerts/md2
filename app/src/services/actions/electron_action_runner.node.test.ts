@@ -26,6 +26,7 @@ const action: ActionDefinition = {
     onState: null,
     phrases: [],
     prompt: null,
+    showCommandWindow: false,
     sourcePath: 'actions/test.json',
     thinkingLevel: null,
     trackFileChanges: false,

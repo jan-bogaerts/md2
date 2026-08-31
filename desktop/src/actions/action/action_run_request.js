@@ -1,5 +1,5 @@
 const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'conversationReservation', 'runInput']);
-const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'continueFrom', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'thinkingLevel']);
+const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'command', 'continueFrom', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'thinkingLevel']);
 const CONTEXT_KINDS = new Set(['card', 'file', 'folder', 'merge-conflict', 'project']);
 
 function readOptionalString(value, fieldName) {
@@ -35,6 +35,7 @@ function validateRunInput(runInput = {}) {
 
     return {
         agent: readOptionalString(runInput.agent, 'agent'),
+        command: readOptionalString(runInput.command, 'command'),
         continueFrom: readOptionalString(runInput.continueFrom, 'continueFrom'),
         extraPrompt: readOptionalString(runInput.extraPrompt, 'extraPrompt') ?? '',
         model: readOptionalString(runInput.model, 'model'),

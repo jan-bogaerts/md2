@@ -6,7 +6,13 @@
 >
 > **Platforms:** md² is an Electron desktop app. Windows x64 has a signed installer; macOS and Linux can run from source, but do not have prebuilt packages yet.
 
-https://github.com/user-attachments/assets/d611b4e5-8bb5-467e-98de-39bad96014dd
+https://github.com/user-attachments/assets/260ec55c-2905-47fa-9952-8f07b8c31c13
+
+## Videos
+
+- [Merge an agent's worktree branch](https://github.com/user-attachments/assets/8d9b4f55-6d97-42ff-bba4-ef36c5a64513) — Merge a branch back into the main working branch after an agent finishes implementing a card.
+- [Resolve merge conflicts between worktrees](https://github.com/user-attachments/assets/c04324ce-273d-43b7-b739-02c7011cefad) — Let an agent resolve conflicts when multiple worktrees change the same files.
+- [Switch agents during a conversation](https://github.com/user-attachments/assets/5078f4b6-3434-44f7-94ea-3b831d998eab) — Assign another agent and automatically migrate the active conversation.
 
 
 ## The feature card is the center

@@ -15,7 +15,8 @@ function setup() {
         builtin: false, command: null, icon: null, model: null,
         needsWorkTree: false, on: [], onAfter: [], onBefore: [], onState: null,
         phrases: draft.phrases ?? [], prompt: draft.prompt ?? null,
-        sourcePath: 'actions/review.json', thinkingLevel: null, trackFileChanges: false, streaming: draft.streaming ?? false,
+        showCommandWindow: false, sourcePath: 'actions/review.json', thinkingLevel: null,
+        trackFileChanges: false, streaming: draft.streaming ?? false,
         type: 'agent',
         editorState: {
             phrases: [{ identity: 'phrase-1', phrase: draft.phrases?.[0] as NonNullable<typeof draft.phrases>[number] }],

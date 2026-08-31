@@ -12,7 +12,7 @@ const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
 export const ACTION_DEFINITION_FIELDS = Object.freeze([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases',
+    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases',
 ])
 export const ACTION_AUTO_FINISH_FIELDS = Object.freeze(['state'])
 export const ACTION_ON_RULE_FIELDS = Object.freeze(['actionId', 'condition'])
@@ -31,7 +31,7 @@ export const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-te
 // Fields the editor can route an error to. Anything else routes to the general summary.
 const ROUTABLE_FIELDS = new Set([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases',
+    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases',
 ])
 
 /**
@@ -80,6 +80,7 @@ export const BUILTIN_CUSTOM_PROMPT = {
     label: '+',
     model: null,
     needsWorkTree: false,
+    showCommandWindow: false,
     on: [],
     onAfter: [],
     onBefore: [],
@@ -106,6 +107,7 @@ export const BUILTIN_REMARKABLE_CONVERT = {
     label: 'Convert Remarkable images to text',
     model: null,
     needsWorkTree: false,
+    showCommandWindow: false,
     on: [],
     onAfter: [],
     onBefore: [],
@@ -252,6 +254,7 @@ function validateTypeSpecificFields(value, type, source) {
     if (type === 'agent') {
         requireExecutableText(value.prompt, 'prompt', source)
         if (value.command !== undefined) throw fail(`Command action field is not valid for agent action in ${source}`, 'field-not-allowed', source, 'command')
+        if (value.showCommandWindow !== undefined) throw fail(`Command action field showCommandWindow is not valid for agent action in ${source}`, 'field-not-allowed', source, 'showCommandWindow')
         return
     }
 
@@ -324,6 +327,7 @@ function validateRawDefinition(value, source, dependencies) {
     if (value.icon !== undefined && typeof value.icon !== 'string') throw fail(`Invalid icon in ${source}`, 'invalid-field', source, 'icon')
     if (value.onState !== undefined && typeof value.onState !== 'string') throw fail(`Invalid onState in ${source}`, 'invalid-field', source, 'onState')
     if (value.needsWorkTree !== undefined && typeof value.needsWorkTree !== 'boolean') throw fail(`Invalid needsWorkTree in ${source}`, 'invalid-field', source, 'needsWorkTree')
+    if (value.showCommandWindow !== undefined && typeof value.showCommandWindow !== 'boolean') throw fail(`Invalid showCommandWindow in ${source}`, 'invalid-field', source, 'showCommandWindow')
     if (value.trackFileChanges !== undefined && typeof value.trackFileChanges !== 'boolean') throw fail(`Invalid trackFileChanges in ${source}`, 'invalid-field', source, 'trackFileChanges')
     if (value.streaming !== undefined && typeof value.streaming !== 'boolean') throw fail(`Invalid streaming in ${source}`, 'invalid-field', source, 'streaming')
 
@@ -346,6 +350,7 @@ function validateRawDefinition(value, source, dependencies) {
         phrases: readPhrases(value.phrases, source),
         permissionMode: readOptionalString(value.permissionMode, 'permissionMode', source),
         prompt: type === 'agent' ? value.prompt : undefined,
+        showCommandWindow: value.showCommandWindow ?? false,
         sourcePath: source,
         thinkingLevel: readOptionalString(value.thinkingLevel, 'thinkingLevel', source),
         trackFileChanges: value.trackFileChanges ?? false,
@@ -445,6 +450,7 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
             phrases: raw.phrases,
             permissionMode: raw.permissionMode ?? null,
             prompt: raw.prompt ?? null,
+            showCommandWindow: raw.showCommandWindow,
             sourcePath: raw.sourcePath,
             thinkingLevel: raw.thinkingLevel ?? null,
             trackFileChanges: raw.trackFileChanges,

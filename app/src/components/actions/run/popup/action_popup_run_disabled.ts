@@ -27,6 +27,7 @@ export function actionPopupRunDisabled(
     return !!actionRunDefinitionDisabledMessage(action)
         || !!runState.runDisabledMessage
         || preparationStatus !== 'ready'
+        || (action.type === 'command' && prompt.trim().length === 0)
         || (action.id === CUSTOM_PROMPT_ACTION_ID && prompt.trim().length === 0)
         || (runState.agentActive && (
             !runState.interactionReady

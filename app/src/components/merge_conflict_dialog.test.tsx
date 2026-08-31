@@ -58,6 +58,7 @@ function action(id: string, kind: 'merge-conflict' | 'project', type: 'agent' | 
         onState: null,
         phrases: [],
         prompt: type === 'agent' ? 'resolve' : null,
+        showCommandWindow: false,
         sourcePath: `actions/${id}.json`,
         thinkingLevel: null,
         trackFileChanges: false,

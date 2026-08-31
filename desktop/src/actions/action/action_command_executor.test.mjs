@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { ActionCancellationError } = require('./action_cancellation_error');
-const { executeCommandAction, runCommand } = require('./action_command_executor');
+const { executeCommandAction, runCommand, runCommandInWindow } = require('./action_command_executor');
 
 const temporaryPaths = [];
 
@@ -115,6 +115,55 @@ describe('runCommand', () => {
     });
 });
 
+describe('runCommandInWindow', () => {
+    it('waits for the visible launcher without capturing output', async () => {
+        const project = await createGitProject();
+        const child = createChild();
+        const onOutput = vi.fn();
+        const spawnCommand = vi.fn(() => child);
+        const writeFile = vi.fn(async () => undefined);
+        const completion = runCommandInWindow(
+            project,
+            'powershell.exe -File ask.ps1',
+            new AbortController().signal,
+            onOutput,
+            { spawnCommand, writeFile },
+        );
+        await vi.waitFor(() => expect(child.listenerCount('close')).toBe(1));
+        child.emit('close', 0);
+
+        await expect(completion).resolves.toEqual({command: 'powershell.exe -File ask.ps1', exitCode: 0, stderr: '', stdout: ''});
+        expect(onOutput).not.toHaveBeenCalled();
+        expect(writeFile).toHaveBeenCalledWith(
+            expect.stringMatching(/command\.cmd$/u),
+            'powershell.exe -File ask.ps1\r\nexit /b %errorlevel%\r\n',
+            'utf8',
+        );
+        expect(spawnCommand).toHaveBeenCalledWith(
+            expect.any(String),
+            ['/d', '/s', '/v:on', '/c', expect.stringContaining('/wait')],
+            expect.objectContaining({cwd: project.rootPath, stdio: 'ignore', windowsHide: true, windowsVerbatimArguments: true}),
+        );
+    });
+
+    it('terminates the visible command tree when cancelled', async () => {
+        const project = await createGitProject();
+        const child = createChild();
+        const controller = new AbortController();
+        const terminateProcessTree = vi.fn(async () => undefined);
+        const completion = runCommandInWindow(project, 'pause', controller.signal, vi.fn(), {
+            spawnCommand: () => child,
+            terminateProcessTree,
+        });
+        await vi.waitFor(() => expect(child.listenerCount('close')).toBe(1));
+        controller.abort();
+        child.emit('close', 1);
+
+        await expect(completion).rejects.toBeInstanceOf(ActionCancellationError);
+        expect(terminateProcessTree).toHaveBeenCalledWith(child);
+    });
+});
+
 describe('executeCommandAction', () => {
     it('resolves placeholders and streams command with injected runner', async () => {
         const commandRunner = vi.fn(async (_project, command, _signal, onOutput) => {
@@ -124,11 +173,11 @@ describe('executeCommandAction', () => {
         });
         const onOutput = vi.fn();
         const input = {
-            action: { command: 'run {{active-cards-folder}} {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{this-card}} {{card-prompt}}' },
+            action: { showCommandWindow: false },
             activeCardsFolder: 'design/feature_descriptions',
+            command: 'run {{active-cards-folder}} {{worktree-folder}} {{repository-folder}} {{project-folder}} {{releases-folder}} {{card-file}} {{this-card}} {{card-prompt}}',
             commandRunner,
             context: { file: 'design/card.md' },
-            extraPrompt: 'focus',
             onOutput,
             primaryProject: { rootPath: 'C:/repo' },
             project: { rootPath: 'C:/worktree' },
@@ -137,7 +186,7 @@ describe('executeCommandAction', () => {
             signal: new AbortController().signal,
         };
 
-        const command = `run ${resolve('C:/repo', 'design/feature_descriptions')} C:/worktree C:/repo ${resolve('C:/repo', 'design')} ${resolve('C:/repo', 'design/releases')} design/card.md design/card.md focus`;
+        const command = `run ${resolve('C:/repo', 'design/feature_descriptions')} C:/worktree C:/repo ${resolve('C:/repo', 'design')} ${resolve('C:/repo', 'design/releases')} design/card.md design/card.md `;
 
         await expect(executeCommandAction(input)).resolves.toMatchObject({ command });
         expect(onOutput).toHaveBeenCalledWith({ command, stderr: '', stdout: 'chunk' });
@@ -146,11 +195,11 @@ describe('executeCommandAction', () => {
     it.each(['card-file', 'this-card'])('rejects missing %s context before command start', async (placeholderName) => {
         const commandRunner = vi.fn();
         const input = {
-            action: { command: `run {{${placeholderName}}}` },
+            action: { showCommandWindow: false },
             activeCardsFolder: 'design/feature_descriptions',
+            command: `run {{${placeholderName}}}`,
             commandRunner,
             context: { kind: 'project' },
-            extraPrompt: '',
             onOutput: vi.fn(),
             primaryProject: { rootPath: 'C:/repo' },
             project: { rootPath: 'C:/repo' },
@@ -160,6 +209,29 @@ describe('executeCommandAction', () => {
         };
 
         expect(() => executeCommandAction(input)).toThrow(`Cannot resolve ${placeholderName} placeholder without a file context`);
+        expect(commandRunner).not.toHaveBeenCalled();
+    });
+
+    it('uses the visible runner when the action enables its command window', async () => {
+        const commandRunner = vi.fn();
+        const commandWindowRunner = vi.fn(async (_project, command) => ({command, exitCode: 0, stderr: '', stdout: ''}));
+        const input = {
+            action: { showCommandWindow: true },
+            activeCardsFolder: 'design/feature_descriptions',
+            command: 'run tests',
+            commandRunner,
+            commandWindowRunner,
+            context: { kind: 'project' },
+            onOutput: vi.fn(),
+            primaryProject: { rootPath: 'C:/repo' },
+            project: { rootPath: 'C:/repo' },
+            projectFolder: 'design',
+            releasesFolder: 'design/releases',
+            signal: new AbortController().signal,
+        };
+
+        await expect(executeCommandAction(input)).resolves.toMatchObject({ command: 'run tests' });
+        expect(commandWindowRunner).toHaveBeenCalledOnce();
         expect(commandRunner).not.toHaveBeenCalled();
     });
 });

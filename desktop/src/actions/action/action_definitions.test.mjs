@@ -78,6 +78,20 @@ describe('loadActionDefinitions', () => {
             .toMatchObject({ code: 'field-not-allowed', field: 'streaming' });
     });
 
+    it('normalizes command-window visibility and rejects invalid or agent-action uses', () => {
+        const visible = loadActionDefinitions([file('lint', { ...LINT, showCommandWindow: true })])
+            .find(({ id }) => id === LINT.id);
+        const captured = loadActionDefinitions([file('lint', LINT)])
+            .find(({ id }) => id === LINT.id);
+
+        expect(visible.showCommandWindow).toBe(true);
+        expect(captured.showCommandWindow).toBe(false);
+        expect(validationError([file('lint', { ...LINT, showCommandWindow: 'yes' })]))
+            .toMatchObject({ code: 'invalid-field', field: 'showCommandWindow' });
+        expect(validationError([file('implement', { ...IMPLEMENT, showCommandWindow: true })]))
+            .toMatchObject({ code: 'field-not-allowed', field: 'showCommandWindow' });
+    });
+
     it('normalizes strict autoFinish state triggers', () => {
         const autoFinish = { state: 'ready' };
         const action = loadActionDefinitions(

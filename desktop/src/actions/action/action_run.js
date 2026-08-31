@@ -33,13 +33,13 @@ class ActionRun {
         this.agentExecutor = dependencies.agentExecutor;
         this.agentRunnerService = dependencies.agentRunnerService;
         this.commandRunner = dependencies.commandRunner;
+        this.commandWindowRunner = dependencies.commandWindowRunner ?? dependencies.commandRunner;
         this.localGitService = dependencies.localGitService;
         this.publisher = dependencies.publisher;
         this.activeAction = null;
         this.activeActionPhase = null;
         this.activeAgentProject = null;
         this.activeAgentRunId = null;
-        this.activeAgentDispatchAvailable = false;
         this.activeAgentQuestion = false;
         this.activeAgentQuestionRequestId = null;
         this.activeAgentApprovals = new Map();
@@ -80,7 +80,6 @@ class ActionRun {
         if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
         if (this.activeAgentApprovals.size > 0) throw new Error('Answer pending approval before sending queued prompt');
         const prompt = this.resolveActiveAgentPrompt(content);
-        this.activeAgentDispatchAvailable = false;
 
         return this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt);
     }
@@ -206,24 +205,33 @@ class ActionRun {
     }
 
     dispatchStreamingPrompt() {
-        return this.queuePromptOperation(async () => {
+        const operation = this.queuePromptOperation(async () => {
             if (
                 !this.activeAgentRunId
                 || !this.activeAction?.streaming
-                || !this.activeAgentDispatchAvailable
                 || this.activeAgentQuestion
                 || this.activeAgentApprovals.size > 0
-            ) return;
+            ) return false;
             const entry = this.promptQueue.find(({ dispatchState }) => dispatchState === 'queued');
-            if (!entry) return;
+            if (!entry) return false;
 
             entry.dispatchState = 'dispatching';
             this.promptQueue = this.promptQueue.filter(({ id }) => id !== entry.id);
-            this.activeAgentDispatchAvailable = false;
             this.publishPromptQueueUpdate('agentPromptRemoved', { promptId: entry.id, revision: entry.revision });
             const prompt = this.resolveActiveAgentPrompt(entry.content);
             await this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt);
+
+            return !!this.activeAgentRunId
+                && !!this.activeAction?.streaming
+                && !this.activeAgentQuestion
+                && this.activeAgentApprovals.size === 0
+                && this.promptQueue.some(({ dispatchState }) => dispatchState === 'queued');
         });
+        void operation.then((dispatchNext) => {
+            if (dispatchNext) void this.dispatchStreamingPrompt().catch(() => undefined);
+        }).catch(() => undefined);
+
+        return operation;
     }
 
     claimNextQueuedPromptOrCloseQueue() {
@@ -312,7 +320,8 @@ class ActionRun {
 
     async runAction(action, phase, isRoot = false, rootPhase = phase) {
         this.throwIfCancelled();
-        if (action.type === 'command' && action.command.trim().length === 0) {
+        const command = action.type === 'command' && isRoot ? this.runInput.command ?? action.command : action.command;
+        if (action.type === 'command' && command.trim().length === 0) {
             throw new Error(`Command text is required for action "${action.label}"`);
         }
         for (const beforeAction of action.onBefore) {
@@ -390,7 +399,6 @@ class ActionRun {
         this.activeAction = null;
         this.activeActionPhase = null;
         this.activeAgentProject = null;
-        this.activeAgentDispatchAvailable = false;
         this.autoFinishPending = false;
     }
 
@@ -520,9 +528,10 @@ class ActionRun {
         return executeCommandAction({
             action,
             activeCardsFolder: this.activeCardsFolder,
+            command: isRoot ? this.runInput.command ?? action.command : action.command,
             commandRunner: this.commandRunner,
+            commandWindowRunner: this.commandWindowRunner,
             context: this.context,
-            extraPrompt: isRoot ? this.runInput.extraPrompt : '',
             onOutput,
             primaryProject: this.project,
             project,
@@ -535,11 +544,9 @@ class ActionRun {
     async executeAgentAction(action, phase, isRoot, project) {
         this.activeAgentProject = project;
         this.promptQueueClosed = false;
-        let agentExecutionStartsWithQueuedPrompt = false;
         const onActiveRunChange = (runId) => {
             this.activeAgentRunId = runId;
             if (runId) {
-                this.activeAgentDispatchAvailable = !!action.streaming && !agentExecutionStartsWithQueuedPrompt;
                 this.publish(action, phase, 'running', { interactionReady: true, type: 'agentState' });
                 void this.dispatchStreamingPrompt().catch(() => undefined);
                 if (this.autoFinishPending) {
@@ -549,7 +556,6 @@ class ActionRun {
                 }
             }
             else {
-                this.activeAgentDispatchAvailable = false;
                 this.activeAgentQuestion = false;
                 this.activeAgentQuestionRequestId = null;
                 this.activeAgentApprovals.clear();
@@ -569,7 +575,6 @@ class ActionRun {
                 return;
             }
             if (agentEvent.type === 'state') {
-                if (agentEvent.state === 'waitingForInput') this.activeAgentDispatchAvailable = true;
                 this.publish(action, phase, agentEvent.state, {
                     interactionReady: true,
                     ...(agentEvent.timer ? { timer: agentEvent.timer } : {}),
@@ -596,9 +601,11 @@ class ActionRun {
                 return;
             }
             if (agentEvent.type === 'questionAnswered') {
+                let questionCleared = false;
                 if (this.activeAgentQuestionRequestId === agentEvent.requestId) {
                     this.activeAgentQuestion = false;
                     this.activeAgentQuestionRequestId = null;
+                    questionCleared = true;
                 }
                 const update = {
                     kind: 'agentQuestionAnswer',
@@ -606,13 +613,13 @@ class ActionRun {
                     userMessage: agentEvent.userMessage,
                 };
                 this.publish(action, phase, agentEvent.state, { type: 'update', update });
+                if (questionCleared) void this.dispatchStreamingPrompt().catch(() => undefined);
                 return;
             }
             if (agentEvent.type === 'questionDismissed') {
                 if (this.activeAgentQuestionRequestId === agentEvent.requestId) {
                     this.activeAgentQuestion = false;
                     this.activeAgentQuestionRequestId = null;
-                    this.activeAgentDispatchAvailable = true;
                 }
                 const update = {
                     event: agentEvent.event,
@@ -700,7 +707,6 @@ class ActionRun {
             ? await this.claimNextQueuedPromptOrCloseQueue()
             : null;
         while (result.exitCode === 0 && queuedPrompt) {
-            agentExecutionStartsWithQueuedPrompt = true;
             result = await this.agentExecutor.execute({
                 ...input,
                 runInput: {
@@ -709,7 +715,6 @@ class ActionRun {
                     prompt: queuedPrompt,
                 },
             });
-            agentExecutionStartsWithQueuedPrompt = false;
             for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
             stderr += result.stderr ?? '';
             stdout += result.stdout ?? '';

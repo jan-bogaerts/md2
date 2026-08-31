@@ -67,7 +67,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     })
     const interactionReady = useRunSelector(boundRunId, (run) => !!run?.interactionReady)
     const liveConversationId = useRunSelector(boundRunId, (run) => run?.conversation?.id ?? null)
-    const promptDraft = currentActionPromptDraft(action, assignmentContext, bindingStore, false)
+    const promptDraft = currentActionPromptDraft(action, assignmentContext, bindingStore, false, agentActive ? '' : undefined)
     const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)
     const editorSnapshot = useSyncExternalStore(
         promptDraft.subscribeEditor,

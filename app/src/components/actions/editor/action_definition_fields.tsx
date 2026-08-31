@@ -89,7 +89,13 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
 
     const handleTypeChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (event.target.value === 'agent') {
-            handleDefinitionChange({ ...definition, command: undefined, prompt: definition.prompt ?? '', type: 'agent' })
+            handleDefinitionChange({
+                ...definition,
+                command: undefined,
+                prompt: definition.prompt ?? '',
+                showCommandWindow: undefined,
+                type: 'agent',
+            })
             return
         }
 
@@ -114,6 +120,10 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
 
     const handleTrackFileChangesChange = (event: ChangeEvent<HTMLInputElement>) => {
         handleDefinitionChange({ ...definition, trackFileChanges: event.target.checked || undefined })
+    }
+
+    const handleShowCommandWindowChange = (event: ChangeEvent<HTMLInputElement>) => {
+        handleDefinitionChange({ ...definition, showCommandWindow: event.target.checked || undefined })
     }
 
     const handleStreamingChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -258,7 +268,22 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
                                 </Stack>
                             ) : null}
                         </>
-                    ) : null}
+                    ) : (
+                        <Stack>
+                            <FormControlLabel
+                                control={(
+                                    <Switch
+                                        checked={!!definition.showCommandWindow}
+                                        onChange={handleShowCommandWindowChange}
+                                        size="small"
+                                    />
+                                )}
+                                label="Show command window"
+                                sx={{ whiteSpace: 'nowrap' }}
+                            />
+                            <FormHelperText>open a console window for command interaction</FormHelperText>
+                        </Stack>
+                    )}
                 </Grid>
                 {definition.type === 'agent' && definition.streaming && definition.autoFinish ? (
                     <ActionEditorField

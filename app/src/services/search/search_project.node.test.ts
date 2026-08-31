@@ -84,6 +84,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         ...overrides,
         permissionMode: overrides.permissionMode ?? null,
         phrases: overrides.phrases ?? [],
+        showCommandWindow: overrides.showCommandWindow ?? false,
         streaming: overrides.streaming ?? false,
     }
 }

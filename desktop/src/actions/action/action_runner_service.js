@@ -1,6 +1,6 @@
 const crypto = require('node:crypto');
 const { ActionAgentExecutor } = require('./action_agent_executor');
-const { runCommand } = require('./action_command_executor');
+const { runCommand, runCommandInWindow } = require('./action_command_executor');
 const { ActionDefinitionCache } = require('./action_definition_cache');
 const { resolveActionDefinition } = require('./action_definition_resolver');
 const { ActionRun } = require('./action_run');
@@ -42,6 +42,7 @@ class ActionRunnerService {
         this.agentConfigProvider = dependencies?.agentConfigProvider;
         this.agentRunnerService = dependencies?.agentRunnerService;
         this.commandRunner = dependencies?.commandRunner ?? runCommand;
+        this.commandWindowRunner = dependencies?.commandWindowRunner ?? runCommandInWindow;
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
         this.localGitService = dependencies?.localGitService;
         this.usageMetricsService = dependencies?.usageMetricsService ?? null;
@@ -170,6 +171,7 @@ class ActionRunnerService {
             agentExecutor: this.agentExecutor,
             agentRunnerService: this.agentRunnerService,
             commandRunner: this.commandRunner,
+            commandWindowRunner: this.commandWindowRunner,
             localGitService: this.localGitService,
             publisher: this.publish.bind(this),
         });

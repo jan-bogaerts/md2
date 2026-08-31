@@ -16,6 +16,7 @@ export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export interface ActionRunInput {
     agent?: string
+    command?: string
     continueFrom?: string
     extraPrompt?: string
     model?: string

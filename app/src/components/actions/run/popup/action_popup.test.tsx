@@ -329,7 +329,7 @@ describe('ActionPopup', () => {
         expect(scrollBody.contains(bottomRow)).toBe(true)
     })
 
-    it('renders one idle command input without agent controls and preserves typed text through reopen', () => {
+    it('prefills one idle command editor and preserves edited text through reopen', () => {
         const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Agent default' }))
         window.md2Actions = {
             onActionRun: vi.fn(() => vi.fn()),
@@ -339,9 +339,10 @@ describe('ActionPopup', () => {
 
         const promptSurface = screen.getByLabelText('Prompt')
         const prompt = within(promptSurface).getByRole('textbox')
-        fireEvent.change(prompt, { target: { value: 'command input' } })
+        expect(prompt).toHaveValue('run')
+        fireEvent.change(prompt, { target: { value: 'edited command' } })
 
-        expect(prompt).toHaveValue('command input')
+        expect(prompt).toHaveValue('edited command')
         expect(within(promptSurface).getByTestId('action-popup-bottom-row')).toHaveAttribute('data-embedded', 'true')
         expect(screen.getAllByRole('button', { name: 'Run' })).toHaveLength(1)
         expect(screen.getAllByRole('button', { name: 'Schedule' })).toHaveLength(1)
@@ -353,11 +354,11 @@ describe('ActionPopup', () => {
         cleanup()
         renderPopup()
 
-        expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('command input')
+        expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('edited command')
         expect(prepareActionPrompt).not.toHaveBeenCalled()
     })
 
-    it('submits latest command input and clears it only after Electron accepts the run', async () => {
+    it('submits the edited command and resets it only after Electron accepts the run', async () => {
         const acceptance = deferredValue<string>()
         const startAction = vi.fn(() => acceptance.promise)
         window.md2Actions = {
@@ -373,13 +374,13 @@ describe('ActionPopup', () => {
         await waitFor(() => expect(startAction).toHaveBeenCalledOnce())
         expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
             actionId: 'first',
-            runInput: { extraPrompt: 'focus this run' },
+            runInput: { command: 'focus this run' },
         }))
         expect(prompt).toHaveValue('focus this run')
 
         acceptance.resolve('run-1')
 
-        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue(''))
+        await waitFor(() => expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('run'))
         expect(startAction).toHaveBeenCalledOnce()
     })
 
@@ -397,7 +398,7 @@ describe('ActionPopup', () => {
 
         await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
             actionId: 'first',
-            runInput: { extraPrompt: 'keyboard input' },
+            runInput: { command: 'keyboard input' },
         })))
         expect(startAction).toHaveBeenCalledOnce()
     })

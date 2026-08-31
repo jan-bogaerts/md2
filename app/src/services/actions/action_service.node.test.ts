@@ -206,6 +206,22 @@ describe('ActionService', () => {
         expect(editableActionDefinition(untrackedAction)).not.toHaveProperty('trackFileChanges')
     })
 
+    it('round-trips command-window visibility only when enabled', () => {
+        const service = new ActionService()
+        service.loadFromFiles([file({ ...VALID, showCommandWindow: true })])
+        const visibleAction = service.getActionByPath('actions/action.json')
+        if (!visibleAction) throw new Error('Missing visible command action')
+
+        expect(visibleAction.showCommandWindow).toBe(true)
+        expect(editableActionDefinition(visibleAction).showCommandWindow).toBe(true)
+
+        service.loadFromFiles([file(VALID)])
+        const capturedAction = service.getActionByPath('actions/action.json')
+        if (!capturedAction) throw new Error('Missing captured command action')
+        expect(capturedAction.showCommandWindow).toBe(false)
+        expect(editableActionDefinition(capturedAction)).not.toHaveProperty('showCommandWindow')
+    })
+
     it('routes validation failures by structured metadata, not message text', () => {
         const service = new ActionService()
         service.loadFromFiles([file(VALID)])

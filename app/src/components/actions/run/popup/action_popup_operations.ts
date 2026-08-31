@@ -78,8 +78,21 @@ export function currentActionPromptDraft(
     context: ActionContext,
     bindingStore: ActionRunBindingStore,
     prepare: boolean,
+    commandInitialValue?: string,
 ) {
-    return actionPromptDraftService.getDraft(action.id, context, bindingStore.getSnapshot(), { prepare })
+    const initialValue = action.type === 'command' ? commandInitialValue ?? action.command ?? '' : undefined
+
+    return actionPromptDraftService.getDraft(action.id, context, bindingStore.getSnapshot(), { initialValue, prepare })
+}
+
+function resetSubmittedDraft(action: ActionDefinition, context: ActionContext, runId: string | null) {
+    const draft = actionPromptDraftService.getDraft(action.id, context, runId, { prepare: false })
+    if (action.type === 'command') {
+        draft.replace(action.command ?? '')
+        return
+    }
+
+    draft.clear()
 }
 
 function activeRunHasHistoricalDisplay(
@@ -116,9 +129,9 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
                 ...(settings.permissionMode ? { permissionMode: settings.permissionMode } : {}),
                 thinkingLevel: settings.thinkingLevel,
             }
-            : { extraPrompt: prompt }
+            : { command: prompt }
         const handleStarted = (runId: string) => {
-            actionPromptDraftService.clearDraft(action.id, context, bindingStore.getSnapshot())
+            resetSubmittedDraft(action, context, bindingStore.getSnapshot())
             bindingStore.setRunId(runId)
             resultStore.setRunId(runId)
             settingsStore.markSettingsApplied()
@@ -167,10 +180,10 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
     const run = currentActionRun(bindingStore)
     if (activeRunHasHistoricalDisplay(run, conversationStore)) return
 
-    const promptDraft = actionPromptDraftService.getDraft(action.id, context, bindingStore.getSnapshot(), { prepare: false })
-    const prompt = promptDraft.getSnapshot()
     const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
     const agentActive = sessionActive && run?.activeActionType === 'agent'
+    const promptDraft = currentActionPromptDraft(action, context, bindingStore, false, agentActive ? '' : undefined)
+    const prompt = promptDraft.getSnapshot()
 
     if (agentActive && run) {
         if (

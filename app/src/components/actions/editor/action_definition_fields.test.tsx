@@ -105,6 +105,7 @@ describe('ActionDefinitionFields', () => {
             ...sharedFields,
             command: undefined,
             prompt: '',
+            showCommandWindow: undefined,
             type: 'agent',
         })
     })
@@ -117,6 +118,21 @@ describe('ActionDefinitionFields', () => {
         expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('ready')
         expect(screen.queryByRole('switch', { name: 'Auto commit' })).not.toBeInTheDocument()
         expect(screen.queryByRole('switch', { name: 'Streaming' })).not.toBeInTheDocument()
+        expect(screen.getByRole('switch', { name: 'Show command window' })).not.toBeChecked()
+    })
+
+    it('shows and persists command-window visibility', () => {
+        const definition = {
+            ...sharedFields,
+            command: 'npm run test',
+            type: 'command',
+        } satisfies RawActionDefinition
+        const getDefinition = renderFields(definition)
+        const commandWindowSwitch = screen.getByRole('switch', { name: 'Show command window' })
+
+        fireEvent.click(commandWindowSwitch)
+
+        expect(getDefinition()).toEqual({ ...definition, showCommandWindow: true })
     })
 
     it('shows and persists agent streaming', () => {
