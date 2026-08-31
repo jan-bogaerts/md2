@@ -3,12 +3,18 @@ author:
 id: F_264
 internalId: 66c61696-aa0f-473b-bd5a-e241c64a933f
 title: check input on command agents
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__66c61696-aa0f-473b-bd5a-e241c64a933f.json
 policy:
+changedFiles:
+  - app/src/components/actions/agent/action_agent_prompt_owner.tsx
+  - app/src/components/actions/run/popup/action_agent_interaction.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
+  - app/src/components/actions/run/popup/command_action.tsx
 ---
 We need to check something: some command agents also might need input from the command line, we also need to support this. do we?
 
