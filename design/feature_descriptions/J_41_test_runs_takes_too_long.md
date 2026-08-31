@@ -7,6 +7,7 @@ status: ready for implementation
 owner: 
 affects:
 agents:
+  - design/activity/card__e2ffca78-6736-4ef9-ab31-224364a9ae4c.json
 policy:
 after: 25d602ba-1743-4365-b35d-08224cd0b98e
 branch: j_41_test_runs_takes_too_long
