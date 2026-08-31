@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "3b6ae28a-dbbc-4229-be1b-f9b7ecd00fc1",
       "cardPath": "design/feature_descriptions/B_203_fix_release_check.md",
-      "completedAt": null,
+      "completedAt": "2026-08-31T12:27:10.579Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 49364
@@ -524,17 +524,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 38,
-          "timestamp": "2026-08-31T12:27:09.970Z"
+          "timestamp": "2026-08-31T12:27:10.579Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-91e827bc-2a76-421a-826d-e946f35e83b4",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a057c7-23a0-7120-8ade-e11e47bf4636",
+          "createdAt": "2026-08-31T12:27:10.579Z",
+          "lastUsedAt": "2026-08-31T12:27:10.579Z",
+          "synchronizedThroughMessageId": "agent-turn-82567e26-0485-4e56-87a0-29388f0dc6e7-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-08-31T12:23:50.505Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 10952,
-        "runningStartedAt": "2026-08-31T12:24:23.229Z"
+        "elapsedMs": 178302,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
