@@ -3,12 +3,15 @@ author:
 id: B_202
 internalId: 25d602ba-1743-4365-b35d-08224cd0b98e
 title: queued messages work incorrectly
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__25d602ba-1743-4365-b35d-08224cd0b98e.json
 policy:
+changedFiles:
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run.test.mjs
 ---
 
 it seems that the system will only try to send the next queued message after the agent fully completed it's turn. it is not possible to send it while the agent is still doing something. we need to fix this.
