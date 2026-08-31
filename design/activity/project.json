@@ -12086,12 +12086,20 @@
       ],
       "hasExplicitTitle": true,
       "id": "agent-aef421ef-ed8d-4649-a7a2-345f215cc514",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a05884-d64c-7871-8909-710befa9c43b",
+          "createdAt": "2026-08-31T15:53:43.781Z",
+          "lastUsedAt": "2026-08-31T15:53:43.781Z",
+          "synchronizedThroughMessageId": "agent-turn-57496954-48bf-4472-8612-5f7e56f9a5b6-turn-1-assistant-6"
+        }
+      ],
       "startedAt": "2026-08-31T15:51:35.445Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-31T15:51:35.445Z"
+        "elapsedMs": 128336,
+        "runningStartedAt": null
       },
       "title": "merge",
       "usage": {
