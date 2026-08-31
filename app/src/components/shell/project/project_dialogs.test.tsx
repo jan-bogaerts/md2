@@ -541,6 +541,7 @@ describe('project dialog components', () => {
                         values: {
                             actionsFolder: 'actions',
                             archivedFolder: 'archived',
+                            diagramsFolder: 'diagrams',
                             projectFolder: 'design',
                             releasesFolder: 'history',
                             workingFolder: 'feature_descriptions',
@@ -558,7 +559,7 @@ describe('project dialog components', () => {
         expect(screen.queryByRole('button', { name: 'Open Remote' })).toBeNull()
     })
 
-    it('confirms all five folder values for a project without md2.config.json', async () => {
+    it('confirms all folder values for a project without md2.config.json', async () => {
         const confirmProjectFolderSetup = vi.fn()
         render(
             <ProjectOpenDialog
@@ -575,6 +576,7 @@ describe('project dialog components', () => {
                         values: {
                             actionsFolder: 'actions',
                             archivedFolder: 'archived',
+                            diagramsFolder: 'diagrams',
                             projectFolder: 'design',
                             releasesFolder: 'history',
                             workingFolder: 'active',
@@ -595,6 +597,7 @@ describe('project dialog components', () => {
         await waitFor(() => expect(confirmProjectFolderSetup).toHaveBeenCalledWith({
             actionsFolder: 'actions',
             archivedFolder: 'archived',
+            diagramsFolder: 'diagrams',
             projectFolder: 'docs',
             releasesFolder: 'history',
             workingFolder: 'cards',
@@ -615,6 +618,7 @@ describe('project dialog components', () => {
                         values: {
                             actionsFolder: 'actions',
                             archivedFolder: 'archived',
+                            diagramsFolder: 'diagrams',
                             projectFolder: 'design',
                             releasesFolder: 'history',
                             workingFolder: 'active',
@@ -644,6 +648,7 @@ describe('project dialog components', () => {
                         values: {
                             actionsFolder: 'actions',
                             archivedFolder: 'archived',
+                            diagramsFolder: 'diagrams',
                             projectFolder: 'design',
                             releasesFolder: 'history',
                             workingFolder: 'active',
@@ -671,6 +676,7 @@ describe('project dialog components', () => {
                         values: {
                             actionsFolder: 'actions',
                             archivedFolder: 'archived',
+                            diagramsFolder: 'diagrams',
                             projectFolder: 'design',
                             releasesFolder: 'history',
                             workingFolder: 'active',
@@ -698,6 +704,7 @@ describe('project dialog components', () => {
             values: {
                 actionsFolder: 'actions',
                 archivedFolder: 'archived',
+                diagramsFolder: 'diagrams',
                 projectFolder: 'design',
                 releasesFolder: 'history',
                 workingFolder: 'active',

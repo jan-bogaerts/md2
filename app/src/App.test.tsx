@@ -155,6 +155,7 @@ describe('App', () => {
             values: {
                 actionsFolder: 'actions',
                 archivedFolder: 'archived',
+                diagramsFolder: 'diagrams',
                 projectFolder: 'design',
                 releasesFolder: 'history',
                 workingFolder: 'feature_descriptions',

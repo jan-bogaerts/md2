@@ -22,6 +22,7 @@ import { projectAccessService, READ_ONLY_PROJECT_ERROR } from './project_access_
 const DEFAULT_FOLDER_VALUES = {
     actionsFolder: 'actions',
     archivedFolder: 'archived',
+    diagramsFolder: 'diagrams',
     projectFolder: 'design',
     releasesFolder: 'history',
     workingFolder: 'active',
@@ -493,6 +494,7 @@ describe('ProjectSessionService storage activation', () => {
             values: {
                 actionsFolder: 'actions',
                 archivedFolder: 'archived',
+                diagramsFolder: 'diagrams',
                 projectFolder: 'design',
                 releasesFolder: 'history',
                 workingFolder: 'active',
@@ -528,6 +530,7 @@ describe('ProjectSessionService storage activation', () => {
             values: {
                 actionsFolder: 'actions',
                 archivedFolder: 'archived',
+                diagramsFolder: 'diagrams',
                 projectFolder: 'design',
                 releasesFolder: 'history',
                 workingFolder: 'active',
@@ -559,7 +562,7 @@ describe('ProjectSessionService storage activation', () => {
 
         expect(bridge.createProject).toHaveBeenCalledWith(
             project,
-            ['design/active', 'design/archived', 'design/actions', 'design/history'],
+            ['design/active', 'design/archived', 'design/actions', 'design/history', 'design/diagrams'],
         )
         expect(bridge.commit).toHaveBeenCalledWith({
             branch: 'main',
@@ -589,6 +592,7 @@ describe('ProjectSessionService storage activation', () => {
             'design/active/README.md',
             'design/archived/README.md',
             'design/history/README.md',
+            'design/diagrams/README.md',
         ])
         window.md2Data = bridge
         const service = new ProjectSessionService()
@@ -596,7 +600,7 @@ describe('ProjectSessionService storage activation', () => {
 
         await service.confirmProjectFolderSetup(
             {
-                existingFolderPaths: ['design', 'design/actions', 'design/active', 'design/archived', 'design/history'],
+                existingFolderPaths: ['design', 'design/actions', 'design/active', 'design/archived', 'design/history', 'design/diagrams'],
                 folders: [{ name: 'design', path: 'design' }],
                 hasProjectConfig: false,
                 kind: 'project-folder-setup',

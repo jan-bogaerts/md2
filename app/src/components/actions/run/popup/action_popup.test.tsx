@@ -910,6 +910,34 @@ describe('ActionPopup', () => {
         expect(saveProjectFile).not.toHaveBeenCalled()
     })
 
+    it('starts a prepared diagram prompt with its generated repository-relative path', async () => {
+        const startAction = vi.fn(async () => 'diagram-run')
+        const diagramPath = 'design/diagrams/Overview-20260831T142530123Z.svg'
+        mockCodexAvailable()
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ diagramPath, prompt: 'Prepared diagram prompt' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        actionService.loadFromFiles([file(agentDefinition('overview', {
+            appliesTo: { kind: 'diagram', type: 'root' },
+            label: 'Overview',
+        }))])
+
+        renderPopup({ kind: 'diagram', type: 'root' })
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        fireEvent.click(dialog.getByRole('button', { name: 'Overview' }))
+        const prompt = within(await dialog.findByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).toHaveValue('Prepared diagram prompt'))
+        fireEvent.click(dialog.getByRole('button', { name: 'Send' }))
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: 'overview',
+            context: { kind: 'diagram', type: 'root' },
+            runInput: expect.objectContaining({ diagramPath, prompt: 'Prepared diagram prompt' }),
+        })))
+    })
+
     it('omits retained shared permission mode when custom agent runs', async () => {
         const startAction = vi.fn(async (request: ActionStartRequest) => {
             void request

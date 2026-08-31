@@ -73,6 +73,33 @@ describe('resolvePlaceholders', () => {
         )).toBe('src/one.js\nsrc/one.js\nsrc/two.js');
     });
 
+    it('resolves diagram-file only for diagram context', () => {
+        const diagramFile = 'C:\\worktrees\\2\\design\\diagrams\\Overview.svg';
+
+        expect(resolvePlaceholders(
+            'Save {{diagram-file}}',
+            { kind: 'diagram', type: 'root' },
+            worktreeProject,
+            project,
+            projectFolder,
+            releasesFolder,
+            activeCardsFolder,
+            '',
+            diagramFile,
+        )).toBe(`Save ${diagramFile}`);
+        expect(() => resolvePlaceholders(
+            '{{diagram-file}}',
+            { kind: 'project' },
+            project,
+            project,
+            projectFolder,
+            releasesFolder,
+            activeCardsFolder,
+            '',
+            diagramFile,
+        )).toThrow('outside diagram context');
+    });
+
     it('does not resolve removed placeholder names', () => {
         expect(resolvePlaceholders('{{rootProjectFolder}} {{file}} {{prompt}}', { file: 'design/card.md' }, project, project, projectFolder, releasesFolder, activeCardsFolder, 'focus'))
             .toBe('{{rootProjectFolder}} {{file}} {{prompt}}');
@@ -94,6 +121,24 @@ describe('resolveAgentPrompt', () => {
 
     it('resolves an empty custom prompt', () => {
         expect(resolveAgentPrompt({ prompt: '{{card-prompt}}' }, {}, project, project, projectFolder, releasesFolder, activeCardsFolder, '')).toBe('');
+    });
+
+    it('appends configured diagram footer exactly once before resolution', () => {
+        const context = { kind: 'diagram', type: 'root' };
+        const diagramFile = 'C:\\worktrees\\2\\design\\diagrams\\Overview.svg';
+
+        expect(resolveAgentPrompt(
+            { prompt: 'Create overview' },
+            context,
+            worktreeProject,
+            project,
+            projectFolder,
+            releasesFolder,
+            activeCardsFolder,
+            '',
+            'Custom footer: save {{diagram-file}}.',
+            diagramFile,
+        )).toBe(`Create overview\n\nCustom footer: save ${diagramFile}.`);
     });
 });
 

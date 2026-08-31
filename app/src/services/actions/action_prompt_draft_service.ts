@@ -1,4 +1,5 @@
 import { actionContextIdentity, type ActionContext } from '../../data/action_context'
+import type { PreparedActionPrompt } from '../../data/action_run_types'
 import { isRemoteControlConnectionError } from '../data/remote_control_storage_service'
 import { register } from '../service_injector'
 import { MarkdownDraft, type MarkdownDraftBinding } from '../markdown/markdown_draft'
@@ -24,6 +25,7 @@ function promptDraftKey(actionId: string, context: ActionContext, runId: string 
 /** Stable prompt state shared by editor and prompt-dependent leaf controls. */
 export class ActionPromptDraft {
     private applyingExternalValue = false
+    private diagramPath: string | null = null
     readonly editorDraft: MarkdownDraftBinding
     private editorSnapshot: ActionPromptDraftEditorSnapshot
     private locallyEdited = false
@@ -87,6 +89,7 @@ export class ActionPromptDraft {
     }
 
     clear() {
+        this.diagramPath = null
         if (this.getSnapshot().length === 0 && this.editorSnapshot.preparationStatus === 'ready') {
             this.locallyEdited = false
             this.preparationRequired = true
@@ -100,17 +103,18 @@ export class ActionPromptDraft {
         this.preparationStarted = false
     }
 
-    async prepare(load: () => Promise<string>) {
+    async prepare(load: () => Promise<PreparedActionPrompt>) {
         if (!this.preparationRequired || this.preparationStarted) return
 
         this.preparationStarted = true
         this.setPreparationStatus('loading')
         const preparationRevision = this.revision
         try {
-            const value = await load()
+            const preparedPrompt = await load()
             if (this.revision !== preparationRevision) return
 
-            this.replace(value)
+            this.diagramPath = preparedPrompt.diagramPath ?? null
+            this.replace(preparedPrompt.prompt)
         } catch (error) {
             if (this.revision !== preparationRevision) return
 
@@ -129,6 +133,10 @@ export class ActionPromptDraft {
 
     getRevision() {
         return this.revision
+    }
+
+    getDiagramPath() {
+        return this.diagramPath
     }
 
     hasLocalEdits() {

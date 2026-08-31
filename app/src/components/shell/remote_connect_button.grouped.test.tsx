@@ -182,6 +182,7 @@ describe('RemoteConnectButton', () => {
             values: {
                 actionsFolder: 'actions',
                 archivedFolder: 'archived',
+                diagramsFolder: 'diagrams',
                 projectFolder: 'design',
                 releasesFolder: 'history',
                 workingFolder: 'working',

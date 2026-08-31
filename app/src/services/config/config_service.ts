@@ -84,6 +84,7 @@ const PROJECT_SUBFOLDER_KEYS = [
     'project.actionsFolder',
     'project.releasesFolder',
     'project.archivedFolder',
+    'project.diagramsFolder',
 ] as const
 
 function validateProjectFolderPaths(values: ConfigValues) {
@@ -180,8 +181,17 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
         || key === 'project.actionsFolder'
         || key === 'project.releasesFolder'
         || key === 'project.archivedFolder'
+        || key === 'project.diagramsFolder'
     ) {
         return normalizeConfigPath(requireString(value, entry.key), entry.key) as ConfigValueTypes[K]
+    }
+    if (key === 'project.diagramFooter') {
+        const diagramFooter = requireString(value, entry.key)
+        if (!diagramFooter.includes('{{diagram-file}}')) {
+            throw new Error('Config field project.diagramFooter requires {{diagram-file}} placeholder')
+        }
+
+        return diagramFooter as ConfigValueTypes[K]
     }
     if (key === 'desktop.editorCommand') {
         const editorCommand = requireString(value, entry.key)
@@ -213,6 +223,8 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
         cardSeparator: values['project.cardSeparator'],
         cardTypes: values['project.cardTypes'],
         diffCommand: values['project.diffCommand'],
+        diagramFooter: values['project.diagramFooter'],
+        diagramsFolder: values['project.diagramsFolder'],
         projectFolder: values['project.projectFolder'],
         pushMode: values['project.pushMode'],
         releasesFolder: values['project.releasesFolder'],
@@ -368,6 +380,10 @@ export class ConfigService extends EventTarget {
         }
         if (projectConfig?.projectFolder !== undefined) nextValues = mergeValue(nextValues, 'project.projectFolder', projectConfig.projectFolder)
         if (projectConfig?.diffCommand !== undefined) nextValues = mergeValue(nextValues, 'project.diffCommand', projectConfig.diffCommand)
+        if (projectConfig?.diagramFooter !== undefined) nextValues = mergeValue(nextValues, 'project.diagramFooter', projectConfig.diagramFooter)
+        if (projectConfig?.diagramsFolder !== undefined) {
+            nextValues = mergeValue(nextValues, 'project.diagramsFolder', projectConfig.diagramsFolder)
+        }
         if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)
         if (projectConfig?.releasesFolder !== undefined) {
             nextValues = mergeValue(nextValues, 'project.releasesFolder', projectConfig.releasesFolder)

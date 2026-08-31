@@ -36,6 +36,8 @@ function mockLoadedProject() {
         backgroundShade: 'blue',
         cardSeparator: '_',
         cardTypes: [],
+        diagramFooter: 'Save to {{diagram-file}}.',
+        diagramsFolder: 'design/diagrams',
         diffCommand: '',
         projectFolder: 'design',
         pushMode: 'manual',

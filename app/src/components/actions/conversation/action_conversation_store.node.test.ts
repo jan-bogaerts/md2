@@ -189,7 +189,7 @@ describe('ActionConversationStore', () => {
         const waitingConversation = { ...conversation('conversation-waiting.json'), status: 'waitingForInput' as const }
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waitingConversation])
         const draft = actionPromptDraftService.getDraft('implement', context, null, { prepare: true })
-        await draft.prepare(async () => 'Prepared default')
+        await draft.prepare(async () => ({ prompt: 'Prepared default' }))
         const { store } = createConversationStore()
 
         await store.load()

@@ -105,7 +105,7 @@ describe('ActionAgentPrompt', () => {
 
         expect(prompt).toHaveAttribute('readonly')
 
-        await act(async () => promptDraft.prepare(async () => 'Prepared prompt'))
+        await act(async () => promptDraft.prepare(async () => ({ prompt: 'Prepared prompt' })))
 
         expect(prompt).not.toHaveAttribute('readonly')
         expect(prompt).toHaveValue('Prepared prompt')

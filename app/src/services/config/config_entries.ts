@@ -2,6 +2,8 @@ import {
     DEFAULT_ACTIONS_FOLDER,
     DEFAULT_ARCHIVED_FOLDER,
     DEFAULT_CARD_TYPES,
+    DEFAULT_DIAGRAM_FOOTER,
+    DEFAULT_DIAGRAMS_FOLDER,
     DEFAULT_DIFF_COMMAND,
     DEFAULT_PROJECT_FOLDER,
     DEFAULT_RELEASES_FOLDER,
@@ -35,6 +37,8 @@ export interface ConfigValueTypes {
     'project.cardSeparator': CardSeparator
     'project.cardTypes': CardTypeConfig[]
     'project.diffCommand': string
+    'project.diagramFooter': string
+    'project.diagramsFolder': string
     'project.projectFolder': string
     'project.pushMode': PushMode
     'project.releasesFolder': string
@@ -59,7 +63,7 @@ export interface ConfigEntry {
     defaultValue: ConfigValue
     description: string
     editable: boolean
-    input?: 'slider'
+    input?: 'multiline' | 'slider'
     integer?: boolean
     key: ConfigKey
     label: string
@@ -183,6 +187,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'string',
     },
     {
+        defaultValue: DEFAULT_DIAGRAMS_FOLDER,
+        description: 'Folder inside the project folder where diagram actions save generated SVG files.',
+        editable: true,
+        key: 'project.diagramsFolder',
+        label: 'Diagrams folder',
+        section: 'project',
+        source: 'project',
+        type: 'string',
+    },
+    {
         defaultValue: DEFAULT_ARCHIVED_FOLDER,
         description: 'Folder inside the project folder that contains individually archived cards.',
         editable: true,
@@ -216,6 +230,17 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         editable: true,
         key: 'project.diffCommand',
         label: 'Diff command',
+        section: 'project',
+        source: 'project',
+        type: 'string',
+    },
+    {
+        defaultValue: DEFAULT_DIAGRAM_FOOTER,
+        description: 'Markdown appended to every diagram action prompt. Required placeholder: {{diagram-file}}.',
+        editable: true,
+        input: 'multiline',
+        key: 'project.diagramFooter',
+        label: 'Diagram footer',
         section: 'project',
         source: 'project',
         type: 'string',
@@ -341,9 +366,11 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.workingFolder',
     'project.actionsFolder',
     'project.releasesFolder',
+    'project.diagramsFolder',
     'project.archivedFolder',
     'project.backgroundShade',
     'project.diffCommand',
+    'project.diagramFooter',
     'project.pushMode',
     'project.cardSeparator',
     'project.cardTypes',

@@ -634,7 +634,11 @@ describe('ProjectLoading', () => {
         expect(service.getConfig()?.backgroundShade).toMatch(/^(amber|blue|green|purple|red)$/u)
         expect(storage.saveProjectConfig).toHaveBeenCalledWith(
             { branch: 'main', id: 'project' },
-            expect.objectContaining({ backgroundShade: expect.stringMatching(/^(amber|blue|green|purple|red)$/u) }),
+            expect.objectContaining({
+                backgroundShade: expect.stringMatching(/^(amber|blue|green|purple|red)$/u),
+                diagramFooter: 'Use the diagram skill. Create SVG output and save it to {{diagram-file}}.',
+                diagramsFolder: 'diagrams',
+            }),
         )
     })
 

@@ -92,6 +92,15 @@ describe('loadActionDefinitions', () => {
             .toMatchObject({ code: 'field-not-allowed', field: 'showCommandWindow' });
     });
 
+    it('rejects command actions that target diagrams', () => {
+        const error = validationError([file('lint', { ...LINT, appliesTo: { kind: 'diagram', type: 'root' } })]);
+
+        expect(error).toMatchObject({ code: 'diagram-agent-required', field: 'appliesTo' });
+        expect(() => loadActionDefinitions([
+            file('implement', { ...IMPLEMENT, appliesTo: { kind: 'diagram', type: 'child' } }),
+        ])).not.toThrow();
+    });
+
     it('normalizes strict autoFinish state triggers', () => {
         const autoFinish = { state: 'ready' };
         const action = loadActionDefinitions(

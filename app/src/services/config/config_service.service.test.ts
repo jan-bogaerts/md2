@@ -25,6 +25,8 @@ describe('ConfigService', () => {
             archivedFolder: 'archived',
             backgroundShade: 'green',
             cardSeparator: '-',
+            diagramFooter: 'Use the diagram skill. Create SVG output and save it to {{diagram-file}}.',
+            diagramsFolder: 'diagrams',
             projectFolder: 'design',
             pushMode: 'manual',
             releasesFolder: 'history',
@@ -154,6 +156,7 @@ describe('ConfigService', () => {
         service.loadProjectConfig({
             actionsFolder: 'automation',
             archivedFolder: 'records\\archived',
+            diagramsFolder: 'visuals',
             projectFolder: 'projects/demo',
             releasesFolder: 'records//releases',
             workingFolder: 'active',
@@ -162,6 +165,7 @@ describe('ConfigService', () => {
         expect(resolveProjectConfigPaths(service.getProjectConfig())).toMatchObject({
             actionsFolder: 'projects/demo/automation',
             archivedFolder: 'projects/demo/records/archived',
+            diagramsFolder: 'projects/demo/visuals',
             releasesFolder: 'projects/demo/records/releases',
             workingFolder: 'projects/demo/active',
         })
@@ -172,6 +176,23 @@ describe('ConfigService', () => {
 
         expect(() => service.loadProjectConfig({ archivedFolder: 'records', releasesFolder: 'RECORDS' })).toThrow('must not overlap')
         expect(() => service.loadProjectConfig({ archivedFolder: 'records/archived', releasesFolder: 'records' })).toThrow('must not overlap')
+        expect(() => service.loadProjectConfig({ diagramsFolder: 'records', releasesFolder: 'records/releases' })).toThrow('must not overlap')
+    })
+
+    it('loads and validates diagram output config', () => {
+        service.init()
+        service.loadProjectConfig({
+            diagramFooter: 'Render requested view. Save SVG to {{diagram-file}}.',
+            diagramsFolder: 'generated/diagrams',
+        })
+
+        expect(service.getProjectConfig()).toMatchObject({
+            diagramFooter: 'Render requested view. Save SVG to {{diagram-file}}.',
+            diagramsFolder: 'generated/diagrams',
+        })
+        expect(() => service.loadProjectConfig({ diagramFooter: '' })).toThrow('project.diagramFooter')
+        expect(() => service.loadProjectConfig({ diagramFooter: 'Render SVG.' })).toThrow('requires {{diagram-file}} placeholder')
+        expect(() => service.loadProjectConfig({ diagramsFolder: '../outside' })).toThrow('must stay inside the project folder')
     })
 
     it('rejects invalid project config values', () => {

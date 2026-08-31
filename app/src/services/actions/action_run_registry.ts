@@ -42,6 +42,7 @@ export interface ActionRun {
     activeActionStreaming: boolean
     activeActionType: ActionDefinition['type'] | null
     changedPaths: string[]
+    diagramPath: string | null
     conversation: AgentConversation | null
     conversationChange: ActionConversationChange | null
     context: ActionContext
@@ -656,6 +657,7 @@ export class ActionRunRegistry extends EventTarget {
         if (current && TERMINAL_STATUSES.has(current.status as ActionRunTerminalStatus)) {
             const result = {
                 changedPaths: current.changedPaths,
+                ...(current.diagramPath ? { diagramPath: current.diagramPath } : {}),
                 logs: current.logs,
                 status: current.status as ActionRunTerminalStatus,
             }
@@ -755,6 +757,7 @@ export class ActionRunRegistry extends EventTarget {
                 activeActionType: null,
                 approvals: [],
                 changedPaths: result.changedPaths,
+                diagramPath: result.diagramPath ?? null,
                 conversation,
                 interactionReady: false,
                 logs,
@@ -769,7 +772,12 @@ export class ActionRunRegistry extends EventTarget {
 
         const waiters = this.waiters.get(result.runId)
         this.waiters.delete(result.runId)
-        const actionResult = { changedPaths: result.changedPaths, logs, status: result.status }
+        const actionResult = {
+            changedPaths: result.changedPaths,
+            ...(result.diagramPath ? { diagramPath: result.diagramPath } : {}),
+            logs,
+            status: result.status,
+        }
         if (context) applyTerminalCardChangedFiles(context, result.changedPaths)
         for (const resolve of waiters ?? []) resolve(actionResult)
         this.releaseTerminalRun(result.runId)
@@ -803,6 +811,7 @@ export class ActionRunRegistry extends EventTarget {
             activeActionStreaming: false,
             activeActionType: null,
             changedPaths: [],
+            diagramPath: null,
             conversation: null,
             conversationChange: null,
             approvals: [],
@@ -821,6 +830,7 @@ export class ActionRunRegistry extends EventTarget {
             next = {
                 ...next,
                 changedPaths: event.changedPaths ? [...event.changedPaths] : next.changedPaths,
+                diagramPath: event.diagramPath ?? next.diagramPath,
                 status: event.status,
             }
         }
@@ -1088,6 +1098,7 @@ export class ActionRunRegistry extends EventTarget {
         this.waiters.delete(run.runId)
         const result = {
             changedPaths: run.changedPaths,
+            ...(run.diagramPath ? { diagramPath: run.diagramPath } : {}),
             logs: run.logs,
             status: run.status as ActionRunTerminalStatus,
         }

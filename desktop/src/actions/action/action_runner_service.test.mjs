@@ -7,6 +7,7 @@ const { ActionRunnerService } = require('./action_runner_service');
 
 const context = { cardInternalId: 'card-010', file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' };
 const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+const diagramFooter = 'Use the diagram skill. Create SVG output and save it to {{diagram-file}}.';
 const agentSelection = {
     activeAgent: 'codex',
     permissionMode: 'ask-for-approval',
@@ -85,7 +86,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         usageMetricsService,
         ...overrides,
     });
-    runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions');
+    runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions', 'design/diagrams', diagramFooter);
 
     return { actionWorktreeRunService, agentRunnerService, commandRunner, localGitService, runner, usageMetricsService };
 }
@@ -228,7 +229,7 @@ describe('ActionRunnerService', () => {
         const runner = new ActionRunnerService({});
 
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no project');
-        runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions');
+        runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions', 'design/diagrams', diagramFooter);
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no local Git service');
     });
 
@@ -290,6 +291,69 @@ describe('ActionRunnerService', () => {
         expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
         expect(agentRunnerService.start).not.toHaveBeenCalled();
         expect(localGitService.appendAndCommitActionActivity).not.toHaveBeenCalled();
+    });
+
+    it('prepares one diagram path, reuses it at start, and allocates a unique next path', async () => {
+        const files = [actionFile('main', {
+            appliesTo: { kind: 'diagram', type: 'root' },
+            command: undefined,
+            label: 'Project: overview',
+            prompt: 'Create overview',
+            type: 'agent',
+        })];
+        const now = vi.fn(() => Date.parse('2026-08-31T14:25:30.123Z'));
+        const { agentRunnerService, runner } = createRunner(files, { now });
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, {
+                changedPaths: [], conversation: { id: request.actionId }, missingSession: false,
+                reference: `${request.actionId}.json`, stderr: '', stdout: '', turnStarted: true,
+            });
+
+            return { runId: request.actionId };
+        });
+        const diagramContext = { kind: 'diagram', type: 'root' };
+
+        const prepared = await runner.prepareActionPrompt({ actionId: 'main', context: diagramContext });
+        expect(prepared).toEqual({
+            diagramPath: 'design/diagrams/Project-overview-20260831T142530123Z.svg',
+            prompt: `Create overview\n\nUse the diagram skill. Create SVG output and save it to ${path.resolve('C:/repo', 'design/diagrams/Project-overview-20260831T142530123Z.svg')}.`,
+        });
+
+        const result = await runToCompletion(runner, {
+            actionId: 'main',
+            context: diagramContext,
+            runInput: { diagramPath: prepared.diagramPath, prompt: prepared.prompt },
+        });
+        expect(result).toMatchObject({ diagramPath: prepared.diagramPath, status: 'completed' });
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(prepared.prompt);
+
+        await expect(runner.prepareActionPrompt({ actionId: 'main', context: diagramContext }))
+            .resolves.toMatchObject({ diagramPath: 'design/diagrams/Project-overview-20260831T142530124Z.svg' });
+    });
+
+    it('adds configured footer exactly once to direct and chained diagram prompts', async () => {
+        const files = [
+            actionFile('main', {appliesTo: { kind: 'diagram', type: 'root' }, command: undefined, onAfter: ['child'], prompt: 'Root', type: 'agent'}),
+            actionFile('child', { command: undefined, prompt: 'Child', type: 'agent' }),
+        ];
+        const { agentRunnerService, runner } = createRunner(files);
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, {
+                changedPaths: [], conversation: { id: request.actionId }, missingSession: false,
+                reference: `${request.actionId}.json`, stderr: '', stdout: '', turnStarted: true,
+            });
+
+            return { runId: request.actionId };
+        });
+
+        const result = await runToCompletion(runner, {actionId: 'main', context: { kind: 'diagram', type: 'root' }, runInput: { prompt: 'Root override' }});
+        const prompts = agentRunnerService.start.mock.calls.map((call) => call[1].prompt);
+
+        expect(result).toMatchObject({ diagramPath: expect.stringMatching(/^design\/diagrams\/main-\d{8}T\d{9}Z\.svg$/u) });
+        expect(prompts).toHaveLength(2);
+        expect(prompts[0].match(/Use the diagram skill\./gu)).toHaveLength(1);
+        expect(prompts[1].match(/Use the diagram skill\./gu)).toHaveLength(1);
+        expect(prompts[0].replace('Root override', '')).toBe(prompts[1].replace('Child', ''));
     });
 
     it('prepares card prompt with references read from current persisted card', async () => {
@@ -486,7 +550,7 @@ describe('ActionRunnerService', () => {
         const runId = await runner.start({ actionId: 'main', context, runInput: {} });
         await vi.waitFor(() => expect(commandRunner).toHaveBeenCalledTimes(1));
 
-        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design', 'other-design/releases', 'other-design/active');
+        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design', 'other-design/releases', 'other-design/active', 'other-design/diagrams', diagramFooter);
         resolve();
         const result = await runner.wait(runId);
 

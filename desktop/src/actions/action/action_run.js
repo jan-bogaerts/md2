@@ -3,6 +3,7 @@ const { ActionCancellationError } = require('./action_cancellation_error');
 const { executeCommandAction } = require('./action_command_executor');
 const { ActionPhaseError } = require('./action_phase_error');
 const { runWithGitOperationContext } = require('../../git/git_operation_context');
+const { resolveDiagramFile } = require('./action_diagram_output');
 const { resolvePopupPrompt } = require('./action_text');
 const {
     captureCommitReferences,
@@ -22,6 +23,9 @@ class ActionRun {
         this.activityOrigin = snapshot.activityOrigin;
         this.context = snapshot.context;
         this.conversationReservation = snapshot.conversationReservation;
+        this.diagramFooter = snapshot.diagramFooter;
+        this.diagramsFolder = snapshot.diagramsFolder;
+        this.diagramPath = snapshot.diagramPath;
         this.runId = snapshot.runId;
         this.project = snapshot.project;
         this.projectFolder = snapshot.projectFolder;
@@ -305,12 +309,14 @@ class ActionRun {
 
         const result = {
             changedPaths,
+            ...(this.diagramPath ? { diagramPath: this.diagramPath } : {}),
             runId: this.runId,
             failure: failure ? errorMessage(failure, 'Action failed') : null,
             status,
         };
         this.publish(this.rootAction, 'main', status, {
             changedPaths: result.changedPaths,
+            ...(this.diagramPath ? { diagramPath: this.diagramPath } : {}),
             message: result.failure,
             type: 'run',
         });
@@ -682,6 +688,9 @@ class ActionRun {
             this.publish(action, phase, 'running', { type: 'update', update });
         };
         const runInput = isRoot ? this.runInput : { extraPrompt: '' };
+        const diagramFile = this.diagramPath
+            ? resolveDiagramFile(project, this.diagramsFolder, this.diagramPath)
+            : null;
 
         const input = {
             action,
@@ -689,6 +698,8 @@ class ActionRun {
             activityOrigin: this.activityOrigin,
             context: this.context,
             conversationReservation: isRoot ? this.conversationReservation : null,
+            diagramFile,
+            diagramFooter: this.diagramFooter,
             runId: this.runId,
             onActiveRunChange,
             onEvent,
@@ -735,6 +746,7 @@ class ActionRun {
             this.projectFolder,
             this.releasesFolder,
             this.activeCardsFolder,
+            this.diagramPath ? resolveDiagramFile(this.activeAgentProject, this.diagramsFolder, this.diagramPath) : null,
         );
     }
 

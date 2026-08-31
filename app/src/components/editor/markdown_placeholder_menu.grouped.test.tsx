@@ -18,6 +18,10 @@ function PopupLayerProbe() {
 describe('MarkdownPlaceholderMenu', () => {
     afterEach(cleanup)
 
+    it('includes diagram output path insertion choice', () => {
+        expect(ACTION_PROMPT_PLACEHOLDERS).toContainEqual(expect.objectContaining({ name: 'diagram-file' }))
+    })
+
     it('renders above the owning popup stack layer and keeps option selection', () => {
         const thisCardPlaceholder = ACTION_PROMPT_PLACEHOLDERS.find(({ name }) => name === 'this-card')
         if (!thisCardPlaceholder) throw new Error('Missing this-card placeholder')

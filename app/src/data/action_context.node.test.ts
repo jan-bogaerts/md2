@@ -4,6 +4,7 @@ import {
     actionMatchesContext,
     actionsForContext,
     cardContext,
+    diagramContext,
     displayActionsForContext,
     fileContext,
     folderContext,
@@ -90,6 +91,8 @@ describe('action context filter descriptors', () => {
         })
         expect(ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => key === 'kind')?.supportedContextKinds)
             .toContain('merge-conflict')
+        expect(ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => key === 'type')?.supportedContextKinds)
+            .toContain('diagram')
     })
 
     it('requires a non-empty filter value', () => {
@@ -128,6 +131,11 @@ describe('cardContext / fileContext / folderContext / projectContext', () => {
         expect(projectContext()).toEqual({ kind: 'project' })
     })
 
+    it('builds root and child diagram contexts', () => {
+        expect(diagramContext('root')).toEqual({ kind: 'diagram', type: 'root' })
+        expect(diagramContext('child')).toEqual({ kind: 'diagram', type: 'child' })
+    })
+
     it('adds and removes a project-session worktree assignment', () => {
         expect(projectContextWithWorktree(projectContext(), 2)).toEqual({ kind: 'project', worktree: '2' })
         expect(projectContextWithWorktree({ kind: 'project', worktree: '2' }, null)).toEqual({ kind: 'project' })
@@ -158,6 +166,17 @@ describe('actionMatchesContext', () => {
 })
 
 describe('actionsForContext', () => {
+    it('matches diagram actions by root or child type', () => {
+        const actions = [
+            action('root', { kind: 'diagram', type: 'root' }),
+            action('child', { kind: 'diagram', type: 'child' }),
+            action('project', { kind: 'project' }),
+        ]
+
+        expect(actionsForContext(actions, diagramContext('root')).map(({ id }) => id)).toEqual(['action-root'])
+        expect(actionsForContext(actions, diagramContext('child')).map(({ id }) => id)).toEqual(['action-child'])
+    })
+
     it('keeps only matching actions in load order and always includes custom prompt', () => {
         const actions = [
             BUILTIN_CUSTOM_PROMPT,

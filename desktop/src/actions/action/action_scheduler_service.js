@@ -3,6 +3,8 @@ const { appendActionSchedule, findPendingSchedule, updateActionScheduleStatus } 
 const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = require('../schedule/schedule_timers');
 
 const DEFAULT_ACTIONS_FOLDER = 'actions';
+const DEFAULT_DIAGRAMS_FOLDER = 'diagrams';
+const DEFAULT_DIAGRAM_FOOTER = 'Use the diagram skill. Create SVG output and save it to {{diagram-file}}.';
 const DEFAULT_PROJECT_FOLDER = '';
 const DEFAULT_RELEASES_FOLDER = 'releases';
 const DEFAULT_WORKING_FOLDER = 'active';
@@ -69,7 +71,8 @@ class ActionSchedulerService {
 
     async startProject(project) {
         this.project = requireProject(project);
-        const { actionsFolder, activeCardsFolder, projectFolder, releasesFolder } = await this.loadProjectPaths();
+        const projectPaths = await this.loadProjectPaths();
+        const { actionsFolder, activeCardsFolder, diagramFooter, diagramsFolder, projectFolder, releasesFolder } = projectPaths;
         this.actionsFolder = actionsFolder;
         this.projectFolder = projectFolder;
         await this.actionRunnerService.startProject(
@@ -78,6 +81,8 @@ class ActionSchedulerService {
             this.projectFolder,
             releasesFolder,
             activeCardsFolder,
+            diagramsFolder,
+            diagramFooter,
         );
         await this.reconcile();
     }
@@ -232,6 +237,15 @@ class ActionSchedulerService {
             throw new Error('Invalid project releasesFolder');
         }
         const releasesFolder = resolveProjectFolderPath(projectFolder, configuredReleasesFolder);
+        const configuredDiagramsFolder = config?.diagramsFolder ?? DEFAULT_DIAGRAMS_FOLDER;
+        if (typeof configuredDiagramsFolder !== 'string' || configuredDiagramsFolder.length === 0) {
+            throw new Error('Invalid project diagramsFolder');
+        }
+        const diagramsFolder = resolveProjectFolderPath(projectFolder, configuredDiagramsFolder);
+        const diagramFooter = config?.diagramFooter ?? DEFAULT_DIAGRAM_FOOTER;
+        if (typeof diagramFooter !== 'string' || diagramFooter.length === 0 || !diagramFooter.includes('{{diagram-file}}')) {
+            throw new Error('Invalid project diagramFooter: requires {{diagram-file}} placeholder');
+        }
         const configuredWorkingFolder = config?.workingFolder ?? DEFAULT_WORKING_FOLDER;
         if (typeof configuredWorkingFolder !== 'string' || configuredWorkingFolder.length === 0) {
             throw new Error('Invalid project workingFolder');
@@ -245,6 +259,8 @@ class ActionSchedulerService {
             return {
                 actionsFolder: resolveProjectFolderPath(projectFolder, config.actionsFolder),
                 activeCardsFolder,
+                diagramFooter,
+                diagramsFolder,
                 projectFolder,
                 releasesFolder,
             };
@@ -253,6 +269,8 @@ class ActionSchedulerService {
         return {
             actionsFolder: resolveProjectFolderPath(projectFolder, DEFAULT_ACTIONS_FOLDER),
             activeCardsFolder,
+            diagramFooter,
+            diagramsFolder,
             projectFolder,
             releasesFolder,
         };

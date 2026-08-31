@@ -25,7 +25,7 @@ describe('action popup defaults', () => {
             }),
         } as unknown as ElectronActionBridge
 
-        await expect(defaultPreparePrompt(action, context)).resolves.toBe('Current prompt')
+        await expect(defaultPreparePrompt(action, context)).resolves.toEqual({ prompt: 'Current prompt' })
 
         expect(calls).toEqual(['persistence', 'prepare'])
     })

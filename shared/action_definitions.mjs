@@ -324,6 +324,10 @@ function validateRawDefinition(value, source, dependencies) {
     requireHumanText(value.label, 'label', source)
     requireHumanText(value.description, 'description', source)
     validateTypeSpecificFields(value, type, source)
+    const appliesTo = readAppliesTo(value.appliesTo, source)
+    if (type === 'command' && appliesTo?.kind === 'diagram') {
+        throw fail(`Command action cannot target diagrams in ${source}`, 'diagram-agent-required', source, 'appliesTo')
+    }
     if (value.icon !== undefined && typeof value.icon !== 'string') throw fail(`Invalid icon in ${source}`, 'invalid-field', source, 'icon')
     if (value.onState !== undefined && typeof value.onState !== 'string') throw fail(`Invalid onState in ${source}`, 'invalid-field', source, 'onState')
     if (value.needsWorkTree !== undefined && typeof value.needsWorkTree !== 'boolean') throw fail(`Invalid needsWorkTree in ${source}`, 'invalid-field', source, 'needsWorkTree')
@@ -334,7 +338,7 @@ function validateRawDefinition(value, source, dependencies) {
     const streaming = value.streaming ?? false
     const raw = {
         agent: readOptionalString(value.agent, 'agent', source),
-        appliesTo: readAppliesTo(value.appliesTo, source),
+        appliesTo,
         autoFinish: readAutoFinish(value.autoFinish, streaming, dependencies, source),
         command: type === 'command' ? value.command : undefined,
         description: value.description,

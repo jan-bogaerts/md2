@@ -93,6 +93,15 @@ describe('resolvePlaceholders', () => {
         expect(() => resolvePlaceholders('{{conflict-files}}', conflictContext, folders, '')).toThrow('without conflict files')
     })
 
+    it('resolves diagram-file only in diagram context', () => {
+        const diagramFolders = { ...folders, diagramFile: 'C:/worktree/design/diagrams/overview.svg' }
+
+        expect(resolvePlaceholders('{{diagram-file}}', { kind: 'diagram', type: 'root' }, diagramFolders, ''))
+            .toBe(diagramFolders.diagramFile)
+        expect(() => resolvePlaceholders('{{diagram-file}}', { kind: 'project' }, diagramFolders, ''))
+            .toThrow('outside diagram context')
+    })
+
     it('does not resolve removed placeholder names', () => {
         expect(resolvePlaceholders('{{rootProjectFolder}} {{file}} {{prompt}}', context, folders, 'focus'))
             .toBe('{{rootProjectFolder}} {{file}} {{prompt}}')

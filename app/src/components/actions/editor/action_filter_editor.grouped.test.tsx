@@ -69,12 +69,22 @@ describe('ActionFilterEditor', () => {
 
         fireEvent.mouseDown(screen.getByLabelText('Target kind'))
         let options = within(screen.getByRole('listbox'))
-        expect(options.getAllByRole('option').map((option) => option.textContent)).toEqual(['card', 'file', 'folder', 'merge-conflict', 'project'])
+        expect(options.getAllByRole('option').map((option) => option.textContent)).toEqual(['card', 'diagram', 'file', 'folder', 'merge-conflict', 'project'])
         fireEvent.click(options.getByRole('option', { name: 'card' }))
 
         fireEvent.mouseDown(screen.getByLabelText('Card state'))
         options = within(screen.getByRole('listbox'))
         expect(options.getAllByRole('option').map((option) => option.textContent)).toEqual(['design', 'ready'])
+    })
+
+    it('offers diagram root and child context types', () => {
+        render(<FilterEditorHarness initialValue={{ type: 'root' }} />)
+
+        fireEvent.mouseDown(screen.getByLabelText('Context type'))
+        const options = within(screen.getByRole('listbox'))
+
+        expect(options.getByRole('option', { name: 'root' })).toBeInTheDocument()
+        expect(options.getByRole('option', { name: 'child' })).toBeInTheDocument()
     })
 
     it('offers repository files, folder names, and linked worktrees while retaining stale values', () => {

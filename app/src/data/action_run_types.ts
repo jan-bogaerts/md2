@@ -18,6 +18,7 @@ export interface ActionRunInput {
     agent?: string
     command?: string
     continueFrom?: string
+    diagramPath?: string
     extraPrompt?: string
     model?: string
     permissionMode?: PermissionMode
@@ -31,6 +32,7 @@ export interface ActionPromptRequest {
 }
 
 export interface PreparedActionPrompt {
+    diagramPath?: string
     prompt: string
 }
 
@@ -131,6 +133,7 @@ interface ActionRunEventBase {
     autoFinish?: ActionAutoFinish | null
     changedPaths?: string[]
     context: ActionContext
+    diagramPath?: string
     runId: string
     interactionReady?: boolean
     phase: ActionRunPhase
@@ -252,6 +255,7 @@ export interface ActionRunLogEntry {
 
 export interface ActionRunResult {
     changedPaths: string[]
+    diagramPath?: string
     logs: ActionRunLogEntry[]
     status: ActionRunStatus
 }

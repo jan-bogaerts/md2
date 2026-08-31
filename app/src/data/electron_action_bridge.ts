@@ -18,6 +18,7 @@ import type {
 
 export interface ActionRunRecoveryTerminalResult {
     changedPaths: string[]
+    diagramPath?: string
     failure: string | null
     runId: string
     status: ActionRunTerminalStatus

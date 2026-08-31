@@ -17,6 +17,8 @@ export const DEFAULT_ARCHIVED_FOLDER = 'archived'
 export const DEFAULT_PROJECT_FOLDER = 'design'
 export const DEFAULT_RELEASES_FOLDER = 'history'
 export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
+export const DEFAULT_DIAGRAMS_FOLDER = 'diagrams'
+export const DEFAULT_DIAGRAM_FOOTER = 'Use the diagram skill. Create SVG output and save it to {{diagram-file}}.'
 export const AUTO_COMMIT_DELAY_MS = 30000
 
 /** Card type id; projects can configure custom types beyond the default feature/job/bug. */
@@ -44,6 +46,8 @@ export interface ProjectConfig {
     cardSeparator: CardSeparator
     cardTypes: CardTypeConfig[]
     diffCommand: string
+    diagramFooter: string
+    diagramsFolder: string
     projectFolder: string
     pushMode: PushMode
     releasesFolder: string
@@ -501,6 +505,7 @@ export function resolveProjectConfigPaths(config: ProjectConfig): ProjectConfig 
         ...config,
         actionsFolder: joinProjectFolderPath(config.projectFolder, config.actionsFolder),
         archivedFolder: joinProjectFolderPath(config.projectFolder, config.archivedFolder),
+        diagramsFolder: joinProjectFolderPath(config.projectFolder, config.diagramsFolder),
         releasesFolder: joinProjectFolderPath(config.projectFolder, config.releasesFolder),
         workingFolder: joinProjectFolderPath(config.projectFolder, config.workingFolder),
     }
@@ -513,6 +518,8 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     cardSeparator: DEFAULT_CARD_SEPARATOR,
     cardTypes: DEFAULT_CARD_TYPES,
     diffCommand: DEFAULT_DIFF_COMMAND,
+    diagramFooter: DEFAULT_DIAGRAM_FOOTER,
+    diagramsFolder: DEFAULT_DIAGRAMS_FOLDER,
     projectFolder: DEFAULT_PROJECT_FOLDER,
     pushMode: 'manual',
     releasesFolder: DEFAULT_RELEASES_FOLDER,

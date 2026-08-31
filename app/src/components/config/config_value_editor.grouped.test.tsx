@@ -125,6 +125,24 @@ describe('ConfigValueEditor', () => {
         expect(screen.getByText('{{file}}').tagName).toBe('CODE')
     })
 
+    it('renders diagram footer as multiline Markdown input', () => {
+        const entry: ConfigEntry = {
+            defaultValue: 'Save to {{diagram-file}}.',
+            description: 'Required placeholder: {{diagram-file}}.',
+            editable: true,
+            input: 'multiline',
+            key: 'project.diagramFooter',
+            label: 'Diagram footer',
+            section: 'project',
+            source: 'project',
+            type: 'string',
+        }
+
+        render(<ConfigValueEditor entry={entry} onChange={vi.fn()} value="Save to {{diagram-file}}." />)
+
+        expect(screen.getByRole('textbox', { name: 'Diagram footer' })).toHaveAttribute('rows', '6')
+    })
+
     it('keeps unavailable remembered desktop values visible with validation error', () => {
         const selection = {
             activeAgent: 'removed-agent',
