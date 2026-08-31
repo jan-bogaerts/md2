@@ -741,6 +741,7 @@ describe('ActionRun', () => {
                     return firstResult;
                 })
                 .mockImplementationOnce(async (input) => {
+                    input.onEvent({ approval: { requestId: 42 }, type: 'approval' });
                     input.onActiveRunChange('agent-run-2');
                     followUpStarted.resolve();
                     await followUpCompletion.promise;
@@ -774,10 +775,21 @@ describe('ActionRun', () => {
             .toEqual([firstEntry.id, laterEntry.id]);
     });
 
-    it('delays streaming queue dispatch for approval and sends one prompt per permitted turn', async () => {
+    it('drains streaming prompts once in FIFO order after pending approval clears', async () => {
         const agentCompletion = deferred();
         const agentStarted = deferred();
-        const sendMessage = vi.fn(async () => undefined);
+        const sendCompletions = [deferred(), deferred(), deferred()];
+        const deliveredPrompts = [];
+        let activeWrites = 0;
+        let maximumActiveWrites = 0;
+        const sendMessage = vi.fn(async (_runId, prompt) => {
+            const sendIndex = deliveredPrompts.length;
+            deliveredPrompts.push(prompt);
+            activeWrites += 1;
+            maximumActiveWrites = Math.max(maximumActiveWrites, activeWrites);
+            await sendCompletions[sendIndex].promise;
+            activeWrites -= 1;
+        });
         const agentRunnerService = { sendMessage, stop: vi.fn() };
         let agentInput;
         const agentExecutor = {
@@ -795,20 +807,44 @@ describe('ActionRun', () => {
             }),
         };
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
-        const { run } = createRun(rootAction, { agentExecutor, agentRunnerService });
+        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
         await agentStarted.promise;
         agentInput.onEvent({ approval: { requestId: 41 }, type: 'approval' });
         const first = await run.enqueueAgentPrompt('First');
-        await run.enqueueAgentPrompt('Second');
+        const second = await run.enqueueAgentPrompt('Second');
         expect(sendMessage).not.toHaveBeenCalled();
 
         agentInput.onEvent({ requestId: 41, state: 'running', type: 'approvalResolved' });
-        await expect(run.editQueuedAgentPrompt(first.id, first.revision, 'Too late')).rejects.toThrow('already sent or removed');
         await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
         expect(sendMessage).toHaveBeenLastCalledWith('agent-run', 'First');
-        agentInput.onEvent({ state: 'waitingForInput', type: 'state' });
+        expect(run.promptQueue.map(({ content }) => content)).toEqual(['Second']);
+        expect(run.promptQueue.some(({ id }) => id === first.id)).toBe(false);
+
+        const thirdEntryPromise = run.enqueueAgentPrompt('Third');
+        await Promise.resolve();
+        expect(sendMessage).toHaveBeenCalledOnce();
+        expect(run.promptQueue.map(({ content }) => content)).toEqual(['Second']);
+
+        sendCompletions[0].resolve();
         await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(2));
         expect(sendMessage).toHaveBeenLastCalledWith('agent-run', 'Second');
+        expect(run.promptQueue).toEqual([]);
+
+        sendCompletions[1].resolve();
+        const third = await thirdEntryPromise;
+        await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(3));
+        expect(sendMessage).toHaveBeenLastCalledWith('agent-run', 'Third');
+        expect(run.promptQueue).toEqual([]);
+        sendCompletions[2].resolve();
+        await expect(run.editQueuedAgentPrompt(first.id, first.revision, 'Too late')).rejects.toThrow('already sent or removed');
+
+        expect(deliveredPrompts).toEqual(['First', 'Second', 'Third']);
+        expect(maximumActiveWrites).toBe(1);
+        expect(new Set(deliveredPrompts).size).toBe(3);
+        expect(events
+            .filter(({ update }) => update?.kind === 'agentPromptRemoved')
+            .map(({ update }) => update.promptId))
+            .toEqual([first.id, second.id, third.id]);
 
         agentCompletion.resolve();
         await run.completion;

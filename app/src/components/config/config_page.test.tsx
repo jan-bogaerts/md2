@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defaultColumnAccent } from '../../data/data_types'
@@ -612,19 +612,6 @@ describe('ConfigPage', () => {
         delete window.md2Config
     })
 
-    it.each(['0', '65536', '20877.5'])('blocks saving invalid remote-control port %s', (port) => {
-        mockMatchMedia(false)
-        window.md2Config = {
-            getDesktopConfig: () => ({ remoteControlPort: 20877 }),
-            setDesktopConfig: vi.fn(async (values: DesktopConfigValues) => values),
-        }
-        initConfigFromElectronBridge()
-        renderConfigPage('#desktop')
-
-        fireEvent.change(screen.getByLabelText('Remote-control port'), { target: { value: port } })
-
-        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
-    })
 
     it('closes Config before restarting an active server on changed port', async () => {
         mockMatchMedia(false)

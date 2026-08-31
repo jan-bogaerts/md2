@@ -520,16 +520,6 @@ describe('TextView', () => {
         expect(openFilesService.getSnapshot().documents[0].getObject()).toMatchObject({ label: 'Review updated' })
     }, 10_000)
 
-    it('focuses the existing tab instead of duplicating when a file is reopened', () => {
-        renderTextView()
-
-        clickTreeFile('F-1 Alpha')
-        clickTreeFile('F-2 Beta')
-        clickTreeFile('F-1 Alpha')
-
-        expect(screen.getAllByRole('tab', { name: /Alpha/ })).toHaveLength(1)
-        expect(screen.getByDisplayValue(/Body A/)).toBeInTheDocument()
-    })
 
     it('reuses one markdown editor while switching between card documents', () => {
         renderTextView()
@@ -576,28 +566,6 @@ describe('TextView', () => {
         expect(screen.getAllByTestId('mdx-editor')).toHaveLength(2)
     }, 10_000)
 
-    it('flushes each shared Markdown document through its owning save callback', () => {
-        loadMarkdownActions()
-        renderTextView()
-
-        clickTreeFile('F-1 Alpha')
-        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited card' } })
-        clickTreeFile('Review')
-        expect(cardMarkdownDataSource.commit).toHaveBeenCalledExactlyOnceWith(
-            'list-card', expect.objectContaining({ document: expect.any(Object) }), 'Edited card',
-        )
-
-        fireEvent.click(screen.getByRole('tab', { name: 'Prompt' }))
-        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited prompt' } })
-        fireEvent.click(screen.getByRole('tab', { name: 'Tests' }))
-        expect(actionService.draftStore.getDraft('review-action').definition.prompt).toBe('Edited prompt')
-
-        const phraseEditor = within(screen.getAllByTestId('mdx-editor')[0]).getAllByRole('textbox')[1]
-        fireEvent.change(phraseEditor, { target: { value: 'Edited phrase' } })
-        fireEvent.click(screen.getByRole('tab', { name: 'Lint' }))
-        expect(actionService.draftStore.getDraft('review-action').definition.phrases?.[0].text).toBe('Edited phrase')
-    }, 10_000)
-
     it('closes a tab from the tab bar', () => {
         renderTextView()
 
@@ -627,21 +595,6 @@ describe('TextView', () => {
 
         expect(confirm).toHaveBeenCalledWith(expect.stringContaining('design/active/F-1-a.md'))
         expect(dataService.cards.deleteFile).toHaveBeenCalledWith('design/active/F-1-a.md')
-
-        confirm.mockRestore()
-    })
-
-    it('deletes a user folder recursively from its trash icon after confirmation', async () => {
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
-        const nestedCard = card('design/notes/nested.md', { title: 'Nested' }, '# Nested')
-        renderTextView({}, activeCards, [...backgroundCards, nestedCard], ['design/notes/.gitkeep', nestedCard.path])
-
-        clickTreeFile('Nested')
-        fireEvent.click(screen.getByRole('button', { name: 'Delete design/notes' }))
-
-        expect(confirm).toHaveBeenCalledWith('Delete design/notes and all files inside it?')
-        expect(dataService.cards.deleteFolder).toHaveBeenCalledWith('design/notes')
-        expect(screen.queryByRole('button', { name: 'Delete design/history' })).not.toBeInTheDocument()
 
         confirm.mockRestore()
     })

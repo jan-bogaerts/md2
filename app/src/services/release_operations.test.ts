@@ -125,7 +125,7 @@ describe('ReleaseOperations', () => {
         expect(storage.commit).not.toHaveBeenCalled()
     })
 
-    it('lists every assigned active card and blocks release completion before moving or pushing', async () => {
+    it('lists only assigned release cards and blocks release completion before commit or push', async () => {
         configService.init()
         const activeCards: MarkdownFile[] = [
             {
@@ -152,8 +152,9 @@ describe('ReleaseOperations', () => {
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         await expect(service.releases.completeRelease('v1', [])).rejects.toThrow(
-            'Cannot complete release. Unassign worktrees from cards: F-1, B-12.',
+            'Cannot complete release. Unassign worktrees from cards: B-12.',
         )
+        expect(storage.commit).not.toHaveBeenCalled()
         expect(storage.moveFiles).not.toHaveBeenCalled()
         expect(storage.push).not.toHaveBeenCalled()
     })
@@ -477,14 +478,16 @@ describe('ReleaseOperations', () => {
         expect(storage.push).not.toHaveBeenCalled()
     })
 
-    it('blocks release preparation and completion while active cards have assigned worktrees', async () => {
+    it('blocks release preparation while release cards have assigned worktrees', async () => {
         configService.init()
         const assignedFiles: MarkdownFile[] = [
-            { content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nworktree: 1\n---\n# One', path: 'design/F-1.md' },
-            { content: '---\nid: B-12\ninternalId: two\ntitle: Two\nstatus: active\nworktree: 2\n---\n# Two', path: 'design/B-12.md' },
+            { content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nworktree: 1\n---\n# One', path: 'design/F-1-one.md' },
+            { content: '---\nid: F-2\ninternalId: two\ntitle: Two\nstatus: active\nworktree: 2\n---\n# Two', path: 'design/F-2-two.md' },
+            { content: '---\nid: F-3\ninternalId: three\ntitle: Three\nstatus: done\nworktree: 3\n---\n# Three', path: 'design/F-3-three.md' },
         ]
         const storage = createStorage({
             deleteLocalBranch: vi.fn(async () => undefined),
+            loadProject: vi.fn(async () => ({ files: assignedFiles, workingFolder: 'design' })),
             loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
             loadProjectRoot: vi.fn(async () => ({ files: assignedFiles, workingFolder: 'design' })),
         })
@@ -492,12 +495,62 @@ describe('ReleaseOperations', () => {
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        const message = 'Cannot complete release. Unassign worktrees from cards: F-1, B-12.'
+        const message = 'Cannot complete release. Unassign worktrees from cards: F-1, F-3.'
         await expect(service.releases.getReleaseBranchCandidates()).rejects.toThrow(message)
-        await expect(service.releases.completeRelease('v1', [])).rejects.toThrow(message)
+        expect(storage.commit).not.toHaveBeenCalled()
         expect(storage.moveFiles).not.toHaveBeenCalled()
         expect(storage.push).not.toHaveBeenCalled()
         expect(storage.deleteLocalBranch).not.toHaveBeenCalled()
+    })
+
+    it('ignores assigned worktrees outside the final column during release preparation and completion', async () => {
+        configService.init()
+        const releaseFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nbranch: f-1\n---\n# One',
+            path: 'design/active/F-1-one.md',
+        }
+        const nonReleaseFile: MarkdownFile = {
+            content: '---\nid: B-12\ninternalId: two\ntitle: Two\nstatus: active\nworktree: 2\nbranch: b-12\n---\n# Two',
+            path: 'design/active/B-12-two.md',
+        }
+        const releaseFiles = [releaseFile, nonReleaseFile]
+        const storage = createStorage({
+            deleteLocalBranch: vi.fn(async () => undefined),
+            listBranches: vi.fn(async () => [{ name: 'main' }, { name: 'f-1' }, { name: 'b-12' }]),
+            listRepositoryFiles: vi.fn(async () => [
+                'design/agent_token_usage.json',
+                releaseFile.path,
+                nonReleaseFile.path,
+            ]),
+            loadProject: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
+            loadProjectConfig: vi.fn(async () => ({
+                projectFolder: 'design',
+                releasesFolder: 'releases',
+                states: RELEASE_STATES,
+                workingFolder: 'active',
+            })),
+            loadProjectRoot: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design/active' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.releases.getReleaseBranchCandidates()).resolves.toEqual([
+            { branchName: 'f-1', cardId: 'F-1', cardPath: releaseFile.path },
+        ])
+        const snapshot = await service.releases.completeRelease('v1', [])
+        if (!snapshot) throw new Error('Expected release completion to return a snapshot')
+
+        expect(storage.commit).toHaveBeenCalledWith(expect.objectContaining({
+            message: 'Complete release v1',
+            moves: [expect.objectContaining({
+                fromPath: releaseFile.path,
+                toPath: 'design/releases/v1/F-1-one.md',
+            })],
+        }))
+        expect(snapshot.activeCards.map((card) => card.path)).toEqual([nonReleaseFile.path])
+        expect(snapshot.backgroundCards.map((card) => card.path)).toContain('design/releases/v1/F-1-one.md')
+        expect(snapshot.backgroundCards.map((card) => card.path)).not.toContain(nonReleaseFile.path)
     })
 
     it('lists only existing local branches for cards in the current release', async () => {
