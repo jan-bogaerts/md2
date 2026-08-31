@@ -16,11 +16,13 @@ const {
     persistConversation,
     persistConversationCheckpoint,
 } = require('./agent_conversation_persistence');
-const { AgentExecutableResolver } = require('./agent_executable_availability');
+const { AgentExecutableResolver, executableFromCommand } = require('./agent_executable_availability');
 const { createAgentEnvironment } = require('./agent_environment');
 const { ClaudeUsagePoller } = require('./claude_usage_poller');
+const { CodexUsagePoller } = require('./codex_usage_poller');
 const { diagnoseCodexCacheError, isCodexCacheError } = require('./agent_codex_cache_diagnostic');
 const { logAgentEvent } = require('./agent_file_logger');
+const { recordProviderEvent } = require('./agent_provider_event');
 const agentInteractions = require('./agent_run_interactions');
 const {
     attachRunProtocol,
@@ -66,15 +68,25 @@ class AgentRunnerService {
             ?? persistConversation;
         this.spawn = dependencies.spawn ?? crossSpawn;
         this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();
-        this.claudeUsagePoller = dependencies.claudeUsagePoller
-            ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});
-        this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
         this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
         this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;
+        this.claudeUsagePoller = dependencies.claudeUsagePoller
+            ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});
+        this.codexUsagePoller = dependencies.codexUsagePoller
+            ?? new CodexUsagePoller({
+                onRuntimeEvent: (event) => this.handleAccountCodexRuntimeEvent(event),
+                terminateProcessTree: this.terminateProcessTree,
+            });
+        this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;
+        this.now = dependencies.now ?? Date.now;
         this.handleFinishTimeout = this.handleFinishTimeout.bind(this);
+        this.handleAccountClaudeRuntimeEvent = this.handleAccountClaudeRuntimeEvent.bind(this);
         this.processes = new Map();
         this.runningConversationIds = new Set();
+        this.usageRefreshStopped = false;
+        this.usageRefreshGeneration = 0;
+        this.claudeUsagePollContext = null;
         this.usagePollTimer = null;
     }
 
@@ -125,7 +137,7 @@ class AgentRunnerService {
             nextSequence += 1;
         }
         const [configuredExecutable, ...configuredArguments] = command;
-        const environment = createAgentEnvironment(process.env);
+        const environment = createAgentEnvironment(process.env, agent);
         const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });
         if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);
         const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];
@@ -176,7 +188,6 @@ class AgentRunnerService {
         });
         this.processes.set(id, run);
         this.runningConversationIds.add(conversation.id);
-        this.syncUsagePollTicks();
 
         child.stdout.on('data', (chunk) => this.handleOutput(id, 'stdout', chunk));
         child.stderr.on('data', (chunk) => this.handleOutput(id, 'stderr', chunk));
@@ -212,7 +223,6 @@ class AgentRunnerService {
     stop(runId) {
         const run = this.requireRun(runId);
         run.cancelled = true;
-        run.queuedMessage = null;
         transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());
         this.clearFinishTimeout(run);
 
@@ -222,22 +232,9 @@ class AgentRunnerService {
     suspend(runId) {
         const run = this.requireRun(runId);
         run.suspended = true;
-        run.queuedMessage = null;
         this.clearFinishTimeout(run);
 
         return this.ensureTermination(run);
-    }
-
-    beginQueuedMessageDraft(runId) {
-        return agentInteractions.beginQueuedMessageDraft(this.requireRun(runId));
-    }
-
-    setQueuedMessage(runId, sessionId, content, revision) {
-        return agentInteractions.setQueuedMessage(this.requireRun(runId), sessionId, content, revision);
-    }
-
-    sendQueuedMessage(runId, sessionId, revision) {
-        return agentInteractions.sendQueuedMessage(this, this.requireRun(runId), sessionId, revision);
     }
 
     sendMessage(runId, content) {
@@ -252,6 +249,10 @@ class AgentRunnerService {
         return agentInteractions.answerQuestion(this, this.requireStreamingRun(runId), requestId, answers);
     }
 
+    dismissQuestions(runId, requestId) {
+        return agentInteractions.dismissQuestions(this, this.requireStreamingRun(runId), requestId);
+    }
+
     answerApproval(runId, requestId, decision) {
         return agentInteractions.answerApproval(this, this.requireStreamingRun(runId), requestId, decision);
     }
@@ -259,7 +260,6 @@ class AgentRunnerService {
     finish(runId) {
         const run = this.requireStreamingRun(runId);
         run.finishing = true;
-        run.queuedMessage = null;
         if (!run.turnActive || run.waitingForQuestion) this.beginFinishShutdown(run);
     }
 
@@ -293,9 +293,10 @@ class AgentRunnerService {
     }
 
     stopAll() {
+        this.usageRefreshStopped = true;
         this.stopUsagePollTicks();
         this.claudeUsagePoller.stop();
-        const completions = [];
+        const completions = [this.codexUsagePoller.stop()];
         for (const run of this.processes.values()) {
             run.cancelled = true;
             transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());
@@ -304,6 +305,88 @@ class AgentRunnerService {
         }
 
         return Promise.all(completions);
+    }
+
+    /**
+     * Starts one account-wide usage refresh for each configured built-in provider in the active
+     * project's folder, and keeps the Claude one repeating from there.
+     *
+     * The folder matters: Claude asks whether the files in a folder are trusted the first time it
+     * runs there, and that question blocks the poll. Polling the project folder means the answer
+     * covers the folder agents are about to run in anyway.
+     */
+    requestProjectUsageRefresh(project, profiles) {
+        if (!Array.isArray(profiles)) throw new Error('Project usage refresh requires agent profiles');
+        const cwd = requireRootPath(project);
+        if (this.usageRefreshStopped) return;
+        // A refresh for the previous project stops driving the interval the moment a new one starts.
+        this.stopUsagePollTicks();
+        this.claudeUsagePollContext = null;
+        this.usageRefreshGeneration += 1;
+        const generation = this.usageRefreshGeneration;
+        const observedAt = this.now();
+        const refreshProfiles = ['claude', 'codex']
+            .map((provider) => profiles.find(({ name }) => name === provider))
+            .filter((profile) => profile !== undefined);
+        // Usage polling runs a reporting command rather than a conversation, so it stays on the plain
+        // inherited environment shared by every provider.
+        const environment = createAgentEnvironment(process.env);
+        for (const profile of refreshProfiles) {
+            void this.startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt });
+        }
+    }
+
+    async startProviderUsageRefresh(profile, { cwd, environment, generation, observedAt }) {
+        const [configuredExecutable, ...configuredArguments] = profile.command;
+        executableFromCommand(profile.command);
+        const executable = await this.executableResolver.find(configuredExecutable, { cwd, env: environment });
+        // Resolution outlives a project switch, and its result belongs to the folder it started in.
+        if (this.usageRefreshStopped || this.usageRefreshGeneration !== generation) return;
+        if (!executable) {
+            const unavailable = { kind: 'unavailable', observedAt };
+            if (profile.name === 'claude') await this.handleAccountClaudeRuntimeEvent(unavailable);
+            else await this.handleAccountCodexRuntimeEvent(unavailable);
+            return;
+        }
+        if (profile.name === 'claude') {
+            this.claudeUsagePollContext = { cwd, env: environment, executable };
+            this.claudeUsagePoller.requestPoll({
+                cwd,
+                env: environment,
+                executable,
+                observedAt,
+                onRuntimeEvent: this.handleAccountClaudeRuntimeEvent,
+            });
+            this.syncUsagePollTicks();
+            return;
+        }
+        this.codexUsagePoller.requestPoll({
+            argumentsList: configuredArguments,
+            cwd,
+            env: environment,
+            executable,
+            observedAt,
+        });
+    }
+
+    async handleAccountCodexRuntimeEvent(event) {
+        if (!this.codexRuntimeService || this.usageRefreshStopped) return;
+        if (event.kind === 'unavailable') {
+            this.codexRuntimeService.publishUnavailable(event.observedAt);
+            return;
+        }
+        const accepted = this.codexRuntimeService.publishRateLimits(event.payload, event.observedAt, false);
+        if (!accepted) this.codexRuntimeService.publishUnavailable(event.observedAt);
+    }
+
+    async handleAccountClaudeRuntimeEvent(event) {
+        if (!this.claudeRuntimeService || this.usageRefreshStopped) return;
+        if (event.kind === 'unavailable') {
+            this.claudeRuntimeService.publishUnavailable(event.observedAt);
+            return;
+        }
+        const accepted = this.claudeRuntimeService.publishRateLimits(event.payload, event.observedAt);
+        if (!accepted) this.claudeRuntimeService.publishUnavailable(event.observedAt);
     }
 
     ensureTermination(run) {
@@ -341,28 +424,21 @@ class AgentRunnerService {
         this.claudeUsagePoller.requestPoll({ cwd: run.rootPath, env: run.environment, executable: run.executable });
     }
 
-    /** Picks any active run whose agent needs polling; the usage snapshot is account-wide, so any one will do. */
-    pollableRun() {
-        for (const run of this.processes.values()) {
-            if (run.agent === 'claude') return run;
-        }
-
-        return null;
-    }
-
-    /** Keeps a repeating poll running while a pollable run is active; long runs would otherwise show a frozen figure. */
+    /**
+     * Keeps the account usage poll repeating for the active project, whatever the previous one
+     * returned. Success, failure and an inconclusive result all schedule the next poll the same
+     * way: a single failed poll used to leave the display empty until the user started a run.
+     *
+     * The poller's own cooldown stays the floor between poll starts, so an interval poll and a
+     * run-triggered poll can never put two Claude processes side by side.
+     */
     syncUsagePollTicks() {
-        const run = this.pollableRun();
-        if (!run) {
-            this.stopUsagePollTicks();
-            return;
-        }
-        if (this.usagePollTimer) return;
+        if (this.usageRefreshStopped || !this.claudeUsagePollContext || this.usagePollTimer) return;
         this.usagePollTimer = this.setTimeout(() => {
             this.usagePollTimer = null;
-            const activeRun = this.pollableRun();
-            if (!activeRun) return;
-            this.requestUsagePoll(activeRun);
+            const context = this.claudeUsagePollContext;
+            if (this.usageRefreshStopped || !context) return;
+            this.claudeUsagePoller.requestPoll({ ...context });
             this.syncUsagePollTicks();
         }, AGENT_USAGE_POLL_TICK_MS);
     }
@@ -457,9 +533,15 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         const safeContent = redactSecrets(content, run.secretValues);
         if (channel === 'stdout') {
-            const { segment } = appendAssistantOutput(run, safeContent, timestamp);
+            const { entryIndex, message, segment } = appendAssistantOutput(run, safeContent, timestamp);
             if (segment.length === 0) return;
-            emitRunEvent(run, { content: segment, type: 'output' });
+            emitRunEvent(run, {
+                content: segment,
+                entryIndex,
+                messageId: message.id,
+                sequence: message.sequence,
+                type: 'output',
+            });
             return;
         }
         run.stderr += safeContent;
@@ -493,9 +575,9 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         run.turnStarted = run.turnStarted || providerEvent.turnStarted;
         run.missingSession = run.missingSession || providerEvent.missingSession;
-        providerEvent.changedPaths.forEach((filePath) => run.changedPaths.add(filePath));
         if (providerEvent.conversationId) run.providerConversationId = providerEvent.conversationId;
         if (providerEvent.usage) run.turnUsage = providerEvent.usage;
+        for (const event of providerEvent.providerEvents) recordProviderEvent(run, event, timestamp);
         for (const transcriptEvent of providerEvent.transcriptEvents) {
             run.conversation.entries.push(createEventEntry(
                 `${runId}-provider-${run.conversation.entries.length}`,
@@ -506,8 +588,16 @@ class AgentRunnerService {
             ));
         }
         if (providerEvent.assistantText.length > 0) {
-            const { segment } = appendAssistantOutput(run, providerEvent.assistantText, timestamp);
-            if (segment.length > 0) emitRunEvent(run, { content: segment, type: 'output' });
+            const { entryIndex, message, segment } = appendAssistantOutput(run, providerEvent.assistantText, timestamp);
+            if (segment.length > 0) {
+                emitRunEvent(run, {
+                    content: segment,
+                    entryIndex,
+                    messageId: message.id,
+                    sequence: message.sequence,
+                    type: 'output',
+                });
+            }
         } else if (providerEvent.errorText.length > 0 && !run.reportedProviderErrors.has(providerEvent.errorText)) {
             const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
             run.reportedProviderErrors.add(providerEvent.errorText);
@@ -581,8 +671,8 @@ class AgentRunnerService {
         const timestamp = new Date().toISOString();
         run.streamingFailure = new Error(message);
         transitionConversationStatus(run.conversation, 'failed', timestamp);
-        run.queuedMessage = null;
         run.waitingForQuestion = false;
+        run.pendingQuestionRequestId = null;
         run.pendingQuestions = [];
         const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
         run.stderr += `${separator}${message}`;
@@ -676,7 +766,6 @@ class AgentRunnerService {
         } finally {
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
-            this.syncUsagePollTicks();
         }
     }
 

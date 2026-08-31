@@ -5,11 +5,16 @@ import { actionRunRegistry } from '../../../services/actions/action_run_registry
 import { dialogService } from '../../../services/dialog_service'
 import type { ConversationPickerConversation } from './action_conversation_picker_data'
 import { defaultLoadConversation, defaultLoadConversations } from '../run/popup/action_popup_defaults'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 interface ActionConversationSnapshot {
     conversations: AgentConversation[]
     loading: boolean
     selectedConversation: AgentConversation | null
+}
+
+interface ConversationIdentity {
+    id: string
 }
 
 type Listener = () => void
@@ -26,11 +31,27 @@ function conversationTimestamp(conversation: ConversationPickerConversation) {
     return Number.isNaN(timestamp) ? 0 : timestamp
 }
 
+/** Resolves explicit history selection without replacing matching live data with persisted data. */
+export function resolveDisplayedConversation<T extends ConversationIdentity>(liveConversation: T | null, selectedConversation: T | null) {
+    if (!selectedConversation || selectedConversation.id === liveConversation?.id) return liveConversation ?? selectedConversation
+
+    return selectedConversation
+}
+
+/** Identifies history display that must not route controls to an active run. */
+export function isBrowsingHistoricalConversation(
+    liveConversation: ConversationIdentity | null,
+    selectedConversation: ConversationIdentity | null,
+    sessionActive: boolean,
+) {
+    return sessionActive && !!selectedConversation && selectedConversation.id !== liveConversation?.id
+}
+
 export function conversationOptions<T extends ConversationPickerConversation>(
     conversations: T[],
     actionId: string,
     context: ActionContext,
-    liveConversation: T | null,
+    liveConversations: T[],
 ) {
     const byId = new Map<string, T>()
     for (const conversation of conversations) {
@@ -38,8 +59,10 @@ export function conversationOptions<T extends ConversationPickerConversation>(
             byId.set(conversation.id, conversation)
         }
     }
-    if (liveConversation && belongsToContext(liveConversation, context) && liveConversation.actionId === actionId) {
-        byId.set(liveConversation.id, liveConversation)
+    for (const liveConversation of liveConversations) {
+        if (belongsToContext(liveConversation, context) && liveConversation.actionId === actionId) {
+            byId.set(liveConversation.id, liveConversation)
+        }
     }
 
     return [...byId.values()].sort((left, right) => conversationTimestamp(right) - conversationTimestamp(left))
@@ -56,6 +79,7 @@ function latestWaitingConversation(conversations: AgentConversation[], actionId:
 /** Owns history loading and selection for one popup action/context binding. */
 export class ActionConversationStore {
     private readonly actionId: string
+    readonly bindingStore: ActionRunBindingStore
     private readonly context: ActionContext
     private initialSelectionConfigured = false
     private initialSelectionPath: string | null = null
@@ -63,8 +87,9 @@ export class ActionConversationStore {
     private readonly listeners = new Set<Listener>()
     private snapshot: ActionConversationSnapshot = { conversations: [], loading: true, selectedConversation: null }
 
-    constructor(actionId: string, context: ActionContext) {
+    constructor(actionId: string, context: ActionContext, bindingStore: ActionRunBindingStore) {
         this.actionId = actionId
+        this.bindingStore = bindingStore
         this.context = context
     }
 
@@ -87,12 +112,13 @@ export class ActionConversationStore {
     async load() {
         const request = this.loadRequest + 1
         this.loadRequest = request
-        this.setSnapshot({ ...this.snapshot, loading: true })
+        if (this.snapshot.conversations.length === 0) this.setSnapshot({ ...this.snapshot, loading: true })
         try {
             const conversations = await defaultLoadConversations(this.context)
             if (request !== this.loadRequest) return
 
-            const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null
+            const boundRunId = this.bindingStore.getSnapshot()
+            const run = boundRunId ? actionRunRegistry.getRunStore(boundRunId)?.getSnapshot() ?? null : null
             const runActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
             const refreshedSelection = this.snapshot.selectedConversation
                 ? conversations.find(({ path }) => path === this.snapshot.selectedConversation?.path) ?? this.snapshot.selectedConversation
@@ -117,7 +143,9 @@ export class ActionConversationStore {
                 }
             }
             this.setSnapshot({ conversations, loading: false, selectedConversation })
-            if (selectedConversation) actionPromptDraftService.clearDraft(this.actionId, this.context, null)
+            if (selectedConversation && !runActive) {
+                actionPromptDraftService.discardUneditedDraft(this.actionId, this.context, this.bindingStore.getSnapshot())
+            }
         } catch (error) {
             if (request !== this.loadRequest) return
 
@@ -130,8 +158,17 @@ export class ActionConversationStore {
         const request = this.loadRequest + 1
         this.loadRequest = request
         if (!path) {
+            this.bindingStore.setRunId(null)
             this.setSnapshot({ ...this.snapshot, selectedConversation: null })
-            this.clearPromptDraft()
+            this.clearPromptDraftWhenIdle()
+            return
+        }
+
+        const liveRun = actionRunRegistry.getActionRunStores(this.actionId, this.context)
+            .find((store) => store.getSnapshot().conversation?.path === path)
+        if (liveRun) {
+            this.bindingStore.setRunId(liveRun.getSnapshot().runId)
+            this.setSnapshot({ ...this.snapshot, selectedConversation: null })
             return
         }
 
@@ -140,8 +177,9 @@ export class ActionConversationStore {
             if (request !== this.loadRequest) return
             this.validateSelection(conversation)
 
+            this.bindingStore.setRunId(null)
             this.setSnapshot({ ...this.snapshot, selectedConversation: conversation })
-            this.clearPromptDraft()
+            this.clearPromptDraftWhenIdle()
         } catch (error) {
             if (request === this.loadRequest) {
                 dialogService.error(error, { fallbackMessage: 'Could not load agent conversation' })
@@ -149,13 +187,13 @@ export class ActionConversationStore {
         }
     }
 
-    conversationOptions(liveConversation: AgentConversation | null): AgentConversation[]
-    conversationOptions(liveConversation: ConversationPickerConversation | null): ConversationPickerConversation[]
-    conversationOptions(liveConversation: ConversationPickerConversation | null) {
+    conversationOptions(liveConversations: AgentConversation[]): AgentConversation[]
+    conversationOptions(liveConversations: ConversationPickerConversation[]): ConversationPickerConversation[]
+    conversationOptions(liveConversations: ConversationPickerConversation[]) {
         const selected = this.snapshot.selectedConversation
         const conversations = selected ? [...this.snapshot.conversations, selected] : this.snapshot.conversations
 
-        return conversationOptions(conversations, this.actionId, this.context, liveConversation)
+        return conversationOptions(conversations, this.actionId, this.context, liveConversations)
     }
 
     continuationPath(liveConversation: AgentConversation | null) {
@@ -174,9 +212,13 @@ export class ActionConversationStore {
         this.setSnapshot({ ...this.snapshot, conversations, selectedConversation })
     }
 
-    private clearPromptDraft() {
-        const run = actionRunRegistry.getActionRunStore(this.actionId, this.context)?.getSnapshot() ?? null
-        actionPromptDraftService.clearDraft(this.actionId, this.context, run)
+    private clearPromptDraftWhenIdle() {
+        const boundRunId = this.bindingStore.getSnapshot()
+        const run = boundRunId ? actionRunRegistry.getRunStore(boundRunId)?.getSnapshot() ?? null : null
+        const runActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
+        if (runActive) return
+
+        actionPromptDraftService.discardUneditedDraft(this.actionId, this.context, this.bindingStore.getSnapshot())
     }
 
     private validateSelection(conversation: AgentConversation) {

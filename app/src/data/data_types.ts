@@ -33,6 +33,7 @@ export interface CardTypeConfig {
 export interface StateConfig {
     alwaysVisible: boolean
     color?: string
+    defaultActionId?: string
     state: string
 }
 
@@ -74,6 +75,7 @@ export interface CardHeader {
     agentLogReferences: string[]
     author: string | null
     branch?: string | null
+    changedFiles: string[]
     id: string
     internalId: string | null
     owner: string | null
@@ -207,6 +209,14 @@ export class MissingWorkingFolderError extends Error {
     }
 }
 
+export function isMissingWorkingFolderError(error: unknown): error is MissingWorkingFolderError {
+    if (!error || typeof error !== 'object') return false
+
+    const storageError = error as { code?: unknown; workingFolder?: unknown }
+
+    return storageError.code === MISSING_WORKING_FOLDER_ERROR && typeof storageError.workingFolder === 'string'
+}
+
 export interface CommitRequest {
     branch: string
     files: MarkdownFile[]
@@ -289,7 +299,10 @@ export interface AgentConversationEvent {
     insertions?: number
     label?: string
     output?: string
+    paths?: string[]
+    parentItemId?: string
     providerItemId?: string
+    runningSubThreads?: number
     sequence?: number
     status?: string
     summary?: string[]
@@ -388,7 +401,7 @@ export interface StorageService {
     checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>
     commit(request: CommitRequest): Promise<CommitResult>
     commitWorktree?(request: CommitWorktreeRequest): Promise<void>
-    createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference>
+    createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference>
     deleteFile(request: DeleteFileRequest): Promise<void>
     deleteFolder(request: DeleteFolderRequest): Promise<void>
     deleteLocalBranch?(project: ProjectReference, branchName: string): Promise<void>
@@ -407,7 +420,7 @@ export interface StorageService {
     loadActivityConversations?(project: ProjectReference, path: string): Promise<AgentConversation[]>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
-    loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
+    loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string): Promise<StorageProjectFiles>
     loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>
     loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>

@@ -11,6 +11,7 @@ import {
 } from 'lexical'
 import { useCallback, useEffect, useRef } from 'react'
 import { dialogService } from '../../services/dialog_service'
+import { getElectronClipboardBridge } from '../../services/electron_clipboard_bridge'
 import { useDialogError } from '../hooks/use_dialog_error'
 import { markdownPasteConfig$ } from './markdown_paste_cell'
 
@@ -48,6 +49,13 @@ function clipboardImageFile(clipboardData: DataTransfer) {
     return imageItem?.getAsFile() ?? null
 }
 
+function $selectionPlainText() {
+    const selection = $getSelection()
+    if (!$isRangeSelection(selection) || selection.isCollapsed()) return ''
+
+    return selection.getTextContent()
+}
+
 /** Handles Markdown-aware and literal-text clipboard operations for MDXEditor. */
 export function MarkdownPastePlugin() {
     const config = useCellValue(markdownPasteConfig$)
@@ -71,9 +79,8 @@ export function MarkdownPastePlugin() {
         if (!$isRangeSelection(selection) || selection.isCollapsed()) return false
 
         try {
-            const plainText = selection.getTextContent()
             if (shifted) {
-                event.clipboardData.setData(PLAIN_TEXT_MIME_TYPE, plainText)
+                event.clipboardData.setData(PLAIN_TEXT_MIME_TYPE, $selectionPlainText())
             } else {
                 const markdown = config.getSelectionMarkdown()
                 if (!markdown) throw new Error('Selected content could not be serialized as Markdown')
@@ -87,6 +94,25 @@ export function MarkdownPastePlugin() {
             return false
         }
     }, [config])
+
+    /**
+     * Serves the desktop context menu's `Copy as Text`. The menu click arrives
+     * without a `ClipboardEvent`, so the text is written through the async
+     * clipboard API instead of `clipboardData`; the text itself comes from the
+     * same function the Ctrl+Shift+C shortcut uses, so both entry points agree.
+     * Right-clicking outside the editor uses Chromium's selection captured
+     * when the menu opened.
+     */
+    const handleCopyAsTextRequest = useCallback((fallbackText: string) => {
+        const editorHasFocus = editor.getRootElement()?.contains(document.activeElement) ?? false
+        const selectedText = editorHasFocus ? editor.getEditorState().read(() => $selectionPlainText()) : ''
+        const text = selectedText || fallbackText
+        if (!text) return
+
+        void navigator.clipboard.writeText(text).catch((error: unknown) => {
+            dialogService.error(error, { fallbackMessage: 'Selected content could not be copied' })
+        })
+    }, [editor])
 
     const handlePaste = useCallback((event: PasteCommandType) => {
         const shifted = consumeShiftedIntent(pasteIntentRef.current)
@@ -129,13 +155,15 @@ export function MarkdownPastePlugin() {
         const unregisterKeyDown = editor.registerCommand(KEY_DOWN_COMMAND, handleKeyDown, COMMAND_PRIORITY_HIGH)
         const unregisterCopy = editor.registerCommand(COPY_COMMAND, handleCopy, COMMAND_PRIORITY_HIGH)
         const unregisterPaste = editor.registerCommand(PASTE_COMMAND, handlePaste, COMMAND_PRIORITY_HIGH)
+        const unsubscribeCopyAsText = getElectronClipboardBridge()?.onCopyAsTextRequested(handleCopyAsTextRequest)
 
         return () => {
             unregisterKeyDown()
             unregisterCopy()
             unregisterPaste()
+            unsubscribeCopyAsText?.()
         }
-    }, [editor, handleCopy, handleKeyDown, handlePaste])
+    }, [editor, handleCopy, handleCopyAsTextRequest, handleKeyDown, handlePaste])
 
     return null
 }

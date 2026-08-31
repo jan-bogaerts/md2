@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type Card } from '../../data/data_types'
 import { actionService } from '../../services/actions/action_service'
@@ -24,7 +24,7 @@ function card(id: string, title: string, status: string): Card {
         agentConversations: [],
         content: `# ${title}\n\nBody of ${id}`,
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id, internalId: id.toLowerCase(), owner: null,
             policy: {}, references: [], status, title, worktree: null, worktreeError: null, worktreeValue: null,
         },
         hasFrontmatter:true,
@@ -192,6 +192,19 @@ describe('MobileCardView', () => {
 
         fireEvent.touchCancel(dragButton, { changedTouches: [nextTouch], touches: [] })
         expect(cardDragDropService.getOverlaySnapshot().cardPath).toBeNull()
+    })
+
+    it('archives a card from the mobile card actions menu after confirmation', async () => {
+        renderMobileCardView()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+        const menuItems = screen.getAllByRole('menuitem').map((item) => item.textContent)
+        expect(menuItems.slice(-2)).toEqual(['Archive', 'Delete'])
+
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Archive' }))
+        fireEvent.click(within(screen.getByRole('dialog', { name: 'Archive card' })).getByRole('button', { name: 'Archive' }))
+
+        await waitFor(() => expect(dataService.cards.moveCard).toHaveBeenCalledWith('design/F-1.md', 'archived', 0))
     })
 
     it('opens action popup from Run without opening card body', () => {

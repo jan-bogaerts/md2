@@ -7,9 +7,18 @@ import {
     mergeAgentProfiles,
     supportsPermissionMode,
     validatePermissionMode,
+    validateThinkingLevel,
 } from '../../../data/agent_profiles'
+import {
+    projectAgentSelection,
+    selectAgent,
+    selectModel,
+    selectPermissionMode,
+    selectThinkingLevel,
+} from '../../../data/agent_selection'
 import type { RawActionDefinition } from '../../../data/action_types'
 import { agentCapabilitiesService, type AgentCapabilitiesService } from '../../../services/agents/agent_capabilities_service'
+import { actionAgentSelectionDraftService } from '../../../services/actions/action_agent_selection_draft_service'
 import { useAgentCapabilities } from '../../hooks/use_agent_capabilities'
 import { useConfigValue } from '../../hooks/use_config_value'
 import { ActionEditorField } from '../editor/action_editor_field'
@@ -20,11 +29,14 @@ interface ActionAgentCapabilityFieldsProps {
     errors: Partial<Record<keyof RawActionDefinition, string>>
     onChange: (definition: RawActionDefinition) => void
     service?: AgentCapabilitiesService
+    sourcePath: string
 }
 
 export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsProps) {
-    const { definition, errors, onChange, service = agentCapabilitiesService } = props
+    const { definition, errors, onChange, service = agentCapabilitiesService, sourcePath } = props
     const profiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
+    const desktopSelection = useConfigValue('desktop.agentSelection')
+    const selection = actionAgentSelectionDraftService.getSelection(sourcePath, definition, desktopSelection, profiles)
     const { availability, models, thinkingLevels } = useAgentCapabilities(service)
     const selectedProfile = definition.agent ? findAgentProfile(profiles, definition.agent) : null
 
@@ -39,31 +51,44 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
         }
     }, [definition.agent, definition.model, service])
 
+    useEffect(() => () => {
+        actionAgentSelectionDraftService.clearSelection(sourcePath)
+    }, [sourcePath])
+
     const handleAgentChange = (event: ChangeEvent<HTMLInputElement>) => {
         const agent = event.target.value
-        onChange({
-            ...definition,
-            agent: agent || undefined,
-            model: undefined,
-            permissionMode: undefined,
-            thinkingLevel: undefined,
-        })
+        if (!agent) {
+            onChange({ ...definition, agent: undefined, model: undefined, permissionMode: undefined, thinkingLevel: undefined })
+            return
+        }
+        const nextSelection = selectAgent(selection, agent, profiles, [desktopSelection])
+        const projected = projectAgentSelection(nextSelection, profiles)
+        actionAgentSelectionDraftService.setSelection(sourcePath, nextSelection)
+        onChange({ ...definition, agent: projected.agent, model: projected.model, thinkingLevel: projected.thinkingLevel })
     }
 
     const handleModelChange = (event: ChangeEvent<HTMLInputElement>) => {
         const model = event.target.value
-        onChange({ ...definition, ...(model ? { model } : {}), model: model || undefined, thinkingLevel: undefined })
+        if (!model) return
+        const nextSelection = selectModel(selection, model)
+        actionAgentSelectionDraftService.setSelection(sourcePath, nextSelection)
+        onChange({ ...definition, model, thinkingLevel: nextSelection.settingsByAgent[nextSelection.activeAgent].thinkingLevel })
     }
 
     const handleThinkingLevelChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const thinkingLevel = event.target.value
-        onChange({ ...definition, thinkingLevel: thinkingLevel === 'none' ? undefined : thinkingLevel })
+        const thinkingLevel = validateThinkingLevel(event.target.value, 'action thinkingLevel')
+        const nextSelection = selectThinkingLevel(selection, thinkingLevel)
+        actionAgentSelectionDraftService.setSelection(sourcePath, nextSelection)
+        onChange({ ...definition, thinkingLevel })
     }
 
     const handlePermissionModeChange = (event: ChangeEvent<HTMLInputElement>) => {
         const permissionMode = event.target.value
             ? validatePermissionMode(event.target.value, 'action permissionMode')
             : undefined
+        if (permissionMode) {
+            actionAgentSelectionDraftService.setSelection(sourcePath, selectPermissionMode(selection, permissionMode))
+        }
         onChange({ ...definition, permissionMode })
     }
 

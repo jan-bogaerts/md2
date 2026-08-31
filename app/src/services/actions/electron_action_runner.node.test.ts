@@ -26,6 +26,7 @@ const action: ActionDefinition = {
     onState: null,
     phrases: [],
     prompt: null,
+    showCommandWindow: false,
     sourcePath: 'actions/test.json',
     thinkingLevel: null,
     trackFileChanges: false,
@@ -35,7 +36,7 @@ const action: ActionDefinition = {
 const agentAction: ActionDefinition = { ...action, command: null, id: 'agent-test', type: 'agent' }
 const context = { file: 'design/F-1.md', kind: 'card' as const }
 
-function createBridge(): ElectronActionBridge {
+function createBridge(changedPaths: string[] = []): ElectronActionBridge {
     let callback: ((event: ActionRunEvent) => void) | null = null
 
     return {
@@ -51,21 +52,22 @@ function createBridge(): ElectronActionBridge {
         openInEditor: vi.fn(async () => {}),
         prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
         runSearchRegexpAgent: vi.fn(),
-        startAction: vi.fn(async () => {
+        startAction: vi.fn(async (request) => {
+            const eventContext = request.context
             const emit = callback as unknown as (event: ActionRunEvent) => void
             emit({
-                actionId: 'test', command: 'npm test', context, runId: 'action-1', phase: 'main', rootActionId: 'test',
+                actionId: 'test', command: 'npm test', context: eventContext, runId: 'action-1', phase: 'main', rootActionId: 'test',
                 status: 'running', type: 'action',
             })
             emit({
-                actionId: 'test', context, runId: 'action-1', phase: 'main', rootActionId: 'test', status: 'running', type: 'update',
+                actionId: 'test', context: eventContext, runId: 'action-1', phase: 'main', rootActionId: 'test', status: 'running', type: 'update',
                 update: { content: 'ok', kind: 'output' },
             })
             emit({
-                actionId: 'test', command: 'npm test', context, runId: 'action-1', phase: 'main', rootActionId: 'test',
+                actionId: 'test', command: 'npm test', context: eventContext, runId: 'action-1', phase: 'main', rootActionId: 'test',
                 status: 'completed', type: 'action',
             })
-            emit({ actionId: 'test', context, runId: 'action-1', phase: 'main', rootActionId: 'test', status: 'completed', type: 'run' })
+            emit({ actionId: 'test', changedPaths, context: eventContext, runId: 'action-1', phase: 'main', rootActionId: 'test', status: 'completed', type: 'run' })
 
             return 'action-1'
         }),
@@ -89,6 +91,7 @@ describe('electron action runner client', () => {
         expect(bridge.startAction).toHaveBeenCalledWith({ actionId: 'test', context, runInput: { extraPrompt: 'focus' } })
         expect(reloadCurrentProjectSnapshot).not.toHaveBeenCalled()
         expect(result).toEqual({
+            changedPaths: [],
             logs: [{ actionId: 'test', actionName: 'test', command: 'npm test', message: 'test completed', phase: 'main', status: 'completed', stderr: '', stdout: 'ok' }],
             status: 'completed',
         })
@@ -106,6 +109,32 @@ describe('electron action runner client', () => {
         await runElectronAction(action, context)
 
         expect(flush).toHaveBeenCalledTimes(1)
+    })
+
+    it('applies terminal changed paths to card owner after action completion', async () => {
+        const bridge = createBridge(['app/a.ts', 'desktop/b.js'])
+        setActionBridgeOverride(bridge)
+        const cardContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
+        const addCardChangedFiles = vi.spyOn(dataService.cards, 'addCardChangedFiles').mockImplementation(() => null as never)
+
+        await runElectronAction(action, cardContext)
+
+        expect(addCardChangedFiles).toHaveBeenCalledWith(
+            cardContext.cardInternalId,
+            cardContext.file,
+            ['app/a.ts', 'desktop/b.js'],
+        )
+    })
+
+    it('does not touch card owner when terminal run has no changed paths', async () => {
+        const bridge = createBridge()
+        setActionBridgeOverride(bridge)
+        const cardContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
+        const addCardChangedFiles = vi.spyOn(dataService.cards, 'addCardChangedFiles')
+
+        await runElectronAction(action, cardContext)
+
+        expect(addCardChangedFiles).not.toHaveBeenCalled()
     })
 
     it('does not start the action when flushing pending changes fails', async () => {

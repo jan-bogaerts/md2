@@ -8,6 +8,10 @@ import {
 
 const origin = { cardInternalId: 'card-1', kind: 'card' };
 
+function selection(activeAgent, model, thinkingLevel, permissionMode = 'ask-for-approval') {
+    return { activeAgent, permissionMode, settingsByAgent: { [activeAgent]: { model, thinkingLevel } } };
+}
+
 function record() {
     return {
         commits: [],
@@ -32,7 +36,7 @@ describe('card activity action runs', () => {
         };
         const stringify = vi.spyOn(JSON, 'stringify');
 
-        parseActivityValue({ actionSettings: {}, conversations: [conversation], origin, records: [], version: 4 }, origin);
+        parseActivityValue({ actionSettings: {}, conversations: [conversation], origin, records: [], version: 5 }, origin);
 
         expect(stringify).not.toHaveBeenCalled();
         stringify.mockRestore();
@@ -40,14 +44,14 @@ describe('card activity action runs', () => {
 
     it('repairs malformed JSON to empty canonical activity when origin is known', () => {
         expect(repairActivityFile('{broken', origin)).toEqual({
-            activity: { actionSettings: {}, conversations: [], origin, records: [], version: 4 },
+            activity: { actionSettings: {}, conversations: [], origin, records: [], version: 5 },
             changed: true,
             status: 'repaired',
         });
     });
 
     it('leaves future and originless unparseable activity unchanged', () => {
-        expect(repairActivityFile(JSON.stringify({ version: 5 }), origin)).toEqual({ activity: null, changed: false, status: 'future' });
+        expect(repairActivityFile(JSON.stringify({ version: 6 }), origin)).toEqual({ activity: null, changed: false, status: 'future' });
         expect(repairActivityFile('{broken')).toEqual({ activity: null, changed: false, status: 'unrecoverable' });
     });
 
@@ -67,19 +71,19 @@ describe('card activity action runs', () => {
         const malformedRecord = { ...record(), commits: [validCommit, { commit: 'bad' }], conversationIds: ['conversation-1', null] };
         const value = {
             actionSettings: {
-                build: { agent: 'codex', model: '', permissionMode: 'ask-for-approval', thinkingLevel: 'high' },
-                broken: { agent: 'codex' },
+                build: selection('codex', '', 'high'),
+                broken: { activeAgent: 'codex' },
             },
             conversations: [conversation, { id: null }],
             origin,
             records: [malformedRecord, { status: 'broken' }],
-            version: 4,
+            version: 5,
         };
 
         const repaired = repairActivityFile(JSON.stringify(value), origin);
 
         expect(repaired.status).toBe('repaired');
-        expect(repaired.activity?.actionSettings).toEqual({build: { agent: 'codex', model: '', permissionMode: 'ask-for-approval', thinkingLevel: 'high' }});
+        expect(repaired.activity?.actionSettings).toEqual({ build: selection('codex', '', 'high') });
         expect(repaired.activity?.conversations).toHaveLength(1);
         expect(repaired.activity?.conversations[0].entries).toHaveLength(1);
         expect(repaired.activity?.records).toHaveLength(1);
@@ -92,7 +96,7 @@ describe('card activity action runs', () => {
         const repaired = repairActivityFile(JSON.stringify(value), origin);
 
         expect(repaired).toEqual({
-            activity: { actionSettings: {}, conversations: [], origin, records: [], version: 4 },
+            activity: { actionSettings: {}, conversations: [], origin, records: [], version: 5 },
             changed: true,
             status: 'repaired',
         });
@@ -108,7 +112,7 @@ describe('card activity action runs', () => {
         };
 
         expect(parseActivityFileForMigration(JSON.stringify(value), origin))
-            .toEqual({ actionSettings: {}, conversations: [], origin, records: [], version: 4 });
+            .toEqual({ actionSettings: {}, conversations: [], origin, records: [], version: 5 });
     });
 
     it('drops repaired agent records whose required conversation link does not resolve', () => {
@@ -118,14 +122,14 @@ describe('card activity action runs', () => {
             details: { agent: 'codex', type: 'agent' },
             rootConversationId: 'missing',
         };
-        const activity = {actionSettings: {}, conversations: [], origin, records: [agentRecord], version: 4};
+        const activity = {actionSettings: {}, conversations: [], origin, records: [agentRecord], version: 5};
         const repaired = repairActivityFile(JSON.stringify(activity), origin);
 
         expect(repaired.activity?.records).toEqual([]);
     });
 
     it('parses the runId activity contract', () => {
-        const activity = parseActivityValue({ actionSettings: {}, conversations: [], origin, records: [record()], version: 4 }, origin);
+        const activity = parseActivityValue({ actionSettings: {}, conversations: [], origin, records: [record()], version: 5 }, origin);
 
         expect(activity.records[0].runId).toBe('run-1');
     });
@@ -134,7 +138,7 @@ describe('card activity action runs', () => {
         const legacyRecord = { ...record(), executionId: 'execution-1' };
         delete legacyRecord.runId;
 
-        expect(() => parseActivityValue({ actionSettings: {}, conversations: [], origin, records: [legacyRecord], version: 4 }, origin))
+        expect(() => parseActivityValue({ actionSettings: {}, conversations: [], origin, records: [legacyRecord], version: 5 }, origin))
             .toThrow('Malformed activity file: missing records[0].runId');
     });
 
@@ -162,7 +166,7 @@ describe('card activity action runs', () => {
         const legacyActivity = { conversations, origin, records: [legacyRecord], version: 1 };
         const migrated = migrateActivityValue(legacyActivity, origin);
 
-        expect(migrated).toMatchObject({ actionSettings: {}, version: 4, conversations: [{ viewed: true }, { viewed: true }] });
+        expect(migrated).toMatchObject({ actionSettings: {}, version: 5, conversations: [{ viewed: true }, { viewed: true }] });
         expect(migrated.records[0]).toMatchObject({
             conversationIds: ['conversation-child', 'conversation-root'],
             details: { agent: 'codex', model: 'gpt-5', thinkingLevel: 'high', type: 'agent' },
@@ -176,7 +180,7 @@ describe('card activity action runs', () => {
     it('migrates version 2 by adding empty action settings', () => {
         const migrated = migrateActivityValue({ conversations: [], origin, records: [record()], version: 2 }, origin);
 
-        expect(migrated).toEqual({ actionSettings: {}, conversations: [], origin, records: [record()], version: 4 });
+        expect(migrated).toEqual({ actionSettings: {}, conversations: [], origin, records: [record()], version: 5 });
     });
 
     it('migrates recognized version 3 settings and agent history to permissionMode only', () => {
@@ -203,7 +207,7 @@ describe('card activity action runs', () => {
 
         const migrated = migrateActivityValue(versionThree, origin);
 
-        expect(migrated.actionSettings.implement).toEqual({agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high'});
+        expect(migrated.actionSettings.implement).toEqual(selection('codex', 'gpt-5', 'high'));
         expect(migrated.records[0].details).toEqual({agent: 'claude', model: 'sonnet', permissionMode: 'approve-for-me', thinkingLevel: 'high', type: 'agent'});
         expect(JSON.stringify(migrated)).not.toContain('accessLevel');
         expect(JSON.stringify(migrated)).not.toContain('approvalPolicy');
@@ -223,6 +227,19 @@ describe('card activity action runs', () => {
             .toThrow('unrecognised legacy permission combination in actionSettings.implement');
     });
 
+    it('migrates version 4 flat settings without changing conversations or records', () => {
+        const settings = { agent: 'claude', model: 'opus', permissionMode: 'full-access', thinkingLevel: 'max' };
+        const versionFour = { actionSettings: { review: settings }, conversations: [], origin, records: [record()], version: 4 };
+
+        expect(migrateActivityValue(versionFour, origin)).toEqual({
+            actionSettings: { review: selection('claude', 'opus', 'max', 'full-access') },
+            conversations: [],
+            origin,
+            records: [record()],
+            version: 5,
+        });
+    });
+
     it.each([
         ['codex', 'workspace-write', 'on-request', 'ask-for-approval'],
         ['codex', 'danger-full-access', 'never', 'full-access'],
@@ -234,23 +251,23 @@ describe('card activity action runs', () => {
         const versionThree = {actionSettings: { review: settings }, conversations: [], origin, records: [], version: 3};
 
         expect(migrateActivityValue(versionThree, origin).actionSettings.review)
-            .toEqual({agent, model: 'model', permissionMode, thinkingLevel: 'none'});
+            .toEqual(selection(agent, 'model', 'none', permissionMode));
     });
 
     it('parses complete action settings and preserves provider-default empty strings', () => {
-        const settings = { agent: 'codex', model: '', permissionMode: 'ask-for-approval', thinkingLevel: 'high' };
-        const activityValue = { actionSettings: { review: settings }, conversations: [], origin, records: [], version: 4 };
+        const settings = selection('codex', '', 'high');
+        const activityValue = { actionSettings: { review: settings }, conversations: [], origin, records: [], version: 5 };
         const activity = parseActivityValue(activityValue, origin);
 
         expect(activity.actionSettings.review).toEqual(settings);
     });
 
     it.each([
-        [{ review: { agent: 'codex', model: '', permissionMode: 'ask-for-approval' } }, 'thinkingLevel'],
-        [{ review: { agent: 'codex', model: '', permissionMode: 'ask-for-approval', thinkingLevel: null } }, 'thinkingLevel'],
+        [{ review: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: '' } } } }, 'thinkingLevel'],
+        [{ review: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: '', thinkingLevel: null } } } }, 'thinkingLevel'],
         [[], 'actionSettings must be an object'],
     ])('rejects malformed action settings %#', (actionSettings, expected) => {
-        expect(() => parseActivityValue({ actionSettings, conversations: [], origin, records: [], version: 4 }, origin))
+        expect(() => parseActivityValue({ actionSettings, conversations: [], origin, records: [], version: 5 }, origin))
             .toThrow(expected);
     });
 

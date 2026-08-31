@@ -13,6 +13,7 @@ function createWebContents() {
         listeners: {},
         on: vi.fn(function on(event, listener) { this.listeners[event] = listener; }),
         replaceMisspelling: vi.fn(),
+        send: vi.fn(),
         session: { addWordToSpellCheckerDictionary: vi.fn() },
     };
 }
@@ -30,10 +31,10 @@ function createParams(overrides = {}) {
 
 describe('editing menu section', () => {
     it('uses native roles and Electron edit flags for editing commands', () => {
-        const section = buildEditingMenuSection(createParams({
+        const section = buildEditingMenuSection(createWebContents(), createParams({
             editFlags: { canCopy: true, canCut: true, canPaste: true },
             selectionText: 'Rendered selection',
-        }), { writeText: vi.fn() });
+        }));
 
         expect(section).toMatchObject([
             { enabled: true, role: 'cut' },
@@ -44,10 +45,10 @@ describe('editing menu section', () => {
     });
 
     it('offers copy actions but disables cut and paste for a read-only selection', () => {
-        const section = buildEditingMenuSection(createParams({
+        const section = buildEditingMenuSection(createWebContents(), createParams({
             editFlags: { canCopy: true, canCut: false, canPaste: false },
             selectionText: 'Read-only text',
-        }), { writeText: vi.fn() });
+        }));
 
         expect(section).toMatchObject([
             { enabled: false, role: 'cut' },
@@ -59,25 +60,13 @@ describe('editing menu section', () => {
 
     it('disables Copy as Text without a textual selection', () => {
         const params = createParams({editFlags: { canCopy: false, canCut: false, canPaste: true }});
-        const section = buildEditingMenuSection(params, { writeText: vi.fn() });
+        const section = buildEditingMenuSection(createWebContents(), params);
 
         expect(section.find((item) => item.label === 'Copy as Text')).toMatchObject({ enabled: false });
     });
 
-    it('writes rendered selection text to the plain-text clipboard', () => {
-        const clipboard = { writeText: vi.fn() };
-        const section = buildEditingMenuSection(createParams({
-            editFlags: { canCopy: true, canCut: false, canPaste: false },
-            selectionText: 'Rendered selection',
-        }), clipboard);
-
-        section.find((item) => item.label === 'Copy as Text').click();
-
-        expect(clipboard.writeText).toHaveBeenCalledWith('Rendered selection');
-    });
-
     it('is empty when no editing action applies', () => {
-        expect(buildEditingMenuSection(createParams(), { writeText: vi.fn() })).toEqual([]);
+        expect(buildEditingMenuSection(createWebContents(), createParams())).toEqual([]);
     });
 });
 
@@ -92,7 +81,6 @@ describe('text context menu composition', () => {
         }), {
             activeLanguages: ['en-US'],
             availableLanguages: ['en-US'],
-            clipboard: { writeText: vi.fn() },
             onSetLanguages: vi.fn(),
         });
 
@@ -113,7 +101,7 @@ describe('text context menu composition', () => {
         const template = buildTextContextMenuTemplate(createWebContents(), createParams({
             editFlags: { canCopy: true, canCut: false, canPaste: false },
             selectionText: 'Selection',
-        }), { clipboard: { writeText: vi.fn() } });
+        }), {});
 
         expect(template.map((item) => item.label ?? item.role ?? item.type)).toEqual([
             'cut',
@@ -127,7 +115,7 @@ describe('text context menu composition', () => {
         const template = buildTextContextMenuTemplate(
             createWebContents(),
             createParams(),
-            { clipboard: { writeText: vi.fn() } },
+            {},
         );
 
         expect(template).toEqual([]);
@@ -139,10 +127,7 @@ describe('text context menu registration', () => {
         const webContents = createWebContents();
         const popup = vi.fn();
         const buildMenu = vi.fn(() => ({ popup }));
-        registerTextContextMenu(webContents, {
-            buildMenu,
-            clipboard: { writeText: vi.fn() },
-        });
+        registerTextContextMenu(webContents, {buildMenu});
 
         webContents.listeners['context-menu']({}, createParams());
         expect(buildMenu).not.toHaveBeenCalled();

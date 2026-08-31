@@ -45,6 +45,7 @@ export interface RawActionDefinition {
     label: string
     model?: string
     needsWorkTree?: boolean
+    showCommandWindow?: boolean
     on?: RawOnRule[]
     onAfter?: string[]
     onBefore?: string[]
@@ -78,6 +79,7 @@ export interface ActionDefinition {
     label: string
     model: string | null
     needsWorkTree: boolean
+    showCommandWindow: boolean
     on: OnRule[]
     onAfter: ActionDefinition[]
     onBefore: ActionDefinition[]

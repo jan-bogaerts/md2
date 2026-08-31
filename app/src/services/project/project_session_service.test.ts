@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronDataBridge } from '../../data/electron_data_bridge'
+import { DEFAULT_PROJECT_CONFIG, MissingWorkingFolderError } from '../../data/data_types'
 import { beforeEach } from 'vitest'
 import { getElectronActionBridge, setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
+import { getElectronClaudeRuntimeBridge, setClaudeRuntimeBridgeOverride } from '../../data/electron_claude_runtime_bridge'
 import { LAST_PROJECT_STORAGE_KEY } from '../../data/project_session'
 import { configureRemoteControlConnection, REMOTE_CONTROL_ENDPOINT_KEY } from '../../data/remote_control_connection'
 import { RemoteControlStorageService } from '../data/remote_control_storage_service'
@@ -9,12 +11,30 @@ import { remoteConnectionService } from '../data/remote_connection_service'
 import { configService } from '../config/config_service'
 import { actionService } from '../actions/action_service'
 import { dataService } from '../data/data_service'
-import { ProjectSessionService } from './project_session_service'
+import { ProjectSessionService, requireProjectFolderValues } from './project_session_service'
 import { projectPersistenceService } from './project_persistence_service'
 import { openFilesService } from '../open_files_service'
 import { createDeferred } from '../test_support/data_service_test_support'
 import { agentCapabilitiesService } from '../agents/agent_capabilities_service'
+import { claudeRateLimitService } from '../agents/claude_rate_limit_service'
 import { projectAccessService, READ_ONLY_PROJECT_ERROR } from './project_access_service'
+
+const DEFAULT_FOLDER_VALUES = {
+    actionsFolder: 'actions',
+    archivedFolder: 'archived',
+    projectFolder: 'design',
+    releasesFolder: 'history',
+    workingFolder: 'active',
+}
+
+describe('project folder validation', () => {
+    it('rejects absolute project and sub-folder values', () => {
+        expect(() => requireProjectFolderValues({ ...DEFAULT_FOLDER_VALUES, projectFolder: 'C:\\repo\\design' }))
+            .toThrow('Project folder must be a root folder name')
+        expect(() => requireProjectFolderValues({ ...DEFAULT_FOLDER_VALUES, workingFolder: '/outside' }))
+            .toThrow('Working folder must stay inside the project folder')
+    })
+})
 
 function createActionBridge(): ElectronActionBridge {
     return {
@@ -70,21 +90,21 @@ describe('ProjectSessionService storage activation', () => {
         remoteConnectionService.disconnect()
         configService.init()
         vi.spyOn(RemoteControlStorageService.prototype, 'connect').mockResolvedValue()
+        vi.spyOn(RemoteControlStorageService.prototype, 'getClaudeRateLimits').mockResolvedValue(null)
         vi.spyOn(RemoteControlStorageService.prototype, 'getCodexRateLimits').mockResolvedValue(null)
         vi.spyOn(RemoteControlStorageService.prototype, 'loadActionRunRecoverySnapshot')
             .mockResolvedValue({ activeRunEvents: [], terminalResults: [] })
         vi.spyOn(RemoteControlStorageService.prototype, 'onActionRun').mockReturnValue(() => undefined)
+        vi.spyOn(RemoteControlStorageService.prototype, 'onClaudeRateLimits').mockReturnValue(() => undefined)
         vi.spyOn(RemoteControlStorageService.prototype, 'onCodexRateLimits').mockReturnValue(() => undefined)
+        vi.spyOn(claudeRateLimitService, 'start')
         vi.spyOn(RemoteControlStorageService.prototype, 'loadDesktopConfig').mockResolvedValue({
-            agent: 'custom',
-            agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
+            agentSelection: { activeAgent: 'custom', permissionMode: 'ask-for-approval', settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' } } },
+            agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['custom-model'], name: 'custom' }],
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'custom-model',
-            permissionMode: 'ask-for-approval',
             remoteControlPort: 20877,
-            thinkingLevel: 'high',
         })
         vi.spyOn(RemoteControlStorageService.prototype, 'loadAgentAvailability')
             .mockResolvedValue({ custom: { available: true, error: null } })
@@ -98,6 +118,7 @@ describe('ProjectSessionService storage activation', () => {
         vi.unstubAllGlobals()
         configService.clear()
         setActionBridgeOverride(null)
+        setClaudeRuntimeBridgeOverride(null)
         delete window.md2Actions
         delete window.md2Config
         delete window.md2Data
@@ -106,7 +127,7 @@ describe('ProjectSessionService storage activation', () => {
         projectAccessService.setReadOnly(false)
     })
 
-    it('activates remote storage as the action bridge when opening a remote project', async () => {
+    it('activates remote storage as the action and Claude runtime bridges when opening a remote project', async () => {
         mockProjectOpen()
         configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
         const service = new ProjectSessionService()
@@ -114,7 +135,14 @@ describe('ProjectSessionService storage activation', () => {
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null)
 
         expect(getElectronActionBridge()).toBeInstanceOf(RemoteControlStorageService)
-        expect(configService.getDesktopValues()).toMatchObject({ agent: 'custom', model: 'custom-model', thinkingLevel: 'high' })
+        expect(getElectronClaudeRuntimeBridge()).toBeInstanceOf(RemoteControlStorageService)
+        expect(claudeRateLimitService.start).toHaveBeenCalled()
+        expect(configService.getDesktopValues()).toMatchObject({
+            agentSelection: {
+                activeAgent: 'custom',
+                settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' } },
+            },
+        })
     })
 
     it('reuses an existing remote storage connection when opening a remote project', async () => {
@@ -158,7 +186,7 @@ describe('ProjectSessionService storage activation', () => {
         expect(dataService.projectLoading.openProject).not.toHaveBeenCalled()
     })
 
-    it('clears remote desktop config and action bridge when the connection closes', async () => {
+    it('clears remote desktop config, action bridge, and Claude runtime bridge when connection closes', async () => {
         mockProjectOpen()
         const storage = new RemoteControlStorageService()
         storage.init({ endpoint: 'ws://127.0.0.1:1234' })
@@ -175,6 +203,7 @@ describe('ProjectSessionService storage activation', () => {
 
         expect(configService.hasDesktopConfig()).toBe(false)
         expect(getElectronActionBridge()).toBeNull()
+        expect(getElectronClaudeRuntimeBridge()).toBeNull()
     })
 
     it('restores the preload action bridge when opening a local project after remote storage', async () => {
@@ -194,15 +223,12 @@ describe('ProjectSessionService storage activation', () => {
     it('restores the last local project once after resolving its current reference', async () => {
         mockProjectOpen()
         const desktopConfig = {
-            agent: 'codex',
-            agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+            agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval' as const, settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'high' as const } } },
+            agentProfiles: [{ command: ['codex'], defaultThinkingLevel: 'none' as const, models: ['gpt-5'], name: 'codex' }],
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'gpt-5',
-            permissionMode: 'ask-for-approval' as const,
             remoteControlPort: 20877,
-            thinkingLevel: 'high' as const,
         }
         const bridge = createDataBridge()
         vi.mocked(bridge.resolveProject).mockResolvedValue({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })
@@ -230,6 +256,75 @@ describe('ProjectSessionService storage activation', () => {
         })
         expect(configService.hasDesktopConfig()).toBe(true)
         expect(configService.getDesktopValues()).toEqual(desktopConfig)
+    })
+
+    it('returns folder setup when restored local project has a missing working folder', async () => {
+        vi.spyOn(dataService, 'init').mockImplementation(() => undefined)
+        vi.spyOn(dataService.projectLoading, 'openProject').mockImplementation(async () => {
+            configService.loadProjectConfig({ ...DEFAULT_PROJECT_CONFIG, workingFolder: 'feature_descriptions' })
+            throw new MissingWorkingFolderError('design/feature_descriptions')
+        })
+        const bridge = createDataBridge()
+        vi.mocked(bridge.loadProjectConfig).mockResolvedValue({
+            ...DEFAULT_PROJECT_CONFIG,
+            workingFolder: 'feature_descriptions',
+        })
+        vi.mocked(bridge.listRepositoryFiles).mockResolvedValue(['design/archived/README.md'])
+        vi.mocked(bridge.listTopLevelFolders).mockResolvedValue([{ name: 'design', path: 'design' }])
+        window.md2Data = bridge
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({ project, storageType: 'local' }))
+        const service = new ProjectSessionService()
+
+        await expect(service.restoreLastProject(null)).resolves.toMatchObject({
+            existingFolderPaths: ['design', 'design/archived'],
+            hasProjectConfig: true,
+            kind: 'project-folder-setup',
+            project,
+            storageType: 'local',
+            values: { projectFolder: 'design', workingFolder: 'feature_descriptions' },
+        })
+    })
+
+    it('restores the desktop active project instead of a stale stored remote project', async () => {
+        mockProjectOpen()
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
+        const storedProject = { branch: 'main', id: 'stale', rootPath: 'C:/stale' }
+        const activeProject = { branch: 'topic', id: 'active', rootPath: 'C:/active' }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
+            project: storedProject,
+            storageType: 'remote',
+        }))
+        const getActiveProject = vi.spyOn(RemoteControlStorageService.prototype, 'getActiveProject')
+            .mockResolvedValue(activeProject)
+        const service = new ProjectSessionService()
+
+        await service.restoreLastProject(null)
+
+        expect(getActiveProject).toHaveBeenCalledOnce()
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledOnce()
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(activeProject)
+        expect(JSON.parse(window.localStorage.getItem(LAST_PROJECT_STORAGE_KEY) ?? '{}')).toEqual({
+            project: activeProject,
+            storageType: 'remote',
+        })
+    })
+
+    it('falls back to the stored remote project when the desktop has no active project', async () => {
+        mockProjectOpen()
+        configureRemoteControlConnection({ endpoint: 'ws://127.0.0.1:1234' })
+        const storedProject = { branch: 'main', id: 'stored', rootPath: 'C:/stored' }
+        window.localStorage.setItem(LAST_PROJECT_STORAGE_KEY, JSON.stringify({
+            project: storedProject,
+            storageType: 'remote',
+        }))
+        vi.spyOn(RemoteControlStorageService.prototype, 'getActiveProject').mockResolvedValue(null)
+        const service = new ProjectSessionService()
+
+        await service.restoreLastProject(null)
+
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledOnce()
+        expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(storedProject)
     })
 
     it('skips the last GitHub project when no restored token exists', async () => {
@@ -389,10 +484,19 @@ describe('ProjectSessionService storage activation', () => {
         const service = new ProjectSessionService()
 
         await expect(service.openProject('local', { branch: 'main', id: 'local', rootPath: 'C:/repo' }, null)).resolves.toEqual({
+            existingFolderPaths: [],
             folders: [{ name: 'docs', path: 'docs' }],
+            hasProjectConfig: false,
             kind: 'project-folder-setup',
             project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
             storageType: 'local',
+            values: {
+                actionsFolder: 'actions',
+                archivedFolder: 'archived',
+                projectFolder: 'design',
+                releasesFolder: 'history',
+                workingFolder: 'active',
+            },
         })
     })
 
@@ -415,10 +519,19 @@ describe('ProjectSessionService storage activation', () => {
         const project = { branch: 'main', id: 'octo/demo', owner: 'octo', repository: 'demo' }
 
         await expect(service.openProject('github', project, 'token-1')).resolves.toEqual({
+            existingFolderPaths: [],
             folders: [{ name: 'docs', path: 'docs' }],
+            hasProjectConfig: false,
             kind: 'project-folder-setup',
             project,
             storageType: 'github',
+            values: {
+                actionsFolder: 'actions',
+                archivedFolder: 'archived',
+                projectFolder: 'design',
+                releasesFolder: 'history',
+                workingFolder: 'active',
+            },
         })
     })
 
@@ -430,9 +543,24 @@ describe('ProjectSessionService storage activation', () => {
         const service = new ProjectSessionService()
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
-        await service.createProjectFolders({ folders: [], kind: 'project-folder-setup', project, storageType: 'local' }, 'design', null)
+        await service.confirmProjectFolderSetup(
+            {
+                existingFolderPaths: [],
+                folders: [],
+                hasProjectConfig: false,
+                kind: 'project-folder-setup',
+                project,
+                storageType: 'local',
+                values: DEFAULT_FOLDER_VALUES,
+            },
+            DEFAULT_FOLDER_VALUES,
+            null,
+        )
 
-        expect(bridge.createProject).toHaveBeenCalledWith(project, 'design/active')
+        expect(bridge.createProject).toHaveBeenCalledWith(
+            project,
+            ['design/active', 'design/archived', 'design/actions', 'design/history'],
+        )
         expect(bridge.commit).toHaveBeenCalledWith({
             branch: 'main',
             files: expect.arrayContaining([
@@ -450,6 +578,40 @@ describe('ProjectSessionService storage activation', () => {
             workingFolder: 'active',
         }))
         expect(dataService.projectLoading.openProject).toHaveBeenCalledWith(project)
+    })
+
+    it('seeds only missing default actions and leaves existing folders untouched', async () => {
+        mockProjectOpen()
+        configService.init()
+        const bridge = createDataBridge()
+        vi.mocked(bridge.listRepositoryFiles).mockResolvedValue([
+            'design/actions/complete.json',
+            'design/active/README.md',
+            'design/archived/README.md',
+            'design/history/README.md',
+        ])
+        window.md2Data = bridge
+        const service = new ProjectSessionService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+
+        await service.confirmProjectFolderSetup(
+            {
+                existingFolderPaths: ['design', 'design/actions', 'design/active', 'design/archived', 'design/history'],
+                folders: [{ name: 'design', path: 'design' }],
+                hasProjectConfig: false,
+                kind: 'project-folder-setup',
+                project,
+                storageType: 'local',
+                values: DEFAULT_FOLDER_VALUES,
+            },
+            DEFAULT_FOLDER_VALUES,
+            null,
+        )
+
+        expect(bridge.createProject).toHaveBeenCalledWith(project, [])
+        const commitRequest = vi.mocked(bridge.commit).mock.calls[0][0]
+        expect(commitRequest.files.some(({ path }) => path === 'design/actions/complete.json')).toBe(false)
+        expect(commitRequest.files).toContainEqual(expect.objectContaining({ path: 'design/actions/implement.json' }))
     })
 
     it('waits for an in-flight draft image save before cancellation deletes the asset', async () => {

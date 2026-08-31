@@ -141,7 +141,7 @@ describe('RemoteConnectionService', () => {
         vi.spyOn(second.storage, 'onActionRun').mockReturnValue(vi.fn())
         const secondRecovery = vi.spyOn(second.storage, 'loadActionRunRecoverySnapshot').mockResolvedValue({
             activeRunEvents: [],
-            terminalResults: [{ failure: null, runId: 'run-1', status: 'completed' }],
+            terminalResults: [{ changedPaths: [], failure: null, runId: 'run-1', status: 'completed' }],
         })
         setup.activate.mockImplementation(async (storage) => {
             setActionBridgeOverride(storage)

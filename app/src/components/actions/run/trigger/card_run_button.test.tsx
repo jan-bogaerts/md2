@@ -62,7 +62,7 @@ const card: Card = {
     agentConversations: [],
     content: '',
     header: {
-        affects: [], after: null, agentLogReferences: [], author: null, id: 'F-010', internalId: 'f-010', owner: null,
+        affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: 'F-010', internalId: 'f-010', owner: null,
         policy: {}, references: [], status: 'design', title: 'Feature',
     },
     hasFrontmatter:true,
@@ -208,8 +208,9 @@ describe('CardRunButton', () => {
         fireEvent.click(runButton)
 
         expect(screen.getByRole('dialog')).toBeInTheDocument()
-        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'true')
-        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Implement — Agent is running' })).toBeInTheDocument()
+        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create branch' })).toHaveAttribute('aria-pressed', 'false')
+        expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Implement — Agent is running' }))
+            .toHaveAttribute('aria-pressed', 'true')
     })
 
     it('prefers live waiting and resumed states over persisted conversation state', () => {
@@ -297,6 +298,7 @@ describe('CardRunButton', () => {
             const resolvedUpdate: ActionRunUpdate = interactionKind === 'agentQuestion'
                 ? {
                     kind: 'agentQuestionAnswer',
+                    requestId: 7,
                     userMessage: { content: 'Proceed', id: 'message-1', kind: 'message', role: 'user', timestamp: 'later' },
                 }
                 : { kind: 'agentApprovalResolved', requestId: approval.requestId }

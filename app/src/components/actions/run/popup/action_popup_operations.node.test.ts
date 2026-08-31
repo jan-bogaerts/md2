@@ -4,16 +4,31 @@ import type { ActionRunEvent } from '../../../../data/action_run_types'
 import type { ActionDefinition } from '../../../../data/action_types'
 import type { AgentConversation } from '../../../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
+import { projectAgentSelection, selectModel, type AgentSelectionState } from '../../../../data/agent_selection'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { ActionRunSettingsStore, type ResolvedActionRunSettings } from '../../../../services/actions/action_run_settings_service'
 import { dialogService } from '../../../../services/dialog_service'
-import { currentActionPromptDraft, runPopupAction, type ActionPopupOperationInput } from './action_popup_operations'
+import {
+    cancelPopupAction,
+    currentActionPromptDraft,
+    finishPopupAction,
+    runPopupAction,
+    type ActionPopupOperationInput,
+} from './action_popup_operations'
 import { ActionRunInputStore } from '../state/action_run_input_store'
+import { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 const action = { id: 'stream', label: 'Stream', streaming: true, type: 'agent' } as ActionDefinition
 const context: ActionContext = { file: 'design/F-1.md', kind: 'card', worktree: '3' }
 const restartAction = vi.hoisted(() => vi.fn())
+
+function deferred<T>() {
+    let resolvePromise: (value: T) => void = () => undefined
+    const promise = new Promise<T>((resolve) => { resolvePromise = resolve })
+
+    return { promise, resolve: resolvePromise }
+}
 
 vi.mock('./action_popup_defaults', async (importOriginal) => {
     const actual = await importOriginal<typeof import('./action_popup_defaults')>()
@@ -22,6 +37,7 @@ vi.mock('./action_popup_defaults', async (importOriginal) => {
 })
 
 const defaultSettings: ResolvedActionRunSettings = {agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high'}
+const defaultSelection: AgentSelectionState = {activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: {codex: {model: 'gpt-5.5', thinkingLevel: 'high'}}}
 
 function operationInput(
     inputStore: ActionRunInputStore,
@@ -32,8 +48,11 @@ function operationInput(
         load: vi.fn(async () => undefined),
     },
 ): ActionPopupOperationInput {
+    const runId = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId ?? null
+
     return {
         action,
+        bindingStore: new ActionRunBindingStore(runId),
         context,
         conversationStore,
         historyStore: { load: vi.fn(async () => undefined) },
@@ -44,7 +63,9 @@ function operationInput(
             setRunning: vi.fn(),
         },
         runValidationError: null,
-        settings: settingsStore.getSnapshot().settings ?? defaultSettings,
+        settings: settingsStore.getSnapshot().settings
+            ? projectAgentSelection(settingsStore.getSnapshot().settings as AgentSelectionState)
+            : defaultSettings,
         settingsStore,
     } as unknown as ActionPopupOperationInput
 }
@@ -80,6 +101,12 @@ function emitWaitingRun(listener: (event: ActionRunEvent) => void) {
         streaming: true,
     }
     listener({ ...eventBase, status: 'running', type: 'run' })
+    listener({
+        ...eventBase,
+        status: 'running',
+        type: 'update',
+        update: { conversation: storedConversation([]), kind: 'agentStarted' },
+    })
     listener({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
 }
 
@@ -89,13 +116,13 @@ describe('runPopupAction waiting follow-up', () => {
     beforeEach(() => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         bridge = {
-            beginActionPromptDraft: vi.fn(async () => 4),
+            cancelActionRun: vi.fn(async () => undefined),
+            enqueueActionPrompt: vi.fn(async (_runId, content) => ({content, dispatchState: 'queued', id: 'prompt-1', revision: 0})),
+            finishActionRun: vi.fn(async () => undefined),
             onActionRun: vi.fn((nextListener) => {
                 listener = nextListener
                 return vi.fn()
             }),
-            sendActionQueuedMessage: vi.fn(async () => ({ sent: true })),
-            setActionQueuedMessage: vi.fn(async () => ({ accepted: true })),
         } as unknown as ElectronActionBridge
         setActionBridgeOverride(bridge)
         actionRunRegistry.start()
@@ -113,25 +140,94 @@ describe('runPopupAction waiting follow-up', () => {
 
     it('sends follow-up through same live process and assigned worktree', async () => {
         const inputStore = new ActionRunInputStore()
-        const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
-        actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Next request')
+        actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false }).edit('Next request')
 
         await runPopupAction(operationInput(inputStore))
 
-        expect(bridge.sendActionQueuedMessage).toHaveBeenCalledWith('run-1', 4, 1)
+        expect(bridge.enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Next request')
         expect(actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot()?.context.worktree).toBe('3')
         expect(restartAction).not.toHaveBeenCalled()
+    })
+
+    it('clears the editor only after the bridge accepts the enqueued prompt', async () => {
+        const acceptance = deferred<void>()
+        bridge.enqueueActionPrompt = vi.fn(async (_runId: string, content: string) => {
+            await acceptance.promise
+
+            return { content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0 }
+        })
+        const draft = actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false })
+        draft.edit('Next request')
+
+        const send = runPopupAction(operationInput(new ActionRunInputStore()))
+        expect(draft.getSnapshot()).toBe('Next request')
+        acceptance.resolve()
+        await send
+
+        expect(draft.getSnapshot()).toBe('')
+    })
+
+    it('keeps text edited while the bridge acknowledgement is pending', async () => {
+        const acceptance = deferred<void>()
+        bridge.enqueueActionPrompt = vi.fn(async (_runId: string, content: string) => {
+            await acceptance.promise
+
+            return { content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0 }
+        })
+        const draft = actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false })
+        draft.edit('Accepted text')
+
+        const send = runPopupAction(operationInput(new ActionRunInputStore()))
+        draft.edit('New editor text')
+        acceptance.resolve()
+        await send
+
+        expect(draft.getSnapshot()).toBe('New editor text')
+    })
+
+    it('keeps the prompt on screen and reports a failed enqueue', async () => {
+        bridge.enqueueActionPrompt = vi.fn(async () => {
+            throw new Error('Queue unavailable')
+        })
+        const reportError = vi.spyOn(dialogService, 'error')
+        const draft = actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false })
+        draft.edit('Do not lose this')
+
+        await runPopupAction(operationInput(new ActionRunInputStore()))
+
+        expect(draft.getSnapshot()).toBe('Do not lose this')
+        expect(reportError).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'Queue unavailable' }),
+            { fallbackMessage: 'Could not send agent message' },
+        )
+    })
+
+    it('guards Send, Stop, and Finish while active run has historical display', async () => {
+        const historicalConversation = { ...storedConversation([]), id: 'historical-conversation', path: 'history.json' }
+        const conversationStore = {
+            continuationPath: () => historicalConversation.path,
+            getSnapshot: () => ({ conversations: [historicalConversation], loading: false, selectedConversation: historicalConversation }),
+            load: vi.fn(async () => undefined),
+        } as unknown as ActionPopupOperationInput['conversationStore']
+        const input = operationInput(new ActionRunInputStore(), undefined, conversationStore)
+
+        await runPopupAction(input)
+        await cancelPopupAction(action, input.bindingStore, context, conversationStore)
+        await finishPopupAction(action, input.bindingStore, context, conversationStore)
+
+        expect(bridge.enqueueActionPrompt).not.toHaveBeenCalled()
+        expect(bridge.cancelActionRun).not.toHaveBeenCalled()
+        expect(bridge.finishActionRun).not.toHaveBeenCalled()
     })
 
     it('restarts from persisted conversation with changed settings', async () => {
         const inputStore = new ActionRunInputStore()
         const settingsStore = new ActionRunSettingsStore(action.id, null)
-        settingsStore.setSettings({ ...defaultSettings, model: 'gpt-5.6' }, true)
-        const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
-        actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Next request')
+        settingsStore.setSettings(selectModel(defaultSelection, 'gpt-5.6'), true)
+        actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false }).edit('Next request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
             onStarted('run-2')
-            return { logs: [], status: 'completed' }
+            return { changedPaths: [], logs: [], status: 'completed' }
         })
 
         await runPopupAction(operationInput(inputStore, settingsStore))
@@ -141,27 +237,25 @@ describe('runPopupAction waiting follow-up', () => {
             expect.objectContaining({ continueFrom: 'conversation.json', model: 'gpt-5.6', prompt: 'Next request' }),
             expect.any(Function),
         )
-        expect(bridge.sendActionQueuedMessage).not.toHaveBeenCalled()
+        expect(bridge.enqueueActionPrompt).not.toHaveBeenCalled()
         expect(settingsStore.getSnapshot().settingsChangedWhileWaiting).toBe(false)
     })
 
     it('preserves prompt and reports restart failure', async () => {
         const inputStore = new ActionRunInputStore()
         const settingsStore = new ActionRunSettingsStore(action.id, null)
-        settingsStore.setSettings(defaultSettings, true)
-        const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
-        const draft = actionPromptDraftService.getDraft(action.id, context, run, { prepare: false })
+        settingsStore.setSettings(defaultSelection, true)
+        const draft = actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false })
         draft.edit('Keep request')
         restartAction.mockImplementation(async () => {
-            actionPromptDraftService.clearRunDrafts('run-1')
             throw new Error('restart failed')
         })
         const reportError = vi.spyOn(dialogService, 'error')
 
         await runPopupAction(operationInput(inputStore, settingsStore))
 
-        expect(draft.getSnapshot()).toBe('')
-        expect(currentActionPromptDraft(action, context, false).getSnapshot()).toBe('Keep request')
+        expect(draft.getSnapshot()).toBe('Keep request')
+        expect(currentActionPromptDraft(action, context, new ActionRunBindingStore('run-1'), false)).toBe(draft)
         expect(reportError).toHaveBeenCalledWith(
             expect.objectContaining({ message: 'restart failed' }),
             { fallbackMessage: 'Action run failed' },
@@ -171,7 +265,7 @@ describe('runPopupAction waiting follow-up', () => {
     it('restores draft when replacement run fails before persisting submitted message', async () => {
         const inputStore = new ActionRunInputStore()
         const settingsStore = new ActionRunSettingsStore(action.id, null)
-        settingsStore.setSettings(defaultSettings, true)
+        settingsStore.setSettings(defaultSelection, true)
         const previousConversation = storedConversation([{content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z'}])
         const conversationStore = {
             continuationPath: () => previousConversation.path,
@@ -179,8 +273,7 @@ describe('runPopupAction waiting follow-up', () => {
             load: vi.fn(async () => undefined),
         }
         const operation = operationInput(inputStore, settingsStore, conversationStore)
-        const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
-        actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Keep request')
+        actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false }).edit('Keep request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
             onStarted('run-2')
             return {
@@ -200,7 +293,7 @@ describe('runPopupAction waiting follow-up', () => {
 
         await runPopupAction(operation)
 
-        expect(currentActionPromptDraft(action, context, false).getSnapshot()).toBe('Keep request')
+        expect(currentActionPromptDraft(action, context, operation.bindingStore, false).getSnapshot()).toBe('Keep request')
         expect(operation.resultStore.setResult).toHaveBeenCalledWith(expect.objectContaining({
             logs: [expect.objectContaining({ message: 'Codex executable could not start' })],
             status: 'failed',
@@ -210,7 +303,7 @@ describe('runPopupAction waiting follow-up', () => {
     it('does not restore draft after failed replacement persisted submitted message', async () => {
         const inputStore = new ActionRunInputStore()
         const settingsStore = new ActionRunSettingsStore(action.id, null)
-        settingsStore.setSettings(defaultSettings, true)
+        settingsStore.setSettings(defaultSelection, true)
         const previousConversation = storedConversation([{content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z'}])
         const failedConversation = {
             ...previousConversation,
@@ -225,15 +318,15 @@ describe('runPopupAction waiting follow-up', () => {
             getSnapshot: () => ({ conversations: [selectedConversation], loading: false, selectedConversation }),
             load: vi.fn(async () => { selectedConversation = failedConversation }),
         }
-        const run = actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot() ?? null
-        actionPromptDraftService.getDraft(action.id, context, run, { prepare: false }).edit('Sent request')
+        actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false }).edit('Sent request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
             onStarted('run-2')
-            return { logs: [], status: 'failed' }
+            return { changedPaths: [], logs: [], status: 'failed' }
         })
 
-        await runPopupAction(operationInput(inputStore, settingsStore, conversationStore))
+        const operation = operationInput(inputStore, settingsStore, conversationStore)
+        await runPopupAction(operation)
 
-        expect(currentActionPromptDraft(action, context, false).getSnapshot()).toBe('')
+        expect(currentActionPromptDraft(action, context, operation.bindingStore, false).getSnapshot()).toBe('')
     })
 })

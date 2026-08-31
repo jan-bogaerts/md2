@@ -42,10 +42,12 @@ function startAssistantItem(run, itemId, timestamp) {
     if (run.assistantItems.has(itemId)) throw new Error(`Duplicate assistant item ${itemId}`);
     run.assistantItemIndex += 1;
     const item = {
+        entryIndex: run.conversation.entries.length,
         messageId: `${run.id}-turn-${run.turnIndex}-assistant-${run.assistantItemIndex}`,
         sequence: nextRunSequence(run),
     };
     run.assistantItems.set(itemId, item);
+    run.currentAssistantEntryIndex = item.entryIndex;
     run.currentAssistantMessageId = item.messageId;
     run.conversation.entries.push(createMessageEntry(
         item.messageId,
@@ -91,7 +93,8 @@ function appendAssistantOutput(run, content, timestamp, itemId = null) {
     run.stdout += segment;
     const item = assistantItem(run, itemId);
     const messageId = item?.messageId ?? assistantMessageId(run);
-    const currentIndex = run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === messageId);
+    const currentIndex = item?.entryIndex
+        ?? run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === messageId);
     if (currentIndex < 0) {
         const initialContent = run.streaming ? content : content.replace(/^\n+|\n+$/g, '');
         const message = createMessageEntry(
@@ -104,36 +107,46 @@ function appendAssistantOutput(run, content, timestamp, itemId = null) {
         );
         run.conversation.entries.push(message);
 
-        return { message, segment };
+        return { entryIndex: run.conversation.entries.length - 1, message, segment };
     }
 
     const current = run.conversation.entries[currentIndex];
+    if (current.kind !== 'message' || current.id !== messageId) {
+        throw new Error(`Assistant entry identity mismatch at index ${currentIndex}: ${messageId}`);
+    }
     const message = { ...current, content: joinChunk(current.content, content, run.streaming), timestamp };
     run.conversation.entries[currentIndex] = message;
 
-    return { message, segment };
+    return { entryIndex: currentIndex, message, segment };
 }
 
 function replaceAssistantOutput(run, content, timestamp, itemId) {
     const item = assistantItem(run, itemId);
-    const currentIndex = run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === item.messageId);
-    if (currentIndex < 0) throw new Error(`Missing assistant message ${item.messageId}`);
+    const currentIndex = item.entryIndex;
     const current = run.conversation.entries[currentIndex];
+    if (current?.kind !== 'message' || current.id !== item.messageId) {
+        throw new Error(`Assistant entry identity mismatch at index ${currentIndex}: ${item.messageId}`);
+    }
     if (current.content === content) return { message: current, previousContent: current.content, replaced: false };
     if (!run.stdout.endsWith(current.content)) throw new Error(`Assistant item is not latest output: ${itemId}`);
     run.stdout = `${run.stdout.slice(0, run.stdout.length - current.content.length)}${content}`;
     const message = { ...current, content, timestamp };
     run.conversation.entries[currentIndex] = message;
 
-    return { message, previousContent: current.content, replaced: true };
+    return { entryIndex: currentIndex, message, previousContent: current.content, replaced: true };
 }
 
 function completeAssistantOutput(run, completedAt) {
     const messageId = run.currentAssistantMessageId ?? assistantMessageId(run);
-    const currentIndex = run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === messageId);
+    const currentIndex = run.currentAssistantEntryIndex
+        ?? run.conversation.entries.findIndex((entry) => entry.kind === 'message' && entry.id === messageId);
     if (currentIndex < 0) return;
+    const current = run.conversation.entries[currentIndex];
+    if (current.kind !== 'message' || current.id !== messageId) {
+        throw new Error(`Assistant entry identity mismatch at index ${currentIndex}: ${messageId}`);
+    }
 
-    run.conversation.entries[currentIndex] = { ...run.conversation.entries[currentIndex], timestamp: completedAt };
+    run.conversation.entries[currentIndex] = { ...current, timestamp: completedAt };
 }
 
 module.exports = {

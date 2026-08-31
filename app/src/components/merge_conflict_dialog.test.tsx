@@ -58,6 +58,7 @@ function action(id: string, kind: 'merge-conflict' | 'project', type: 'agent' | 
         onState: null,
         phrases: [],
         prompt: type === 'agent' ? 'resolve' : null,
+        showCommandWindow: false,
         sourcePath: `actions/${id}.json`,
         thinkingLevel: null,
         trackFileChanges: false,
@@ -203,7 +204,12 @@ describe('MergeConflictDialog', () => {
         fireEvent.click(screen.getAllByRole('button', { name: /Resolve conflict/u })[0])
         fireEvent.click(screen.getByRole('button', { name: 'Close popup' }))
 
-        actionRunState.activeRun = { rootActionId: 'Resolve conflict', runId: 'run-1', status: 'running' }
+        actionRunState.activeRun = {
+            context: { conflictFiles: 'src/one.ts', conflictSessionId: 'session-1', kind: 'merge-conflict' },
+            rootActionId: 'Resolve conflict',
+            runId: 'run-1',
+            status: 'running',
+        }
         service.setSnapshot({ busy: false, session: session(['src/one.ts']) })
 
         await waitFor(() => expect(screen.getByRole('button', { name: 'External resolver' })).toBeDisabled())

@@ -1,4 +1,4 @@
-import { Box, IconButton, InputAdornment, Paper, TextField, ToggleButton, Tooltip } from '@mui/material'
+import { Box, IconButton, InputAdornment, TextField, ToggleButton, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, FocusEvent } from 'react'
 import { useEffect, useState } from 'react'
 import AutoFix from 'mdi-material-ui/AutoFix'
@@ -13,18 +13,30 @@ import { useActions } from '../../hooks/use_actions'
 import { useProjectState } from '../../hooks/use_project_state'
 import { dialogService } from '../../../services/dialog_service'
 import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'
-import type { SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'
+import { GLOBAL_SEARCH_SHORTCUT_BINDING } from '../../../services/search/search_open_service'
+import type { SearchMatch, SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'
+import { formatShortcut } from '../../../services/shortcuts/keyboard_platform'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
 import { NO_DRAG_REGION } from '../drag_region'
+import { ResizablePopper } from '../../resizable_popper'
 import { SearchResults } from './search_results'
 import { useProjectConfig } from '../../hooks/use_project_config'
+import { SearchCardPreviewDialog } from './search_card_preview_dialog'
 
 const RESULTS_MAX_HEIGHT = 420
 const RESULTS_WIDTH = 460
-const DROPDOWN_TOP_OFFSET = 4
+const RESULTS_SIZE_STORAGE_KEY = 'search-panel-results-size'
+const SEARCH_DROPDOWN_LABEL_ID = 'search-dropdown-label'
 const EMPTY_RESULTS: SearchResultsData = { active: [], actions: [], backgroundGroups: [] }
 const SEARCH_ACTION_CONTEXT: ActionContext = { folder: '', kind: 'folder' }
+
+function isPathInFolder(path: string, folder: string) {
+    const normalizedPath = path.replace(/\\/gu, '/').replace(/\/+$/u, '')
+    const normalizedFolder = folder.replace(/\\/gu, '/').replace(/\/+$/u, '')
+
+    return normalizedPath === normalizedFolder || normalizedPath.startsWith(`${normalizedFolder}/`)
+}
 
 interface SearchPanelProps {
     initialQuery: string
@@ -49,7 +61,9 @@ export function SearchPanel(props: SearchPanelProps) {
     const [isDismissed, setIsDismissed] = useState(false)
     const [isAgentBusy, setIsAgentBusy] = useState(false)
     const [actionPopupOpen, setActionPopupOpen] = useState(false)
+    const [previewMatch, setPreviewMatch] = useState<SearchMatch | null>(null)
     const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)
+    const shortcutLabel = formatShortcut(GLOBAL_SEARCH_SHORTCUT_BINDING)
 
     const hasQuery = query.trim().length > 0
     const isDropdownOpen = !isDismissed
@@ -87,7 +101,7 @@ export function SearchPanel(props: SearchPanelProps) {
     const handleControlBlur = (event: FocusEvent<HTMLDivElement>) => {
         const nextFocusedElement = event.relatedTarget
         if (nextFocusedElement instanceof Node && event.currentTarget.contains(nextFocusedElement)) return
-        if (actionPopupOpen) return
+        if (actionPopupOpen || previewMatch) return
 
         onClose()
     }
@@ -140,10 +154,45 @@ export function SearchPanel(props: SearchPanelProps) {
         }
     }
 
-    const handleSelect = (path: string) => {
-        workspaceNavigationService.open(path)
-        setIsDismissed(true)
-        onClose()
+    const handleSelect = (match: SearchMatch) => {
+        try {
+            if (!snapshot) throw new Error(`Search result no longer exists: ${match.path}`)
+
+            const activeCard = snapshot.activeCards.find(({ path }) => path === match.path)
+            const resolvedCard = activeCard ?? snapshot.backgroundCards.find(({ path }) => path === match.path)
+            if (!resolvedCard) throw new Error(`Search result no longer exists: ${match.path}`)
+
+            if (viewMode !== 'cards') {
+                workspaceNavigationService.open(resolvedCard.path)
+                setIsDismissed(true)
+                onClose()
+                return
+            }
+
+            if (activeCard) {
+                workspaceNavigationService.revealCard(activeCard.path)
+                setIsDismissed(true)
+                onClose()
+                return
+            }
+
+            if (!projectConfig) throw new Error('Cannot classify search result without project configuration')
+
+            const { archivedFolder, releasesFolder } = projectConfig
+            const isFormerCard = !!resolvedCard.header.internalId
+                && (isPathInFolder(resolvedCard.path, archivedFolder) || isPathInFolder(resolvedCard.path, releasesFolder))
+            if (isFormerCard) {
+                setPreviewMatch({ ...match, card: resolvedCard, path: resolvedCard.path })
+                setIsDismissed(true)
+                return
+            }
+
+            workspaceNavigationService.open(resolvedCard.path)
+            setIsDismissed(true)
+            onClose()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Search result could not be opened' })
+        }
     }
 
     const handleSelectAction = (action: ActionDefinition) => {
@@ -165,6 +214,11 @@ export function SearchPanel(props: SearchPanelProps) {
 
     const closeActionPopup = () => {
         setActionPopupOpen(false)
+        onClose()
+    }
+
+    const closeCardPreview = () => {
+        setPreviewMatch(null)
         onClose()
     }
 
@@ -194,7 +248,7 @@ export function SearchPanel(props: SearchPanelProps) {
                                             px: 0.75,
                                         }}
                                     >
-                                        ⌘K
+                                        {shortcutLabel}
                                     </Box>
                                 </InputAdornment>
                             ),
@@ -217,21 +271,25 @@ export function SearchPanel(props: SearchPanelProps) {
                 />
             </Box>
             {isDropdownOpen ? (
-                <Paper
-                    aria-label="Search dropdown"
-                    elevation={4}
-                    role="region"
-                    style={NO_DRAG_REGION}
-                    sx={{
-                        left: 0,
-                        maxHeight: RESULTS_MAX_HEIGHT,
-                        overflow: 'auto',
-                        position: 'absolute',
-                        right: 0,
-                        top: `calc(100% + ${DROPDOWN_TOP_OFFSET}px)`,
-                        zIndex: 'modal',
-                    }}
+                <ResizablePopper
+                    anchorElement={controlElement}
+                    closeOnEscape={false}
+                    constrainSizeToViewport
+                    draggable={false}
+                    initialSize={{ height: RESULTS_MAX_HEIGHT, width: RESULTS_WIDTH }}
+                    labelId={SEARCH_DROPDOWN_LABEL_ID}
+                    open={isDropdownOpen}
+                    paperSx={{ ...NO_DRAG_REGION, flexDirection: 'column', overflow: 'auto' }}
+                    resizeCorner="lower-right"
+                    resizeLabel="Resize search results"
+                    storageKey={RESULTS_SIZE_STORAGE_KEY}
                 >
+                    <Typography
+                        id={SEARCH_DROPDOWN_LABEL_ID}
+                        sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}
+                    >
+                        Search dropdown
+                    </Typography>
                     <Box aria-label="Search options" role="group" sx={{ alignItems: 'center', display: 'flex', gap: 1, p: 1 }}>
                         <Tooltip title="RegExp mode">
                             <ToggleButton
@@ -288,7 +346,7 @@ export function SearchPanel(props: SearchPanelProps) {
                             results={results}
                         />
                     ) : null}
-                </Paper>
+                </ResizablePopper>
             ) : null}
             {actionPopupOpen ? (
                 <ActionPopup
@@ -298,6 +356,7 @@ export function SearchPanel(props: SearchPanelProps) {
                     onClose={closeActionPopup}
                 />
             ) : null}
+            <SearchCardPreviewDialog match={previewMatch} onClose={closeCardPreview} />
         </Box>
     )
 }

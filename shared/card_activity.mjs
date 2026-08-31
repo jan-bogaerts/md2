@@ -1,9 +1,11 @@
 import { parseAgentConversationValue } from './agent_conversations.mjs';
+import { validateAgentSelectionState } from './agent_selection.mjs';
 
-const ACTIVITY_VERSION = 4;
+const ACTIVITY_VERSION = 5;
 export const LEGACY_ACTIVITY_VERSION = 1;
 export const SECOND_ACTIVITY_VERSION = 2;
-export const PREVIOUS_ACTIVITY_VERSION = 3;
+export const THIRD_ACTIVITY_VERSION = 3;
+export const PREVIOUS_ACTIVITY_VERSION = 4;
 const ACTION_ACTIVITY_STATUSES = new Set(['cancelled', 'completed', 'failed', 'okButNotAfter']);
 
 function requiredString(value, fieldName, allowEmpty = false) {
@@ -50,16 +52,12 @@ function parseActionSettings(value) {
             throw new Error(`Malformed activity file: invalid actionSettings.${actionId}`);
         }
 
-        if (settings.accessLevel !== undefined || settings.approvalPolicy !== undefined) {
+        if (settings.accessLevel !== undefined || settings.approvalPolicy !== undefined
+            || settings.agent !== undefined || settings.model !== undefined || settings.thinkingLevel !== undefined) {
             throw new Error(`Malformed activity file: obsolete permission fields in actionSettings.${actionId}`);
         }
 
-        return [actionId, {
-            agent: requiredString(settings.agent, `actionSettings.${actionId}.agent`, true),
-            model: requiredString(settings.model, `actionSettings.${actionId}.model`, true),
-            permissionMode: requiredString(settings.permissionMode, `actionSettings.${actionId}.permissionMode`, true),
-            thinkingLevel: requiredString(settings.thinkingLevel, `actionSettings.${actionId}.thinkingLevel`, true),
-        }];
+        return [actionId, validateAgentSelectionState(settings, `actionSettings.${actionId}`, true)];
     }));
 }
 
@@ -325,6 +323,31 @@ function migrateVersionThreeActionSettings(value) {
     }));
 }
 
+function migrateVersionFourActionSettings(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Malformed activity file: actionSettings must be an object');
+    }
+
+    return Object.fromEntries(Object.entries(value).map(([actionId, settings]) => {
+        if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+            throw new Error(`Malformed activity file: invalid actionSettings.${actionId}`);
+        }
+        const activeAgent = requiredString(settings.agent, `actionSettings.${actionId}.agent`, true);
+        if (activeAgent.length === 0) throw new Error(`Malformed activity file: missing actionSettings.${actionId}.agent`);
+
+        return [actionId, {
+            activeAgent,
+            permissionMode: requiredString(settings.permissionMode, `actionSettings.${actionId}.permissionMode`, true),
+            settingsByAgent: {
+                [activeAgent]: {
+                    model: requiredString(settings.model, `actionSettings.${actionId}.model`, true),
+                    thinkingLevel: requiredString(settings.thinkingLevel, `actionSettings.${actionId}.thinkingLevel`, true),
+                },
+            },
+        }];
+    }));
+}
+
 function migrateLegacyRecord(record, index, conversations) {
     if (record.type === 'system') return record;
     const { history, ...base } = record;
@@ -376,13 +399,16 @@ function migrateVersionThreeRecord(record, index) {
 
 export function migrateActivityValue(value, expectedOrigin = null) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Malformed activity file: root must be an object');
-    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value.version)) {
+    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, THIRD_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value.version)) {
         throw new Error(`Cannot migrate activity file version ${String(value.version)}`);
     }
-    if (value.version === PREVIOUS_ACTIVITY_VERSION || value.version === SECOND_ACTIVITY_VERSION) {
-        const actionSettings = value.version === PREVIOUS_ACTIVITY_VERSION
+    if ([SECOND_ACTIVITY_VERSION, THIRD_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value.version)) {
+        const flatActionSettings = value.version === THIRD_ACTIVITY_VERSION
             ? migrateVersionThreeActionSettings(value.actionSettings)
-            : {};
+            : value.version === PREVIOUS_ACTIVITY_VERSION
+                ? value.actionSettings
+                : {};
+        const actionSettings = migrateVersionFourActionSettings(flatActionSettings);
         const records = value.records.map(migrateVersionThreeRecord);
 
         return parseActivityValue({ ...value, actionSettings, records, version: ACTIVITY_VERSION }, expectedOrigin);
@@ -412,9 +438,12 @@ function repairActionSettings(value, version) {
 
     return Object.fromEntries(Object.entries(value).flatMap(([actionId, settings]) => {
         try {
-            const parsed = version === PREVIOUS_ACTIVITY_VERSION
+            const flatSettings = version === THIRD_ACTIVITY_VERSION
                 ? migrateVersionThreeActionSettings({ [actionId]: settings })
-                : parseActionSettings({ [actionId]: settings });
+                : { [actionId]: settings };
+            const parsed = version === THIRD_ACTIVITY_VERSION || version === PREVIOUS_ACTIVITY_VERSION
+                ? migrateVersionFourActionSettings(flatSettings)
+                : parseActionSettings(flatSettings);
 
             return [[actionId, parsed[actionId]]];
         } catch {
@@ -448,7 +477,7 @@ function repairRecord(value, index, version, origin, conversations) {
 
             return parseRecord(migratedRecord, index, origin);
         }
-        const migratedRecord = version === SECOND_ACTIVITY_VERSION || version === PREVIOUS_ACTIVITY_VERSION
+        const migratedRecord = version === SECOND_ACTIVITY_VERSION || version === THIRD_ACTIVITY_VERSION
             ? migrateVersionThreeRecord(normalizedValue, index)
             : normalizedValue;
 
@@ -500,7 +529,7 @@ export function repairActivityFile(content, expectedOrigin = null) {
     if (typeof value.version === 'number' && value.version > ACTIVITY_VERSION) {
         return { activity: null, changed: false, status: 'future' };
     }
-    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION, ACTIVITY_VERSION].includes(value.version)) {
+    if (![LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, THIRD_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION, ACTIVITY_VERSION].includes(value.version)) {
         return { activity: null, changed: false, status: 'unrecoverable' };
     }
     if (value.version === ACTIVITY_VERSION) {
@@ -546,17 +575,20 @@ export function compactActivityFileContent(content, expectedOrigin = null) {
 }
 
 export function parseActivityFile(content, expectedOrigin = null) {
-    return parseActivityValue(JSON.parse(content), expectedOrigin);
+    return parseActivityValueForMigration(JSON.parse(content), expectedOrigin);
 }
 
 /** Parses current activity or strictly migrates a recognized legacy version in memory. */
-export function parseActivityFileForMigration(content, expectedOrigin = null) {
-    const value = JSON.parse(content);
-    if ([LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value?.version)) {
+export function parseActivityValueForMigration(value, expectedOrigin = null) {
+    if ([LEGACY_ACTIVITY_VERSION, SECOND_ACTIVITY_VERSION, THIRD_ACTIVITY_VERSION, PREVIOUS_ACTIVITY_VERSION].includes(value?.version)) {
         return migrateActivityValue(value, expectedOrigin);
     }
 
     return parseActivityValue(value, expectedOrigin);
+}
+
+export function parseActivityFileForMigration(content, expectedOrigin = null) {
+    return parseActivityValueForMigration(JSON.parse(content), expectedOrigin);
 }
 
 export function findActivityConversation(activity, conversationId) {

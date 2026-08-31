@@ -1,0 +1,35 @@
+---
+author: 
+id: F_262
+internalId: 3331f545-2396-4bb7-b421-14107e79a0d8
+title: Add diagram view
+status: new
+owner: 
+affects:
+agents:
+policy:
+after: 3509c194-adbf-4e1c-ad64-6aa9560354b4
+---
+* Add toggle to app menu bar, before stats-view toggle. When clicked, shows diagram view
+* Diagram view shows:
+  * Svg component, which shows the currently active, clickable svg. Initially empty
+  * Breadcrumb path for digging into the diagram and going back
+  * Action popup with diagram actions.
+* Initial diagram actions need to be of type ´root´.
+* for digging into a diagram, we show of type ´child´. This allows us to pass in a value for ´parent-node´ placeholder when ´child diagram actions´ are triggered
+* Action popup works as normal, so prompt prefilled.
+* After user has run action, it has created an svg file and the action can report where the file is.
+* We store a json in the design folder that keeps track, per root diagram action:
+  * a list of svg files (perhaps extra props)&#x20;
+  * Per svg, a list of child actions that were run with for each action again a list of svgs and child actions
+* This json is loaded first time diagram view  is opened
+* Last location (breadcrumb path) is saved in json and restored
+* First breadcrumb represents root, next are the labels that user clicked on, which become input for the child diagram actions
+* Action popup is like project popup, with floating fab button
+  * Closes automatically when diagram is ready.&#x20;
+  * If existing diagram can be loaded in breadcrumb, by clicking on svg and upon load, action popup remains closed
+* when user clicks on a clickable array in the svg (an object or connection), a context menu opens:
+  * containing all the child diagram-actions that can be run on this item and all the diagrams that have already been rendered for this label
+  * when user clicks on a menu item:
+    * either the action popup opens with the selected diagram-action enabled and the input contains prompt where placeholders have been replaced.
+    * or the diagram is shown & breadcrumb is added to breadcrumb path.

@@ -553,13 +553,13 @@ describe('ProjectLoading', () => {
             content: JSON.stringify(actionDefinition('run')),
             path: 'actions/run.json',
         }])
-        actionService.draftStore.updateDraft('actions/run.json', { ...actionDefinition('run'), label: '' })
+        actionService.draftStore.updateDraft('action-run', { ...actionDefinition('run'), label: '' })
 
         await expect(service.projectLoading.openProject({ branch: 'main', id: 'second' }))
             .rejects.toThrow(/invalid unsaved changes/u)
 
         expect(service.getState().project?.id).toBe('first')
-        expect(actionService.draftStore.getDraft('actions/run.json').definition.label).toBe('')
+        expect(actionService.draftStore.getDraft('action-run').definition.label).toBe('')
     })
 
     it('blocks project switching until a deleted dirty action is recovered or discarded', async () => {
@@ -572,14 +572,14 @@ describe('ProjectLoading', () => {
             content: JSON.stringify(actionDefinition('run')),
             path: 'actions/run.json',
         }])
-        actionService.draftStore.updateDraft('actions/run.json', { ...actionDefinition('run'), label: '' })
+        actionService.draftStore.updateDraft('action-run', { ...actionDefinition('run'), label: '' })
         actionService.reloadFromFiles([], [{ origin: 'external', path: 'actions/run.json' }])
 
         await expect(service.projectLoading.openProject({ branch: 'main', id: 'second' }))
             .rejects.toThrow(/requires explicit recovery or discard/u)
         expect(service.getState().project?.id).toBe('first')
 
-        actionService.draftStore.discardDeletedDraft('actions/run.json')
+        actionService.draftStore.discardDeletedDraft('action-run')
         await service.projectLoading.openProject({ branch: 'main', id: 'second' })
         expect(service.getState().project?.id).toBe('second')
     })
@@ -640,10 +640,36 @@ describe('ProjectLoading', () => {
 
     it('renames card files one at a time while publishing global progress', async () => {
         configService.init()
-        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' }))})
+        const pendingFile = { content: '# Notes', path: 'design/notes.txt' }
+        const updatedPendingFile = { ...pendingFile, content: '# Notes\n\nSaved during migration' }
+        let persistedFiles = [...storageFiles, pendingFile]
+        const commit = vi.fn<StorageService['commit']>(async (request) => {
+            const committedFilesByPath = new Map(request.files.map((file) => [file.path, file]))
+            persistedFiles = persistedFiles.map((file) => committedFilesByPath.get(file.path) ?? file)
+
+            return request.files
+        })
+        const loadProject = vi.fn(async () => ({ files: persistedFiles, workingFolder: 'design' }))
+        const storage = createStorage({
+            commit,
+            loadProject,
+            loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: persistedFiles, workingFolder: 'design' })),
+        })
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        commit.mockClear()
+        loadProject.mockClear()
+        vi.mocked(storage.moveFiles).mockImplementation(async (request) => {
+            for (const move of request.moves) {
+                persistedFiles = [
+                    ...persistedFiles.filter(({ path }) => path !== move.fromPath && path !== move.toPath),
+                    { content: move.content, path: move.toPath },
+                ]
+            }
+            if (vi.mocked(storage.moveFiles).mock.calls.length === 1) service.cards.saveFile(updatedPendingFile)
+        })
         const progressStates: Array<GlobalProgress | null> = []
         const handleProgress = (event: Event) => {
             progressStates.push((event as CustomEvent<GlobalProgress | null>).detail)
@@ -671,6 +697,9 @@ describe('ProjectLoading', () => {
         expect(progressStates).toContainEqual(expect.objectContaining({ completed: 1, total: 2 }))
         expect(progressStates.at(-1)).toBeNull()
         expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' })
+        expect(commit).toHaveBeenCalledWith(expect.objectContaining({files: [updatedPendingFile]}))
+        expect(persistedFiles.find(({ path }) => path === pendingFile.path)?.content).toBe(updatedPendingFile.content)
+        expect(commit.mock.invocationCallOrder[0]).toBeLessThan(loadProject.mock.invocationCallOrder.at(-1) ?? 0)
     })
 
     it('keeps configured project states instead of deriving card states', async () => {
@@ -799,7 +828,11 @@ describe('ProjectLoading', () => {
 
         expect(storage.loadActionFiles).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo/actions')
         expect(storage.loadProjectRoot).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo/design')
-        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo')
+        expect(storage.loadProject).toHaveBeenCalledWith(
+            { branch: 'main', id: 'project' },
+            'projects/demo',
+            'projects/demo/design',
+        )
         expect(service.getState().snapshot?.workingFolder).toBe('projects/demo/design')
         expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(['projects/demo/design/F-1-root.md'])
         await vi.waitFor(() => {
@@ -813,10 +846,19 @@ describe('ProjectLoading', () => {
         configService.init()
         const rootFiles = [files[0]]
         const backgroundFile = files[1]
+        const archivedFile = {
+            content: files[1].content.replace('old-card', 'archived-card'),
+            path: 'design/archived/F-4-archived.md',
+        }
+        const otherFile = {
+            content: files[1].content.replace('old-card', 'note-card'),
+            path: 'design/notes/F-5-note.md',
+        }
+        const backgroundFiles = [backgroundFile, archivedFile, otherFile]
         const fullProject = createDeferred<StorageProjectFiles>()
         const snapshots: Array<ReturnType<DataService['getState']>['snapshot']> = []
         const storage = createStorage({
-            listRepositoryFiles: vi.fn(async () => ['design/F-1-root.md', 'design/history/F-3-old.md']),
+            listRepositoryFiles: vi.fn(async () => [rootFiles[0].path, ...backgroundFiles.map((file) => file.path)]),
             loadProject: vi.fn(async () => fullProject.promise),
             loadProjectRoot: vi.fn(async () => ({ files: rootFiles, workingFolder: 'design' })),
         })
@@ -832,13 +874,18 @@ describe('ProjectLoading', () => {
         expect(openedSnapshot.backgroundCards).toHaveLength(0)
         expect(snapshots.filter((snapshot) => snapshot !== null)[0]?.backgroundCards).toHaveLength(0)
         expect(storage.loadProjectRoot).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'design')
-        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, '')
+        expect(storage.loadProjectRoot).toHaveBeenCalledOnce()
+        expect(storage.loadProject).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, '', 'design')
+        expect(storage.loadProject).toHaveBeenCalledOnce()
 
-        fullProject.resolve({ files: [files[0], backgroundFile], workingFolder: 'design' })
+        fullProject.resolve({ files: backgroundFiles, workingFolder: '' })
 
         await vi.waitFor(() => {
-            expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['design/history/F-3-old.md'])
+            expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(backgroundFiles.map((file) => file.path))
         })
+        expect(service.getState().snapshot?.activeCards.map((card) => card.path)).toEqual(rootFiles.map((file) => file.path))
+        const rootPaths = new Set(rootFiles.map((file) => file.path))
+        expect(backgroundFiles.some((file) => rootPaths.has(file.path))).toBe(false)
     })
 
     it('merges a stale background load without replacing newer owned card state', async () => {
@@ -1114,7 +1161,7 @@ describe('ProjectLoading', () => {
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
-        actionService.draftStore.updateDraft(initialFile.path, { ...actionDefinition('do'), label: 'Local edit' })
+        actionService.draftStore.updateDraft('action-do', { ...actionDefinition('do'), label: 'Local edit' })
         await vi.advanceTimersByTimeAsync(1000)
         expect(storage.commit).toHaveBeenCalledOnce()
 
@@ -1122,7 +1169,7 @@ describe('ProjectLoading', () => {
         await vi.advanceTimersByTimeAsync(150)
 
         expect(actionService.getDefinitionByPath(initialFile.path)?.label).toBe('Local edit')
-        expect(actionService.draftStore.getDraft(initialFile.path).conflict).toBeNull()
+        expect(actionService.draftStore.getDraft('action-do').conflict).toBeNull()
         commit.resolve([])
         await vi.advanceTimersByTimeAsync(0)
     })
@@ -1795,7 +1842,7 @@ describe('ProjectLoading', () => {
         }
         let movedContent = ''
         const storage = createStorage({
-            commit: vi.fn(async (request: CommitRequest) => {
+            commit: vi.fn(async (request) => {
                 const move = request.moves?.[0]
                 if (move) movedContent = move.content
 
@@ -1850,6 +1897,7 @@ describe('ProjectLoading', () => {
         const service = createDataService()
         service.init({ storage })
         const conflicts = recordDialogMessages('error')
+        const captureError = vi.spyOn(telemetryService, 'captureError').mockImplementation(() => undefined)
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         try {
@@ -1858,6 +1906,7 @@ describe('ProjectLoading', () => {
             await vi.advanceTimersByTimeAsync(150)
 
             expect(conflicts.messages[0]).toContain('External change ignored for design/F-1-root.md')
+            expect(captureError).not.toHaveBeenCalled()
             const card = service.getState().snapshot?.activeCards.find((candidate) => candidate.path === 'design/F-1-root.md')
             expect(card?.content).toContain('Local draft')
         } finally {
@@ -1949,5 +1998,250 @@ describe('ProjectLoading', () => {
         } finally {
             conflicts.stop()
         }
+    })
+
+    it('classifies a Markdown watcher event after commit completion from persisted content', async () => {
+        configService.init()
+        let persistedFile = files[0]
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadFile = vi.fn(async () => persistedFile)
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                persistedFile = request.files.find(({ path }) => path === persistedFile.path) ?? persistedFile
+
+                return []
+            }),
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        const conflicts = recordDialogMessages('error')
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        try {
+            service.cards.updateCardBody(persistedFile.path, '# Root\n\nLocal late echo')
+            await service.cards.flushPendingCommits()
+            watchChange({ changeKind: 'changed', path: persistedFile.path })
+
+            await vi.waitFor(() => expect(loadFile).toHaveBeenCalledOnce())
+            expect(conflicts.messages).toEqual([])
+            expect(service.getState().snapshot?.activeCards[0].content).toContain('Local late echo')
+        } finally {
+            conflicts.stop()
+        }
+    })
+
+    it('defers a watcher event during persistence and does not require another event', async () => {
+        configService.init()
+        const commit = createDeferred<MarkdownFile[]>()
+        let deferCommit = false
+        let persistedFile = files[0]
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadFile = vi.fn(async () => persistedFile)
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                persistedFile = request.files.find(({ path }) => path === persistedFile.path) ?? persistedFile
+                if (!deferCommit) return []
+
+                return await commit.promise
+            }),
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        vi.mocked(storage.commit).mockClear()
+        deferCommit = true
+
+        service.cards.updateCardBody(persistedFile.path, '# Root\n\nDuring persistence')
+        const flush = service.cards.flushPendingCommits()
+        expect(storage.commit).toHaveBeenCalledOnce()
+        watchChange({ changeKind: 'unknown', path: persistedFile.path })
+        await Promise.resolve()
+        expect(loadFile).not.toHaveBeenCalled()
+
+        commit.resolve([])
+        await flush
+        await flushPromises()
+        expect(loadFile).toHaveBeenCalledOnce()
+        expect(service.getState().snapshot?.activeCards[0].content).toContain('During persistence')
+    })
+
+    it('treats late source and target rename notifications as local without action reload', async () => {
+        configService.init()
+        const sourcePath = 'actions/review.json'
+        const targetPath = 'actions/review-later.json'
+        const definition = actionDefinition('review', { label: 'Review later' })
+        let actionFiles = [{ content: JSON.stringify(actionDefinition('review')), path: sourcePath }]
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const loadActionFiles = vi.fn(async () => actionFiles)
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                const move = request.moves?.[0]
+                if (move) actionFiles = [{ content: move.content, path: move.toPath }]
+
+                return []
+            }),
+            listRepositoryFiles: vi.fn(async () => actionFiles.map(({ path }) => path)),
+            loadActionFiles,
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        const reloadFromFiles = vi.spyOn(actionService, 'reloadFromFiles')
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        loadActionFiles.mockClear()
+
+        await service.persistActionFile(
+            { content: JSON.stringify(definition), path: targetPath },
+            definition.id,
+            sourcePath,
+            vi.fn(),
+        )
+        await service.cards.flushPendingCommits()
+        watchChange({ changeKind: 'added', path: targetPath })
+        watchChange({ changeKind: 'removed', path: sourcePath })
+
+        await flushPromises()
+        expect(loadActionFiles).toHaveBeenCalledTimes(1)
+        expect(reloadFromFiles).not.toHaveBeenCalled()
+    })
+
+    it('routes persisted content that contradicts a local outcome through external conflict handling', async () => {
+        configService.init()
+        let persistedFile = files[0]
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                persistedFile = request.files.find(({ path }) => path === persistedFile.path) ?? persistedFile
+
+                return []
+            }),
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile: vi.fn(async () => persistedFile),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        service.cards.updateCardBody(persistedFile.path, '# Root\n\nExpected local')
+        await service.cards.flushPendingCommits()
+        persistedFile = { ...persistedFile, content: persistedFile.content.replace('Expected local', 'External overwrite') }
+        watchChange({ changeKind: 'changed', path: persistedFile.path })
+        await vi.waitFor(() => expect(service.getState().snapshot?.activeCards[0].content).toContain('External overwrite'))
+
+        expect(service.getState().snapshot?.activeCards[0].content).toContain('External overwrite')
+    })
+
+    it('recognizes filesystem effects after failure and keeps the restored batch retryable', async () => {
+        configService.init()
+        let persistedFile = files[0]
+        let failNextCommit = false
+        let watchChange: (event: ProjectWatchEvent) => void = () => {
+            throw new Error('Watcher not registered')
+        }
+        const commit = vi.fn(async (request: CommitRequest) => {
+            persistedFile = request.files.find(({ path }) => path === persistedFile.path) ?? persistedFile
+            if (failNextCommit) {
+                failNextCommit = false
+                throw new Error('commit failed after write')
+            }
+
+            return []
+        })
+        const storage = createStorage({
+            commit,
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile: vi.fn(async () => persistedFile),
+            watchProject: vi.fn((_project, onChange) => {
+                watchChange = onChange
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        const conflicts = recordDialogMessages('error')
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        commit.mockClear()
+        failNextCommit = true
+
+        try {
+            service.cards.updateCardBody(persistedFile.path, '# Root\n\nPartially written')
+            await expect(service.cards.flushPendingCommits()).rejects.toThrow('commit failed after write')
+            watchChange({ changeKind: 'changed', path: persistedFile.path })
+            await flushPromises()
+            expect(storage.loadFile).toHaveBeenCalledOnce()
+            expect(conflicts.messages.some((message) => message.includes('External change ignored'))).toBe(false)
+
+            await service.cards.flushPendingCommits()
+            expect(commit).toHaveBeenCalledTimes(2)
+        } finally {
+            conflicts.stop()
+        }
+    })
+
+    it('verifies retained local outcomes when project watching is restored', async () => {
+        configService.init()
+        let persistedFile = files[0]
+        let watchRestored = () => {
+            throw new Error('Watcher restoration callback not registered')
+        }
+        const loadFile = vi.fn(async () => persistedFile)
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                persistedFile = request.files.find(({ path }) => path === persistedFile.path) ?? persistedFile
+
+                return []
+            }),
+            listRepositoryFiles: vi.fn(async () => [persistedFile.path]),
+            loadFile,
+            loadProject: vi.fn(async () => ({ files: [persistedFile], workingFolder: 'design' })),
+            watchProject: vi.fn((_project, _onChange, onRestored) => {
+                watchRestored = onRestored
+
+                return vi.fn()
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        loadFile.mockClear()
+
+        service.cards.updateCardBody(persistedFile.path, '# Root\n\nSaved while disconnected')
+        await service.cards.flushPendingCommits()
+        watchRestored()
+
+        await vi.waitFor(() => expect(loadFile).toHaveBeenCalledOnce())
+        expect(service.getState().snapshot?.activeCards[0].content).toContain('Saved while disconnected')
     })
 })

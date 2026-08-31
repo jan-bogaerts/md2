@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, DEFAULT_STATES } from '../../../data/data_types'
@@ -40,13 +41,13 @@ describe('NewCardDialog attachment regression', () => {
     })
 
     it('inserts into an untouched editor, then reopens with editable cleared inputs', async () => {
+        const user = userEvent.setup()
         const file = new File(['report'], 'report.pdf', { type: 'application/pdf' })
         vi.spyOn(projectSessionService, 'copyNewCardAttachments').mockResolvedValue([
             { fileName: 'report.pdf', path: 'design/report.pdf' },
         ])
         const discardAttachments = vi.spyOn(projectSessionService, 'discardNewCardDraftImages').mockResolvedValue()
         vi.spyOn(projectSessionService, 'hasNewCardDraftImages').mockReturnValue(true)
-        vi.spyOn(window, 'confirm').mockReturnValue(true)
         render(<NewCardAttachmentTestSurface />)
 
         const initialDialog = screen.getByRole('dialog', { name: 'New card' })
@@ -62,7 +63,9 @@ describe('NewCardDialog attachment regression', () => {
         expect(attachmentChoiceService.getSnapshot()).toBeNull()
 
         fireEvent.click(within(firstDialog).getByRole('button', { name: 'Cancel' }))
+        await user.click(screen.getByRole('button', { name: 'Discard' }))
         await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New card' })).not.toBeInTheDocument())
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Discard this new card draft?' })).not.toBeInTheDocument())
         expect(discardAttachments).toHaveBeenCalledOnce()
 
         fireEvent.click(screen.getByRole('button', { name: 'Open new card' }))
@@ -71,8 +74,10 @@ describe('NewCardDialog attachment regression', () => {
         const description = within(within(reopenedDialog).getByRole('group', { name: 'Description' })).getByRole('textbox')
         expect(description).toHaveValue('')
 
-        fireEvent.change(title, { target: { value: 'Next card' } })
-        fireEvent.change(description, { target: { value: 'Editable body' } })
+        await user.click(title)
+        await user.type(title, 'Next card')
+        await user.click(description)
+        await user.type(description, 'Editable body')
 
         expect(title).toHaveValue('Next card')
         expect(description).toHaveValue('Editable body')

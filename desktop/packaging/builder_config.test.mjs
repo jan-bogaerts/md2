@@ -30,10 +30,15 @@ describe('electron-builder configuration', () => {
             win: {
                 executableName: EXECUTABLE_NAME,
                 icon: 'build/md2.ico',
+                signExts: ['.dll', '.node'],
                 target: [{ arch: ['x64'], target: 'nsis' }],
             },
         });
         expect(config.files).toContain('!**/*.map');
+        expect(config.files).toContain('!node_modules/node-pty/prebuilds/darwin-arm64/**');
+        expect(config.files).toContain('!node_modules/node-pty/prebuilds/darwin-x64/**');
+        expect(config.files).toContain('!node_modules/node-pty/prebuilds/win32-arm64/**');
+        expect(config.files).not.toContain('!node_modules/node-pty/prebuilds/win32-x64/**');
         expect(config.files).toContainEqual(expect.objectContaining({ from: '.', to: 'desktop' }));
         expect(config.files).toContainEqual(expect.objectContaining({ from: '../app/dist', to: 'desktop/renderer' }));
         expect(config.files).toContainEqual(expect.objectContaining({ from: '../shared', to: 'shared' }));

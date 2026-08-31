@@ -5,7 +5,8 @@ import {
     type StateConfig,
 } from '../../data/data_types'
 import { LEGACY_CARD_SEPARATOR } from '../../data/card_identifiers'
-import { validateAgentProfiles, validatePermissionMode, validateThinkingLevel, type AgentProfile } from '../../data/agent_profiles'
+import { migrateAgentProfiles, validateAgentProfiles, type AgentProfile } from '../../data/agent_profiles'
+import { validateAgentSelectionState } from '../../data/agent_selection'
 import {
     CONFIG_ENTRIES,
     createDefaultValues,
@@ -128,6 +129,9 @@ function validateStates(value: unknown): StateConfig[] {
         return {
             alwaysVisible: requireBoolean(item.alwaysVisible, `project.states[${index}].alwaysVisible`),
             color,
+            ...(item.defaultActionId === undefined
+                ? {}
+                : { defaultActionId: requireString(item.defaultActionId, `project.states[${index}].defaultActionId`) }),
             state: requireString(item.state, `project.states[${index}].state`),
         }
     })
@@ -138,7 +142,7 @@ function validateStates(value: unknown): StateConfig[] {
 }
 
 function validateDesktopAgentProfiles(value: unknown): AgentProfile[] {
-    return validateAgentProfiles(value)
+    return validateAgentProfiles(migrateAgentProfiles(value))
 }
 
 function validateOption(value: string, entry: ConfigEntry) {
@@ -163,6 +167,9 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
     if (entry.type === 'json' && key === 'project.cardTypes') return validateCardTypes(value) as ConfigValueTypes[K]
     if (entry.type === 'json' && key === 'project.states') return validateStates(value) as ConfigValueTypes[K]
     if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value) as ConfigValueTypes[K]
+    if (entry.type === 'json' && key === 'desktop.agentSelection') {
+        return validateAgentSelectionState(value, entry.key) as ConfigValueTypes[K]
+    }
     if (key === 'project.projectFolder') {
         if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
 
@@ -176,13 +183,6 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
     ) {
         return normalizeConfigPath(requireString(value, entry.key), entry.key) as ConfigValueTypes[K]
     }
-    if (key === 'desktop.model') {
-        if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)
-
-        return value as ConfigValueTypes[K]
-    }
-    if (key === 'desktop.permissionMode') return validatePermissionMode(value, entry.key) as ConfigValueTypes[K]
-    if (key === 'desktop.thinkingLevel') return validateThinkingLevel(value, entry.key) as ConfigValueTypes[K]
     if (key === 'desktop.editorCommand') {
         const editorCommand = requireString(value, entry.key)
         if (!editorCommand.includes('{{file}}')) throw new Error('Config field desktop.editorCommand requires {{file}} placeholder')
@@ -223,15 +223,12 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
 
 function readDesktopConfig(values: ConfigValues): DesktopConfigValues {
     return {
-        agent: values['desktop.agent'],
+        agentSelection: values['desktop.agentSelection'],
         agentProfiles: values['desktop.agentProfiles'],
         codexSearchEnabled: values['desktop.codexSearchEnabled'],
         editorCommand: values['desktop.editorCommand'],
         mergeConflictResolverCommand: values['desktop.mergeConflictResolverCommand'],
-        model: values['desktop.model'],
-        permissionMode: values['desktop.permissionMode'],
         remoteControlPort: values['desktop.remoteControlPort'],
-        thinkingLevel: values['desktop.thinkingLevel'],
     }
 }
 
@@ -247,7 +244,9 @@ function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<Deskt
     for (const key of DESKTOP_KEYS) nextValues = { ...nextValues, [key]: defaults[key] }
 
     if (!desktopConfig) return nextValues
-    if (desktopConfig.agent !== undefined) nextValues = mergeValue(nextValues, 'desktop.agent', desktopConfig.agent)
+    if (desktopConfig.agentSelection !== undefined) {
+        nextValues = mergeValue(nextValues, 'desktop.agentSelection', desktopConfig.agentSelection)
+    }
     if (desktopConfig.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)
     if (desktopConfig.codexSearchEnabled !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.codexSearchEnabled', desktopConfig.codexSearchEnabled)
@@ -255,13 +254,6 @@ function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<Deskt
     if (desktopConfig.editorCommand !== undefined) nextValues = mergeValue(nextValues, 'desktop.editorCommand', desktopConfig.editorCommand)
     if (desktopConfig.mergeConflictResolverCommand !== undefined) {
         nextValues = mergeValue(nextValues, 'desktop.mergeConflictResolverCommand', desktopConfig.mergeConflictResolverCommand)
-    }
-    if (desktopConfig.model !== undefined) nextValues = mergeValue(nextValues, 'desktop.model', desktopConfig.model)
-    if (desktopConfig.permissionMode !== undefined) {
-        nextValues = mergeValue(nextValues, 'desktop.permissionMode', desktopConfig.permissionMode)
-    }
-    if (desktopConfig.thinkingLevel !== undefined) {
-        nextValues = mergeValue(nextValues, 'desktop.thinkingLevel', desktopConfig.thinkingLevel)
     }
 
     return nextValues

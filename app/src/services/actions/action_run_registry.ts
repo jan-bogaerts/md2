@@ -3,6 +3,7 @@ import type { ActionContext } from '../../data/action_context'
 import type { ActionDefinition } from '../../data/action_types'
 import type { AgentConversation, AgentConversationEntry, AgentConversationEventEntry } from '../../data/data_types'
 import type {
+    ActionQueuedPrompt,
     AgentApproval,
     AgentApprovalDecision,
     AgentApprovalRequestId,
@@ -24,12 +25,15 @@ import type {
 } from '../../data/electron_action_bridge'
 import { actionService } from './action_service'
 import { actionPromptDraftService } from './action_prompt_draft_service'
-import { register } from '../service_injector'
+import { dialogService } from '../dialog_service'
+import { getService, register } from '../service_injector'
 import { projectAccessService } from '../project/project_access_service'
+import type { DataService } from '../data/data_service'
 
 const TERMINAL_STATUSES = new Set<ActionRunTerminalStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 const ACTIVE_STATUSES = new Set<ActionRunStatus>(['queued', 'running', 'waitingForInput'])
 const EMPTY_ACTIVE_RUNS: ActiveActionRun[] = []
+const EMPTY_ACTION_RUN_STORES: ActionRunStore[] = []
 const LOST_DURING_RECONNECTION_FAILURE = 'Action run state was lost during reconnection'
 
 export interface ActionRun {
@@ -37,16 +41,26 @@ export interface ActionRun {
     activeActionId: string | null
     activeActionStreaming: boolean
     activeActionType: ActionDefinition['type'] | null
+    changedPaths: string[]
     conversation: AgentConversation | null
+    conversationChange: ActionConversationChange | null
     context: ActionContext
     runId: string
     logs: ActionRunLogEntry[]
     approvals: LiveAgentApproval[]
     interactionReady: boolean
     question: LiveAgentQuestion | null
+    queuedPrompts: ActionQueuedPrompt[]
     reference: string | null
     rootActionId: string
     status: ActionRunStatus
+}
+
+export type ActionConversationChange = {
+    entryIndex: number
+    kind: 'entry'
+} | {
+    kind: 'replace'
 }
 
 export interface LiveAgentApproval extends AgentApproval {
@@ -59,6 +73,7 @@ export interface LiveAgentQuestion {
 }
 
 export interface ActiveActionRun {
+    context: ActionContext
     rootActionId: string
     runId: string
     status: ActionRunStatus
@@ -77,6 +92,17 @@ function actionType(actionId: string) {
 
 function actionStreaming(actionId: string) {
     return actionService.getActions().find((action) => action.id === actionId)?.streaming ?? false
+}
+
+function applyTerminalCardChangedFiles(context: ActionContext, changedPaths: string[]) {
+    if (changedPaths.length === 0) return
+    if ((context.kind !== 'card' && context.kind !== 'file') || !context.cardInternalId || !context.file) return
+
+    try {
+        getService<DataService>('dataService').cards.addCardChangedFiles(context.cardInternalId, context.file, changedPaths)
+    } catch (error) {
+        dialogService.error(error, { fallbackMessage: `Changed files update failed: ${context.file}` })
+    }
 }
 
 function createLog(event: ActionRunEvent): ActionRunLogEntry {
@@ -103,7 +129,7 @@ function runningLogIndex(logs: ActionRunLogEntry[], event: ActionRunEvent) {
 }
 
 type AgentOutputUpdate = Pick<
-    Extract<ActionRunUpdate, { kind: 'error' | 'output' }>,
+    Extract<ActionRunUpdate, { kind: 'agentOutput' }>,
     'content' | 'previousContent' | 'replace'
 >
 
@@ -135,7 +161,7 @@ function updateActionLogs(logs: ActionRunLogEntry[], event: Extract<ActionRunEve
 function updateOutputLogs(
     logs: ActionRunLogEntry[],
     event: Extract<ActionRunEvent, { type: 'update' }>,
-    update: Extract<ActionRunUpdate, { kind: 'error' | 'output' }>,
+    update: Extract<ActionRunUpdate, { kind: 'agentOutput' | 'error' | 'output' }>,
 ) {
     const currentIndex = logs.findLastIndex((log) => (
         log.actionId === event.actionId && log.phase === event.phase && log.status === 'running'
@@ -143,9 +169,11 @@ function updateOutputLogs(
     const current = currentIndex >= 0 ? logs[currentIndex] : createLog(event)
     const updated = {
         ...current,
-        command: update.command ?? current.command,
+        command: ('command' in update ? update.command : undefined) ?? current.command,
         stderr: update.kind === 'error' ? `${current.stderr}${update.content}` : current.stderr,
-        stdout: update.kind === 'output' ? updatedStdout(current.stdout, update) : current.stdout,
+        stdout: update.kind === 'agentOutput' || update.kind === 'output'
+            ? updatedStdout(current.stdout, update)
+            : current.stdout,
     }
     if (currentIndex < 0) return [...logs, updated]
     const next = [...logs]
@@ -158,14 +186,26 @@ function eventIdentity(event: AgentConversationEventEntry) {
     return event.providerItemId ?? event.id
 }
 
-function upsertAgentEvent(entries: AgentConversationEntry[], event: AgentConversationEventEntry) {
-    const identity = eventIdentity(event)
-    const currentIndex = entries.findIndex((entry) => entry.kind === 'event' && eventIdentity(entry) === identity)
-    if (currentIndex < 0) return [...entries, event]
+function requireEntryIndex(entryIndex: number, entries: AgentConversationEntry[], allowAppend: boolean) {
+    if (!Number.isSafeInteger(entryIndex) || entryIndex < 0) throw new Error(`Invalid conversation entry index: ${entryIndex}`)
+    const maximumIndex = allowAppend ? entries.length : entries.length - 1
+    if (entryIndex > maximumIndex) throw new Error(`Conversation entry index out of range: ${entryIndex}`)
+}
 
-    const current = entries[currentIndex]
+function updateAgentEventAtIndex(
+    entries: AgentConversationEntry[],
+    entryIndex: number,
+    event: AgentConversationEventEntry,
+) {
+    requireEntryIndex(entryIndex, entries, true)
+    if (entryIndex === entries.length) return [...entries, event]
+
+    const current = entries[entryIndex]
+    if (current.kind !== 'event' || eventIdentity(current) !== eventIdentity(event)) {
+        throw new Error(`Provider event identity mismatch at conversation entry index ${entryIndex}`)
+    }
     const next = [...entries]
-    next[currentIndex] = {
+    next[entryIndex] = {
         ...event,
         ...(event.sequence === undefined && current.sequence !== undefined ? { sequence: current.sequence } : {}),
     }
@@ -205,6 +245,40 @@ function appendAssistantMessage(
             ? { ...entry, content: update.replace ? update.content : `${entry.content}${update.content}` }
             : entry)
 
+    return { conversation: { ...conversation, entries }, entryIndex: currentIndex < 0 ? entries.length - 1 : currentIndex }
+}
+
+function updateAgentOutputAtIndex(
+    conversation: AgentConversation,
+    update: Extract<ActionRunUpdate, { kind: 'agentOutput' }>,
+) {
+    requireEntryIndex(update.entryIndex, conversation.entries, true)
+    if (update.entryIndex === conversation.entries.length) {
+        const message: AgentConversationEntry = {
+            content: update.content,
+            id: update.messageId,
+            kind: 'message',
+            role: 'assistant',
+            sequence: update.sequence,
+            timestamp: conversation.startedAt,
+        }
+
+        return { ...conversation, entries: [...conversation.entries, message] }
+    }
+
+    const current = conversation.entries[update.entryIndex]
+    if (current.kind !== 'message' || current.id !== update.messageId) {
+        throw new Error(`Assistant message identity mismatch at conversation entry index ${update.entryIndex}`)
+    }
+    if (current.sequence !== undefined && current.sequence !== update.sequence) {
+        throw new Error(`Assistant message sequence mismatch at conversation entry index ${update.entryIndex}`)
+    }
+    const entries = [...conversation.entries]
+    entries[update.entryIndex] = {
+        ...current,
+        content: update.replace ? update.content : `${current.content}${update.content}`,
+    }
+
     return { ...conversation, entries }
 }
 
@@ -233,6 +307,20 @@ export async function sendActionMessage(runId: string, content: string) {
     await bridge.sendActionMessage(runId, content)
 }
 
+export async function deleteActionQueuedPrompt(runId: string, promptId: string, revision: number) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.deleteActionQueuedPrompt) throw new Error('Deleting queued agent prompts requires Electron')
+
+    await bridge.deleteActionQueuedPrompt(runId, promptId, revision)
+}
+
+export async function editActionQueuedPrompt(runId: string, promptId: string, revision: number, content: string) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.editActionQueuedPrompt) throw new Error('Editing queued agent prompts requires Electron')
+
+    await bridge.editActionQueuedPrompt(runId, promptId, revision, content)
+}
+
 export async function answerActionQuestion(
     runId: string,
     requestId: number | string | null,
@@ -242,6 +330,13 @@ export async function answerActionQuestion(
     if (!bridge?.answerActionQuestion) throw new Error('Streaming agent questions require Electron')
 
     await bridge.answerActionQuestion(runId, requestId, answers)
+}
+
+export async function dismissActionQuestions(runId: string, requestId: number | string | null) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.dismissActionQuestions) throw new Error('Dismissing streaming agent questions requires Electron')
+
+    await bridge.dismissActionQuestions(runId, requestId)
 }
 
 export async function answerActionApproval(
@@ -306,14 +401,31 @@ function actionContextKey(actionId: string, context: ActionContext) {
     return `${actionId}\u0000${contextKey(context)}`
 }
 
+function runEventType(runId: string) {
+    return `run:${runId}`
+}
+
 function activeRun(run: ActionRun): ActiveActionRun {
-    return { rootActionId: run.rootActionId, runId: run.runId, status: run.status }
+    return { context: run.context, rootActionId: run.rootActionId, runId: run.runId, status: run.status }
 }
 
 function sameActiveRuns(first: ActiveActionRun[], second: ActiveActionRun[]) {
-    return first.length === second.length && first.every(({ runId, status }, index) => (
-        second[index]?.runId === runId && second[index]?.status === status
+    return first.length === second.length && first.every(({ context, runId, status }, index) => (
+        second[index]?.runId === runId
+        && second[index]?.status === status
+        && Object.keys(context).length === Object.keys(second[index].context).length
+        && Object.entries(context).every(([key, value]) => second[index].context[key] === value)
     ))
+}
+
+function conversationPickerMetadataChanged(previous: ActionRun['conversation'], current: ActionRun['conversation']) {
+    return previous?.actionId !== current?.actionId
+        || previous?.cardInternalId !== current?.cardInternalId
+        || previous?.hasExplicitTitle !== current?.hasExplicitTitle
+        || previous?.id !== current?.id
+        || previous?.path !== current?.path
+        || previous?.startedAt !== current?.startedAt
+        || previous?.title !== current?.title
 }
 
 function publishKey(map: Map<string, Set<StoreListener>>, key: string) {
@@ -343,7 +455,7 @@ function byRunSequence(events: ActionRunEvent[]) {
 /** Owns one renderer-wide bridge subscription and routes events to scoped run stores. */
 export class ActionRunRegistry extends EventTarget {
     private readonly actionContextListeners = new Map<string, Set<StoreListener>>()
-    private readonly actionContextStores = new Map<string, ActionRunStore>()
+    private readonly actionContextStores = new Map<string, ActionRunStore[]>()
     private readonly activeRunEventListeners = new Set<EventListener>()
     private readonly contextActiveListeners = new Map<string, Set<StoreListener>>()
     private readonly contextActiveSnapshots = new Map<string, ActiveActionRun[]>()
@@ -352,6 +464,7 @@ export class ActionRunRegistry extends EventTarget {
     private readonly globalActiveListeners = new Set<StoreListener>()
     private globalActiveSnapshot: ActiveActionRun[] = EMPTY_ACTIVE_RUNS
     private recoveryEvents: ActionRunEvent[] | null = null
+    private runContexts = new Map<string, ActionContext>()
     private runs = new Map<string, ActionRunStore>()
     private subscribedBridge: ElectronActionBridge | null = null
     private startsInProgress = 0
@@ -381,17 +494,20 @@ export class ActionRunRegistry extends EventTarget {
     }
 
     stop() {
+        const runIds = [...this.runs.keys()]
         this.unsubscribeBridge?.()
         this.subscribedBridge = null
         this.unsubscribeBridge = null
         this.eventSequences = new Map()
         this.recoveryEvents = null
+        this.runContexts = new Map()
         this.runs = new Map()
         this.actionContextStores.clear()
         this.contextActiveSnapshots.clear()
         this.publishGlobalActive([])
         publishListeners(this.actionContextListeners)
         publishListeners(this.contextActiveListeners)
+        for (const runId of runIds) this.dispatchEvent(new Event(runEventType(runId)))
     }
 
     getRunStore(runId: string) {
@@ -403,7 +519,15 @@ export class ActionRunRegistry extends EventTarget {
     }
 
     getActionRunStoreByKey(actionId: string, contextIdentity: string) {
-        return this.actionContextStores.get(`${actionId}\u0000${contextIdentity}`) ?? null
+        return this.actionContextStores.get(`${actionId}\u0000${contextIdentity}`)?.at(-1) ?? null
+    }
+
+    getActionRunStores(actionId: string, context: ActionContext) {
+        return this.getActionRunStoresByKey(actionId, contextKey(context))
+    }
+
+    getActionRunStoresByKey(actionId: string, contextIdentity: string) {
+        return this.actionContextStores.get(`${actionId}\u0000${contextIdentity}`) ?? EMPTY_ACTION_RUN_STORES
     }
 
     getContextActiveSnapshot(context: ActionContext) {
@@ -422,12 +546,23 @@ export class ActionRunRegistry extends EventTarget {
 
     subscribeActionRunByKey(actionId: string, contextIdentity: string, listener: StoreListener) {
         const key = `${actionId}\u0000${contextIdentity}`
-        const unsubscribe = this.subscribeMap(this.actionContextListeners, key, listener)
+        return this.subscribeMap(this.actionContextListeners, key, listener)
+    }
+
+    subscribeRun(runId: string, listener: StoreListener) {
+        let unsubscribeStore = this.runs.get(runId)?.subscribe(listener) ?? null
+        const handleStoreChanged = () => {
+            unsubscribeStore?.()
+            unsubscribeStore = this.runs.get(runId)?.subscribe(listener) ?? null
+            listener()
+        }
+        const eventType = runEventType(runId)
+        this.addEventListener(eventType, handleStoreChanged)
+        this.start()
 
         return () => {
-            unsubscribe()
-            const store = this.actionContextStores.get(key)
-            if (store) this.releaseTerminalRun(store.getSnapshot().runId)
+            this.removeEventListener(eventType, handleStoreChanged)
+            unsubscribeStore?.()
         }
     }
 
@@ -479,6 +614,7 @@ export class ActionRunRegistry extends EventTarget {
             this.startsInProgress -= 1
         }
         onStarted?.(runId)
+        if (!this.terminalResults.has(runId)) this.runContexts.set(runId, context)
 
         return this.waitForRun(runId)
     }
@@ -503,6 +639,7 @@ export class ActionRunRegistry extends EventTarget {
             this.terminalResults.delete(previousRunId)
         }
         onStarted?.(runId)
+        if (!this.terminalResults.has(runId)) this.runContexts.set(runId, context)
 
         return this.waitForRun(runId)
     }
@@ -511,12 +648,17 @@ export class ActionRunRegistry extends EventTarget {
         const terminalResult = this.terminalResults.get(runId)
         if (terminalResult) {
             this.terminalResults.delete(runId)
+            this.releaseTerminalRun(runId)
 
             return Promise.resolve(terminalResult)
         }
         const current = this.runs.get(runId)?.getSnapshot()
         if (current && TERMINAL_STATUSES.has(current.status as ActionRunTerminalStatus)) {
-            const result = { logs: current.logs, status: current.status as ActionRunTerminalStatus }
+            const result = {
+                changedPaths: current.changedPaths,
+                logs: current.logs,
+                status: current.status as ActionRunTerminalStatus,
+            }
             this.releaseTerminalRun(runId)
 
             return Promise.resolve(result)
@@ -570,12 +712,13 @@ export class ActionRunRegistry extends EventTarget {
             }
             if (activeSnapshotRunIds.has(runId) || activeRecoveryRunIds.has(runId)) continue
 
-            this.completeRecoveredRun({ failure: LOST_DURING_RECONNECTION_FAILURE, runId, status: 'failed' })
+            this.completeRecoveredRun({ changedPaths: [], failure: LOST_DURING_RECONNECTION_FAILURE, runId, status: 'failed' })
         }
     }
 
     private completeRecoveredRun(result: ActionRunRecoveryTerminalResult) {
         const store = this.runs.get(result.runId)
+        const context = store?.getSnapshot().context ?? this.runContexts.get(result.runId) ?? null
         let logs: ActionRunLogEntry[] = []
         if (store) {
             const current = store.getSnapshot()
@@ -611,20 +754,23 @@ export class ActionRunRegistry extends EventTarget {
                 activeActionStreaming: false,
                 activeActionType: null,
                 approvals: [],
+                changedPaths: result.changedPaths,
                 conversation,
                 interactionReady: false,
                 logs,
                 question: null,
+                queuedPrompts: [],
                 status: result.status,
             }
             store.update(next)
-            actionPromptDraftService.clearRunDrafts(result.runId)
+            actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context, next.runId)
             this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         }
 
         const waiters = this.waiters.get(result.runId)
         this.waiters.delete(result.runId)
-        const actionResult = { logs, status: result.status }
+        const actionResult = { changedPaths: result.changedPaths, logs, status: result.status }
+        if (context) applyTerminalCardChangedFiles(context, result.changedPaths)
         for (const resolve of waiters ?? []) resolve(actionResult)
         this.releaseTerminalRun(result.runId)
     }
@@ -656,22 +802,31 @@ export class ActionRunRegistry extends EventTarget {
             activeActionId: null,
             activeActionStreaming: false,
             activeActionType: null,
+            changedPaths: [],
             conversation: null,
+            conversationChange: null,
             approvals: [],
             context: event.context,
             runId: event.runId,
             logs: [],
             interactionReady: false,
             question: null,
+            queuedPrompts: [],
             reference: null,
             rootActionId: event.rootActionId,
             status: 'running' as const,
         }
         let next = { ...current, context: event.context, rootActionId: event.rootActionId }
-        if (event.type === 'run') next = { ...next, status: event.status }
+        if (event.type === 'run') {
+            next = {
+                ...next,
+                changedPaths: event.changedPaths ? [...event.changedPaths] : next.changedPaths,
+                status: event.status,
+            }
+        }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
-            next = { ...next, approvals: [], question: null }
-            actionPromptDraftService.clearRunDrafts(event.runId)
+            next = { ...next, approvals: [], question: null, queuedPrompts: [] }
+            actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context, next.runId)
         }
         if (event.type === 'agentState') next = { ...next, status: event.status }
         if (event.type === 'action') {
@@ -688,7 +843,7 @@ export class ActionRunRegistry extends EventTarget {
                 reference: event.reference ?? next.reference,
             }
             if (active) next.status = event.status
-            if (!active) actionPromptDraftService.clearRunDraft(event.runId, event.actionId)
+            if (!active) actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context, next.runId)
         }
         if (event.type === 'agentState') {
             next = {
@@ -710,19 +865,24 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             const { continued } = event.update
-            next = { ...next, conversation: event.update.conversation }
-            if (continued) actionPromptDraftService.clearRunDraft(event.runId, event.actionId)
+            next = { ...next, conversation: event.update.conversation, conversationChange: { kind: 'replace' } }
+            if (continued) actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context, next.runId)
         }
         if (event.type === 'update' && event.update.kind === 'agentClosed') {
-            next = { ...next, conversation: event.update.conversation }
+            next = { ...next, conversation: event.update.conversation, conversationChange: { kind: 'replace' } }
         }
         if (event.type === 'update' && event.update.kind === 'agentEvent' && next.conversation) {
             next = {
                 ...next,
                 conversation: {
                     ...next.conversation,
-                    entries: upsertAgentEvent(next.conversation.entries, event.update.event),
+                    entries: updateAgentEventAtIndex(
+                        next.conversation.entries,
+                        event.update.entryIndex,
+                        event.update.event,
+                    ),
                 },
+                conversationChange: { entryIndex: event.update.entryIndex, kind: 'entry' },
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentUsage' && next.conversation) {
@@ -733,11 +893,47 @@ export class ActionRunRegistry extends EventTarget {
             }
             next = { ...next, conversation }
         }
+        if (event.type === 'update' && event.update.kind === 'agentPromptQueued') {
+            const { entry } = event.update
+            const queuedPrompts = next.queuedPrompts.some(({ id }) => id === entry.id)
+                ? next.queuedPrompts
+                : [...next.queuedPrompts, entry]
+            next = { ...next, queuedPrompts }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentPromptEdited') {
+            const { entry: editedEntry } = event.update
+            next = {
+                ...next,
+                queuedPrompts: next.queuedPrompts.map((entry) => entry.id === editedEntry.id
+                    ? editedEntry
+                    : entry),
+            }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentPromptRemoved') {
+            const { promptId } = event.update
+            next = {
+                ...next,
+                queuedPrompts: next.queuedPrompts.filter(({ id }) => id !== promptId),
+            }
+        }
         if (event.type === 'update' && event.update.kind === 'agentQuestion') {
             next = {
                 ...next,
                 question: { questions: event.update.questions, requestId: event.update.requestId },
                 status: 'waitingForInput',
+            }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentQuestionDismissed' && next.conversation) {
+            const matchingQuestion = next.question?.requestId === event.update.requestId
+            next = {
+                ...next,
+                conversation: {
+                    ...next.conversation,
+                    entries: [...next.conversation.entries, event.update.event],
+                },
+                conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
+                question: matchingQuestion ? null : next.question,
+                status: matchingQuestion && next.approvals.length === 0 ? event.status : next.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentApproval') {
@@ -769,7 +965,7 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (
             event.type === 'update'
-            && (event.update.kind === 'agentUserMessage' || event.update.kind === 'agentQuestionAnswer')
+            && event.update.kind === 'agentUserMessage'
             && next.conversation
         ) {
             next = {
@@ -777,24 +973,55 @@ export class ActionRunRegistry extends EventTarget {
                 conversation: {
                     ...next.conversation,
                     entries: [...next.conversation.entries, event.update.userMessage],
+                    status: conversationStatus(next.question || next.approvals.length > 0 ? 'waitingForInput' : event.status),
                 },
-                question: null,
-                status: next.approvals.length > 0 ? 'waitingForInput' : event.status,
+                conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
+                status: next.question || next.approvals.length > 0 ? 'waitingForInput' : event.status,
             }
-            if (event.update.kind === 'agentUserMessage') {
-                actionPromptDraftService.clearRunDraft(event.runId, event.actionId)
+        }
+        if (event.type === 'update' && event.update.kind === 'agentQuestionAnswer' && next.conversation) {
+            const matchingQuestion = next.question?.requestId === event.update.requestId
+            next = {
+                ...next,
+                conversation: {
+                    ...next.conversation,
+                    entries: [...next.conversation.entries, event.update.userMessage],
+                },
+                conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
+                question: matchingQuestion ? null : next.question,
+                status: matchingQuestion && next.approvals.length === 0 ? event.status : next.status,
+            }
+        }
+        if (event.type === 'update' && event.update.kind === 'agentOutput') {
+            const conversation = next.conversation
+                ? updateAgentOutputAtIndex(next.conversation, event.update)
+                : next.conversation
+            next = {
+                ...next,
+                conversation,
+                conversationChange: { entryIndex: event.update.entryIndex, kind: 'entry' },
+                logs: updateOutputLogs(next.logs, event, event.update),
             }
         }
         if (event.type === 'update' && (event.update.kind === 'output' || event.update.kind === 'error')) {
-            const conversation = event.update.kind === 'output' && next.conversation
+            const output = event.update.kind === 'output' && next.conversation
                 ? appendAssistantMessage(next.conversation, event.update)
-                : next.conversation
-            next = { ...next, conversation, logs: updateOutputLogs(next.logs, event, event.update) }
+                : null
+            next = {
+                ...next,
+                conversation: output?.conversation ?? next.conversation,
+                ...(output ? { conversationChange: { entryIndex: output.entryIndex, kind: 'entry' as const } } : {}),
+                logs: updateOutputLogs(next.logs, event, event.update),
+            }
         }
         if (
             event.type === 'update'
             && event.update.kind !== 'agentClosed'
+            && event.update.kind !== 'agentPromptEdited'
+            && event.update.kind !== 'agentPromptQueued'
+            && event.update.kind !== 'agentPromptRemoved'
             && event.update.kind !== 'agentUsage'
+            && event.update.kind !== 'agentUserMessage'
             && next.conversation
         ) {
             next = {
@@ -806,13 +1033,24 @@ export class ActionRunRegistry extends EventTarget {
         if (!store) {
             this.runs.set(event.runId, nextStore)
             const bindingKey = actionContextKey(event.rootActionId, event.context)
-            this.actionContextStores.set(bindingKey, nextStore)
+            const stores = this.actionContextStores.get(bindingKey) ?? []
+            this.actionContextStores.set(bindingKey, [...stores, nextStore])
             publishKey(this.actionContextListeners, bindingKey)
-        } else nextStore.update(next)
+            this.dispatchEvent(new Event(runEventType(event.runId)))
+        } else {
+            nextStore.update(next)
+            const bindingKey = actionContextKey(next.rootActionId, next.context)
+            const stores = this.actionContextStores.get(bindingKey)
+            if (stores?.includes(nextStore) && conversationPickerMetadataChanged(current.conversation, next.conversation)) {
+                this.actionContextStores.set(bindingKey, [...stores])
+                publishKey(this.actionContextListeners, bindingKey)
+            }
+        }
 
         this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         this.publishScopedEvents(event)
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
+            applyTerminalCardChangedFiles(event.context, next.changedPaths)
             this.resolveWaiters(next)
             this.releaseTerminalRun(event.runId)
         }
@@ -848,7 +1086,11 @@ export class ActionRunRegistry extends EventTarget {
     private resolveWaiters(run: ActionRun) {
         const waiters = this.waiters.get(run.runId)
         this.waiters.delete(run.runId)
-        const result = { logs: run.logs, status: run.status as ActionRunTerminalStatus }
+        const result = {
+            changedPaths: run.changedPaths,
+            logs: run.logs,
+            status: run.status as ActionRunTerminalStatus,
+        }
         if (!waiters && this.startsInProgress > 0) this.terminalResults.set(run.runId, result)
         for (const resolve of waiters ?? []) resolve(result)
     }
@@ -860,18 +1102,24 @@ export class ActionRunRegistry extends EventTarget {
 
     private releaseTerminalRun(runId: string) {
         const store = this.runs.get(runId)
-        if (!store || store.hasConsumers() || this.waiters.has(runId)) return
+        if (!store) return
 
         const run = store.getSnapshot()
         const bindingKey = actionContextKey(run.rootActionId, run.context)
-        if ((this.actionContextListeners.get(bindingKey)?.size ?? 0) > 0) return
-
-        this.runs.delete(runId)
-        this.eventSequences.delete(runId)
-        if (this.actionContextStores.get(bindingKey) === store) {
-            this.actionContextStores.delete(bindingKey)
+        const stores = this.actionContextStores.get(bindingKey) ?? []
+        const remainingStores = stores.filter((current) => current !== store)
+        if (remainingStores.length !== stores.length) {
+            if (remainingStores.length > 0) this.actionContextStores.set(bindingKey, remainingStores)
+            else this.actionContextStores.delete(bindingKey)
             publishKey(this.actionContextListeners, bindingKey)
         }
+        if (store.hasConsumers() || this.waiters.has(runId) || this.terminalResults.has(runId)) return
+
+        this.runs.delete(runId)
+        this.runContexts.delete(runId)
+        this.eventSequences.delete(runId)
+        actionPromptDraftService.deleteUneditedDraft(run.rootActionId, run.context, runId)
+        this.dispatchEvent(new Event(runEventType(runId)))
     }
 
     private subscribeMap<T>(map: Map<string, Set<T>>, key: string, listener: T) {

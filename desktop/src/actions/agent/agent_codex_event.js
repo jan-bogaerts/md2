@@ -1,4 +1,6 @@
 const { normalizedContent } = require('./agent_event_utils');
+const { countFileContentLines, countPatchLines } = require('./agent_file_change');
+const { codexChangedPaths } = require('./agent_codex_events');
 const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 
 const MAX_EVENT_CONTENT_LENGTH = 16_384;
@@ -105,25 +107,14 @@ function fileChangeContent(changes) {
         .join('\n');
 }
 
-/** Count lines in complete added or deleted file content without treating a terminal newline as another line. */
-function countFileContentLines(content) {
-    if (typeof content !== 'string') return null;
-    if (content.length === 0) return 0;
-
-    const lines = content.replace(/\r\n/gu, '\n').split('\n');
-
-    return lines.at(-1) === '' ? lines.length - 1 : lines.length;
-}
-
 /** Count content-line additions and removals in one structurally valid unified diff. */
 function countUnifiedDiffLines(diff) {
     if (typeof diff !== 'string' || diff.length === 0) return null;
 
-    let deletions = 0;
     let foundHunk = false;
-    let insertions = 0;
     let oldLinesRemaining = 0;
     let newLinesRemaining = 0;
+    const patchLines = [];
     for (const line of diff.replace(/\r/gu, '').split('\n')) {
         if (oldLinesRemaining === 0 && newLinesRemaining === 0) {
             const match = UNIFIED_DIFF_HUNK_PATTERN.exec(line);
@@ -136,10 +127,8 @@ function countUnifiedDiffLines(diff) {
         }
         if (line.startsWith('\\ No newline at end of file')) continue;
         if (line.startsWith('+')) {
-            insertions += 1;
             newLinesRemaining -= 1;
         } else if (line.startsWith('-')) {
-            deletions += 1;
             oldLinesRemaining -= 1;
         } else if (line.startsWith(' ')) {
             oldLinesRemaining -= 1;
@@ -147,11 +136,12 @@ function countUnifiedDiffLines(diff) {
         } else {
             return null;
         }
+        patchLines.push(line);
         if (oldLinesRemaining < 0 || newLinesRemaining < 0) return null;
     }
     if (!foundHunk || oldLinesRemaining !== 0 || newLinesRemaining !== 0) return null;
 
-    return { deletions, insertions };
+    return countPatchLines(patchLines);
 }
 
 function fileChangeLineUsage(changes) {
@@ -230,7 +220,7 @@ function commandEvent(item, lifecycleStatus) {
     };
 }
 
-function fileEvent(item, lifecycleStatus) {
+function fileEvent(item, lifecycleStatus, rootPath) {
     const status = itemStatus(item, lifecycleStatus);
     const lineUsage = status === 'completed' ? fileChangeLineUsage(item.changes) : null;
 
@@ -238,6 +228,7 @@ function fileEvent(item, lifecycleStatus) {
         ...eventBase(item, lifecycleStatus, 'File changes'),
         content: fileChangeContent(item.changes),
         ...(lineUsage ?? {}),
+        paths: rootPath ? codexChangedPaths(item, rootPath) : [],
     };
 }
 
@@ -263,12 +254,29 @@ function dynamicToolEvent(item, lifecycleStatus) {
     };
 }
 
+const TERMINAL_COLLAB_AGENT_STATES = new Set(['aborted', 'cancelled', 'completed', 'declined', 'failed']);
+
+/**
+ * Counts the child threads a collaboration call is still waiting on, so a collapsed sub-agent group can
+ * say how many are working. A completed call is waiting on nobody, whatever its last states reported.
+ */
+function runningSubThreads(item, status) {
+    const states = item.agentsStates;
+    if (status === 'completed' || !states || typeof states !== 'object' || Array.isArray(states)) return 0;
+
+    return Object.values(states)
+        .filter((state) => !TERMINAL_COLLAB_AGENT_STATES.has(state?.status))
+        .length;
+}
+
 function collaborationEvent(item, lifecycleStatus) {
     const toolLabel = typeof item.tool === 'string' && item.tool.length > 0 ? item.tool : 'Agent tool';
+    const base = eventBase(item, lifecycleStatus, `Collaboration: ${toolLabel}`);
 
     return {
-        ...eventBase(item, lifecycleStatus, `Collaboration: ${toolLabel}`),
+        ...base,
         content: item.prompt ?? '',
+        runningSubThreads: runningSubThreads(item, base.status),
         output: boundedAgentResult(selectedEventContent({
             agentsStates: item.agentsStates,
             receiverThreadIds: item.receiverThreadIds,
@@ -276,14 +284,14 @@ function collaborationEvent(item, lifecycleStatus) {
     };
 }
 
-function normalizeCodexEvent(item, lifecycleStatus) {
+function normalizeCodexEvent(item, lifecycleStatus, rootPath) {
     if (!item || typeof item.id !== 'string' || typeof item.type !== 'string') return null;
     const type = canonicalCodexItemType(item.type);
     if (!SUPPORTED_CODEX_ITEM_TYPES.has(type)) return null;
     const normalizedItem = type === item.type ? item : { ...item, type };
     if (type === 'reasoning') return reasoningEvent(normalizedItem, lifecycleStatus);
     if (type === 'commandExecution') return commandEvent(normalizedItem, lifecycleStatus);
-    if (type === 'fileChange') return fileEvent(normalizedItem, lifecycleStatus);
+    if (type === 'fileChange') return fileEvent(normalizedItem, lifecycleStatus, rootPath);
     if (type === 'mcpToolCall') return mcpEvent(normalizedItem, lifecycleStatus);
     if (type === 'dynamicToolCall') return dynamicToolEvent(normalizedItem, lifecycleStatus);
     if (type === 'collabAgentToolCall') return collaborationEvent(normalizedItem, lifecycleStatus);

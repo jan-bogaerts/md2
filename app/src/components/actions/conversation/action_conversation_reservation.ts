@@ -1,12 +1,18 @@
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
-import type { ActionConversationRenderGroup } from './action_conversation_render_groups'
 
 const MIN_RESERVED_BLOCK_COUNT = 1
+
+export interface ReservationGroupState {
+    key: string
+    running: boolean
+}
 
 export interface ActionConversationReservationState {
     active: boolean
     conversationPath: string | null
-    inputKey: string
+    inputGroups: ReservationGroupState[]
+    reservationSession: object | null
+    transitionedGroupKeys: string[]
     permanentKeys: Set<string>
     runningKeys: Set<string>
     slotCount: number
@@ -16,30 +22,16 @@ function runIsActive(status: PopupRunStatus) {
     return status === 'queued' || status === 'running' || status === 'waitingForInput'
 }
 
-function groupIsRunning(group: ActionConversationRenderGroup) {
-    if (group.kind !== 'entry' || group.entry.kind !== 'event') return false
-
-    return group.entry.status === 'inProgress'
-        || group.entry.status === 'running'
-        || group.entry.status === 'started'
-}
-
-function reservationInputKey(
-    conversationPath: string | null,
-    groups: ActionConversationRenderGroup[],
-    active: boolean,
-) {
-    return JSON.stringify([conversationPath, active, groups.map((group) => [group.key, groupIsRunning(group)])])
-}
-
 /** Creates empty presentation state for chat-bottom reservation tracking. */
 export function createActionConversationReservationState(): ActionConversationReservationState {
     return {
         active: false,
         conversationPath: null,
-        inputKey: '',
+        inputGroups: [],
         permanentKeys: new Set(),
+        reservationSession: null,
         runningKeys: new Set(),
+        transitionedGroupKeys: [],
         slotCount: 0,
     }
 }
@@ -48,24 +40,41 @@ export function createActionConversationReservationState(): ActionConversationRe
 export function updateActionConversationReservation(
     previous: ActionConversationReservationState,
     conversationPath: string | null,
-    groups: ActionConversationRenderGroup[],
+    groups: ReservationGroupState[],
+    reservationSession: object,
+    transitionedGroupKeys: string[],
     status: PopupRunStatus,
 ) {
     const active = runIsActive(status)
-    const inputKey = reservationInputKey(conversationPath, groups, active)
-    if (inputKey === previous.inputKey) return previous
-    if (!active) return { ...createActionConversationReservationState(), inputKey }
+    if (!active && !previous.active) return previous
+    if (
+        active === previous.active
+        && conversationPath === previous.conversationPath
+        && groups === previous.inputGroups
+        && reservationSession === previous.reservationSession
+        && transitionedGroupKeys === previous.transitionedGroupKeys
+    ) return previous
+    if (!active) return createActionConversationReservationState()
 
-    const runningKeys = new Set(groups.filter(groupIsRunning).map(({ key }) => key))
-    const permanentKeys = new Set(groups.filter((group) => !groupIsRunning(group)).map(({ key }) => key))
-    const sessionChanged = !previous.active || previous.conversationPath !== conversationPath
+    const sessionChanged = !previous.active
+        || previous.conversationPath !== conversationPath
+        || previous.reservationSession !== reservationSession
+    const retainedPermanentKeys = sessionChanged ? [] : previous.permanentKeys
+    const runningKeys = new Set(groups.filter(({ running }) => running).map(({ key }) => key))
+    const permanentKeys = new Set([
+        ...retainedPermanentKeys,
+        ...groups.filter(({ running }) => !running).map(({ key }) => key),
+        ...transitionedGroupKeys,
+    ])
     if (sessionChanged) {
         return {
             active,
             conversationPath,
-            inputKey,
+            inputGroups: groups,
             permanentKeys,
+            reservationSession,
             runningKeys,
+            transitionedGroupKeys,
             slotCount: Math.max(MIN_RESERVED_BLOCK_COUNT, runningKeys.size),
         }
     }
@@ -77,7 +86,16 @@ export function updateActionConversationReservation(
     const availableSlotCount = Math.max(0, reducedSlotCount - retainedRunningCount)
     const slotCount = reducedSlotCount + Math.max(0, newRunningCount - availableSlotCount)
 
-    return { active, conversationPath, inputKey, permanentKeys, runningKeys, slotCount }
+    return {
+        active,
+        conversationPath,
+        inputGroups: groups,
+        permanentKeys,
+        reservationSession,
+        runningKeys,
+        transitionedGroupKeys,
+        slotCount,
+    }
 }
 
 /** Returns currently unused slots rendered as bottom placeholders. */

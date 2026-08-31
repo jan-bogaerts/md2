@@ -2,13 +2,13 @@ import { Box, Button, MenuItem, Select, Stack, TextField, Typography } from '@mu
 import type { SelectChangeEvent } from '@mui/material';
 import type { ChangeEvent } from 'react';
 import { dialogService } from '../../services/dialog_service';
-import {
-    projectStatsService,
-    type ProjectStatsSnapshot,
-    type StatsChartRow,
-    type StatsControls as StatsControlValues,
-    type StatsDataset,
-} from '../../services/stats/project_stats_service';
+import { projectStatsService } from '../../services/stats/project_stats_service';
+import type {
+    ProjectStatsSnapshot,
+    StatsChartRow,
+    StatsControls as StatsControlValues,
+    StatsDataset,
+} from '../../services/stats/project_stats_types';
 import { downloadStatsCsv } from './stats_csv';
 
 interface StatsControlsProps {
@@ -57,6 +57,10 @@ function handleActivityGranularityChange(event: SelectChangeEvent) {
 
 function handlePerformanceMetricChange(event: SelectChangeEvent) {
     setStatsControls({ performanceMetric: event.target.value as StatsControlValues['performanceMetric'] });
+}
+
+function handlePerformanceAggregationChange(event: SelectChangeEvent) {
+    setStatsControls({ performanceAggregation: event.target.value as StatsControlValues['performanceAggregation'] });
 }
 
 function handlePerformanceGroupingChange(event: SelectChangeEvent) {
@@ -150,6 +154,15 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                         </Select>
                     </Stack>
                     <Stack spacing={0.75}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Aggregation</Typography>
+                        <Select aria-label="Performance aggregation" onChange={handlePerformanceAggregationChange} size="small" value={controls.performanceAggregation}>
+                            <MenuItem value="sum">Sum</MenuItem>
+                            <MenuItem value="average">Average</MenuItem>
+                            <MenuItem value="averageWithDeviation">Average ± std dev</MenuItem>
+                            <MenuItem value="median">Median</MenuItem>
+                        </Select>
+                    </Stack>
+                    <Stack spacing={0.75}>
                         <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Grouping</Typography>
                         <Select aria-label="Performance grouping" onChange={handlePerformanceGroupingChange} size="small" value={controls.performanceGrouping}>
                             <MenuItem value="agent">Agent</MenuItem>
@@ -194,15 +207,13 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                 </>
             ) : null}
             {controls.dataset === 'usageComparison' ? (
-                <>
-                    <Stack spacing={0.75}>
-                        <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Granularity</Typography>
-                        <Select aria-label="Usage granularity" onChange={handleUsageGranularityChange} size="small" value={controls.usageGranularity}>
-                            <MenuItem value="day">Day</MenuItem>
-                            <MenuItem value="week">Week</MenuItem>
-                        </Select>
-                    </Stack>
-                </>
+                <Stack spacing={0.75}>
+                    <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Granularity</Typography>
+                    <Select aria-label="Usage granularity" onChange={handleUsageGranularityChange} size="small" value={controls.usageGranularity}>
+                        <MenuItem value="day">Day</MenuItem>
+                        <MenuItem value="week">Week</MenuItem>
+                    </Select>
+                </Stack>
             ) : null}
             {controls.dataset === 'totals' ? (
                 <>
@@ -218,6 +229,7 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                         <Select aria-label="Totals metric" onChange={handleTotalsMetricChange} size="small" value={controls.totalsMetric}>
                             <MenuItem value="duration">Measured duration</MenuItem>
                             <MenuItem value="tokens">Token usage</MenuItem>
+                            <MenuItem value="cost">Estimated cost</MenuItem>
                         </Select>
                     </Stack>
                 </>

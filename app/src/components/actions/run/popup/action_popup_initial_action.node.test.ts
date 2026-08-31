@@ -9,7 +9,7 @@ function action(id: string): Pick<ActionDefinition, 'id'> {
 }
 
 function run(rootActionId: string, status: ActiveActionRun['status']): ActiveActionRun {
-    return { rootActionId, runId: `${rootActionId}-${status}`, status }
+    return { context: { kind: 'project' }, rootActionId, runId: `${rootActionId}-${status}`, status }
 }
 
 function states(overrides: PersistedActionStates = {}): Record<string, CardAgentState> {
@@ -20,33 +20,41 @@ const actions = [action('first'), action('second'), action('third')]
 
 describe('resolveInitialActionId', () => {
     it('honors explicit choice over higher automatic priority', () => {
-        expect(resolveInitialActionId(actions, 'third', [run('second', 'running')], states())).toBe('third')
+        expect(resolveInitialActionId(actions, 'third', [run('second', 'running')], states(), 'first')).toBe('third')
     })
 
     it.each(['queued', 'running'] as const)('selects first %s action in selector order', (status) => {
         const activeRuns = [run('third', status), run('second', status)]
 
-        expect(resolveInitialActionId(actions, undefined, activeRuns, states())).toBe('second')
+        expect(resolveInitialActionId(actions, undefined, activeRuns, states(), 'third')).toBe('second')
     })
 
     it('selects persisted running action without matching live run', () => {
         const persistedStates = states({ first: 'idle', second: 'running', third: 'idle' })
 
-        expect(resolveInitialActionId(actions, undefined, [], persistedStates)).toBe('second')
+        expect(resolveInitialActionId(actions, undefined, [], persistedStates, 'third')).toBe('second')
     })
 
     it('uses selector order across waiting and unseen candidates', () => {
         const activeRuns = [run('third', 'waitingForInput')]
         const persistedStates = states({ first: 'idle', second: 'unseen result', third: 'idle' })
 
-        expect(resolveInitialActionId(actions, undefined, activeRuns, persistedStates)).toBe('second')
+        expect(resolveInitialActionId(actions, undefined, activeRuns, persistedStates, 'third')).toBe('second')
     })
 
     it('lets matching live waiting state override persisted running state', () => {
         const activeRuns = [run('second', 'waitingForInput')]
         const persistedStates = states({ first: 'unseen result', second: 'running', third: 'idle' })
 
-        expect(resolveInitialActionId(actions, undefined, activeRuns, persistedStates)).toBe('first')
+        expect(resolveInitialActionId(actions, undefined, activeRuns, persistedStates, 'third')).toBe('first')
+    })
+
+    it('selects applicable column default when no higher-priority action exists', () => {
+        expect(resolveInitialActionId(actions, undefined, [], states(), 'second')).toBe('second')
+    })
+
+    it('falls back to first action when column default is unavailable', () => {
+        expect(resolveInitialActionId(actions, undefined, [], states(), 'missing')).toBe('first')
     })
 
     it('falls back to first action when no action needs attention', () => {

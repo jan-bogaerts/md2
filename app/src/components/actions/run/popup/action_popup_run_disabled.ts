@@ -3,11 +3,18 @@ import type { ActionPromptPreparationStatus } from '../../../../services/actions
 
 interface ActionPopupRunState {
     agentActive: boolean
-    hasApprovals: boolean
-    hasQuestion: boolean
     interactionReady: boolean
     runDisabledMessage: string | null
     runStatus: string
+}
+
+/** Explains action-definition data that prevents a manual run. */
+export function actionRunDefinitionDisabledMessage(action: ActionDefinition) {
+    if (action.type === 'command' && (action.command === null || action.command.trim().length === 0)) {
+        return 'Command text is required'
+    }
+
+    return null
 }
 
 /** Applies popup run readiness rules to the current live prompt. */
@@ -17,18 +24,13 @@ export function actionPopupRunDisabled(
     prompt: string,
     preparationStatus: ActionPromptPreparationStatus,
 ) {
-    const sessionActive = runState.runStatus === 'queued'
-        || runState.runStatus === 'running'
-        || runState.runStatus === 'waitingForInput'
-
-    return !!runState.runDisabledMessage
+    return !!actionRunDefinitionDisabledMessage(action)
+        || !!runState.runDisabledMessage
         || preparationStatus !== 'ready'
+        || (action.type === 'command' && prompt.trim().length === 0)
         || (action.id === CUSTOM_PROMPT_ACTION_ID && prompt.trim().length === 0)
         || (runState.agentActive && (
             !runState.interactionReady
             || prompt.trim().length === 0
-            || runState.hasApprovals
-            || runState.hasQuestion
         ))
-        || (sessionActive && !runState.agentActive)
 }

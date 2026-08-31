@@ -8,7 +8,7 @@ function Card(path: string): Card {
     return {
         agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path,
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: path, internalId: path,
             owner: null, policy: {}, references: [], status: null, title: path,
         },
     }

@@ -2,12 +2,13 @@ import { GithubApiClient } from '../../auth/github_api_client'
 import type { ProjectReference } from '../../data/data_types'
 import type { GithubStorageDependencies, NormalizedGithubTreeEntry, PendingCommitHead } from './github_storage_types'
 import { createPendingHeadKey } from './github_storage_types'
+import { applicationStorage } from '../storage/application_storage'
 
 const PENDING_COMMIT_HEADS_STORAGE_KEY = 'md2.github.pendingCommitHeads'
 const PENDING_CONFLICT_MESSAGE = 'Unpushed GitHub commits conflict with the current branch. Discard pending commits or resolve the branch manually before opening this project.'
 
 function readStoredPendingCommitHeads() {
-    const storedValue = window.localStorage.getItem(PENDING_COMMIT_HEADS_STORAGE_KEY)
+    const storedValue = applicationStorage.getItem(PENDING_COMMIT_HEADS_STORAGE_KEY)
     if (!storedValue) return new Map<string, PendingCommitHead>()
 
     const parsedValue = JSON.parse(storedValue) as Record<string, PendingCommitHead>
@@ -19,12 +20,12 @@ function writeStoredPendingCommitHeads(pendingCommitHeads: Map<string, PendingCo
     const storedValue = Object.fromEntries(pendingCommitHeads)
 
     if (Object.keys(storedValue).length === 0) {
-        window.localStorage.removeItem(PENDING_COMMIT_HEADS_STORAGE_KEY)
+        applicationStorage.removeItem(PENDING_COMMIT_HEADS_STORAGE_KEY)
 
         return
     }
 
-    window.localStorage.setItem(PENDING_COMMIT_HEADS_STORAGE_KEY, JSON.stringify(storedValue))
+    applicationStorage.setItem(PENDING_COMMIT_HEADS_STORAGE_KEY, JSON.stringify(storedValue))
 }
 
 export function readStoredPendingCommitHead(project: ProjectReference) {

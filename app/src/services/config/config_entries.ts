@@ -13,12 +13,9 @@ import {
 } from '../../data/data_types'
 import {
     BUILTIN_AGENT_PROFILES,
-    DEFAULT_PERMISSION_MODE,
-    PERMISSION_MODE_OPTIONS,
     type AgentProfile,
-    type PermissionMode,
-    type ThinkingLevel,
 } from '../../data/agent_profiles'
+import { DEFAULT_AGENT_SELECTION, type AgentSelectionState } from '../../data/agent_selection'
 import type { ProjectBackgroundShade } from '../../theme/project_background_shade'
 import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from '../../data/card_identifiers'
 
@@ -26,15 +23,12 @@ export type ConfigSource = 'react' | 'desktop' | 'project'
 export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json'
 
 export interface ConfigValueTypes {
-    'desktop.agent': string
+    'desktop.agentSelection': AgentSelectionState
     'desktop.agentProfiles': AgentProfile[]
     'desktop.codexSearchEnabled': boolean
     'desktop.editorCommand': string
     'desktop.mergeConflictResolverCommand': string
-    'desktop.model': string
-    'desktop.permissionMode': PermissionMode
     'desktop.remoteControlPort': number
-    'desktop.thinkingLevel': ThinkingLevel
     'project.actionsFolder': string
     'project.archivedFolder': string
     'project.backgroundShade': ProjectBackgroundShade
@@ -54,7 +48,7 @@ export interface ConfigValueTypes {
 
 export type ConfigKey = keyof ConfigValueTypes
 
-export type ConfigValue = boolean | number | string | AgentProfile[] | CardTypeConfig[] | StateConfig[]
+export type ConfigValue = boolean | number | string | AgentProfile[] | AgentSelectionState | CardTypeConfig[] | StateConfig[]
 
 export interface ConfigOption {
     label: string
@@ -81,15 +75,12 @@ export interface ConfigEntry {
 export type ConfigValues = ConfigValueTypes
 
 export interface DesktopConfigValues {
-    agent: string
+    agentSelection: AgentSelectionState
     agentProfiles: AgentProfile[]
     codexSearchEnabled?: boolean
     editorCommand: string
     mergeConflictResolverCommand: string
-    model: string
-    permissionMode?: PermissionMode
     remoteControlPort: number
-    thinkingLevel?: ThinkingLevel
 }
 
 export const CONFIG_SECTIONS = [
@@ -104,6 +95,7 @@ const MAX_AUTO_COMMIT_DELAY_MS = 120000
 export const DEFAULT_EDITOR_COMMAND = 'code -g "{{file}}:{{line}}"'
 export const DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND = ''
 export const DEFAULT_REMOTE_CONTROL_PORT = 20877
+export const DEFAULT_DESKTOP_AGENT_SELECTION: AgentSelectionState = DEFAULT_AGENT_SELECTION
 
 export const CONFIG_ENTRIES: ConfigEntry[] = [
     {
@@ -268,7 +260,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: DEFAULT_STATES,
-        description: 'Board columns in display order. Fields: state, alwaysVisible, color.',
+        description: 'Board columns in display order. Fields: state, alwaysVisible, color, optional defaultActionId.',
         editable: true,
         key: 'project.states',
         label: 'Columns',
@@ -277,25 +269,14 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'json',
     },
     {
-        defaultValue: DEFAULT_PERMISSION_MODE,
-        description: 'Default security behavior for supported desktop agents.',
+        defaultValue: DEFAULT_DESKTOP_AGENT_SELECTION,
+        description: 'Active desktop agent and remembered model and reasoning level for each agent.',
         editable: true,
-        key: 'desktop.permissionMode',
-        label: 'Default permission mode',
-        options: PERMISSION_MODE_OPTIONS.map(({ label, value }) => ({ label, value })),
+        key: 'desktop.agentSelection',
+        label: 'Desktop agent selection',
         section: 'desktop',
         source: 'desktop',
-        type: 'select',
-    },
-    {
-        defaultValue: 'codex',
-        description: 'Default local agent profile used by desktop actions.',
-        editable: true,
-        key: 'desktop.agent',
-        label: 'Default agent',
-        section: 'desktop',
-        source: 'desktop',
-        type: 'string',
+        type: 'json',
     },
     {
         defaultValue: true,
@@ -328,16 +309,6 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'string',
     },
     {
-        defaultValue: '',
-        description: 'Default model for the selected desktop agent profile. Leave empty for the profile default.',
-        editable: true,
-        key: 'desktop.model',
-        label: 'Default model',
-        section: 'desktop',
-        source: 'desktop',
-        type: 'string',
-    },
-    {
         defaultValue: DEFAULT_REMOTE_CONTROL_PORT,
         description: 'LAN port used to serve the web app and remote-control WebSocket.',
         editable: true,
@@ -350,23 +321,6 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         source: 'desktop',
         step: 1,
         type: 'number',
-    },
-    {
-        defaultValue: 'none',
-        description: 'Default reasoning level for desktop agent actions.',
-        editable: true,
-        key: 'desktop.thinkingLevel',
-        label: 'Default reasoning level',
-        options: [
-            { label: 'none', value: 'none' },
-            { label: 'low', value: 'low' },
-            { label: 'medium', value: 'medium' },
-            { label: 'high', value: 'high' },
-            { label: 'max', value: 'max' },
-        ],
-        section: 'desktop',
-        source: 'desktop',
-        type: 'select',
     },
     {
         defaultValue: BUILTIN_AGENT_PROFILES,

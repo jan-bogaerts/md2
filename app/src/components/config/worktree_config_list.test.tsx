@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProjectReference, StorageService, WorktreeRecord } from '../../data/data_types'
+import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { createDeferred } from '../../services/test_support/data_service_test_support'
 import { AppThemeProvider } from '../../theme/theme_provider'
@@ -34,6 +35,7 @@ describe('WorktreeConfigList', () => {
     afterEach(() => {
         cleanup()
         worktreeService.clear()
+        vi.restoreAllMocks()
     })
 
     it('shows additions and removals as pending without mutating Git', async () => {
@@ -89,5 +91,29 @@ describe('WorktreeConfigList', () => {
 
         pendingSelection.resolve(null)
         await waitFor(() => expect(screen.queryByRole('progressbar', { name: 'Selecting linked worktree folder' })).not.toBeInTheDocument())
+    })
+
+    it('shows primary-folder rejection without reporting an application error', async () => {
+        const storage = {
+            onWorktreesChanged: vi.fn((listener) => {
+                listener({ error: null, primaryStatus: null, project, records: [first] })
+                return vi.fn()
+            }),
+            selectWorktreeFolder: vi.fn(async () => 'c:/PRIMARY/'),
+        } as unknown as StorageService
+        const displayError = vi.spyOn(dialogService, 'displayError')
+        const reportError = vi.spyOn(dialogService, 'error')
+        initWorktreeService(storage)
+        worktreeService.startDraft()
+
+        render(<AppThemeProvider><WorktreeConfigList /></AppThemeProvider>)
+        fireEvent.click(screen.getByRole('button', { name: 'Add linked worktree' }))
+
+        await waitFor(() => expect(displayError).toHaveBeenCalledWith(
+            'Primary project folder is already the primary worktree. Choose a different folder for the linked worktree.',
+            { title: 'Linked worktree not added' },
+        ))
+        expect(reportError).not.toHaveBeenCalled()
+        expect(screen.queryByText('c:/PRIMARY/')).not.toBeInTheDocument()
     })
 })

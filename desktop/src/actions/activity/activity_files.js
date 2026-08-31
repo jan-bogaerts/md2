@@ -7,6 +7,7 @@ const {
     createActivityFile,
     findActivityConversation,
     parseActivityValue,
+    parseActivityValueForMigration,
 } = require('../../../../shared/card_activity.mjs');
 const { parseAgentConversationValue } = require('../../../../shared/agent_conversations.mjs');
 const {
@@ -67,7 +68,7 @@ async function readStoredActivityContent(filePath) {
 }
 
 function activityValue(stored, origin) {
-    return stored.value === null ? createActivityFile(origin) : parseActivityValue(stored.value, origin);
+    return stored.value === null ? createActivityFile(origin) : parseActivityValueForMigration(stored.value, origin);
 }
 
 async function loadActivityValue(filePath, origin) {
@@ -257,10 +258,9 @@ async function updateActivityConversationViewed(project, reference, viewed) {
         const activity = activityValue(stored);
         const conversation = findActivityConversation(activity, conversationId);
         const updatedConversation = { ...conversation, viewed };
-        const storedActivity = stored.value;
         const updatedActivity = {
-            ...storedActivity,
-            conversations: storedActivity.conversations.map((current) => (
+            ...activity,
+            conversations: activity.conversations.map((current) => (
                 current.id === conversationId ? { ...current, viewed } : current
             )),
         };
@@ -326,10 +326,9 @@ async function closeWaitingActivityConversation(project, reference, status) {
         }
 
         const completedAt = new Date().toISOString();
-        const storedActivity = stored.value;
         const updatedActivity = {
-            ...storedActivity,
-            conversations: storedActivity.conversations.map((storedConversation) => (
+            ...activity,
+            conversations: activity.conversations.map((storedConversation) => (
                 storedConversation.id === conversationId
                     ? { ...storedConversation, completedAt, status, viewed: conversation.viewed }
                     : storedConversation

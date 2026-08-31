@@ -4,8 +4,8 @@ import {
     type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from 'react'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
-import { dialogService } from '../../../services/dialog_service'
 import type { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
+import { applicationStorage } from '../../../services/storage/application_storage'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown_editor'
 
 const MIN_PROMPT_HEIGHT = 72
@@ -16,20 +16,21 @@ const PROMPT_RESIZE_STEP = 24
 const PROMPT_HEIGHT_STORAGE_KEY = 'md2.actionPromptHeight'
 
 function readStoredPromptHeight(): number {
-    const storedValue = window.localStorage.getItem(PROMPT_HEIGHT_STORAGE_KEY)
+    const storedValue = applicationStorage.getItem(PROMPT_HEIGHT_STORAGE_KEY)
     const parsedValue = storedValue ? Number.parseInt(storedValue, 10) : Number.NaN
 
     return Number.isNaN(parsedValue) ? DEFAULT_PROMPT_HEIGHT : parsedValue
 }
 
 function persistPromptHeight(height: number) {
-    window.localStorage.setItem(PROMPT_HEIGHT_STORAGE_KEY, String(Math.round(height)))
+    applicationStorage.setItem(PROMPT_HEIGHT_STORAGE_KEY, String(Math.round(height)))
 }
 
 interface ActionAgentPromptProps {
     attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
     bottomRow?: ReactNode
     convertMessage: string | null
+    monospace?: boolean
     onRunShortcut?: () => void
     promptDraft: ActionPromptDraft
     responsePrompts?: ReactNode
@@ -37,7 +38,7 @@ interface ActionAgentPromptProps {
 
 /** Resizable prompt editor shown below an agent conversation. */
 export function ActionAgentPrompt(props: ActionAgentPromptProps) {
-    const {attachmentHandler, bottomRow, convertMessage, onRunShortcut, promptDraft, responsePrompts} = props
+    const {attachmentHandler, bottomRow, convertMessage, monospace = false, onRunShortcut, promptDraft, responsePrompts} = props
     const promptEditorRef = useRef<MarkdownEditorHandle>(null)
     const promptHeightStartRef = useRef(0)
     const pointerStartYRef = useRef(0)
@@ -76,12 +77,6 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
             return clamped
         })
     }, [clampPromptHeight, promptEmpty])
-
-    const handlePromptChange = () => {
-        void promptDraft.synchronize().catch((error: unknown) => {
-            dialogService.error(error, { fallbackMessage: 'Could not queue agent prompt' })
-        })
-    }
 
     const handleSplitPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
         if (promptEmpty) return
@@ -197,12 +192,12 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                 >
                     <MarkdownEditor
                         attachmentHandler={attachmentHandler}
-                        draft={promptDraft.markdownDraft}
+                        draft={promptDraft.editorDraft}
                         flushOnBlur
                         hideAttachmentControl
                         hideToolbar
                         localTextSearch={false}
-                        onChange={handlePromptChange}
+                        monospace={monospace}
                         onLiveChange={handleLivePromptChange}
                         placeholders={ACTION_PROMPT_PLACEHOLDERS}
                         readOnly={editorSnapshot.preparationStatus !== 'ready'}

@@ -1,0 +1,48 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e376]:
+    - tablist "Action editor sections" [ref=f1e380]:
+      - tab "Definition" [ref=f1e381] [cursor=pointer]
+      - tab "Prompt" [ref=f1e382] [cursor=pointer]
+      - tab "Tests" [active] [selected] [ref=f1e383] [cursor=pointer]
+      - tab "Add predefined phrase" [ref=f1e384] [cursor=pointer]: +
+    - generic [ref=f1e388]:
+      - toolbar [ref=f1e389]:
+        - generic [ref=f1e466]:
+          - generic [ref=f1e467]:
+            - generic [ref=f1e468]:
+              - radiogroup [ref=f1e469]:
+                - radio "Undo Ctrl+Z" [disabled]
+              - radiogroup [ref=f1e470]:
+                - radio "Redo Ctrl+Y" [disabled]
+            - separator [ref=f1e471]
+            - generic [ref=f1e472]:
+              - radiogroup [ref=f1e473]:
+                - radio "Bold" [ref=f1e474]
+              - radiogroup [ref=f1e478]:
+                - radio "Italic" [ref=f1e479]
+              - radiogroup [ref=f1e483]:
+                - radio "Underline" [ref=f1e484]
+            - separator [ref=f1e488]
+            - radiogroup "toggle group" [ref=f1e490]:
+              - radio "Bulleted list" [ref=f1e491]
+              - radio "Numbered list" [ref=f1e495]
+              - radio "Check list" [ref=f1e499]
+            - combobox "Block type" [ref=f1e504]
+            - separator [ref=f1e508]
+            - button "Create link" [ref=f1e509]
+            - button "Insert image" [ref=f1e513]
+            - separator [ref=f1e517]
+            - button "Insert Table" [ref=f1e518]
+            - button "Insert thematic break" [ref=f1e522]
+            - button "Insert Code Block" [ref=f1e526]
+            - separator [ref=f1e530]
+            - generic "Find text" [ref=f1e531]:
+              - button "Find text" [ref=f1e532] [cursor=pointer]
+            - button "Delete this predefined phrase" [ref=f1e535] [cursor=pointer]
+          - generic [ref=f1e538]:
+            - generic [ref=f1e539]: Phrase title
+            - textbox "Phrase title" [ref=f1e542]: Tests
+      - textbox "editable markdown" [ref=f1e464]:
+        - paragraph [ref=f1e543]: Run runtime tests
+  - listbox "Typeahead menu"
+  - listbox "Typeahead menu"

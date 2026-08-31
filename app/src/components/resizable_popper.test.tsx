@@ -105,6 +105,40 @@ describe('ResizablePopper', () => {
         expect(document.querySelector('.MuiPopper-root')).toHaveStyle({ position: 'fixed' })
     })
 
+    it('uses the configured bottom inset in anchored maximum height', () => {
+        const view = render(
+            <ResizablePopper
+                anchorElement={document.body}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize test popper"
+            >
+                <h2 id="popper-title">Test popper</h2>
+            </ResizablePopper>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'Test popper' })
+
+        expect(dialog).toHaveStyle({ maxHeight: 'calc(100vh - 32px)' })
+
+        view.rerender(
+            <ResizablePopper
+                anchorElement={document.body}
+                bottomInset={0}
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize test popper"
+            >
+                <h2 id="popper-title">Test popper</h2>
+            </ResizablePopper>,
+        )
+
+        expect(dialog).toHaveStyle({ maxHeight: 'calc(100vh - 16px)' })
+    })
+
     it('resizes and closes with Escape', () => {
         const onClose = vi.fn()
         render(
@@ -376,6 +410,33 @@ describe('ResizablePopper', () => {
         )
 
         expect(screen.getByRole('dialog', { name: 'Viewport popper' })).toHaveStyle({ height: '568px', width: '768px' })
+    })
+
+    it('uses the bottom inset when clamping a constrained resize', () => {
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 600, writable: true })
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800, writable: true })
+        render(
+            <ResizablePopper
+                anchorElement={document.body}
+                bottomInset={0}
+                constrainSizeToViewport
+                initialSize={{ height: 300, width: 400 }}
+                labelId="popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize test popper"
+            >
+                <h2 id="popper-title">Test popper</h2>
+            </ResizablePopper>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'Test popper' })
+        const handle = screen.getByRole('separator', { name: 'Resize test popper' })
+
+        fireEvent.pointerDown(handle, { clientX: 0, clientY: 0, pointerId: 1 })
+        fireEvent.pointerMove(window, { clientX: 1000, clientY: 1000, pointerId: 1 })
+        fireEvent.pointerUp(window, { pointerId: 1 })
+
+        expect(dialog).toHaveStyle({ height: '584px', width: '768px' })
     })
 
     it('can preserve editor focus and leave Escape handling to its owner', () => {

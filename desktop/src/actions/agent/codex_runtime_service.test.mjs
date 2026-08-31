@@ -66,6 +66,53 @@ describe('CodexRuntimeService', () => {
         expect(lateListener).toHaveBeenCalledWith(service.getSnapshot());
     });
 
+    it('excludes Spark from mixed full snapshots', () => {
+        const service = new CodexRuntimeService();
+
+        expect(service.publishRateLimits({
+            rateLimitsByLimitId: {
+                codex: bucket('codex', 20),
+                spark: bucket('spark', 60, { limitName: 'GPT-5.3-Codex-Spark' }),
+            },
+        }, 200)).toBe(true);
+
+        expect(service.getSnapshot()).toMatchObject({
+            buckets: [{ limitId: 'codex', limitName: 'Codex' }],
+            observedAt: 200,
+        });
+    });
+
+    it('clears stale supported buckets when a full snapshot contains only Spark', () => {
+        const service = new CodexRuntimeService();
+        service.publishRateLimits({ rateLimits: bucket('codex', 20) }, 100);
+
+        expect(service.publishRateLimits({rateLimits: bucket('spark', 60, { limitName: 'GPT-5.3-Codex-Spark' })}, 200)).toBe(true);
+
+        expect(service.getSnapshot()).toEqual({
+            available: true,
+            buckets: [],
+            observedAt: 200,
+            rateLimitResetCredits: null,
+        });
+    });
+
+    it('ignores sparse Spark updates without changing supported buckets', () => {
+        const service = new CodexRuntimeService();
+        service.publishRateLimits({
+            rateLimitsByLimitId: {
+                codex: bucket('codex', 20),
+                spark: bucket('spark', 60, { limitName: 'GPT-5.3-Codex-Spark' }),
+            },
+        }, 100);
+
+        expect(service.publishRateLimits({rateLimits: { limitId: 'spark', primary: { usedPercent: 80 } }}, 200, true)).toBe(true);
+
+        expect(service.getSnapshot()).toMatchObject({
+            buckets: [{ limitId: 'codex', limitName: 'Codex', primary: { usedPercent: 20 } }],
+            observedAt: 200,
+        });
+    });
+
     it('merges sparse updates without erasing other buckets or nullable account fields', () => {
         const service = new CodexRuntimeService();
         service.publishRateLimits({

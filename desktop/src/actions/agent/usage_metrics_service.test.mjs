@@ -160,6 +160,18 @@ describe('UsageMetricsService', () => {
         expect(records[0].resets_at).toBe('2027-01-15T08:00:00.000Z');
     });
 
+    it('treats one-minute reset timestamp drift as the same account window', async () => {
+        const { destination, filePath } = await createDestination();
+        const service = new UsageMetricsService();
+        startProject(service, destination);
+
+        await service.recordAccountUsage('codex', codexSnapshot(20, 1_800_000_000));
+        await service.recordAccountUsage('codex', codexSnapshot(27.88, 1_799_999_940));
+
+        const records = parsedObjects(await readFile(filePath, 'utf8'));
+        expect(Number(records.at(-1).used_percent_delta)).toBeCloseTo(7.88);
+    });
+
     it('restores last valid baselines after restart and skips unchanged snapshots', async () => {
         const { destination, filePath } = await createDestination();
         const firstService = new UsageMetricsService();

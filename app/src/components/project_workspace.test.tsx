@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../auth/use_github_auth'
 import type { ActionFile } from '../data/action_types'
@@ -11,6 +12,7 @@ import { actionService } from '../services/actions/action_service'
 import { openFilesService } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry/telemetry_service'
 import { workspaceNavigationService } from '../services/project/workspace_navigation_service'
+import { mobileCardViewService } from '../services/project/mobile_card_view_service'
 import { workspaceViewService } from '../services/project/workspace_view_service'
 import { projectPersistenceService } from '../services/project/project_persistence_service'
 import { projectAccessService } from '../services/project/project_access_service'
@@ -199,6 +201,15 @@ async function findRootCard() {
     return within(await screen.findByLabelText('Card columns')).findByText('Root')
 }
 
+function dismissNewCardThroughBackdrop() {
+    const dialog = screen.getByRole('dialog', { name: 'New card' })
+    const backdrop = dialog.closest('.MuiDialog-root')?.querySelector('.MuiBackdrop-root')
+    if (!backdrop) throw new Error('Missing new-card dialog backdrop')
+
+    fireEvent.mouseDown(backdrop)
+    fireEvent.click(backdrop)
+}
+
 function mockGithubFetch() {
     return vi.fn(async (url: string | URL | Request) => {
         const requestUrl = url.toString()
@@ -239,6 +250,9 @@ describe('ProjectWorkspace', () => {
         delete window.md2Actions
         delete window.md2Data
         delete window.md2Lifecycle
+        mobileCardViewService.selectVisibleColumn([])
+        Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
+        vi.unstubAllGlobals()
         vi.restoreAllMocks()
     })
 
@@ -383,17 +397,20 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface(false)
         await requestLocalProject()
 
-        expect(await screen.findByRole('dialog', { name: 'Create project' })).toBeInTheDocument()
+        expect(await screen.findByRole('dialog', { name: 'Project folders' })).toBeInTheDocument()
         expect(screen.getByLabelText('Project folder')).toHaveValue('design')
         fireEvent.change(screen.getByLabelText('Project folder'), { target: { value: 'docs' } })
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), 'docs/active'))
+        await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(
+            expect.any(Object),
+            ['docs/active', 'docs/archived', 'docs/actions', 'docs/history'],
+        ))
         await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({
             projectFolder: 'docs',
             workingFolder: 'active',
         })))
-        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Create project' })).toBeNull())
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Project folders' })).toBeNull())
     })
 
     it('keeps the workspace fixed while the card surface scrolls without a header', async () => {
@@ -486,13 +503,13 @@ describe('ProjectWorkspace', () => {
             content: JSON.stringify({ command: 'run', description: 'Run', id: 'run', label: 'Run', type: 'command' }),
             path: 'actions/run.json',
         }])
-        actionService.draftStore.updateDraft('actions/run.json', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
+        actionService.draftStore.updateDraft('run', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
 
         const pendingClose = new Event('beforeunload', { cancelable: true })
         window.dispatchEvent(pendingClose)
 
         expect(pendingClose.defaultPrevented).toBe(true)
-        expect(actionService.draftStore.getDraft('actions/run.json').definition.label).toBe('')
+        expect(actionService.draftStore.getDraft('run').definition.label).toBe('')
         expect(projectPersistenceService.getSnapshot().hasPendingSave).toBe(true)
     })
 
@@ -550,7 +567,7 @@ describe('ProjectWorkspace', () => {
             content: JSON.stringify({ command: 'run', description: 'Run', id: 'run', label: 'Run', type: 'command' }),
             path: 'actions/run.json',
         }])
-        actionService.draftStore.updateDraft('actions/run.json', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
+        actionService.draftStore.updateDraft('run', { command: 'run', description: 'Run', id: 'run', label: '', type: 'command' })
 
         act(() => flushRequested?.({ reason: 'app-quit', requestId: 'quit-invalid' }))
 
@@ -561,14 +578,22 @@ describe('ProjectWorkspace', () => {
 
     it('asks for a folder and persists an existing choice when the configured working folder is missing', async () => {
         const bridge = createBridge()
+        const captureError = vi.spyOn(telemetryService, 'captureError')
         let savedConfig: ProjectConfig | null = null
-        bridge.listTopLevelFolders = vi.fn(async () => [
-            { name: 'docs', path: 'docs' },
-            { name: 'notes', path: 'notes' },
+        bridge.listRepositoryFiles = vi.fn(async () => [
+            'design/actions/README.md',
+            'design/archived/README.md',
+            'design/docs/F-1-root.md',
+            'design/history/README.md',
         ])
-        bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? { backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'missing' })
+        bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'design', path: 'design' }])
+        bridge.loadProjectConfig = vi.fn(async () => savedConfig ?? {
+            backgroundShade: 'blue' as const,
+            projectFolder: 'design',
+            workingFolder: 'missing',
+        })
         const loadProject = vi.fn(async (_project, workingFolder) => {
-            if (workingFolder === 'missing') throw new MissingWorkingFolderError(workingFolder)
+            if (workingFolder === 'design/missing') throw new MissingWorkingFolderError(workingFolder)
 
             return {
                 files: [{ content: '---\nid: F-1\ntitle: Root\nstatus: active\naffects:\n---\n\n# Root', path: `${workingFolder}/F-1-root.md` }],
@@ -585,11 +610,14 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface()
         await requestLocalProject()
 
-        expect(await screen.findByText('Working folder is missing: missing')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Use folder docs' })).toBeInTheDocument()
+        expect(await screen.findByRole('dialog', { name: 'Project folders' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Working folder')).toHaveValue('missing')
+        expect(screen.queryByRole('alert')).toBeNull()
+        expect(captureError).not.toHaveBeenCalled()
         expect(bridge.createProject).not.toHaveBeenCalled()
 
-        fireEvent.click(screen.getByRole('button', { name: 'Use folder docs' }))
+        fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: 'docs' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save and open' }))
 
         await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({
             states: expect.arrayContaining([
@@ -602,15 +630,24 @@ describe('ProjectWorkspace', () => {
             ]),
             workingFolder: 'docs',
         })))
-        expect(bridge.createProject).not.toHaveBeenCalled()
+        expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), [])
         expect(await findRootCard()).toBeInTheDocument()
     })
 
     it('creates the configured folder only after the explicit create action', async () => {
         const bridge = createBridge()
         let isCreated = false
-        bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'docs', path: 'docs' }])
-        bridge.loadProjectConfig = vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'missing' }))
+        bridge.listRepositoryFiles = vi.fn(async () => [
+            'design/actions/README.md',
+            'design/archived/README.md',
+            'design/history/README.md',
+        ])
+        bridge.listTopLevelFolders = vi.fn(async () => [{ name: 'design', path: 'design' }])
+        bridge.loadProjectConfig = vi.fn(async () => ({
+            backgroundShade: 'blue' as const,
+            projectFolder: 'design',
+            workingFolder: 'missing',
+        }))
         const loadProject = vi.fn(async (_project, workingFolder) => {
             if (!isCreated) throw new MissingWorkingFolderError(workingFolder)
 
@@ -631,12 +668,12 @@ describe('ProjectWorkspace', () => {
         renderProjectSurface()
         await requestLocalProject()
 
-        await screen.findByText('Working folder is missing: missing')
+        await screen.findByRole('dialog', { name: 'Project folders' })
         expect(bridge.createProject).not.toHaveBeenCalled()
 
-        fireEvent.click(screen.getByRole('button', { name: "Create 'missing' from template" }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save and open' }))
 
-        await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), 'missing'))
+        await waitFor(() => expect(bridge.createProject).toHaveBeenCalledWith(expect.any(Object), ['design/missing']))
         await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ workingFolder: 'missing' })))
         expect(await findRootCard()).toBeInTheDocument()
     })
@@ -660,6 +697,54 @@ describe('ProjectWorkspace', () => {
 
         expect(await screen.findByText('commit failed')).toBeInTheDocument()
         expect(screen.getByRole('dialog', { name: 'New card' })).toBeInTheDocument()
+    })
+
+    it('keeps existing-card title and Markdown input usable after keeping and creating a dismissed draft', async () => {
+        const user = userEvent.setup()
+        const bridge = createBridge()
+        window.md2Data = bridge
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Project' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'New card...' }))
+        const newCardTitle = await screen.findByRole('textbox', { name: 'Title' })
+        const newCardBody = within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox')
+        await user.type(newCardTitle, 'New card')
+        await user.type(newCardBody, 'Draft body')
+
+        dismissNewCardThroughBackdrop()
+        await user.click(await screen.findByRole('button', { name: 'Keep editing' }))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Discard this new card draft?' })).not.toBeInTheDocument())
+        await user.click(newCardTitle)
+        await user.type(newCardTitle, ' finished')
+        await user.click(newCardBody)
+        await user.type(newCardBody, ' finished')
+        await user.click(screen.getByRole('button', { name: 'Create card' }))
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { hidden: true, name: 'New card' })).not.toBeInTheDocument())
+        expect(screen.queryByRole('dialog', { hidden: true, name: 'Discard this new card draft?' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
+        const cardDialog = await screen.findByRole('dialog', { name: 'F-1 card details' })
+        const cardTitle = within(cardDialog).getByRole('textbox', { name: 'Card title' })
+        const cardBody = within(cardDialog).getByDisplayValue(/# Root/u)
+        const commitCountBeforeExistingCardEdit = vi.mocked(bridge.commit).mock.calls.length
+        await user.click(cardTitle)
+        await user.type(cardTitle, ' typed')
+        expect(cardTitle).toHaveFocus()
+        expect(cardTitle).toHaveValue('Root typed')
+        await user.click(cardBody)
+        await user.type(cardBody, ' typed')
+
+        expect(cardBody).toHaveFocus()
+        expect((cardBody as HTMLTextAreaElement).value).toContain('typed')
+        await waitFor(() => expect(vi.mocked(bridge.commit).mock.calls.length).toBeGreaterThan(commitCountBeforeExistingCardEdit))
+        await user.click(within(cardDialog).getByRole('button', { name: 'Close card details' }))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'F-1 card details' })).not.toBeInTheDocument())
+        await projectPersistenceService.flushPendingChanges()
     })
 
     it('lists custom configured card types and uses their prefix', async () => {
@@ -829,8 +914,11 @@ describe('ProjectWorkspace', () => {
 
         expect(confirm).toHaveBeenCalledWith('Delete design/actions/test.json?')
         await waitFor(() => expect(bridge.deleteFile).toHaveBeenCalledWith(expect.objectContaining({ path: actionFile.path })))
-        expect(openFilesService.getSnapshot().documents).toHaveLength(0)
-        expect(screen.queryByRole('tab', { name: /Test/u })).not.toBeInTheDocument()
+        await waitFor(() => {
+            expect(openFilesService.getSnapshot().documents).toHaveLength(0)
+            expect(screen.queryByRole('tab', { name: /Test/u })).not.toBeInTheDocument()
+            expect(tree.queryByRole('button', { name: 'Test' })).not.toBeInTheDocument()
+        })
     }, 10_000)
 
     it('reveals a navigated card and keeps the current card view', async () => {
@@ -851,6 +939,79 @@ describe('ProjectWorkspace', () => {
         expect(trackEvent).toHaveBeenCalledWith('navigation')
 
         trackEvent.mockRestore()
+    })
+
+    it('selects and scrolls a revealed active card while preserving cards view', async () => {
+        const scrollIntoView = vi.fn()
+        let frameCallback: FrameRequestCallback | null = null
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+            frameCallback = callback
+            return 1
+        })
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView })
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        act(() => workspaceNavigationService.revealCard('design/F-1-root.md'))
+        act(() => frameCallback?.(0))
+
+        expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' })
+        expect(workspaceViewService.getSnapshot()).toEqual({ selectedPath: 'design/F-1-root.md', viewMode: 'cards' })
+        expect(document.querySelector('[data-selected="true"]')).toHaveTextContent('Root')
+    })
+
+    it('selects the card status column before revealing on mobile', async () => {
+        const scrollIntoView = vi.fn()
+        let frameCallback: FrameRequestCallback | null = null
+        vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+            addEventListener: () => {}, addListener: () => {}, dispatchEvent: () => false, matches: true,
+            media: query, onchange: null, removeEventListener: () => {}, removeListener: () => {},
+        }) as unknown as MediaQueryList)
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+            frameCallback = callback
+            return 1
+        })
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView })
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        await screen.findByText('Root')
+        act(() => mobileCardViewService.selectColumn('done'))
+
+        act(() => workspaceNavigationService.revealCard('design/F-1-root.md'))
+        act(() => frameCallback?.(0))
+
+        expect(mobileCardViewService.getSnapshot().selectedColumnStatus).toBe('active')
+        expect(workspaceViewService.getSnapshot()).toEqual({ selectedPath: 'design/F-1-root.md', viewMode: 'cards' })
+        expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' })
+    })
+
+    it('reports reveal failure when active card or rendered element is missing', async () => {
+        let frameCallback: FrameRequestCallback | null = null
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+            frameCallback = callback
+            return 1
+        })
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
+        window.md2Data = createBridge()
+
+        renderProjectSurface()
+        await openLocalProject()
+        await findRootCard()
+
+        act(() => workspaceNavigationService.revealCard('design/F-404-missing.md'))
+        expect(await screen.findByText('Active card no longer exists: design/F-404-missing.md')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+        await waitFor(() => expect(screen.queryByText('Active card no longer exists: design/F-404-missing.md')).toBeNull())
+
+        document.querySelector('[data-card-path="design/F-1-root.md"]')?.remove()
+        act(() => workspaceNavigationService.revealCard('design/F-1-root.md'))
+        act(() => frameCallback?.(0))
+        expect(await screen.findByText('Active card element was not found: design/F-1-root.md')).toBeInTheDocument()
     })
 
     it('deletes a selected card and clears the selected highlight', async () => {
@@ -1008,7 +1169,11 @@ describe('ProjectWorkspace', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Switch' }))
 
         await waitFor(() => expect(bridge.checkoutBranch).toHaveBeenCalledWith(expect.objectContaining({ branch: 'main' }), 'feature'))
-        await waitFor(() => expect(bridge.loadProject).toHaveBeenLastCalledWith(expect.objectContaining({ branch: 'feature' }), ''))
+        await waitFor(() => expect(bridge.loadProject).toHaveBeenLastCalledWith(
+            expect.objectContaining({ branch: 'feature' }),
+            '',
+            'design',
+        ))
     })
 
     it('shows branch switch failures in the switch dialog', async () => {

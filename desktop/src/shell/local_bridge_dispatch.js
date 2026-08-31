@@ -59,6 +59,7 @@ function createLocalBridgeDispatch(dependencies) {
         localGitService,
         mergeConflictService,
         openProjectFolder,
+        openProjectSubFolder,
         openWorktreeFolder,
         projectStatsWorkerService,
         readDesktopConfig,
@@ -97,6 +98,12 @@ function createLocalBridgeDispatch(dependencies) {
         currentLocalProject = project;
         if (actionSchedulerService) await actionSchedulerService.startProject(project);
         await worktreeService.startProject(project);
+        // Account usage polls run in this folder: Claude's per-folder trust question blocks a poll
+        // started anywhere it has never run, which is why the poll waits for a project at all.
+        if (agentRunnerService) {
+            const { agentProfiles } = readDesktopConfig(desktopConfigStore);
+            agentRunnerService.requestProjectUsageRefresh(project, agentProfiles);
+        }
     }
 
     const dataBridge = {
@@ -127,8 +134,8 @@ function createLocalBridgeDispatch(dependencies) {
 
             return [];
         },
-        createProject: async (project, workingFolder) => {
-            const createdProject = await localGitService.createProject(project, workingFolder);
+        createProject: async (project, folders) => {
+            const createdProject = await localGitService.createProject(project, folders);
             await activateProject(createdProject);
 
             return currentLocalProject;
@@ -160,10 +167,11 @@ function createLocalBridgeDispatch(dependencies) {
         loadFile: (project, path) => localGitService.loadFile(project, path),
         loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
-        loadProject: async (project, workingFolder) => {
+        loadProject: async (project, workingFolder, excludedRootFolder) => {
             await activateProject(project);
+            if (excludedRootFolder === undefined) return localGitService.loadProject(project, workingFolder);
 
-            return localGitService.loadProject(project, workingFolder);
+            return localGitService.loadProject(project, workingFolder, excludedRootFolder);
         },
         loadProjectConfig: (project) => localGitService.loadProjectConfig(project),
         loadProjectRoot: async (project, workingFolder) => {
@@ -278,6 +286,12 @@ function createLocalBridgeDispatch(dependencies) {
         saveActionSchedules: (project, actionsFolder, schedules) => localGitService.saveActionSchedules(project, actionsFolder, schedules),
         saveProjectConfig: (project, config) => localGitService.saveProjectConfig(project, config),
         saveDesktopConfig: (values) => saveDesktopConfig(desktopConfigStore, values),
+        selectProjectSubFolder: (rootPath) => {
+            if (!openProjectSubFolder) throw new Error('Project folder picker is not available');
+            if (typeof rootPath !== 'string' || rootPath.length === 0) throw new Error('Missing repository root path');
+
+            return openProjectSubFolder(rootPath);
+        },
         selectWorktreeFolder: () => {
             if (!openWorktreeFolder) throw new Error('Worktree folder picker is not available');
 
@@ -367,10 +381,25 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.answerAgentQuestion(runId, requestId, answers);
         },
-        beginActionPromptDraft: (runId) => {
+        dismissActionQuestions: (runId, requestId) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
-            return actionRunnerService.beginAgentPromptDraft(runId);
+            return actionRunnerService.dismissAgentQuestions(runId, requestId);
+        },
+        deleteActionQueuedPrompt: (runId, promptId, revision) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.deleteQueuedAgentPrompt(runId, promptId, revision);
+        },
+        editActionQueuedPrompt: (runId, promptId, revision, content) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.editQueuedAgentPrompt(runId, promptId, revision, content);
+        },
+        enqueueActionPrompt: (runId, content) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+
+            return actionRunnerService.enqueueAgentPrompt(runId, content);
         },
         generateDiff: async (request) => {
             const result = await diffService.generateDiff(currentLocalProject, request);
@@ -506,16 +535,6 @@ function createLocalBridgeDispatch(dependencies) {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
             return actionRunnerService.sendAgentMessage(runId, content);
-        },
-        sendActionQueuedMessage: (runId, sessionId, revision) => {
-            if (!actionRunnerService) throw new Error('Action runner is not available');
-
-            return actionRunnerService.sendQueuedAgentMessage(runId, sessionId, revision);
-        },
-        setActionQueuedMessage: (runId, sessionId, content, revision) => {
-            if (!actionRunnerService) throw new Error('Action runner is not available');
-
-            return actionRunnerService.setAgentQueuedMessage(runId, sessionId, content, revision);
         },
         startAction: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

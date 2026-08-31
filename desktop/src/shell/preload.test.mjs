@@ -7,13 +7,20 @@ import { describe, expect, it, vi } from 'vitest';
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const mainPath = join(currentDirectory, '..', '..', 'main.js');
 const preloadPath = join(currentDirectory, 'preload.js');
+const defaultDesktopConfig = {
+    agentProfiles: [{ command: ['codex'], defaultThinkingLevel: 'none', models: ['gpt-5.5'], name: 'codex' }],
+    agentSelection: {
+        activeAgent: 'codex', permissionMode: 'ask-for-approval',
+        settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'none' } },
+    },
+};
 
 function createPreloadHarness(options = {}) {
     const origin = options.origin ?? 'http://localhost:5173';
     const href = options.href ?? `${origin}/`;
     const allowedOrigins = options.allowedOrigins ?? ['http://localhost:5173'];
     const trustedLocation = options.trustedLocation ?? 'http://localhost:5173';
-    const desktopConfig = options.desktopConfig ?? { agent: 'codex', agentProfiles: [{ command: ['codex'], name: 'codex' }], model: '' };
+    const desktopConfig = options.desktopConfig ?? defaultDesktopConfig;
     const body = {
         appendChild: vi.fn(),
         innerHTML: 'app',
@@ -67,10 +74,12 @@ describe('preload desktop agent bridge', () => {
     it('exposes only the named desktop bridges through contextBridge', () => {
         const { electron, exposed, window } = createPreloadHarness();
 
-        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(12);
+        expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledTimes(14);
         expect(Object.keys(exposed).sort()).toEqual([
             'md2Actions',
+            'md2ApplicationState',
             'md2ClaudeRuntime',
+            'md2Clipboard',
             'md2CodexRuntime',
             'md2Config',
             'md2Data',
@@ -84,6 +93,7 @@ describe('preload desktop agent bridge', () => {
         ]);
         expect(window.require).toBeUndefined();
         expect(exposed.md2Data.openProjectFolder).toEqual(expect.any(Function));
+        expect(exposed.md2ApplicationState.read).toEqual(expect.any(Function));
         expect(exposed.md2Files.getPathForFile).toEqual(expect.any(Function));
         expect(exposed.md2Data.selectWorktreeFolder).toEqual(expect.any(Function));
         expect(exposed.md2Data.loadAgentAvailability).toEqual(expect.any(Function));
@@ -110,6 +120,7 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Actions.sendActionMessage).toEqual(expect.any(Function));
         expect(exposed.md2Actions.answerActionApproval).toEqual(expect.any(Function));
         expect(exposed.md2Actions.answerActionQuestion).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.dismissActionQuestions).toEqual(expect.any(Function));
         expect(exposed.md2Actions.closeWaitingActionConversation).toEqual(expect.any(Function));
         expect(exposed.md2Actions.updateActionConversationViewed).toEqual(expect.any(Function));
         expect(exposed.md2Actions.updateCardActionSettings).toEqual(expect.any(Function));
@@ -131,6 +142,23 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Updates.downloadUpdate).toEqual(expect.any(Function));
         expect(exposed.md2Sentry.request).toEqual(expect.any(Function));
         expect(exposed.md2Updates.onDownloadProgress).toEqual(expect.any(Function));
+    });
+
+    it('exposes application state only through scoped IPC methods', async () => {
+        const { electron, exposed } = createPreloadHarness();
+        electron.ipcRenderer.invoke
+            .mockResolvedValueOnce({ 'md2.lastProject': 'stored-project' })
+            .mockResolvedValueOnce('next-project')
+            .mockResolvedValueOnce(undefined);
+
+        await expect(exposed.md2ApplicationState.read()).resolves.toEqual({ 'md2.lastProject': 'stored-project' });
+        await expect(exposed.md2ApplicationState.write('md2.lastProject', 'next-project')).resolves.toBe('next-project');
+        await expect(exposed.md2ApplicationState.remove('md2.lastProject')).resolves.toBeUndefined();
+
+        expect(electron.ipcRenderer.invoke).toHaveBeenNthCalledWith(1, 'md2-application-state:read', null);
+        expect(electron.ipcRenderer.invoke).toHaveBeenNthCalledWith(2, 'md2-application-state:write', 'md2.lastProject', 'next-project');
+        expect(electron.ipcRenderer.invoke).toHaveBeenNthCalledWith(3, 'md2-application-state:remove', 'md2.lastProject');
+        expect(exposed.md2ApplicationState.ipcRenderer).toBeUndefined();
     });
 
     it('resolves renderer File paths only through Electron webUtils', () => {
@@ -304,10 +332,16 @@ describe('preload desktop agent bridge', () => {
 
     it('updates cached desktop config only after persistence acknowledgement', async () => {
         const { electron, exposed } = createPreloadHarness();
-        const nextConfig = { agent: 'stored-agent', agentProfiles: [{ command: ['stored-agent'], name: 'stored-agent' }], model: '' };
+        const nextConfig = {
+            agentProfiles: [{ command: ['stored-agent'], defaultThinkingLevel: 'none', models: ['stored-model'], name: 'stored-agent' }],
+            agentSelection: {
+                activeAgent: 'stored-agent', permissionMode: 'ask-for-approval',
+                settingsByAgent: { 'stored-agent': { model: 'stored-model', thinkingLevel: 'none' } },
+            },
+        };
         electron.ipcRenderer.invoke.mockResolvedValueOnce(nextConfig);
 
-        expect(exposed.md2Config.getDesktopConfig()).toEqual({ agent: 'codex', agentProfiles: [{ command: ['codex'], name: 'codex' }], model: '' });
+        expect(exposed.md2Config.getDesktopConfig()).toEqual(defaultDesktopConfig);
         const savePromise = exposed.md2Config.setDesktopConfig(nextConfig);
 
         expect(exposed.md2Config.getDesktopConfig()).not.toEqual(nextConfig);

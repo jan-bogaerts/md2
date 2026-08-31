@@ -14,6 +14,7 @@ function card(): Card {
             affects: ['app/src/old.ts'],
             after: null,
             agentLogReferences: [],
+            changedFiles: [],
             author: null,
             id: 'F-1',
             internalId: 'f-1',

@@ -8,7 +8,9 @@ import { configService } from '../../../services/config/config_service'
 import { dataService } from '../../../services/data/data_service'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { workspaceViewService } from '../../../services/project/workspace_view_service'
+import { projectAccessService } from '../../../services/project/project_access_service'
 import { projectPersistenceService } from '../../../services/project/project_persistence_service'
+import { projectSessionService } from '../../../services/project/project_session_service'
 import { openFilesService } from '../../../services/open_files_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { DialogDisplay } from '../../dialog_display'
@@ -96,6 +98,7 @@ function renderMenu(isMobile = false) {
                 accessToken="token"
                 auth={auth}
                 extraActions={null}
+                initialProjectOpenResolution={null}
                 isGithubAuthenticated={false}
                 isMobile={isMobile}
                 onOpenConfig={vi.fn()}
@@ -113,6 +116,23 @@ async function openLocalProject() {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Open project' })).toBeNull())
 }
 
+async function renderProjectWithPendingChanges() {
+    const bridge = createBridge()
+    const files = [{ content: '---\nid: F-1\ninternalId: f-1\ntitle: Root\nstatus: active\n---\n\n# Root', path: 'design/F-1-root.md' }]
+    bridge.loadProject = vi.fn(async () => ({ files, workingFolder: 'design' }))
+    bridge.loadProjectRoot = vi.fn(async () => ({ files, workingFolder: 'design' }))
+    window.md2Data = bridge
+    const renderResult = renderMenu()
+    await openLocalProject()
+
+    act(() => {
+        dataService.cards.updateCardBody('design/F-1-root.md', 'Changed body')
+    })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Commit' })).toBeEnabled())
+
+    return { bridge, renderResult }
+}
+
 describe('AppMenu', () => {
     beforeEach(() => {
         configService.init({ desktopConfig: null })
@@ -120,6 +140,7 @@ describe('AppMenu', () => {
         openFilesService.init({ actionService, dataService })
         projectPersistenceService.init({ actionService, dataService, openFilesService })
         dataService.init({ storage: createResetStorage() })
+        projectAccessService.setReadOnly(false)
         workspaceViewService.setViewMode('cards')
         const { selectedPath } = workspaceViewService.getSnapshot()
         if (selectedPath) workspaceViewService.clearSelectedPath(selectedPath)
@@ -166,6 +187,101 @@ describe('AppMenu', () => {
         expect(completeReleaseButton).toBeInTheDocument()
         expect(newCardButton).not.toBeVisible()
         expect(screen.getByRole('button', { name: 'New action', hidden: true })).not.toBeVisible()
+    })
+
+    it('shows the Commit shortcut in its tooltip without changing the accessible name or other tooltips', async () => {
+        renderMenu()
+
+        const commitButton = screen.getByRole('button', { name: 'Commit' })
+        fireEvent.mouseOver(commitButton)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Commit (Ctrl+S)')
+        fireEvent.mouseOut(commitButton)
+        await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())
+
+        fireEvent.mouseOver(screen.getByRole('button', { name: 'Open project' }))
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Open project')
+    })
+
+    it('uses the Commit operation for Ctrl+S from a focused control and prevents native save', async () => {
+        await renderProjectWithPendingChanges()
+        const commit = vi.spyOn(projectSessionService, 'commit').mockResolvedValue()
+        const searchInput = screen.getByRole('textbox', { name: 'Search project' })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Commit' }))
+        searchInput.focus()
+        const shortcutEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })
+        fireEvent(searchInput, shortcutEvent)
+
+        expect(searchInput).toHaveFocus()
+        expect(shortcutEvent.defaultPrevented).toBe(true)
+        expect(commit).toHaveBeenCalledTimes(2)
+    })
+
+    it('prevents exact Ctrl+S without committing while Commit is disabled', async () => {
+        const commit = vi.spyOn(projectSessionService, 'commit').mockResolvedValue()
+        const bridge = createBridge()
+        window.md2Data = bridge
+        renderMenu()
+        const noProjectEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })
+        fireEvent(window, noProjectEvent)
+        expect(noProjectEvent.defaultPrevented).toBe(true)
+
+        await openLocalProject()
+        const noChangesEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })
+        fireEvent(window, noChangesEvent)
+
+        expect(noChangesEvent.defaultPrevented).toBe(true)
+        expect(commit).not.toHaveBeenCalled()
+    })
+
+    it('does not commit during read-only or loading states', async () => {
+        await renderProjectWithPendingChanges()
+        const commit = vi.spyOn(projectSessionService, 'commit').mockResolvedValue()
+
+        act(() => projectAccessService.setReadOnly(true))
+        const readOnlyEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })
+        fireEvent(window, readOnlyEvent)
+
+        const loadingSnapshot = { ...projectSessionService.getSnapshot(), isLoading: true }
+        vi.spyOn(projectSessionService, 'getSnapshot').mockReturnValue(loadingSnapshot)
+        act(() => {
+            projectAccessService.setReadOnly(false)
+            projectSessionService.dispatchEvent(new Event('changed'))
+        })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Commit' })).toBeDisabled())
+        const loadingEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })
+        fireEvent(window, loadingEvent)
+
+        expect(readOnlyEvent.defaultPrevented).toBe(true)
+        expect(loadingEvent.defaultPrevented).toBe(true)
+        expect(commit).not.toHaveBeenCalled()
+    })
+
+    it('ignores save shortcuts with Alt, Meta, or Shift modifiers', async () => {
+        await renderProjectWithPendingChanges()
+        const commit = vi.spyOn(projectSessionService, 'commit').mockResolvedValue()
+        const events = [
+            new KeyboardEvent('keydown', { altKey: true, bubbles: true, cancelable: true, ctrlKey: true, key: 's' }),
+            new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 's', metaKey: true }),
+            new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's', shiftKey: true }),
+        ]
+
+        events.forEach((event) => fireEvent(window, event))
+
+        expect(events.every((event) => !event.defaultPrevented)).toBe(true)
+        expect(commit).not.toHaveBeenCalled()
+    })
+
+    it('removes the Ctrl+S listener when AppMenu unmounts', async () => {
+        const { renderResult } = await renderProjectWithPendingChanges()
+        const commit = vi.spyOn(projectSessionService, 'commit').mockResolvedValue()
+        renderResult.unmount()
+        const shortcutEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })
+
+        fireEvent(window, shortcutEvent)
+
+        expect(shortcutEvent.defaultPrevented).toBe(false)
+        expect(commit).not.toHaveBeenCalled()
     })
 
     it('renders mobile Home controls in responsive order and hides desktop-only actions', () => {
@@ -291,14 +407,17 @@ describe('AppMenu', () => {
         configService.clear()
         configService.init({
             desktopConfig: {
-                agent: 'codex',
                 agentProfiles: [
-                    { command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
-                    { command: ['local-agent'], modelArgument: '--model', models: ['local-model'], name: 'local' },
+                    { command: ['codex'], defaultThinkingLevel: 'none', modelArgument: '--model', models: ['gpt-5'], name: 'codex' },
+                    { command: ['local-agent'], defaultThinkingLevel: 'none', modelArgument: '--model', models: ['local-model'], name: 'local' },
                 ],
-                model: 'gpt-5',
-                permissionMode: 'ask-for-approval',
-                thinkingLevel: 'high',
+                agentSelection: {
+                    activeAgent: 'codex', permissionMode: 'ask-for-approval',
+                    settingsByAgent: {
+                        codex: { model: 'gpt-5', thinkingLevel: 'high' },
+                        local: { model: 'local-model', thinkingLevel: 'low' },
+                    },
+                },
             },
         })
 
@@ -312,25 +431,49 @@ describe('AppMenu', () => {
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Default permission mode' }))
         fireEvent.click(screen.getByRole('option', { name: 'Full access — disables approvals' }))
-        expect(configService.get('desktop.permissionMode')).toBe('full-access')
+        expect(configService.get('desktop.agentSelection').permissionMode).toBe('full-access')
 
         fireEvent.mouseOver(screen.getByRole('combobox', { name: 'Default reasoning level' }))
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Default reasoning level')
 
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Default reasoning level' }))
         fireEvent.click(screen.getByRole('option', { name: 'max' }))
-        expect(configService.get('desktop.thinkingLevel')).toBe('max')
+        expect(configService.get('desktop.agentSelection').settingsByAgent.codex.thinkingLevel).toBe('max')
 
         act(() => {
-            configService.set('desktop.agent', 'local')
-            configService.set('desktop.model', 'local-model')
-            configService.set('desktop.thinkingLevel', 'low')
+            const selection = configService.get('desktop.agentSelection')
+            configService.set('desktop.agentSelection', { ...selection, activeAgent: 'local' })
         })
 
         await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default agent' })).toHaveTextContent('local'))
         expect(screen.getByRole('combobox', { name: 'Default model' })).toHaveTextContent('local-model')
         expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('low')
         expect(screen.getByDisplayValue('Permissions unsupported')).toBeDisabled()
+    })
+
+    it('keeps unavailable remembered global values visible with validation tooltip', async () => {
+        configService.clear()
+        configService.init({
+            desktopConfig: {
+                agentProfiles: [],
+                agentSelection: {
+                    activeAgent: 'removed-agent',
+                    permissionMode: 'ask-for-approval',
+                    settingsByAgent: { 'removed-agent': { model: 'removed-model', thinkingLevel: 'high' } },
+                },
+            },
+        })
+
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+
+        const agent = screen.getByRole('combobox', { name: 'Default agent' })
+        expect(agent).toHaveTextContent('removed-agent — unavailable')
+        expect(screen.getByRole('textbox', { name: 'Default model' })).toHaveValue('removed-model')
+        expect(screen.getByText('Unavailable')).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Default reasoning level' })).toHaveTextContent('high — unavailable')
+        fireEvent.mouseOver(agent)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Unknown agent profile in desktop agent selection: removed-agent')
     })
 
     it('commits pending changes before enabling manual push', async () => {

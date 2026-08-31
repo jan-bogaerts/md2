@@ -78,6 +78,20 @@ describe('loadActionDefinitions', () => {
             .toMatchObject({ code: 'field-not-allowed', field: 'streaming' });
     });
 
+    it('normalizes command-window visibility and rejects invalid or agent-action uses', () => {
+        const visible = loadActionDefinitions([file('lint', { ...LINT, showCommandWindow: true })])
+            .find(({ id }) => id === LINT.id);
+        const captured = loadActionDefinitions([file('lint', LINT)])
+            .find(({ id }) => id === LINT.id);
+
+        expect(visible.showCommandWindow).toBe(true);
+        expect(captured.showCommandWindow).toBe(false);
+        expect(validationError([file('lint', { ...LINT, showCommandWindow: 'yes' })]))
+            .toMatchObject({ code: 'invalid-field', field: 'showCommandWindow' });
+        expect(validationError([file('implement', { ...IMPLEMENT, showCommandWindow: true })]))
+            .toMatchObject({ code: 'field-not-allowed', field: 'showCommandWindow' });
+    });
+
     it('normalizes strict autoFinish state triggers', () => {
         const autoFinish = { state: 'ready' };
         const action = loadActionDefinitions(
@@ -228,11 +242,31 @@ describe('loadActionDefinitions', () => {
         ['label', { ...IMPLEMENT, label: ' \t' }],
         ['description', { ...IMPLEMENT, description: '\r\n\u3000' }],
         ['prompt', { ...IMPLEMENT, prompt: ' \t\r\n\u00a0' }],
-        ['command', { ...LINT, command: '\r\n\u2003' }],
     ])('rejects ASCII and Unicode whitespace-only %s', (field, definition) => {
         const error = validationError([file('invalid', definition)]);
 
         expect(error).toMatchObject({ code: 'missing-field', field });
+    });
+
+    it.each(['', '\r\n\u2003'])(
+        'accepts and preserves incomplete command text %j',
+        (command) => {
+            const action = loadActionDefinitions([file('lint', { ...LINT, command })])
+                .find(({ id }) => id === LINT.id);
+
+            expect(action.command).toBe(command);
+        },
+    );
+
+    it.each([
+        ['missing', undefined],
+        ['non-string', 5],
+    ])('rejects %s command fields', (_label, command) => {
+        const definition = { ...LINT, command };
+        if (command === undefined) delete definition.command;
+        const error = validationError([file('lint', definition)]);
+
+        expect(error).toMatchObject({ code: 'missing-field', field: 'command' });
     });
 
     it('rejects surrounding whitespace in action identities and linked ids', () => {

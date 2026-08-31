@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { getService } from '../service_injector'
-import { WorkspaceNavigationService, type WorkspaceOpenRequest } from './workspace_navigation_service'
+import {
+    WorkspaceNavigationService,
+    type WorkspaceOpenRequest,
+    type WorkspaceRevealCardRequest,
+} from './workspace_navigation_service'
 
 describe('WorkspaceNavigationService', () => {
     it('dispatches an open event carrying the requested path', () => {
@@ -19,6 +23,23 @@ describe('WorkspaceNavigationService', () => {
         const service = new WorkspaceNavigationService()
 
         expect(() => service.open('')).toThrow('Cannot open a workspace path without a path')
+    })
+
+    it('dispatches a reveal-card event carrying the requested path', () => {
+        const service = new WorkspaceNavigationService()
+        const listener = vi.fn()
+        service.addEventListener('revealCard', listener)
+
+        service.revealCard('design/F-1-card.md')
+
+        const event = listener.mock.calls[0][0] as CustomEvent<WorkspaceRevealCardRequest>
+        expect(event.detail.path).toBe('design/F-1-card.md')
+    })
+
+    it('fails fast when revealing without a path', () => {
+        const service = new WorkspaceNavigationService()
+
+        expect(() => service.revealCard('')).toThrow('Cannot reveal a card without a path')
     })
 
     it('registers itself in the service injector', () => {

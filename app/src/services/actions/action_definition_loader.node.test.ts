@@ -84,7 +84,7 @@ describe('loadActionDefinitions', () => {
             onState: 'implementing',
             phrases: [{ text: '**Run tests**', title: 'Tests' }, { text: 'Show diff', title: '' }],
             thinkingLevel: 'high',
-        })], { profiles: [{ command: ['codex'], modelArgument: '--model', models: ['gpt-5'], name: 'codex' }] })
+        })], { profiles: [{ command: ['codex'], defaultThinkingLevel: 'none', modelArgument: '--model', models: ['gpt-5'], name: 'codex' }] })
         const implement = actions.find(({ id }) => id === IMPLEMENT.id)
 
         expect(implement).toMatchObject({
@@ -173,16 +173,16 @@ describe('loadActionDefinitions', () => {
 
     it('rejects invalid agent, model, and thinking-level combinations', () => {
         expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, model: 'gpt-5' })])).toThrow(/model requires agent/u)
-        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', model: 'bad' })], {profiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }]})).toThrow(/Unknown model/u)
-        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', thinkingLevel: 'high' })], {profiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }]})).toThrow(/thinkingLevel requires agent and model/u)
-        expect(() => loadActionDefinitions([file('implement', {...IMPLEMENT, agent: 'codex', model: 'gpt-5', thinkingLevel: 'extreme'})], {profiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }]})).toThrow(/Invalid thinking level/u)
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', model: 'bad' })], {profiles: [{ command: ['codex'], defaultThinkingLevel: 'none', models: ['gpt-5'], name: 'codex' }]})).toThrow(/Unknown model/u)
+        expect(() => loadActionDefinitions([file('implement', { ...IMPLEMENT, agent: 'codex', thinkingLevel: 'high' })], {profiles: [{ command: ['codex'], defaultThinkingLevel: 'none', models: ['gpt-5'], name: 'codex' }]})).toThrow(/thinkingLevel requires agent and model/u)
+        expect(() => loadActionDefinitions([file('implement', {...IMPLEMENT, agent: 'codex', model: 'gpt-5', thinkingLevel: 'extreme'})], {profiles: [{ command: ['codex'], defaultThinkingLevel: 'none', models: ['gpt-5'], name: 'codex' }]})).toThrow(/Invalid thinking level/u)
     })
 
     it('rejects empty and malformed configured model lists', () => {
         const definition = file('implement', { ...IMPLEMENT, agent: 'custom', model: 'model-a' })
 
-        expect(() => loadActionDefinitions([definition], {profiles: [{ command: ['custom'], models: [], name: 'custom' }]})).toThrow(/Invalid model list/u)
-        expect(() => loadActionDefinitions([definition], {profiles: [{ command: ['custom'], models: 'model-a' as unknown as string[], name: 'custom' }]})).toThrow(/Invalid model list/u)
+        expect(() => loadActionDefinitions([definition], {profiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: [], name: 'custom' }]})).toThrow(/Invalid model list/u)
+        expect(() => loadActionDefinitions([definition], {profiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: 'model-a' as unknown as string[], name: 'custom' }]})).toThrow(/Invalid model list/u)
     })
 
     it('loads retired selections when capability validation is disabled for editing', () => {
@@ -258,6 +258,17 @@ describe('loadTolerantActionDefinitionGraph', () => {
             expect.stringContaining('Missing type'),
         ]))
     })
+
+    it.each(['', ' \t\r\n\u2003'])(
+        'preserves explicit incomplete command text %j without inserting fallback text',
+        (command) => {
+            const result = loadTolerantActionDefinitionGraph([file('lint', { ...LINT, command })])
+
+            expect(result.actions.find(({ id }) => id === LINT.id)?.command).toBe(command)
+            expect(result.definitions[0]?.definition.command).toBe(command)
+            expect(result.issues).toEqual([])
+        },
+    )
 
     it('loads valid actions when another file is invalid and drops unavailable links', () => {
         const result = loadTolerantActionDefinitionGraph([

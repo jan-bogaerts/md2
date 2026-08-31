@@ -26,6 +26,7 @@ export interface ProjectUsageMetricsSnapshot {
 }
 
 const USAGE_METRICS_FILE = 'usage_metrics.csv'
+const RESET_TIMESTAMP_TOLERANCE_MS = 60_000
 const SUPPORTED_PROVIDERS = new Set(['claude', 'codex'])
 const METRICS_COLUMNS = [
     'recorded_at',
@@ -46,6 +47,11 @@ const METRICS_COLUMNS = [
 const TOKEN_COLUMNS = ['input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_tokens', 'total_tokens']
 const EMPTY_SNAPSHOT: ProjectUsageMetricsSnapshot = { accountRows: [], available: false, tokenRows: [], warnings: [] }
 
+interface AccountUsageBaseline {
+    resetsAt: string
+    usedPercent: number
+}
+
 function normalizePath(path: string) {
     return path.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
 }
@@ -54,6 +60,14 @@ function joinPath(folder: string, fileName: string) {
     const normalizedFolder = normalizePath(folder)
 
     return normalizedFolder ? `${normalizedFolder}/${fileName}` : fileName
+}
+
+function accountUsageKey(provider: string, limitId: string, windowId: string) {
+    return `${provider}\u0000${limitId}\u0000${windowId}`
+}
+
+function sameAccountWindow(leftResetTimestamp: string, rightResetTimestamp: string) {
+    return Math.abs(Date.parse(leftResetTimestamp) - Date.parse(rightResetTimestamp)) <= RESET_TIMESTAMP_TOLERANCE_MS
 }
 
 function isValidIsoTimestamp(value: string) {
@@ -154,6 +168,7 @@ export function parseUsageMetrics(content: string): Omit<ProjectUsageMetricsSnap
 
     const tokenRows: UsageMetricsTokenRow[] = []
     const accountRows: UsageMetricsAccountRow[] = []
+    const accountBaselines = new Map<string, AccountUsageBaseline>()
     const warnings: string[] = []
     for (const [index, fields] of records.slice(1).entries()) {
         const rowNumber = index + 2
@@ -166,16 +181,27 @@ export function parseUsageMetrics(content: string): Omit<ProjectUsageMetricsSnap
                 warnings.push(`Malformed account_usage row ${rowNumber} was skipped.`)
                 continue
             }
+            const limitId = record.limit_id
+            const provider = record.provider
+            const resetsAt = record.resets_at
+            const usedPercent = Number(record.used_percent)
+            const key = accountUsageKey(provider, limitId, record.window_id)
+            const baseline = accountBaselines.get(key)
+            const persistedDelta = record.used_percent_delta === '' ? null : Number(record.used_percent_delta)
+            const usedPercentDelta = baseline && sameAccountWindow(baseline.resetsAt, resetsAt)
+                ? usedPercent - baseline.usedPercent
+                : persistedDelta
             accountRows.push({
-                limitId: record.limit_id,
-                provider: record.provider,
+                limitId,
+                provider,
                 recordedAt: record.recorded_at,
-                resetsAt: record.resets_at,
-                usedPercent: Number(record.used_percent),
-                usedPercentDelta: record.used_percent_delta === '' ? null : Number(record.used_percent_delta),
+                resetsAt,
+                usedPercent,
+                usedPercentDelta,
                 windowDurationMinutes: Number(record.window_duration_minutes),
                 windowId: record.window_id,
             })
+            accountBaselines.set(key, { resetsAt, usedPercent })
             continue
         }
         if (fields.length !== METRICS_COLUMNS.length) throw new Error(`Invalid usage metrics column count at row ${rowNumber}`)

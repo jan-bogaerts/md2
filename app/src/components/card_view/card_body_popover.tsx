@@ -22,7 +22,7 @@ import { CardCommitDiffPanel } from './card_commit_diff_panel'
 import { useCardCommits } from '../hooks/use_card_commits'
 import type { CardCommit } from '../../services/actions/card_commit_history'
 import { openFilesService } from '../../services/open_files_service'
-import { getProjectCard, useCardConversations, useCardMetadata } from './use_project_card'
+import { useCardConversationsByInternalId, useCardMetadataByInternalId } from './use_project_card'
 import { useDialogError } from '../hooks/use_dialog_error'
 import { dialogService } from '../../services/dialog_service'
 import { isWorktreeIntegratable, worktreeService } from '../../services/project/worktree_service'
@@ -35,6 +35,7 @@ import {
 import { MarkdownTypeaheadLayerProvider } from '../editor/markdown_typeahead_layer_provider'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { CardStateSelector } from './card_state_selector'
+import { NO_DRAG_REGION } from '../shell/drag_region'
 
 const CARD_BODY_POPOVER_WIDTH = 760
 const CARD_BODY_POPOVER_HEIGHT = 620
@@ -58,7 +59,7 @@ function useBoardDocument(dataSource: CardMarkdownDataSource) {
 }
 
 interface TitleEdit {
-    path: string | null
+    cardInternalId: string | null
     title: string
 }
 
@@ -113,10 +114,10 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
         visible,
     } = props
     const readOnly = useProjectReadOnly()
-    const { cardPath, diffSelection } = entry
+    const { cardInternalId, diffSelection } = entry
     const anchorElement = entry.anchorElement.isConnected ? entry.anchorElement : entry.fallbackAnchorElement
-    const card = useCardMetadata(cardPath)
-    const activity = useCardConversations(cardPath)
+    const card = useCardMetadataByInternalId(cardInternalId)
+    const activity = useCardConversationsByInternalId(cardInternalId)
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [dataSource] = useState(() => {
         const popupDataSource = new CardMarkdownDataSource()
@@ -128,8 +129,8 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
     const boardDocument = useBoardDocument(dataSource)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [popupContentElement, setPopupContentElement] = useState<HTMLDivElement | null>(null)
-    const [titleEdit, setTitleEdit] = useState<TitleEdit>({ path: null, title: '' })
-    const titleDraft = titleEdit.path === card?.path ? titleEdit.title : card?.header.title ?? ''
+    const [titleEdit, setTitleEdit] = useState<TitleEdit>({ cardInternalId: null, title: '' })
+    const titleDraft = titleEdit.cardInternalId === cardInternalId ? titleEdit.title : card?.header.title ?? ''
     const cardCommits = useCardCommits(card?.header.internalId ?? null)
     const worktreeRecords = useSyncExternalStore(
         subscribeWorktrees,
@@ -152,9 +153,8 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
     useDialogError(missingCardIdentityError, 'Card details could not be opened')
 
     useEffect(() => {
-        if (!cardPath) return
-        if (!cardIdentity) return
-        const currentCard = getProjectCard(cardPath)
+        const currentCard = dataService.getState().snapshot?.activeCards
+            .find(({ header }) => header.internalId === cardInternalId)
         if (!currentCard) return
 
         const document = openFilesService.openBoardDocument(currentCard)
@@ -165,7 +165,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
             historyStore.discardDocument(document)
             openFilesService.closeBoardDocument(document)
         }
-    }, [cardIdentity, cardPath, dataSource, historyStore])
+    }, [cardInternalId, dataSource, historyStore])
 
     useEffect(() => () => {
         historyStore.clear()
@@ -226,14 +226,14 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
 
     const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (!card) return
-        setTitleEdit({ path: card.path, title: event.target.value })
+        setTitleEdit({ cardInternalId, title: event.target.value })
     }
 
     const commitTitle = () => {
         if (!card) return
         const nextTitle = titleDraft.trim()
         if (nextTitle.length === 0) {
-            setTitleEdit({ path: card.path, title: card.header.title })
+            setTitleEdit({ cardInternalId, title: card.header.title })
             return
         }
         if (nextTitle !== card.header.title) dataSource.updateActiveCardTitle('board-card', nextTitle)
@@ -241,7 +241,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
 
     const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') commitTitle()
-        if (event.key === 'Escape' && card) setTitleEdit({ path: card.path, title: card.header.title })
+        if (event.key === 'Escape' && card) setTitleEdit({ cardInternalId, title: card.header.title })
     }
 
     const toggleFullscreen = useCallback(() => {
@@ -262,12 +262,13 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
     const runningRun = useRunningActionForContext(actionContext)
     const statusLabel = runningRun ? 'Running' : 'Idle'
     const fullscreenSize = `calc(100vw - ${POPOVER_SIDE_MARGIN * 2}px)`
-    const fullscreenHeight = `calc(100vh - ${POPOVER_TOP_MARGIN + POPOVER_SIDE_MARGIN}px)`
+    const fullscreenHeight = `calc(100vh - ${POPOVER_TOP_MARGIN}px)`
 
     return (
         <>
             <ResizablePopper
                 anchorElement={anchorElement}
+                bottomInset={0}
                 constrainSizeToViewport
                 draggable={!isMobile && !isFullscreen}
                 fullHeight={isMobile}
@@ -277,6 +278,7 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                 onClose={handlePopoverClose}
                 open={visible && !!card && !!anchorElement}
                 paperSx={{
+                    ...NO_DRAG_REGION,
                     backgroundColor: 'background.paper',
                     border: '1px solid',
                     borderColor: 'divider',

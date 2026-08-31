@@ -57,7 +57,7 @@ describe('GithubStorageService read-only mode', () => {
         const storage = new GithubStorageService(true)
         storage.init({ accessToken: 'token', fetchImplementation })
         const writes = [
-            () => storage.createProject(project, 'design/active'),
+            () => storage.createProject(project, ['design/active']),
             () => storage.commit({ branch: 'main', files: [], message: 'write' }),
             () => storage.deleteFile({ branch: 'main', message: 'delete', path: 'file.md' }),
             () => storage.deleteFolder({ branch: 'main', message: 'delete', path: 'folder' }),

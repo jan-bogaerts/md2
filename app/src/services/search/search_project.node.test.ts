@@ -8,6 +8,7 @@ function makeHeader(overrides: Partial<CardHeader> = {}): CardHeader {
         affects: [],
         after: null,
         agentLogReferences: [],
+        changedFiles: [],
         author: null,
         id: 'F-1',
         internalId: null,
@@ -83,6 +84,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         ...overrides,
         permissionMode: overrides.permissionMode ?? null,
         phrases: overrides.phrases ?? [],
+        showCommandWindow: overrides.showCommandWindow ?? false,
         streaming: overrides.streaming ?? false,
     }
 }

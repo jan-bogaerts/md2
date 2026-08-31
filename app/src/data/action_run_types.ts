@@ -16,6 +16,7 @@ export type ActionRunPhase = 'after' | 'before' | 'main' | 'on'
 
 export interface ActionRunInput {
     agent?: string
+    command?: string
     continueFrom?: string
     extraPrompt?: string
     model?: string
@@ -31,6 +32,13 @@ export interface ActionPromptRequest {
 
 export interface PreparedActionPrompt {
     prompt: string
+}
+
+export interface ActionQueuedPrompt {
+    content: string
+    dispatchState: 'dispatching' | 'queued'
+    id: string
+    revision: number
 }
 
 export interface AgentConversationReservation {
@@ -54,7 +62,6 @@ export interface AgentQuestionOption {
 export interface AgentQuestion {
     header: string
     id: string
-    isOther?: boolean
     isSecret?: boolean
     options?: AgentQuestionOption[] | null
     question: string
@@ -104,6 +111,7 @@ export interface AgentApproval {
     itemId: string
     kind: 'commandExecution' | 'fileChange' | 'toolUse'
     networkApprovalContext?: { host: string, protocol: AgentNetworkProtocol } | null
+    parentItemId?: string | null
     proposedExecpolicyAmendment?: string[] | null
     proposedNetworkPolicyAmendments?: AgentNetworkPolicyAmendment[] | null
     provider?: 'claude' | 'codex'
@@ -111,6 +119,7 @@ export interface AgentApproval {
     reason?: string | null
     requestId: AgentApprovalRequestId
     startedAtMs: number
+    subAgentLabel?: string | null
     threadId?: string
     toolName?: string | null
     turnId?: string
@@ -120,6 +129,7 @@ interface ActionRunEventBase {
     actionId: string
     actionType?: ActionType
     autoFinish?: ActionAutoFinish | null
+    changedPaths?: string[]
     context: ActionContext
     runId: string
     interactionReady?: boolean
@@ -145,6 +155,11 @@ export type ActionRunUpdate =
         requestId: number | string | null
     }
     | {
+        event: AgentConversationEventEntry
+        kind: 'agentQuestionDismissed'
+        requestId: number | string | null
+    }
+    | {
         approval: AgentApproval
         kind: 'agentApproval'
     }
@@ -153,10 +168,16 @@ export type ActionRunUpdate =
         requestId: AgentApprovalRequestId
     }
     | {
-        kind: 'agentQuestionAnswer' | 'agentUserMessage'
+        kind: 'agentQuestionAnswer'
+        requestId: number | string | null
         userMessage: AgentConversationMessageEntry
     }
     | {
+        kind: 'agentUserMessage'
+        userMessage: AgentConversationMessageEntry
+    }
+    | {
+        entryIndex: number
         event: AgentConversationEventEntry
         kind: 'agentEvent'
     }
@@ -166,13 +187,27 @@ export type ActionRunUpdate =
         usage: AgentTokenUsage
     }
     | {
+        entry: ActionQueuedPrompt
+        kind: 'agentPromptQueued' | 'agentPromptEdited'
+    }
+    | {
+        kind: 'agentPromptRemoved'
+        promptId: string
+        revision: number
+    }
+    | {
         command?: string
         content: string
         kind: 'error' | 'output'
-        messageId?: string
+    }
+    | {
+        content: string
+        entryIndex: number
+        kind: 'agentOutput'
+        messageId: string
         previousContent?: string
         replace?: boolean
-        sequence?: number
+        sequence: number
     }
 
 export type ActionRunEvent =
@@ -216,6 +251,7 @@ export interface ActionRunLogEntry {
 }
 
 export interface ActionRunResult {
+    changedPaths: string[]
     logs: ActionRunLogEntry[]
     status: ActionRunStatus
 }

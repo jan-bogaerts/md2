@@ -3,6 +3,10 @@ import { DEFAULT_CARD_TYPES, DEFAULT_STATES, defaultColumnAccent, resolveProject
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../../data/agent_profiles'
 import { CONFIG_ENTRIES, ConfigService, REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_service'
 
+function agentSelection(activeAgent: string, model = '', thinkingLevel: 'none' | 'high' = 'none') {
+    return { activeAgent, permissionMode: 'ask-for-approval' as const, settingsByAgent: { [activeAgent]: { model, thinkingLevel } } }
+}
+
 describe('ConfigService', () => {
     let service = new ConfigService()
 
@@ -43,12 +47,12 @@ describe('ConfigService', () => {
     it('narrows config values by key at compile time', () => {
         service.init()
 
-        expectTypeOf(service.get('desktop.agent')).toEqualTypeOf<string>()
+        expectTypeOf(service.get('desktop.agentSelection').activeAgent).toEqualTypeOf<string>()
         expectTypeOf(service.get('desktop.agentProfiles')).toEqualTypeOf<AgentProfile[]>()
         expectTypeOf(service.get('react.autoCommitDelayMs')).toEqualTypeOf<number>()
         if (import.meta.env.MODE === 'typecheck') {
-            // @ts-expect-error desktop.agent must stay string typed.
-            service.set('desktop.agent', BUILTIN_AGENT_PROFILES)
+            // @ts-expect-error desktop.agentSelection must stay selection typed.
+            service.set('desktop.agentSelection', BUILTIN_AGENT_PROFILES)
         }
     })
 
@@ -57,32 +61,29 @@ describe('ConfigService', () => {
         service.setReactPreference('react.showStartupSplash', false)
         service.loadProjectConfig({ actionsFolder: 'ops', workingFolder: 'docs' })
         service.replaceDesktopConfig({
-            agent: 'custom',
-            agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
+            agentSelection: agentSelection('custom', 'custom-model', 'high'),
+            agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['custom-model'], name: 'custom' }],
             codexSearchEnabled: false,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'custom-model',
-            permissionMode: 'full-access',
-            thinkingLevel: 'high',
         })
 
         expect(service.hasDesktopConfig()).toBe(true)
-        expect(service.getDesktopValues()).toMatchObject({ agent: 'custom', model: 'custom-model', thinkingLevel: 'high' })
+        expect(service.getDesktopValues()).toMatchObject({ agentSelection: agentSelection('custom', 'custom-model', 'high') })
         expect(service.getProjectConfig()).toMatchObject({ actionsFolder: 'ops', workingFolder: 'docs' })
         expect(service.get('react.showStartupSplash')).toBe(false)
     })
 
     it('clears only desktop values and marks them unavailable', () => {
-        service.init({ desktopConfig: { agent: 'claude' } })
+        service.init({ desktopConfig: { agentSelection: agentSelection('claude') } })
         service.setReactPreference('react.showStartupSplash', false)
         service.loadProjectConfig({ actionsFolder: 'ops', workingFolder: 'docs' })
         service.loadDraft()
         service.clearDesktopConfig()
 
         expect(service.hasDesktopConfig()).toBe(false)
-        expect(service.get('desktop.agent')).toBe('codex')
-        expect(service.getDraft()?.['desktop.agent']).toBe('codex')
+        expect(service.get('desktop.agentSelection').activeAgent).toBe('codex')
+        expect(service.getDraft()?.['desktop.agentSelection'].activeAgent).toBe('codex')
         expect(service.getProjectConfig()).toMatchObject({ actionsFolder: 'ops', workingFolder: 'docs' })
         expect(service.get('react.showStartupSplash')).toBe(false)
     })
@@ -197,7 +198,7 @@ describe('ConfigService', () => {
     it('loads project states in their configured order', () => {
         service.init()
         const states = [
-            { alwaysVisible: true, color: '#123456', state: 'backlog' },
+            { alwaysVisible: true, color: '#123456', defaultActionId: 'refine', state: 'backlog' },
             { alwaysVisible: false, state: 'shipped' },
         ]
 
@@ -207,6 +208,20 @@ describe('ConfigService', () => {
             states[0],
             { ...states[1], color: defaultColumnAccent(1) },
         ])
+    })
+
+    it('omits absent default action ids from project states', () => {
+        service.init()
+        service.loadProjectConfig({ states: [{ alwaysVisible: true, state: 'backlog' }] })
+
+        expect(service.getProjectConfig().states[0]).not.toHaveProperty('defaultActionId')
+    })
+
+    it.each([null, '', 7])('rejects invalid project state default action id %j', (defaultActionId) => {
+        service.init()
+        const states = [{ alwaysVisible: true, defaultActionId, state: 'backlog' }]
+
+        expect(() => service.loadProjectConfig({ states } as never)).toThrow('project.states[0].defaultActionId')
     })
 
     it('keeps active values unchanged when a draft is discarded', () => {
@@ -253,20 +268,31 @@ describe('ConfigService', () => {
 
         service.init({
             desktopConfig: {
-                agent: 'claude',
+                agentSelection: agentSelection('claude', '', 'high'),
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 editorCommand: 'notepad "{{file}}"',
                 mergeConflictResolverCommand: 'merge-tool "{{file}}"',
-                model: '',
-                thinkingLevel: 'high',
             },
         })
 
         expect(service.getEntries().some((entry) => entry.source === 'desktop')).toBe(true)
-        expect(service.get('desktop.agent')).toBe('claude')
+        expect(service.get('desktop.agentSelection').activeAgent).toBe('claude')
         expect(service.get('desktop.editorCommand')).toBe('notepad "{{file}}"')
         expect(service.get('desktop.mergeConflictResolverCommand')).toBe('merge-tool "{{file}}"')
-        expect(service.get('desktop.thinkingLevel')).toBe('high')
+        expect(service.get('desktop.agentSelection').settingsByAgent.claude.thinkingLevel).toBe('high')
+    })
+
+    it('normalizes legacy profiles when remote desktop config replaces renderer config', () => {
+        service.init()
+
+        service.replaceDesktopConfig({agentProfiles: [{ command: ['remote-agent'], models: ['remote-model'], name: 'remote' }] as never})
+
+        expect(service.get('desktop.agentProfiles')).toEqual([{
+            command: ['remote-agent'],
+            defaultThinkingLevel: 'none',
+            models: ['remote-model'],
+            name: 'remote',
+        }])
     })
 
     it('persists react values across instances, simulating a reload', () => {
@@ -321,25 +347,20 @@ describe('ConfigService', () => {
     it('returns the current desktop values from getDesktopValues', () => {
         service.init({
             desktopConfig: {
-                agent: 'claude',
+                agentSelection: agentSelection('claude', '', 'high'),
                 agentProfiles: BUILTIN_AGENT_PROFILES,
                 editorCommand: 'notepad "{{file}}"',
                 mergeConflictResolverCommand: 'merge-tool "{{file}}"',
-                model: '',
-                thinkingLevel: 'high',
             },
         })
 
         expect(service.getDesktopValues()).toEqual({
-            agent: 'claude',
+            agentSelection: agentSelection('claude', '', 'high'),
             agentProfiles: BUILTIN_AGENT_PROFILES,
             codexSearchEnabled: true,
             editorCommand: 'notepad "{{file}}"',
             mergeConflictResolverCommand: 'merge-tool "{{file}}"',
-            model: '',
-            permissionMode: 'ask-for-approval',
             remoteControlPort: 20877,
-            thinkingLevel: 'high',
         })
     })
 

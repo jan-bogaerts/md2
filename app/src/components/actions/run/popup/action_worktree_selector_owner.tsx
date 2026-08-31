@@ -1,20 +1,20 @@
-import type { ActionContext } from '../../../../data/action_context'
 import type { WorktreeAssignment, WorktreeAssignmentTarget } from '../../../worktree_selector'
 import { WorktreeSelector } from '../../../worktree_selector'
-import { useActionRunSelector } from '../../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
+import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 interface ActionWorktreeSelectorOwnerProps {
-    actionId: string
     assignment: WorktreeAssignment
     assignmentTarget: WorktreeAssignmentTarget
-    context: ActionContext
+    bindingStore: ActionRunBindingStore
     primaryPath: string | null
 }
 
 /** Subscribes worktree control only to active-state disabling. */
 export function ActionWorktreeSelectorOwner(props: ActionWorktreeSelectorOwnerProps) {
-    const { actionId, assignment, assignmentTarget, context, primaryPath } = props
-    const disabled = useActionRunSelector(actionId, context, (run) => (
+    const { assignment, assignmentTarget, bindingStore, primaryPath } = props
+    const boundRunId = useBoundRunId(bindingStore)
+    const disabled = useRunSelector(boundRunId, (run) => (
         run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
     ))
 

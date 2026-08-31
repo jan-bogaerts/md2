@@ -38,4 +38,17 @@ describe('createAppTheme', () => {
         expect(light).not.toEqual(dark)
     })
 
+    it('splits per-agent chart families as disjoint subsets of the mode palette', () => {
+        for (const mode of ['light', 'dark'] as const) {
+            const { chartPalette, chartPalettes } = createAppTheme(mode).palette.custom
+            const { claude, codex } = chartPalettes
+
+            expect(claude.length).toBeGreaterThan(0)
+            expect(codex.length).toBeGreaterThan(0)
+            expect(claude.every((color) => chartPalette.includes(color))).toBe(true)
+            expect(codex.every((color) => chartPalette.includes(color))).toBe(true)
+            expect(claude.filter((color) => codex.includes(color))).toEqual([])
+        }
+    })
+
 })

@@ -1,7 +1,7 @@
 import { Button, Menu, MenuItem } from '@mui/material'
 import type { MouseEvent } from 'react'
 import { useCallback, useState } from 'react'
-import { projectSessionService } from '../../services/project/project_session_service'
+import { projectSessionService, type ProjectFolderValues } from '../../services/project/project_session_service'
 import { BranchSwitchDialog } from './project/branch_switch_dialog'
 import { CompleteReleaseDialog } from './project/complete_release_dialog'
 import { NewCardDialog } from './project/new_card_dialog'
@@ -60,8 +60,8 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
         void actions.openReleaseDialog()
     }
     const handleOpenCardDialog = () => actions.openNewCardDialog()
-    const handleCreateProjectFolders = (projectFolder: string) => {
-        void actions.createProjectFolders(projectFolder)
+    const handleConfirmProjectFolderSetup = (values: ProjectFolderValues) => {
+        void actions.confirmProjectFolderSetup(values)
     }
     const handleDiscardGithubPendingCommits = () => {
         if (!actions.pendingGithubConflictProject) return
@@ -102,13 +102,13 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}
+                onBrowseProjectSubFolder={actions.isDesktopMode ? actions.browseProjectSubFolder : null}
                 onChooseLocalFolder={actions.chooseLocalProjectFolder}
-                onCreateProjectFolders={handleCreateProjectFolders}
+                onConfirmProjectFolderSetup={handleConfirmProjectFolderSetup}
                 projectOpenResolution={actions.projectOpenResolution}
                 onBranchChange={() => undefined}
                 onClose={actions.closeDialog}
                 onCreateRemoteProject={actions.createRemoteProject}
-                onCreateWorkingFolder={() => void actions.createWorkingFolder()}
                 onDiscardGithubPendingCommits={handleDiscardGithubPendingCommits}
                 onLoadManualBranches={actions.loadManualBranches}
                 onLoadRemoteBranches={actions.loadRemoteBranches}
@@ -117,7 +117,6 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 onOpenRemote={actions.openRemoteProject}
                 onRepositoryChange={actions.loadRepositoryBranches}
                 onSourceChange={actions.clearOpenDialogState}
-                onUseWorkingFolder={(folder) => void actions.openWorkingFolder(folder)}
                 open={dialogMode === 'open'}
                 pendingGithubConflictProject={actions.pendingGithubConflictProject}
                 recentLocalRepositories={actions.recentLocalRepositories}

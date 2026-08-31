@@ -1,5 +1,6 @@
 import type { ProjectReference } from '../../data/data_types'
 import { register } from '../service_injector'
+import { applicationStorage } from '../storage/application_storage'
 import { SentryApiClient, SentryApiError, sentryApiClient } from './sentry_api_client'
 import {
     createDefaultSentryProjectSettings,
@@ -216,7 +217,7 @@ export class SentryConnectionService extends EventTarget {
 }
 
 export function initDefaultSentryConnectionService(service: SentryConnectionService) {
-    service.init({ apiClient: sentryApiClient, storage: window.localStorage })
+    service.init({ apiClient: sentryApiClient, storage: applicationStorage })
 
     return service
 }

@@ -1,0 +1,45 @@
+- generic [ref=f1e634]:
+  - tablist "Action editor sections" [ref=f1e753]:
+    - tab "Definition" [ref=f1e754] [cursor=pointer]
+    - tab "Prompt" [active] [selected] [ref=f1e755] [cursor=pointer]
+    - tab "Tests" [ref=f1e756] [cursor=pointer]
+    - tab "Add predefined phrase" [ref=f1e757] [cursor=pointer]: +
+  - generic [ref=f1e761]:
+    - toolbar [ref=f1e762]:
+      - generic [ref=f1e763]:
+        - radiogroup [ref=f1e764]:
+          - radio "Undo Ctrl+Z" [disabled]
+        - radiogroup [ref=f1e765]:
+          - radio "Redo Ctrl+Y" [disabled]
+      - separator [ref=f1e766]
+      - generic [ref=f1e767]:
+        - radiogroup [ref=f1e768]:
+          - radio "Bold" [ref=f1e769]
+        - radiogroup [ref=f1e773]:
+          - radio "Italic" [ref=f1e774]
+        - radiogroup [ref=f1e778]:
+          - radio "Underline" [ref=f1e779]
+      - separator [ref=f1e783]
+      - radiogroup "toggle group" [ref=f1e785]:
+        - radio "Bulleted list" [ref=f1e786]
+        - radio "Numbered list" [ref=f1e790]
+        - radio "Check list" [ref=f1e794]
+      - combobox "Block type" [ref=f1e799]
+      - separator [ref=f1e803]
+      - button "Create link" [ref=f1e804]
+      - button "Insert image" [ref=f1e808]
+      - separator [ref=f1e812]
+      - button "Insert Table" [ref=f1e813]
+      - button "Insert thematic break" [ref=f1e817]
+      - button "Insert Code Block" [ref=f1e821]
+      - separator [ref=f1e825]
+      - generic "Find text" [ref=f1e826]:
+        - button "Find text" [ref=f1e827] [cursor=pointer]
+      - separator [ref=f1e830]
+      - generic "Insert placeholder" [ref=f1e831]:
+        - button "Insert placeholder" [ref=f1e832] [cursor=pointer]
+    - generic [ref=f1e835]:
+      - textbox "editable markdown" [ref=f1e837]:
+        - paragraph [ref=f1e838]
+      - generic:
+        - paragraph

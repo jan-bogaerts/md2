@@ -3,6 +3,7 @@ import type { ActionDefinition } from '../../data/action_types'
 import type { ActionRunEvent } from '../../data/action_run_types'
 import type { AgentConversation, AgentConversationEntry } from '../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
+import { actionPromptDraftService } from './action_prompt_draft_service'
 import { ActionRunRegistry, notifyActionCardStateChange } from './action_run_registry'
 
 const context = { file: 'design/F-1.md', kind: 'card' as const }
@@ -100,6 +101,51 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('projects captured card context in global active runs', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const cardRunContext = {
+            cardInternalId: 'card-internal-1',
+            file: 'design/F-1.md',
+            kind: 'card' as const,
+            title: 'Captured card title',
+        }
+
+        emit({ ...runEvent('running'), context: cardRunContext })
+
+        expect(service.getGlobalActiveSnapshot()[0]).toEqual({
+            context: cardRunContext,
+            rootActionId: 'build',
+            runId: 'run-1',
+            status: 'running',
+        })
+        service.stop()
+    })
+
+    it('returns changed paths from terminal run data', async () => {
+        const { bridge, emit } = bridgeWithEvents({ startAction: vi.fn(async () => 'run-1') })
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        let resolveStarted!: () => void
+        const started = new Promise<void>((resolve) => {
+            resolveStarted = resolve
+        })
+        const completion = service.startRun({ id: 'build' } as ActionDefinition, context, {}, resolveStarted)
+        await started
+
+        emit(runEvent('running'))
+        emit({ ...runEvent('completed'), changedPaths: ['app/a.ts', 'desktop/b.js'] })
+
+        await expect(completion).resolves.toEqual({
+            changedPaths: ['app/a.ts', 'desktop/b.js'],
+            logs: [],
+            status: 'completed',
+        })
+        service.stop()
+    })
+
     it.each(['completed', 'failed', 'cancelled', 'okButNotAfter'] as const)('clears card running state after %s', (status) => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
@@ -139,6 +185,44 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('resubscribes to a recreated run store after registry restart', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        emit(runEvent('running'))
+        const listener = vi.fn()
+        const unsubscribe = service.subscribeRun('run-1', listener)
+
+        service.stop()
+        service.start()
+        emit(runEvent('running'))
+        emit({
+            actionId: 'build', command: 'npm test', context, runId: 'run-1', phase: 'main', rootActionId: 'build',
+            status: 'running', type: 'action',
+        })
+
+        expect(listener).toHaveBeenCalledTimes(3)
+        expect(getRun(service).logs).toHaveLength(1)
+        unsubscribe()
+        service.stop()
+    })
+
+    it('deletes a run draft when its terminal store is released', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        const draft = actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: false })
+        service.start()
+
+        emit(runEvent('running'))
+        emit(runEvent('completed'))
+
+        expect(actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: false })).not.toBe(draft)
+        actionPromptDraftService.clearAll()
+        service.stop()
+    })
+
     it('keeps more than 100 simultaneous active runs without eviction', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
@@ -152,6 +236,30 @@ describe('ActionRunRegistry', () => {
         expect(service.getGlobalActiveSnapshot()).toHaveLength(101)
         expect(service.getRunStore('run-0')).not.toBeNull()
         expect(service.getRunStore('run-100')).not.toBeNull()
+        service.stop()
+    })
+
+    it('retains concurrent stores for one action and removes only the terminal run', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+
+        emit(runEvent('running'))
+        emit({ ...runEvent('running'), runId: 'run-2' })
+
+        expect(service.getActionRunStores('build', context).map(({ getSnapshot }) => getSnapshot().runId))
+            .toEqual(['run-1', 'run-2'])
+        expect(service.getActionRunStore('build', context)?.getSnapshot().runId).toBe('run-2')
+        expect(service.getRunStore('run-1')?.getSnapshot().status).toBe('running')
+
+        emit(runEvent('completed'))
+
+        expect(service.getActionRunStores('build', context).map(({ getSnapshot }) => getSnapshot().runId))
+            .toEqual(['run-2'])
+        expect(service.getActionRunStore('build', context)?.getSnapshot().runId).toBe('run-2')
+        expect(service.getRunStore('run-1')).toBeNull()
+        expect(service.getRunStore('run-2')?.getSnapshot().status).toBe('running')
         service.stop()
     })
 
@@ -203,7 +311,7 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: '', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+            update: { content: '', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
@@ -241,11 +349,12 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: '', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+            update: { content: '', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
+                entryIndex: 2,
                 event: {
                     content: 'update: app/main.ts',
                     id: 'activity-started',
@@ -261,19 +370,23 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: 'Testing', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+            update: { content: 'Testing', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: '...', kind: 'output', messageId: 'assistant-1', sequence: 2 },
-        })
-        emit({
-            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: 'Testing passed', kind: 'output', messageId: 'assistant-1', previousContent: 'Testing...', replace: true, sequence: 2 },
+            update: { content: '...', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
             update: {
+                content: 'Testing passed', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1',
+                previousContent: 'Testing...', replace: true, sequence: 2,
+            },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: {
+                entryIndex: 2,
                 event: {
                     content: 'update: app/main.ts',
                     deletions: 2,
@@ -290,7 +403,7 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { content: 'Done', kind: 'output', messageId: 'assistant-2', sequence: 4 },
+            update: { content: 'Done', entryIndex: 3, kind: 'agentOutput', messageId: 'assistant-2', sequence: 4 },
         })
 
         expect(getRun(service).conversation).toMatchObject({
@@ -305,6 +418,93 @@ describe('ActionRunRegistry', () => {
             ],
         })
         expect(getRun(service).logs.at(-1)?.stdout).toBe('Testing passedDone')
+        service.stop()
+    })
+
+    it('replaces keyed assistant and provider entries at supplied indexes without searching history', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const assistant = {
+            content: 'draft', id: 'assistant-1', kind: 'message' as const, role: 'assistant' as const,
+            sequence: 2, timestamp: 'now',
+        }
+        const providerEvent = {
+            content: 'running', id: 'event-1', kind: 'event' as const, providerItemId: 'tool-1',
+            sequence: 3, status: 'inProgress', timestamp: 'now', type: 'commandExecution',
+        }
+        const entries = [
+            { content: 'prompt', id: 'user-1', kind: 'message' as const, role: 'user' as const, sequence: 1, timestamp: 'now' },
+            assistant,
+            providerEvent,
+        ]
+        entries.findIndex = vi.fn(() => { throw new Error('conversation history was scanned') })
+
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation(entries), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { content: ' complete', entryIndex: 1, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: {
+                entryIndex: 2,
+                event: { ...providerEvent, content: 'completed', status: 'completed' },
+                kind: 'agentEvent',
+            },
+        })
+
+        expect(entries.findIndex).not.toHaveBeenCalled()
+        expect(getRun(service).conversation?.entries[1]).toMatchObject({ content: 'draft complete', id: 'assistant-1' })
+        expect(getRun(service).conversation?.entries[2]).toMatchObject({ content: 'completed', providerItemId: 'tool-1' })
+        service.stop()
+    })
+
+    it('rejects malformed indexed transcript updates clearly', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const assistant = {
+            content: 'draft', id: 'assistant-1', kind: 'message' as const, role: 'assistant' as const,
+            sequence: 1, timestamp: 'now',
+        }
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation([assistant]), kind: 'agentStarted' },
+        })
+        const base = {
+            actionId: 'review', context, runId: 'run-1', phase: 'main' as const, rootActionId: 'review',
+            status: 'running' as const, type: 'update' as const,
+        }
+
+        expect(() => emit({
+            ...base,
+            update: { content: 'x', kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
+        } as unknown as ActionRunEvent)).toThrow('Invalid conversation entry index: undefined')
+        expect(() => emit({
+            ...base,
+            update: { content: 'x', entryIndex: 4, kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
+        })).toThrow('Conversation entry index out of range: 4')
+        expect(() => emit({
+            ...base,
+            update: { content: 'x', entryIndex: 0, kind: 'agentOutput', messageId: 'wrong', sequence: 1 },
+        })).toThrow('Assistant message identity mismatch at conversation entry index 0')
+        expect(() => emit({
+            ...base,
+            update: {
+                entryIndex: 0,
+                event: {
+                    content: '', id: 'event-1', kind: 'event', providerItemId: 'tool-1',
+                    status: 'completed', timestamp: 'now', type: 'commandExecution',
+                },
+                kind: 'agentEvent',
+            },
+        })).toThrow('Provider event identity mismatch at conversation entry index 0')
         service.stop()
     })
 
@@ -423,13 +623,92 @@ describe('ActionRunRegistry', () => {
 
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { kind: 'agentQuestionAnswer', userMessage: nextMessage },
+            update: { kind: 'agentQuestionAnswer', requestId: 7, userMessage: nextMessage },
         })
 
         expect(getRun(service)).toMatchObject({
             conversation: { entries: [firstMessage, nextMessage], status: 'running' },
             question: null,
             status: 'running',
+        })
+        service.stop()
+    })
+
+    it('logs dismissal and clears only the matching question request', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
+        const dismissedEvent = {
+            content: '',
+            id: 'dismissed-1',
+            kind: 'event' as const,
+            label: 'Questions dismissed',
+            status: 'completed',
+            timestamp: 'later',
+            type: 'questionsDismissed',
+        }
+
+        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'run' })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation([]), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions, requestId: 8 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { event: dismissedEvent, kind: 'agentQuestionDismissed', requestId: 7 },
+        })
+
+        expect(getRun(service)).toMatchObject({
+            conversation: { entries: [dismissedEvent] },
+            question: { questions, requestId: 8 },
+            status: 'waitingForInput',
+        })
+
+        const matchingEvent = { ...dismissedEvent, id: 'dismissed-2' }
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { event: matchingEvent, kind: 'agentQuestionDismissed', requestId: 8 },
+        })
+
+        expect(getRun(service)).toMatchObject({
+            conversation: { entries: [dismissedEvent, matchingEvent], status: 'running' },
+            question: null,
+            status: 'running',
+        })
+        service.stop()
+    })
+
+    it('keeps a newer question when a queued user message arrives', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        const questions = [{ header: 'Next', id: 'next', question: 'Next?' }]
+        service.start()
+        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'run' })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation([]), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions, requestId: 8 },
+        })
+        const queuedMessage = { content: 'Queued prompt', id: 'queued-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' }
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { kind: 'agentUserMessage', userMessage: queuedMessage },
+        })
+
+        expect(getRun(service)).toMatchObject({
+            conversation: { entries: [queuedMessage], status: 'waitingForInput' },
+            question: { questions, requestId: 8 },
+            status: 'waitingForInput',
         })
         service.stop()
     })
@@ -512,7 +791,7 @@ describe('ActionRunRegistry', () => {
         const second = bridgeWithEvents({
             loadActionRunRecoverySnapshot: vi.fn(async () => ({
                 activeRunEvents: [],
-                terminalResults: [{ failure: null, runId: 'run-1', status: 'completed' as const }],
+                terminalResults: [{ changedPaths: ['app/recovered.ts'], failure: null, runId: 'run-1', status: 'completed' as const }],
             })),
         })
 
@@ -528,7 +807,7 @@ describe('ActionRunRegistry', () => {
         }))
         expect(store.getSnapshot().logs[0]).toMatchObject({ message: 'build completed', status: 'completed' })
         expect(second.bridge.loadActionRunRecoverySnapshot).toHaveBeenCalledWith(['run-1'])
-        await expect(completion).resolves.toMatchObject({ status: 'completed' })
+        await expect(completion).resolves.toMatchObject({ changedPaths: ['app/recovered.ts'], status: 'completed' })
         release()
         service.stop()
     })
@@ -685,4 +964,105 @@ describe('ActionRunRegistry', () => {
         expect(notifyBridge).toHaveBeenCalledWith('card-1', 'ready')
     })
 
+    it('keeps a stable FIFO queue snapshot from granular events without changing waiting status', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const event = {
+            actionId: 'build', context, runId: 'run-1', phase: 'main' as const, rootActionId: 'build',
+            status: 'running' as const, type: 'update' as const,
+        }
+        const first = { content: 'First', dispatchState: 'queued' as const, id: 'prompt-1', revision: 0 }
+        const second = { content: 'Second', dispatchState: 'queued' as const, id: 'prompt-2', revision: 0 }
+
+        emit(runEvent('running'))
+        emit({ ...event, update: { entry: first, kind: 'agentPromptQueued' } })
+        emit({ ...event, update: { entry: second, kind: 'agentPromptQueued' } })
+        emit({
+            ...event,
+            update: { entry: { ...second, content: 'Edited second', revision: 1 }, kind: 'agentPromptEdited' },
+        })
+        emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build',
+            status: 'waitingForInput', type: 'agentState',
+        })
+        emit({ ...event, update: { kind: 'agentPromptRemoved', promptId: first.id, revision: first.revision } })
+
+        expect(getRun(service)).toMatchObject({
+            queuedPrompts: [{ content: 'Edited second', id: 'prompt-2', revision: 1 }],
+            status: 'waitingForInput',
+        })
+
+        const store = service.getRunStore('run-1')
+        if (!store) throw new Error('Missing retained queue store')
+        const release = store.subscribe(vi.fn())
+        emit(runEvent('cancelled'))
+        expect(store.getSnapshot().queuedPrompts).toEqual([])
+        release()
+        service.stop()
+    })
+
+})
+
+describe('ActionRunRegistry prompt drafts', () => {
+    afterEach(() => {
+        actionPromptDraftService.clearAll()
+        setActionBridgeOverride(null)
+    })
+
+    function startAgentRun() {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        emit(runEvent('running'))
+        emit({
+            actionId: 'build', actionType: 'agent', context, interactionReady: true, phase: 'main',
+            rootActionId: 'build', runId: 'run-1', status: 'running', type: 'action',
+        })
+
+        return { emit, service }
+    }
+
+    const endings: [string, ActionRunEvent][] = [
+        ['an agent step ending in waitingForInput', {
+            actionId: 'build', actionType: 'agent', context, interactionReady: false, phase: 'main',
+            rootActionId: 'build', runId: 'run-1', status: 'waitingForInput', type: 'action',
+        }],
+        ['a completed run', runEvent('completed')],
+        ['a failed run', runEvent('failed')],
+        ['a cancelled run', runEvent('cancelled')],
+    ]
+
+    it.each(endings)('keeps user-edited prompt text after %s', (_name, endingEvent) => {
+        const { emit } = startAgentRun()
+        const draft = actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: false })
+        draft.edit('Typed while the agent was finishing')
+
+        emit(endingEvent)
+
+        expect(draft.getSnapshot()).toBe('Typed while the agent was finishing')
+        expect(actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: false })).toBe(draft)
+    })
+
+    it.each(endings)('drops an untouched prepared default after %s', async (_name, endingEvent) => {
+        const { emit } = startAgentRun()
+        const draft = actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: true })
+        await draft.prepare(async () => 'Prepared default')
+
+        emit(endingEvent)
+
+        expect(draft.getSnapshot()).toBe('')
+    })
+
+    it('keeps text still buffered by the editor when a run ends', () => {
+        const { emit } = startAgentRun()
+        const draft = actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: false })
+        draft.markdownDraft.addEventListener('flushRequested', () => draft.edit('Buffered keystrokes'))
+
+        emit(runEvent('completed'))
+
+        expect(draft.getSnapshot()).toBe('Buffered keystrokes')
+    })
 })

@@ -12,7 +12,7 @@ import { markdownParsingService } from './data/markdown_parsing_service'
 import { telemetryService } from './telemetry/telemetry_service'
 import { projectAgentTokenUsageService } from './agents/project_agent_token_usage_service'
 import { getElectronActionBridge, type ElectronActionBridge } from '../data/electron_action_bridge'
-import { parseActivityFile } from '../../../shared/card_activity.mjs'
+import { parseActivityFileForMigration } from '../../../shared/card_activity.mjs'
 import {
     addSummaryUsage,
     agentTokenUsageFilePath,
@@ -34,8 +34,8 @@ export interface ReleaseOperationsDeps {
     snapshot(): ProjectSnapshot | null
 }
 
-function requireNoAssignedWorktrees(activeCards: ProjectSnapshot['activeCards']) {
-    const assignedCardIds = activeCards
+function requireNoAssignedWorktrees(releaseCards: ProjectSnapshot['activeCards']) {
+    const assignedCardIds = releaseCards
         .filter((card) => card.header.worktree !== null && card.header.worktree !== undefined)
         .map((card) => card.header.id)
     if (assignedCardIds.length > 0) {
@@ -73,7 +73,7 @@ async function releaseCardLock(lock: ReleaseCardLock | null) {
     await lock.bridge.releaseReleaseCardLocks(lock.leaseId)
 }
 
-function conversationReleaseUsage(conversation: ReturnType<typeof parseActivityFile>['conversations'][number]): AgentSummaryUsage {
+function conversationReleaseUsage(conversation: ReturnType<typeof parseActivityFileForMigration>['conversations'][number]): AgentSummaryUsage {
     const usage = conversation.usage
     if (!usage) return legacySummaryUsage(0)
     if (conversation.usageSchemaVersion === undefined) return legacySummaryUsage(usage.totalTokens, usage.costUsd)
@@ -91,7 +91,7 @@ function conversationReleaseUsage(conversation: ReturnType<typeof parseActivityF
 
 function releaseUsage(activityFiles: MarkdownFile[]) {
     return addSummaryUsage(activityFiles.flatMap((file) => (
-        parseActivityFile(file.content).conversations.map(conversationReleaseUsage)
+        parseActivityFileForMigration(file.content).conversations.map(conversationReleaseUsage)
     )))
 }
 
@@ -112,16 +112,15 @@ export class ReleaseOperations {
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot load release branches before a project is open')
 
-        const activeCards = this.dependencies.snapshot()?.activeCards ?? []
-        requireNoAssignedWorktrees(activeCards)
-        if (!storage.deleteLocalBranch) return []
-
         const finalState = config.states.at(-1)
         if (!finalState) throw new Error('Cannot complete a release without configured states')
+        const activeCards = this.dependencies.snapshot()?.activeCards ?? []
+        const releaseCards = activeCards.filter((card) => statusOf(card) === finalState.state)
+        requireNoAssignedWorktrees(releaseCards)
+        if (!storage.deleteLocalBranch) return []
         const localBranches = new Set((await storage.listBranches(currentProject)).map(({ name }) => name))
 
-        return activeCards
-            .filter((card) => statusOf(card) === finalState.state)
+        return releaseCards
             .filter((card) => !!card.header.branch && localBranches.has(card.header.branch))
             .filter((card) => card.header.branch !== currentProject.branch && !card.header.branch?.startsWith('md2/parking/'))
             .map((card) => {
@@ -145,8 +144,8 @@ export class ReleaseOperations {
         if (!finalState) throw new Error('Cannot complete a release without configured states')
 
         const activeCards = this.dependencies.snapshot()?.activeCards ?? []
-        requireNoAssignedWorktrees(activeCards)
         const releaseCards = activeCards.filter((card) => statusOf(card) === finalState.state)
+        requireNoAssignedWorktrees(releaseCards)
         if (releaseCards.length === 0) throw new Error(`Cannot complete a release without cards in the final column: ${finalState.state}`)
         const releaseLock = await acquireReleaseCardLock(releaseCards, currentProject)
 

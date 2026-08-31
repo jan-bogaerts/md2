@@ -97,6 +97,31 @@ function createRun(rootAction, overrides = {}) {
 }
 
 describe('ActionRun', () => {
+    it.each(['', '   '])('rejects incomplete root command %j before worktree resolution or process start', async (command) => {
+        const rootAction = action('main', { command });
+        const { actionWorktreeRunService, commandRunner, run } = createRun(rootAction);
+
+        await expect(run.completion).resolves.toMatchObject({
+            failure: 'Command text is required for action "main"',
+            status: 'failed',
+        });
+        expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
+        expect(commandRunner).not.toHaveBeenCalled();
+    });
+
+    it('rejects incomplete linked command before root or linked process start', async () => {
+        const linkedAction = action('linked', { command: ' ' });
+        const rootAction = action('main', { onBefore: [linkedAction] });
+        const { actionWorktreeRunService, commandRunner, run } = createRun(rootAction);
+
+        await expect(run.completion).resolves.toMatchObject({
+            failure: 'Command text is required for action "linked"',
+            status: 'failed',
+        });
+        expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();
+        expect(commandRunner).not.toHaveBeenCalled();
+    });
+
     it('runs before, main, every matching on rule, and after in declaration order', async () => {
         const before = action('before');
         const firstMatch = action('first-match');
@@ -171,11 +196,11 @@ describe('ActionRun', () => {
     });
 
     it('applies root run input only to root action', async () => {
-        const rootAction = action('main={{card-prompt}}', {
+        const rootAction = action('stored main', {
             id: 'main',
             onBefore: [action('before={{card-prompt}}', { id: 'before' })],
         });
-        const { commandRunner, run } = createRun(rootAction, { runInput: { extraPrompt: 'focus' } });
+        const { commandRunner, run } = createRun(rootAction, {runInput: { command: 'main=focus', extraPrompt: 'not command input' }});
 
         await run.completion;
 
@@ -242,6 +267,53 @@ describe('ActionRun', () => {
 
         expect(order).toEqual(['running:', 'running:chunk', 'process', 'completed:', 'history']);
         expect(events.every((event) => event.context === context)).toBe(true);
+    });
+
+    it('publishes accumulated agent paths only after activity persistence', async () => {
+        const rootAction = action('main', {
+            onAfter: [action('after', { prompt: 'after', type: 'agent' })],
+            prompt: 'main',
+            type: 'agent',
+        });
+        const agentExecutor = {
+            execute: vi.fn(async ({ action: currentAction }) => ({
+                agent: 'codex',
+                changedPaths: currentAction.id === 'main' ? ['app/a.ts'] : ['desktop/b.js', 'app/a.ts'],
+                conversationId: currentAction.id,
+                exitCode: 0,
+                model: 'gpt',
+                prompt: currentAction.prompt,
+                stderr: '',
+                stdout: '',
+                thinkingLevel: 'none',
+            })),
+        };
+        const order = [];
+        const localGitService = {
+            appendAndCommitActionActivity: vi.fn(async () => {
+                order.push('activity');
+
+                return { relativePath: 'design/activity/card__card-1.json' };
+            }),
+        };
+        const { events, run } = createRun(rootAction, { agentExecutor, localGitService });
+        const originalPublisher = run.publisher;
+        run.publisher = (event) => {
+            originalPublisher(event);
+            if (event.type === 'run' && event.status === 'completed') order.push('terminal');
+        };
+
+        await expect(run.completion).resolves.toMatchObject({
+            changedPaths: ['app/a.ts', 'desktop/b.js'],
+            status: 'completed',
+        });
+
+        expect(order).toEqual(['activity', 'terminal']);
+        expect(events.at(-1)).toMatchObject({
+            changedPaths: ['app/a.ts', 'desktop/b.js'],
+            status: 'completed',
+            type: 'run',
+        });
     });
 
     it('cancels active command before root cancellation and starts no later phase', async () => {
@@ -370,19 +442,15 @@ describe('ActionRun', () => {
     it('resolves direct and queued streaming prompts against active linked worktree', async () => {
         const agentCompletion = deferred();
         const agentStarted = deferred();
-        const beginQueuedMessageDraft = vi.fn(() => 4);
         const sendMessage = vi.fn(async () => undefined);
-        const sendQueuedMessage = vi.fn(async () => ({ sent: true }));
-        const setQueuedMessage = vi.fn(() => ({ accepted: true }));
         const agentRunnerService = {
-            beginQueuedMessageDraft,
             sendMessage,
-            sendQueuedMessage,
-            setQueuedMessage,
             stop: vi.fn(),
         };
+        let agentInput;
         const agentExecutor = {
             execute: vi.fn(async (input) => {
+                agentInput = input;
                 input.onActiveRunChange('agent-run');
                 agentStarted.resolve();
                 await agentCompletion.promise;
@@ -404,42 +472,117 @@ describe('ActionRun', () => {
             })),
         };
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
-        const { run } = createRun(rootAction, { actionWorktreeRunService, agentExecutor, agentRunnerService });
+        const { events, run } = createRun(rootAction, { actionWorktreeRunService, agentExecutor, agentRunnerService });
         await agentStarted.promise;
 
         await run.sendAgentMessage('Direct {{worktree-folder}} {{repository-folder}} {{card-file}} {{card-prompt}} {{unknown}}');
-        const sessionId = run.beginAgentPromptDraft();
-        run.setAgentQueuedMessage(sessionId, 'Queued {{worktree-folder}} {{card-file}}', 0);
-        expect(() => run.setAgentQueuedMessage(sessionId, 'Broken {{card-title}}', 1)).toThrow('without a card title');
-        await run.sendQueuedAgentMessage(sessionId, 0);
+        const entry = await run.enqueueAgentPrompt('Queued {{worktree-folder}} {{card-file}}');
+        await expect(run.enqueueAgentPrompt('Broken {{card-title}}')).rejects.toThrow('without a card title');
+        expect(events).toContainEqual(expect.objectContaining({update: { entry, kind: 'agentPromptQueued' }}));
+        agentInput.onEvent({ state: 'waitingForInput', type: 'state' });
+        await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(2));
 
         expect(sendMessage).toHaveBeenCalledWith('agent-run', 'Direct C:/worktrees/2 C:/repo design/card.md  {{unknown}}');
-        expect(setQueuedMessage).toHaveBeenCalledOnce();
-        expect(setQueuedMessage).toHaveBeenCalledWith('agent-run', 4, 'Queued C:/worktrees/2 design/card.md', 0);
-        expect(sendQueuedMessage).toHaveBeenCalledWith('agent-run', 4, 0);
+        expect(sendMessage).toHaveBeenCalledWith('agent-run', 'Queued C:/worktrees/2 design/card.md');
 
         agentCompletion.resolve();
         await run.completion;
         expect(run.activeAgentProject).toBeNull();
     });
 
+    it('releases first queued prompt after matching question dismissal', async () => {
+        const agentCompletion = deferred();
+        const agentStarted = deferred();
+        const sendMessage = vi.fn(async () => undefined);
+        let agentInput;
+        const dismissQuestions = vi.fn(async (_runId, requestId) => {
+            const event = {
+                content: '',
+                id: 'dismissed-1',
+                kind: 'event',
+                label: 'Questions dismissed',
+                status: 'completed',
+                timestamp: 'now',
+                type: 'questionsDismissed',
+            };
+            agentInput.onEvent({ event, requestId, state: 'running', type: 'questionDismissed' });
+        });
+        const agentRunnerService = { dismissQuestions, sendMessage, stop: vi.fn() };
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                agentInput = input;
+                input.onActiveRunChange('agent-run');
+                agentStarted.resolve();
+                await agentCompletion.promise;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', conversationId: 'conversation', exitCode: 0, model: 'gpt', prompt: 'run',
+                    reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
+        await agentStarted.promise;
+        agentInput.onEvent({ state: 'waitingForInput', type: 'state' });
+        agentInput.onEvent({ questions: [{ id: 'confirm', question: 'Proceed?' }], requestId: 7, type: 'question' });
+        await run.enqueueAgentPrompt('Continue differently');
+        await Promise.resolve();
+        expect(sendMessage).not.toHaveBeenCalled();
+
+        await run.dismissAgentQuestions(7);
+        await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledWith('agent-run', 'Continue differently'));
+
+        expect(dismissQuestions).toHaveBeenCalledWith('agent-run', 7);
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'running',
+            update: expect.objectContaining({ kind: 'agentQuestionDismissed', requestId: 7 }),
+        }));
+        agentInput.onEvent({ questions: [{ id: 'next', question: 'Next?' }], requestId: 8, type: 'question' });
+        agentInput.onEvent({
+            type: 'userMessage',
+            userMessage: { content: 'Continue differently', id: 'message-1', kind: 'message', role: 'user', timestamp: 'now' },
+        });
+        await run.enqueueAgentPrompt('Wait for next answer');
+        await Promise.resolve();
+        expect(run.activeAgentQuestion).toBe(true);
+        expect(run.activeAgentQuestionRequestId).toBe(8);
+        expect(sendMessage).toHaveBeenCalledOnce();
+        agentCompletion.resolve();
+        await run.completion;
+    });
+
     it('runs a queued one-shot follow-up before action completion', async () => {
+        const firstCompletion = deferred();
         const firstResult = {
             agent: 'codex', changedPaths: ['first.ts'], conversationId: 'conversation', exitCode: 0,
-            model: 'gpt', prompt: 'run', queuedMessage: 'follow up', reference: 'run.json',
+            model: 'gpt', prompt: 'run', reference: 'run.json',
             stderr: 'first error', stdout: 'first output', thinkingLevel: 'none',
         };
         const secondResult = {
             ...firstResult,
             changedPaths: ['second.ts'],
             prompt: 'follow up',
-            queuedMessage: null,
             stderr: 'second error',
             stdout: 'second output',
         };
-        const agentExecutor = { execute: vi.fn().mockResolvedValueOnce(firstResult).mockResolvedValueOnce(secondResult) };
+        const agentExecutor = {
+            execute: vi.fn()
+                .mockImplementationOnce(async (input) => {
+                    input.onActiveRunChange('agent-run-1');
+                    await firstCompletion.promise;
+                    input.onActiveRunChange(null);
+
+                    return firstResult;
+                })
+                .mockResolvedValueOnce(secondResult),
+        };
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
         const { events, run } = createRun(rootAction, { agentExecutor });
+        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledOnce());
+        await run.enqueueAgentPrompt('follow up');
+        firstCompletion.resolve();
 
         await run.completion;
 
@@ -449,6 +592,296 @@ describe('ActionRun', () => {
             prompt: 'follow up',
         });
         expect(events.findLast(({ type }) => type === 'action')).toMatchObject({ status: 'completed' });
+    });
+
+    it('edits, deletes, and dispatches several one-shot prompts once in FIFO order', async () => {
+        const firstCompletion = deferred();
+        const result = {
+            agent: 'codex', changedPaths: [], conversationId: 'conversation', exitCode: 0,
+            model: 'gpt', prompt: 'run', reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+        };
+        const agentExecutor = {
+            execute: vi.fn()
+                .mockImplementationOnce(async (input) => {
+                    input.onActiveRunChange('agent-run-1');
+                    await firstCompletion.promise;
+                    input.onActiveRunChange(null);
+
+                    return result;
+                })
+                .mockResolvedValue({ ...result, reference: 'continued.json' }),
+        };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', type: 'agent' });
+        const { run } = createRun(rootAction, { agentExecutor });
+        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalledOnce());
+        const first = await run.enqueueAgentPrompt('First');
+        const second = await run.enqueueAgentPrompt('Second');
+        await run.enqueueAgentPrompt('Third');
+        const editedSecond = await run.editQueuedAgentPrompt(second.id, second.revision, 'Edited second');
+        await expect(run.editQueuedAgentPrompt(second.id, second.revision, 'Stale edit')).rejects.toThrow('changed before operation');
+        expect(() => run.editQueuedAgentPrompt(first.id, first.revision, '   ')).toThrow('cannot be empty');
+        await run.deleteQueuedAgentPrompt(first.id, first.revision);
+        firstCompletion.resolve();
+
+        await run.completion;
+
+        expect(editedSecond).toMatchObject({ content: 'Edited second', revision: 1 });
+        expect(agentExecutor.execute).toHaveBeenCalledTimes(3);
+        expect(agentExecutor.execute.mock.calls.slice(1).map(([input]) => input.runInput.prompt))
+            .toEqual(['Edited second', 'Third']);
+    });
+
+    it('drains prompts queued before streaming completion through ordered continuations', async () => {
+        const firstCompletion = deferred();
+        const firstStarted = deferred();
+        const finalCompletion = deferred();
+        const finalStarted = deferred();
+        const firstResult = {
+            agent: 'claude', changedPaths: ['first.ts'], conversationId: 'conversation', exitCode: 0,
+            model: 'claude', prompt: 'run', reference: 'first.json', stderr: 'first error', stdout: 'first output',
+            thinkingLevel: 'none',
+        };
+        const secondResult = {
+            ...firstResult,
+            changedPaths: ['second.ts'],
+            prompt: 'First follow-up',
+            reference: 'second.json',
+            stderr: 'second error',
+            stdout: 'second output',
+        };
+        const finalResult = {
+            ...firstResult,
+            changedPaths: ['final.ts'],
+            prompt: 'Second follow-up',
+            reference: 'final.json',
+            stderr: 'final error',
+            stdout: 'final output',
+        };
+        let firstInput;
+        const agentExecutor = {
+            execute: vi.fn()
+                .mockImplementationOnce(async (input) => {
+                    firstInput = input;
+                    input.onActiveRunChange('agent-run-1');
+                    firstStarted.resolve();
+                    await firstCompletion.promise;
+                    input.onActiveRunChange(null);
+
+                    return firstResult;
+                })
+                .mockImplementationOnce(async (input) => {
+                    input.onActiveRunChange('agent-run-2');
+                    input.onActiveRunChange(null);
+
+                    return secondResult;
+                })
+                .mockImplementationOnce(async (input) => {
+                    input.onActiveRunChange('agent-run-3');
+                    finalStarted.resolve();
+                    await finalCompletion.promise;
+                    input.onActiveRunChange(null);
+
+                    return finalResult;
+                }),
+        };
+        const agentRunnerService = { sendMessage: vi.fn(), stop: vi.fn() };
+        const rootAction = action('main', { agent: 'claude', model: 'claude', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
+        await firstStarted.promise;
+        firstInput.onEvent({ approval: { requestId: 41 }, type: 'approval' });
+        const firstEntryPromise = run.enqueueAgentPrompt('First follow-up');
+        const secondEntryPromise = run.enqueueAgentPrompt('Second follow-up');
+        firstCompletion.resolve();
+        const [firstEntry, secondEntry] = await Promise.all([firstEntryPromise, secondEntryPromise]);
+        await finalStarted.promise;
+
+        expect(agentExecutor.execute).toHaveBeenCalledTimes(3);
+        expect(agentExecutor.execute.mock.calls.slice(1).map(([input]) => input.runInput)).toMatchObject([
+            { continueFrom: 'first.json', prompt: 'First follow-up' },
+            { continueFrom: 'second.json', prompt: 'Second follow-up' },
+        ]);
+        expect(agentRunnerService.sendMessage).not.toHaveBeenCalled();
+        const removedPromptIds = events
+            .filter(({ update }) => update?.kind === 'agentPromptRemoved')
+            .map(({ update }) => update.promptId);
+        expect(removedPromptIds).toEqual([firstEntry.id, secondEntry.id]);
+        expect(events).not.toContainEqual(expect.objectContaining({ status: 'completed', type: 'action' }));
+        expect(events).not.toContainEqual(expect.objectContaining({ status: 'completed', type: 'run' }));
+
+        finalCompletion.resolve();
+        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });
+
+        const lastRemovalIndex = events.findLastIndex(({ update }) => update?.kind === 'agentPromptRemoved');
+        const actionCompletionIndex = events.findIndex(({ status, type }) => status === 'completed' && type === 'action');
+        const runCompletionIndex = events.findIndex(({ status, type }) => status === 'completed' && type === 'run');
+        expect(actionCompletionIndex).toBeGreaterThan(lastRemovalIndex);
+        expect(runCompletionIndex).toBeGreaterThan(actionCompletionIndex);
+        await expect(run.enqueueAgentPrompt('Too late')).rejects.toThrow('no longer accepts');
+    });
+
+    it('fails a streaming queued continuation once and discards later prompts', async () => {
+        const firstCompletion = deferred();
+        const firstStarted = deferred();
+        const followUpCompletion = deferred();
+        const followUpStarted = deferred();
+        const firstResult = {
+            agent: 'claude', conversationId: 'conversation', exitCode: 0, model: 'claude', prompt: 'run',
+            reference: 'first.json', stderr: '', stdout: '', thinkingLevel: 'none',
+        };
+        let firstInput;
+        const agentExecutor = {
+            execute: vi.fn()
+                .mockImplementationOnce(async (input) => {
+                    firstInput = input;
+                    input.onActiveRunChange('agent-run-1');
+                    firstStarted.resolve();
+                    await firstCompletion.promise;
+                    input.onActiveRunChange(null);
+
+                    return firstResult;
+                })
+                .mockImplementationOnce(async (input) => {
+                    input.onEvent({ approval: { requestId: 42 }, type: 'approval' });
+                    input.onActiveRunChange('agent-run-2');
+                    followUpStarted.resolve();
+                    await followUpCompletion.promise;
+                    input.onActiveRunChange(null);
+
+                    return { ...firstResult, exitCode: 1, prompt: 'First follow-up', stderr: 'failed' };
+                }),
+        };
+        const agentRunnerService = { sendMessage: vi.fn(), stop: vi.fn() };
+        const rootAction = action('main', { agent: 'claude', model: 'claude', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
+        await firstStarted.promise;
+        firstInput.onEvent({ approval: { requestId: 41 }, type: 'approval' });
+        const firstEntry = await run.enqueueAgentPrompt('First follow-up');
+        const laterEntry = await run.enqueueAgentPrompt('Later follow-up');
+        firstCompletion.resolve();
+        await followUpStarted.promise;
+
+        expect(events.filter(({ update }) => update?.kind === 'agentPromptRemoved'))
+            .toEqual([expect.objectContaining({ update: expect.objectContaining({ promptId: firstEntry.id }) })]);
+        followUpCompletion.resolve();
+        await expect(run.completion).resolves.toMatchObject({ status: 'failed' });
+
+        expect(agentExecutor.execute).toHaveBeenCalledTimes(2);
+        expect(agentExecutor.execute.mock.calls[1][0].runInput).toMatchObject({
+            continueFrom: 'first.json',
+            prompt: 'First follow-up',
+        });
+        expect(agentRunnerService.sendMessage).not.toHaveBeenCalled();
+        expect(events.filter(({ update }) => update?.kind === 'agentPromptRemoved').map(({ update }) => update.promptId))
+            .toEqual([firstEntry.id, laterEntry.id]);
+    });
+
+    it('drains streaming prompts once in FIFO order after pending approval clears', async () => {
+        const agentCompletion = deferred();
+        const agentStarted = deferred();
+        const sendCompletions = [deferred(), deferred(), deferred()];
+        const deliveredPrompts = [];
+        let activeWrites = 0;
+        let maximumActiveWrites = 0;
+        const sendMessage = vi.fn(async (_runId, prompt) => {
+            const sendIndex = deliveredPrompts.length;
+            deliveredPrompts.push(prompt);
+            activeWrites += 1;
+            maximumActiveWrites = Math.max(maximumActiveWrites, activeWrites);
+            await sendCompletions[sendIndex].promise;
+            activeWrites -= 1;
+        });
+        const agentRunnerService = { sendMessage, stop: vi.fn() };
+        let agentInput;
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                agentInput = input;
+                input.onActiveRunChange('agent-run');
+                agentStarted.resolve();
+                await agentCompletion.promise;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', conversationId: 'conversation', exitCode: 0, model: 'gpt', prompt: 'run',
+                    reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
+        await agentStarted.promise;
+        agentInput.onEvent({ approval: { requestId: 41 }, type: 'approval' });
+        const first = await run.enqueueAgentPrompt('First');
+        const second = await run.enqueueAgentPrompt('Second');
+        expect(sendMessage).not.toHaveBeenCalled();
+
+        agentInput.onEvent({ requestId: 41, state: 'running', type: 'approvalResolved' });
+        await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+        expect(sendMessage).toHaveBeenLastCalledWith('agent-run', 'First');
+        expect(run.promptQueue.map(({ content }) => content)).toEqual(['Second']);
+        expect(run.promptQueue.some(({ id }) => id === first.id)).toBe(false);
+
+        const thirdEntryPromise = run.enqueueAgentPrompt('Third');
+        await Promise.resolve();
+        expect(sendMessage).toHaveBeenCalledOnce();
+        expect(run.promptQueue.map(({ content }) => content)).toEqual(['Second']);
+
+        sendCompletions[0].resolve();
+        await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(2));
+        expect(sendMessage).toHaveBeenLastCalledWith('agent-run', 'Second');
+        expect(run.promptQueue).toEqual([]);
+
+        sendCompletions[1].resolve();
+        const third = await thirdEntryPromise;
+        await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(3));
+        expect(sendMessage).toHaveBeenLastCalledWith('agent-run', 'Third');
+        expect(run.promptQueue).toEqual([]);
+        sendCompletions[2].resolve();
+        await expect(run.editQueuedAgentPrompt(first.id, first.revision, 'Too late')).rejects.toThrow('already sent or removed');
+
+        expect(deliveredPrompts).toEqual(['First', 'Second', 'Third']);
+        expect(maximumActiveWrites).toBe(1);
+        expect(new Set(deliveredPrompts).size).toBe(3);
+        expect(events
+            .filter(({ update }) => update?.kind === 'agentPromptRemoved')
+            .map(({ update }) => update.promptId))
+            .toEqual([first.id, second.id, third.id]);
+
+        agentCompletion.resolve();
+        await run.completion;
+    });
+
+    it('discards unsent prompts when a streaming run finishes', async () => {
+        const agentCompletion = deferred();
+        const agentStarted = deferred();
+        const agentRunnerService = { finish: vi.fn(), sendMessage: vi.fn(), stop: vi.fn() };
+        let agentInput;
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                agentInput = input;
+                input.onActiveRunChange('agent-run');
+                agentStarted.resolve();
+                await agentCompletion.promise;
+                input.onActiveRunChange(null);
+
+                return {
+                    agent: 'codex', conversationId: 'conversation', exitCode: 0, model: 'gpt', prompt: 'run',
+                    reference: 'run.json', stderr: '', stdout: '', thinkingLevel: 'none',
+                };
+            }),
+        };
+        const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
+        await agentStarted.promise;
+        agentInput.onEvent({ approval: { requestId: 41 }, type: 'approval' });
+        const entry = await run.enqueueAgentPrompt('Discard me');
+
+        run.finishAgent();
+
+        expect(agentRunnerService.finish).toHaveBeenCalledWith('agent-run');
+        expect(events).toContainEqual(expect.objectContaining({update: { kind: 'agentPromptRemoved', promptId: entry.id, revision: entry.revision }}));
+        await expect(run.enqueueAgentPrompt('Too late')).rejects.toThrow('no longer accepts');
+        agentCompletion.resolve();
+        await run.completion;
     });
 
     it('rejects autoFinish without card context before provider start', async () => {
@@ -591,13 +1024,14 @@ describe('ActionRun', () => {
                     timer: { elapsedMs: 10_000, runningStartedAt: null },
                     type: 'state',
                 });
-                input.onEvent({ content: 'chunk', messageId: 'assistant-1', sequence: 2, type: 'output' });
+                input.onEvent({ content: 'chunk', entryIndex: 0, messageId: 'assistant-1', sequence: 2, type: 'output' });
                 input.onEvent({
                     contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
                     type: 'usage',
                     usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
                 });
                 input.onEvent({
+                    entryIndex: 1,
                     event: {
                         content: 'running', id: 'activity-1', label: 'Command', providerItemId: 'command-1',
                         sequence: 3, status: 'inProgress', timestamp: 'now', type: 'commandExecution',
@@ -630,7 +1064,7 @@ describe('ActionRun', () => {
         expect(events).toContainEqual(expect.objectContaining({
             status: 'running',
             type: 'update',
-            update: { content: 'chunk', kind: 'output', messageId: 'assistant-1', sequence: 2 },
+            update: { content: 'chunk', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
         }));
         expect(events).toContainEqual(expect.objectContaining({
             status: 'running',
@@ -650,6 +1084,7 @@ describe('ActionRun', () => {
             status: 'running',
             type: 'update',
             update: {
+                entryIndex: 1,
                 event: expect.objectContaining({ providerItemId: 'command-1', sequence: 3 }),
                 kind: 'agentEvent',
             },

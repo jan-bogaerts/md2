@@ -49,6 +49,15 @@ function structuredValueLabel(value: unknown) {
     return JSON.stringify(value, null, 2) ?? String(value)
 }
 
+function inputPreviewLabel(input: Record<string, unknown>) {
+    const firstEntry = Object.entries(input)[0]
+    if (!firstEntry) return ''
+    const value = firstEntry[1]
+    if (typeof value === 'string') return value
+
+    return JSON.stringify(value) ?? String(value)
+}
+
 function permissionLabels(approval: LiveAgentApproval) {
     const permissions = approval.additionalPermissions
     if (!permissions) return []
@@ -83,9 +92,6 @@ function approvalDetails(approval: LiveAgentApproval) {
     if (approval.grantRoot) details.push({ label: 'Requested write root', values: [approval.grantRoot] })
     if (approval.filePaths.length > 0) details.push({ label: 'Affected files', values: approval.filePaths })
     if (approval.input) details.push({ label: 'Input', values: [structuredValueLabel(approval.input)] })
-    if (approval.permissionSuggestions?.length) {
-        details.push({ label: 'Session permission suggestions', values: approval.permissionSuggestions.map(structuredValueLabel) })
-    }
 
     return details
 }
@@ -94,12 +100,15 @@ function approvalDetails(approval: LiveAgentApproval) {
 export function ActionAgentApproval({ approval, onDecision }: ActionAgentApprovalProps) {
     const [actionsExpanded, setActionsExpanded] = useState(false)
     const [commandExpanded, setCommandExpanded] = useState(false)
+    const [inputExpanded, setInputExpanded] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const decisions = approval.availableDecisions ?? DEFAULT_APPROVAL_DECISIONS
     const disabled = submitting || approval.submitted
     const details = approvalDetails(approval)
+    const inputPreview = approval.input ? inputPreviewLabel(approval.input) : null
     const handleActionsToggle = () => setActionsExpanded((expanded) => !expanded)
     const handleCommandToggle = () => setCommandExpanded((expanded) => !expanded)
+    const handleInputToggle = () => setInputExpanded((expanded) => !expanded)
     const handleDecisionClick = async (event: MouseEvent<HTMLButtonElement>) => {
         const decisionIndex = Number(event.currentTarget.dataset.decisionIndex)
         const decision = decisions[decisionIndex]
@@ -116,6 +125,11 @@ export function ActionAgentApproval({ approval, onDecision }: ActionAgentApprova
         <Stack aria-label="Agent approval" spacing={1.5} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
             <Stack spacing={0.5}>
                 <Typography color="text.primary" variant="subtitle2">Approval required</Typography>
+                {approval.parentItemId ? (
+                    <Typography color="text.secondary" variant="body2">
+                        Requested by: {approval.subAgentLabel ?? 'Sub agent'}
+                    </Typography>
+                ) : null}
                 {approval.reason ? <Typography color="text.secondary" variant="body2">{approval.reason}</Typography> : null}
             </Stack>
             {details.map(({ label, values }) => (
@@ -150,6 +164,23 @@ export function ActionAgentApproval({ approval, onDecision }: ActionAgentApprova
                                 }}
                             >
                                 {value}
+                            </Box>
+                        ) : label === 'Input' ? (
+                            <Box
+                                aria-expanded={inputExpanded}
+                                aria-label="Toggle full input"
+                                component="button"
+                                key={value}
+                                onClick={handleInputToggle}
+                                sx={{
+                                    bgcolor: 'transparent', border: 0, color: 'text.primary', cursor: 'pointer', display: 'block',
+                                    font: 'inherit', fontFamily: 'monospace', minWidth: 0, overflow: 'hidden',
+                                    overflowWrap: inputExpanded ? 'anywhere' : 'normal',
+                                    p: 0, textAlign: 'left', textOverflow: inputExpanded ? 'clip' : 'ellipsis',
+                                    whiteSpace: inputExpanded ? 'pre-wrap' : 'nowrap', width: '100%',
+                                }}
+                            >
+                                {inputExpanded ? value : inputPreview}
                             </Box>
                         ) : (
                             <Box

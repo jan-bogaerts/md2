@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createRef, type ReactNode } from 'react'
+import { createRef, useLayoutEffect, type ReactNode } from 'react'
 import { AppThemeContext } from '../../theme/theme_context'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
@@ -118,6 +118,20 @@ function MarkdownContentSxOverride({ children }: { children: ReactNode }) {
     const value = { ...theme, markdownContentSx: { paddingTop: '37px' } }
 
     return <AppThemeContext.Provider value={value}>{children}</AppThemeContext.Provider>
+}
+
+function SelectMarkdownTarget(props: {
+    binding: MarkdownBindingKind
+    dataSource: TestMarkdownDataSource
+    identity: string
+    markdown: string
+}) {
+    const { binding, dataSource, identity, markdown } = props
+    useLayoutEffect(() => {
+        dataSource.select(binding, identity, markdown)
+    }, [binding, dataSource, identity, markdown])
+
+    return null
 }
 
 describe('MarkdownEditor', () => {
@@ -249,58 +263,6 @@ describe('MarkdownEditor', () => {
             { fallbackMessage: 'Clipboard image could not be pasted' },
         ))
         expect(screen.getByRole('textbox')).toHaveValue('')
-    })
-
-    it('copies selected formatted content as Markdown in both text formats', () => {
-        const markdown = '# Title\n\n**Bold** and [Link](https://example.com)\n\n- Item\n\n`code`'
-        renderEditor(markdown)
-        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
-        const clipboard = clipboardData()
-        selectText(textbox, 0, markdown.length)
-
-        const copyHandled = fireEvent.copy(textbox, { clipboardData: clipboard })
-
-        expect(copyHandled).toBe(false)
-        expect(clipboard.value('text/markdown')).toBe(markdown)
-        expect(clipboard.value('text/plain')).toBe(markdown)
-    })
-
-    it('copies only rendered text with Ctrl+Shift+C', () => {
-        const markdown = '**Bold** and [Link](https://example.com)'
-        renderEditor(markdown)
-        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
-        const clipboard = clipboardData()
-        selectText(textbox, 0, markdown.length)
-
-        fireEvent.keyDown(textbox, { ctrlKey: true, key: 'c', shiftKey: true })
-        fireEvent.copy(textbox, { clipboardData: clipboard })
-
-        expect(clipboard.value('text/plain')).toBe('Bold and Link')
-        expect(clipboard.value('text/markdown')).toBe('')
-    })
-
-    it('preserves formatting around a partial copied selection', () => {
-        renderEditor('Before **bold text** after')
-        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
-        const clipboard = clipboardData()
-        selectText(textbox, 9, 13)
-
-        fireEvent.copy(textbox, { clipboardData: clipboard })
-
-        expect(clipboard.value('text/markdown')).toBe('**bold**')
-        expect(clipboard.value('text/plain')).toBe('**bold**')
-    })
-
-    it('leaves clipboard data unchanged for a collapsed selection', () => {
-        renderEditor('Text')
-        const textbox = screen.getByRole('textbox') as HTMLTextAreaElement
-        const clipboard = clipboardData({ 'text/plain': 'existing' })
-        selectText(textbox, 2, 2)
-
-        const copyHandled = fireEvent.copy(textbox, { clipboardData: clipboard })
-
-        expect(copyHandled).toBe(true)
-        expect(clipboard.value('text/plain')).toBe('existing')
     })
 
     it('replaces the current selection when pasting Markdown', () => {
@@ -442,6 +404,45 @@ describe('MarkdownEditor', () => {
         stageMarkdownEditors()
         expect(dataSource.commit).toHaveBeenCalledExactlyOnceWith('list-action', target, 'edited')
     })
+
+    it('reconciles a target selected after history attachment but before monitor subscription', () => {
+        const dataSource = new TestMarkdownDataSource()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    binding="list-action"
+                    dataSource={dataSource}
+                    historyStore={new MarkdownDocumentHistoryStore()}
+                />
+                <SelectMarkdownTarget
+                    binding="list-action"
+                    dataSource={dataSource}
+                    identity="prompt"
+                    markdown="Stored prompt"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('textbox')).toHaveValue('Stored prompt')
+    })
+
+    it.each(['list-card', 'board-card'] as const)(
+        'does not reload a matching %s target during monitor startup',
+        (binding) => {
+            const dataSource = new TestMarkdownDataSource()
+            dataSource.select(binding, 'card', 'Card body')
+            const historyStore = new MarkdownDocumentHistoryStore()
+            const switchDocument = vi.spyOn(historyStore, 'switchDocument')
+            render(
+                <AppThemeProvider>
+                    <MarkdownEditor binding={binding} dataSource={dataSource} historyStore={historyStore} />
+                </AppThemeProvider>,
+            )
+
+            expect(screen.getByRole('textbox')).toHaveValue('Card body')
+            expect(switchDocument).not.toHaveBeenCalled()
+        },
+    )
 
     it('keeps a failed editor dirty without blocking another editor flush', () => {
         const failedDataSource = new TestMarkdownDataSource()
@@ -845,6 +846,26 @@ describe('MarkdownEditor', () => {
         )
 
         await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('Second'))
+    })
+
+    it('does not write mounted editor content into a newly bound empty draft', async () => {
+        const firstDraft = new MarkdownDraft('First')
+        const secondDraft = new MarkdownDraft('')
+        const view = render(
+            <AppThemeProvider>
+                <MarkdownEditor draft={firstDraft} hideToolbar />
+            </AppThemeProvider>,
+        )
+
+        view.rerender(
+            <AppThemeProvider>
+                <MarkdownEditor draft={secondDraft} hideToolbar />
+            </AppThemeProvider>,
+        )
+
+        await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue(''))
+        expect(firstDraft.getSnapshot()).toBe('First')
+        expect(secondDraft.getSnapshot()).toBe('')
     })
 
     it('rejects attachment controls and drops while read-only', () => {

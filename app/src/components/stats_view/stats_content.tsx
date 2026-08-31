@@ -1,7 +1,8 @@
 import { Box, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { dialogService } from '../../services/dialog_service';
-import { projectStatsService, type StatsExclusionReason } from '../../services/stats/project_stats_service';
+import { projectStatsService } from '../../services/stats/project_stats_service';
+import type { StatsExclusionReason } from '../../services/stats/project_stats_types';
 import { StatsBarChart, type StatsBarMode } from './stats_bar_chart';
 import { StatsControls } from './stats_controls';
 import { StatsUsageComparisonCharts } from './stats_usage_comparison_charts';

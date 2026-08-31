@@ -15,7 +15,8 @@ function setup() {
         builtin: false, command: null, icon: null, model: null,
         needsWorkTree: false, on: [], onAfter: [], onBefore: [], onState: null,
         phrases: draft.phrases ?? [], prompt: draft.prompt ?? null,
-        sourcePath: 'actions/review.json', thinkingLevel: null, trackFileChanges: false, streaming: draft.streaming ?? false,
+        showCommandWindow: false, sourcePath: 'actions/review.json', thinkingLevel: null,
+        trackFileChanges: false, streaming: draft.streaming ?? false,
         type: 'agent',
         editorState: {
             phrases: [{ identity: 'phrase-1', phrase: draft.phrases?.[0] as NonNullable<typeof draft.phrases>[number] }],
@@ -63,7 +64,7 @@ describe('ActionMarkdownDataSource', () => {
 
         expect(document.getDraft().prompt).toBe('New prompt')
         expect(document.getDraft().phrases?.[0].text).toBe('New phrase')
-        expect(service.draftStore.commitDraft).toHaveBeenCalledWith(document.path)
+        expect(service.draftStore.commitDraft).toHaveBeenCalledWith(document.getObject().id)
     })
 
     it('keeps section identity in active target without public compound IDs', () => {

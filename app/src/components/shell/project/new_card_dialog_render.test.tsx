@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, DEFAULT_STATES } from '../../../data/data_types'
 import { AppThemeProvider } from '../../../theme/theme_provider'
@@ -13,6 +14,7 @@ const { editorBoundaryRender } = vi.hoisted(() => ({ editorBoundaryRender: vi.fn
 vi.mock('./new_card_markdown_editor', () => {
     interface EditorProps {
         draft: MarkdownDraft
+        overlayContainer: HTMLElement | null
     }
 
     function NewCardMarkdownEditor(props: EditorProps) {
@@ -22,7 +24,14 @@ vi.mock('./new_card_markdown_editor', () => {
             props.draft.edit(event.currentTarget.value)
         }
 
-        return <textarea aria-label="Draft body" defaultValue={props.draft.getSnapshot()} onChange={handleChange} />
+        if (!props.overlayContainer) return null
+
+        return createPortal(
+            <div data-radix-popper-content-wrapper="" data-testid="new-card-link-popup-wrapper" style={{ zIndex: 'auto' }}>
+                <textarea aria-label="Draft body" defaultValue={props.draft.getSnapshot()} onChange={handleChange} />
+            </div>,
+            props.overlayContainer,
+        )
     }
 
     return { NewCardMarkdownEditor }
@@ -33,6 +42,35 @@ describe('NewCardDialog editor render boundary', () => {
         cleanup()
         projectSessionService.newCardMarkdownDraft.replace('')
         vi.restoreAllMocks()
+    })
+
+    it('raises only the new-card link popup above the modal layer', () => {
+        window.matchMedia = ((query: string) => ({
+            addEventListener: () => {}, addListener: () => {}, dispatchEvent: () => false, matches: false,
+            media: query, onchange: null, removeEventListener: () => {}, removeListener: () => {},
+        })) as unknown as typeof window.matchMedia
+        render(
+            <>
+                <div data-radix-popper-content-wrapper="" data-testid="regular-card-link-popup-wrapper" />
+                <NewCardDialog
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    initialTargetStatus="new"
+                    isLoading={false}
+                    isProjectOpen
+                    onClose={vi.fn()}
+                    onCreateCard={vi.fn(async () => undefined)}
+                    open
+                    states={DEFAULT_STATES}
+                />
+            </>,
+            { wrapper: AppThemeProvider },
+        )
+
+        expect(screen.getByTestId('new-card-link-popup-wrapper')).toBe(
+            within(screen.getByRole('group', { name: 'Description' })).getByTestId('new-card-link-popup-wrapper'),
+        )
+        expect(screen.getByTestId('new-card-link-popup-wrapper')).toHaveStyle({ zIndex: '1301' })
+        expect(screen.getByTestId('regular-card-link-popup-wrapper')).not.toHaveStyle({ zIndex: '1301' })
     })
 
     it('does not rerender the editor boundary for repeated description edits', () => {

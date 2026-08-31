@@ -10,7 +10,7 @@ function card(path: string, status: string): Card {
         agentConversations: [],
         content: '',
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id: path, internalId: path, owner: null,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: path, internalId: path, owner: null,
             policy: {}, references: [], status, title: path,
         },
         hasFrontmatter:true,

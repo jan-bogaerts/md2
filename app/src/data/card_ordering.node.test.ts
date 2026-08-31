@@ -11,6 +11,7 @@ function card(internalId: string, options: { after?: string | null; status?: str
             affects: [],
             after: options.after ?? null,
             agentLogReferences: [],
+            changedFiles: [],
             author: null,
             id: internalId.toUpperCase(),
             internalId,

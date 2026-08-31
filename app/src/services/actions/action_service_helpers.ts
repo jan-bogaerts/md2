@@ -37,14 +37,13 @@ export function suffixedActionPath(path: string, suffix: number) {
 }
 
 export function preserveActionEditorStates(currentActions: ActionDefinition[], nextActions: ActionDefinition[]) {
-    const editorStatesByPath = new Map<string, NonNullable<ActionDefinition['editorState']>>()
-    for (const { editorState, sourcePath } of currentActions) {
-        if (!editorState || !sourcePath) continue
-        editorStatesByPath.set(sourcePath, editorState)
+    const editorStatesByActionId = new Map<string, NonNullable<ActionDefinition['editorState']>>()
+    for (const { editorState, id } of currentActions) {
+        if (!editorState) continue
+        editorStatesByActionId.set(id, editorState)
     }
     for (const action of nextActions) {
-        if (!action.sourcePath) continue
-        const editorState = editorStatesByPath.get(action.sourcePath)
+        const editorState = editorStatesByActionId.get(action.id)
         if (editorState) action.editorState = editorState
     }
 
@@ -118,6 +117,7 @@ export function editableActionDefinition(action: ActionDefinition): RawActionDef
         ...(action.onAfter.length > 0 ? { onAfter: action.onAfter.map(({ id }) => id) } : {}),
         ...(action.onState !== null ? { onState: action.onState } : {}),
         ...(action.needsWorkTree ? { needsWorkTree: true } : {}),
+        ...(action.showCommandWindow ? { showCommandWindow: true } : {}),
         ...(action.agent !== null ? { agent: action.agent } : {}),
         ...(action.model !== null ? { model: action.model } : {}),
         ...(action.permissionMode !== null ? { permissionMode: action.permissionMode } : {}),

@@ -56,6 +56,11 @@ export class DialogService extends EventTarget {
         return this.show('error', message, options)
     }
 
+    /** Shows an expected user-facing error without reporting it as an application failure. */
+    displayError(message: string, options: DialogServiceOptions = {}) {
+        return this.show('error', message, options)
+    }
+
     warning(message: string, options: DialogServiceOptions = {}) {
         return this.show('warning', message, options)
     }

@@ -1,0 +1,41 @@
+- generic [ref=e102]:
+  - tablist "Action editor sections" [ref=e221]:
+    - tab "Definition" [ref=e222] [cursor=pointer]
+    - tab "Prompt" [active] [selected] [ref=e223] [cursor=pointer]
+    - tab "Add predefined phrase" [ref=e224] [cursor=pointer]: +
+  - generic [ref=e228]:
+    - toolbar [ref=e229]:
+      - generic [ref=e230]:
+        - radiogroup [ref=e231]:
+          - radio "Undo Ctrl+Z" [disabled]
+        - radiogroup [ref=e232]:
+          - radio "Redo Ctrl+Y" [disabled]
+      - separator [ref=e233]
+      - generic [ref=e234]:
+        - radiogroup [ref=e235]:
+          - radio "Bold" [ref=e236]
+        - radiogroup [ref=e240]:
+          - radio "Italic" [ref=e241]
+        - radiogroup [ref=e245]:
+          - radio "Underline" [ref=e246]
+      - separator [ref=e250]
+      - radiogroup "toggle group" [ref=e252]:
+        - radio "Bulleted list" [ref=e253]
+        - radio "Numbered list" [ref=e257]
+        - radio "Check list" [ref=e261]
+      - combobox "Block type" [ref=e266]
+      - separator [ref=e270]
+      - button "Create link" [ref=e271]
+      - button "Insert image" [ref=e275]
+      - separator [ref=e279]
+      - button "Insert Table" [ref=e280]
+      - button "Insert thematic break" [ref=e284]
+      - button "Insert Code Block" [ref=e288]
+      - separator [ref=e292]
+      - generic "Find text" [ref=e293]:
+        - button "Find text" [ref=e294] [cursor=pointer]
+      - separator [ref=e297]
+      - generic "Insert placeholder" [ref=e298]:
+        - button "Insert placeholder" [ref=e299] [cursor=pointer]
+    - textbox "editable markdown" [ref=e304]:
+      - paragraph [ref=e305]: "Runtime prompt {{card-file}}"

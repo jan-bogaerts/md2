@@ -140,23 +140,6 @@ function markdownToRenderedText(markdown: string) {
         .replace(/(\*\*|__|~~|`|\*|_)/g, '')
 }
 
-function selectedMarkdown(markdown: string, start: number, end: number) {
-    const selected = markdown.slice(start, end)
-    if (!selected) return ''
-
-    const before = markdown.slice(0, start)
-    const after = markdown.slice(end)
-    const boldOpen = before.lastIndexOf('**')
-    const boldClose = after.indexOf('**')
-    if (boldOpen >= 0 && boldClose >= 0 && before.slice(boldOpen + 2).indexOf('**') < 0) return `**${selected}**`
-
-    const linkOpen = before.lastIndexOf('[')
-    const linkClose = after.match(/^([^\]]*)\]\(([^)]*)\)/)
-    if (linkOpen >= 0 && linkClose) return `[${selected}](${linkClose[2]})`
-
-    return selected
-}
-
 function setTestLexicalSelection(text: string, start: number, end: number) {
     testLexicalEditor.update(() => {
         const root = $getRoot()
@@ -228,8 +211,7 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
                 callbackFn?.()
             },
             getMarkdown: () => latestMarkdownRef.current,
-            getSelectionMarkdown: () => selectedMarkdown(
-                latestMarkdownRef.current,
+            getSelectionMarkdown: () => latestMarkdownRef.current.slice(
                 selectionStartRef.current,
                 selectionEndRef.current,
             ),

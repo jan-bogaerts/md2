@@ -1,5 +1,5 @@
 import { Typography } from '@mui/material'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 import { ResizablePopper } from '../resizable_popper'
 import type { MarkdownFileSearchOption } from './markdown_file_search_option'
@@ -12,6 +12,7 @@ const FILE_SEARCH_MENU_MIN_WIDTH = 280
 const FILE_SEARCH_OPTION_ESTIMATED_HEIGHT = 52
 const FILE_SEARCH_OVERSCAN = 104
 const FILE_SEARCH_TITLE_ID = 'markdown-file-search-title'
+const FILE_SEARCH_MENU_SIZE = { height: FILE_SEARCH_MENU_MAX_HEIGHT, width: FILE_SEARCH_MENU_DEFAULT_WIDTH }
 
 export const MARKDOWN_FILE_SEARCH_SIZE_STORAGE_KEY = 'md2.markdownFileSearchMenuSize'
 
@@ -46,17 +47,61 @@ function renderOption(index: number, option: MarkdownFileSearchOption, context: 
     )
 }
 
+/**
+ * Copies the page coordinates Lexical gave its own typeahead anchor onto the frozen anchor.
+ * Only the placement matters, so the frozen element stays zero-width.
+ */
+function copyAnchorPlacement(source: HTMLElement, target: HTMLElement) {
+    target.style.left = source.style.left
+    target.style.top = source.style.top
+    target.style.height = source.style.height
+}
+
+/**
+ * Returns a stationary stand-in for Lexical's typeahead anchor.
+ *
+ * Lexical resizes and repositions its own anchor on every keystroke after `@`, which drags the
+ * popup along with it. The stand-in lives in the same scrolling container, so it still travels
+ * with the editor, but its coordinates are captured once per typeahead session and never again.
+ * The capture waits one animation frame because Lexical positions its anchor in the plugin's
+ * effect, which React runs after this portalled menu's own mount effect.
+ */
+function useFrozenAnchorElement(anchorElement: HTMLElement) {
+    const [frozenAnchor, setFrozenAnchor] = useState<HTMLElement | null>(null)
+
+    useLayoutEffect(() => {
+        const container = anchorElement.parentElement ?? anchorElement
+        const frozen = anchorElement.ownerDocument.createElement('div')
+        frozen.dataset.markdownFileSearchAnchor = 'true'
+        frozen.style.position = 'absolute'
+        frozen.style.width = '0px'
+        frozen.style.pointerEvents = 'none'
+        container.append(frozen)
+        const frame = window.requestAnimationFrame(() => {
+            copyAnchorPlacement(anchorElement, frozen)
+            setFrozenAnchor(frozen)
+        })
+
+        return () => {
+            window.cancelAnimationFrame(frame)
+            frozen.remove()
+            setFrozenAnchor(null)
+        }
+    }, [anchorElement])
+
+    return frozenAnchor
+}
+
 /** Virtualized project-file typeahead results. */
 export function MarkdownFileSearchMenu(props: MarkdownFileSearchMenuProps) {
     const { anchorElement, onHighlight, onSelect, options, selectedIndex } = props
     const stackPosition = useMarkdownTypeaheadStackPosition()
     const virtuosoRef = useRef<VirtuosoHandle>(null)
+    const frozenAnchor = useFrozenAnchorElement(anchorElement)
     const context = useMemo(
         () => ({ onHighlight, onSelect, selectedIndex }),
         [onHighlight, onSelect, selectedIndex],
     )
-    const contentHeight = Math.max(FILE_SEARCH_OPTION_ESTIMATED_HEIGHT, options.length * FILE_SEARCH_OPTION_ESTIMATED_HEIGHT)
-    const height = Math.min(FILE_SEARCH_MENU_MAX_HEIGHT, contentHeight)
 
     useEffect(() => {
         if (selectedIndex === null) return
@@ -64,14 +109,15 @@ export function MarkdownFileSearchMenu(props: MarkdownFileSearchMenuProps) {
         virtuosoRef.current?.scrollIntoView({ index: selectedIndex })
     }, [options, selectedIndex])
 
+    if (!frozenAnchor) return null
+
     return (
         <ResizablePopper
-            anchorElement={anchorElement}
+            anchorElement={frozenAnchor}
             closeOnEscape={false}
             constrainSizeToViewport
             focusOnMount={false}
-            initialSize={{ height, width: FILE_SEARCH_MENU_DEFAULT_WIDTH }}
-            key={height}
+            initialSize={FILE_SEARCH_MENU_SIZE}
             labelId={FILE_SEARCH_TITLE_ID}
             minimumSize={{ height: FILE_SEARCH_OPTION_ESTIMATED_HEIGHT, width: FILE_SEARCH_MENU_MIN_WIDTH }}
             open
@@ -95,18 +141,22 @@ export function MarkdownFileSearchMenu(props: MarkdownFileSearchMenuProps) {
             >
                 Project files
             </Typography>
-            <Virtuoso
-                aria-label="Project files"
-                computeItemKey={optionKey}
-                context={context}
-                data={options}
-                defaultItemHeight={FILE_SEARCH_OPTION_ESTIMATED_HEIGHT}
-                itemContent={renderOption}
-                overscan={FILE_SEARCH_OVERSCAN}
-                ref={virtuosoRef}
-                role="listbox"
-                style={{ flex: 1, height: '100%', minHeight: 0, width: '100%' }}
-            />
+            {options.length === 0 ? (
+                <Typography sx={{ color: 'text.secondary', px: 2, py: 1.5 }}>No matching files</Typography>
+            ) : (
+                <Virtuoso
+                    aria-label="Project files"
+                    computeItemKey={optionKey}
+                    context={context}
+                    data={options}
+                    defaultItemHeight={FILE_SEARCH_OPTION_ESTIMATED_HEIGHT}
+                    itemContent={renderOption}
+                    overscan={FILE_SEARCH_OVERSCAN}
+                    ref={virtuosoRef}
+                    role="listbox"
+                    style={{ flex: 1, height: '100%', minHeight: 0, width: '100%' }}
+                />
+            )}
         </ResizablePopper>
     )
 }

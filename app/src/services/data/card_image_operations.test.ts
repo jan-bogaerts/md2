@@ -53,6 +53,19 @@ describe('card image operations', () => {
         expect(savedImage.fileName).not.toContain('/')
     })
 
+    it('generates a default image identifier when randomUUID is unavailable', () => {
+        const { getRandomValues } = globalThis.crypto
+        vi.stubGlobal('crypto', { getRandomValues: getRandomValues.bind(globalThis.crypto) })
+        try {
+            const savedImage = createAvailablePastedImagePath('design/cards/F-1-card.md', 'image/png', [])
+
+            expect(savedImage.fileName).toMatch(/^pasted-image-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.png$/u)
+            expect(savedImage.path).toBe(`design/cards/${savedImage.fileName}`)
+        } finally {
+            vi.unstubAllGlobals()
+        }
+    })
+
     it('persists a card image beside its card with base64 encoding', async () => {
         configService.init()
         const commit = vi.fn(async (request) => request.files)

@@ -4,6 +4,7 @@ import {
 } from '@mui/material'
 import DriveFileMoveOutlined from '@mui/icons-material/DriveFileMoveOutlined'
 import EditOutlined from '@mui/icons-material/EditOutlined'
+import DifferenceOutlined from '@mui/icons-material/DifferenceOutlined'
 import LabelOutlined from '@mui/icons-material/LabelOutlined'
 import PolicyOutlined from '@mui/icons-material/PolicyOutlined'
 import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined'
@@ -85,6 +86,8 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
     const policyValue = autoMergeEnabled ? AUTO_MERGE_POLICY_VALUE : MANUAL_POLICY_VALUE
     const affects = card?.header.affects ?? []
     const affectsValue = affects.length > 0 ? affects.join(', ') : 'None'
+    const changedFiles = card?.header.changedFiles ?? []
+    const changedFilesValue = changedFiles.length > 0 ? changedFiles.join(', ') : 'None'
     const statusValue = card?.header.status ?? 'None'
     const statusColor = card?.header.status
         ? statusColors.get(card.header.status) ?? defaultColumnAccent(0)
@@ -258,6 +261,16 @@ export function CardPropertiesPanel(props: CardPropertiesPanelProps) {
                         <MenuItem value={MANUAL_POLICY_VALUE}>Manual</MenuItem>
                         <MenuItem value={AUTO_MERGE_POLICY_VALUE}>Auto-merge</MenuItem>
                     </Select>
+                </Box>
+                <Box sx={{ ...rowSx, gridColumn: '1 / -1' }}>
+                    <Box sx={{ ...labelSx, width: 104 }}><DifferenceOutlined sx={{ fontSize: 14 }} />Changed files</Box>
+                    <Typography
+                        noWrap
+                        sx={{ color: changedFiles.length > 0 ? 'text.primary' : 'custom.text4', fontSize: 13, minWidth: 0 }}
+                        title={changedFilesValue}
+                    >
+                        {changedFilesValue}
+                    </Typography>
                 </Box>
             </Box>
         </Box>

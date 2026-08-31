@@ -1,21 +1,20 @@
 const {
     accumulateUsage,
-    createProviderEventEntry,
     createEventEntry,
     transitionConversationStatus,
     updateProviderSession,
 } = require('./agent_conversation');
+const { recordProviderEvent } = require('./agent_provider_event');
 const { emitRunEvent, hasPendingInteraction } = require('./agent_run_state');
 const {
     appendAssistantOutput,
-    appendDiagnosticContent,
     completeAssistantOutput,
     lastMessageEntry,
     nextRunSequence,
     replaceAssistantOutput,
     startAssistantItem,
 } = require('./agent_run_transcript');
-const { redactConversationEvent, redactSecrets } = require('./agent_secret_redaction');
+const { redactSecrets } = require('./agent_secret_redaction');
 const { requireString } = require('./agent_run_validation');
 
 function handleSessionStarted(service, run, event) {
@@ -25,6 +24,7 @@ function handleSessionStarted(service, run, event) {
 function handleTurnStarted(service, run) {
     run.assistantItemIndex = 0;
     run.assistantItems.clear();
+    run.currentAssistantEntryIndex = null;
     run.currentAssistantMessageId = null;
     run.liveTurnUsage = null;
     run.turnStarted = true;
@@ -42,7 +42,7 @@ function handleUsage(service, run, event) {
 
 function handleAssistantStarted(service, run, event, timestamp) {
     const item = startAssistantItem(run, requireString(event.itemId, 'assistant item id'), timestamp);
-    emitRunEvent(run, { content: '', messageId: item.messageId, sequence: item.sequence, type: 'output' });
+    emitRunEvent(run, {content: '', entryIndex: item.entryIndex, messageId: item.messageId, sequence: item.sequence, type: 'output'});
 }
 
 function handleAssistant(service, run, event, timestamp) {
@@ -50,20 +50,21 @@ function handleAssistant(service, run, event, timestamp) {
     const itemId = run.agent === 'codex'
         ? requireString(event.itemId, 'assistant item id')
         : event.itemId;
-    const { message, segment } = appendAssistantOutput(run, safeContent, timestamp, itemId);
+    const { entryIndex, message, segment } = appendAssistantOutput(run, safeContent, timestamp, itemId);
     if (segment.length > 0) {
-        emitRunEvent(run, { content: segment, messageId: message.id, sequence: message.sequence, type: 'output' });
+        emitRunEvent(run, { content: segment, entryIndex, messageId: message.id, sequence: message.sequence, type: 'output' });
     }
 }
 
 function handleAssistantCompleted(service, run, event, timestamp) {
     const safeContent = redactSecrets(event.content, run.secretValues);
     const itemId = requireString(event.itemId, 'assistant item id');
-    const { message, previousContent, replaced } = replaceAssistantOutput(run, safeContent, timestamp, itemId);
+    const { entryIndex, message, previousContent, replaced } = replaceAssistantOutput(run, safeContent, timestamp, itemId);
     if (!replaced) return;
 
     emitRunEvent(run, {
         content: safeContent,
+        entryIndex,
         messageId: message.id,
         previousContent,
         replace: true,
@@ -72,38 +73,9 @@ function handleAssistantCompleted(service, run, event, timestamp) {
     });
 }
 
-function handleChangedPaths(service, run, event) {
-    event.paths.forEach((filePath) => run.changedPaths.add(filePath));
-}
-
 /** Provider events are keyed by `providerItemId` so a later revision of the same item replaces its entry. */
 function handleEvent(service, run, event, timestamp) {
-    const safeEvent = redactConversationEvent(event.event, run.secretValues);
-    const providerItemId = requireString(safeEvent.providerItemId, 'event providerItemId');
-    const currentIndex = run.providerEventEntryIndexes.get(providerItemId);
-    let eventEntry;
-    if (currentIndex !== undefined) {
-        const current = run.conversation.entries[currentIndex];
-        eventEntry = createProviderEventEntry(safeEvent, current.id, timestamp, current.sequence);
-        run.conversation.entries[currentIndex] = eventEntry;
-    } else {
-        const previousEntry = run.conversation.entries.at(-1);
-        if (safeEvent.type === 'diagnostic' && previousEntry?.kind === 'event' && previousEntry.type === 'diagnostic') {
-            eventEntry = appendDiagnosticContent(previousEntry, safeEvent.content);
-            run.conversation.entries[run.conversation.entries.length - 1] = eventEntry;
-        } else {
-            const sequence = nextRunSequence(run);
-            eventEntry = createProviderEventEntry(
-                safeEvent,
-                `${run.id}-event-${sequence}`,
-                timestamp,
-                sequence,
-            );
-            run.providerEventEntryIndexes.set(providerItemId, run.conversation.entries.length);
-            run.conversation.entries.push(eventEntry);
-        }
-    }
-    emitRunEvent(run, { event: eventEntry, type: 'agentEvent' });
+    recordProviderEvent(run, event.event, timestamp);
 }
 
 function handleTranscript(service, run, event, timestamp) {
@@ -133,6 +105,7 @@ function handleSessionFailed(service, run, event) {
 async function handleQuestion(service, run, event, timestamp) {
     transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
     run.waitingForQuestion = true;
+    run.pendingQuestionRequestId = event.requestId;
     run.pendingQuestions = event.questions;
     await service.persistCheckpoint(run);
     emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
@@ -173,6 +146,8 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     completeAssistantOutput(run, timestamp);
     run.turnActive = false;
     run.waitingForQuestion = false;
+    run.pendingQuestionRequestId = null;
+    run.pendingQuestions = [];
     run.pendingApprovals.clear();
     run.missingSession = run.missingSession || event.missingSession;
     if (event.missingSession) run.finishing = true;
@@ -207,14 +182,6 @@ async function handleTurnCompleted(service, run, event, timestamp) {
         service.beginFinishShutdown(run);
         return;
     }
-    if (run.queuedMessage) {
-        const { content, revision } = run.queuedMessage;
-        transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
-        await service.sendStreamingMessage(run, content);
-        run.queuedMessage = null;
-        run.sentQueuedMessageRevision = revision;
-        return;
-    }
     const synchronizedMessage = lastMessageEntry(run.conversation);
     if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
     transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
@@ -231,7 +198,6 @@ const STREAMING_EVENT_HANDLERS = {
     assistant: handleAssistant,
     assistantCompleted: handleAssistantCompleted,
     assistantStarted: handleAssistantStarted,
-    changedPaths: handleChangedPaths,
     error: handleError,
     event: handleEvent,
     fatal: handleFatal,

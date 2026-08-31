@@ -9,6 +9,13 @@ const action = { agent: 'codex', id: 'main', label: 'Main', model: 'gpt-5.5', pr
 const cardContext = { cardInternalId: 'card-1', file: 'design/card.md', kind: 'card' };
 const project = { branch: 'main', rootPath: 'C:/repo' };
 
+function agentConfig(activeAgent = 'codex', model = '', agentProfiles = [], permissionMode = 'ask-for-approval') {
+    return {
+        agentProfiles,
+        agentSelection: { activeAgent, permissionMode, settingsByAgent: { [activeAgent]: { model, thinkingLevel: 'none' } } },
+    };
+}
+
 function conversation(overrides = {}) {
     return {
         cardInternalId: cardContext.cardInternalId,
@@ -37,7 +44,7 @@ function createExecutor(overrides = {}) {
         loadFile: vi.fn(async () => ({ content: '---\ntitle: Card\n---\n# Card', path: cardContext.file })),
     };
     const executor = new ActionAgentExecutor({
-        agentConfigProvider: () => ({ agent: 'codex', agentProfiles: [], model: '' }),
+        agentConfigProvider: () => agentConfig(),
         agentRunnerService,
         localGitService,
         ...overrides,
@@ -67,7 +74,7 @@ function executionInput(overrides = {}) {
 describe('ActionAgentExecutor', () => {
     it('rejects unsupported streaming profiles before process start', async () => {
         const profile = { command: ['custom-agent'], models: ['default'], name: 'custom' };
-        const agentConfigProvider = () => ({ agent: 'custom', agentProfiles: [profile], model: 'default' });
+        const agentConfigProvider = () => agentConfig('custom', 'default', [profile]);
         const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });
         const streamingAction = { ...action, agent: 'custom', model: 'default', streaming: true };
 
@@ -131,7 +138,7 @@ describe('ActionAgentExecutor', () => {
     });
 
     it('resolves run permission overrides before action and desktop defaults', async () => {
-        const agentConfigProvider = () => ({agent: 'codex', agentProfiles: [], model: '', permissionMode: 'ask-for-approval'});
+        const agentConfigProvider = () => agentConfig();
         const { agentRunnerService, executor } = createExecutor({ agentConfigProvider });
         const permissionAction = { ...action, permissionMode: 'approve-for-me' };
 
@@ -165,7 +172,7 @@ describe('ActionAgentExecutor', () => {
             return { runId: 'active-run' };
         });
         const agentRunnerService = { start, stop: vi.fn() };
-        const agentConfigProvider = () => ({agent: 'claude', agentProfiles: [], model: 'sonnet', permissionMode: 'approve-for-me'});
+        const agentConfigProvider = () => agentConfig('claude', 'sonnet', [], 'approve-for-me');
         const { executor } = createExecutor({ agentConfigProvider, agentRunnerService });
         const claudeAction = { ...action, agent: 'claude', model: 'sonnet' };
 
@@ -276,7 +283,7 @@ describe('ActionAgentExecutor', () => {
 
     it('resumes same provider after cursor with normalized reference and explicit prompt', async () => {
         const profile = {command: ['agent', 'start'], models: ['default'], name: 'custom', resumeCommand: ['agent', 'resume', '{{sessionId}}']};
-        const agentConfigProvider = () => ({ agent: 'custom', agentProfiles: [profile], model: 'default' });
+        const agentConfigProvider = () => agentConfig('custom', 'default', [profile]);
         const { agentRunnerService, executor, localGitService } = createExecutor({ agentConfigProvider });
         localGitService.loadAgentConversation.mockResolvedValueOnce(conversation({
             entries: [

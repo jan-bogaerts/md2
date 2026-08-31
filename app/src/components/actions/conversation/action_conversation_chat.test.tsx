@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useState, type ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
     AgentConversation,
@@ -8,6 +8,8 @@ import type {
     AgentConversationEventEntry,
     AgentConversationMessageEntry,
 } from '../../../data/data_types'
+import type { ActionQueuedPrompt } from '../../../data/action_run_types'
+import type { ActionConversationChange, ActionRun, ActionRunRegistry } from '../../../services/actions/action_run_registry'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
 import { dataService } from '../../../services/data/data_service'
@@ -15,14 +17,47 @@ import { dialogService } from '../../../services/dialog_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { AppThemeContext } from '../../../theme/theme_context'
 import { useAppTheme } from '../../../theme/use_app_theme'
-import { ActionConversationChat } from './action_conversation_chat'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
+import type { ActionConversationStore } from './action_conversation_store'
+import { ActionConversationTranscript } from './action_conversation_transcript'
+import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
 
 let clientHeight = 100
 let scrollHeight = 300
 let scrollPositions = new WeakMap<HTMLElement, number>()
+let resizeObserverCallback: ResizeObserverCallback | null = null
+let disconnectedViewportObserverCount = 0
+const observeViewport = vi.fn()
 const originalClientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight')
 const originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight')
 const originalScrollTop = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollTop')
+
+class ControllableResizeObserver {
+    private readonly callback: ResizeObserverCallback
+    private observesViewport = false
+
+    constructor(callback: ResizeObserverCallback) {
+        this.callback = callback
+    }
+
+    disconnect() {
+        if (this.observesViewport) disconnectedViewportObserverCount += 1
+    }
+
+    observe(target: Element) {
+        if (!(target instanceof HTMLElement) || target.getAttribute('aria-label') !== 'Conversation chat') return
+
+        this.observesViewport = true
+        resizeObserverCallback = this.callback
+        observeViewport(target)
+    }
+
+    unobserve(target: Element) {
+        if (target instanceof HTMLElement && target.getAttribute('aria-label') === 'Conversation chat') {
+            this.observesViewport = false
+        }
+    }
+}
 
 function message(id: string, content: string): AgentConversationMessageEntry {
     return { content, id, kind: 'message', role: 'assistant', timestamp: '2026-07-27T10:00:00.000Z' }
@@ -91,6 +126,129 @@ function conversation(
     }
 }
 
+class TranscriptTestConversationStore extends EventTarget {
+    private readonly snapshot = { conversations: [], loading: false, selectedConversation: null }
+
+    readonly getSnapshot = () => this.snapshot
+
+    readonly subscribe = (listener: () => void) => {
+        this.addEventListener('changed', listener)
+
+        return () => this.removeEventListener('changed', listener)
+    }
+}
+
+class TranscriptTestBindingStore {
+    private readonly listeners = new Set<() => void>()
+    private readonly runId: string
+
+    constructor(runId: string) {
+        this.runId = runId
+    }
+
+    readonly getSnapshot = () => this.runId
+    readonly subscribe = (listener: () => void) => {
+        this.listeners.add(listener)
+
+        return () => this.listeners.delete(listener)
+    }
+}
+
+class TranscriptTestRunRegistry {
+    private readonly listeners = new Set<() => void>()
+    private snapshot: ActionRun
+
+    constructor(snapshot: ActionRun) {
+        this.snapshot = snapshot
+    }
+
+    getRunStore() {
+        return { getSnapshot: () => this.snapshot }
+    }
+
+    subscribeRun(_runId: string, listener: () => void) {
+        this.listeners.add(listener)
+
+        return () => this.listeners.delete(listener)
+    }
+
+    update(snapshot: ActionRun) {
+        this.snapshot = snapshot
+        for (const listener of this.listeners) listener()
+    }
+
+    updateConversation(
+        conversationValue: TranscriptTestConversation | null,
+        queuedPrompts: ActionQueuedPrompt[],
+        runId: string,
+        status: PopupRunStatus,
+    ) {
+        const previousConversation = this.snapshot.conversation
+        const changedEntryIndex = conversationValue?.entries.findIndex(
+            (entry, index) => entry !== previousConversation?.entries[index],
+        ) ?? -1
+        const conversationChange = conversationValue?.change
+            ?? (previousConversation?.id === conversationValue?.id && changedEntryIndex >= 0
+                ? { entryIndex: changedEntryIndex, kind: 'entry' as const }
+                : previousConversation === conversationValue ? null : { kind: 'replace' as const })
+        this.update({
+            ...transcriptTestRun(conversationValue, queuedPrompts, runId, status),
+            conversationChange,
+        })
+    }
+}
+
+type TranscriptTestConversation = AgentConversation & { change?: ActionConversationChange }
+
+interface TranscriptTestProps {
+    conversation: TranscriptTestConversation | null
+    queuedPrompts?: ActionQueuedPrompt[]
+    runId?: string | null
+    status: PopupRunStatus
+}
+
+function transcriptTestRun(
+    conversationValue: TranscriptTestConversation | null,
+    queuedPrompts: ActionQueuedPrompt[],
+    runId: string,
+    status: PopupRunStatus,
+) {
+    return {
+        conversation: conversationValue,
+        conversationChange: conversationValue?.change ?? { kind: 'replace' },
+        queuedPrompts,
+        runId,
+        status: status === 'idle' ? 'completed' : status,
+    } as unknown as ActionRun
+}
+
+function ActionConversationChat({ conversation: value, queuedPrompts = [], runId, status }: TranscriptTestProps) {
+    const testRunId = runId ?? 'transcript-test-run'
+    const [runtime] = useState(() => {
+        const registry = new TranscriptTestRunRegistry(transcriptTestRun(value, queuedPrompts, testRunId, status))
+        const bindingStore = new TranscriptTestBindingStore(testRunId)
+        const store = new TranscriptTestConversationStore()
+        const trackerFactory = (nextBindingStore: ActionRunBindingStore, nextStore: ActionConversationStore) => (
+            new ActionConversationChatlogTracker(
+                nextBindingStore,
+                nextStore,
+                registry as unknown as ActionRunRegistry,
+            )
+        )
+
+        return { bindingStore, registry, store, trackerFactory }
+    })
+    useLayoutEffect(() => {
+        runtime.registry.updateConversation(value, queuedPrompts, testRunId, status)
+    }, [queuedPrompts, runtime, status, testRunId, value])
+
+    return <ActionConversationTranscript
+        bindingStore={runtime.bindingStore as unknown as ActionRunBindingStore}
+        store={runtime.store as unknown as ActionConversationStore}
+        trackerFactory={runtime.trackerFactory}
+    />
+}
+
 function renderChat(value: AgentConversation | null, status: PopupRunStatus = 'idle') {
     return render(
         <AppThemeProvider>
@@ -119,11 +277,21 @@ function restoreProperty(name: 'clientHeight' | 'scrollHeight' | 'scrollTop', de
     delete HTMLElement.prototype[name]
 }
 
+function reportViewportResize() {
+    if (!resizeObserverCallback) throw new Error('ResizeObserver callback was not registered')
+
+    resizeObserverCallback([], {} as ResizeObserver)
+}
+
 describe('ActionConversationChat', () => {
     beforeEach(() => {
         clientHeight = 100
         scrollHeight = 300
         scrollPositions = new WeakMap<HTMLElement, number>()
+        resizeObserverCallback = null
+        disconnectedViewportObserverCount = 0
+        observeViewport.mockClear()
+        vi.stubGlobal('ResizeObserver', ControllableResizeObserver)
         Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => clientHeight })
         Object.defineProperty(HTMLElement.prototype, 'scrollHeight', { configurable: true, get: () => scrollHeight })
         Object.defineProperty(HTMLElement.prototype, 'scrollTop', {
@@ -142,9 +310,36 @@ describe('ActionConversationChat', () => {
         cleanup()
         setActionBridgeOverride(null)
         vi.restoreAllMocks()
+        vi.unstubAllGlobals()
         restoreProperty('clientHeight', originalClientHeight)
         restoreProperty('scrollHeight', originalScrollHeight)
         restoreProperty('scrollTop', originalScrollTop)
+    })
+
+    it('loads tracker after render and unloads it during cleanup', () => {
+        const load = vi.spyOn(ActionConversationChatlogTracker.prototype, 'load')
+        const unload = vi.spyOn(ActionConversationChatlogTracker.prototype, 'unload')
+        const { unmount } = renderChat(conversation('first.json', [message('message-1', 'First')]))
+
+        expect(load).toHaveBeenCalledOnce()
+        unmount()
+        expect(unload).toHaveBeenCalledOnce()
+    })
+
+    it('reports tracker load failure from effect and renders an empty chatlog', () => {
+        const failure = new Error('load failed')
+        vi.spyOn(ActionConversationChatlogTracker.prototype, 'load').mockImplementationOnce(() => { throw failure })
+        const reportError = vi.spyOn(dialogService, 'error').mockReturnValue({
+            critical: false,
+            id: 1,
+            message: failure.message,
+            severity: 'error',
+            title: 'Error',
+        })
+
+        expect(() => renderChat(conversation('first.json', [message('message-1', 'First')]))).not.toThrow()
+        expect(reportError).toHaveBeenCalledWith(failure, { fallbackMessage: 'Could not load conversation chatlog' })
+        expect(screen.getByLabelText('Conversation chat')).toBeEmptyDOMElement()
     })
 
     it('starts at the end when a conversation loads', () => {
@@ -153,69 +348,41 @@ describe('ActionConversationChat', () => {
         expect(screen.getByLabelText('Conversation chat').scrollTop).toBe(200)
     })
 
-    it('keeps duration and context usage indicator as the final row inside the scrollable transcript', async () => {
-        const value = conversation('first.json', [message('message-1', 'First')])
-        value.contextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 }
-        renderChat(value)
-
+    it('keeps an end-stuck viewport at the end after its height shrinks', () => {
+        const { unmount } = renderChat(conversation('first.json', [message('message-1', 'First')]))
         const viewport = screen.getByLabelText('Conversation chat')
-        const metadata = screen.getByLabelText('Conversation metadata')
-        const progress = screen.getByRole('progressbar', { name: 'Context usage' })
-        expect(viewport).toContainElement(metadata)
-        expect(viewport.lastElementChild).toBe(metadata)
-        expect(metadata).toContainElement(screen.getByLabelText('Elapsed time'))
-        expect(metadata).toContainElement(progress)
-        expect(progress).toHaveAttribute('aria-valuenow', '16')
-        expect(screen.queryByText('context: 16%')).not.toBeInTheDocument()
-        expect(metadata).toHaveStyle({ alignItems: 'baseline' })
+        expect(observeViewport).toHaveBeenCalledWith(viewport)
 
-        expect(screen.getAllByRole('progressbar')).toHaveLength(1)
-        const track = progress.parentElement?.querySelector('[aria-hidden="true"]')
-        expect(track).toBeInTheDocument()
-        expect(track).toHaveAttribute('aria-valuenow', '100')
+        clientHeight = 80
+        reportViewportResize()
 
-        fireEvent.mouseOver(progress)
-        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
-        fireEvent.mouseLeave(progress)
-        await waitFor(() => expect(screen.queryByText('Context usage: 16%', {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())
-        fireEvent.touchStart(progress)
-        expect(await screen.findByText('Context usage: 16%', { selector: '.MuiTooltip-tooltip' }, {timeout: 1_500})).toBeInTheDocument()
+        expect(viewport.scrollTop).toBe(220)
+        unmount()
+        expect(disconnectedViewportObserverCount).toBe(1)
+    })
 
+    it('preserves a scrolled-up position after the viewport height changes', () => {
+        renderChat(conversation('first.json', [message('message-1', 'First')]))
+        const viewport = screen.getByLabelText('Conversation chat')
         viewport.scrollTop = 40
         fireEvent.scroll(viewport)
+
+        clientHeight = 80
+        reportViewportResize()
 
         expect(viewport.scrollTop).toBe(40)
     })
 
-    it('caps context occupancy and hides unavailable context without hiding duration', async () => {
-        const value = conversation('first.json', [])
-        value.contextWindowUsage = { capacityTokens: 100, usedTokens: 125 }
-        const { rerender } = renderChat(value)
+    it('restores resize stickiness after the user returns within the end tolerance', () => {
+        renderChat(conversation('first.json', [message('message-1', 'First')]))
+        const viewport = screen.getByLabelText('Conversation chat')
+        viewport.scrollTop = 196
+        fireEvent.scroll(viewport)
 
-        const progress = screen.getByRole('progressbar', { name: 'Context usage' })
-        expect(progress).toHaveAttribute('aria-valuenow', '100')
-        fireEvent.mouseOver(progress)
-        expect(await screen.findByText('Context usage: 100%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+        clientHeight = 80
+        reportViewportResize()
 
-        rerender(
-            <AppThemeProvider>
-                <ActionConversationChat
-                    conversation={{ ...value, contextWindowUsage: { capacityTokens: 0, usedTokens: 1 } }}
-                    status="idle"
-                />
-            </AppThemeProvider>,
-        )
-
-        expect(screen.queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()
-        await waitFor(() => expect(screen.queryByText(/Context usage:/u, {selector: '.MuiTooltip-tooltip'})).not.toBeInTheDocument())
-        expect(screen.getByLabelText('Elapsed time')).toBeInTheDocument()
-    })
-
-    it('hides idle status while keeping duration visible', () => {
-        renderChat(conversation('completed.json', []))
-
-        expect(screen.queryByRole('status')).not.toBeInTheDocument()
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:00')
+        expect(viewport.scrollTop).toBe(220)
     })
 
     it('uses the derived Markdown style provided by the app theme', () => {
@@ -507,6 +674,24 @@ describe('ActionConversationChat', () => {
             .toHaveAttribute('href', 'C:%5Crepo%5Cdesign%5CF_89_links.md')
     })
 
+    it('opens slash-prefixed absolute Windows links without browser navigation', async () => {
+        vi.spyOn(dataService, 'getState').mockReturnValue({
+            project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
+            runningAgents: [],
+            snapshot: { activeCards: [], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        })
+        const openInEditor = vi.fn(async () => undefined)
+        setActionBridgeOverride({ openInEditor } as unknown as ElectronActionBridge)
+        const path = '/C:/repo/src/services/analysis/engine/event_engine.js:33'
+        renderChat(conversation('links.json', [message('message-1', `[event_engine.js:33](${path})`)]))
+
+        expect(fireEvent.click(screen.getByRole('link', { name: 'event_engine.js:33' }))).toBe(false)
+        await waitFor(() => expect(openInEditor).toHaveBeenCalledWith({
+            path: 'C:/repo/src/services/analysis/engine/event_engine.js:33',
+            repositoryRoot: 'C:/repo',
+        }))
+    })
+
     it('reports invalid local file links without browser navigation', async () => {
         vi.spyOn(dataService, 'getState').mockReturnValue({
             project: { branch: 'main', id: 'local', rootPath: 'C:/repo' },
@@ -731,7 +916,7 @@ describe('ActionConversationChat', () => {
 
         expect(screen.getByRole('button', { name: 'Web search details' })).toBeInTheDocument()
         expect(screen.getByText('Completed')).toBeInTheDocument()
-        expect(screen.queryByRole('group', { name: 'Completed tool calls' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('group', { name: 'Terminal tool calls' })).not.toBeInTheDocument()
     })
 
     it('groups every supported completed tool type in canonical order', () => {
@@ -748,13 +933,14 @@ describe('ActionConversationChat', () => {
 
         renderChat(conversation('tool-types.json', entries, 'codex'))
 
-        const group = screen.getByRole('group', { name: 'Completed tool calls' })
+        const group = screen.getByRole('group', { name: 'Terminal tool calls' })
         const summaryButton = within(group).getByRole('button', { name: 'Tools called (8)' })
         const summaryText = within(group).getByText('Tools called (8)')
         expect(group).toHaveStyle({ minWidth: '0', overflow: 'hidden' })
         expect(summaryButton).toHaveStyle({ minWidth: '0' })
         expect(summaryText).toHaveStyle({ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })
         expect(summaryButton).toHaveAttribute('aria-expanded', 'false')
+        expect(within(group).queryByText(/errors:/u)).not.toBeInTheDocument()
         expect(within(group).queryByRole('button', { name: 'File change details' })).not.toBeInTheDocument()
 
         fireEvent.click(summaryButton)
@@ -832,7 +1018,7 @@ describe('ActionConversationChat', () => {
         ]
         renderChat(conversation('tool-boundaries.json', entries, 'codex'))
 
-        const groups = screen.getAllByRole('group', { name: 'Completed tool calls' })
+        const groups = screen.getAllByRole('group', { name: 'Terminal tool calls' })
         expect(groups).toHaveLength(2)
         const firstSummary = within(groups[0]).getByRole('button', { name: 'Tools called (2)' })
         const secondSummary = within(groups[1]).getByRole('button', { name: 'Tools called (2)' })
@@ -848,20 +1034,77 @@ describe('ActionConversationChat', () => {
         expect(screen.queryByText('Visible reasoning')).not.toBeInTheDocument()
     })
 
-    it('keeps non-completed tool calls standalone with their lifecycle status', () => {
+    it('groups mixed terminal outcomes with error count, original order, and error styling', () => {
         const entries = [
-            toolEvent('Started call', 'webSearch', 'started'),
-            toolEvent('In-progress call', 'mcpToolCall', 'inProgress'),
-            toolEvent('Running call', 'dynamicToolCall', 'running'),
+            toolEvent('Completed call', 'webSearch', 'completed'),
             toolEvent('Failed call', 'imageView', 'failed'),
-            toolEvent('Declined call', 'collabAgentToolCall', 'declined'),
+            toolEvent('Declined call', 'mcpToolCall', 'declined'),
         ]
-        renderChat(conversation('tool-statuses.json', entries, 'codex'))
+        renderChat(conversation('mixed-tool-statuses.json', entries, 'codex'))
 
-        expect(screen.queryByRole('group', { name: 'Completed tool calls' })).not.toBeInTheDocument()
-        expect(screen.getAllByText('Running')).toHaveLength(3)
-        expect(screen.getByText('Failed')).toBeInTheDocument()
+        const group = screen.getByRole('group', { name: 'Terminal tool calls' })
+        const summaryButton = within(group).getByRole('button', { name: /Tools called \(3\).*errors: 2/u })
+        expect(summaryButton).not.toHaveStyle({ color: 'rgb(211, 47, 47)' })
+
+        fireEvent.click(summaryButton)
+
+        const detailButtons = within(group).getAllByRole('button').slice(1)
+        expect(detailButtons.map(({ textContent }) => textContent)).toEqual([
+            'Completed callCompleted',
+            'Failed callFailed',
+            'Declined callDeclined',
+        ])
+        expect(screen.getAllByRole('button', { name: 'Completed call details' })).toHaveLength(1)
+        expect(screen.getAllByRole('button', { name: 'Failed call details' })).toHaveLength(1)
+        expect(screen.getAllByRole('button', { name: 'Declined call details' })).toHaveLength(1)
+        expect(screen.getByRole('button', { name: 'Failed call details' })).toHaveStyle({ color: 'rgb(211, 47, 47)' })
+        expect(screen.getByRole('button', { name: 'Declined call details' })).toHaveStyle({ color: 'rgb(211, 47, 47)' })
+    })
+
+    it('keeps running and unknown calls standalone and uses them as terminal-group boundaries', () => {
+        const entries = [
+            toolEvent('First completed', 'webSearch'),
+            toolEvent('First failed', 'mcpToolCall', 'failed'),
+            toolEvent('Running boundary', 'dynamicToolCall', 'running'),
+            toolEvent('Second completed', 'imageView'),
+            toolEvent('Second declined', 'fileChange', 'declined'),
+            toolEvent('Unknown boundary', 'webSearch', 'unknownStatus'),
+        ]
+        renderChat(conversation('tool-boundaries.json', entries, 'codex'))
+
+        const groups = screen.getAllByRole('group', { name: 'Terminal tool calls' })
+        expect(groups).toHaveLength(2)
+        expect(within(groups[0]).getByRole('button', { name: /Tools called \(2\).*errors: 1/u })).toBeInTheDocument()
+        expect(within(groups[1]).getByRole('button', { name: /Tools called \(2\).*errors: 1/u })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Running boundary details' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Unknown boundary details' })).toBeInTheDocument()
+        expect(screen.getByText('Running')).toBeInTheDocument()
+        expect(screen.getByText('unknownStatus')).toBeInTheDocument()
+    })
+
+    it('keeps one terminal call standalone', () => {
+        renderChat(conversation('single-terminal-tool.json', [
+            toolEvent('Only declined call', 'webSearch', 'declined'),
+        ], 'codex'))
+
+        expect(screen.queryByRole('group', { name: 'Terminal tool calls' })).not.toBeInTheDocument()
         expect(screen.getByText('Declined')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Only declined call details' })).toBeInTheDocument()
+    })
+
+    it('uses terminal grouping and error counts inside a sub-agent', () => {
+        const agentCall = toolEvent('Agent call', 'tool.Agent', 'completed', { content: JSON.stringify({ subagent_type: 'Explore' }) })
+        const completedCall = toolEvent('Nested completed', 'webSearch', 'completed', { parentItemId: agentCall.providerItemId })
+        const failedCall = toolEvent('Nested failed', 'mcpToolCall', 'failed', { parentItemId: agentCall.providerItemId })
+        renderChat(conversation('sub-agent-tools.json', [agentCall, completedCall, failedCall], 'codex'))
+
+        fireEvent.click(screen.getByRole('button', { name: 'Explore entries' }))
+
+        const group = screen.getByRole('group', { name: 'Terminal tool calls' })
+        const summaryButton = within(group).getByRole('button', { name: /Tools called \(2\).*errors: 1/u })
+        fireEvent.click(summaryButton)
+        expect(within(group).getByRole('button', { name: 'Nested completed details' })).toBeInTheDocument()
+        expect(within(group).getByRole('button', { name: 'Nested failed details' })).toHaveStyle({ color: 'rgb(211, 47, 47)' })
     })
 
     it('appends a newly completed call to an existing group without remounting or duplication', () => {
@@ -899,7 +1142,7 @@ describe('ActionConversationChat', () => {
             </AppThemeProvider>,
         )
 
-        const group = screen.getByRole('group', { name: 'Completed tool calls' })
+        const group = screen.getByRole('group', { name: 'Terminal tool calls' })
         expect(screen.getByRole('button', { name: 'Tools called (3)' })).toBe(summaryButton)
         expect(summaryButton).toHaveAttribute('aria-expanded', 'true')
         const detailButtons = within(group).getAllByRole('button').slice(1)
@@ -1145,5 +1388,77 @@ describe('ActionConversationChat', () => {
         )
 
         expect(viewport.scrollTop).toBe(300)
+    })
+
+    it('renders queued prompts after delivered messages in FIFO order with edit and delete controls', async () => {
+        const editActionQueuedPrompt = vi.fn(async (_runId, _promptId, _revision, content) => ({content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 1}))
+        const deleteActionQueuedPrompt = vi.fn(async () => ({ deleted: true as const }))
+        setActionBridgeOverride({ editActionQueuedPrompt, deleteActionQueuedPrompt } as unknown as ElectronActionBridge)
+        const value = conversation('first.json', [message('message-1', 'Delivered')])
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={value}
+                    queuedPrompts={[
+                        { content: 'First queued', dispatchState: 'queued', id: 'prompt-1', revision: 0 },
+                        { content: 'Second queued', dispatchState: 'queued', id: 'prompt-2', revision: 0 },
+                    ]}
+                    runId="run-1"
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+        const rows = screen.getAllByLabelText('Queued prompt')
+
+        expect(rows).toHaveLength(2)
+        expect(within(rows[0]).getByText('First queued')).toBeInTheDocument()
+        expect(within(rows[1]).getByText('Second queued')).toBeInTheDocument()
+        fireEvent.click(within(rows[0]).getByRole('button', { name: 'Edit queued prompt' }))
+        fireEvent.change(within(rows[0]).getByRole('textbox', { name: 'Queued prompt content' }), {target: { value: 'Edited first' }})
+        fireEvent.click(within(rows[0]).getByRole('button', { name: 'Save' }))
+        await waitFor(() => expect(editActionQueuedPrompt).toHaveBeenCalledWith('run-1', 'prompt-1', 0, 'Edited first'))
+
+        fireEvent.click(within(rows[1]).getByRole('button', { name: 'Delete queued prompt' }))
+        await waitFor(() => expect(deleteActionQueuedPrompt).toHaveBeenCalledWith('run-1', 'prompt-2', 0))
+    })
+
+    it('rejects an empty edit and retains accepted queue state after operation failure', async () => {
+        const failure = new Error('Queue operation raced dispatch')
+        const editActionQueuedPrompt = vi.fn(async () => {
+            throw failure
+        })
+        const deleteActionQueuedPrompt = vi.fn(async () => {
+            throw failure
+        })
+        setActionBridgeOverride({ editActionQueuedPrompt, deleteActionQueuedPrompt } as unknown as ElectronActionBridge)
+        const warning = vi.spyOn(dialogService, 'warning')
+        const reportError = vi.spyOn(dialogService, 'error')
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={null}
+                    queuedPrompts={[{ content: 'Keep queued', dispatchState: 'queued', id: 'prompt-1', revision: 2 }]}
+                    runId="run-1"
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+        const row = screen.getByLabelText('Queued prompt')
+        fireEvent.click(within(row).getByRole('button', { name: 'Edit queued prompt' }))
+        const editor = within(row).getByRole('textbox', { name: 'Queued prompt content' })
+        fireEvent.change(editor, { target: { value: '   ' } })
+        fireEvent.click(within(row).getByRole('button', { name: 'Save' }))
+        expect(warning).toHaveBeenCalledWith('Queued agent prompt cannot be empty')
+        expect(editActionQueuedPrompt).not.toHaveBeenCalled()
+
+        fireEvent.change(editor, { target: { value: 'Failed edit' } })
+        fireEvent.click(within(row).getByRole('button', { name: 'Save' }))
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, {fallbackMessage: 'Could not edit queued agent prompt'}))
+        expect(editor).toHaveValue('Failed edit')
+        fireEvent.click(within(row).getByRole('button', { name: 'Cancel' }))
+        expect(within(row).getByText('Keep queued')).toBeInTheDocument()
+        fireEvent.click(within(row).getByRole('button', { name: 'Delete queued prompt' }))
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, {fallbackMessage: 'Could not delete queued agent prompt'}))
+        expect(within(row).getByText('Keep queued')).toBeInTheDocument()
     })
 })

@@ -1,0 +1,96 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e103]:
+    - group [ref=f1e104]:
+      - generic [ref=f1e106]:
+        - heading "Action definition" [level=2] [ref=f1e268]
+        - generic [ref=f1e108]:
+          - generic [ref=f1e109]:
+            - generic [ref=f1e110]: Label
+            - textbox "Label" [ref=f1e269]: Runtime
+          - generic [ref=f1e114]:
+            - generic [ref=f1e115]: Type
+            - generic [ref=f1e117]:
+              - combobox "Type" [ref=f1e270] [cursor=pointer]: Agent
+              - textbox: agent
+          - generic [ref=f1e119]:
+            - generic [ref=f1e120]: Icon
+            - generic [ref=f1e122]:
+              - combobox "Icon" [ref=f1e271] [cursor=pointer]
+              - textbox
+        - generic [ref=f1e124]:
+          - generic [ref=f1e125]: Description
+          - textbox "Description" [ref=f1e272]: Runtime action
+        - separator [ref=f1e129]
+        - generic [ref=f1e130]:
+          - generic [ref=f1e131]:
+            - generic [ref=f1e132]: Run when card enters state
+            - generic [ref=f1e134]:
+              - combobox "Run when card enters state" [ref=f1e273] [cursor=pointer]
+              - textbox
+          - generic [ref=f1e136]:
+            - generic [ref=f1e137] [cursor=pointer]:
+              - switch "Needs worktree" [ref=f1e274]
+              - generic [ref=f1e143]: Needs worktree
+            - paragraph [ref=f1e144]: card needs to be assigned to a worktree
+          - generic [ref=f1e145]:
+            - generic [ref=f1e146] [cursor=pointer]:
+              - switch "Auto commit" [ref=f1e275]
+              - generic [ref=f1e152]: Auto commit
+            - paragraph [ref=f1e153]: auto commit files agent reported as modified
+          - generic [ref=f1e154]:
+            - generic [ref=f1e155] [cursor=pointer]:
+              - switch "Streaming" [ref=f1e276]
+              - generic [ref=f1e161]: Streaming
+            - paragraph [ref=f1e162]: keep agent session open for more turns
+        - region [ref=f1e277]:
+          - heading "Agent override" [level=3] [ref=f1e278]
+          - generic [ref=f1e165]:
+            - generic [ref=f1e166]:
+              - generic [ref=f1e167]: Agent
+              - generic [ref=f1e168]:
+                - generic [ref=f1e169]:
+                  - combobox "Agent" [invalid] [ref=f1e279] [cursor=pointer]
+                  - textbox [invalid]
+                - paragraph [ref=f1e171]: Agent executable availability requires the Electron desktop app
+            - generic [ref=f1e172]:
+              - generic [ref=f1e173]: Model
+              - generic [ref=f1e175]:
+                - combobox "Model" [disabled] [ref=f1e280]
+                - textbox [disabled]
+            - generic [ref=f1e177]:
+              - generic [ref=f1e178]: Thinking level
+              - generic [ref=f1e180]:
+                - combobox "Thinking level" [disabled] [ref=f1e281]: none
+                - textbox [disabled]: none
+            - generic [ref=f1e182]:
+              - generic [ref=f1e183]: Permission mode
+              - generic [ref=f1e185]:
+                - combobox "Permission mode" [disabled] [ref=f1e282]
+                - textbox [disabled]
+        - separator [ref=f1e187]
+        - generic [ref=f1e188]:
+          - heading "Applicability filters" [level=3] [ref=f1e283]
+          - generic [ref=f1e190]: No filters. The action is available in every context.
+          - button [ref=f1e284] [cursor=pointer]
+        - separator [ref=f1e195]
+        - generic [ref=f1e196]:
+          - heading "Before" [level=3] [ref=f1e285]
+          - generic [ref=f1e198]: No actions run before this one.
+          - button [ref=f1e286] [cursor=pointer]
+        - separator [ref=f1e203]
+        - generic [ref=f1e204]:
+          - heading "Output rules" [level=3] [ref=f1e287]
+          - generic [ref=f1e206]: No output rules. Output does not trigger follow-up actions.
+          - button [ref=f1e288] [cursor=pointer]
+        - separator [ref=f1e211]
+        - generic [ref=f1e212]:
+          - heading "After" [level=3] [ref=f1e289]
+          - generic [ref=f1e214]: No actions run after this one.
+          - button [ref=f1e290] [cursor=pointer]
+    - tablist "Action editor sections" [ref=f1e291]:
+      - tab "Definition" [selected] [ref=f1e292] [cursor=pointer]
+      - tab "Prompt" [ref=f1e293] [cursor=pointer]
+      - tab "Tests" [ref=f1e294] [cursor=pointer]
+      - tab "Add predefined phrase" [ref=f1e295] [cursor=pointer]: +
+  - listbox "Typeahead menu"
+  - listbox "Typeahead menu"

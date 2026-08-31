@@ -33,6 +33,17 @@ function createBridge(overrides: Partial<ElectronDataBridge> = {}): ElectronData
 }
 
 describe('LocalGitStorageService binary write path', () => {
+    it('forwards project root exclusion to the Electron bridge', async () => {
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const loadProject = vi.fn().mockResolvedValue({ files: [], workingFolder: 'design' })
+        const service = new LocalGitStorageService()
+        service.init({ bridge: createBridge({ loadProject }) })
+
+        await service.loadProject(project, 'design', 'design/active')
+
+        expect(loadProject).toHaveBeenCalledWith(project, 'design', 'design/active')
+    })
+
     it('routes project watcher failures to the storage error callback', () => {
         let notify: Parameters<ElectronDataBridge['watchProject']>[1] = () => undefined
         const watchProject = vi.fn((_project, callback: Parameters<ElectronDataBridge['watchProject']>[1]) => {

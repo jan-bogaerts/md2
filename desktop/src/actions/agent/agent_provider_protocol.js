@@ -1,6 +1,12 @@
 const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
-const { claudeAssistantText, claudeChangedPaths, claudeTranscriptEvents, claudeUsage } = require('./agent_claude_events');
-const { codexChangedPaths, codexTranscriptEvents } = require('./agent_codex_events');
+const {
+    ClaudeFileResultDecoder,
+    claudeAssistantText,
+    claudeTranscriptEvents,
+    claudeUsage,
+} = require('./agent_claude_events');
+const { codexTranscriptEvents } = require('./agent_codex_events');
+const { normalizeCodexEvent } = require('./agent_codex_event');
 const { JsonLineBuffer } = require('./agent_event_utils');
 
 const MISSING_SESSION_CODES = new Set([
@@ -35,13 +41,6 @@ function codexUsage(event) {
 
 function providerUsage(agent, event) {
     return agent === 'codex' ? codexUsage(event) : claudeUsage(event);
-}
-
-function providerChangedPaths(agent, event, rootPath) {
-    if (agent !== 'codex') return claudeChangedPaths(event, rootPath);
-    if (event.type !== 'item.completed') return [];
-
-    return codexChangedPaths(event.item, rootPath);
 }
 
 function providerTranscriptEvents(agent, event) {
@@ -119,6 +118,7 @@ class AgentProviderProtocolParser {
         this.onMalformed = onMalformed;
         this.rootPath = rootPath;
         this.turnStarted = false;
+        this.claudeFileResultDecoder = agent === 'claude' ? new ClaudeFileResultDecoder(rootPath) : null;
     }
 
     push(chunk) {
@@ -147,10 +147,12 @@ class AgentProviderProtocolParser {
         const assistantText = this.agent === 'codex' ? codexAssistantText(event) : claudeAssistantText(event);
         this.onEvent({
             assistantText,
-            changedPaths: providerChangedPaths(this.agent, event, this.rootPath),
             conversationId: providerConversationId(this.agent, event),
             errorText: providerErrorText(this.agent, event),
             missingSession,
+            providerEvents: this.agent === 'codex' && event.type === 'item.completed'
+                ? [normalizeCodexEvent(event.item, 'completed', this.rootPath)].filter((providerEvent) => providerEvent !== null)
+                : this.claudeFileResultDecoder?.decode(event) ?? [],
             transcriptEvents: providerTranscriptEvents(this.agent, event),
             turnStarted: this.turnStarted,
             usage: providerUsage(this.agent, event),

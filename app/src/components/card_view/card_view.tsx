@@ -153,11 +153,29 @@ export function CardView(props: CardViewProps) {
         telemetryService.trackEvent('navigation')
     }
 
+    const handleArchiveCard = async (path: string) => {
+        try {
+            const activeCards = dataService.getState().snapshot?.activeCards ?? []
+            const card = activeCards.find((candidate) => candidate.path === path)
+            if (!card?.header.internalId) throw new Error(`Cannot archive card without an internal ID: ${path}`)
+            const targetIndex = activeCards.filter((candidate) => candidate.header.status === 'archived').length
+            await dataService.cards.moveCard(path, 'archived', targetIndex)
+            workspaceViewService.clearSelectedPath(path)
+            cardPopupService.closeCardDetailsByInternalId(card.header.internalId)
+            if (openAffectsPath === path) handleCloseAffects()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Card archive failed: ${path}` })
+            throw error
+        }
+    }
+
     const handleDeleteCard = async (path: string) => {
         try {
+            const card = dataService.getState().snapshot?.activeCards.find((candidate) => candidate.path === path)
+            if (!card?.header.internalId) throw new Error(`Cannot delete card without an internal ID: ${path}`)
             await dataService.cards.deleteCard(path)
             workspaceViewService.clearSelectedPath(path)
-            cardPopupService.closeCardDetailsPath(path)
+            cardPopupService.closeCardDetailsByInternalId(card.header.internalId)
             if (openAffectsPath === path) handleCloseAffects()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: `Card delete failed: ${path}` })
@@ -212,6 +230,7 @@ export function CardView(props: CardViewProps) {
                             cardTypes={cardTypes}
                             column={column}
                             isMobile={false}
+                            onArchiveCard={handleArchiveCard}
                             onDeleteCard={handleDeleteCard}
                             onOpenInFileMode={handleOpenInFileMode}
                             onTitleChange={handleTitleChange}

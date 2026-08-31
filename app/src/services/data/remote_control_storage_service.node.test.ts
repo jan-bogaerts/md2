@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RemoteControlStorageService } from './remote_control_storage_service'
+import { MissingWorkingFolderError } from '../../data/data_types'
 
 class MockWebSocket extends EventTarget {
     static instances: MockWebSocket[] = []
@@ -71,6 +72,7 @@ const persistentSubscriptionCases: PersistentSubscriptionCase[] = [
         subscribe: (service) => service.onMergeConflictSessionChanged(() => undefined),
     },
     { method: 'onActionRun', name: 'action-run', subscribe: (service) => service.onActionRun(() => undefined) },
+    { method: 'onClaudeRateLimits', name: 'Claude-rate-limit', subscribe: (service) => service.onClaudeRateLimits(() => undefined) },
     { method: 'onCodexRateLimits', name: 'Codex-rate-limit', subscribe: (service) => service.onCodexRateLimits(() => undefined) },
     {
         method: 'watchProject',
@@ -112,6 +114,46 @@ describe('RemoteControlStorageService', () => {
 
         await expect(first).resolves.toEqual({ files: [], workingFolder: 'design' })
         await expect(second).resolves.toEqual([{ name: 'main' }])
+    })
+
+    it('forwards project root exclusion to the remote host', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const result = service.loadProject(project, 'design', 'design/active')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+
+        expect(request).toMatchObject({ method: 'loadProject', params: [project, 'design', 'design/active'] })
+        socket.receive({ id: request.id, result: { files: [], workingFolder: 'design' } })
+        await expect(result).resolves.toEqual({ files: [], workingFolder: 'design' })
+    })
+
+    it('forwards a move whose source may already be absent for host-side recovery', async () => {
+        installWebSocket()
+        const service = createService()
+        const commitRequest = {
+            branch: 'main',
+            files: [],
+            message: 'Rename action',
+            moves: [{
+                content: '{"id":"review"}',
+                fromPath: 'actions/new-action.json',
+                toPath: 'actions/review.json',
+            }],
+        }
+        const result = service.commit(commitRequest)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'commit', params: [commitRequest] })
+        socket.receive({ id: request.id, result: [] })
+        await expect(result).resolves.toEqual([])
     })
 
     it.each(persistentSubscriptionCases)('cleans retired $name subscriptions locally without reconnecting', async ({ method, subscribe }) => {
@@ -201,15 +243,12 @@ describe('RemoteControlStorageService', () => {
         installWebSocket()
         const service = createService()
         const desktopConfig = {
-            agent: 'custom',
-            agentProfiles: [{ command: ['custom'], models: ['custom-model'], name: 'custom' }],
+            agentSelection: { activeAgent: 'custom', permissionMode: 'full-access' as const, settingsByAgent: { custom: { model: 'custom-model', thinkingLevel: 'high' as const } } },
+            agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none' as const, models: ['custom-model'], name: 'custom' }],
             codexSearchEnabled: false,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'custom-model',
-            permissionMode: 'full-access' as const,
             remoteControlPort: 20877,
-            thinkingLevel: 'high' as const,
         }
         const load = service.loadDesktopConfig()
         const socket = lastSocket()
@@ -227,6 +266,22 @@ describe('RemoteControlStorageService', () => {
         expect(saveRequest).toMatchObject({ method: 'saveDesktopConfig', params: [desktopConfig] })
         socket.receive({ id: saveRequest.id, result: desktopConfig })
         await expect(save).resolves.toEqual(desktopConfig)
+    })
+
+    it('reads current Claude rate limits through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const load = service.getClaudeRateLimits()
+        const socket = lastSocket()
+        const snapshot = { available: true, observedAt: 10, windows: [] }
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'getClaudeRateLimits', params: [] })
+        socket.receive({ id: request.id, result: snapshot })
+
+        await expect(load).resolves.toEqual(snapshot)
     })
 
     it('loads one markdown file through remote control and propagates desktop errors', async () => {
@@ -300,6 +355,28 @@ describe('RemoteControlStorageService', () => {
             payload: { requestId: subscriptionRequest.id, snapshot, subscriptionId: 'codex-rate-limits-1' },
         })
         socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: 'codex-rate-limits-1' } })
+        await flushPromises()
+
+        expect(callback).toHaveBeenCalledWith(snapshot)
+    })
+
+    it('receives account-wide Claude runtime snapshots through dedicated remote subscription', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        service.onClaudeRateLimits(callback)
+        const socket = lastSocket()
+        const snapshot = { available: true, observedAt: 10, windows: [] }
+
+        socket.open()
+        await flushPromises()
+        const subscriptionRequest = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(subscriptionRequest.method).toBe('onClaudeRateLimits')
+        socket.receive({
+            event: 'claudeRateLimits',
+            payload: { requestId: subscriptionRequest.id, snapshot, subscriptionId: 'claude-rate-limits-1' },
+        })
+        socket.receive({ id: subscriptionRequest.id, result: { subscriptionId: 'claude-rate-limits-1' } })
         await flushPromises()
 
         expect(callback).toHaveBeenCalledWith(snapshot)
@@ -611,7 +688,7 @@ describe('RemoteControlStorageService', () => {
         const fileRequest = { commit: 'a'.repeat(40), parent: true, path: 'design/F-1.md' }
         const settingsRequest = {
             actionId: 'review', cardInternalId: 'card-1',
-            settings: { agent: 'codex', model: 'gpt-5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' },
+            settings: { activeAgent: 'codex', permissionMode: 'ask-for-approval' as const, settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'high' as const } } },
         }
         const activity = service.loadCardActivity(activityRequest)
         const historicalFile = service.readFileAtCommit(fileRequest)
@@ -626,11 +703,11 @@ describe('RemoteControlStorageService', () => {
         expect(activityMessage).toMatchObject({ method: 'loadCardActivity', params: [activityRequest] })
         expect(fileMessage).toMatchObject({ method: 'readFileAtCommit', params: [fileRequest] })
         expect(settingsMessage).toMatchObject({ method: 'updateCardActionSettings', params: [settingsRequest] })
-        socket.receive({ id: activityMessage.id, result: { actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 } })
+        socket.receive({ id: activityMessage.id, result: { actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 5 } })
         socket.receive({ id: fileMessage.id, result: { content: '# Card', exists: true } })
         socket.receive({ id: settingsMessage.id, result: undefined })
 
-        await expect(activity).resolves.toMatchObject({ version: 4 })
+        await expect(activity).resolves.toMatchObject({ version: 5 })
         await expect(historicalFile).resolves.toEqual({ content: '# Card', exists: true })
         await expect(settingsUpdate).resolves.toBeUndefined()
     })
@@ -738,11 +815,12 @@ describe('RemoteControlStorageService', () => {
         await flushPromises()
         const operations = [
             firstOperation,
-            service.beginActionPromptDraft('action-1'),
-            service.setActionQueuedMessage('action-1', 2, 'next', 3),
-            service.sendActionQueuedMessage('action-1', 2, 3),
+            service.enqueueActionPrompt('action-1', 'next'),
+            service.editActionQueuedPrompt('action-1', 'prompt-1', 0, 'edited'),
+            service.deleteActionQueuedPrompt('action-1', 'prompt-1', 1),
             service.answerActionApproval('action-1', 41, 'accept'),
             service.answerActionQuestion('action-1', 7, { confirm: ['Yes'] }),
+            service.dismissActionQuestions('action-1', 7),
             service.closeWaitingActionConversation('activity.json#conversation=one', 'completed'),
             service.updateActionConversationViewed('activity.json#conversation=one', false),
             service.finishActionRun('action-1'),
@@ -753,11 +831,12 @@ describe('RemoteControlStorageService', () => {
         const requests = socket.sent.map((entry) => JSON.parse(entry) as { id: string, method: string, params: unknown[] })
         expect(requests.map(({ method, params }) => ({ method, params }))).toEqual([
             { method: 'sendActionMessage', params: ['action-1', 'approved'] },
-            { method: 'beginActionPromptDraft', params: ['action-1'] },
-            { method: 'setActionQueuedMessage', params: ['action-1', 2, 'next', 3] },
-            { method: 'sendActionQueuedMessage', params: ['action-1', 2, 3] },
+            { method: 'enqueueActionPrompt', params: ['action-1', 'next'] },
+            { method: 'editActionQueuedPrompt', params: ['action-1', 'prompt-1', 0, 'edited'] },
+            { method: 'deleteActionQueuedPrompt', params: ['action-1', 'prompt-1', 1] },
             { method: 'answerActionApproval', params: ['action-1', 41, 'accept'] },
             { method: 'answerActionQuestion', params: ['action-1', 7, { confirm: ['Yes'] }] },
+            { method: 'dismissActionQuestions', params: ['action-1', 7] },
             { method: 'closeWaitingActionConversation', params: ['activity.json#conversation=one', 'completed'] },
             { method: 'updateActionConversationViewed', params: ['activity.json#conversation=one', false] },
             { method: 'finishActionRun', params: ['action-1'] },
@@ -765,13 +844,9 @@ describe('RemoteControlStorageService', () => {
             { method: 'notifyActionCardStateChange', params: ['card-1', 'ready'] },
         ])
         requests.forEach(({ id, method }) => {
-            const result = method === 'beginActionPromptDraft'
-                ? 2
-                : method === 'setActionQueuedMessage'
-                    ? { accepted: true }
-                    : method === 'sendActionQueuedMessage'
-                        ? { sent: true }
-                        : null
+            const result = method === 'enqueueActionPrompt' || method === 'editActionQueuedPrompt'
+                ? { content: 'next', dispatchState: 'queued', id: 'prompt-1', revision: 0 }
+                : method === 'deleteActionQueuedPrompt' ? { deleted: true } : null
             socket.receive({ id, result })
         })
 
@@ -793,7 +868,7 @@ describe('RemoteControlStorageService', () => {
         })
         const snapshot = {
             activeRunEvents: [],
-            terminalResults: [{ failure: null, runId: 'run-ended', status: 'completed' }],
+            terminalResults: [{ changedPaths: [], failure: null, runId: 'run-ended', status: 'completed' }],
         }
         socket.receive({ id: sentRequest.id, result: snapshot })
 
@@ -837,6 +912,45 @@ describe('RemoteControlStorageService', () => {
         })
 
         await vi.waitFor(() => expect(callback).toHaveBeenCalledWith(event))
+    })
+
+    it('clears stale Claude callback state and restores one subscription after reconnect', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        service.onClaudeRateLimits(callback)
+        const firstSocket = lastSocket()
+        firstSocket.open()
+        await flushPromises()
+        const firstSubscription = JSON.parse(firstSocket.sent[0]) as { id: string }
+        firstSocket.receive({ id: firstSubscription.id, result: { subscriptionId: 'claude-limits-1' } })
+        await flushPromises()
+        firstSocket.close()
+        firstSocket.receive({
+            event: 'claudeRateLimits',
+            payload: {
+                requestId: firstSubscription.id,
+                snapshot: { available: true, observedAt: 10, windows: [] },
+                subscriptionId: 'claude-limits-1',
+            },
+        })
+
+        const reconnection = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await reconnection
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
+        const secondSubscription = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(secondSubscription.method).toBe('onClaudeRateLimits')
+        secondSocket.receive({ id: secondSubscription.id, result: { subscriptionId: 'claude-limits-2' } })
+        const snapshot = { available: true, observedAt: 11, windows: [] }
+        secondSocket.receive({
+            event: 'claudeRateLimits',
+            payload: { requestId: secondSubscription.id, snapshot, subscriptionId: 'claude-limits-2' },
+        })
+
+        await vi.waitFor(() => expect(callback).toHaveBeenCalledOnce())
+        expect(callback).toHaveBeenCalledWith(snapshot)
     })
 
     it('sends recursive folder deletion requests', async () => {
@@ -1095,5 +1209,44 @@ describe('RemoteControlStorageService', () => {
         await expect(request).resolves.toBe('action-1')
         expect(socket.url).toBe('ws://127.0.0.1:1234')
         expect(socket.protocol).toBeUndefined()
+    })
+    it('rebuilds a missing working folder error from the remote response marker', async () => {
+        installWebSocket()
+        const service = createService()
+        const request = service.loadProject({ branch: 'main', id: 'local', rootPath: 'C:/repo' }, 'design/feature_descriptions')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
+        socket.receive({
+            error: {
+                code: 'missing-working-folder',
+                fields: { workingFolder: 'design/feature_descriptions' },
+                message: 'Working folder is missing: design/feature_descriptions',
+                name: 'Error',
+            },
+            id: sentRequest.id,
+        })
+
+        const error = await request.catch((failure: unknown) => failure) as MissingWorkingFolderError
+
+        expect(error).toBeInstanceOf(MissingWorkingFolderError)
+        expect(error.code).toBe('missing-working-folder')
+        expect(error.workingFolder).toBe('design/feature_descriptions')
+    })
+
+    it('keeps reporting unmarked remote failures with the remote method prefix', async () => {
+        installWebSocket()
+        const service = createService()
+        const request = service.startAction(actionStartRequest())
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const sentRequest = JSON.parse(socket.sent[0]) as { id: string }
+        socket.receive({ error: { message: 'Action failed' }, id: sentRequest.id })
+
+        await expect(request).rejects.toThrow('Remote method startAction failed: Action failed')
     })
 })

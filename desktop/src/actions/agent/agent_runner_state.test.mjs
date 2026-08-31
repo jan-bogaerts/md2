@@ -7,6 +7,7 @@ import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.
 
 const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
+const { CodexRuntimeService } = require('./codex_runtime_service');
 
 function diagnosticStreamingEvent(content, providerItemId) {
     return {
@@ -16,6 +17,92 @@ function diagnosticStreamingEvent(content, providerItemId) {
 }
 
 describe('AgentRunnerService state handling', () => {
+    it('reconciles and persists one-shot canonical provider file events', () => {
+        const service = new AgentRunnerService();
+        const run = {
+            agent: 'claude',
+            changedPaths: new Set(),
+            conversation: { entries: [] },
+            id: 'run-1',
+            missingSession: false,
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            providerEventEntryIndexes: new Map(),
+            providerConversationId: null,
+            reportedProviderErrors: new Set(),
+            secretValues: new Set(),
+            stdout: '',
+            turnStarted: false,
+            turnUsage: null,
+        };
+        service.processes.set(run.id, run);
+        const providerEvent = {
+            assistantText: '',
+            conversationId: null,
+            errorText: '',
+            missingSession: false,
+            providerEvents: [
+                {
+                    content: 'design/card.md',
+                    label: 'Edit',
+                    paths: ['design/card.md'],
+                    providerItemId: 'edit-1',
+                    status: 'inProgress',
+                    type: 'fileChange',
+                },
+                {
+                    content: 'design/card.md',
+                    deletions: 2,
+                    insertions: 3,
+                    label: 'Edit',
+                    paths: ['design/card.md'],
+                    providerItemId: 'edit-1',
+                    status: 'completed',
+                    type: 'fileChange',
+                },
+            ],
+            transcriptEvents: [],
+            turnStarted: true,
+            usage: null,
+        };
+
+        service.handleProviderEvent(run.id, providerEvent);
+
+        expect(run.conversation.entries).toEqual([expect.objectContaining({
+            deletions: 2,
+            insertions: 3,
+            providerItemId: 'edit-1',
+            sequence: 1,
+            status: 'completed',
+            type: 'fileChange',
+        })]);
+        expect(run.onEvent).toHaveBeenCalledTimes(2);
+        expect([...run.changedPaths]).toEqual(['design/card.md']);
+    });
+
+    it('does not accumulate incomplete or failed provider file events', () => {
+        const service = new AgentRunnerService();
+        const run = {
+            agent: 'claude', changedPaths: new Set(), conversation: { entries: [] }, id: 'run-1',
+            missingSession: false, nextSequence: 1, onEvent: vi.fn(), providerEventEntryIndexes: new Map(),
+            providerConversationId: null, reportedProviderErrors: new Set(), secretValues: new Set(), stdout: '',
+            turnStarted: false, turnUsage: null,
+        };
+        service.processes.set(run.id, run);
+        const providerEvent = {
+            assistantText: '', conversationId: null, errorText: '', missingSession: false,
+            providerEvents: [
+                { content: 'started.md', paths: ['started.md'], providerItemId: 'started', status: 'inProgress', type: 'fileChange' },
+                { content: 'failed.md', paths: ['failed.md'], providerItemId: 'failed', status: 'failed', type: 'fileChange' },
+            ],
+            transcriptEvents: [], turnStarted: true, usage: null,
+        };
+
+        service.handleProviderEvent(run.id, providerEvent);
+
+        expect([...run.changedPaths]).toEqual([]);
+    });
+
     it('persists a new conversation before spawning its process and publishing started', async () => {
         const initialCheckpoint = Promise.withResolvers();
         const child = new EventEmitter();
@@ -217,56 +304,6 @@ describe('AgentRunnerService state handling', () => {
         expect(codexRuntimeService.publishUpdateRequired).not.toHaveBeenCalled();
     });
 
-    it('consumes one queued revision exactly once', async () => {
-        const sendMessage = vi.fn();
-        const service = new AgentRunnerService({
-            persistConversation: vi.fn(async () => undefined),
-            persistConversationCheckpoint: vi.fn(async () => undefined),
-        });
-        service.processes.set('run-1', {
-            conversation: { entries: [], providerSessions: [], status: 'running' },
-            id: 'run-1',
-            onEvent: vi.fn(),
-            pendingApprovals: new Map(),
-            persistence: Promise.resolve(),
-            queuedMessage: null,
-            queuedMessageRevision: -1,
-            queuedMessageSessionId: 0,
-            sentQueuedMessageRevision: -1,
-            streaming: true,
-            streamingAdapter: { sendMessage },
-            turnActive: true,
-            turnIndex: 1,
-        });
-
-        const sessionId = service.beginQueuedMessageDraft('run-1');
-        service.setQueuedMessage('run-1', sessionId, 'approved', 0);
-        await expect(service.sendQueuedMessage('run-1', sessionId, 0)).resolves.toEqual({ sent: true });
-        await expect(service.sendQueuedMessage('run-1', sessionId, 0)).rejects.toThrow('already sent');
-
-        expect(sendMessage).toHaveBeenCalledOnce();
-        expect(sendMessage).toHaveBeenCalledWith('approved');
-    });
-
-    it('accepts revision zero from a new prompt session after renderer restart', () => {
-        const service = new AgentRunnerService();
-        const run = {
-            id: 'run-1',
-            queuedMessage: { content: 'old', revision: 4 },
-            queuedMessageRevision: 4,
-            queuedMessageSessionId: 1,
-            sentQueuedMessageRevision: 3,
-        };
-        service.processes.set('run-1', run);
-
-        const sessionId = service.beginQueuedMessageDraft('run-1');
-        const result = service.setQueuedMessage('run-1', sessionId, 'new', 0);
-
-        expect(result).toEqual({ accepted: true });
-        expect(run.queuedMessage).toEqual({ content: 'new', revision: 0 });
-        expect(() => service.setQueuedMessage('run-1', 1, 'stale', 5)).toThrow('session expired');
-    });
-
     it('checkpoints the complete transcript when a turn starts waiting for input', async () => {
         const persistConversationCheckpoint = vi.fn(async () => undefined);
         const service = new AgentRunnerService({ persistConversationCheckpoint });
@@ -287,7 +324,6 @@ describe('AgentRunnerService state handling', () => {
             pendingApprovals: new Map(),
             persistence: Promise.resolve(),
             providerConversationId: 'provider-1',
-            queuedMessage: null,
             request: {},
             streaming: true,
             turnActive: true,
@@ -349,7 +385,6 @@ describe('AgentRunnerService state handling', () => {
             pendingApprovals: new Map(),
             persistence: Promise.resolve(),
             providerConversationId: 'provider-1',
-            queuedMessage: null,
             request: {},
             streaming: true,
             turnActive: true,
@@ -425,7 +460,6 @@ describe('AgentRunnerService state handling', () => {
             liveTurnUsage: null,
             nextSequence: 1,
             onEvent: vi.fn(),
-            queuedMessage: null,
             secretValues: new Set(),
             stderr: '',
             streamingFailure: null,
@@ -465,6 +499,32 @@ describe('AgentRunnerService state handling', () => {
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     });
 
+    it('publishes one-shot assistant output with its canonical entry identity', () => {
+        const service = new AgentRunnerService();
+        const run = {
+            agent: 'claude',
+            conversation: { entries: [] },
+            id: 'run-1',
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            stdout: '',
+            streaming: false,
+            turnIndex: 1,
+        };
+        service.processes.set('run-1', run);
+
+        service.recordOutput('run-1', 'stdout', 'answer');
+
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            content: 'answer',
+            entryIndex: 0,
+            messageId: 'run-1-assistant',
+            sequence: 1,
+            type: 'output',
+        }));
+    });
+
     it('waits for close processing after terminating every run', async () => {
         const { promise: closed, resolve: resolveClosed } = Promise.withResolvers();
         const service = new AgentRunnerService({ terminateProcessTree: vi.fn(async () => undefined) });
@@ -495,7 +555,6 @@ describe('AgentRunnerService state handling', () => {
             cancelled: false,
             child,
             conversation: { status: 'running' },
-            queuedMessage: null,
             termination: null,
         });
 
@@ -794,7 +853,6 @@ describe('AgentRunnerService state handling', () => {
             finishTimeout: null,
             finishing: false,
             id: 'run-1',
-            queuedMessage: null,
             streaming: true,
             termination: null,
             turnActive: false,
@@ -832,7 +890,6 @@ describe('AgentRunnerService state handling', () => {
             pendingApprovals: new Map(),
             persistence: Promise.resolve(),
             providerConversationId: 'provider-1',
-            queuedMessage: null,
             request: {},
             streaming: true,
             turnActive: true,
@@ -860,6 +917,7 @@ describe('AgentRunnerService state handling', () => {
             id: 'run-1',
             onEvent: vi.fn(),
             pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
             pendingQuestions: [{ id: 'token', isSecret: true }],
             persistence: Promise.resolve(),
             streaming: true,
@@ -881,6 +939,202 @@ describe('AgentRunnerService state handling', () => {
         expect(answerMessage.content).toContain('token: [secret]');
         expect(run.stdout).toContain('echo [secret]');
         expect(JSON.stringify(run.onEvent.mock.calls)).not.toContain('top-secret');
+    });
+
+    it('dismisses questions after provider resolution and persists one transcript event', async () => {
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const dismissQuestion = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
+            pendingQuestions: [{ id: 'confirm', isSecret: false }],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { dismissQuestion },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        await service.dismissQuestions('run-1', 7);
+
+        expect(dismissQuestion).toHaveBeenCalledWith(7);
+        expect(run.waitingForQuestion).toBe(false);
+        expect(run.pendingQuestions).toEqual([]);
+        expect(run.conversation.entries).toEqual([
+            expect.objectContaining({ kind: 'event', label: 'Questions dismissed', type: 'questionsDismissed' }),
+        ]);
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            event: run.conversation.entries[0],
+            requestId: 7,
+            state: 'running',
+            type: 'questionDismissed',
+        }));
+        expect(persistConversationCheckpoint).toHaveBeenCalledOnce();
+    });
+
+    it('keeps questions pending when provider dismissal fails', async () => {
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
+            pendingQuestions: [{ id: 'confirm', isSecret: false }],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { dismissQuestion: vi.fn(async () => { throw new Error('Provider unavailable'); }) },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        await expect(service.dismissQuestions('run-1', 7)).rejects.toThrow('Provider unavailable');
+
+        expect(run.waitingForQuestion).toBe(true);
+        expect(run.pendingQuestionRequestId).toBe(7);
+        expect(run.pendingQuestions).toHaveLength(1);
+        expect(run.conversation.entries).toEqual([]);
+        expect(run.onEvent).not.toHaveBeenCalled();
+    });
+
+    it('publishes accepted dismissal when conversation checkpoint persistence fails', async () => {
+        const persistenceError = new Error('Storage unavailable');
+        const dismissQuestion = vi.fn(async () => undefined);
+        const persistConversationCheckpoint = vi.fn(async () => { throw persistenceError; });
+        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
+            pendingQuestions: [{ id: 'confirm', isSecret: false }],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { dismissQuestion },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        await expect(service.dismissQuestions('run-1', 7))
+            .rejects.toThrow('Questions dismissed, but conversation checkpoint could not be saved');
+
+        expect(dismissQuestion).toHaveBeenCalledWith(7);
+        expect(run.waitingForQuestion).toBe(false);
+        expect(run.pendingQuestionRequestId).toBeNull();
+        expect(run.pendingQuestions).toEqual([]);
+        expect(run.conversation.entries).toEqual([
+            expect.objectContaining({ kind: 'event', label: 'Questions dismissed', type: 'questionsDismissed' }),
+        ]);
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            requestId: 7,
+            state: 'running',
+            type: 'questionDismissed',
+        }));
+    });
+
+    it('keeps a newer pending question while recording a sent message', async () => {
+        const sendMessage = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 8,
+            pendingQuestions: [{ id: 'next', isSecret: false }],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { sendMessage },
+            turnIndex: 1,
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        await service.sendMessage('run-1', 'Queued prompt');
+
+        expect(run.waitingForQuestion).toBe(true);
+        expect(run.pendingQuestionRequestId).toBe(8);
+        expect(run.conversation.status).toBe('waitingForInput');
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({ state: 'waitingForInput', type: 'state' }));
+    });
+
+    it('lets first queued answer or dismissal win without resolving twice', async () => {
+        const dismissal = Promise.withResolvers();
+        const dismissQuestion = vi.fn(async () => dismissal.promise);
+        const answerQuestion = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
+            pendingQuestions: [{ id: 'confirm', isSecret: false }],
+            persistence: Promise.resolve(),
+            secretValues: new Set(),
+            streaming: true,
+            streamingAdapter: { answerQuestion, dismissQuestion },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        const dismissing = service.dismissQuestions('run-1', 7);
+        const answering = service.answerQuestion('run-1', 7, { confirm: ['Yes'] });
+        await vi.waitFor(() => expect(dismissQuestion).toHaveBeenCalledOnce());
+        dismissal.resolve();
+
+        await dismissing;
+        await expect(answering).rejects.toThrow('Unknown or stale agent question request id');
+        expect(answerQuestion).not.toHaveBeenCalled();
+        expect(run.conversation.entries).toHaveLength(1);
+    });
+
+    it('rejects queued dismissal after question answer wins the race', async () => {
+        const answer = Promise.withResolvers();
+        const answerQuestion = vi.fn(async () => answer.promise);
+        const dismissQuestion = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'waitingForInput' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestionRequestId: 7,
+            pendingQuestions: [{ id: 'confirm', isSecret: false }],
+            persistence: Promise.resolve(),
+            secretValues: new Set(),
+            streaming: true,
+            streamingAdapter: { answerQuestion, dismissQuestion },
+            waitingForQuestion: true,
+        };
+        service.processes.set('run-1', run);
+
+        const answering = service.answerQuestion('run-1', 7, { confirm: ['Yes'] });
+        const dismissing = service.dismissQuestions('run-1', 7);
+        await vi.waitFor(() => expect(answerQuestion).toHaveBeenCalledOnce());
+        answer.resolve();
+
+        await answering;
+        await expect(dismissing).rejects.toThrow('Unknown or stale agent question request id');
+        expect(dismissQuestion).not.toHaveBeenCalled();
+        expect(run.conversation.entries).toEqual([expect.objectContaining({ kind: 'message', role: 'user' })]);
     });
 
     it('creates separate assistant messages around intervening event', async () => {
@@ -954,6 +1208,7 @@ describe('AgentRunnerService state handling', () => {
         expect(run.conversation.entries).toEqual([expect.objectContaining({ content: 'draft', sequence: 1 })]);
         expect(run.onEvent).toHaveBeenLastCalledWith(expect.objectContaining({
             content: 'draft',
+            entryIndex: 0,
             previousContent: 'dra',
             replace: true,
             type: 'output',
@@ -1010,6 +1265,7 @@ describe('AgentRunnerService state handling', () => {
             status: 'completed',
         });
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            entryIndex: 1,
             event: expect.objectContaining({ content: 'Completed', id: 'activity-1' }),
             type: 'agentEvent',
         }));
@@ -1105,7 +1361,6 @@ describe('AgentRunnerService state handling', () => {
             onEvent: vi.fn(),
             pendingQuestions: [],
             persistence: Promise.resolve(),
-            queuedMessage: null,
             secretValues: new Set(),
             stderr: '',
             streaming: true,
@@ -1139,6 +1394,50 @@ describe('AgentRunnerService state handling', () => {
         expect(codexRuntimeService.publishUnavailable).toHaveBeenCalledWith(11);
         expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledWith('codex', snapshot);
         expect(persistConversation).not.toHaveBeenCalled();
+    });
+
+    it('passes only supported Codex buckets to account metrics', async () => {
+        const codexRuntimeService = new CodexRuntimeService();
+        const usageMetricsService = { recordAccountUsage: vi.fn(async () => true) };
+        const service = new AgentRunnerService({ codexRuntimeService, usageMetricsService });
+        const supportedBucket = {
+            credits: null,
+            individualLimit: null,
+            limitId: 'codex',
+            limitName: 'Codex',
+            planType: 'plus',
+            primary: { resetsAt: 100, usedPercent: 20, windowDurationMins: 300 },
+            rateLimitReachedType: null,
+            secondary: null,
+        };
+        const sparkBucket = {
+            ...supportedBucket, limitId: 'spark', limitName: 'GPT-5.3-Codex-Spark', primary: {
+                resetsAt: 100,
+                usedPercent: 60,
+                windowDurationMins: 300,
+            },
+        };
+
+        await service.handleCodexRuntimeEvent({
+            kind: 'snapshot',
+            observedAt: 10,
+            payload: { rateLimitsByLimitId: { codex: supportedBucket, spark: sparkBucket } },
+        });
+        await service.handleCodexRuntimeEvent({
+            kind: 'update',
+            observedAt: 11,
+            payload: { rateLimits: { limitId: 'spark', primary: { usedPercent: 80 } } },
+        });
+
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenCalledTimes(2);
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenNthCalledWith(1, 'codex', expect.objectContaining({
+            buckets: [expect.objectContaining({ limitId: 'codex', limitName: 'Codex' })],
+            observedAt: 10,
+        }));
+        expect(usageMetricsService.recordAccountUsage).toHaveBeenNthCalledWith(2, 'codex', expect.objectContaining({
+            buckets: [expect.objectContaining({ limitId: 'codex', limitName: 'Codex' })],
+            observedAt: 11,
+        }));
     });
 
     it('routes Claude account updates to active project metrics and polls for Claude runs only', async () => {
@@ -1175,23 +1474,156 @@ describe('AgentRunnerService state handling', () => {
         });
     });
 
-    it('polls Claude usage at run start, on a tick while running, and after the run closes', async () => {
+    it('refreshes each configured built-in provider in the active project folder', async () => {
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const executableResolver = { find: vi.fn(async (executable) => `/tools/${executable}.cmd`) };
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            codexUsagePoller,
+            executableResolver,
+            now: () => 10,
+            setTimeout: vi.fn(),
+        });
+        const profiles = [
+            { command: ['claude', '--configured'], name: 'claude' },
+            { command: ['codex', '--configured'], name: 'codex' },
+            { command: ['custom'], name: 'custom' },
+        ];
+
+        service.requestProjectUsageRefresh({ rootPath: '/projects/md2' }, profiles);
+        await vi.waitFor(() => expect(codexUsagePoller.requestPoll).toHaveBeenCalledOnce());
+
+        expect(executableResolver.find).toHaveBeenCalledTimes(2);
+        const environment = executableResolver.find.mock.calls[0][1].env;
+        expect(environment).not.toHaveProperty('NODE_OPTIONS');
+        // The folder is the whole point: Claude's trust question is asked per folder, and a poll
+        // started outside the project hits a folder Claude may never have run in.
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledWith({
+            cwd: '/projects/md2',
+            env: environment,
+            executable: '/tools/claude.cmd',
+            observedAt: 10,
+            onRuntimeEvent: service.handleAccountClaudeRuntimeEvent,
+        });
+        expect(codexUsagePoller.requestPoll).toHaveBeenCalledWith({
+            argumentsList: ['--configured'],
+            cwd: '/projects/md2',
+            env: environment,
+            executable: '/tools/codex.cmd',
+            observedAt: 10,
+        });
+    });
+
+    it('moves later polls to the new project folder on a project switch', async () => {
+        const ticks = [];
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            codexUsagePoller,
+            executableResolver: { find: vi.fn(async () => '/tools/claude') },
+            setTimeout: (callback) => {
+                ticks.push(callback);
+
+                return ticks.length;
+            },
+        });
+        const profiles = [{ command: ['claude'], name: 'claude' }];
+
+        service.requestProjectUsageRefresh({ rootPath: '/first' }, profiles);
+        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce());
+        service.requestProjectUsageRefresh({ rootPath: '/second' }, profiles);
+        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(2));
+        ticks.at(-1)();
+
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenLastCalledWith(expect.objectContaining({ cwd: '/second' }));
+    });
+
+    it('rejects a refresh without a project folder', () => {
+        const service = new AgentRunnerService({
+            claudeUsagePoller: { requestPoll: vi.fn(), stop: vi.fn() },
+            codexUsagePoller: { requestPoll: vi.fn(), stop: vi.fn() },
+        });
+
+        expect(() => service.requestProjectUsageRefresh(null, [])).toThrow('Missing local Git project rootPath');
+    });
+
+    it('skips missing profiles and publishes unavailable for missing executables without metrics', async () => {
+        const claudeRuntimeService = { publishRateLimits: vi.fn(), publishUnavailable: vi.fn() };
+        const usageMetricsService = { recordAccountUsage: vi.fn() };
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const service = new AgentRunnerService({
+            claudeRuntimeService,
+            claudeUsagePoller,
+            codexUsagePoller,
+            executableResolver: { find: vi.fn(async () => null) },
+            now: () => 20,
+            usageMetricsService,
+        });
+
+        service.requestProjectUsageRefresh({ rootPath: '/project' }, [{ command: ['claude'], name: 'claude' }]);
+        await vi.waitFor(() => expect(claudeRuntimeService.publishUnavailable).toHaveBeenCalledWith(20));
+
+        expect(claudeUsagePoller.requestPoll).not.toHaveBeenCalled();
+        expect(codexUsagePoller.requestPoll).not.toHaveBeenCalled();
+        expect(usageMetricsService.recordAccountUsage).not.toHaveBeenCalled();
+    });
+
+    it('publishes startup results without metrics and maps rejected runtime payloads to unavailable', async () => {
+        const claudeRuntimeService = { publishRateLimits: vi.fn(() => true), publishUnavailable: vi.fn() };
+        const codexRuntimeService = { publishRateLimits: vi.fn(() => false), publishUnavailable: vi.fn() };
+        const usageMetricsService = { recordAccountUsage: vi.fn() };
+        const service = new AgentRunnerService({ claudeRuntimeService, codexRuntimeService, usageMetricsService });
+        const claudePayload = { windows: [] };
+        const codexPayload = { rateLimits: {} };
+
+        await service.handleAccountClaudeRuntimeEvent({ kind: 'snapshot', observedAt: 30, payload: claudePayload });
+        await service.handleAccountCodexRuntimeEvent({ kind: 'snapshot', observedAt: 31, payload: codexPayload });
+
+        expect(claudeRuntimeService.publishRateLimits).toHaveBeenCalledWith(claudePayload, 30);
+        expect(codexRuntimeService.publishRateLimits).toHaveBeenCalledWith(codexPayload, 31, false);
+        expect(codexRuntimeService.publishUnavailable).toHaveBeenCalledWith(31);
+        expect(usageMetricsService.recordAccountUsage).not.toHaveBeenCalled();
+    });
+
+    it('stops both pollers and ignores executable resolution completing during shutdown', async () => {
+        const resolution = Promise.withResolvers();
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const codexUsagePoller = { requestPoll: vi.fn(), stop: vi.fn(async () => undefined) };
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            codexUsagePoller,
+            executableResolver: { find: vi.fn(async () => resolution.promise) },
+        });
+
+        service.requestProjectUsageRefresh({ rootPath: '/project' }, [{ command: ['claude'], name: 'claude' }]);
+        const stopped = service.stopAll();
+        resolution.resolve('C:\\tools\\claude.cmd');
+        await stopped;
+        await Promise.resolve();
+
+        expect(claudeUsagePoller.stop).toHaveBeenCalledOnce();
+        expect(codexUsagePoller.stop).toHaveBeenCalledOnce();
+        expect(claudeUsagePoller.requestPoll).not.toHaveBeenCalled();
+    });
+
+    it('polls Claude usage at run start and again after the run closes', async () => {
         const child = new EventEmitter();
         child.pid = 43;
         child.stdin = new PassThrough();
         child.stdout = new PassThrough();
         child.stderr = new PassThrough();
-        const ticks = [];
-        const cleared = [];
         const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
         const executable = '/tools/custom-claude';
         const service = new AgentRunnerService({
             claudeUsagePoller,
-            clearTimeout: (handle) => cleared.push(handle),
             executableResolver: { find: vi.fn(async () => executable) },
             persistConversation: vi.fn(async () => undefined),
             persistConversationCheckpoint: vi.fn(async () => undefined),
-            setTimeout: (callback) => ticks.push(callback),
+            setTimeout: vi.fn(),
             spawn: vi.fn(() => child),
         });
         const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
@@ -1206,26 +1638,54 @@ describe('AgentRunnerService state handling', () => {
             executable,
         });
 
-        ticks[0]();
-
-        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(2);
-
         child.emit('close', 0);
-        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3));
+        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(2));
         expect(claudeUsagePoller.requestPoll).toHaveBeenNthCalledWith(2, {
             cwd: project.rootPath,
             env: expect.objectContaining({}),
             executable,
         });
-        expect(claudeUsagePoller.requestPoll).toHaveBeenNthCalledWith(3, {
-            cwd: project.rootPath,
-            env: expect.objectContaining({}),
-            executable,
-        });
-        ticks[1]();
+    });
 
-        expect(cleared).toEqual([2]);
-        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(3);
+    // Before this, one failed poll left the display empty until the user happened to start a run.
+    it('keeps the interval running through repeated failures and with no Claude run active', async () => {
+        const ticks = [];
+        // The poller swallows its own failures, so a failing poll looks exactly like this one.
+        const claudeUsagePoller = { requestPoll: vi.fn(), stop: vi.fn() };
+        const cleared = [];
+        const service = new AgentRunnerService({
+            claudeUsagePoller,
+            clearTimeout: (handle) => cleared.push(handle),
+            codexUsagePoller: { requestPoll: vi.fn(), stop: vi.fn(async () => undefined) },
+            executableResolver: { find: vi.fn(async () => '/tools/claude') },
+            setTimeout: (callback) => {
+                ticks.push(callback);
+
+                return ticks.length;
+            },
+        });
+
+        service.requestProjectUsageRefresh({ rootPath: '/project' }, [{ command: ['claude'], name: 'claude' }]);
+        await vi.waitFor(() => expect(claudeUsagePoller.requestPoll).toHaveBeenCalledOnce());
+        // Three consecutive polls that report nothing, with no run in the service at any point.
+        for (let index = 0; index < 3; index += 1) ticks.at(-1)();
+
+        expect(service.processes.size).toBe(0);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(4);
+        expect(claudeUsagePoller.requestPoll).toHaveBeenLastCalledWith({
+            cwd: '/project',
+            env: expect.objectContaining({}),
+            executable: '/tools/claude',
+        });
+        // A fourth poll is still scheduled after the third failure.
+        expect(service.usagePollTimer).not.toBeNull();
+
+        await service.stopAll();
+
+        expect(cleared).toContain(ticks.length);
+        expect(service.usagePollTimer).toBeNull();
+        ticks.at(-1)();
+        expect(claudeUsagePoller.requestPoll).toHaveBeenCalledTimes(4);
     });
 
     it('leaves usage polling alone for agents that report usage inside their protocol', async () => {

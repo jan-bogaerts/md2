@@ -1,12 +1,14 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from '../../data/data_types'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CARD_BODY_POPOVER_SIZE_KEY, CardBodyPopover } from './card_body_popover'
-import { dataService } from '../../services/data/data_service'
+import { cardCollectionFieldChangedEvent, dataService } from '../../services/data/data_service'
 import { cardPopupService } from '../../services/card_popup_service'
 import { worktreeService } from '../../services/project/worktree_service'
+import { actionService } from '../../services/actions/action_service'
+import { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
 
 vi.mock('../hooks/use_card_commits', () => ({
     useCardCommits: () => ({
@@ -42,14 +44,25 @@ vi.mock('./card_commit_diff_panel', () => ({
 }))
 
 vi.mock('./card_body_save_status', () => ({ CardBodySaveStatus: () => null }))
-vi.mock('./card_body_editor', () => ({ CardBodyEditor: () => <div aria-label="Live card editor" /> }))
+vi.mock('./card_body_editor', () => ({
+    CardBodyEditor: ({ isFullscreen, onToggleFullscreen }: { isFullscreen: boolean, onToggleFullscreen: () => void }) => (
+        <>
+            <div aria-label="Live card editor" />
+            <button onClick={onToggleFullscreen} type="button">{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
+        </>
+    ),
+}))
+
+function appRegion(element: HTMLElement) {
+    return (element.style as unknown as Record<string, string>).WebkitAppRegion
+}
 
 const card: Card = {
     agentConversationErrors: [],
     agentConversations: [],
     content: '# Card\n\nBody',
     header: {
-        affects: [], after: null, agentLogReferences: [], author: null, id: 'F-060', internalId: 'card-060',
+        affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: 'F-060', internalId: 'card-060',
         owner: null, policy: {}, references: [], status: 'ready', title: 'Card', worktree: null, worktreeError: null, worktreeValue: null,
     },
     hasFrontmatter:true,
@@ -90,8 +103,8 @@ describe('CardBodyPopover commit diff', () => {
         const firstAnchor = document.body.appendChild(document.createElement('button'))
         const secondAnchor = document.body.appendChild(document.createElement('button'))
         const closeBoardDocument = vi.spyOn(openFilesService, 'closeBoardDocument')
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, firstAnchor)
-        cardPopupService.toggleCardDetails(secondCard.header.internalId!, secondCard.path, secondAnchor)
+        cardPopupService.toggleCardDetails(card.header.internalId!, firstAnchor)
+        cardPopupService.toggleCardDetails(secondCard.header.internalId!, secondAnchor)
         const firstEntry = cardPopupService.getSnapshot()[0]
 
         render(
@@ -134,8 +147,8 @@ describe('CardBodyPopover commit diff', () => {
         })
         const firstAnchor = document.body.appendChild(document.createElement('button'))
         const secondAnchor = document.body.appendChild(document.createElement('button'))
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, firstAnchor)
-        cardPopupService.toggleCardDetails(secondCard.header.internalId!, secondCard.path, secondAnchor)
+        cardPopupService.toggleCardDetails(card.header.internalId!, firstAnchor)
+        cardPopupService.toggleCardDetails(secondCard.header.internalId!, secondAnchor)
 
         render(
             <AppThemeProvider>
@@ -165,7 +178,7 @@ describe('CardBodyPopover commit diff', () => {
         const getStoredValue = vi.spyOn(Storage.prototype, 'getItem')
         const setStoredValue = vi.spyOn(Storage.prototype, 'setItem')
         const anchorElement = document.body.appendChild(document.createElement('button'))
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
 
         render(
             <AppThemeProvider>
@@ -199,7 +212,7 @@ describe('CardBodyPopover commit diff', () => {
     it('uses persisted desktop size and exposes header drag plus eight resize directions', () => {
         window.localStorage.setItem(CARD_BODY_POPOVER_SIZE_KEY, JSON.stringify({ height: 700, width: 800 }))
         const anchorElement = document.body.appendChild(document.createElement('button'))
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
 
         render(
             <AppThemeProvider>
@@ -217,9 +230,36 @@ describe('CardBodyPopover commit diff', () => {
         )
         const dialog = screen.getByRole('dialog', { name: 'F-060 card details' })
 
-        expect(dialog).toHaveStyle({ height: '700px', width: '800px' })
+        expect(dialog).toHaveStyle({ height: '700px', maxHeight: 'calc(100vh - 16px)', width: '800px' })
+        expect(appRegion(dialog)).toBe('no-drag')
         expect(dialog.querySelector('[data-drag-handle="true"]')).not.toBeNull()
         expect(within(dialog).getAllByRole('separator', { name: /Resize card details popup from/u })).toHaveLength(8)
+    })
+
+    it('keeps its desktop top inset and reaches the bottom in fullscreen', () => {
+        const anchorElement = document.body.appendChild(document.createElement('button'))
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
+        render(
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    onOpenInFileMode={vi.fn()}
+                    states={states}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'F-060 card details' })
+
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Fullscreen' }))
+
+        expect(dialog).toHaveStyle({ height: 'calc(100vh - 60px)', top: '60px' })
+        expect(appRegion(dialog)).toBe('no-drag')
+        expect(within(dialog).getByRole('button', { name: 'Exit fullscreen' })).toBeInTheDocument()
     })
 
     it('keeps the board document bound when refreshed card data retains its identity', () => {
@@ -237,7 +277,7 @@ describe('CardBodyPopover commit diff', () => {
             statusColors: new Map<string, string>(),
             visible: true,
         }
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
         const view = render(
             <AppThemeProvider>
                 <CardBodyPopover {...props} />
@@ -254,10 +294,67 @@ describe('CardBodyPopover commit diff', () => {
         expect(closeBoardDocument).not.toHaveBeenCalled()
     })
 
+    it('keeps clean card body bound while a title rename changes its path', async () => {
+        const renamedCard = {
+            ...card,
+            content: '# Renamed card\n\nBody',
+            header: { ...card.header, title: 'Renamed card' },
+            path: 'design/F-060-renamed-card.md',
+        }
+        let activeCards = [card]
+        vi.spyOn(dataService, 'getState').mockImplementation(() => ({
+            project: null,
+            runningAgents: [],
+            snapshot: { activeCards, backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
+        }))
+        openFilesService.init({ actionService, dataService })
+        const anchorElement = document.body.appendChild(document.createElement('button'))
+        const setBoardDocument = vi.spyOn(CardMarkdownDataSource.prototype, 'setBoardDocument')
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
+        render(
+            <AppThemeProvider>
+                <CardBodyPopover
+                    cardTypes={DEFAULT_CARD_TYPES}
+                    isMobile={false}
+                    onDeleteCard={vi.fn(async () => undefined)}
+                    onOpenAffects={vi.fn()}
+                    onOpenInFileMode={vi.fn()}
+                    states={states}
+                    statusColors={new Map()}
+                    visible
+                />
+            </AppThemeProvider>,
+        )
+        const cardDocument = openFilesService.findDocument(card)
+        if (!cardDocument || cardDocument.kind !== 'card') throw new Error('Expected open card document')
+
+        expect(cardDocument.dirty).toBe(false)
+        expect(setBoardDocument).toHaveBeenCalledOnce()
+
+        activeCards = [renamedCard]
+        act(() => {
+            dataService.dispatchEvent(new Event('changed'))
+            dataService.dispatchEvent(new Event(cardCollectionFieldChangedEvent('identity')))
+        })
+
+        await waitFor(() => expect(screen.getByRole('dialog', { name: 'F-060 card details' })).toBeInTheDocument())
+        expect(openFilesService.findDocument(renamedCard)).toBe(cardDocument)
+        expect(cardDocument.path).toBe(renamedCard.path)
+        expect(cardDocument.getDraft().content).toBe(renamedCard.content)
+        expect(setBoardDocument).toHaveBeenCalledOnce()
+        expect(setBoardDocument).not.toHaveBeenCalledWith(null)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Close card details' }))
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'F-060 card details' })).not.toBeInTheDocument())
+        expect(setBoardDocument).toHaveBeenCalledWith(null)
+        expect(openFilesService.findDocument(renamedCard)).toBeNull()
+    })
+
     it('uses the first Escape to exit diff and the second to close the popover', () => {
         const anchorElement = document.createElement('button')
         document.body.append(anchorElement)
-        cardPopupService.toggleCardDetails(card.header.internalId!, card.path, anchorElement)
+        cardPopupService.toggleCardDetails(card.header.internalId!, anchorElement)
         render(
             <AppThemeProvider>
                 <CardBodyPopover
@@ -303,7 +400,7 @@ describe('CardBodyPopover commit diff', () => {
         vi.spyOn(worktreeService, 'getRecords').mockImplementation(() => records)
         const anchorElement = document.createElement('button')
         document.body.append(anchorElement)
-        cardPopupService.openWorktreeDiff(assignedCard.header.internalId!, assignedCard.path, anchorElement)
+        cardPopupService.openWorktreeDiff(assignedCard.header.internalId!, anchorElement)
         render(
             <AppThemeProvider>
                 <CardBodyPopover

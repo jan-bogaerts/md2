@@ -1,7 +1,7 @@
 import { ACTION_SCHEDULES_FILE } from '../../data/action_schedule_types'
 import { deriveStatesFromCards, mergeStatesWithDefaults } from '../../data/card_ordering'
 import type { CardSeparator } from '../../data/card_identifiers'
-import { resolveProjectConfigPaths, type MarkdownFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../../data/data_types'
+import { isMissingWorkingFolderError, resolveProjectConfigPaths, type MarkdownFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../../data/data_types'
 import { actionService, type ActionReloadChange } from '../actions/action_service'
 import { configService } from '../config/config_service'
 import {
@@ -26,6 +26,12 @@ import { mergeConflictService } from './merge_conflict_service'
 import { projectAccessService } from './project_access_service'
 import { createProjectAgentTokenUsageFile, projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
 import { projectStatsService } from '../stats/project_stats_service'
+import { normalizePath } from '../../../../shared/path_utils.mjs'
+import {
+    type ExpectedPersistenceOutcome,
+    ExpectedPersistenceOutcomes,
+    type ObservedPersistenceOutcome,
+} from './expected_persistence_outcomes'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -82,7 +88,7 @@ function isProjectMarkdownPath(path: string, projectFolder: string) {
 }
 
 function reportMarkdownWatchConflict(path: string) {
-    reportWorkspaceError(`External change ignored for ${path} because the file has unsaved local edits.`)
+    dialogService.displayError(`External change ignored for ${path} because the file has unsaved local edits.`)
 }
 
 function reportActionLoadIssues() {
@@ -116,7 +122,7 @@ function initializeMissingProjectStates(projectConfig: Partial<ProjectConfig> | 
 export interface ProjectLoadingDeps {
     beginProjectLoad(): number
     clearLoadedProject(): void
-    commitPathsInFlight(): Set<string>
+    expectedPersistenceOutcomes(): ExpectedPersistenceOutcomes
     dispatchChanged(): void
     dispatchPersistenceChanged(): void
     dispatchRepositoryChanged(event: ProjectWatchEvent): void
@@ -130,6 +136,7 @@ export interface ProjectLoadingDeps {
     migrateAgentLogReferences(): Promise<void>
     markFullProjectLoaded(): void
     project(): ProjectReference | null
+    projectToken(): number
     replaceFiles(files: MarkdownFile[], workingFolder: string): void
     replaceProject(project: ProjectReference | null): void
     replaceProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
@@ -183,7 +190,7 @@ export class ProjectLoading {
         projectAccessService.requireWritable()
         const { config, storage } = this.dependencies.requireDependencies()
         const rawConfig = { ...configService.getProjectConfig(), backgroundShade: createRandomProjectBackgroundShade() }
-        this.dependencies.replaceProject(await storage.createProject(project, config.workingFolder))
+        this.dependencies.replaceProject(await storage.createProject(project, [config.workingFolder]))
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot create a project without a project reference')
 
@@ -251,6 +258,8 @@ export class ProjectLoading {
             return currentSnapshot
         } catch (error) {
             this.clearFailedProjectLoad()
+            if (isMissingWorkingFolderError(error)) throw error
+
             dialogService.error(error, { fallbackMessage: 'Project could not be loaded', title: 'Project load failed' })
             markProjectLoadErrorReported(error)
             throw error
@@ -284,23 +293,16 @@ export class ProjectLoading {
         try {
             for (const [index, move] of moves.entries()) {
                 globalProgressService.update(index, `Renaming ${move.fromPath}`)
-                const inFlightCommitPaths = this.dependencies.commitPathsInFlight()
-                inFlightCommitPaths.add(move.fromPath)
-                inFlightCommitPaths.add(move.toPath)
-                try {
-                    await storage.moveFiles({
-                        branch: currentProject.branch,
-                        message: `Rename card file ${index + 1} of ${moves.length}`,
-                        moves: [move],
-                    })
-                } finally {
-                    inFlightCommitPaths.delete(move.fromPath)
-                    inFlightCommitPaths.delete(move.toPath)
-                }
+                await storage.moveFiles({
+                    branch: currentProject.branch,
+                    message: `Rename card file ${index + 1} of ${moves.length}`,
+                    moves: [move],
+                })
                 globalProgressService.update(index + 1, `Renamed ${move.toPath}`)
             }
 
             if (config.pushMode === 'auto') await storage.push(currentProject)
+            await this.dependencies.flushPendingChanges()
             await this.reloadCurrentProjectSnapshot()
 
             return moves.length
@@ -508,10 +510,7 @@ export class ProjectLoading {
     ): Promise<ExternalCardImportResult> {
         const { config, storage } = this.dependencies.requireDependencies()
 
-        const importPaths = plan.moves.flatMap((move) => [move.fromPath, move.toPath])
         const sourcePaths = plan.moves.map((move) => move.fromPath)
-        const inFlightCommitPaths = this.dependencies.commitPathsInFlight()
-        importPaths.forEach((path) => inFlightCommitPaths.add(path))
 
         try {
             await storage.moveFiles({
@@ -524,8 +523,6 @@ export class ProjectLoading {
             telemetryService.captureError(error)
 
             return { files, importedFiles: [], sourcePaths: [], succeeded: false }
-        } finally {
-            importPaths.forEach((path) => inFlightCommitPaths.delete(path))
         }
 
         if (config.pushMode === 'auto') await storage.push(currentProject)
@@ -547,7 +544,7 @@ export class ProjectLoading {
     ) {
         const { storage } = this.dependencies.requireDependencies()
         const [projectFilesResult, repositoryFilesResult] = await Promise.allSettled([
-            storage.loadProject(project, projectFolder),
+            storage.loadProject(project, projectFolder, workingFolder),
             storage.listRepositoryFiles(project),
         ])
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
@@ -556,11 +553,12 @@ export class ProjectLoading {
         let projectFilesLoaded = false
         if (projectFilesResult.status === 'fulfilled') {
             try {
-                const importedFiles = await this.importExternalCardFiles(projectFilesResult.value.files, workingFolder)
+                const loadedFiles = mergeFiles(projectFilesResult.value.files, this.dependencies.files())
+                const importedFiles = await this.importExternalCardFiles(loadedFiles, workingFolder)
                 if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
                 const importedPaths = new Set(importedFiles.map((file) => file.path))
-                const removedImportedPaths = projectFilesResult.value.files
+                const removedImportedPaths = loadedFiles
                     .filter((file) => !importedPaths.has(file.path))
                     .map((file) => file.path)
                 const remainingFiles = removeFilesByPath(this.dependencies.files(), removedImportedPaths)
@@ -624,6 +622,7 @@ export class ProjectLoading {
         if (!currentProject) return
 
         try {
+            await this.verifyExpectedPersistenceOutcomes()
             const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
             if (this.dependencies.project() !== currentProject) return
 
@@ -655,6 +654,17 @@ export class ProjectLoading {
             this.scheduleMergeConflictVerification()
             return
         }
+
+        const expectedOutcome = this.dependencies.expectedPersistenceOutcomes().getExpected(event.path)
+        if (expectedOutcome) {
+            void this.classifyExpectedWatchEvent(expectedOutcome)
+            return
+        }
+
+        this.handleExternalProjectWatchEvent(event)
+    }
+
+    private handleExternalProjectWatchEvent(event: ProjectWatchEvent) {
         this.dependencies.updateRepositoryFile(event)
         this.dependencies.dispatchRepositoryChanged(event)
         if (event.path === PROJECT_CONFIG_PATH) {
@@ -663,17 +673,121 @@ export class ProjectLoading {
         }
         const { config } = this.dependencies.requireDependencies()
         if (isActionDefinitionPath(event.path, config.actionsFolder)) {
-            const change: ActionReloadChange = this.dependencies.commitPathsInFlight().has(event.path)
-                ? { origin: 'local', path: event.path, revision: actionService.getPublicationRevision(event.path) }
-                : { origin: 'external', path: event.path }
+            const change: ActionReloadChange = { origin: 'external', path: event.path }
             this.scheduleActionReload(change)
             return
         }
 
         if (!isProjectMarkdownPath(event.path, config.projectFolder)) return
-        if (this.dependencies.commitPathsInFlight().has(event.path)) return
 
         this.scheduleMarkdownReload(event)
+    }
+
+    private async classifyExpectedWatchEvent(expectedOutcome: ExpectedPersistenceOutcome) {
+        const currentProject = this.dependencies.project()
+        if (!currentProject) return
+        const projectLoadToken = this.dependencies.projectToken()
+        const outcomes = this.dependencies.expectedPersistenceOutcomes()
+        await outcomes.waitForSettled(expectedOutcome.path)
+        if (!this.dependencies.isCurrentLoad(currentProject, projectLoadToken)) return
+
+        const latestExpectedOutcome = outcomes.getExpected(expectedOutcome.path)
+        if (!latestExpectedOutcome) return
+        const observedOutcome = await this.observePersistenceOutcome(latestExpectedOutcome, currentProject)
+        if (!observedOutcome || !this.dependencies.isCurrentLoad(currentProject, projectLoadToken)) return
+
+        const classification = outcomes.classify(observedOutcome)
+        if (classification === 'matched') {
+            this.publishObservedRepositoryChange(observedOutcome)
+            return
+        }
+        if (classification === 'mismatched') {
+            this.handleExternalProjectWatchEvent(this.watchEventFromObserved(observedOutcome))
+        }
+    }
+
+    async verifyExpectedPersistenceOutcomes() {
+        const currentProject = this.dependencies.project()
+        if (!currentProject) return
+        const projectLoadToken = this.dependencies.projectToken()
+        const outcomes = this.dependencies.expectedPersistenceOutcomes()
+        const retainedOutcomes = outcomes.getRetainedOutcomes()
+
+        for (const retainedOutcome of retainedOutcomes) {
+            await outcomes.waitForSettled(retainedOutcome.path)
+            if (!this.dependencies.isCurrentLoad(currentProject, projectLoadToken)) return
+
+            const latestExpectedOutcome = outcomes.getExpected(retainedOutcome.path)
+            if (!latestExpectedOutcome) continue
+            const observedOutcome = await this.observePersistenceOutcome(latestExpectedOutcome, currentProject)
+            if (!observedOutcome || !this.dependencies.isCurrentLoad(currentProject, projectLoadToken)) continue
+
+            const classification = outcomes.classify(observedOutcome)
+            if (classification === 'matched') this.publishObservedRepositoryChange(observedOutcome)
+            if (classification === 'mismatched') {
+                this.handleExternalProjectWatchEvent(this.watchEventFromObserved(observedOutcome))
+            }
+        }
+    }
+
+    private async observePersistenceOutcome(
+        expectedOutcome: ExpectedPersistenceOutcome,
+        currentProject: ProjectReference,
+    ): Promise<ObservedPersistenceOutcome | null> {
+        const { config, storage } = this.dependencies.requireDependencies()
+        const normalizedPath = normalizePath(expectedOutcome.path)
+
+        try {
+            const repositoryFiles = await storage.listRepositoryFiles(currentProject)
+            const persistedPath = repositoryFiles.map(normalizePath).find((path) => path === normalizedPath)
+            if (!persistedPath) return { kind: 'absent', path: normalizedPath }
+            if (expectedOutcome.kind === 'absent') return { content: '', kind: 'present', path: normalizedPath }
+
+            if (isActionDefinitionPath(normalizedPath, config.actionsFolder)) {
+                const actionFiles = await storage.loadActionFiles(currentProject, config.actionsFolder)
+                const actionFile = actionFiles.find(({ path }) => normalizePath(path) === normalizedPath)
+
+                return actionFile
+                    ? { content: actionFile.content, kind: 'present', path: normalizedPath }
+                    : { kind: 'absent', path: normalizedPath }
+            }
+            if (isProjectMarkdownPath(normalizedPath, config.projectFolder) && storage.loadFile) {
+                const file = await storage.loadFile(currentProject, normalizedPath)
+
+                return { content: file.content, kind: 'present', path: normalizedPath }
+            }
+            if (expectedOutcome.encoding === 'base64' && storage.loadProjectAsset) {
+                const asset = await storage.loadProjectAsset(currentProject, normalizedPath)
+
+                return { content: asset.content, encoding: 'base64', kind: 'present', path: normalizedPath }
+            }
+            if (storage.loadTextFile) {
+                const file = await storage.loadTextFile(currentProject, normalizedPath)
+
+                return { content: file.content, kind: 'present', path: normalizedPath }
+            }
+
+            return null
+        } catch (error) {
+            reportOptionalProjectLoadFailure(`Persistence outcome verification for ${normalizedPath}`, error)
+
+            return null
+        }
+    }
+
+    private watchEventFromObserved(observedOutcome: ObservedPersistenceOutcome): ProjectWatchEvent {
+        if (observedOutcome.kind === 'absent') return { changeKind: 'removed', path: observedOutcome.path }
+
+        const repositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []
+        const pathExists = repositoryFiles.map(normalizePath).includes(observedOutcome.path)
+
+        return { changeKind: pathExists ? 'changed' : 'added', path: observedOutcome.path }
+    }
+
+    private publishObservedRepositoryChange(observedOutcome: ObservedPersistenceOutcome) {
+        const event = this.watchEventFromObserved(observedOutcome)
+        this.dependencies.updateRepositoryFile(event)
+        this.dependencies.dispatchRepositoryChanged(event)
     }
 
     private async reloadProjectConfigFromWatch() {
@@ -778,7 +892,6 @@ export class ProjectLoading {
         const removedPaths: string[] = []
 
         for (const event of events) {
-            if (this.dependencies.commitPathsInFlight().has(event.path)) continue
             const loadedFile = event.changeKind === 'removed' ? null : await this.loadWatchedMarkdownFile(event)
             if (loadedFile && this.dependencies.matchesCurrentContent(loadedFile.path, loadedFile.content)) continue
             const dirtyOpenDocument = openFilesService.getRegisteredDocuments().some((document) => (

@@ -56,6 +56,7 @@ describe('action conversation link navigation', () => {
         expect(isLocalFileLink('design/F_89_links.md')).toBe(true)
         expect(isLocalFileLink('C:\\repo\\design\\F_89_links.md')).toBe(true)
         expect(isLocalFileLink('C:%5Crepo%5Cdesign%5CF_89_links.md')).toBe(true)
+        expect(isLocalFileLink('/C:/repo/design/F_89_links.md')).toBe(true)
         expect(isLocalFileLink('file:///C:/repo/design/F_89_links.md')).toBe(true)
         expect(isLocalFileLink('https://example.com/file.md')).toBe(false)
         expect(isLocalFileLink('mailto:test@example.com')).toBe(false)
@@ -71,6 +72,11 @@ describe('action conversation link navigation', () => {
         expect(resolveActionConversationLinkPath(
             'c:%5Crepo%5Cdesign%5CF_89_links.md',
             'C:\\repo',
+            REPOSITORY_FILES,
+        )).toBe('design/F_89_links.md')
+        expect(resolveActionConversationLinkPath(
+            '/C:/repo/design/F_89_links.md:12',
+            'C:/repo',
             REPOSITORY_FILES,
         )).toBe('design/F_89_links.md')
     })
@@ -126,12 +132,22 @@ describe('action conversation link navigation', () => {
         expect(openInEditor).toHaveBeenCalledWith({ path: 'app/src/app.tsx', repositoryRoot: 'C:/repo' })
     })
 
+    it('removes a browser-style leading slash before opening an absolute Windows path', async () => {
+        mockLoadedProject()
+        const openInEditor = vi.fn(async () => undefined)
+        setActionBridgeOverride({ openInEditor } as unknown as ElectronActionBridge)
+
+        await openActionConversationLink('/C:/repo/app/src/app.tsx:33', null)
+
+        expect(openInEditor).toHaveBeenCalledWith({ path: 'C:/repo/app/src/app.tsx:33', repositoryRoot: 'C:/repo' })
+    })
+
     it('uses current card worktree assignment on every click', async () => {
         mockLoadedProject()
         const state = dataService.getState()
         const card: Card = {
             agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path: 'design/F-1.md',
-            header: { affects: [], after: null, agentLogReferences: [], author: null, id: 'F-1', internalId: 'card-1', owner: null, policy: {}, references: [], status: 'design', title: 'Card', worktree: 1 },
+            header: { affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: 'F-1', internalId: 'card-1', owner: null, policy: {}, references: [], status: 'design', title: 'Card', worktree: 1 },
         }
         if (!state.snapshot) throw new Error('Missing test snapshot')
         state.snapshot.activeCards.push(card)

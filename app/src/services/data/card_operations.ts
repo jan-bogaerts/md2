@@ -20,6 +20,7 @@ import {
     setCardAffects,
     setCardAgentLogReferences,
     setCardBody,
+    setCardChangedFiles,
     setCardHeaderFields,
     setCardReferences,
     setCardWorktree,
@@ -50,6 +51,19 @@ function importedSentryIdentities(cards: Card[]) {
     }))
 }
 
+function normalizeChangedFilePath(path: string) {
+    return path.replace(/\\/gu, '/')
+}
+
+function mergedChangedFiles(currentPaths: string[], capturedPaths: string[], excludedPaths: string[]) {
+    const excluded = new Set(excludedPaths.map(normalizeChangedFilePath))
+
+    return [...new Set([...currentPaths, ...capturedPaths]
+        .map(normalizeChangedFilePath)
+        .filter((path) => path.length > 0 && !excluded.has(path)))]
+        .sort()
+}
+
 /** The card-facing surface of the data service, delegating to focused operation modules. */
 export class CardOperations {
     private readonly context: CardOperationContext
@@ -70,7 +84,7 @@ export class CardOperations {
         this.archives = new CardArchiveOperations(this.context, triggerStateActions)
         this.attachments = new CardAttachmentOperations(this.context)
         this.renames = new CardRenameOperations(this.context)
-        this.internalIds = new CardInternalIdOperations(this.context, () => this.renames.reset())
+        this.internalIds = new CardInternalIdOperations(this.context)
         this.images = new CardImageOperations(this.context)
         this.projectFiles = new ProjectFileOperations(this.context)
     }
@@ -199,6 +213,17 @@ export class CardOperations {
         return this.context.saveCardChange(path, (card) => setCardAffects(card, affects))
     }
 
+    addCardChangedFiles(cardInternalId: string, actionCardPath: string, capturedPaths: string[]) {
+        if (capturedPaths.length === 0) return this.context.dependencies.requireCardByInternalId(cardInternalId)
+        const card = this.context.dependencies.requireCardByInternalId(cardInternalId)
+        const changedFiles = mergedChangedFiles(card.header.changedFiles, capturedPaths, [actionCardPath, card.path])
+        const unchanged = card.header.changedFiles.length === changedFiles.length
+            && card.header.changedFiles.every((path, index) => path === changedFiles[index])
+        if (unchanged) return card
+
+        return this.context.saveCardChange(card.path, (currentCard) => setCardChangedFiles(currentCard, changedFiles))
+    }
+
     addCardReferences(path: string, references: string[]) {
         const card = this.context.dependencies.requireCard(path)
         const nextReferences = [...new Set([...card.header.references, ...references])]
@@ -267,6 +292,11 @@ export class CardOperations {
         return this.internalIds.ensureCardInternalIds()
     }
 
+    /** Drops card-operation tracking scoped to the previously open project. */
+    resetProjectTracking() {
+        this.renames.reset()
+    }
+
     updateCardTitle(path: string, title: string, saveReference?: OpenDocumentSaveReference) {
         return this.renames.updateCardTitle(path, title, saveReference)
     }
@@ -302,6 +332,7 @@ export class CardOperations {
 
             return {
                 cardInternalId,
+                kind: 'card' as const,
                 path: card.path,
                 saveReference: this.context.findOpenCardDocument(card.path)?.createSaveReference(),
             }

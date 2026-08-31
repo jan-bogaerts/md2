@@ -27,6 +27,8 @@ export function CardActionPopupHostEntry({ entry, stackPosition, visible }: Card
             anchorElement={anchorElement}
             context={entry.context}
             draggable
+            initialActionId={entry.requestedActionId ?? undefined}
+            initialRunId={entry.requestedRunId ?? undefined}
             onActivate={handleActivate}
             onClose={handleClose}
             open={visible}

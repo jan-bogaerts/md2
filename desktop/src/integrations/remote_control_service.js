@@ -4,6 +4,7 @@ const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
 const { WebSocketServer } = require('ws');
+const { BRIDGE_ERROR_ENVELOPE_KEY, serializeBridgeError } = require('../../../shared/bridge_errors.mjs');
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 0;
@@ -89,6 +90,17 @@ function sendJson(socket, message) {
 
 function errorMessage(error) {
     return error instanceof Error ? error.message : 'Remote-control request failed';
+}
+
+/**
+ * Build the error part of a response. Marker properties such as `code` and `workingFolder` are
+ * carried explicitly, because a message alone leaves the client unable to recognise recoverable
+ * conditions like a missing working folder.
+ */
+function responseError(error) {
+    const payload = serializeBridgeError(error)[BRIDGE_ERROR_ENVELOPE_KEY];
+
+    return { ...payload, message: errorMessage(error) };
 }
 
 class RemoteControlService {
@@ -257,13 +269,14 @@ class RemoteControlService {
             const result = await this.invoke(client, method, params, id);
             sendJson(client, { id, result });
         } catch (error) {
-            sendJson(client, { error: { message: errorMessage(error) }, id });
+            sendJson(client, { error: responseError(error), id });
         }
     }
 
     async invoke(client, method, params, id) {
         if (method === 'unsubscribe') return this.unsubscribe(client, params);
         if (method === 'onActionRun') return this.onActionRun(client, id);
+        if (method === 'onClaudeRateLimits') return this.onClaudeRateLimits(client, id);
         if (method === 'onCodexRateLimits') return this.onCodexRateLimits(client, id);
         if (method === 'onMergeConflictSessionChanged') return this.onMergeConflictSessionChanged(client, id);
         if (method === 'onWorktreesChanged') return this.onWorktreesChanged(client, id);
@@ -309,6 +322,21 @@ class RemoteControlService {
         const cleanup = this.dispatcher.invoke('onCodexRateLimits', [
             (snapshot) => sendJson(client, {
                 event: 'codexRateLimits',
+                payload: { requestId: id, snapshot, subscriptionId },
+            }),
+        ]);
+        this.addSubscription(client, subscriptionId, cleanup);
+
+        return { subscriptionId };
+    }
+
+    onClaudeRateLimits(client, id) {
+        if (!this.dispatcher) throw new Error('Remote-control dispatch is not configured');
+
+        const subscriptionId = crypto.randomUUID();
+        const cleanup = this.dispatcher.invoke('onClaudeRateLimits', [
+            (snapshot) => sendJson(client, {
+                event: 'claudeRateLimits',
                 payload: { requestId: id, snapshot, subscriptionId },
             }),
         ]);

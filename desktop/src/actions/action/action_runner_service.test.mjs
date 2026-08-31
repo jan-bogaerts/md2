@@ -7,6 +7,11 @@ const { ActionRunnerService } = require('./action_runner_service');
 
 const context = { cardInternalId: 'card-010', file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' };
 const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+const agentSelection = {
+    activeAgent: 'codex',
+    permissionMode: 'ask-for-approval',
+    settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'none' } },
+};
 
 function actionFile(id, overrides = {}) {
     return {
@@ -73,7 +78,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
     };
     const runner = new ActionRunnerService({
         actionWorktreeRunService,
-        agentConfigProvider: () => ({ agent: 'codex', agentProfiles: [], model: '' }),
+        agentConfigProvider: () => ({ agentProfiles: [], agentSelection }),
         agentRunnerService,
         commandRunner,
         localGitService,

@@ -13,6 +13,7 @@ import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
 import { actionRunRegistry, notifyActionCardStateChange } from '../actions/action_run_registry'
+import { actionService } from '../actions/action_service'
 import { AgentIntegration, type AgentIntegrationDeps } from '../agents/agent_integration'
 import { ProjectLoading, type ProjectLoadingDeps } from '../project/project_loading'
 import { ProjectState } from '../project/project_state'
@@ -29,6 +30,7 @@ import type { CardParseError } from './markdown_parsing_service'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { CARD_CHANGED_EVENT, CARD_FIELDS, cardCollectionFieldChangedEvent, cardFieldChangedEvent, type CardField } from './card_events'
 import { projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
+import { withExpectedPersistenceOutcomes } from '../project/expected_persistence_storage'
 
 export { CARD_CHANGED_EVENT, cardCollectionFieldChangedEvent, cardFieldChangedEvent } from './card_events'
 export type { CardField } from './card_events'
@@ -80,6 +82,7 @@ function eventCard(card: ProjectSnapshot['activeCards'][number]) {
             ...card.header,
             affects: [...card.header.affects],
             agentLogReferences: [...card.header.agentLogReferences],
+            changedFiles: [...card.header.changedFiles],
             policy: { ...card.header.policy },
             references: [...card.header.references],
         },
@@ -101,6 +104,7 @@ function cardFieldChanged(field: CardField, previousCard: CardAddedEventDetail['
     const previousHeader = previousCard.header
     const header = card.header
     if (field === 'affects') return !isSameArray(previousHeader.affects, header.affects)
+    if (field === 'changedFiles') return !isSameArray(previousHeader.changedFiles, header.changedFiles)
     if (field === 'body') return previousCard.content !== card.content
     if (field === 'conversation') {
         return !isSameArray(previousCard.agentConversations, card.agentConversations)
@@ -196,7 +200,7 @@ export class DataService extends EventTarget {
         this.projectState.resetLoadedProject()
         this.fullProjectLoaded = false
         this.remarkableBridge = dependencies.remarkableBridge ?? null
-        this.storage = withSaveStateTracking(dependencies.storage, this.saveStateService)
+        this.storage = this.trackStorage(dependencies.storage)
         this.initializeStorageServices()
         worktreeService.init({
             assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),
@@ -228,7 +232,7 @@ export class DataService extends EventTarget {
     replaceRemoteStorage(storage: StorageService) {
         if (!this.storage || !this.projectState.project) throw new Error('Cannot replace storage without a loaded project')
 
-        this.storage = withSaveStateTracking(storage, this.saveStateService)
+        this.storage = this.trackStorage(storage)
         this.initializeStorageServices()
         this.projectLoading.restartProjectWatch()
     }
@@ -278,9 +282,9 @@ export class DataService extends EventTarget {
     }
     async persistActionFile(
         file: MarkdownFile,
+        actionId: string,
         sourcePath = file.path,
         onPathCommitted?: (fromPath: string, toPath: string) => void,
-        sourceExists = true,
         saveReference?: OpenDocumentSaveReference,
         onPersisted?: () => void,
     ) {
@@ -288,19 +292,18 @@ export class DataService extends EventTarget {
         const currentProject = this.projectState.project
         if (!currentProject) throw new Error('Cannot save an action before a project is open')
 
-        if (sourceExists && sourcePath === file.path) {
-            commitBatcher.schedule(currentProject.branch, [{ ...file, onPersisted, saveReference }], `Update ${file.path}`)
-        } else {
-            if (!onPathCommitted) throw new Error(`Missing action path callback for rename from ${sourcePath} to ${file.path}`)
-            commitBatcher.schedulePathChange(
-                currentProject.branch,
-                sourcePath,
-                { ...file, onPersisted, saveReference },
-                `Rename ${sourcePath} to ${file.path}`,
-                onPathCommitted,
-                sourceExists,
-            )
+        if (!onPathCommitted) throw new Error(`Missing action path callback for ${actionId}`)
+        const change = {
+            ...file,
+            actionId,
+            kind: 'action' as const,
+            onPathCommitted,
+            onPersisted,
+            saveReference,
+            sourcePath,
         }
+        const message = sourcePath === file.path ? `Update ${file.path}` : `Rename ${sourcePath} to ${file.path}`
+        commitBatcher.schedule(currentProject.branch, [change], message)
     }
 
     discardPendingFile(path: string) {
@@ -343,7 +346,6 @@ export class DataService extends EventTarget {
             cardPathChanged: (fromPath, toPath) => this.dispatchCardPathChanged(fromPath, toPath),
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
-            commitPathsInFlight: () => this.projectState.commitPathsInFlight,
             deleteFile: (path, committedFiles, workingFolder) => (
                 this.projectState.deleteFile(path, committedFiles, workingFolder)
             ),
@@ -352,6 +354,7 @@ export class DataService extends EventTarget {
             mutateCard: (path, mutation, workingFolder) => this.projectState.mutateCard(path, mutation, workingFolder),
             project: () => this.projectState.project,
             recordCurrentContent: (files) => this.projectState.recordCurrentContent(files),
+            reconcileDeletedActionFile: (path) => actionService.reconcileCommittedDeletion(path),
             refreshSnapshot: (workingFolder) => this.refreshSnapshot(workingFolder),
             reloadCurrentProjectSnapshot: () => this.projectLoading.reloadCurrentProjectSnapshot(),
             removeFolder: (path, workingFolder) => this.projectState.removeFolder(path, workingFolder),
@@ -389,7 +392,7 @@ export class DataService extends EventTarget {
                 return this.projectState.beginProjectLoad()
             },
             clearLoadedProject: () => this.projectState.resetLoadedProject(),
-            commitPathsInFlight: () => this.projectState.commitPathsInFlight,
+            expectedPersistenceOutcomes: () => this.projectState.expectedPersistenceOutcomes,
             dispatchChanged: () => this.dispatchChanged(),
             dispatchPersistenceChanged: () => this.dispatchPersistenceChanged(),
             dispatchRepositoryChanged: (event) => {
@@ -409,8 +412,14 @@ export class DataService extends EventTarget {
             },
             migrateAgentLogReferences: () => this.migrateAgentLogReferences(),
             project: () => this.projectState.project,
+            projectToken: () => this.projectState.projectToken,
             replaceFiles: (files, workingFolder) => this.projectState.replaceFiles(files, workingFolder),
-            replaceProject: (project) => this.projectState.replaceProject(project),
+            replaceProject: (project) => {
+                const currentProject = this.projectState.project
+                const projectChanged = currentProject?.id !== project?.id || currentProject?.branch !== project?.branch
+                this.projectState.replaceProject(project)
+                if (projectChanged) this.cards.resetProjectTracking()
+            },
             ensureCardInternalIds: async () => {
                 if (this.cards.ensureCardInternalIds() > 0) await this.cards.flushPendingCommits()
             },
@@ -426,6 +435,17 @@ export class DataService extends EventTarget {
             snapshot: () => this.projectState.snapshot,
             storage: () => this.storage,
         }
+    }
+
+    private trackStorage(storage: StorageService) {
+        const saveTrackedStorage = withSaveStateTracking(storage, this.saveStateService)
+
+        return withExpectedPersistenceOutcomes(saveTrackedStorage, {
+            outcomes: this.projectState.expectedPersistenceOutcomes,
+            project: () => this.projectState.project,
+            repositoryFiles: () => this.projectState.snapshot?.repositoryFiles ?? [],
+            verifyRetainedOutcomes: () => this.projectLoading.verifyExpectedPersistenceOutcomes(),
+        })
     }
 
     private createReleaseOperationsDependencies(): ReleaseOperationsDeps {

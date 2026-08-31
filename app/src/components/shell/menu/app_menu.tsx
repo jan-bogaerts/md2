@@ -1,7 +1,7 @@
 import { Box, Button, Divider, MenuItem, Tab as MuiTab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode, SyntheticEvent } from 'react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import CardsOutline from 'mdi-material-ui/CardsOutline'
 import CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'
 import CloudArrowDownOutline from 'mdi-material-ui/CloudArrowDownOutline'
@@ -13,22 +13,36 @@ import FolderOpen from 'mdi-material-ui/FolderOpen'
 import TextBoxOutline from 'mdi-material-ui/TextBoxOutline'
 import BarChartOutlined from '@mui/icons-material/BarChartOutlined'
 import {
-    defaultModelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
     PERMISSION_MODE_OPTIONS,
     supportsPermissionMode,
+    supportsThinkingLevel,
     THINKING_LEVELS,
-    validateThinkingLevel,
+    validateAgentSelection,
     validatePermissionMode,
+    validateThinkingLevel,
 } from '../../../data/agent_profiles'
+import {
+    projectAgentSelection,
+    selectAgent,
+    selectModel,
+    selectPermissionMode,
+    selectThinkingLevel,
+    type AgentSelectionState,
+} from '../../../data/agent_selection'
 import { configService } from '../../../services/config/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'
-import { projectSessionService } from '../../../services/project/project_session_service'
+import {
+    projectSessionService,
+    type ProjectFolderValues,
+    type ProjectOpenResolution,
+} from '../../../services/project/project_session_service'
 import { workspaceViewService, type WorkspaceViewMode } from '../../../services/project/workspace_view_service'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { actionService } from '../../../services/actions/action_service'
 import { dialogService } from '../../../services/dialog_service'
+import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
 import { projectContext } from '../../../data/action_context'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
@@ -62,6 +76,7 @@ interface AppMenuProps {
     accessToken: string | null
     auth: UseGithubAuthResult
     extraActions: ReactNode
+    initialProjectOpenResolution: ProjectOpenResolution | null
     isGithubAuthenticated: boolean
     isMobile: boolean
     onOpenConfig: () => void
@@ -75,6 +90,19 @@ const MENU_TABS: { label: string; value: AppMenuTab }[] = [
 ]
 const PROJECT_CONTEXT = projectContext()
 
+function desktopSelectionError(
+    selection: AgentSelectionState,
+    profiles: ReturnType<typeof mergeAgentProfiles>,
+) {
+    try {
+        validateAgentSelection(profiles, projectAgentSelection(selection, profiles), 'desktop agent selection')
+
+        return null
+    } catch (error) {
+        return error instanceof Error ? error.message : 'Invalid desktop agent selection'
+    }
+}
+
 function persistDesktopConfig() {
     if (!configService.hasDesktopConfig()) return
 
@@ -83,25 +111,46 @@ function persistDesktopConfig() {
 
 /** Tabbed app menu hosting project, account and agent actions. */
 export function AppMenu(props: AppMenuProps) {
-    const { accessToken, auth, extraActions, isGithubAuthenticated, isMobile, onOpenConfig, onOpenMobileMenu, search } = props
+    const {
+        accessToken,
+        auth,
+        extraActions,
+        initialProjectOpenResolution,
+        isGithubAuthenticated,
+        isMobile,
+        onOpenConfig,
+        onOpenMobileMenu,
+        search,
+    } = props
     const { project } = useProjectState()
     const { hasPendingPush, hasPendingSave } = useProjectPersistence()
     const primaryWorktreeStatus = usePrimaryWorktreeStatus()
     const projectConfig = useProjectConfig()
     const { viewMode } = useWorkspaceView()
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')
-    const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(null)
+    const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(initialProjectOpenResolution ? 'open' : null)
     const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
-    const selectedAgent = useConfigValue('desktop.agent')
+    const agentSelection = useConfigValue('desktop.agentSelection')
+    const selectedAgent = agentSelection.activeAgent
     const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)
     const selectedModels = selectedProfile?.models ?? []
-    const configuredModel = useConfigValue('desktop.model')
-    const selectedThinkingLevel = useConfigValue('desktop.thinkingLevel')
-    const selectedPermissionMode = useConfigValue('desktop.permissionMode')
+    const activeAgentSettings = agentSelection.settingsByAgent[selectedAgent]
+    const hasActiveAgentSettings = !!activeAgentSettings
+    const selectedThinkingLevel = activeAgentSettings?.thinkingLevel ?? 'none'
+    const selectedPermissionMode = agentSelection.permissionMode
     const desktopAvailable = useHasDesktopConfig()
-    const selectedModel = configuredModel || (selectedProfile ? defaultModelForProfile(selectedProfile) : '')
+    const selectedModel = activeAgentSettings?.model ?? ''
+    const selectionError = hasActiveAgentSettings ? desktopSelectionError(agentSelection, agentProfiles) : null
+    const selectedModelAvailable = selectedModels.includes(selectedModel)
     const projectBranch = project?.branch ?? ''
     const readOnly = useProjectReadOnly()
+
+    useEffect(() => {
+        if (!hasActiveAgentSettings) {
+            const error = new Error(`Missing desktop settings for active agent: ${selectedAgent}`)
+            dialogService.error(error, { fallbackMessage: 'Desktop agent settings are invalid' })
+        }
+    }, [hasActiveAgentSettings, selectedAgent])
 
     const closeDialog = useCallback(() => {
         setDialogMode(null)
@@ -113,12 +162,14 @@ export function AppMenu(props: AppMenuProps) {
 
     const actions = useProjectToolbarMenuActions({
         accessToken,
+        initialProjectOpenResolution,
         isGithubAuthenticated,
         onCloseDialog: closeDialog,
         onOpenDialog: openDialog,
     })
     const branchOptions = actions.branches.length > 0 ? actions.branches : (project ? [{ name: project.branch }] : [])
     const selectedBranch = branchOptions.some((branch) => branch.name === actions.switchBranch) ? actions.switchBranch : projectBranch
+    const canCommit = !readOnly && actions.isProjectOpen && !actions.isLoading && hasPendingSave
 
     const handleTabChange = (_event: SyntheticEvent, value: AppMenuTab) => {
         setCurrentTab(value)
@@ -128,8 +179,8 @@ export function AppMenu(props: AppMenuProps) {
         actions.openProjectDialog()
     }
 
-    const handleCreateProjectFolders = (projectFolder: string) => {
-        void actions.createProjectFolders(projectFolder)
+    const handleConfirmProjectFolderSetup = (values: ProjectFolderValues) => {
+        void actions.confirmProjectFolderSetup(values)
     }
 
     const handleLoadBranches = () => {
@@ -148,13 +199,26 @@ export function AppMenu(props: AppMenuProps) {
         actions.openNewCardDialog()
     }
 
-    const handleCommit = async () => {
+    const handleCommit = useCallback(async () => {
         try {
-            await actions.commit()
+            await projectSessionService.commit()
         } catch {
             // ProjectSessionService emits the user-visible error.
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        return keyboardShortcutService.register({
+            alt: false,
+            id: 'commit',
+            key: 's',
+            mod: true,
+            run: () => {
+                if (canCommit) void handleCommit()
+            },
+            shift: false,
+        })
+    }, [canCommit, handleCommit])
 
     const handlePush = async () => {
         try {
@@ -179,15 +243,12 @@ export function AppMenu(props: AppMenuProps) {
     }
 
     const handleAgentChange = (event: SelectChangeEvent) => {
-        const profile = findAgentProfile(agentProfiles, event.target.value)
-        const nextModel = profile ? defaultModelForProfile(profile) : ''
-        configService.set('desktop.agent', event.target.value)
-        configService.set('desktop.model', nextModel)
+        configService.set('desktop.agentSelection', selectAgent(agentSelection, event.target.value, agentProfiles))
         persistDesktopConfig()
     }
 
     const setModel = (value: string) => {
-        configService.set('desktop.model', value)
+        configService.set('desktop.agentSelection', selectModel(agentSelection, value))
         persistDesktopConfig()
     }
 
@@ -201,13 +262,13 @@ export function AppMenu(props: AppMenuProps) {
 
     const handleThinkingLevelChange = (event: SelectChangeEvent) => {
         const thinkingLevel = validateThinkingLevel(event.target.value, 'Default reasoning level')
-        configService.set('desktop.thinkingLevel', thinkingLevel)
+        configService.set('desktop.agentSelection', selectThinkingLevel(agentSelection, thinkingLevel))
         persistDesktopConfig()
     }
 
     const handlePermissionModeChange = (event: SelectChangeEvent) => {
         const permissionMode = validatePermissionMode(event.target.value, 'Default permission mode')
-        configService.set('desktop.permissionMode', permissionMode)
+        configService.set('desktop.agentSelection', selectPermissionMode(agentSelection, permissionMode))
         persistDesktopConfig()
     }
 
@@ -313,9 +374,10 @@ export function AppMenu(props: AppMenuProps) {
                             value={selectedBranch}
                         />
                         <MenuIconButton
-                            disabled={readOnly || !actions.isProjectOpen || actions.isLoading || !hasPendingSave}
+                            disabled={!canCommit}
                             label="Commit"
                             onClick={handleCommit}
+                            tooltip="Commit (Ctrl+S)"
                         >
                             <ContentSaveOutline fontSize="small" />
                         </MenuIconButton>
@@ -385,11 +447,13 @@ export function AppMenu(props: AppMenuProps) {
                     <Section label="Setup">
                         <MenuSelect
                             disabled={!desktopAvailable}
+                            errorMessage={selectionError}
                             label="Default agent"
                             minWidth={130}
                             onChange={handleAgentChange}
                             value={selectedAgent}
                         >
+                            {!selectedProfile ? <MenuItem disabled value={selectedAgent}>{selectedAgent} — unavailable</MenuItem> : null}
                             {agentProfiles.map((profile) => (
                                 <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>
                             ))}
@@ -397,19 +461,23 @@ export function AppMenu(props: AppMenuProps) {
                         {selectedModels.length > 0 ? (
                             <MenuSelect
                                 disabled={!desktopAvailable}
+                                errorMessage={selectionError}
                                 label="Default model"
                                 minWidth={150}
                                 onChange={handleModelSelectChange}
                                 value={selectedModel}
                             >
+                                {!selectedModelAvailable ? <MenuItem disabled value={selectedModel}>{selectedModel || 'Default'} — unavailable</MenuItem> : null}
                                 {selectedModels.map((model) => (
                                     <MenuItem key={model} value={model}>{model}</MenuItem>
                                 ))}
                             </MenuSelect>
                         ) : (
-                            <Tooltip title="Default model">
+                            <Tooltip title={selectionError ?? 'Default model'}>
                                 <TextField
                                     disabled={!desktopAvailable}
+                                    error={!!selectionError}
+                                    helperText={selectionError ? 'Unavailable' : undefined}
                                     onChange={handleModelTextChange}
                                     size="small"
                                     slotProps={{ htmlInput: { 'aria-label': 'Default model' } }}
@@ -421,14 +489,21 @@ export function AppMenu(props: AppMenuProps) {
                         )}
                         <MenuSelect
                             disabled={!desktopAvailable}
+                            errorMessage={selectionError}
                             label="Default reasoning level"
                             minWidth={120}
                             onChange={handleThinkingLevelChange}
                             value={selectedThinkingLevel}
                         >
-                            {THINKING_LEVELS.map((level) => (
-                                <MenuItem key={level} value={level}>{level}</MenuItem>
-                            ))}
+                            {THINKING_LEVELS.map((level) => {
+                                const available = !!selectedProfile && supportsThinkingLevel(selectedProfile, level)
+
+                                return (
+                                    <MenuItem disabled={!available} key={level} value={level}>
+                                        {level === selectedThinkingLevel && !available ? `${level} — unavailable` : level}
+                                    </MenuItem>
+                                )
+                            })}
                         </MenuSelect>
                         {selectedProfile && supportsPermissionMode(selectedProfile) ? (
                             <MenuSelect
@@ -463,13 +538,13 @@ export function AppMenu(props: AppMenuProps) {
                 isDesktopMode={actions.isDesktopMode}
                 isGithubAuthenticated={isGithubAuthenticated}
                 isLoading={actions.isLoading}
+                onBrowseProjectSubFolder={actions.isDesktopMode ? actions.browseProjectSubFolder : null}
                 onChooseLocalFolder={actions.chooseLocalProjectFolder}
-                onCreateProjectFolders={handleCreateProjectFolders}
+                onConfirmProjectFolderSetup={handleConfirmProjectFolderSetup}
                 projectOpenResolution={actions.projectOpenResolution}
                 onBranchChange={() => undefined}
                 onClose={actions.closeDialog}
                 onCreateRemoteProject={actions.createRemoteProject}
-                onCreateWorkingFolder={() => void actions.createWorkingFolder()}
                 onDiscardGithubPendingCommits={handleDiscardGithubPendingCommits}
                 onLoadManualBranches={actions.loadManualBranches}
                 onLoadRemoteBranches={actions.loadRemoteBranches}
@@ -478,7 +553,6 @@ export function AppMenu(props: AppMenuProps) {
                 onOpenRemote={actions.openRemoteProject}
                 onRepositoryChange={actions.loadRepositoryBranches}
                 onSourceChange={actions.clearOpenDialogState}
-                onUseWorkingFolder={(folder) => void actions.openWorkingFolder(folder)}
                 open={dialogMode === 'open'}
                 pendingGithubConflictProject={actions.pendingGithubConflictProject}
                 recentLocalRepositories={actions.recentLocalRepositories}

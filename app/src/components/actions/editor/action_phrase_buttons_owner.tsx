@@ -1,11 +1,10 @@
 import { Paper, Slide, useMediaQuery } from '@mui/material'
-import { useSyncExternalStore } from 'react'
+import { useRef, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
-import { dialogService } from '../../../services/dialog_service'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../run/state/action_history_store'
 import { currentActionPromptDraft, runPopupAction } from '../run/popup/action_popup_operations'
@@ -13,9 +12,11 @@ import { ActionPhraseButtons } from './action_phrase_buttons'
 import type { ActionRunInputStore } from '../run/state/action_run_input_store'
 import type { ActionRunResultStore } from '../run/state/action_run_result_store'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 interface ActionPhraseButtonsOwnerProps {
     action: ActionDefinition
+    bindingStore: ActionRunBindingStore
     context: ActionContext
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
@@ -33,9 +34,14 @@ function selectActiveRunStatus(run: ActionRun | null) {
 
 /** Owns follow-up visibility and phrase actions. */
 export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
-    const { action, context, conversationStore, historyStore, inputStore, resultStore, runValidationError, settingsStore } = props
-    const activeRunStatus = useActionRunSelector(action.id, context, selectActiveRunStatus)
-    const hasUnresolvedApprovals = useActionRunSelector(action.id, context, (run) => !!run?.approvals.length)
+    const {
+        action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore,
+        runValidationError, settingsStore,
+    } = props
+    const pendingInsertionRef = useRef<Promise<void> | null>(null)
+    const boundRunId = useBoundRunId(bindingStore)
+    const activeRunStatus = useRunSelector(boundRunId, selectActiveRunStatus)
+    const hasUnresolvedApprovals = useRunSelector(boundRunId, (run) => !!run?.approvals.length)
     const conversationSnapshot = useSyncExternalStore(
         conversationStore.subscribe,
         conversationStore.getSnapshot,
@@ -49,18 +55,25 @@ export function ActionPhraseButtonsOwner(props: ActionPhraseButtonsOwnerProps) {
             && conversationSnapshot.selectedConversation?.status === 'waitingForInput')
     if (action.type !== 'agent' || action.phrases.length === 0) return null
 
-    const handleSelect = (text: string) => {
-        const promptDraft = currentActionPromptDraft(action, context, false)
-        promptDraft.replace(text)
-        void promptDraft.synchronize().catch((error: unknown) => {
-            dialogService.error(error, { fallbackMessage: 'Could not queue agent prompt' })
-        })
+    const handleSelect = async (text: string) => {
+        const promptDraft = currentActionPromptDraft(action, context, bindingStore, false)
+        const insertion = promptDraft.requestInsertion(text)
+        pendingInsertionRef.current = insertion
+        await insertion
         inputStore.setConvertMessage(null)
     }
-    const handleDoubleClick = (text: string) => {
-        handleSelect(text)
-        void runPopupAction({
+    const handleDoubleClick = async () => {
+        try {
+            await pendingInsertionRef.current
+        } catch {
+            return
+        }
+
+        const promptDraft = currentActionPromptDraft(action, context, bindingStore, false)
+        promptDraft.requestFlush()
+        await runPopupAction({
             action,
+            bindingStore,
             context,
             conversationStore,
             historyStore,

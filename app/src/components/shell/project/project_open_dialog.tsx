@@ -25,11 +25,15 @@ import { FolderOpen, SourceRepository } from 'mdi-material-ui'
 import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent, MouseEvent } from 'react'
 import { useState } from 'react'
-import { DEFAULT_PROJECT_FOLDER, type BranchReference, type ProjectReference, type RepositoryReference, type TopLevelFolderReference } from '../../../data/data_types'
+import { DEFAULT_PROJECT_CONFIG, type BranchReference, type ProjectReference, type RepositoryReference } from '../../../data/data_types'
 import { tryReadRemoteControlConnection } from '../../../data/remote_control_connection'
-import type { ProjectOpenResolution } from '../../../services/project/project_session_service'
-import { ProjectFolderSetupForm } from './project_folder_setup_form'
-import { WorkingFolderChooserDialog } from './working_folder_chooser_dialog'
+import {
+    folderValuesOf,
+    requireProjectFolderValues,
+    type ProjectFolderValues,
+    type ProjectOpenResolution,
+} from '../../../services/project/project_session_service'
+import { ProjectFolderSetupFields } from './project_folder_setup_fields'
 
 type ProjectSource = 'local' | 'personal' | 'public' | 'remote'
 type ProjectKind = 'folder' | 'repository'
@@ -37,6 +41,11 @@ type ProjectKind = 'folder' | 'repository'
 interface GithubBranchesResult {
     branches: BranchReference[]
     repository: RepositoryReference
+}
+
+interface FolderSetupState {
+    resolution: ProjectOpenResolution | null
+    values: ProjectFolderValues
 }
 
 interface ProjectOpenDialogProps {
@@ -52,10 +61,10 @@ interface ProjectOpenDialogProps {
     recentLocalRepositories: string[]
     repositories: RepositoryReference[]
     onBranchChange: (branch: string) => void
+    onBrowseProjectSubFolder: ((currentValue: string, projectFolder: string, isProjectFolder: boolean) => Promise<string | null>) | null
     onClose: () => void
-    onCreateProjectFolders: (projectFolder: string) => void
+    onConfirmProjectFolderSetup: (values: ProjectFolderValues) => void
     onCreateRemoteProject: (rootPath: string, branch: string) => ProjectReference | null
-    onCreateWorkingFolder: () => void
     onDiscardGithubPendingCommits: () => void
     onChooseLocalFolder: () => Promise<void>
     onLoadManualBranches: (owner: string, repository: string, isPublic: boolean) => Promise<GithubBranchesResult | null>
@@ -65,7 +74,16 @@ interface ProjectOpenDialogProps {
     onOpenRemote: (endpoint: string, project: ProjectReference) => Promise<void>
     onRepositoryChange: (repository: RepositoryReference) => Promise<BranchReference[]>
     onSourceChange: () => void
-    onUseWorkingFolder: (folder: TopLevelFolderReference) => void
+}
+
+function folderValuesError(values: ProjectFolderValues) {
+    try {
+        requireProjectFolderValues(values)
+
+        return null
+    } catch (error) {
+        return error instanceof Error ? error.message : 'Folder values are invalid'
+    }
 }
 
 function branchExists(branches: BranchReference[], branchName: string) {
@@ -103,10 +121,10 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         isGithubAuthenticated,
         isLoading,
         onBranchChange,
+        onBrowseProjectSubFolder,
         onClose,
-        onCreateProjectFolders,
+        onConfirmProjectFolderSetup,
         onCreateRemoteProject,
-        onCreateWorkingFolder,
         onDiscardGithubPendingCommits,
         onChooseLocalFolder,
         onLoadManualBranches,
@@ -116,7 +134,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         onOpenRemote,
         onRepositoryChange,
         onSourceChange,
-        onUseWorkingFolder,
         open,
         pendingGithubConflictProject,
         projectOpenResolution,
@@ -126,19 +143,23 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const [githubOwner, setGithubOwner] = useState('')
     const [githubRepository, setGithubRepository] = useState('')
     const [localRootPath, setLocalRootPath] = useState('')
-    const [projectFolder, setProjectFolder] = useState(DEFAULT_PROJECT_FOLDER)
+    const [folderSetupState, setFolderSetupState] = useState<FolderSetupState>({
+        resolution: null,
+        values: folderValuesOf(DEFAULT_PROJECT_CONFIG),
+    })
     const [repositoryFilter, setRepositoryFilter] = useState('')
     const [remoteEndpoint, setRemoteEndpoint] = useState('')
     const [remoteRootPath, setRemoteRootPath] = useState('')
     const [selectedBranch, setSelectedBranch] = useState('')
     const [selectedRepositoryId, setSelectedRepositoryId] = useState('')
-    const [source, setSource] = useState<ProjectSource>('personal')
+    const defaultSource: ProjectSource = isDesktopMode ? 'local' : 'personal'
+    const [source, setSource] = useState<ProjectSource>(defaultSource)
     const [wasOpen, setWasOpen] = useState(false)
 
     if (open !== wasOpen) {
         setWasOpen(open)
         if (open) {
-            if (initialSource) setSource(initialSource)
+            setSource(initialSource ?? defaultSource)
             const stored = tryReadRemoteControlConnection()
             if (stored) {
                 if (remoteEndpoint.length === 0) setRemoteEndpoint(stored.endpoint)
@@ -150,8 +171,14 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         }
     }
 
-    const projectFolderSetup = projectOpenResolution?.kind === 'project-folder-setup' ? projectOpenResolution : null
-    const missingWorkingFolder = projectOpenResolution?.kind === 'missing-working-folder' ? projectOpenResolution : null
+    const projectFolderSetup = projectOpenResolution?.kind === 'project-folder-setup'
+        && projectOpenResolution.storageType !== 'github-readonly'
+        ? projectOpenResolution
+        : null
+    const folderValues = folderSetupState.resolution === projectFolderSetup
+        ? folderSetupState.values
+        : projectFolderSetup?.values ?? folderValuesOf(DEFAULT_PROJECT_CONFIG)
+    const folderValuesMessage = projectFolderSetup ? folderValuesError(folderValues) : null
     const filteredRepositories = repositories.filter((repository) => repositoryMatchesFilter(repository, repositoryFilter))
     const filteredRepositoryIds = filteredRepositories.map(({ id }) => id)
     const isRemoteComplete = remoteEndpoint.length > 0 && remoteRootPath.length > 0
@@ -259,7 +286,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         if (!rootPath) throw new Error('Recent local repository path is missing')
 
         setLocalRootPath(rootPath)
-        void onOpenLocal(rootPath)
     }
 
     const handleOpenRemoteClick = () => {
@@ -270,22 +296,35 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         void onOpenRemote(remoteEndpoint, project)
     }
 
-    const handleProjectFolderChange = (value: string) => {
-        setProjectFolder(value)
+    const handleFolderValuesChange = (values: ProjectFolderValues) => {
+        setFolderSetupState({ resolution: projectFolderSetup, values })
     }
 
-    const handleCreateProjectFoldersClick = () => {
-        onCreateProjectFolders(projectFolder)
+    const handleBrowseFolder = async (field: keyof ProjectFolderValues) => {
+        if (!onBrowseProjectSubFolder) return
+
+        const picked = await onBrowseProjectSubFolder(folderValues[field], folderValues.projectFolder, field === 'projectFolder')
+        if (picked === null) return
+
+        setFolderSetupState((currentState) => {
+            const currentValues = currentState.resolution === projectFolderSetup ? currentState.values : folderValues
+
+            return { resolution: projectFolderSetup, values: { ...currentValues, [field]: picked } }
+        })
+    }
+
+    const handleConfirmProjectFolderSetupClick = () => {
+        onConfirmProjectFolderSetup(folderValues)
     }
 
     const handleClose = () => {
-        setProjectFolder(DEFAULT_PROJECT_FOLDER)
+        setFolderSetupState({ resolution: null, values: folderValuesOf(DEFAULT_PROJECT_CONFIG) })
         onClose()
     }
 
     return (
         <Dialog fullWidth maxWidth="sm" onClose={handleClose} open={open}>
-            <DialogTitle>{projectFolderSetup ? 'Create project' : 'Open project'}</DialogTitle>
+            <DialogTitle>{projectFolderSetup ? 'Project folders' : 'Open project'}</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
                     {pendingGithubConflictProject ? (
@@ -442,27 +481,24 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                         )
                     ) : null}
                     {projectFolderSetup ? (
-                        <ProjectFolderSetupForm
-                            folders={projectFolderSetup.folders}
-                            onProjectFolderChange={handleProjectFolderChange}
-                            projectFolder={projectFolder}
+                        <ProjectFolderSetupFields
+                            isLoading={isLoading}
+                            onBrowseFolder={onBrowseProjectSubFolder ? handleBrowseFolder : null}
+                            onValuesChange={handleFolderValuesChange}
+                            resolution={projectFolderSetup}
+                            values={folderValues}
                         />
                     ) : null}
-                    {missingWorkingFolder ? (
-                        <WorkingFolderChooserDialog
-                            isLoading={isLoading}
-                            onCreateWorkingFolder={onCreateWorkingFolder}
-                            onUseWorkingFolder={onUseWorkingFolder}
-                            resolution={missingWorkingFolder}
-                        />
+                    {folderValuesMessage ? (
+                        <Typography color="error" variant="body2">{folderValuesMessage}</Typography>
                     ) : null}
                 </Stack>
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
                 {projectFolderSetup ? (
-                    <Button disabled={projectFolder.trim().length === 0 || isLoading} onClick={handleCreateProjectFoldersClick} variant="contained">
-                        Create
+                    <Button disabled={folderValuesMessage !== null || isLoading} onClick={handleConfirmProjectFolderSetupClick} variant="contained">
+                        {projectFolderSetup.hasProjectConfig ? 'Save and open' : 'Create'}
                     </Button>
                 ) : !projectOpenResolution && (source === 'personal' || source === 'public') ? (
                     <Button disabled={!isGithubAuthenticated || githubOwner.length === 0 || githubRepository.length === 0 || isLoading} onClick={handleOpenGithubClick} variant="contained">

@@ -12,7 +12,7 @@ function card(id: string, status: string): Card {
         agentConversations: [],
         content: '',
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id, owner: null,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id, internalId: id, owner: null,
             policy: {}, references: [], status, title: id,
         },
         hasFrontmatter:true,

@@ -1,4 +1,8 @@
 import * as agentProfiles from '../../../../shared/agent_profiles.mjs';
+import {
+    resolveAgentSelectionState,
+    resolveAgentSettings,
+} from '../../../../shared/agent_selection.mjs';
 
 export const {
     BUILTIN_AGENT_PROFILES,
@@ -14,10 +18,13 @@ export const {
     buildAgentStreamingCommand,
     buildResumeAgentCommand,
     defaultModelForProfile,
+    defaultThinkingLevelForProfile,
     findAgentProfile,
     mergeAgentProfiles,
+    migrateAgentProfiles,
     normalizeAgentProfiles,
     supportsPermissionMode,
+    supportsThinkingLevel,
     supportsAgentStreaming,
     validateAgentProfiles,
     validateAgentSelection,
@@ -27,20 +34,25 @@ export const {
 
 export function resolveAgentCommand(config, selection = {}, streaming = false) {
     const profiles = config.agentProfiles ?? [];
-    const configuredProfile = findAgentProfile(profiles, config.agent);
-    const defaultAgent = configuredProfile ? config.agent : DEFAULT_AGENT_PROFILE_NAME;
-    const defaultModel = configuredProfile ? config.model : '';
-    const agent = selection.agent ?? defaultAgent;
+    if (!config.agentSelection) throw new Error('Missing desktop agent selection');
+    const configuredSelection = resolveAgentSelectionState(config.agentSelection, profiles);
+    const agent = selection.agent ?? configuredSelection.activeAgent;
     const profile = findAgentProfile(profiles, agent);
     if (!profile) throw new Error(`Unknown agent profile: ${agent}`);
-    const model = (selection.model ?? defaultModel) || defaultModelForProfile(profile);
-    const thinkingLevel = selection.thinkingLevel ?? config.thinkingLevel ?? 'none';
+    const remembered = resolveAgentSettings(agent, profiles, [configuredSelection]);
+    const model = (selection.model ?? remembered.model) || defaultModelForProfile(profile);
+    const thinkingLevel = selection.thinkingLevel ?? remembered.thinkingLevel;
     const permissionMode = selection.permissionMode !== undefined
         ? selection.permissionMode
         : supportsPermissionMode(profile)
-            ? (config.permissionMode ?? DEFAULT_PERMISSION_MODE)
+            ? configuredSelection.permissionMode
             : undefined;
-    validateAgentSelection(profiles, { agent, model, ...(permissionMode !== undefined ? { permissionMode } : {}) }, 'desktop config');
+    validateAgentSelection(profiles, {
+        agent,
+        model,
+        ...(permissionMode !== undefined ? { permissionMode } : {}),
+        thinkingLevel,
+    }, 'desktop config');
 
     const searchEnabled = config.codexSearchEnabled ?? true;
 

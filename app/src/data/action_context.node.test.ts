@@ -34,6 +34,7 @@ function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionD
         onState: null,
         phrases: [],
         prompt: null,
+        showCommandWindow: false,
         sourcePath: `actions/${name}.json`,
         thinkingLevel: null,
         trackFileChanges: false,
@@ -48,7 +49,7 @@ function card(id: string, status: string | null): Card {
         agentConversations: [],
         content: '',
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id, internalId: id.toLowerCase(), owner: null,
             policy: {}, references: [], status, title: id,
         },
         hasFrontmatter:true,

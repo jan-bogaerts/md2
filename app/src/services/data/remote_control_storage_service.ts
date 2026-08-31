@@ -1,5 +1,6 @@
 import type { ActionFile } from '../../data/action_types'
 import type {
+    ActionQueuedPrompt,
     ActionRunEvent,
     ActionPromptRequest,
     ActionStartRequest,
@@ -29,6 +30,10 @@ import type {
     CodexRateLimitSnapshot,
     ElectronCodexRuntimeBridge,
 } from '../../data/electron_codex_runtime_bridge'
+import type {
+    ClaudeRateLimitSnapshot,
+    ElectronClaudeRuntimeBridge,
+} from '../../data/electron_claude_runtime_bridge'
 import type { AgentAvailability } from '../../data/electron_data_bridge'
 import type {
     AgentConversation,
@@ -55,6 +60,9 @@ import type {
     WorktreeOperationRequest,
     WorktreeState,
 } from '../../data/data_types'
+import { MissingWorkingFolderError } from '../../data/data_types'
+import type { BridgeErrorPayload } from '../../../../shared/bridge_errors.mjs'
+import { rehydrateBridgeError } from '../../data/bridge_error_rehydration'
 import { readRemoteControlConnection, type RemoteControlConnectionSettings } from '../../data/remote_control_connection'
 import type {
     MergeConflictPathRequest,
@@ -72,7 +80,7 @@ interface RemoteControlRequest {
 }
 
 interface RemoteControlResponse {
-    error?: { message: string }
+    error?: BridgeErrorPayload
     id: string
     result?: unknown
 }
@@ -108,6 +116,12 @@ interface ActionRunPayload {
 interface CodexRateLimitsPayload {
     requestId: string
     snapshot: CodexRateLimitSnapshot
+    subscriptionId: string
+}
+
+interface ClaudeRateLimitsPayload {
+    requestId: string
+    snapshot: ClaudeRateLimitSnapshot
     subscriptionId: string
 }
 
@@ -156,7 +170,7 @@ function isResponse(message: RemoteControlResponse | RemoteControlEvent): messag
 }
 
 export class RemoteControlStorageService implements
-    StorageService, ElectronActionBridge, ElectronCodexRuntimeBridge, DesktopConfigTransport {
+    StorageService, ElectronActionBridge, ElectronClaudeRuntimeBridge, ElectronCodexRuntimeBridge, DesktopConfigTransport {
     async addWorktree(project: ProjectReference, folderPath: string): Promise<void> {
         await this.request('addWorktree', [project, folderPath])
     }
@@ -166,6 +180,9 @@ export class RemoteControlStorageService implements
     private actionRunSubscriptions: Map<(event: ActionRunEvent) => void, string>
     private connectPromise: Promise<void> | null
     private connectionListeners: Set<(connected: boolean) => void>
+    private claudeRateLimitCallbacks: Map<string, (snapshot: ClaudeRateLimitSnapshot) => void>
+    private claudeRateLimitListeners: Set<(snapshot: ClaudeRateLimitSnapshot) => void>
+    private claudeRateLimitSubscriptions: Map<(snapshot: ClaudeRateLimitSnapshot) => void, string>
     private codexRateLimitCallbacks: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private codexRateLimitListeners: Set<(snapshot: CodexRateLimitSnapshot) => void>
     private codexRateLimitSubscriptions: Map<(snapshot: CodexRateLimitSnapshot) => void, string>
@@ -176,6 +193,7 @@ export class RemoteControlStorageService implements
     private pending: Map<string, PendingRequest>
     private requestAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private requestActionRunEvents: Map<string, (event: ActionRunEvent) => void>
+    private requestClaudeRateLimitEvents: Map<string, (snapshot: ClaudeRateLimitSnapshot) => void>
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private requestWatchEvents: Map<string, ProjectWatchSubscription>
     private retired: boolean
@@ -195,6 +213,9 @@ export class RemoteControlStorageService implements
         this.actionRunSubscriptions = new Map()
         this.connectPromise = null
         this.connectionListeners = new Set()
+        this.claudeRateLimitCallbacks = new Map()
+        this.claudeRateLimitListeners = new Set()
+        this.claudeRateLimitSubscriptions = new Map()
         this.codexRateLimitCallbacks = new Map()
         this.codexRateLimitListeners = new Set()
         this.codexRateLimitSubscriptions = new Map()
@@ -205,6 +226,7 @@ export class RemoteControlStorageService implements
         this.pending = new Map()
         this.requestAgentEvents = new Map()
         this.requestActionRunEvents = new Map()
+        this.requestClaudeRateLimitEvents = new Map()
         this.requestCodexRateLimitEvents = new Map()
         this.requestMergeConflictEvents = new Map()
         this.requestWatchEvents = new Map()
@@ -263,8 +285,8 @@ export class RemoteControlStorageService implements
         return result
     }
 
-    async createProject(project: ProjectReference, workingFolder: string): Promise<ProjectReference> {
-        return this.request<ProjectReference>('createProject', [project, workingFolder])
+    async createProject(project: ProjectReference, folders: string[]): Promise<ProjectReference> {
+        return this.request<ProjectReference>('createProject', [project, folders])
     }
 
     async deleteFile(request: DeleteFileRequest): Promise<void> {
@@ -328,8 +350,16 @@ export class RemoteControlStorageService implements
         return this.request<MarkdownFile>('loadTextFile', [project, path])
     }
 
-    async loadProject(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles> {
-        return this.request<StorageProjectFiles>('loadProject', [project, workingFolder])
+    async loadProject(
+        project: ProjectReference,
+        workingFolder: string,
+        excludedRootFolder?: string,
+    ): Promise<StorageProjectFiles> {
+        const params = excludedRootFolder === undefined
+            ? [project, workingFolder]
+            : [project, workingFolder, excludedRootFolder]
+
+        return this.request<StorageProjectFiles>('loadProject', params)
     }
 
     async loadFile(project: ProjectReference, path: string): Promise<MarkdownFile> {
@@ -556,21 +586,21 @@ export class RemoteControlStorageService implements
         await this.request('sendActionMessage', [runId, content])
     }
 
-    async beginActionPromptDraft(runId: string): Promise<number> {
-        return this.request('beginActionPromptDraft', [runId])
+    async deleteActionQueuedPrompt(runId: string, promptId: string, revision: number): Promise<{ deleted: true }> {
+        return this.request('deleteActionQueuedPrompt', [runId, promptId, revision])
     }
 
-    async sendActionQueuedMessage(runId: string, sessionId: number, revision: number): Promise<{ sent: true }> {
-        return this.request('sendActionQueuedMessage', [runId, sessionId, revision])
-    }
-
-    async setActionQueuedMessage(
+    async editActionQueuedPrompt(
         runId: string,
-        sessionId: number,
-        content: string,
+        promptId: string,
         revision: number,
-    ): Promise<{ accepted: boolean }> {
-        return this.request('setActionQueuedMessage', [runId, sessionId, content, revision])
+        content: string,
+    ): Promise<ActionQueuedPrompt> {
+        return this.request('editActionQueuedPrompt', [runId, promptId, revision, content])
+    }
+
+    async enqueueActionPrompt(runId: string, content: string): Promise<ActionQueuedPrompt> {
+        return this.request('enqueueActionPrompt', [runId, content])
     }
 
     async answerActionQuestion(
@@ -579,6 +609,10 @@ export class RemoteControlStorageService implements
         answers: Record<string, string[]>,
     ): Promise<void> {
         await this.request('answerActionQuestion', [runId, requestId, answers])
+    }
+
+    async dismissActionQuestions(runId: string, requestId: number | string | null): Promise<void> {
+        await this.request('dismissActionQuestions', [runId, requestId])
     }
 
     async answerActionApproval(
@@ -627,6 +661,10 @@ export class RemoteControlStorageService implements
 
     async getCodexRateLimits(): Promise<CodexRateLimitSnapshot | null> {
         return this.request<CodexRateLimitSnapshot | null>('getCodexRateLimits', [])
+    }
+
+    async getClaudeRateLimits(): Promise<ClaudeRateLimitSnapshot | null> {
+        return this.request<ClaudeRateLimitSnapshot | null>('getClaudeRateLimits', [])
     }
 
     async notifyActionCardStateChange(cardInternalId: string, state: string): Promise<void> {
@@ -681,6 +719,24 @@ export class RemoteControlStorageService implements
 
             this.codexRateLimitSubscriptions.delete(callback)
             this.codexRateLimitCallbacks.delete(subscriptionId)
+            this.unsubscribeBestEffort(subscriptionId)
+        }
+    }
+
+    onClaudeRateLimits(callback: (snapshot: ClaudeRateLimitSnapshot) => void): () => void {
+        this.claudeRateLimitListeners.add(callback)
+        void this.subscribeClaudeRateLimits(callback).catch(() => undefined)
+
+        return () => {
+            this.claudeRateLimitListeners.delete(callback)
+            for (const [requestId, pendingCallback] of this.requestClaudeRateLimitEvents) {
+                if (pendingCallback === callback) this.requestClaudeRateLimitEvents.delete(requestId)
+            }
+            const subscriptionId = this.claudeRateLimitSubscriptions.get(callback)
+            if (!subscriptionId) return
+
+            this.claudeRateLimitSubscriptions.delete(callback)
+            this.claudeRateLimitCallbacks.delete(subscriptionId)
             this.unsubscribeBestEffort(subscriptionId)
         }
     }
@@ -773,6 +829,7 @@ export class RemoteControlStorageService implements
                 resolve()
                 for (const listener of this.connectionListeners) listener(true)
                 void this.restoreActionRunSubscriptions()
+                void this.restoreClaudeRateLimitSubscriptions()
                 void this.restoreCodexRateLimitSubscriptions()
                 void this.restoreProjectWatchSubscriptions()
                 void this.restoreWorktreeSubscription()
@@ -805,8 +862,13 @@ export class RemoteControlStorageService implements
 
         this.pending.delete(response.id)
         if (response.error) {
-            const cause = new Error(response.error.message)
-            pending.reject(new Error(`Remote method ${pending.method} failed: ${response.error.message}`, { cause }))
+            // Rebuild the typed error first, so a marked failure such as a missing working folder
+            // stays recognisable instead of arriving as a plain message.
+            const cause = rehydrateBridgeError(response.error)
+            const failure = new Error(`Remote method ${pending.method} failed: ${response.error.message}`, { cause }) as Error & { code?: string }
+            if (response.error.code !== undefined) failure.code = response.error.code
+            Object.assign(failure, response.error.fields ?? {})
+            pending.reject(cause instanceof MissingWorkingFolderError ? cause : failure)
             return
         }
 
@@ -820,6 +882,10 @@ export class RemoteControlStorageService implements
         }
         if (message.event === 'codexRateLimits') {
             this.handleCodexRateLimitsEvent(message.payload as CodexRateLimitsPayload)
+            return
+        }
+        if (message.event === 'claudeRateLimits') {
+            this.handleClaudeRateLimitsEvent(message.payload as ClaudeRateLimitsPayload)
             return
         }
         if (message.event === 'watchProject') {
@@ -847,6 +913,12 @@ export class RemoteControlStorageService implements
     private handleCodexRateLimitsEvent(payload: CodexRateLimitsPayload) {
         const callback = this.codexRateLimitCallbacks.get(payload.subscriptionId)
             ?? this.requestCodexRateLimitEvents.get(payload.requestId)
+        callback?.(payload.snapshot)
+    }
+
+    private handleClaudeRateLimitsEvent(payload: ClaudeRateLimitsPayload) {
+        const callback = this.claudeRateLimitCallbacks.get(payload.subscriptionId)
+            ?? this.requestClaudeRateLimitEvents.get(payload.requestId)
         callback?.(payload.snapshot)
     }
 
@@ -880,6 +952,12 @@ export class RemoteControlStorageService implements
         const pendingCallbacks = new Set(this.requestCodexRateLimitEvents.values())
         const callbacks = [...this.codexRateLimitListeners].filter((callback) => !pendingCallbacks.has(callback))
         await Promise.allSettled(callbacks.map((callback) => this.subscribeCodexRateLimits(callback)))
+    }
+
+    private async restoreClaudeRateLimitSubscriptions() {
+        const pendingCallbacks = new Set(this.requestClaudeRateLimitEvents.values())
+        const callbacks = [...this.claudeRateLimitListeners].filter((callback) => !pendingCallbacks.has(callback))
+        await Promise.allSettled(callbacks.map((callback) => this.subscribeClaudeRateLimits(callback)))
     }
 
     private async restoreProjectWatchSubscriptions() {
@@ -963,6 +1041,26 @@ export class RemoteControlStorageService implements
         }
     }
 
+    private async subscribeClaudeRateLimits(callback: (snapshot: ClaudeRateLimitSnapshot) => void) {
+        const id = this.createRequestId()
+        this.requestClaudeRateLimitEvents.set(id, callback)
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'onClaudeRateLimits',
+                params: [],
+            })
+            if (!this.claudeRateLimitListeners.has(callback)) {
+                this.unsubscribeBestEffort(result.subscriptionId)
+                return
+            }
+            this.claudeRateLimitSubscriptions.set(callback, result.subscriptionId)
+            this.claudeRateLimitCallbacks.set(result.subscriptionId, callback)
+        } finally {
+            this.requestClaudeRateLimitEvents.delete(id)
+        }
+    }
+
     private async subscribeWorktreesChanged() {
         if (this.worktreeListenerCount === 0 || this.worktreeRequestId || this.worktreeServerSubscriptionId) return
 
@@ -1024,11 +1122,14 @@ export class RemoteControlStorageService implements
         this.pending.clear()
         this.actionRunCallbacks.clear()
         this.actionRunSubscriptions.clear()
+        this.claudeRateLimitCallbacks.clear()
+        this.claudeRateLimitSubscriptions.clear()
         this.codexRateLimitCallbacks.clear()
         this.codexRateLimitSubscriptions.clear()
         this.mergeConflictCallbacks.clear()
         this.requestAgentEvents.clear()
         this.requestActionRunEvents.clear()
+        this.requestClaudeRateLimitEvents.clear()
         this.requestCodexRateLimitEvents.clear()
         this.requestMergeConflictEvents.clear()
         this.requestWatchEvents.clear()

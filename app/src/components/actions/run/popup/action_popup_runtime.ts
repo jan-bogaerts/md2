@@ -1,25 +1,50 @@
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
+import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import { ActionConversationStore } from '../../conversation/action_conversation_store'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { ActionHistoryStore } from '../state/action_history_store'
+import { ActionRunBindingStore } from '../state/action_run_binding_store'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionUsageScopeStore } from './action_usage_scope_store'
+import { ActionUsageValuesService } from './action_usage_values_service'
 import type { ActionPopupRuntime } from './action_popup_types'
 
 type ActionPopupBindings = Omit<ActionPopupRuntime, 'runValidationError' | 'settingsStore'>
 
 /** Creates the stores whose lifecycle follows one selected popup action and assignment context. */
-export function createActionPopupBindings(action: ActionDefinition, context: ActionContext): ActionPopupBindings {
+export function createActionPopupBindings(
+    action: ActionDefinition,
+    context: ActionContext,
+    requestedRunId?: string,
+): ActionPopupBindings {
+    const initialRunId = requestedRunId
+        ?? actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId
+        ?? null
+    const bindingStore = new ActionRunBindingStore(initialRunId)
+    bindingStore.trackInitialRun(action.id, context)
+    const conversationStore = new ActionConversationStore(action.id, context, bindingStore)
+    const historyStore = new ActionHistoryStore(action, context)
+    const usageScopeStore = new ActionUsageScopeStore()
+    const usageValuesService = new ActionUsageValuesService({
+        action,
+        bindingStore,
+        context,
+        conversationStore,
+        historyStore,
+        scopeStore: usageScopeStore,
+    })
+
     return {
-        conversationStore: new ActionConversationStore(action.id, context),
-        historyStore: new ActionHistoryStore(action, context),
+        bindingStore,
+        conversationStore,
+        historyStore,
         inputStore: new ActionRunInputStore(),
         resultStore: new ActionRunResultStore(),
         scheduleStore: new ActionScheduleStore(),
-        usageScopeStore: new ActionUsageScopeStore(),
+        usageValuesService,
     }
 }
 

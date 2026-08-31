@@ -1,11 +1,23 @@
-import { cleanup, render } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { useLayoutEffect, useState, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, AgentConversationEntry } from '../../../data/data_types'
+import type { ActionConversationChange, ActionRun, ActionRunRegistry } from '../../../services/actions/action_run_registry'
 import { AppThemeProvider } from '../../../theme/theme_provider'
-import { ActionConversationChat } from './action_conversation_chat'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
+import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
+import type { ActionConversationStore } from './action_conversation_store'
+import { ActionConversationTranscript } from './action_conversation_transcript'
+import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
 
 const renderProbes = vi.hoisted(() => ({ event: vi.fn(), markdown: vi.fn() }))
+
+// `ActionConversationChat` observes its viewport, and jsdom ships no ResizeObserver.
+function InertResizeObserver() {
+    return { disconnect: vi.fn(), observe: vi.fn(), unobserve: vi.fn() }
+}
+
+vi.stubGlobal('ResizeObserver', InertResizeObserver)
 
 vi.mock('react-markdown', () => ({
     default: ({ children }: { children: ReactNode }) => {
@@ -41,10 +53,142 @@ function conversation(entries: AgentConversationEntry[]): AgentConversation {
     }
 }
 
+class TranscriptTestConversationStore extends EventTarget {
+    private readonly snapshot = { conversations: [], loading: false, selectedConversation: null }
+
+    readonly getSnapshot = () => this.snapshot
+
+    readonly subscribe = (listener: () => void) => {
+        this.addEventListener('changed', listener)
+
+        return () => this.removeEventListener('changed', listener)
+    }
+}
+
+class TranscriptTestBindingStore {
+    private readonly listeners = new Set<() => void>()
+    private readonly runId: string
+
+    constructor(runId: string) {
+        this.runId = runId
+    }
+
+    readonly getSnapshot = () => this.runId
+    readonly subscribe = (listener: () => void) => {
+        this.listeners.add(listener)
+
+        return () => this.listeners.delete(listener)
+    }
+}
+
+class TranscriptTestRunRegistry {
+    private readonly listeners = new Set<() => void>()
+    private snapshot: ActionRun
+
+    constructor(snapshot: ActionRun) {
+        this.snapshot = snapshot
+    }
+
+    getRunStore() {
+        return { getSnapshot: () => this.snapshot }
+    }
+
+    subscribeRun(_runId: string, listener: () => void) {
+        this.listeners.add(listener)
+
+        return () => this.listeners.delete(listener)
+    }
+
+    update(snapshot: ActionRun) {
+        this.snapshot = snapshot
+        for (const listener of this.listeners) listener()
+    }
+
+    updateConversation(conversationValue: TranscriptTestConversation | null, status: PopupRunStatus) {
+        const previousConversation = this.snapshot.conversation
+        const changedEntryIndex = conversationValue?.entries.findIndex(
+            (entry, index) => entry !== previousConversation?.entries[index],
+        ) ?? -1
+        const conversationChange = conversationValue?.change
+            ?? (previousConversation?.id === conversationValue?.id && changedEntryIndex >= 0
+                ? { entryIndex: changedEntryIndex, kind: 'entry' as const }
+                : previousConversation === conversationValue ? null : { kind: 'replace' as const })
+        this.update({ ...transcriptTestRun(conversationValue, status), conversationChange })
+    }
+}
+
+type TranscriptTestConversation = AgentConversation & { change?: ActionConversationChange }
+
+interface TranscriptTestProps {
+    conversation: TranscriptTestConversation | null
+    status: PopupRunStatus
+}
+
+function transcriptTestRun(conversationValue: TranscriptTestConversation | null, status: PopupRunStatus) {
+    return {
+        conversation: conversationValue,
+        conversationChange: conversationValue?.change ?? { kind: 'replace' },
+        queuedPrompts: [],
+        runId: 'transcript-test-run',
+        status: status === 'idle' ? 'completed' : status,
+    } as unknown as ActionRun
+}
+
+function ActionConversationChat({ conversation: value, status }: TranscriptTestProps) {
+    const [runtime] = useState(() => {
+        const registry = new TranscriptTestRunRegistry(transcriptTestRun(value, status))
+        const bindingStore = new TranscriptTestBindingStore('transcript-test-run')
+        const store = new TranscriptTestConversationStore()
+        const trackerFactory = (nextBindingStore: ActionRunBindingStore, nextStore: ActionConversationStore) => (
+            new ActionConversationChatlogTracker(
+                nextBindingStore,
+                nextStore,
+                registry as unknown as ActionRunRegistry,
+            )
+        )
+
+        return { bindingStore, registry, store, trackerFactory }
+    })
+    useLayoutEffect(() => {
+        runtime.registry.updateConversation(value, status)
+    }, [runtime, status, value])
+
+    return <ActionConversationTranscript
+        bindingStore={runtime.bindingStore as unknown as ActionRunBindingStore}
+        store={runtime.store as unknown as ActionConversationStore}
+        trackerFactory={runtime.trackerFactory}
+    />
+}
+
 describe('ActionConversationChat rendering', () => {
     afterEach(() => {
         cleanup()
         vi.clearAllMocks()
+    })
+
+    it('updates a stable entry after terminal rendering without throwing', () => {
+        const user = {content: 'Question', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now'}
+        const assistant = {content: 'Initial', id: 'message-2', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}
+        const initialConversation = { ...conversation([user, assistant]), status: 'completed' as const }
+        const { rerender } = render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={initialConversation} status="completed" />
+            </AppThemeProvider>,
+        )
+
+        expect(() => rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={{
+                        ...initialConversation,
+                        change: { entryIndex: 1, kind: 'entry' },
+                        entries: [user, { ...assistant, content: 'Recovered' }],
+                    }}
+                    status="completed"
+                />
+            </AppThemeProvider>,
+        )).not.toThrow()
+        expect(screen.getByText('Recovered')).toBeInTheDocument()
     })
 
     it('rerenders only changed entries while assistant output streams', () => {
@@ -57,7 +201,7 @@ describe('ActionConversationChat rendering', () => {
         const firstConversation = conversation([historicalMessage, toolEvent, streamingMessage])
         const { rerender } = render(
             <AppThemeProvider>
-                <ActionConversationChat conversation={firstConversation} status="running" />
+                <ActionConversationChat conversation={{ ...firstConversation, change: { kind: 'replace' } }} status="running" />
             </AppThemeProvider>,
         )
         renderProbes.markdown.mockClear()
@@ -68,6 +212,7 @@ describe('ActionConversationChat rendering', () => {
                 <ActionConversationChat
                     conversation={{
                         ...firstConversation,
+                        change: { entryIndex: 2, kind: 'entry' },
                         entries: [historicalMessage, toolEvent, { ...streamingMessage, content: 'Live update' }],
                     }}
                     status="running"
@@ -94,7 +239,7 @@ describe('ActionConversationChat rendering', () => {
         const firstConversation = conversation([historicalMessage, firstTool, secondTool, streamingMessage])
         const { rerender } = render(
             <AppThemeProvider>
-                <ActionConversationChat conversation={firstConversation} status="running" />
+                <ActionConversationChat conversation={{ ...firstConversation, change: { kind: 'replace' } }} status="running" />
             </AppThemeProvider>,
         )
         renderProbes.markdown.mockClear()
@@ -105,6 +250,7 @@ describe('ActionConversationChat rendering', () => {
                 <ActionConversationChat
                     conversation={{
                         ...firstConversation,
+                        change: { entryIndex: 3, kind: 'entry' },
                         entries: [historicalMessage, firstTool, secondTool, { ...streamingMessage, content: 'Live update' }],
                     }}
                     status="running"
@@ -115,5 +261,268 @@ describe('ActionConversationChat rendering', () => {
         expect(renderProbes.markdown).toHaveBeenCalledOnce()
         expect(renderProbes.markdown).toHaveBeenCalledWith('Live update')
         expect(renderProbes.event).not.toHaveBeenCalled()
+    })
+
+    it('collapses sub-agent entries under the Agent call that spawned them', () => {
+        const agentCall = {
+            content: JSON.stringify({ subagent_type: 'Explore' }), id: 'event-1', kind: 'event' as const,
+            providerItemId: 'agent-1', status: 'completed', timestamp: 'now', type: 'tool.Agent',
+        }
+        const subAgentText = {
+            content: 'sub output', id: 'event-2', kind: 'event' as const, label: 'Explore', parentItemId: 'agent-1',
+            providerItemId: 'agent-1:message-sub:text:0', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={conversation([agentCall, subAgentText])} status="running" />
+            </AppThemeProvider>,
+        )
+
+        const group = screen.getByRole('group', { name: 'Sub agent Explore' })
+        const toggle = screen.getByRole('button', { expanded: false })
+
+        expect(toggle).toHaveTextContent('Explore (1)')
+        expect(screen.getAllByText('Tool event')).toHaveLength(1)
+
+        fireEvent.click(toggle)
+
+        expect(group).toBeInTheDocument()
+        expect(screen.getAllByText('Tool event')).toHaveLength(2)
+    })
+
+    it('groups non-consecutive sub-agent entries while keeping root transcript order', () => {
+        const agentCall = {
+            content: JSON.stringify({ subagent_type: 'Explore' }), id: 'event-1', kind: 'event' as const,
+            providerItemId: 'agent-1', status: 'completed', timestamp: 'now', type: 'tool.Agent',
+        }
+        const firstSubAgentText = {
+            content: 'first output', id: 'event-2', kind: 'event' as const, label: 'Explore', parentItemId: 'agent-1',
+            providerItemId: 'agent-1:message-sub:text:0', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        const parentMessage = {content: 'parent output', id: 'message-1', kind: 'message' as const, role: 'assistant' as const, timestamp: 'now'}
+        const laterSubAgentText = {
+            content: 'later output', id: 'event-3', kind: 'event' as const, label: 'Explore', parentItemId: 'agent-1',
+            providerItemId: 'agent-1:message-sub:text:1', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={conversation([agentCall, firstSubAgentText, parentMessage, laterSubAgentText])}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('button', { name: 'Explore entries' })).toHaveTextContent('Explore (2)')
+        expect(screen.getByText('parent output')).toBeInTheDocument()
+        expect(screen.getAllByText('Tool event')).toHaveLength(1)
+    })
+
+    it('uses sub-agent message label when spawning input is incomplete', () => {
+        const agentCall = {
+            content: '{', id: 'event-1', kind: 'event' as const,
+            providerItemId: 'agent-1', status: 'inProgress', timestamp: 'now', type: 'tool.Agent',
+        }
+        const reasoning = {
+            content: 'thinking', id: 'event-2', kind: 'event' as const, label: 'Thinking', parentItemId: 'agent-1',
+            providerItemId: 'agent-1:thinking', status: 'completed', timestamp: 'now', type: 'reasoning',
+        }
+        const subAgentText = {
+            content: 'output', id: 'event-3', kind: 'event' as const, label: 'Explore', parentItemId: 'agent-1',
+            providerItemId: 'agent-1:text', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={conversation([agentCall, reasoning, subAgentText])} status="running" />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('group', { name: 'Sub agent Explore' })).toBeInTheDocument()
+    })
+
+    it('nests a second-level sub agent under its own spawning Agent call', () => {
+        const agentCall = {
+            content: JSON.stringify({ subagent_type: 'Explore' }), id: 'event-1', kind: 'event' as const,
+            providerItemId: 'agent-1', status: 'completed', timestamp: 'now', type: 'tool.Agent',
+        }
+        const nestedAgentCall = {
+            content: JSON.stringify({ subagent_type: 'Plan' }), id: 'event-2', kind: 'event' as const,
+            parentItemId: 'agent-1', providerItemId: 'agent-2', status: 'completed', timestamp: 'now', type: 'tool.Agent',
+        }
+        const nestedText = {
+            content: 'nested output', id: 'event-3', kind: 'event' as const, label: 'Plan', parentItemId: 'agent-2',
+            providerItemId: 'agent-2:message-nested:text:0', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={conversation([agentCall, nestedAgentCall, nestedText])} status="running" />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Explore entries' }))
+
+        expect(screen.getByRole('group', { name: 'Sub agent Plan' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Plan entries' })).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    it('renders a sub-agent entry flat when its spawning Agent call never arrived', () => {
+        const orphan = {
+            content: 'sub output', id: 'event-1', kind: 'event' as const, label: 'Explore', parentItemId: 'agent-missing',
+            providerItemId: 'agent-missing:message-sub:text:0', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={conversation([orphan])} status="running" />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByRole('group')).not.toBeInTheDocument()
+        expect(screen.getAllByText('Tool event')).toHaveLength(1)
+    })
+
+    it('collapses Codex child-thread entries under the collaboration call with a running count', () => {
+        const collaborationCall = {
+            content: 'investigate', id: 'event-1', kind: 'event' as const, label: 'Collaboration: wait',
+            providerItemId: 'wait-1', runningSubThreads: 2, status: 'inProgress', timestamp: 'now',
+            type: 'collabAgentToolCall',
+        }
+        const childToolCall = {
+            content: '', id: 'event-2', kind: 'event' as const, label: 'search', parentItemId: 'wait-1',
+            providerItemId: 'child-tool', status: 'completed', timestamp: 'now', type: 'mcpToolCall',
+        }
+        const childMessage = {
+            content: 'found it', id: 'event-3', kind: 'event' as const, label: 'wait', parentItemId: 'wait-1',
+            providerItemId: 'child-message', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={conversation([collaborationCall, childToolCall, childMessage])}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+
+        const toggle = screen.getByRole('button', { name: 'Collaboration: wait entries' })
+
+        expect(screen.getByRole('group', { name: 'Sub agent Collaboration: wait' })).toBeInTheDocument()
+        expect(toggle).toHaveTextContent('Collaboration: wait (2) — 2 running')
+        expect(screen.getAllByText('Tool event')).toHaveLength(1)
+
+        fireEvent.click(toggle)
+
+        expect(screen.getAllByText('Tool event')).toHaveLength(3)
+    })
+
+    it('keeps interleaved root entries outside the Codex child-thread group', () => {
+        const collaborationCall = {
+            content: 'investigate', id: 'event-1', kind: 'event' as const, label: 'Collaboration: wait',
+            providerItemId: 'wait-1', runningSubThreads: 1, status: 'inProgress', timestamp: 'now',
+            type: 'collabAgentToolCall',
+        }
+        const rootMessage = {
+            agent: 'codex', content: 'Root update', id: 'message-1', kind: 'message' as const,
+            role: 'assistant' as const, timestamp: 'now',
+        }
+        const childMessage = {
+            content: 'Child update', id: 'event-2', kind: 'event' as const, label: 'wait', parentItemId: 'wait-1',
+            providerItemId: 'child-message', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={conversation([collaborationCall, rootMessage, childMessage])}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByText('Root update')).toBeInTheDocument()
+        expect(screen.getAllByText('Tool event')).toHaveLength(1)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Collaboration: wait entries' }))
+
+        expect(screen.getAllByText('Tool event')).toHaveLength(2)
+    })
+
+    it('shows a running Codex child-thread group before the child emits visible output', () => {
+        const collaborationCall = {
+            content: 'investigate', id: 'event-1', kind: 'event' as const, label: 'Collaboration: wait',
+            providerItemId: 'wait-1', runningSubThreads: 2, status: 'inProgress', timestamp: 'now',
+            type: 'collabAgentToolCall',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={conversation([collaborationCall])} status="running" />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('button', { name: 'Collaboration: wait entries' }))
+            .toHaveTextContent('Collaboration: wait (0) — 2 running')
+    })
+
+    it('drops the running count once the collaboration call completes', () => {
+        const collaborationCall = {
+            content: 'investigate', id: 'event-1', kind: 'event' as const, label: 'Collaboration: wait',
+            providerItemId: 'wait-1', runningSubThreads: 0, status: 'completed', timestamp: 'now',
+            type: 'collabAgentToolCall',
+        }
+        const childMessage = {
+            content: 'found it', id: 'event-2', kind: 'event' as const, label: 'wait', parentItemId: 'wait-1',
+            providerItemId: 'child-message', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={conversation([collaborationCall, childMessage])} status="running" />
+            </AppThemeProvider>,
+        )
+
+        const toggle = screen.getByRole('button', { name: 'Collaboration: wait entries' })
+
+        expect(toggle).toHaveTextContent('Collaboration: wait (1)')
+        expect(toggle.textContent).not.toContain('running')
+    })
+
+    it('nests a collaboration call made inside a child thread under that child entry', () => {
+        const collaborationCall = {
+            content: '', id: 'event-1', kind: 'event' as const, label: 'Collaboration: wait',
+            providerItemId: 'wait-1', status: 'inProgress', timestamp: 'now', type: 'collabAgentToolCall',
+        }
+        const nestedCollaborationCall = {
+            content: '', id: 'event-2', kind: 'event' as const, label: 'Collaboration: ask', parentItemId: 'wait-1',
+            providerItemId: 'wait-2', status: 'inProgress', timestamp: 'now', type: 'collabAgentToolCall',
+        }
+        const grandchildMessage = {
+            content: 'deep', id: 'event-3', kind: 'event' as const, label: 'ask', parentItemId: 'wait-2',
+            providerItemId: 'grandchild-message', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={conversation([collaborationCall, nestedCollaborationCall, grandchildMessage])}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Collaboration: wait entries' }))
+
+        expect(screen.getByRole('group', { name: 'Sub agent Collaboration: ask' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Collaboration: ask entries' })).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    it('renders a child-thread entry flat when its collaboration call never arrived', () => {
+        const orphan = {
+            content: 'found it', id: 'event-1', kind: 'event' as const, label: 'wait', parentItemId: 'wait-missing',
+            providerItemId: 'child-message', status: 'completed', timestamp: 'now', type: 'agentMessage',
+        }
+        render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={conversation([orphan])} status="running" />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByRole('group')).not.toBeInTheDocument()
+        expect(screen.getAllByText('Tool event')).toHaveLength(1)
     })
 })

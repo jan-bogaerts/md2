@@ -15,6 +15,11 @@ const projectRules = {
   'consistent-return': 'off',
   'comma-dangle': ['error', 'always-multiline'],
   'no-restricted-syntax': ['error', 'LabeledStatement', 'WithStatement'],
+  'no-restricted-properties': ['error', {
+    object: 'crypto',
+    property: 'randomUUID',
+    message: 'Not available in insecure browser contexts (remote control over http). Use generateUuid() from src/data/uuid.',
+  }],
   'no-use-before-define': ['error', { variables: true, functions: false, classes: true }],
   'no-await-in-loop': 'off',
   'guard-for-in': 'off',

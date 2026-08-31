@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, clipboard, dialog, ipcMain, nativeTheme, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, shell } = require('electron');
 const { existsSync } = require('node:fs');
 const https = require('node:https');
 const path = require('node:path');
@@ -10,6 +10,10 @@ if (existsSync(desktopEnvironmentPath)) process.loadEnvFile(desktopEnvironmentPa
 
 const Store = require('electron-store');
 const windowStateKeeper = require('electron-window-state');
+const {
+    createApplicationStateStore,
+    registerApplicationStateBridge,
+} = require('./src/shell/application_state_store');
 const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
@@ -21,6 +25,7 @@ const { ActionSchedulerService } = require('./src/actions/action/action_schedule
 const { ActionRunnerService } = require('./src/actions/action/action_runner_service');
 const diffService = require('./src/git/diff_service');
 const { createLocalBridgeDispatch } = require('./src/shell/local_bridge_dispatch');
+const { invokeWithErrorEnvelope } = require('./src/shell/bridge_invoke');
 const localGitService = require('./src/git/local_git_service');
 const { RemoteControlService } = require('./src/integrations/remote_control_service');
 const remarkableService = require('./src/integrations/remarkable_service');
@@ -74,6 +79,7 @@ const SUBSCRIPTION_METHODS = new Set([
 ]);
 
 const store = new Store();
+const applicationStateStore = createApplicationStateStore(Store);
 Store.initRenderer();
 const agentExecutableResolver = new AgentExecutableResolver();
 const claudeRuntimeService = new ClaudeRuntimeService();
@@ -124,6 +130,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     localGitService,
     mergeConflictService,
     openProjectFolder: () => openProjectFolder(BrowserWindow.getFocusedWindow()),
+    openProjectSubFolder: (rootPath) => openProjectSubFolder(BrowserWindow.getFocusedWindow(), rootPath),
     openWorktreeFolder: () => openWorktreeFolder(BrowserWindow.getFocusedWindow()),
     projectStatsWorkerService,
     readDesktopConfig,
@@ -148,6 +155,18 @@ async function openProjectFolder(window) {
     const result = await dialog.showOpenDialog(window, {
         properties: ['openDirectory'],
         title: 'Open local Git project',
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return null;
+
+    return result.filePaths[0];
+}
+
+async function openProjectSubFolder(window, rootPath) {
+    const result = await dialog.showOpenDialog(window, {
+        defaultPath: rootPath,
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Choose project folder',
     });
 
     if (result.canceled || result.filePaths.length === 0) return null;
@@ -182,12 +201,15 @@ function removeSubscription(webContents, subscriptionId) {
 function registerLocalBridge() {
     ipcMain.handle(LOCAL_BRIDGE_INVOKE_CHANNEL, (event, request) => {
         const { eventId, method, params } = request;
-        if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invoke(method, params);
 
-        return localBridgeDispatch.invoke(method, [
-            ...params,
-            (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId, payload }),
-        ]);
+        return invokeWithErrorEnvelope(() => {
+            if (!EVENT_METHODS.has(method)) return localBridgeDispatch.invoke(method, params);
+
+            return localBridgeDispatch.invoke(method, [
+                ...params,
+                (payload) => event.sender.send(LOCAL_BRIDGE_EVENT_CHANNEL, { eventId, payload }),
+            ]);
+        });
     });
 
     ipcMain.on(LOCAL_BRIDGE_SUBSCRIBE_CHANNEL, (event, request) => {
@@ -291,7 +313,6 @@ function createWindow() {
     applyStoredSpellCheckerLanguages(spellCheckerSession, store.get(SPELL_CHECKER_LANGUAGES_STORE_KEY));
     registerTextContextMenu(window.webContents, {
         buildMenu: (template) => Menu.buildFromTemplate(template),
-        clipboard,
         getActiveLanguages: () => spellCheckerSession.getSpellCheckerLanguages(),
         getAvailableLanguages: () => spellCheckerSession.availableSpellCheckerLanguages,
         setActiveLanguages: (languages) => {
@@ -343,6 +364,7 @@ async function stopAndQuit() {
 
 app.whenReady().then(async () => {
     await electronTelemetryStarted;
+    registerApplicationStateBridge(ipcMain, applicationStateStore);
     registerConfigBridge();
     registerLocalBridge();
     registerRemarkableBridge();

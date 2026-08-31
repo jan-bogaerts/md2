@@ -16,8 +16,8 @@ describe('recent local repositories', () => {
         expect(window.localStorage.getItem(RECENT_LOCAL_REPOSITORIES_STORAGE_KEY)).toBeNull()
     })
 
-    it('keeps five unique canonical roots newest first', () => {
-        for (let index = 1; index <= 6; index += 1) recordRecentLocalRepository(`C:/repo-${index}`)
+    it('keeps five unique canonical roots newest first', async () => {
+        for (let index = 1; index <= 6; index += 1) await recordRecentLocalRepository(`C:/repo-${index}`)
 
         expect(readRecentLocalRepositories()).toEqual([
             'C:/repo-6',
@@ -29,10 +29,10 @@ describe('recent local repositories', () => {
         expect(readRecentLocalRepositories()).toHaveLength(MAX_RECENT_LOCAL_REPOSITORIES)
     })
 
-    it('moves a case-insensitive Windows path match to the front', () => {
-        recordRecentLocalRepository('C:/First')
-        recordRecentLocalRepository('C:/Second')
+    it('moves a case-insensitive Windows path match to the front', async () => {
+        await recordRecentLocalRepository('C:/First')
+        await recordRecentLocalRepository('C:/Second')
 
-        expect(recordRecentLocalRepository('c:/first')).toEqual(['c:/first', 'C:/Second'])
+        await expect(recordRecentLocalRepository('c:/first')).resolves.toEqual(['c:/first', 'C:/Second'])
     })
 })

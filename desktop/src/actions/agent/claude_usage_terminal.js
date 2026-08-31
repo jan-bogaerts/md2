@@ -1,9 +1,18 @@
 const nodePty = require('node-pty');
 const { Terminal } = require('@xterm/headless');
+const { CLAUDE_USAGE_POLL_REASONS, usageScreenExcerpt } = require('./claude_usage_diagnostics');
 const { parseClaudeUsageOutput } = require('./claude_usage_parsing');
 
 const CLAUDE_USAGE_TERMINAL_COLUMNS = 140;
 const CLAUDE_USAGE_TERMINAL_ROWS = 45;
+// Verified against Claude Code 2.1.238 by running it under a pty in a folder it had never seen.
+// The affirmative option is preselected, so a carriage return answers it; sending the digit instead
+// would type a stray character into the prompt on any screen that only looked like this one.
+const CLAUDE_USAGE_TRUST_MARKERS = ['Yes, I trust this folder', 'Accessing workspace:'];
+const CLAUDE_USAGE_TRUST_ANSWER = '\r';
+// Neither of these can be answered by a poller, so they end the poll instead of waiting out the deadline.
+const CLAUDE_USAGE_LOGIN_MARKERS = ['Select login method:', 'Paste code here if prompted'];
+const CLAUDE_USAGE_ONBOARDING_MARKERS = ['Choose the text style that looks best with your terminal'];
 
 /** Reads the visible screen only; scanning the whole scrollback on every redraw stalls the host process. */
 function terminalScreenText(terminal) {
@@ -23,8 +32,30 @@ function terminalReady(output) {
     return output.includes('? for shortcuts') || output.includes('Try "');
 }
 
+function showsTrustScreen(output) {
+    return CLAUDE_USAGE_TRUST_MARKERS.some((marker) => output.includes(marker));
+}
+
+/** Reports the reason for a screen that blocks the poll and cannot be answered on the user's behalf. */
+function blockedScreenReason(output) {
+    if (CLAUDE_USAGE_LOGIN_MARKERS.some((marker) => output.includes(marker))) {
+        return CLAUDE_USAGE_POLL_REASONS.ptyLoginRequired;
+    }
+    if (CLAUDE_USAGE_ONBOARDING_MARKERS.some((marker) => output.includes(marker))) {
+        return CLAUDE_USAGE_POLL_REASONS.ptyOnboardingRequired;
+    }
+
+    return null;
+}
+
 function collectTerminalUsage(processHandle, terminal, observedAt, dependencies) {
-    const { clearTimeout: clearPollTimeout, registerAbort, setTimeout: setPollTimeout, timeoutMs } = dependencies;
+    const {
+        clearTimeout: clearPollTimeout,
+        registerAbort,
+        reportTimeoutMs,
+        readyTimeoutMs,
+        setTimeout: setPollTimeout,
+    } = dependencies;
 
     return new Promise((resolve, reject) => {
         let commandSent = false;
@@ -33,6 +64,7 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
         let pendingWrites = 0;
         let settled = false;
         let terminalDisposed = false;
+        let trustAnswered = false;
         let dataSubscription;
         let exitSubscription;
         let timeout;
@@ -73,19 +105,59 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
             if (error) reject(error);
             else resolve(result);
         };
+        const finishWithoutUsage = (reason, screen) => finish({
+            payload: null,
+            reason,
+            screenExcerpt: usageScreenExcerpt(screen ?? ''),
+        });
+        // The two waits have different expected durations, so each gets its own deadline; a single
+        // one would leave the record unable to say which of them expired.
+        const startReportDeadline = () => {
+            clearPollTimeout(timeout);
+            timeout = setPollTimeout(() => {
+                const screen = terminalScreenText(terminal);
+                const payload = parseClaudeUsageOutput(screen, observedAt);
+                killProcess();
+                if (payload) finish({ payload, reason: null, screenExcerpt: '' });
+                else finishWithoutUsage(CLAUDE_USAGE_POLL_REASONS.ptyReportTimeout, screen);
+            }, reportTimeoutMs);
+        };
         const inspectScreen = () => {
             if (settled || exited) return;
             const output = terminalScreenText(terminal);
+            if (!commandSent) {
+                const blockedReason = blockedScreenReason(output);
+                if (blockedReason) {
+                    killProcess();
+                    finishWithoutUsage(blockedReason, output);
+                    return;
+                }
+                // Trust is asked once per folder and blocks every keystroke until answered. The poller
+                // writes nothing here, and agents are about to run in this same folder anyway.
+                if (!trustAnswered && !terminalReady(output) && showsTrustScreen(output)) {
+                    trustAnswered = true;
+                    if (!withLiveProcess(() => processHandle.write(CLAUDE_USAGE_TRUST_ANSWER))) {
+                        finishWithoutUsage(CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker, output);
+                    }
+                    return;
+                }
+            }
             if (!commandSent && terminalReady(output)) {
                 commandSent = true;
-                if (!withLiveProcess(() => processHandle.write('/usage\r'))) finish(null);
+                if (!withLiveProcess(() => processHandle.write('/usage\r'))) {
+                    finishWithoutUsage(CLAUDE_USAGE_POLL_REASONS.ptyReportTimeout, output);
+
+                    return;
+                }
+                startReportDeadline();
+
                 return;
             }
             if (!commandSent) return;
             const payload = parseClaudeUsageOutput(output, observedAt);
             if (!payload) return;
             killProcess();
-            finish(payload);
+            finish({ payload, reason: null, screenExcerpt: '' });
         };
         // The exit can arrive while xterm still has queued chunks, so the screen is only judged once they land.
         const settleExit = (exitCode) => {
@@ -94,17 +166,30 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
                 pendingExitCode = exitCode;
                 return;
             }
+            const screen = terminalScreenText(terminal);
             // A failed exit still counts when the screen holds a complete report; only a screen without one is a failure.
-            const payload = parseClaudeUsageOutput(terminalScreenText(terminal), observedAt);
+            const payload = parseClaudeUsageOutput(screen, observedAt);
             if (!payload && exitCode !== 0) {
-                finish(null, new Error('Claude usage terminal failed'));
+                const error = new Error('Claude usage terminal failed');
+                error.reason = CLAUDE_USAGE_POLL_REASONS.ptyFailed;
+                error.screenExcerpt = usageScreenExcerpt(screen);
+                finish(null, error);
                 return;
             }
-            finish(payload);
+            if (payload) {
+                finish({ payload, reason: null, screenExcerpt: '' });
+                return;
+            }
+            // Claude ending on its own is a different fault before and after `/usage` went out.
+            finishWithoutUsage(
+                commandSent ? CLAUDE_USAGE_POLL_REASONS.ptyExitedWithoutReport : CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker,
+                screen,
+            );
         };
         registerAbort?.(() => {
+            const screen = settled ? '' : terminalScreenText(terminal);
             killProcess();
-            finish(null);
+            finishWithoutUsage(CLAUDE_USAGE_POLL_REASONS.pollAborted, screen);
         });
         dataSubscription = processHandle.onData((data) => {
             if (settled) return;
@@ -121,10 +206,15 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
             settleExit(exitCode);
         });
         timeout = setPollTimeout(() => {
-            const payload = parseClaudeUsageOutput(terminalScreenText(terminal), observedAt);
+            const screen = terminalScreenText(terminal);
             killProcess();
-            finish(payload);
-        }, timeoutMs);
+            // Answering trust and still not becoming ready is a different fault from never seeing the
+            // screen at all, so it never triggers a second keystroke and never shares a reason.
+            const reason = trustAnswered && showsTrustScreen(screen)
+                ? CLAUDE_USAGE_POLL_REASONS.ptyTrustScreenUnanswered
+                : CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker;
+            finishWithoutUsage(reason, screen);
+        }, readyTimeoutMs);
     });
 }
 
@@ -137,8 +227,9 @@ function createHeadlessTerminal() {
 }
 
 /**
- * Drives one `/usage` poll through a real pty. Only the usage worker may call this: node-pty's
- * ConPTY layer can fault natively, which would end whichever process hosts it.
+ * Drives one `/usage` poll through a real pty and resolves with `{ payload, reason, screenExcerpt }`.
+ * Only the usage worker may call this: node-pty's ConPTY layer can fault natively, which would end
+ * whichever process hosts it.
  */
 function runTerminalUsagePoll(request, dependencies = {}) {
     const {
@@ -157,14 +248,19 @@ function runTerminalUsagePoll(request, dependencies = {}) {
 
     return collectTerminalUsage(processHandle, terminalFactory(), request.observedAt, {
         clearTimeout: clearPollTimeout,
+        readyTimeoutMs: request.readyTimeoutMs,
         registerAbort,
+        reportTimeoutMs: request.reportTimeoutMs,
         setTimeout: setPollTimeout,
-        timeoutMs: request.timeoutMs,
     });
 }
 
 module.exports = {
+    CLAUDE_USAGE_LOGIN_MARKERS,
+    CLAUDE_USAGE_ONBOARDING_MARKERS,
     CLAUDE_USAGE_TERMINAL_COLUMNS,
     CLAUDE_USAGE_TERMINAL_ROWS,
+    CLAUDE_USAGE_TRUST_ANSWER,
+    CLAUDE_USAGE_TRUST_MARKERS,
     runTerminalUsagePoll,
 };

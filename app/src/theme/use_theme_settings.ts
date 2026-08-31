@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { PaletteMode } from '@mui/material'
+import { applicationStorage } from '../services/storage/application_storage'
 import {
     DEFAULT_COLOR_SCHEME,
     DEFAULT_MARKDOWN_STYLE_PRESET,
@@ -37,7 +38,7 @@ function isPaletteMode(value: string | null): value is PaletteMode {
 
 /** Resolve the initial palette mode from storage, falling back to the OS preference. */
 function readInitialMode(): PaletteMode {
-    const storedMode = window.localStorage.getItem(THEME_MODE_STORAGE_KEY)
+    const storedMode = applicationStorage.getItem(THEME_MODE_STORAGE_KEY)
     if (isPaletteMode(storedMode)) return storedMode
 
     const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
@@ -46,7 +47,7 @@ function readInitialMode(): PaletteMode {
 
 /** Resolve the initial color scheme from storage, falling back to the default scheme. */
 function readInitialColorScheme(): ColorSchemeConfig {
-    const stored = window.localStorage.getItem(COLOR_SCHEME_STORAGE_KEY)
+    const stored = applicationStorage.getItem(COLOR_SCHEME_STORAGE_KEY)
     if (stored === null) return DEFAULT_COLOR_SCHEME
 
     try {
@@ -65,7 +66,7 @@ interface InitialMarkdownStyle {
 }
 
 function readCustomMarkdownStyle(): MarkdownStyleConfig | null {
-    const stored = window.localStorage.getItem(CUSTOM_MARKDOWN_STYLE_STORAGE_KEY)
+    const stored = applicationStorage.getItem(CUSTOM_MARKDOWN_STYLE_STORAGE_KEY)
     if (stored === null) return null
 
     try {
@@ -78,7 +79,7 @@ function readCustomMarkdownStyle(): MarkdownStyleConfig | null {
 
 /** Resolve the initial markdown style from storage, falling back to the default preset. */
 function readInitialMarkdownStyle(): InitialMarkdownStyle {
-    const stored = window.localStorage.getItem(MARKDOWN_STYLE_STORAGE_KEY)
+    const stored = applicationStorage.getItem(MARKDOWN_STYLE_STORAGE_KEY)
     if (isMarkdownStyleName(stored)) {
         if (stored !== 'custom') return { config: MARKDOWN_STYLE_PRESETS[stored], name: stored }
 
@@ -104,26 +105,26 @@ export function useThemeSettings(): UseThemeSettingsResult {
     const toggleMode = useCallback(() => {
         setMode((currentMode) => {
             const nextMode: PaletteMode = currentMode === 'light' ? 'dark' : 'light'
-            window.localStorage.setItem(THEME_MODE_STORAGE_KEY, nextMode)
+            applicationStorage.setItem(THEME_MODE_STORAGE_KEY, nextMode)
             return nextMode
         })
     }, [])
 
     const setColorScheme = useCallback((nextColorScheme: ColorSchemeConfig) => {
-        window.localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, JSON.stringify(nextColorScheme))
+        applicationStorage.setItem(COLOR_SCHEME_STORAGE_KEY, JSON.stringify(nextColorScheme))
         setColorSchemeState(nextColorScheme)
     }, [])
 
     const setMarkdownStyle = useCallback((preset: MarkdownStylePresetName) => {
-        window.localStorage.setItem(MARKDOWN_STYLE_STORAGE_KEY, preset)
+        applicationStorage.setItem(MARKDOWN_STYLE_STORAGE_KEY, preset)
         setMarkdownStyleState(preset)
         setMarkdownStyleConfig(MARKDOWN_STYLE_PRESETS[preset])
     }, [])
 
     const setCustomMarkdownStyle = useCallback((nextMarkdownStyleConfig: MarkdownStyleConfig) => {
         const config = cloneMarkdownStyleConfig(nextMarkdownStyleConfig)
-        window.localStorage.setItem(MARKDOWN_STYLE_STORAGE_KEY, 'custom')
-        window.localStorage.setItem(CUSTOM_MARKDOWN_STYLE_STORAGE_KEY, JSON.stringify(config))
+        applicationStorage.setItem(MARKDOWN_STYLE_STORAGE_KEY, 'custom')
+        applicationStorage.setItem(CUSTOM_MARKDOWN_STYLE_STORAGE_KEY, JSON.stringify(config))
         setMarkdownStyleState('custom')
         setMarkdownStyleConfig(config)
     }, [])

@@ -11,6 +11,7 @@ function card(path: string, agentLogReferences: string[] = [], references: strin
             affects: [],
             after: null,
             agentLogReferences,
+            changedFiles: [],
             author: null,
             id: path,
             internalId: 'card-1',

@@ -1,10 +1,17 @@
-import { Alert, Box, Button, Divider, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import Add from 'mdi-material-ui/Plus'
 import DeleteOutline from 'mdi-material-ui/DeleteOutline'
 import Pencil from 'mdi-material-ui/Pencil'
 import type { ChangeEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
-import { BUILTIN_AGENT_PROFILES, MODEL_PLACEHOLDER, SESSION_ID_PLACEHOLDER, type AgentProfile } from '../../data/agent_profiles'
+import {
+    BUILTIN_AGENT_PROFILES,
+    MODEL_PLACEHOLDER,
+    SESSION_ID_PLACEHOLDER,
+    THINKING_LEVELS,
+    supportsThinkingLevel,
+    type AgentProfile,
+} from '../../data/agent_profiles'
 
 const COMMA_SEPARATOR = ','
 
@@ -35,7 +42,9 @@ interface AgentProfileFormProps {
 interface AgentProfileFormState {
     command: string
     defaultModel: string
+    defaultThinkingLevel: string
     modelArgument: string
+    monthlySubscriptionCostUsd: string
     models: string
     name: string
     resumeCommand: string
@@ -45,7 +54,9 @@ function toFormState(profile?: AgentProfile): AgentProfileFormState {
     return {
         command: profile ? JSON.stringify(profile.command) : '',
         defaultModel: profile?.defaultModel ?? '',
+        defaultThinkingLevel: profile?.defaultThinkingLevel ?? 'none',
         modelArgument: profile?.modelArgument ?? '',
+        monthlySubscriptionCostUsd: profile?.monthlySubscriptionCostUsd?.toString() ?? '',
         models: profile?.models?.join(`${COMMA_SEPARATOR} `) ?? '',
         name: profile?.name ?? '',
         resumeCommand: profile?.resumeCommand ? JSON.stringify(profile.resumeCommand) : '',
@@ -71,7 +82,11 @@ function toAgentProfile(form: AgentProfileFormState): AgentProfile {
     return {
         command: readCommand(form.command),
         ...(form.defaultModel.trim().length > 0 ? { defaultModel: form.defaultModel.trim() } : {}),
+        defaultThinkingLevel: form.defaultThinkingLevel as AgentProfile['defaultThinkingLevel'],
         ...(form.modelArgument.trim().length > 0 ? { modelArgument: form.modelArgument.trim() } : {}),
+        ...(form.monthlySubscriptionCostUsd.trim().length > 0
+            ? { monthlySubscriptionCostUsd: Number(form.monthlySubscriptionCostUsd) }
+            : {}),
         models,
         name: form.name.trim(),
         ...(form.resumeCommand.trim().length > 0 ? { resumeCommand: readCommand(form.resumeCommand) } : {}),
@@ -84,6 +99,7 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     const command = form.command.trim()
     const models = readModels(form.models)
     const defaultModel = form.defaultModel.trim()
+    const monthlySubscriptionCostUsd = Number(form.monthlySubscriptionCostUsd)
 
     if (name.length === 0) errors.push('Name is required.')
     if (usedNames.includes(name)) errors.push(`Duplicate agent profile: ${name}`)
@@ -106,6 +122,14 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     if (new Set(models).size !== models.length) errors.push('Model names must be unique.')
     if (defaultModel.length > 0 && models.length > 0 && !models.includes(defaultModel)) {
         errors.push(`Default model must be one of: ${models.join(', ')}`)
+    }
+    if (form.monthlySubscriptionCostUsd.trim().length > 0
+        && (!Number.isFinite(monthlySubscriptionCostUsd) || monthlySubscriptionCostUsd <= 0)) {
+        errors.push('Monthly subscription cost must be greater than zero.')
+    }
+    if (!THINKING_LEVELS.some((level) => level === form.defaultThinkingLevel)) errors.push('Profile default thinking level is invalid.')
+    else if (!supportsThinkingLevel({ name }, form.defaultThinkingLevel as AgentProfile['defaultThinkingLevel'])) {
+        errors.push(`${name || 'Custom profile'} does not support that default thinking level.`)
     }
 
     return errors
@@ -172,6 +196,20 @@ function AgentProfileForm(props: AgentProfileFormProps) {
                 <TextField disabled={disabled} fullWidth label="Model argument" name="modelArgument" onChange={onTextChange} size="small" value={form.modelArgument} />
                 <TextField disabled={disabled} fullWidth helperText="Comma-separated model names." label="Models" name="models" onChange={onTextChange} size="small" value={form.models} />
                 <TextField disabled={disabled} fullWidth label="Profile default model" name="defaultModel" onChange={onTextChange} size="small" value={form.defaultModel} />
+                <TextField
+                    disabled={disabled}
+                    fullWidth
+                    label="Monthly subscription cost (USD)"
+                    name="monthlySubscriptionCostUsd"
+                    onChange={onTextChange}
+                    size="small"
+                    slotProps={{ htmlInput: { min: 0, step: 'any' } }}
+                    type="number"
+                    value={form.monthlySubscriptionCostUsd}
+                />
+                <TextField disabled={disabled} fullWidth label="Profile default thinking level" name="defaultThinkingLevel" onChange={onTextChange} select size="small" value={form.defaultThinkingLevel}>
+                    {THINKING_LEVELS.map((level) => <MenuItem key={level} value={level}>{level}</MenuItem>)}
+                </TextField>
                 <TextField
                     disabled={disabled}
                     fullWidth

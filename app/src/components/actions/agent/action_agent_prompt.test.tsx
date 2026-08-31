@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
-import type { MarkdownDraft } from '../../../services/markdown/markdown_draft'
+import type { MarkdownDraftBinding } from '../../../services/markdown/markdown_draft'
 
 vi.mock('../../editor/markdown_editor', async () => {
     const { forwardRef, useEffect, useImperativeHandle, useRef, useState } = await import('react')
@@ -11,11 +11,12 @@ vi.mock('../../editor/markdown_editor', async () => {
     return {
         MarkdownEditor: forwardRef(function MarkdownEditorMock(props: {
             attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
-            draft: MarkdownDraft
+            draft: MarkdownDraftBinding
             flushOnBlur?: boolean
             hideAttachmentControl?: boolean
             imagePasteHandler?: (file: File, insertMarkdown: (markdown: string) => void) => Promise<void>
             localTextSearch?: boolean
+            monospace?: boolean
             onChange?: (markdown: string) => void
             onLiveChange?: (markdown: string) => void
             placeholders?: readonly { name: string }[]
@@ -49,6 +50,7 @@ vi.mock('../../editor/markdown_editor', async () => {
                     data-hide-attachment-control={props.hideAttachmentControl ? 'true' : 'false'}
                     data-image-paste={props.imagePasteHandler ? 'true' : 'false'}
                     data-local-text-search={props.localTextSearch === false ? 'false' : 'true'}
+                    data-monospace={props.monospace ? 'true' : 'false'}
                     data-placeholders={props.placeholders?.map(({ name }) => name).join(',')}
                     value={value}
                     onBlur={(event) => props.onChange?.(event.currentTarget.value)}
@@ -97,7 +99,7 @@ afterEach(() => {
 
 describe('ActionAgentPrompt', () => {
     it('stays read-only during prompt preparation and becomes editable when ready', async () => {
-        const promptDraft = new ActionPromptDraft('', true, null)
+        const promptDraft = new ActionPromptDraft('', true)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const prompt = screen.getByLabelText('Markdown prompt')
 
@@ -110,7 +112,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it('passes card attachment handler to hidden-toolbar prompt editor', () => {
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(
             <ActionAgentPrompt
                 attachmentHandler={vi.fn(async () => undefined)}
@@ -124,7 +126,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it('configures action placeholders on its hidden-toolbar editor', () => {
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -142,9 +144,15 @@ describe('ActionAgentPrompt', () => {
         expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-image-paste', 'false')
     })
 
-    it('keeps typing local and synchronizes the prompt on blur', () => {
-        const promptDraft = new ActionPromptDraft('', false, null)
-        const synchronize = vi.spyOn(promptDraft, 'synchronize')
+    it('enables monospace presentation for command editing', () => {
+        const promptDraft = new ActionPromptDraft('npm test', false)
+        render(<ActionAgentPrompt convertMessage={null} monospace promptDraft={promptDraft} />)
+
+        expect(screen.getByLabelText('Markdown prompt')).toHaveAttribute('data-monospace', 'true')
+    })
+
+    it('keeps typing local when prompt loses focus', () => {
+        const promptDraft = new ActionPromptDraft('', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -155,13 +163,12 @@ describe('ActionAgentPrompt', () => {
 
         fireEvent.change(prompt, { target: { value: 'Draft' } })
 
-        expect(synchronize).not.toHaveBeenCalled()
         expect(promptDraft.getSnapshot()).toBe('Draft')
         expect(prompt).toHaveAttribute('data-flush-on-blur', 'true')
 
         fireEvent.blur(prompt)
 
-        expect(synchronize).toHaveBeenCalledOnce()
+        expect(promptDraft.getSnapshot()).toBe('Draft')
     })
 
     it.each([
@@ -169,8 +176,7 @@ describe('ActionAgentPrompt', () => {
         { keyModifier: { metaKey: true }, shortcut: 'Meta+Enter' },
     ])('flushes the latest prompt before running $shortcut without passing it to the editor', ({ keyModifier }) => {
         const handleRunShortcut = vi.fn()
-        const promptDraft = new ActionPromptDraft('', false, null)
-        const synchronize = vi.spyOn(promptDraft, 'synchronize')
+        const promptDraft = new ActionPromptDraft('', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -183,15 +189,13 @@ describe('ActionAgentPrompt', () => {
         fireEvent.change(prompt, { target: { value: 'Run this' } })
         fireEvent.keyDown(prompt, { ...keyModifier, key: 'Enter' })
 
-        expect(synchronize).toHaveBeenCalledOnce()
-        expect(synchronize.mock.invocationCallOrder[0]).toBeLessThan(handleRunShortcut.mock.invocationCallOrder[0])
         expect(handleRunShortcut).toHaveBeenCalledOnce()
         expect(promptDraft.getSnapshot()).toBe('Run this')
         expect(prompt).toHaveValue('Run this')
     })
 
     it('keeps plain Enter and Shift+Enter editor behavior', () => {
-        const promptDraft = new ActionPromptDraft('Line', false, null)
+        const promptDraft = new ActionPromptDraft('Line', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -209,7 +213,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it('keeps Ctrl+Enter editor behavior when no shortcut callback exists', () => {
-        const promptDraft = new ActionPromptDraft('Line', false, null)
+        const promptDraft = new ActionPromptDraft('Line', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -225,7 +229,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it('applies each external replacement to the mounted editor once', () => {
-        const promptDraft = new ActionPromptDraft('Initial', false, null)
+        const promptDraft = new ActionPromptDraft('Initial', false)
         render(
             <ActionAgentPrompt
                 convertMessage={null}
@@ -238,7 +242,7 @@ describe('ActionAgentPrompt', () => {
     })
 
     it.each(['', '   \n\t'])('collapses only the editor region for an empty draft %#', (value) => {
-        const promptDraft = new ActionPromptDraft(value, false, null)
+        const promptDraft = new ActionPromptDraft(value, false)
         render(
             <ActionAgentPrompt
                 bottomRow={<div>Controls</div>}
@@ -256,7 +260,7 @@ describe('ActionAgentPrompt', () => {
 
     it('disables pointer and keyboard resize while the prompt is empty', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '160')
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 
@@ -274,7 +278,7 @@ describe('ActionAgentPrompt', () => {
     it('restores the saved height on live text entry and preserves it across empty transitions', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '188')
         mockAvailablePromptHeight(400)
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const prompt = screen.getByLabelText('Markdown prompt')
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
@@ -295,7 +299,7 @@ describe('ActionAgentPrompt', () => {
     it('clamps a restored height against the available popup height', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '220')
         mockAvailablePromptHeight(250)
-        const promptDraft = new ActionPromptDraft('', false, null)
+        const promptDraft = new ActionPromptDraft('', false)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
 
         fireEvent.change(screen.getByLabelText('Markdown prompt'), { target: { value: 'Plan' } })
@@ -307,7 +311,7 @@ describe('ActionAgentPrompt', () => {
     it('persists non-empty pointer and keyboard resize without overwriting it after clearing', () => {
         window.localStorage.setItem('md2.actionPromptHeight', '160')
         mockAvailablePromptHeight(400)
-        const promptDraft = new ActionPromptDraft('Plan', false, null)
+        const promptDraft = new ActionPromptDraft('Plan', false)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
         const separator = screen.getByRole('separator', { name: 'Resize prompt' })
 

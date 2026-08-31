@@ -7,8 +7,11 @@ import { useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'
-import { useActionRunSelector } from '../../../hooks/use_action_runs'
-import type { ActionConversationStore } from '../../conversation/action_conversation_store'
+import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
+import {
+    isBrowsingHistoricalConversation,
+    type ActionConversationStore,
+} from '../../conversation/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
 import {
     cancelPopupAction,
@@ -20,10 +23,8 @@ import { actionPopupRunDisabled } from './action_popup_run_disabled'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionScheduleStore } from '../schedule/action_schedule_store'
-import { ActionUsageSummaryOwner } from './action_usage_summary_owner'
 import { useActionRunSettings } from '../../shared/use_action_run_settings'
 import { ActionPopupFinishButton } from './action_popup_finish_button'
-import type { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionAgentSelectors } from '../../agent/action_agent_selectors'
 import { MarkdownAttachmentControl } from '../../../editor/markdown_attachment_control'
 import {
@@ -31,41 +32,42 @@ import {
     attachFilesToOriginalMarkdown,
 } from '../../../../services/attachments/attachment_workflow'
 import { dialogService } from '../../../../services/dialog_service'
+import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 interface ActionPopupBottomRowProps {
     action: ActionDefinition
     assignmentContext: ActionContext
+    bindingStore: ActionRunBindingStore
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
-    /** 2 call sites: for agents it is embedded inside input. commands have no input, but need bottom row for config and info */
+    /** Embedded inside idle input surfaces; standalone while a command run is active. */
     embedded?: boolean
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
     settingsStore: ActionRunSettingsStore
-    usageScopeStore: ActionUsageScopeStore
 }
 
-/** Agent settings, usage, and run controls for the popup footer. */
+/** Agent settings and run controls for the popup footer. */
 export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const {
-        action, assignmentContext, conversationStore, embedded = false, historyStore, inputStore, resultStore,
-        runValidationError, scheduleStore, settingsStore, usageScopeStore,
+        action, assignmentContext, bindingStore, conversationStore, embedded = false, historyStore, inputStore, resultStore,
+        runValidationError, scheduleStore, settingsStore,
     } = props
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const settings = useActionRunSettings(action, settingsStore)
-    const runStatus = useActionRunSelector(action.id, assignmentContext, (run) => run?.status ?? 'idle')
-    const agentActive = useActionRunSelector(action.id, assignmentContext, (run) => {
+    const boundRunId = useBoundRunId(bindingStore)
+    const runStatus = useRunSelector(boundRunId, (run) => run?.status ?? 'idle')
+    const agentActive = useRunSelector(boundRunId, (run) => {
         const active = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'
 
         return !!active && run?.activeActionType === 'agent'
     })
-    const interactionReady = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.interactionReady)
-    const hasApprovals = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.approvals.length)
-    const hasQuestion = useActionRunSelector(action.id, assignmentContext, (run) => !!run?.question)
-    const promptDraft = currentActionPromptDraft(action, assignmentContext, action.type === 'agent')
+    const interactionReady = useRunSelector(boundRunId, (run) => !!run?.interactionReady)
+    const liveConversationId = useRunSelector(boundRunId, (run) => run?.conversation?.id ?? null)
+    const promptDraft = currentActionPromptDraft(action, assignmentContext, bindingStore, false, agentActive ? '' : undefined)
     const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)
     const editorSnapshot = useSyncExternalStore(
         promptDraft.subscribeEditor,
@@ -78,25 +80,31 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         conversationStore.getSnapshot,
     )
     const sessionActive = runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
+    const browsingHistory = isBrowsingHistoricalConversation(
+        liveConversationId ? { id: liveConversationId } : null,
+        conversationSnapshot.selectedConversation,
+        sessionActive,
+    )
     const orphanWaiting = !sessionActive && conversationSnapshot.selectedConversation?.status === 'waitingForInput'
     const running = runStatus === 'queued' || runStatus === 'running'
     const waitingForAgentInput = (runStatus === 'waitingForInput' && agentActive) || orphanWaiting
     const promptHasText = prompt.trim().length > 0
+    const hasDisplayedConversation = !!liveConversationId || !!conversationSnapshot.selectedConversation
     const showStop = running || (runStatus === 'waitingForInput' && !agentActive)
     const showFinish = waitingForAgentInput
     const showSchedule = (!sessionActive && !orphanWaiting) || (waitingForAgentInput && promptHasText)
     const showAgentSend = (!sessionActive && !orphanWaiting && action.type === 'agent')
         || (waitingForAgentInput && promptHasText)
-    const showCommandRun = !sessionActive && !orphanWaiting && action.type === 'command'
+        || (agentActive && interactionReady && promptHasText)
+    const showCommandRun = !orphanWaiting && !hasDisplayedConversation && action.type === 'command'
+    const showStopControl = showStop && !showAgentSend
     const runState = {
         agentActive,
-        hasApprovals,
-        hasQuestion,
         interactionReady,
         runDisabledMessage: settings.runDisabledMessage,
         runStatus,
     }
-    const runDisabled = actionPopupRunDisabled(
+    const runDisabled = browsingHistory || actionPopupRunDisabled(
         action,
         runState,
         prompt,
@@ -104,6 +112,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     )
     const operationInput = {
         action,
+        bindingStore,
         context: assignmentContext,
         conversationStore,
         historyStore,
@@ -124,10 +133,21 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         })
     }
     const handlePrimaryRun = async () => {
+        if (browsingHistory) return
+
+        promptDraft.requestFlush()
         await runPopupAction(operationInput)
     }
-    const handleCancel = () => void cancelPopupAction(action, assignmentContext, conversationStore)
-    const handleFinish = () => void finishPopupAction(action, assignmentContext, conversationStore)
+    const handleCancel = () => {
+        if (browsingHistory) return
+
+        void cancelPopupAction(action, bindingStore, assignmentContext, conversationStore)
+    }
+    const handleFinish = () => {
+        if (browsingHistory) return
+
+        void finishPopupAction(action, bindingStore, assignmentContext, conversationStore)
+    }
     const handleToggleSchedule = () => scheduleStore.toggle()
 
     return (
@@ -144,10 +164,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 data-footer-layout
                 sx={{
                     alignItems: 'center', display: 'flex', gap: 1, justifyContent: 'space-between', minWidth: 0, width: '100%',
-                    '@container (max-width: 420px)': {
-                        '& [data-footer-selectors]': { minWidth: 0 },
-                        '& [data-footer-usage]': { minWidth: 0 },
-                    },
+                    '@container (max-width: 420px)': { '& [data-footer-selectors]': { minWidth: 0 } },
                 }}
             >
                 {action.type === 'agent' && !isMobile ? (
@@ -158,17 +175,8 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 ) : null}
                 <Box data-footer-selectors sx={{ flexShrink: 1, minWidth: 158, overflow: 'hidden' }}>
                     {action.type === 'agent' ? (
-                        <ActionAgentSelectors action={action} context={assignmentContext} settingsStore={settingsStore} />
+                        <ActionAgentSelectors action={action} bindingStore={bindingStore} settingsStore={settingsStore} />
                     ) : null}
-                </Box>
-                <Box data-footer-usage sx={{ display: 'flex', flexShrink: 1, justifyContent: 'center', minWidth: 235, overflow: 'hidden' }}>
-                    <ActionUsageSummaryOwner
-                        action={action}
-                        context={assignmentContext}
-                        conversationStore={conversationStore}
-                        historyStore={historyStore}
-                        scopeStore={usageScopeStore}
-                    />
                 </Box>
                 <Box
                     data-footer-controls
@@ -176,7 +184,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 >
                     {showFinish ? (
                         <ActionPopupFinishButton
-                            disabled={!settings.backendAvailable || (sessionActive && !interactionReady)}
+                            disabled={browsingHistory || !settings.backendAvailable || (sessionActive && !interactionReady)}
                             onFinish={handleFinish}
                             onStop={handleCancel}
                         />
@@ -191,6 +199,20 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                                     size="small"
                                 >
                                     <CalendarOutline sx={{ fontSize: 18 }} />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    ) : null}
+                    {showStopControl ? (
+                        <Tooltip title="Stop">
+                            <span>
+                                <IconButton
+                                    aria-label="Stop"
+                                    disabled={browsingHistory || !settings.backendAvailable}
+                                    onClick={handleCancel}
+                                    size="small"
+                                >
+                                    <StopOutlined sx={{ fontSize: 18 }} />
                                 </IconButton>
                             </span>
                         </Tooltip>
@@ -215,14 +237,6 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                             >
                                 Run
                             </Button>
-                        </Tooltip>
-                    ) : showStop ? (
-                        <Tooltip title="Stop">
-                            <span>
-                                <IconButton aria-label="Stop" disabled={!settings.backendAvailable} onClick={handleCancel} size="small">
-                                    <StopOutlined sx={{ fontSize: 18 }} />
-                                </IconButton>
-                            </span>
                         </Tooltip>
                     ) : null}
                 </Box>

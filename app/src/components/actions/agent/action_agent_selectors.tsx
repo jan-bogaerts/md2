@@ -4,34 +4,37 @@ import {
     Button,
     IconButton,
     ListItemText,
-    ListSubheader,
     Menu,
     MenuItem,
     Tooltip,
 } from '@mui/material'
-import { useState, type MouseEvent } from 'react'
-import type { ActionContext } from '../../../data/action_context'
+import ChevronRight from 'mdi-material-ui/ChevronRight'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import type { ActionDefinition } from '../../../data/action_types'
 import {
-    DEFAULT_PERMISSION_MODE,
     PERMISSION_MODE_OPTIONS,
     THINKING_LEVELS,
-    defaultModelForProfile,
-    findAgentProfile,
-    supportsPermissionMode,
+    supportsThinkingLevel,
     validatePermissionMode,
     validateThinkingLevel,
     type PermissionMode,
     type ThinkingLevel,
 } from '../../../data/agent_profiles'
+import {
+    selectAgent,
+    selectModel,
+    selectPermissionMode,
+    selectThinkingLevel,
+} from '../../../data/agent_selection'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
-import { useActionRunSelector } from '../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import { useActionRunSettings } from '../shared/use_action_run_settings'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 interface ActionAgentSelectorsProps {
     action: ActionDefinition
-    context: ActionContext
+    bindingStore: ActionRunBindingStore
     settingsStore: ActionRunSettingsStore
 }
 
@@ -49,23 +52,22 @@ const COMPACT_THINKING_LEVEL_LABELS: Record<ThinkingLevel, string> = {
     none: 'none',
 }
 
+type AgentSettingsSubmenu = 'agent' | 'model' | 'thinkingLevel'
+
 function selectRunStatus(run: ActionRun | null) {
     return run?.status ?? null
 }
 
 /** Agent run settings exposed as compact model and security menus. */
 export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
-    const { action, context, settingsStore } = props
+    const { action, bindingStore, settingsStore } = props
     const [modelMenuAnchor, setModelMenuAnchor] = useState<HTMLElement | null>(null)
+    const [submenuAnchor, setSubmenuAnchor] = useState<HTMLElement | null>(null)
+    const [submenu, setSubmenu] = useState<AgentSettingsSubmenu | null>(null)
     const [securityMenuAnchor, setSecurityMenuAnchor] = useState<HTMLElement | null>(null)
-    const runStatus = useActionRunSelector(action.id, context, selectRunStatus)
+    const boundRunId = useBoundRunId(bindingStore)
+    const runStatus = useRunSelector(boundRunId, selectRunStatus)
     const settings = useActionRunSettings(action, settingsStore)
-    const currentSettings = {
-        agent: settings.agent,
-        model: settings.model,
-        permissionMode: settings.permissionMode,
-        thinkingLevel: settings.thinkingLevel,
-    }
     const disabled = !settings.desktopConfigAvailable
         || settings.availabilityLoading
         || settings.settingsLoading
@@ -76,22 +78,50 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
     const securityTooltip = settings.permissionModeSupported
         ? permissionOption?.label ?? 'Security'
         : 'Permission controls are unsupported by this agent'
+    const selectedProfile = settings.agentProfiles.find(({ name }) => name === settings.agent) ?? null
+    const selectedModelAvailable = settings.selectedAgentModels.includes(settings.model)
 
     const handleOpenModelMenu = (event: MouseEvent<HTMLButtonElement>) => setModelMenuAnchor(event.currentTarget)
-    const handleCloseModelMenu = () => setModelMenuAnchor(null)
+    const handleCloseSubmenu = () => {
+        const anchor = submenuAnchor
+        setSubmenu(null)
+        setSubmenuAnchor(null)
+        anchor?.focus()
+    }
+    const handleCloseModelMenu = () => {
+        setSubmenu(null)
+        setSubmenuAnchor(null)
+        setModelMenuAnchor(null)
+    }
     const handleOpenSecurityMenu = (event: MouseEvent<HTMLButtonElement>) => setSecurityMenuAnchor(event.currentTarget)
     const handleCloseSecurityMenu = () => setSecurityMenuAnchor(null)
+
+    const openSubmenu = (anchor: HTMLElement) => {
+        const nextSubmenu = anchor.dataset.submenu as AgentSettingsSubmenu | undefined
+        if (!nextSubmenu) throw new Error('Agent settings menu item is missing its submenu')
+        setSubmenu(nextSubmenu)
+        setSubmenuAnchor(anchor)
+    }
+
+    const handleOpenSubmenu = (event: MouseEvent<HTMLElement>) => openSubmenu(event.currentTarget)
+
+    const handleSubmenuKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+        if (event.key !== 'ArrowRight') return
+        event.preventDefault()
+        openSubmenu(event.currentTarget)
+    }
+
+    const handleNestedMenuKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+        if (event.key !== 'ArrowLeft') return
+        event.preventDefault()
+        event.stopPropagation()
+        handleCloseSubmenu()
+    }
 
     const handleAgentChange = (event: MouseEvent<HTMLElement>) => {
         const agent = event.currentTarget.dataset.agent
         if (agent === undefined) throw new Error('Agent menu item is missing its agent')
-        const profile = findAgentProfile(settings.agentProfiles, agent)
-        const nextSettings: Parameters<ActionRunSettingsStore['setSettings']>[0] = {
-            agent,
-            model: profile ? defaultModelForProfile(profile) : '',
-            permissionMode: profile && supportsPermissionMode(profile) ? DEFAULT_PERMISSION_MODE : '',
-            thinkingLevel: 'none',
-        }
+        const nextSettings = selectAgent(settings.selection, agent, settings.agentProfiles, settings.selectionSources)
         settingsStore.setSettings(nextSettings, changedWhileWaiting)
         handleCloseModelMenu()
     }
@@ -99,19 +129,19 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
     const handleModelChange = (event: MouseEvent<HTMLElement>) => {
         const model = event.currentTarget.dataset.model
         if (model === undefined) throw new Error('Model menu item is missing its model')
-        settingsStore.setSettings({ ...currentSettings, model, thinkingLevel: 'none' }, changedWhileWaiting)
+        settingsStore.setSettings(selectModel(settings.selection, model), changedWhileWaiting)
         handleCloseModelMenu()
     }
 
     const handleThinkingLevelChange = (event: MouseEvent<HTMLElement>) => {
         const thinkingLevel = validateThinkingLevel(event.currentTarget.dataset.thinkingLevel, 'action run input')
-        settingsStore.setSettings({ ...currentSettings, thinkingLevel }, changedWhileWaiting)
+        settingsStore.setSettings(selectThinkingLevel(settings.selection, thinkingLevel), changedWhileWaiting)
         handleCloseModelMenu()
     }
 
     const handlePermissionModeChange = (event: MouseEvent<HTMLElement>) => {
         const permissionMode = validatePermissionMode(event.currentTarget.dataset.permissionMode, 'action run input')
-        settingsStore.setSettings({ ...currentSettings, permissionMode }, changedWhileWaiting)
+        settingsStore.setSettings(selectPermissionMode(settings.selection, permissionMode), changedWhileWaiting)
         handleCloseSecurityMenu()
     }
 
@@ -187,44 +217,116 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 open={!!modelMenuAnchor}
                 slotProps={{ list: { 'aria-label': 'Agent model settings' } }}
             >
-                <ListSubheader disableSticky>Agent</ListSubheader>
+                <MenuItem
+                    aria-haspopup="menu"
+                    data-submenu="agent"
+                    onClick={handleOpenSubmenu}
+                    onKeyDown={handleSubmenuKeyDown}
+                >
+                    <ListItemText>Agent</ListItemText>
+                    <ChevronRight fontSize="small" />
+                </MenuItem>
+                <MenuItem
+                    aria-haspopup="menu"
+                    data-submenu="model"
+                    onClick={handleOpenSubmenu}
+                    onKeyDown={handleSubmenuKeyDown}
+                >
+                    <ListItemText>Model</ListItemText>
+                    <ChevronRight fontSize="small" />
+                </MenuItem>
+                <MenuItem
+                    aria-haspopup="menu"
+                    data-submenu="thinkingLevel"
+                    onClick={handleOpenSubmenu}
+                    onKeyDown={handleSubmenuKeyDown}
+                >
+                    <ListItemText>Thinking level</ListItemText>
+                    <ChevronRight fontSize="small" />
+                </MenuItem>
+            </Menu>
+            <Menu
+                anchorEl={submenuAnchor}
+                anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+                onClose={handleCloseSubmenu}
+                open={submenu === 'agent'}
+                slotProps={{ list: { 'aria-label': 'Agent choices', onKeyDown: handleNestedMenuKeyDown } }}
+                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+            >
+                {!selectedProfile ? (
+                    <MenuItem data-agent={settings.agent} disabled selected>
+                        <ListItemText primary={`${settings.agent} — unavailable`} secondary={settings.selectionValidationError} />
+                    </MenuItem>
+                ) : null}
                 {settings.agentProfiles.map((profile) => {
                     const availability = settings.agentAvailability[profile.name]
+                    const available = availability?.available === true
 
                     return (
                         <MenuItem
                             data-agent={profile.name}
-                            disabled={availability?.available !== true}
+                            disabled={!available}
                             key={profile.name}
                             onClick={handleAgentChange}
                             selected={profile.name === settings.agent}
                         >
-                            <ListItemText primary={profile.name} secondary={availability?.error} />
+                            <ListItemText
+                                primary={available ? profile.name : `${profile.name} — unavailable`}
+                                secondary={availability?.error}
+                            />
                         </MenuItem>
                     )
                 })}
-                <ListSubheader disableSticky>Model</ListSubheader>
-                {(settings.selectedAgentModels.length > 0 ? settings.selectedAgentModels : ['']).map((model) => (
+            </Menu>
+            <Menu
+                anchorEl={submenuAnchor}
+                anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+                onClose={handleCloseSubmenu}
+                open={submenu === 'model'}
+                slotProps={{ list: { 'aria-label': 'Model choices', onKeyDown: handleNestedMenuKeyDown } }}
+                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+            >
+                {(!selectedModelAvailable ? [settings.model] : []).concat(
+                    settings.selectedAgentModels.length > 0 ? settings.selectedAgentModels : [''],
+                ).map((model) => (
                     <MenuItem
                         data-model={model}
+                        disabled={model === settings.model && !selectedModelAvailable}
                         key={model || 'default'}
                         onClick={handleModelChange}
                         selected={model === settings.model}
                     >
-                        {model || 'Default'}
+                        {model === settings.model && !selectedModelAvailable
+                            ? `${model || 'Default'} — unavailable`
+                            : model || 'Default'}
                     </MenuItem>
                 ))}
-                <ListSubheader disableSticky>Thinking level</ListSubheader>
-                {THINKING_LEVELS.map((thinkingLevel) => (
-                    <MenuItem
-                        data-thinking-level={thinkingLevel}
-                        key={thinkingLevel}
-                        onClick={handleThinkingLevelChange}
-                        selected={thinkingLevel === settings.thinkingLevel}
-                    >
-                        {thinkingLevel}
-                    </MenuItem>
-                ))}
+            </Menu>
+            <Menu
+                anchorEl={submenuAnchor}
+                anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+                onClose={handleCloseSubmenu}
+                open={submenu === 'thinkingLevel'}
+                slotProps={{ list: { 'aria-label': 'Thinking level choices', onKeyDown: handleNestedMenuKeyDown } }}
+                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+            >
+                {THINKING_LEVELS.map((thinkingLevel) => {
+                    const available = !!selectedProfile && supportsThinkingLevel(selectedProfile, thinkingLevel)
+
+                    return (
+                        <MenuItem
+                            data-thinking-level={thinkingLevel}
+                            disabled={!available}
+                            key={thinkingLevel}
+                            onClick={handleThinkingLevelChange}
+                            selected={thinkingLevel === settings.thinkingLevel}
+                        >
+                            {thinkingLevel === settings.thinkingLevel && !available
+                                ? `${thinkingLevel} — unavailable`
+                                : thinkingLevel}
+                        </MenuItem>
+                    )
+                })}
             </Menu>
             <Menu
                 anchorEl={securityMenuAnchor}

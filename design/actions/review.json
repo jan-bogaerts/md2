@@ -3,11 +3,11 @@
   "label": "review",
   "description": "review an implementation",
   "type": "agent",
-  "phrases": [],
-  "prompt": "we just implemented the feature description  `{{card-file}}`.\r\nCheck that:  everything is fully and correctly implemented.\r\nlist all:- missing stuff\n\n* shortcuts\n* incorrectly implemented\n* bad design,\n* not following architectural design\n* code smells\r\n  be short and to the point, use /caveman skill",
-  "streaming": true,
   "appliesTo": {
     "kind": "card",
     "state": "ready"
-  }
+  },
+  "streaming": true,
+  "phrases": [],
+  "prompt": "we just implemented the feature description  `{{card-file}}`.\r\nCheck that:  everything is fully and correctly implemented code wise.\r\nlist all:\n\n* missing stuff\n* shortcuts\n* incorrectly implemented\n* bad design\n* not following architectural design\n* code smells\r\n\nbe short and to the point, use /caveman skill but report back with full normal sentences\n\nwe don't care about missing tests.\n\nfor each problem, include how you will fix it"
 }

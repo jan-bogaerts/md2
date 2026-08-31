@@ -1,29 +1,31 @@
-import type { ActionSettings, CardActivityFile } from '../../../../shared/card_activity.mjs'
-import { parseActivityValue } from '../../../../shared/card_activity.mjs'
+import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
+import { parseActivityValueForMigration } from '../../../../shared/card_activity.mjs'
 import type { PermissionMode, ThinkingLevel } from '../../data/agent_profiles'
-import { validatePermissionMode, validateThinkingLevel } from '../../data/agent_profiles'
+import type { AgentSelectionState } from '../../data/agent_selection'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { ProjectReference } from '../../data/data_types'
 import type { DataService } from '../data/data_service'
 import { dialogService } from '../dialog_service'
 import { register } from '../service_injector'
 
-export interface ResolvedActionRunSettings extends Omit<ActionSettings, 'permissionMode' | 'thinkingLevel'> {
-    permissionMode: PermissionMode | ''
+export interface ResolvedActionRunSettings {
+    agent: string
+    model: string
+    permissionMode?: PermissionMode | ''
     thinkingLevel: ThinkingLevel
 }
 
 export interface ActionRunSettingsSnapshot {
     loadError: string | null
     loading: boolean
-    settings: ResolvedActionRunSettings | null
+    settings: AgentSelectionState | null
     settingsChangedWhileWaiting: boolean
 }
 
 interface ActionRunSettingsStoreDependencies {
-    load(cardInternalId: string, actionId: string): Promise<ResolvedActionRunSettings | null>
+    load(cardInternalId: string, actionId: string): Promise<AgentSelectionState | null>
     reportError(error: unknown, fallbackMessage: string): void
-    save(cardInternalId: string, actionId: string, settings: ResolvedActionRunSettings): Promise<void>
+    save(cardInternalId: string, actionId: string, settings: AgentSelectionState): Promise<void>
 }
 
 interface ProjectStateOwner extends EventTarget {
@@ -51,25 +53,17 @@ async function loadPersistedSettings(cardInternalId: string, actionId: string) {
 
     const rawActivity = await bridge.loadCardActivity({ cardInternalId })
     const origin = { cardInternalId, kind: 'card' as const }
-    const activity: CardActivityFile = parseActivityValue(rawActivity, origin)
+    const activity: CardActivityFile = parseActivityValueForMigration(rawActivity, origin)
     const settings = activity.actionSettings[actionId]
     if (!settings) return null
 
-    const permissionMode: PermissionMode | '' = settings.permissionMode
-        ? validatePermissionMode(settings.permissionMode, `saved action settings "${actionId}"`)
-        : ''
-
-    return {
-        ...settings,
-        permissionMode,
-        thinkingLevel: validateThinkingLevel(settings.thinkingLevel, `saved action settings "${actionId}"`),
-    }
+    return settings
 }
 
 async function savePersistedSettings(
     cardInternalId: string,
     actionId: string,
-    settings: ResolvedActionRunSettings,
+    settings: AgentSelectionState,
 ) {
     const bridge = getElectronActionBridge()
     if (!bridge?.updateCardActionSettings) throw new Error('Saving card action settings requires Electron')
@@ -93,7 +87,7 @@ export class ActionRunSettingsStore extends EventTarget {
     private readonly cardInternalId: string | null
     private readonly dependencies: ActionRunSettingsStoreDependencies
     private lastPersistedSettingsChangedWhileWaiting = false
-    private lastPersistedSettings: ResolvedActionRunSettings | null = null
+    private lastPersistedSettings: AgentSelectionState | null = null
     private loadPromise: Promise<void> | null = null
     private pendingSave: Promise<void> = Promise.resolve()
     private revision = 0
@@ -130,7 +124,7 @@ export class ActionRunSettingsStore extends EventTarget {
         return this.loadPromise
     }
 
-    setSettings(settings: ResolvedActionRunSettings, changedWhileWaiting: boolean) {
+    setSettings(settings: AgentSelectionState, changedWhileWaiting: boolean) {
         const cardInternalId = this.cardInternalId
         const revision = this.revision + 1
         const settingsChangedWhileWaiting = this.snapshot.settingsChangedWhileWaiting || changedWhileWaiting
@@ -186,17 +180,12 @@ export class ActionRunSettingsStore extends EventTarget {
     }
 }
 
-export function createSessionActionRunSettingsStore(actionId: string, contextIdentity: string) {
-    if (contextIdentity.length === 0) throw new Error('Action settings context identity is required')
-
-    return new ActionRunSettingsStore(actionId, null)
-}
-
-/** Owns stable card/action settings stores for current project. */
+/** Owns stable card/action and session action/context settings stores for current project. */
 export class ActionRunSettingsService {
     private projectStateOwner: ProjectStateOwner | null = null
     private activeProjectKey: string | null = null
-    private readonly stores = new Map<string, ActionRunSettingsStore>()
+    private readonly cardStores = new Map<string, ActionRunSettingsStore>()
+    private readonly sessionStores = new Map<string, ActionRunSettingsStore>()
 
     constructor() {
         register('actionRunSettingsService', this)
@@ -212,18 +201,31 @@ export class ActionRunSettingsService {
 
     getCardStore(cardInternalId: string, actionId: string) {
         const key = `${cardInternalId}\u0000${actionId}`
-        const current = this.stores.get(key)
+        const current = this.cardStores.get(key)
         if (current) return current
 
         const store = new ActionRunSettingsStore(actionId, cardInternalId)
-        this.stores.set(key, store)
+        this.cardStores.set(key, store)
         void store.load()
 
         return store
     }
 
+    getSessionStore(actionId: string, contextIdentity: string) {
+        if (contextIdentity.length === 0) throw new Error('Action settings context identity is required')
+        const key = `${contextIdentity}\u0000${actionId}`
+        const current = this.sessionStores.get(key)
+        if (current) return current
+
+        const store = new ActionRunSettingsStore(actionId, null)
+        this.sessionStores.set(key, store)
+
+        return store
+    }
+
     clear() {
-        this.stores.clear()
+        this.cardStores.clear()
+        this.sessionStores.clear()
     }
 
     private readonly handleProjectChanged = () => {

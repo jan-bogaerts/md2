@@ -1,23 +1,31 @@
 import { useEffect } from 'react'
 import {
+    MARKDOWN_FLUSH_REQUESTED_EVENT,
     MARKDOWN_INSERTION_REQUESTED_EVENT,
-    type MarkdownDraft,
+    type MarkdownDraftBinding,
     type MarkdownInsertionRequest,
 } from '../../services/markdown/markdown_draft'
 
 /** Applies external replacements and insertion requests from one Markdown draft to its mounted editor. */
 export function useMarkdownDraft(
-    draft: MarkdownDraft | undefined,
+    draft: MarkdownDraftBinding | undefined,
     insertMarkdown: (markdown: string) => void,
     replaceMarkdown: (markdown: string) => void,
+    flush: () => boolean,
+    bindDraft: (draft: MarkdownDraftBinding | undefined) => void,
 ) {
     useEffect(() => {
-        if (!draft) return undefined
+        if (!draft) {
+            bindDraft(undefined)
+
+            return undefined
+        }
 
         replaceMarkdown(draft.getSnapshot())
+        bindDraft(draft)
 
         return draft.subscribeEditor(() => replaceMarkdown(draft.getSnapshot()))
-    }, [draft, replaceMarkdown])
+    }, [bindDraft, draft, replaceMarkdown])
 
     useEffect(() => {
         if (!draft) return undefined
@@ -35,4 +43,15 @@ export function useMarkdownDraft(
 
         return () => draft.removeEventListener(MARKDOWN_INSERTION_REQUESTED_EVENT, handleInsertionRequest)
     }, [draft, insertMarkdown])
+
+    useEffect(() => {
+        if (!draft) return undefined
+
+        const handleFlushRequest = () => {
+            flush()
+        }
+        draft.addEventListener(MARKDOWN_FLUSH_REQUESTED_EVENT, handleFlushRequest)
+
+        return () => draft.removeEventListener(MARKDOWN_FLUSH_REQUESTED_EVENT, handleFlushRequest)
+    }, [draft, flush])
 }

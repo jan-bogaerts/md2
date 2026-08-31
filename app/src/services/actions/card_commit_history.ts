@@ -1,5 +1,5 @@
 import type { ActivityCommitReference, ActivityRecord, CardActivityFile } from '../../../../shared/card_activity.mjs'
-import { parseActivityValue } from '../../../../shared/card_activity.mjs'
+import { parseActivityValueForMigration } from '../../../../shared/card_activity.mjs'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import { markdownParsingService } from '../data/markdown_parsing_service'
 
@@ -19,7 +19,7 @@ export async function loadCardCommits(cardInternalId: string): Promise<CardCommi
     const bridge = getElectronActionBridge()
     if (!bridge?.loadCardActivity) return []
     const rawActivity = await bridge.loadCardActivity({ cardInternalId })
-    const activity = parseActivityValue(rawActivity, { cardInternalId, kind: 'card' }) as CardActivityFile
+    const activity = parseActivityValueForMigration(rawActivity, { cardInternalId, kind: 'card' }) as CardActivityFile
 
     return activity.records
         .flatMap((record) => record.commits.map((commit) => ({ ...commit, record })))

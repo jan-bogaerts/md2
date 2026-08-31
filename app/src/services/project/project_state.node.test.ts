@@ -13,6 +13,10 @@ function createFile(path: string, title: string): MarkdownFile {
     return { content: `---\ntitle: ${title}\n---\n\n# ${title}\n\nBody`, path, sha: `${path}-sha` }
 }
 
+function createIdentifiedFile(path: string, title: string, internalId: string): MarkdownFile {
+    return { content: `---\ninternalId: ${internalId}\ntitle: ${title}\n---\n\n# ${title}\n\nBody`, path, sha: `${path}-sha` }
+}
+
 describe('ProjectState', () => {
     it('rebuilds the snapshot when project files are replaced', () => {
         const state = createState()
@@ -65,6 +69,25 @@ describe('ProjectState', () => {
         expect(state.files).toEqual([updatedSecondFile])
         expect(state.snapshot?.activeCards.map((card) => card.path)).toEqual([secondFile.path])
         expect(state.snapshot?.repositoryFiles).toEqual([secondFile.path])
+    })
+
+    it('drops an old card path returned by a background load after the card was renamed', () => {
+        const state = createState()
+        const originalFile = createIdentifiedFile('design/F-1-first.md', 'First', 'card-1')
+        const renamedPath = 'design/F-1-renamed.md'
+        state.replaceProjectFiles([originalFile], WORKING_FOLDER, [originalFile.path])
+        state.renameFile(originalFile.path, renamedPath, WORKING_FOLDER)
+        const renamedFile = state.files[0]
+
+        state.mergeBackgroundProjectFiles(
+            [originalFile, renamedFile],
+            WORKING_FOLDER,
+            [originalFile.path],
+        )
+
+        expect(state.files.map(({ path }) => path)).toEqual([renamedPath])
+        expect(state.snapshot?.activeCards.map(({ path }) => path)).toEqual([renamedPath])
+        expect(state.snapshot?.repositoryFiles).toEqual([renamedPath])
     })
 
     it('parses and attaches conversations only for the externally changed card', () => {
@@ -130,5 +153,22 @@ describe('ProjectState', () => {
         state.beginProjectLoad()
 
         expect(state.isCurrentLoad(project, firstProjectToken)).toBe(false)
+    })
+
+    it('clears expected persistence outcomes when project or branch scope changes', () => {
+        const state = createState()
+        state.replaceProject(project)
+        state.expectedPersistenceOutcomes.registerOperation([
+            { content: 'main content', kind: 'present', path: 'design/F-1-first.md' },
+        ])
+
+        state.replaceProject({ ...project, branch: 'other' })
+        expect(state.expectedPersistenceOutcomes.retainedOutcomeCount).toBe(0)
+
+        state.expectedPersistenceOutcomes.registerOperation([
+            { content: 'other project', kind: 'present', path: 'design/F-2-second.md' },
+        ])
+        state.replaceProject({ branch: 'other', id: 'next-project' })
+        expect(state.expectedPersistenceOutcomes.retainedOutcomeCount).toBe(0)
     })
 })

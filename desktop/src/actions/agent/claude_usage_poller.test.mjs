@@ -1,10 +1,11 @@
 import { createRequire } from 'node:module';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { ClaudeUsagePoller } = require('./claude_usage_poller');
+const { CLAUDE_USAGE_EXCERPT_MAX_CHARS, CLAUDE_USAGE_POLL_REASONS } = require('./claude_usage_diagnostics');
 
 const USAGE_OUTPUT = `You are currently using your subscription to power your Claude Code usage
 
@@ -38,8 +39,21 @@ function hangingChild() {
     return child;
 }
 
+/** Every record either poll attempt writes, in the order they were written. */
+function pollRecords() {
+    return [...console.warn.mock.calls, ...console.error.mock.calls].map(([, record]) => record);
+}
+
 describe('ClaudeUsagePoller', () => {
-    afterEach(() => vi.useRealTimers());
+    beforeEach(() => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+        vi.useRealTimers();
+    });
 
     it('constructs without an executable resolver', () => {
         expect(() => new ClaudeUsagePoller({
@@ -109,6 +123,22 @@ describe('ClaudeUsagePoller', () => {
         poller.stop();
     });
 
+    it('uses request observation time and request-scoped runtime listener', async () => {
+        const defaultListener = vi.fn();
+        const startupListener = vi.fn();
+        const poller = new ClaudeUsagePoller({
+            onRuntimeEvent: defaultListener,
+            spawn: vi.fn(() => completedChild()),
+        });
+
+        poller.requestPoll({ executable: 'claude.cmd', observedAt: 10, onRuntimeEvent: startupListener });
+        await poller.activePoll;
+
+        expect(startupListener).toHaveBeenCalledWith(expect.objectContaining({ kind: 'snapshot', observedAt: 10 }));
+        expect(defaultListener).not.toHaveBeenCalled();
+        poller.stop();
+    });
+
     it('hands unparsed output to the worker poll and publishes the usage it reports', async () => {
         const runtimeListener = vi.fn();
         const terminalPoll = vi.fn(async () => ({ payload: TERMINAL_PAYLOAD, unavailable: false }));
@@ -158,11 +188,11 @@ describe('ClaudeUsagePoller', () => {
             expect.objectContaining({ cwd: '/first', env: firstEnvironment, executable: '/tools/first-claude' }),
             expect.objectContaining({ registerAbort: expect.any(Function) }),
         );
-        expect(poller.pendingRequest).toEqual({
+        expect(poller.pendingRequest).toEqual(expect.objectContaining({
             cwd: '/second',
             env: secondEnvironment,
             executable: '/tools/second-claude',
-        });
+        }));
         poller.stop();
     });
 
@@ -269,6 +299,150 @@ describe('ClaudeUsagePoller', () => {
         poller.requestPoll({ executable: 'claude' });
         await expect(poller.activePoll).resolves.toBeUndefined();
         expect(poller.activePoll).toBeNull();
+        poller.stop();
+    });
+
+    it('says nothing at all when a poll succeeds', async () => {
+        const poller = new ClaudeUsagePoller({
+            onRuntimeEvent: vi.fn(),
+            spawn: vi.fn(() => completedChild()),
+        });
+
+        poller.requestPoll({ executable: 'claude' });
+        await poller.activePoll;
+
+        expect(console.warn).not.toHaveBeenCalled();
+        expect(console.error).not.toHaveBeenCalled();
+        poller.stop();
+    });
+
+    it('records unparseable stdout once, with the attempt, folder, executable and an excerpt', async () => {
+        const poller = new ClaudeUsagePoller({
+            onRuntimeEvent: vi.fn(),
+            spawn: vi.fn(() => completedChild('nothing a parser can use')),
+            terminalPoll: vi.fn(async () => ({ payload: TERMINAL_PAYLOAD, unavailable: false })),
+        });
+
+        poller.requestPoll({ cwd: '/project', executable: '/tools/claude' });
+        await poller.activePoll;
+
+        const records = pollRecords();
+        expect(records).toHaveLength(1);
+        expect(records[0]).toMatchObject({
+            attempt: 'stdout',
+            cwd: '/project',
+            executable: '/tools/claude',
+            reason: CLAUDE_USAGE_POLL_REASONS.stdoutUnparsed,
+            screenExcerpt: 'nothing a parser can use',
+        });
+        expect(records[0].elapsedMs).toEqual(expect.any(Number));
+        poller.stop();
+    });
+
+    it('records a spawn failure as an error with the message that caused it', async () => {
+        const poller = new ClaudeUsagePoller({
+            onRuntimeEvent: vi.fn(),
+            spawn: vi.fn(() => {
+                throw new Error('spawn ENOENT');
+            }),
+            terminalPoll: vi.fn(),
+        });
+
+        poller.requestPoll({ executable: 'claude' });
+        await poller.activePoll;
+
+        expect(console.error).toHaveBeenCalledOnce();
+        expect(pollRecords()[0]).toMatchObject({
+            attempt: 'stdout',
+            error: 'spawn ENOENT',
+            reason: CLAUDE_USAGE_POLL_REASONS.stdoutSpawnFailed,
+        });
+        poller.stop();
+    });
+
+    it('passes each pty failure reason through to its own record, with the screen the worker saw', async () => {
+        const reasons = [
+            CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker,
+            CLAUDE_USAGE_POLL_REASONS.ptyTrustScreenUnanswered,
+            CLAUDE_USAGE_POLL_REASONS.ptyReportTimeout,
+            CLAUDE_USAGE_POLL_REASONS.workerForkFailed,
+            CLAUDE_USAGE_POLL_REASONS.workerExitedWithoutReply,
+            CLAUDE_USAGE_POLL_REASONS.hostDeadline,
+            CLAUDE_USAGE_POLL_REASONS.ptyLoginRequired,
+        ];
+
+        for (const reason of reasons) {
+            console.warn.mockClear();
+            console.error.mockClear();
+            const poller = new ClaudeUsagePoller({
+                onRuntimeEvent: vi.fn(),
+                spawn: vi.fn(() => completedChild('partial')),
+                terminalPoll: vi.fn(async () => ({
+                    payload: null,
+                    reason,
+                    screenExcerpt: 'last screen',
+                    unavailable: false,
+                })),
+            });
+
+            poller.requestPoll({ executable: 'claude' });
+            await poller.activePoll;
+
+            const ptyRecords = pollRecords().filter((record) => record.attempt === 'pty');
+            expect(ptyRecords).toHaveLength(1);
+            expect(ptyRecords[0]).toMatchObject({ reason, screenExcerpt: 'last screen' });
+            poller.stop();
+        }
+    });
+
+    it('writes a bounded number of records however much Claude printed', async () => {
+        const noisyOutput = 'unparseable chatter '.repeat(50_000);
+        const poller = new ClaudeUsagePoller({
+            onRuntimeEvent: vi.fn(),
+            spawn: vi.fn(() => completedChild(noisyOutput)),
+            terminalPoll: vi.fn(async () => ({
+                payload: null,
+                reason: CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker,
+                screenExcerpt: 'x'.repeat(CLAUDE_USAGE_EXCERPT_MAX_CHARS),
+                unavailable: false,
+            })),
+        });
+
+        poller.requestPoll({ executable: 'claude' });
+        await poller.activePoll;
+
+        // One per attempt, whatever the volume: this poll repeats forever on an interval.
+        const records = pollRecords();
+        expect(records).toHaveLength(2);
+        for (const record of records) {
+            expect(record.screenExcerpt.length).toBeLessThanOrEqual(CLAUDE_USAGE_EXCERPT_MAX_CHARS + 1);
+        }
+        poller.stop();
+    });
+
+    it('gives the plain-stdout attempt and the pty fallback independent budgets', async () => {
+        vi.useFakeTimers();
+        const child = hangingChild();
+        let terminalRequest = null;
+        const poller = new ClaudeUsagePoller({
+            onRuntimeEvent: vi.fn(),
+            readyTimeoutMs: 30_000,
+            reportTimeoutMs: 20_000,
+            spawn: vi.fn(() => child),
+            terminalPoll: vi.fn(async (request) => {
+                terminalRequest = request;
+
+                return { payload: TERMINAL_PAYLOAD, unavailable: false };
+            }),
+        });
+
+        poller.requestPoll({ executable: 'claude' });
+        // The stdout attempt burns its own budget only; exhausting it leaves the fallback untouched.
+        await vi.advanceTimersByTimeAsync(5_000);
+        await poller.activePoll;
+
+        expect(child.kill).toHaveBeenCalledOnce();
+        expect(terminalRequest).toMatchObject({ readyTimeoutMs: 30_000, reportTimeoutMs: 20_000, timeoutMs: 50_000 });
         poller.stop();
     });
 });

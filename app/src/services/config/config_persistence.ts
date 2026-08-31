@@ -6,13 +6,14 @@ import {
     type DesktopConfigValues,
 } from './config_entries'
 import { getElectronConfigBridge } from './electron_config_bridge'
+import { applicationStorage } from '../storage/application_storage'
 
 export const REACT_CONFIG_STORAGE_KEY = 'md2.reactConfig'
 
 type MergeConfigValue = (values: ConfigValues, key: ConfigKey, value: unknown) => ConfigValues
 
 export function readStoredReactValues(): Partial<Record<ConfigKey, unknown>> {
-    const raw = window.localStorage.getItem(REACT_CONFIG_STORAGE_KEY)
+    const raw = applicationStorage.getItem(REACT_CONFIG_STORAGE_KEY)
     if (!raw) return {}
 
     try {
@@ -28,7 +29,7 @@ export function writeStoredReactValues(values: ConfigValues) {
     const stored: Partial<Record<ConfigKey, unknown>> = {}
     for (const key of LOCAL_STORAGE_KEYS) stored[key] = values[key]
 
-    window.localStorage.setItem(REACT_CONFIG_STORAGE_KEY, JSON.stringify(stored))
+    applicationStorage.setItem(REACT_CONFIG_STORAGE_KEY, JSON.stringify(stored))
 }
 
 export function mergeStoredReactValues(values: ConfigValues, mergeValue: MergeConfigValue): ConfigValues {

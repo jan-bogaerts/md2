@@ -45,6 +45,7 @@ describe('RemoteControlService push protocol', () => {
         const subscriptions = [
             ['watchProject', [project], 'watch-request'],
             ['onActionRun', [], 'action-request'],
+            ['onClaudeRateLimits', [], 'claude-limits-request'],
             ['onCodexRateLimits', [], 'limits-request'],
             ['onMergeConflictSessionChanged', [], 'conflict-request'],
             ['onWorktreesChanged', [], 'worktrees-request'],
@@ -58,13 +59,15 @@ describe('RemoteControlService push protocol', () => {
         const watchEvent = { changeKind: 'changed', path: 'design/F-1.md' };
         const actionEvent = { runId: 'action-1', sequence: 1, status: 'running', type: 'run' };
         const agentEvent = { content: 'working', runId: 'agent-1', type: 'output' };
-        const snapshot = { available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null };
+        const claudeSnapshot = { available: true, observedAt: 11, windows: [] };
+        const codexSnapshot = { available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null };
         const state = { error: null, primaryStatus: null, project, records: [] };
         const conflictSession = { conflictedPaths: ['src/file.js'], id: 'session-1' };
         callbacks.get('watchProject')(watchEvent);
         callbacks.get('runSearchRegexpAgent')(agentEvent);
         callbacks.get('onActionRun')(actionEvent);
-        callbacks.get('onCodexRateLimits')(snapshot);
+        callbacks.get('onClaudeRateLimits')(claudeSnapshot);
+        callbacks.get('onCodexRateLimits')(codexSnapshot);
         callbacks.get('onMergeConflictSessionChanged')(conflictSession);
         callbacks.get('onWorktreesChanged')(state);
 
@@ -73,7 +76,8 @@ describe('RemoteControlService push protocol', () => {
             { event: 'watchProject', payload: { event: watchEvent, requestId: 'watch-request', subscriptionId: subscriptionResults.get('watchProject').subscriptionId } },
             { event: 'agentRun', payload: { event: agentEvent, requestId: 'agent-request' } },
             { event: 'actionRun', payload: { event: actionEvent, requestId: 'action-request', subscriptionId: subscriptionResults.get('onActionRun').subscriptionId } },
-            { event: 'codexRateLimits', payload: { requestId: 'limits-request', snapshot, subscriptionId: subscriptionResults.get('onCodexRateLimits').subscriptionId } },
+            { event: 'claudeRateLimits', payload: { requestId: 'claude-limits-request', snapshot: claudeSnapshot, subscriptionId: subscriptionResults.get('onClaudeRateLimits').subscriptionId } },
+            { event: 'codexRateLimits', payload: { requestId: 'limits-request', snapshot: codexSnapshot, subscriptionId: subscriptionResults.get('onCodexRateLimits').subscriptionId } },
             { event: 'mergeConflictSessionChanged', payload: { requestId: 'conflict-request', session: conflictSession, subscriptionId: subscriptionResults.get('onMergeConflictSessionChanged').subscriptionId } },
             { event: 'worktreesChanged', payload: { requestId: 'worktrees-request', state, subscriptionId: subscriptionResults.get('onWorktreesChanged').subscriptionId } },
         ]);
@@ -82,5 +86,24 @@ describe('RemoteControlService push protocol', () => {
             expect(service.unsubscribe(client, [subscriptionResults.get(method).subscriptionId])).toBe(true);
             expect(cleanups.get(method)).toHaveBeenCalledOnce();
         }
+    });
+    it('sends the error code and marker fields so remote clients can recover', async () => {
+        const missingWorkingFolder = new Error('Working folder is missing: design/feature_descriptions');
+        missingWorkingFolder.code = 'missing-working-folder';
+        missingWorkingFolder.workingFolder = 'design/feature_descriptions';
+        const service = new RemoteControlService({ invoke: vi.fn(() => { throw missingWorkingFolder; }) });
+        const client = createClient();
+
+        await service.handleMessage(client, JSON.stringify({ id: 'request-1', method: 'loadProject', params: [] }));
+
+        expect(JSON.parse(client.send.mock.calls[0][0])).toEqual({
+            error: {
+                code: 'missing-working-folder',
+                fields: { workingFolder: 'design/feature_descriptions' },
+                message: 'Working folder is missing: design/feature_descriptions',
+                name: 'Error',
+            },
+            id: 'request-1',
+        });
     });
 });

@@ -1,40 +1,31 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
+import { describe, expect, it, vi } from 'vitest'
 import { RemoteControlConnectionError } from '../data/remote_control_storage_service'
-import { ActionPromptDraftService, type ActionPromptRunBinding } from './action_prompt_draft_service'
+import { ActionPromptDraftService } from './action_prompt_draft_service'
 
 const context = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
-const run: ActionPromptRunBinding = {
-    activeActionId: 'review',
-    activeActionType: 'agent',
-    runId: 'run-1',
-    interactionReady: true,
-    rootActionId: 'review',
-}
-
-function createRemoteBridge(overrides: Partial<ElectronActionBridge> = {}) {
-    return {
-        beginActionPromptDraft: vi.fn(async () => 2),
-        sendActionQueuedMessage: vi.fn(async () => ({ sent: true })),
-        setActionQueuedMessage: vi.fn(async () => ({ accepted: true })),
-        ...overrides,
-    } as unknown as ElectronActionBridge
-}
-
-afterEach(() => setActionBridgeOverride(null))
 
 describe('ActionPromptDraftService', () => {
-    it('keeps stable identity by action context and active agent session', () => {
+    it('keeps one draft per action and context identity across a whole run', () => {
         const service = new ActionPromptDraftService()
         const options = { initialValue: 'Plan', prepare: false }
-        const idle = service.getDraft('review', context, null, options)
+        const draft = service.getDraft('review', context, null, options)
 
-        expect(service.getDraft('review', { ...context, state: 'done' }, null, options)).toBe(idle)
-        expect(service.getDraft('other', context, null, options)).not.toBe(idle)
+        expect(service.getDraft('review', { ...context, state: 'done' }, null, options)).toBe(draft)
+        expect(service.getDraft('other', context, null, options)).not.toBe(draft)
+        expect(service.getDraft('review', { ...context, cardInternalId: 'card-2' }, null, options)).not.toBe(draft)
+    })
 
-        const active = service.getDraft('review', context, run, options)
-        expect(service.getDraft('review', context, { ...run, interactionReady: false }, options)).toBe(active)
-        expect(active).not.toBe(idle)
+    it('keeps concurrent run drafts separate from each other and New conversation', () => {
+        const service = new ActionPromptDraftService()
+        const first = service.getDraft('review', context, 'run-1', { prepare: false })
+        const second = service.getDraft('review', context, 'run-2', { prepare: false })
+        const fresh = service.getDraft('review', context, null, { prepare: false })
+
+        first.edit('First')
+        second.edit('Second')
+        fresh.edit('New')
+
+        expect([first.getSnapshot(), second.getSnapshot(), fresh.getSnapshot()]).toEqual(['First', 'Second', 'New'])
     })
 
     it('publishes local edits only to value subscribers', () => {
@@ -83,6 +74,22 @@ describe('ActionPromptDraftService', () => {
         expect(draft.getEditorSnapshot().preparationStatus).toBe('ready')
     })
 
+    it('ignores editor synchronization while prompt preparation is loading', async () => {
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('review', context, null, { prepare: true })
+        let resolvePreparation: (value: string) => void = () => undefined
+        const preparation = draft.prepare(() => new Promise((resolve) => {
+            resolvePreparation = resolve
+        }))
+
+        draft.editorDraft.edit('Previous action prompt')
+        resolvePreparation('Prepared draft')
+        await preparation
+
+        expect(draft.getSnapshot()).toBe('Prepared draft')
+        expect(draft.hasLocalEdits()).toBe(false)
+    })
+
     it('keeps connection-loss preparation loading and retries after readiness returns', async () => {
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, null, { prepare: true })
@@ -112,49 +119,108 @@ describe('ActionPromptDraftService', () => {
         expect(draft.getSnapshot()).toBe('User draft')
     })
 
-    it('serializes remote writes with increasing revisions', async () => {
-        const setActionQueuedMessage = vi.fn(async () => ({ accepted: true }))
-        setActionBridgeOverride(createRemoteBridge({ setActionQueuedMessage }))
+    it('exposes no delivery API', () => {
         const service = new ActionPromptDraftService()
-        const draft = service.getDraft('review', context, run, { prepare: false })
+        const draft = service.getDraft('review', context, null, { prepare: false }) as unknown as Record<string, unknown>
 
-        draft.edit('First')
-        const firstWrite = draft.synchronize()
-        draft.edit('Second')
-        const secondWrite = draft.synchronize()
-        await Promise.all([firstWrite, secondWrite])
-
-        expect(setActionQueuedMessage).toHaveBeenNthCalledWith(1, 'run-1', 2, 'First', 1)
-        expect(setActionQueuedMessage).toHaveBeenNthCalledWith(2, 'run-1', 2, 'Second', 2)
+        expect(draft.send).toBeUndefined()
+        expect(draft.bindRun).toBeUndefined()
     })
 
-    it('retains draft when remote send acknowledgement fails', async () => {
-        setActionBridgeOverride(createRemoteBridge({
-            sendActionQueuedMessage: vi.fn(async () => {
-                throw new Error('Queued agent message session expired')
-            }),
-        }))
+    it('tracks a revision that only advances when the value is set', () => {
         const service = new ActionPromptDraftService()
-        const draft = service.getDraft('review', context, run, { prepare: false })
-        draft.edit('Do not lose this')
-        await draft.synchronize()
+        const draft = service.getDraft('review', context, null, { prepare: false })
+        const initialRevision = draft.getRevision()
 
-        await expect(draft.send()).rejects.toThrow('session expired')
-        expect(draft.getSnapshot()).toBe('Do not lose this')
+        draft.edit('Typed')
+
+        expect(draft.getRevision()).toBe(initialRevision + 1)
     })
 
-    it('clears every subscriber after successful send', async () => {
-        setActionBridgeOverride(createRemoteBridge())
+    it('empties a cleared draft without replacing the object bound to the editor', () => {
         const service = new ActionPromptDraftService()
-        const draft = service.getDraft('review', context, run, { prepare: false })
-        const listener = vi.fn()
-        draft.subscribe(listener)
-        draft.edit('Send this')
+        const draft = service.getDraft('review', context, null, { prepare: false })
+        draft.edit('Sent request')
 
-        await draft.send()
+        service.clearDraft('review', context, null)
 
         expect(draft.getSnapshot()).toBe('')
-        expect(listener).toHaveBeenCalledTimes(2)
+        expect(service.getDraft('review', context, null, { prepare: false })).toBe(draft)
+    })
+
+    it('deletes only unedited drafts during terminal cleanup', () => {
+        const service = new ActionPromptDraftService()
+        const unedited = service.getDraft('review', context, 'run-1', { prepare: false })
+        const edited = service.getDraft('review', context, 'run-2', { prepare: false })
+        edited.edit('Keep this text')
+
+        service.deleteUneditedDraft('review', context, 'run-1')
+        service.deleteUneditedDraft('review', context, 'run-2')
+
+        expect(service.getDraft('review', context, 'run-1', { prepare: false })).not.toBe(unedited)
+        expect(service.getDraft('review', context, 'run-2', { prepare: false })).toBe(edited)
+    })
+
+    it('discards an unedited prepared default and keeps user-edited text', async () => {
+        const service = new ActionPromptDraftService()
+        const prepared = service.getDraft('review', context, null, { prepare: true })
+        await prepared.prepare(async () => 'Prepared prompt')
+
+        service.discardUneditedDraft('review', context, null)
+        expect(prepared.getSnapshot()).toBe('')
+
+        prepared.edit('Typed while the agent was finishing')
+        service.discardUneditedDraft('review', context, null)
+
+        expect(prepared.getSnapshot()).toBe('Typed while the agent was finishing')
+        expect(service.getDraft('review', context, null, { prepare: false })).toBe(prepared)
+    })
+
+    it('prepares again after an unedited prompt is cleared', async () => {
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('review', context, null, { prepare: true })
+        await draft.prepare(async () => 'First prepared prompt')
+        service.discardUneditedDraft('review', context, null)
+
+        await draft.prepare(async () => 'Prepared again')
+
+        expect(draft.getSnapshot()).toBe('Prepared again')
+        expect(draft.hasLocalEdits()).toBe(false)
+    })
+
+    it('treats exact-empty local input as unedited and prepares it again', async () => {
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('review', context, null, { prepare: true })
+        await draft.prepare(async () => 'Prepared prompt')
+        draft.edit('')
+
+        await draft.prepare(async () => 'Restored prompt')
+
+        expect(draft.getSnapshot()).toBe('Restored prompt')
+        expect(draft.hasLocalEdits()).toBe(false)
+    })
+
+    it('deletes exact-empty drafts while preserving non-empty user drafts', () => {
+        const service = new ActionPromptDraftService()
+        const empty = service.getDraft('review', context, null, { prepare: false })
+        const preservedContext = { ...context, cardInternalId: 'card-2' }
+        const preserved = service.getDraft('review', preservedContext, null, { prepare: false })
+        preserved.edit('Keep')
+
+        service.deleteEmptyDrafts()
+
+        expect(service.getDraft('review', context, null, { prepare: false })).not.toBe(empty)
+        expect(service.getDraft('review', preservedContext, null, { prepare: false })).toBe(preserved)
+    })
+
+    it('flushes the mounted editor before judging a draft as unedited', () => {
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('review', context, null, { prepare: false })
+        draft.markdownDraft.addEventListener('flushRequested', () => draft.edit('Buffered keystrokes'))
+
+        service.discardUneditedDraft('review', context, null)
+
+        expect(draft.getSnapshot()).toBe('Buffered keystrokes')
     })
 
     it('cleans drafts only through explicit lifecycle operations', () => {
@@ -174,15 +240,13 @@ describe('ActionPromptDraftService', () => {
         expect(replacement.getSnapshot()).toBe('')
     })
 
-    it('invalidates idle prepared defaults without discarding user or active-run drafts', async () => {
+    it('invalidates prepared defaults without discarding user drafts', async () => {
         const service = new ActionPromptDraftService()
         const prepared = service.getDraft('review', context, null, { prepare: true })
         await prepared.prepare(async () => 'Prepared prompt')
         const editedContext = { ...context, cardInternalId: 'card-2' }
         const edited = service.getDraft('review', editedContext, null, { prepare: true })
         edited.edit('User prompt')
-        const active = service.getDraft('review', context, run, { prepare: false })
-        active.edit('Active prompt')
 
         service.invalidateIdlePreparedDrafts('review')
 
@@ -190,6 +254,5 @@ describe('ActionPromptDraftService', () => {
         expect(replacement).not.toBe(prepared)
         expect(prepared.getSnapshot()).toBe('Prepared prompt')
         expect(service.getDraft('review', editedContext, null, { prepare: true })).toBe(edited)
-        expect(service.getDraft('review', context, run, { prepare: false })).toBe(active)
     })
 })

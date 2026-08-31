@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 interface MenuSelectProps {
     children: ReactNode
     disabled?: boolean
+    errorMessage?: string | null
     label: string
     minWidth?: number
     onChange: (event: SelectChangeEvent) => void
@@ -15,7 +16,7 @@ interface MenuSelectProps {
 
 /** Tooltip-wrapped compact select used by menu sections. */
 export function MenuSelect(props: MenuSelectProps) {
-    const { children, disabled = false, label, minWidth = 140, onChange, onOpen, value } = props
+    const { children, disabled = false, errorMessage = null, label, minWidth = 140, onChange, onOpen, value } = props
     const [isSelectOpen, setIsSelectOpen] = useState(false)
     const [isTooltipOpen, setIsTooltipOpen] = useState(false)
 
@@ -37,8 +38,8 @@ export function MenuSelect(props: MenuSelectProps) {
     }
 
     return (
-        <Tooltip onClose={closeTooltip} onOpen={openTooltip} open={isTooltipOpen && !isSelectOpen} title={label}>
-            <FormControl size="small" sx={{ minWidth }}>
+        <Tooltip onClose={closeTooltip} onOpen={openTooltip} open={isTooltipOpen && !isSelectOpen} title={errorMessage ?? label}>
+            <FormControl error={!!errorMessage} size="small" sx={{ minWidth }}>
                 <Select
                     aria-label={label}
                     disabled={disabled}

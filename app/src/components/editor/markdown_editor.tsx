@@ -32,7 +32,7 @@ import type {
 } from './markdown_data_source'
 import { MarkdownAttachmentControl } from './markdown_attachment_control'
 import type { AttachmentMarkdownInserter } from '../../services/attachments/attachment_workflow'
-import type { MarkdownDraft } from '../../services/markdown/markdown_draft'
+import type { MarkdownDraftBinding } from '../../services/markdown/markdown_draft'
 import { useMarkdownDraft } from './use_markdown_draft'
 
 const DEFAULT_CODE_LANGUAGE = ''
@@ -57,6 +57,7 @@ interface MarkdownEditorPresentationProps {
     imagePasteHandler?: MarkdownImagePasteHandler
     /** Set false when containing surface owns Ctrl+F behavior. */
     localTextSearch?: boolean
+    monospace?: boolean
     overlayContainer?: HTMLElement | null
     placeholders?: readonly ActionPlaceholder[]
     readOnly?: boolean
@@ -89,7 +90,7 @@ interface MarkdownEditorLocalProps extends MarkdownEditorPresentationProps {
 interface MarkdownEditorDraftProps extends MarkdownEditorPresentationProps {
     binding?: never
     dataSource?: never
-    draft: MarkdownDraft
+    draft: MarkdownDraftBinding
     historyStore?: never
     markdown?: never
     onChange?: (markdown: string) => void
@@ -126,6 +127,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         hideToolbar = false,
         imagePasteHandler,
         localTextSearch = true,
+        monospace = false,
         overlayContainer,
         placeholders = EMPTY_PLACEHOLDERS,
         readOnly = false,
@@ -143,6 +145,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const initialDocumentSnapshot = initialDocumentRef.current
     const { markdownContentSx, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
+    const activeDraftRef = useRef(draft)
     const activeTargetRef = useRef(initialDocumentSnapshot.target)
     const latestMarkdownRef = useRef(initialDocumentSnapshot.markdown)
     const lastEmittedMarkdownRef = useRef(initialDocumentSnapshot.markdown)
@@ -162,6 +165,14 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }, [])
 
     const flush = useCallback(() => {
+        const activeDraft = activeDraftRef.current
+        if (activeDraft) {
+            const editorMarkdown = editorRef.current?.getMarkdown()
+            if (editorMarkdown !== undefined && editorMarkdown !== latestMarkdownRef.current) {
+                latestMarkdownRef.current = editorMarkdown
+                activeDraft.edit(editorMarkdown)
+            }
+        }
         if (latestMarkdownRef.current === lastEmittedMarkdownRef.current) return true
 
         const activeTarget = activeTargetRef.current
@@ -198,7 +209,6 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         setDirty(false)
     }, [setDirty])
 
-    const getMarkdown = useCallback(() => editorRef.current?.getMarkdown() ?? latestMarkdownRef.current, [])
     const getTarget = useCallback(() => activeTargetRef.current, [])
 
     const replaceMarkdown = useCallback((markdown: string) => {
@@ -218,14 +228,19 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         applyPendingDocumentChangeRef.current = retry
     }, [])
 
+    const bindDraft = useCallback((nextDraft: MarkdownDraftBinding | undefined) => {
+        activeDraftRef.current = nextDraft
+    }, [])
+
     const historyPluginConfig = useMemo(() => historyStore && binding && dataSource
         ? {
             binding,
             completeDocumentSwitch,
             dataSource,
             getTarget,
-            getMarkdown,
             historyStore,
+            initialMarkdown: initialDocumentSnapshot.markdown,
+            initialTarget: initialDocumentSnapshot.target,
             prepareDocumentSwitch,
             replaceMarkdown,
             setPendingDocumentChangeRetry,
@@ -235,8 +250,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         completeDocumentSwitch,
         dataSource,
         getTarget,
-        getMarkdown,
         historyStore,
+        initialDocumentSnapshot.markdown,
+        initialDocumentSnapshot.target,
         prepareDocumentSwitch,
         replaceMarkdown,
         setPendingDocumentChangeRetry,
@@ -284,10 +300,10 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (!dirtyBaselineEstablishedRef.current) return
         setDirty(markdown !== lastEmittedMarkdownRef.current)
         onLiveChangeRef.current?.(markdown)
-        draft?.edit(markdown)
+        activeDraftRef.current?.edit(markdown)
         const activeTarget = activeTargetRef.current
         if (dataSource && binding && activeTarget) dataSource.edit(binding, activeTarget, markdown)
-    }, [binding, dataSource, draft, setDirty])
+    }, [binding, dataSource, setDirty])
 
     const handleEditorError = useCallback(({ error }: MarkdownProcessingError) => {
         dialogService.error(new Error(error), { fallbackMessage: 'Markdown could not be parsed' })
@@ -305,9 +321,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         editor.focus(() => editor.insertMarkdown(markdown), { defaultSelection: 'rootEnd' })
     }, [])
 
-    useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown)
-
     const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
+
+    useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown, flush, bindDraft)
 
     const attachFiles = useCallback((files: File[]) => {
         if (!attachmentHandler || readOnly || files.length === 0) return
@@ -351,6 +367,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     ])
     const editorSx = {
         ...markdownContentSx,
+        ...(monospace ? {'& .mdxeditor-content, & .mdxeditor-content *': { fontFamily: 'monospace !important' }} : {}),
         '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },
     }
     const historyPlugin = historyPluginConfig ? markdownDocumentHistoryPlugin(historyPluginConfig) : null

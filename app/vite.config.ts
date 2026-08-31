@@ -13,6 +13,7 @@ const JSON_CONTENT_TYPE = 'application/json'
 const LOCAL_URL_BASE = 'http://localhost'
 const NODE_TEST_GROUP_ORDER = 0
 const UI_TEST_GROUP_ORDER = 1
+const REAL_EDITOR_TEST_GROUP_ORDER = 2
 const TEST_WORKERS = 1
 
 type NextFunction = (error?: Error) => void
@@ -138,7 +139,7 @@ export default defineConfig({
                 extends: true,
                 test: {
                     environment: 'jsdom',
-                    exclude: ['src/**/*.node.test.ts'],
+                    exclude: ['src/**/*.node.test.ts', 'src/**/*.real.test.tsx'],
                     fileParallelism: false,
                     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
                     isolate: true,
@@ -146,6 +147,19 @@ export default defineConfig({
                     name: 'ui',
                     sequence: { groupOrder: UI_TEST_GROUP_ORDER },
                     setupFiles: './src/test/setup.ts',
+                },
+            },
+            {
+                extends: true,
+                test: {
+                    environment: 'jsdom',
+                    fileParallelism: false,
+                    include: ['src/**/*.real.test.tsx'],
+                    isolate: true,
+                    maxWorkers: TEST_WORKERS,
+                    name: 'real-editor',
+                    sequence: { groupOrder: REAL_EDITOR_TEST_GROUP_ORDER },
+                    setupFiles: './src/test/real_editor_setup.ts',
                 },
             },
         ],

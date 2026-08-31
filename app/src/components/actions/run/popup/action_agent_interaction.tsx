@@ -1,11 +1,11 @@
 import { Stack } from '@mui/material'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
-import { useActionRunSelector } from '../../../hooks/use_action_runs'
+import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
 import { ActionAgentApprovals } from '../../agent/action_agent_approvals'
-import { ActionAgentPromptOwner } from '../../agent/action_agent_prompt_owner'
+import { ActionPromptOwner } from '../../agent/action_prompt_owner'
 import { ActionAgentQuestionOwner } from '../../agent/action_agent_question_owner'
-import { ActionConversationChatOwner } from '../../conversation/action_conversation_chat_owner'
+import { ActionConversationChat } from '../../conversation/action_conversation_chat'
 import { ActionLogErrorOwner } from '../../conversation/action_log_error_owner'
 import type { ActionPopupRuntime } from './action_popup_types'
 
@@ -20,24 +20,36 @@ interface ActionAgentInteractionProps {
 export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
     const { action, assignmentContext, popupEntryId, runtime } = props
     const {
-        conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
-        settingsStore, usageScopeStore,
+        bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
+        settingsStore, usageValuesService,
     } = runtime
-    const activeActionType = useActionRunSelector(action.id, assignmentContext, (run) => run?.activeActionType ?? null)
+    const boundRunId = useBoundRunId(bindingStore)
+    const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
     const visible = action.type === 'agent' || activeActionType === 'agent'
+    const displayedUsageValuesService = action.type === 'agent'
+        && assignmentContext.kind === 'card'
+        && !!assignmentContext.file
+        && !!assignmentContext.cardInternalId
+        ? usageValuesService
+        : undefined
+
+    if (!visible) return null
 
     return (
-        <Stack sx={{ display: visible ? 'contents' : 'none' }}>
+        <Stack sx={{ display: 'contents' }}>
             <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
-                <ActionLogErrorOwner actionId={action.id} context={assignmentContext} resultStore={resultStore} />
-                <ActionConversationChatOwner
+                <ActionLogErrorOwner bindingStore={bindingStore} resultStore={resultStore} />
+                <ActionConversationChat
                     actionId={action.id}
+                    bindingStore={bindingStore}
                     context={assignmentContext}
                     popupEntryId={popupEntryId}
                     store={conversationStore}
+                    usageValuesService={displayedUsageValuesService}
                 />
-                <ActionAgentPromptOwner
+                <ActionPromptOwner
                     action={action}
+                    bindingStore={bindingStore}
                     context={assignmentContext}
                     conversationStore={conversationStore}
                     historyStore={historyStore}
@@ -46,10 +58,9 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
                     resultStore={resultStore}
                     runValidationError={runValidationError}
                     scheduleStore={scheduleStore}
-                    usageScopeStore={usageScopeStore}
                 />
-                <ActionAgentApprovals actionId={action.id} context={assignmentContext} />
-                <ActionAgentQuestionOwner actionId={action.id} context={assignmentContext} />
+                <ActionAgentApprovals bindingStore={bindingStore} />
+                <ActionAgentQuestionOwner bindingStore={bindingStore} />
             </Stack>
         </Stack>
     )

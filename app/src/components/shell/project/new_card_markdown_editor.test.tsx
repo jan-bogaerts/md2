@@ -11,7 +11,7 @@ describe('NewCardMarkdownEditor', () => {
         const draft = new MarkdownDraft('')
         render(
             <AppThemeProvider>
-                <NewCardMarkdownEditor draft={draft} />
+                <NewCardMarkdownEditor draft={draft} overlayContainer={null} />
             </AppThemeProvider>,
         )
 

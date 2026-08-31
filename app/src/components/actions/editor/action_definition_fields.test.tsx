@@ -28,11 +28,12 @@ function renderFields(definition: RawActionDefinition) {
         { content: JSON.stringify({ command: 'before', description: 'Before', id: 'before', label: 'Before', type: 'command' }), path: 'actions/before.json' },
         { content: JSON.stringify({ command: 'after', description: 'After', id: 'after', label: 'After', type: 'command' }), path: 'actions/after.json' },
     ])
-    actionService.draftStore.getDraft(SOURCE_PATH)
-    actionService.draftStore.stageDraft(SOURCE_PATH, definition)
+    actionService.draftStore.getDraft(definition.id)
+    actionService.draftStore.stageDraft(definition.id, definition)
     render(
         <AppThemeProvider>
             <ActionDefinitionFields
+                actionId={definition.id}
                 actions={[
                     { id: 'before', label: 'Before' },
                     { id: 'after', label: 'After' },
@@ -46,7 +47,7 @@ function renderFields(definition: RawActionDefinition) {
         </AppThemeProvider>,
     )
 
-    return () => actionService.draftStore.getDraft(SOURCE_PATH).definition
+    return () => actionService.draftStore.getDraft(definition.id).definition
 }
 
 function selectType(label: string) {
@@ -104,6 +105,7 @@ describe('ActionDefinitionFields', () => {
             ...sharedFields,
             command: undefined,
             prompt: '',
+            showCommandWindow: undefined,
             type: 'agent',
         })
     })
@@ -116,6 +118,21 @@ describe('ActionDefinitionFields', () => {
         expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('ready')
         expect(screen.queryByRole('switch', { name: 'Auto commit' })).not.toBeInTheDocument()
         expect(screen.queryByRole('switch', { name: 'Streaming' })).not.toBeInTheDocument()
+        expect(screen.getByRole('switch', { name: 'Show command window' })).not.toBeChecked()
+    })
+
+    it('shows and persists command-window visibility', () => {
+        const definition = {
+            ...sharedFields,
+            command: 'npm run test',
+            type: 'command',
+        } satisfies RawActionDefinition
+        const getDefinition = renderFields(definition)
+        const commandWindowSwitch = screen.getByRole('switch', { name: 'Show command window' })
+
+        fireEvent.click(commandWindowSwitch)
+
+        expect(getDefinition()).toEqual({ ...definition, showCommandWindow: true })
     })
 
     it('shows and persists agent streaming', () => {

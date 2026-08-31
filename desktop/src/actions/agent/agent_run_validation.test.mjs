@@ -6,7 +6,6 @@ const {
     readOptionalString,
     requireCommand,
     requireProjectFolder,
-    requireQueuedMessageSession,
     requireString,
 } = require('./agent_run_validation');
 
@@ -33,13 +32,5 @@ describe('agent run validation', () => {
         expect(readOptionalString(undefined, 'cardPath')).toBeNull();
         expect(readOptionalString('design/card.md', 'cardPath')).toBe('design/card.md');
         expect(() => readOptionalString('', 'cardPath')).toThrow('Missing agent cardPath');
-    });
-
-    it('rejects queued message sessions that are invalid or superseded', () => {
-        const run = { queuedMessageSessionId: 2 };
-
-        expect(() => requireQueuedMessageSession(run, 2)).not.toThrow();
-        expect(() => requireQueuedMessageSession(run, 1)).toThrow('Queued agent message session expired');
-        expect(() => requireQueuedMessageSession(run, 0)).toThrow('Invalid queued agent message session');
     });
 });

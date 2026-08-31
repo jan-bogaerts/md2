@@ -61,9 +61,8 @@ describe('AgentCapabilitiesService', () => {
     it('loads configured profile overrides and fixed thinking levels without provider credentials', async () => {
         configService.init({
             desktopConfig: {
-                agent: 'codex',
-                agentProfiles: [{ command: ['codex'], models: ['override-a', 'override-b'], name: 'codex' }],
-                model: 'override-a',
+                agentProfiles: [{ command: ['codex'], defaultThinkingLevel: 'none', models: ['override-a', 'override-b'], name: 'codex' }],
+                agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: 'override-a', thinkingLevel: 'none' } } },
             },
         })
         window.md2Data = createAvailabilityBridge()

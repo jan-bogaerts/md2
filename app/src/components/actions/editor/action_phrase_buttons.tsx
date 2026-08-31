@@ -5,8 +5,8 @@ import { dialogService } from '../../../services/dialog_service'
 import { actionPhraseLabel } from './action_phrase_label'
 
 interface ActionPhraseButtonsProps {
-    onDoubleClick: (text: string) => void
-    onSelect: (text: string) => void
+    onDoubleClick: (text: string) => Promise<void>
+    onSelect: (text: string) => Promise<void>
     phrases: ActionPhrase[]
 }
 
@@ -14,21 +14,23 @@ interface ActionPhraseButtonsProps {
 export function ActionPhraseButtons(props: ActionPhraseButtonsProps) {
     const { onDoubleClick, onSelect, phrases } = props
 
-    const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    const handleClick = async (event: MouseEvent<HTMLButtonElement>) => {
         try {
+            if (event.detail > 1) return
+
             const text = event.currentTarget.dataset.phraseText
             if (text === undefined) throw new Error('Missing predefined phrase text')
-            onSelect(text)
+            await onSelect(text)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Predefined phrase could not be selected' })
         }
     }
 
-    const handleDoubleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    const handleDoubleClick = async (event: MouseEvent<HTMLButtonElement>) => {
         try {
             const text = event.currentTarget.dataset.phraseText
             if (text === undefined) throw new Error('Missing predefined phrase text')
-            onDoubleClick(text)
+            await onDoubleClick(text)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Predefined phrase could not be submitted' })
         }

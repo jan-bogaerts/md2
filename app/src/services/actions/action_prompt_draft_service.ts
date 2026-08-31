@@ -1,19 +1,11 @@
 import { actionContextIdentity, type ActionContext } from '../../data/action_context'
-import { getElectronActionBridge } from '../../data/electron_action_bridge'
-import type { ActionDefinition } from '../../data/action_types'
 import { isRemoteControlConnectionError } from '../data/remote_control_storage_service'
 import { register } from '../service_injector'
-import { MarkdownDraft } from '../markdown/markdown_draft'
+import { MarkdownDraft, type MarkdownDraftBinding } from '../markdown/markdown_draft'
+
+const DRAFT_KEY_SEPARATOR = String.fromCharCode(0)
 
 export type ActionPromptPreparationStatus = 'failed' | 'loading' | 'ready'
-
-export interface ActionPromptRunBinding {
-    activeActionId: string | null
-    activeActionType: ActionDefinition['type'] | null
-    runId: string
-    interactionReady: boolean
-    rootActionId: string
-}
 
 interface ActionPromptDraftEditorSnapshot {
     preparationStatus: ActionPromptPreparationStatus
@@ -25,60 +17,35 @@ interface ActionPromptDraftOptions {
     prepare: boolean
 }
 
-function idlePromptDraftKey(actionId: string, context: ActionContext) {
-    return `idle\u0000${actionId}\u0000${actionContextIdentity(context)}`
-}
-
-function runPromptDraftKey(runId: string, actionId: string) {
-    return `run\u0000${runId}\u0000${actionId}`
-}
-
-async function beginActionPromptDraft(runId: string) {
-    const bridge = getElectronActionBridge()
-    if (!bridge?.beginActionPromptDraft) throw new Error('Agent prompt queue requires Electron')
-
-    return bridge.beginActionPromptDraft(runId)
-}
-
-async function setActionQueuedMessage(runId: string, sessionId: number, content: string, revision: number) {
-    const bridge = getElectronActionBridge()
-    if (!bridge?.setActionQueuedMessage) throw new Error('Agent prompt queue requires Electron')
-
-    const result = await bridge.setActionQueuedMessage(runId, sessionId, content, revision)
-    if (!result.accepted) throw new Error('Queued agent prompt was superseded')
-}
-
-async function sendActionQueuedMessage(runId: string, sessionId: number, revision: number) {
-    const bridge = getElectronActionBridge()
-    if (!bridge?.sendActionQueuedMessage) throw new Error('Sending queued agent prompt requires Electron')
-
-    const result = await bridge.sendActionQueuedMessage(runId, sessionId, revision)
-    if (!result.sent) throw new Error('Queued agent prompt was not sent')
+function promptDraftKey(actionId: string, context: ActionContext, runId: string | null) {
+    return `${actionId}${DRAFT_KEY_SEPARATOR}${actionContextIdentity(context)}${DRAFT_KEY_SEPARATOR}${runId ?? 'new'}`
 }
 
 /** Stable prompt state shared by editor and prompt-dependent leaf controls. */
 export class ActionPromptDraft {
+    private applyingExternalValue = false
+    readonly editorDraft: MarkdownDraftBinding
     private editorSnapshot: ActionPromptDraftEditorSnapshot
     private locallyEdited = false
     readonly markdownDraft: MarkdownDraft
-    private run: ActionPromptRunBinding | null
-    private pendingWrite: Promise<void> = Promise.resolve()
     private preparationRequired: boolean
     private preparationStarted = false
-    private promptSession: Promise<number> | null = null
     private revision = 0
 
-    constructor(
-        initialValue: string,
-        preparationRequired: boolean,
-        run: ActionPromptRunBinding | null,
-    ) {
+    constructor(initialValue: string, preparationRequired: boolean) {
         this.editorSnapshot = {
             preparationStatus: preparationRequired ? 'loading' : 'ready',
             replacementRevision: 0,
         }
         this.markdownDraft = new MarkdownDraft(initialValue)
-        this.run = run
+        this.editorDraft = {
+            addEventListener: (type, listener) => this.markdownDraft.addEventListener(type, listener),
+            edit: this.handleEditorDraftEdit,
+            getSnapshot: this.markdownDraft.getSnapshot,
+            removeEventListener: (type, listener) => this.markdownDraft.removeEventListener(type, listener),
+            subscribeEditor: this.markdownDraft.subscribeEditor,
+        }
+        this.markdownDraft.subscribe(this.handleMarkdownEdit)
         this.preparationRequired = preparationRequired
     }
 
@@ -96,16 +63,8 @@ export class ActionPromptDraft {
         return () => this.markdownDraft.removeEventListener('actionEditorChanged', listener)
     }
 
-    bindRun(run: ActionPromptRunBinding | null) {
-        this.run = run
-    }
-
-    /** Record an editor-local value without starting asynchronous synchronization. */
+    /** Record an intentional local value without starting asynchronous synchronization. */
     readonly edit = (value: string) => {
-        this.revision += 1
-        this.locallyEdited = true
-        this.preparationRequired = false
-        this.setPreparationStatus('ready')
         this.markdownDraft.edit(value)
     }
 
@@ -114,7 +73,12 @@ export class ActionPromptDraft {
         this.revision += 1
         this.locallyEdited = false
         this.preparationRequired = false
-        this.markdownDraft.replace(value)
+        this.applyingExternalValue = true
+        try {
+            this.markdownDraft.replace(value)
+        } finally {
+            this.applyingExternalValue = false
+        }
         this.editorSnapshot = {
             preparationStatus: 'ready',
             replacementRevision: this.editorSnapshot.replacementRevision + 1,
@@ -123,15 +87,24 @@ export class ActionPromptDraft {
     }
 
     clear() {
-        if (this.getSnapshot().length === 0 && this.editorSnapshot.preparationStatus === 'ready') return
+        if (this.getSnapshot().length === 0 && this.editorSnapshot.preparationStatus === 'ready') {
+            this.locallyEdited = false
+            this.preparationRequired = true
+            this.preparationStarted = false
+
+            return
+        }
 
         this.replace('')
+        this.preparationRequired = true
+        this.preparationStarted = false
     }
 
     async prepare(load: () => Promise<string>) {
         if (!this.preparationRequired || this.preparationStarted) return
 
         this.preparationStarted = true
+        this.setPreparationStatus('loading')
         const preparationRevision = this.revision
         try {
             const value = await load()
@@ -154,59 +127,34 @@ export class ActionPromptDraft {
         }
     }
 
+    getRevision() {
+        return this.revision
+    }
+
     hasLocalEdits() {
-        return this.locallyEdited
+        return this.locallyEdited && this.getSnapshot().length > 0
     }
 
-    async synchronize() {
-        const run = this.run
-        if (!run?.interactionReady || run.activeActionType !== 'agent' || !run.activeActionId) return
-
-        const value = this.getSnapshot()
-        const revision = this.revision
-        const pendingWrite = this.pendingWrite.catch(() => undefined).then(async () => {
-            const sessionId = await this.getPromptSession(run.runId)
-            await setActionQueuedMessage(run.runId, sessionId, value, revision)
-        })
-        this.pendingWrite = pendingWrite
-
-        try {
-            await pendingWrite
-        } catch (error) {
-            this.promptSession = null
-            throw error
-        }
+    /** Asks a mounted editor to commit its debounced buffer before this value is inspected. */
+    requestFlush() {
+        this.markdownDraft.requestFlush()
     }
 
-    async send() {
-        const run = this.run
-        if (!run?.activeActionId) throw new Error('Action run has no active agent')
-        if (this.getSnapshot().trim().length === 0) throw new Error('Queued agent prompt is empty')
+    private readonly handleEditorDraftEdit = (value: string) => {
+        if (this.editorSnapshot.preparationStatus !== 'ready') return
 
-        await this.pendingWrite
-        const value = this.getSnapshot()
-        const revision = this.revision
-        const sessionId = await this.getPromptSession(run.runId)
-        try {
-            await setActionQueuedMessage(run.runId, sessionId, value, revision)
-            await sendActionQueuedMessage(run.runId, sessionId, revision)
-            this.clear()
-        } catch (error) {
-            this.promptSession = null
-            throw error
-        }
+        this.edit(value)
     }
 
-    private getPromptSession(runId: string) {
-        if (this.promptSession) return this.promptSession
+    private readonly handleMarkdownEdit = () => {
+        if (this.applyingExternalValue) return
 
-        const promptSession = beginActionPromptDraft(runId).catch((error: unknown) => {
-            this.promptSession = null
-            throw error
-        })
-        this.promptSession = promptSession
-
-        return promptSession
+        const empty = this.getSnapshot().length === 0
+        this.revision += 1
+        this.locallyEdited = !empty
+        this.preparationRequired = empty
+        if (empty) this.preparationStarted = false
+        this.setPreparationStatus('ready')
     }
 
     private setPreparationStatus(preparationStatus: ActionPromptPreparationStatus) {
@@ -221,7 +169,7 @@ export class ActionPromptDraft {
     }
 }
 
-/** Owns lifetime-stable prompt drafts, remote sessions, revisions, and explicit cleanup. */
+/** Owns lifetime-stable prompt drafts, revisions, and explicit cleanup. */
 export class ActionPromptDraftService {
     private readonly drafts = new Map<string, ActionPromptDraft>()
 
@@ -229,65 +177,63 @@ export class ActionPromptDraftService {
         register('actionPromptDraftService', this)
     }
 
-    getDraft(
-        actionId: string,
-        context: ActionContext,
-        run: ActionPromptRunBinding | null,
-        options: ActionPromptDraftOptions,
-    ) {
-        const activeRun = run?.rootActionId === actionId
-            && run.activeActionType === 'agent'
-            && run.activeActionId
-            ? run
-            : null
-        const key = activeRun
-            ? runPromptDraftKey(activeRun.runId, activeRun.activeActionId as string)
-            : idlePromptDraftKey(actionId, context)
+    getDraft(actionId: string, context: ActionContext, runId: string | null, options: ActionPromptDraftOptions) {
+        const key = promptDraftKey(actionId, context, runId)
         const current = this.drafts.get(key)
-        if (current) {
-            current.bindRun(activeRun)
+        if (current) return current
 
-            return current
-        }
-
-        const draft = new ActionPromptDraft(options.initialValue ?? '', options.prepare, activeRun)
+        const draft = new ActionPromptDraft(options.initialValue ?? '', options.prepare)
         this.drafts.set(key, draft)
 
         return draft
     }
 
-    clearDraft(actionId: string, context: ActionContext, run: ActionPromptRunBinding | null) {
-        const activeActionId = run?.rootActionId === actionId ? run.activeActionId : null
-        if (activeActionId && run) this.clearByKey(runPromptDraftKey(run.runId, activeActionId))
-        this.clearByKey(idlePromptDraftKey(actionId, context))
+    /** Empties the editor while keeping the draft object the editor is bound to. */
+    clearDraft(actionId: string, context: ActionContext, runId: string | null) {
+        this.drafts.get(promptDraftKey(actionId, context, runId))?.clear()
     }
 
-    clearRunDraft(runId: string, actionId: string) {
-        this.clearByKey(runPromptDraftKey(runId, actionId))
+    /** Drops a prepared default the user never touched and keeps every typed character. */
+    discardUneditedDraft(actionId: string, context: ActionContext, runId: string | null) {
+        const draft = this.drafts.get(promptDraftKey(actionId, context, runId))
+        if (!draft) return
+
+        draft.requestFlush()
+        if (draft.hasLocalEdits()) return
+
+        draft.clear()
     }
 
-    clearRunDrafts(runId: string) {
-        const prefix = `run\u0000${runId}\u0000`
+    /** Removes released run state unless it contains text the user edited. */
+    deleteUneditedDraft(actionId: string, context: ActionContext, runId: string | null) {
+        const key = promptDraftKey(actionId, context, runId)
+        const draft = this.drafts.get(key)
+        if (!draft) return
+
+        draft.requestFlush()
+        if (!draft.hasLocalEdits()) this.drafts.delete(key)
+    }
+
+    /** Flushes editor buffers, then removes every exact-empty prompt draft. */
+    deleteEmptyDrafts() {
+        for (const [key, draft] of this.drafts) {
+            draft.requestFlush()
+            if (draft.getSnapshot().length === 0) this.drafts.delete(key)
+        }
+    }
+
+    clearAction(actionId: string) {
+        const prefix = `${actionId}${DRAFT_KEY_SEPARATOR}`
         for (const key of this.drafts.keys()) {
             if (key.startsWith(prefix)) this.clearByKey(key)
         }
     }
 
-    clearAction(actionId: string) {
-        const idlePrefix = `idle\u0000${actionId}\u0000`
-        const runSuffix = `\u0000${actionId}`
-        for (const key of this.drafts.keys()) {
-            if (key.startsWith(idlePrefix) || (key.startsWith('run\u0000') && key.endsWith(runSuffix))) {
-                this.clearByKey(key)
-            }
-        }
-    }
-
-    /** Drop cached prepared defaults while preserving user edits and active-run drafts. */
+    /** Drop cached prepared defaults while preserving user edits. */
     invalidateIdlePreparedDrafts(actionId: string) {
-        const idlePrefix = `idle\u0000${actionId}\u0000`
+        const prefix = `${actionId}${DRAFT_KEY_SEPARATOR}`
         for (const [key, draft] of this.drafts) {
-            if (key.startsWith(idlePrefix) && !draft.hasLocalEdits()) this.drafts.delete(key)
+            if (key.startsWith(prefix) && !draft.hasLocalEdits()) this.drafts.delete(key)
         }
     }
 

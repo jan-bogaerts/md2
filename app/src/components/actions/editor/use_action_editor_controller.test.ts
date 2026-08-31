@@ -58,7 +58,7 @@ describe('useActionEditorController', () => {
         const phraseTarget = result.current.markdownTarget
         act(() => result.current.handleDeletePhrase())
         expect(discardMarkdownTarget).toHaveBeenCalledWith(phraseTarget)
-        expect(actionService.draftStore.getDraft('actions/review.json').definition.phrases).toEqual([])
+        expect(actionService.draftStore.getDraft('review-action').definition.phrases).toEqual([])
     })
 
     it('does not rerender for an unrelated action editor-state event', () => {
@@ -79,7 +79,7 @@ describe('useActionEditorController', () => {
         })
         const initialRenderCount = renderCount
 
-        act(() => actionService.setActionEditorState('actions/other.json', { phrases: [], selectedTab: 'prompt' }))
+        act(() => actionService.setActionEditorState('other-action', { phrases: [], selectedTab: 'prompt' }))
 
         expect(renderCount).toBe(initialRenderCount)
     })

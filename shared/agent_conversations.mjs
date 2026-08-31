@@ -134,7 +134,9 @@ function normalizeEvent(value) {
     const output = value.type !== 'commandExecution' && typeof value.output === 'string'
         ? boundedAgentResult(value.output)
         : null;
+    const parentItemId = optionalString(value.parentItemId);
     const providerItemId = optionalString(value.providerItemId);
+    const runningSubThreads = optionalNonNegativeInteger(value.runningSubThreads);
     const sequence = optionalInteger(value.sequence);
     const status = optionalString(value.status);
     const summary = optionalStringArray(value.summary);
@@ -152,7 +154,9 @@ function normalizeEvent(value) {
         kind: 'event',
         ...(label ? { label } : {}),
         ...(output !== null ? { output } : {}),
+        ...(parentItemId ? { parentItemId } : {}),
         ...(providerItemId ? { providerItemId } : {}),
+        ...(runningSubThreads !== null ? { runningSubThreads } : {}),
         ...(sequence !== null ? { sequence } : {}),
         ...(status ? { status } : {}),
         ...(summary ? { summary } : {}),

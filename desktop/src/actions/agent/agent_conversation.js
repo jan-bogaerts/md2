@@ -48,8 +48,15 @@ function createProviderEventEntry(providerEvent, id, timestamp, sequence) {
     if (Number.isFinite(providerEvent.durationMs)) event.durationMs = providerEvent.durationMs;
     if (Number.isSafeInteger(providerEvent.exitCode)) event.exitCode = providerEvent.exitCode;
     if (Number.isSafeInteger(providerEvent.insertions) && providerEvent.insertions >= 0) event.insertions = providerEvent.insertions;
+    if (Array.isArray(providerEvent.paths)) event.paths = [...providerEvent.paths];
     if (providerEvent.type !== 'commandExecution' && typeof providerEvent.output === 'string') {
         event.output = boundedAgentResult(providerEvent.output);
+    }
+    if (typeof providerEvent.parentItemId === 'string' && providerEvent.parentItemId.length > 0) {
+        event.parentItemId = providerEvent.parentItemId;
+    }
+    if (Number.isSafeInteger(providerEvent.runningSubThreads) && providerEvent.runningSubThreads >= 0) {
+        event.runningSubThreads = providerEvent.runningSubThreads;
     }
     if (Array.isArray(providerEvent.summary)) event.summary = [...providerEvent.summary];
     if (typeof providerEvent.workingDirectory === 'string') event.workingDirectory = providerEvent.workingDirectory;

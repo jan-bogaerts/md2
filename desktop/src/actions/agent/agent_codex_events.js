@@ -1,7 +1,7 @@
 const { normalizeChangedPaths, normalizedContent } = require('./agent_event_utils');
 
 const CODEX_FILE_ITEM_KEYS = new Set(['file', 'filechange', 'patch']);
-const CODEX_SILENT_ITEM_KEYS = new Set(['agentmessage', 'usermessage', 'reasoning', 'error']);
+const CODEX_SILENT_ITEM_KEYS = new Set(['agentmessage', 'usermessage', 'reasoning', 'error', 'file', 'filechange', 'patch']);
 
 /**
  * `codex exec` and the codex app-server are different wire protocols and keep separate handlers,

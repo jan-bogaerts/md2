@@ -1,7 +1,7 @@
 import { extractFile, listPackage } from '@electron/asar';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { rename } from 'node:fs/promises';
+import { readdir, rename } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +30,7 @@ const REQUIRED_ASAR_ENTRIES = [
 const FORBIDDEN_ENTRY_PATTERN = /(?:(?:^|\/).+\.(?:key|map|p12|pem|pfx)|(?:^|\/)signing_secrets\.json)$/iu;
 const FORBIDDEN_APP_CONTENT = ['http://localhost:5173', 'certificateSha1'];
 const APP_OWNED_ENTRY_PATTERN = /^(?:desktop|shared)\/.+\.(?:css|html|js|json|mjs|svg|txt)$/u;
+const WINDOWS_EXECUTABLE_CODE_EXTENSIONS = new Set(['.dll', '.exe', '.node']);
 
 function normalizeAsarEntry(entry) {
     return entry.replace(/^[/\\]+/u, '').replaceAll('\\', '/');
@@ -75,6 +76,49 @@ export function assertAppContentIsReleaseSafe(asarPath, entries, extractFileImpl
     }
 }
 
+export async function collectWindowsExecutableCodePaths(directory, readDirectoryImplementation = readdir) {
+    const entries = await readDirectoryImplementation(directory, { withFileTypes: true });
+    const executableCodePaths = [];
+
+    for (const entry of entries) {
+        const entryPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) {
+            const nestedExecutableCodePaths = await collectWindowsExecutableCodePaths(entryPath, readDirectoryImplementation);
+            executableCodePaths.push(...nestedExecutableCodePaths);
+            continue;
+        }
+
+        if (entry.isFile() && WINDOWS_EXECUTABLE_CODE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+            executableCodePaths.push(entryPath);
+        }
+    }
+
+    return executableCodePaths.sort();
+}
+
+export async function collectSignatureVerificationPaths(paths, readDirectoryImplementation = readdir) {
+    const executableCodePaths = await collectWindowsExecutableCodePaths(
+        paths.unpackedDirectory,
+        readDirectoryImplementation,
+    );
+    return [...executableCodePaths, paths.installerPath];
+}
+
+export function createAuthenticodeVerificationArgs(scriptPath, artifactPath, expectedPublisher, paths) {
+    const args = [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        scriptPath,
+        '-ArtifactPath',
+        artifactPath,
+    ];
+    const requiresConfiguredPublisher = artifactPath === paths.executablePath || artifactPath === paths.installerPath;
+    if (requiresConfiguredPublisher) args.push('-ExpectedPublisher', expectedPublisher);
+    return args;
+}
+
 async function finalizeUnpackedDirectory(paths) {
     const { sourceUnpackedDirectory, unpackedDirectory } = paths;
     if (!existsSync(sourceUnpackedDirectory)) {
@@ -91,18 +135,9 @@ async function verifySignatures(paths, expectedPublisher) {
     if (!expectedPublisher) throw new Error('publisherName in signing_secrets.json is required to verify signed artifacts');
 
     const scriptPath = path.join(currentDirectory, 'verify_authenticode.ps1');
-    for (const artifactPath of [paths.executablePath, paths.installerPath]) {
-        const args = [
-            '-NoProfile',
-            '-ExecutionPolicy',
-            'Bypass',
-            '-File',
-            scriptPath,
-            '-ArtifactPath',
-            artifactPath,
-            '-ExpectedPublisher',
-            expectedPublisher,
-        ];
+    const artifactPaths = await collectSignatureVerificationPaths(paths);
+    for (const artifactPath of artifactPaths) {
+        const args = createAuthenticodeVerificationArgs(scriptPath, artifactPath, expectedPublisher, paths);
         await execFileAsync('powershell.exe', args);
     }
 }

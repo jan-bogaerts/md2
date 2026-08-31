@@ -7,6 +7,10 @@ ex: instruction is to split up feature descriptions, nothing is mentioned about 
 - app: react-front end
 - desktop: electron desktop-host / backend app
 
+## domain identity
+- Use `Card.header.internalId` / `cardInternalId` as canonical card identity and `AgentConversation.id` as canonical conversation identity.
+- Paths identify persistence locations. Use them for loading, saving, selection references, and continuation inputs, never as domain identity.
+
 ## system info
 - we are running on windows
 - the shell is Windows PowerShell 5.x, not PowerShell 7 (`pwsh`)
@@ -88,13 +92,23 @@ Keep analysis and documentation **short, precise, and to the point**. Avoid verb
   - the name captures non-obvious domain semantics that the inline code would hide poorly.
 - Verify actual field types before normalizing. Do not add coercion defensively. Only normalize when the inspected code path shows mixed types are real, and prefer doing it at the input boundary rather than at arbitrary comparison sites.
 - avoid magic numbers, use named constants instead
+- Never use unbounded loops or recursive drain/retry patterns (`while (true)`, `for (;;)`, or equivalent recursion). Every iteration must have an explicit, provable termination bound.
 - use ; at end of statements
 - avoid multiple inheritance
+- do not do CRLF rewrites
 
 ## events & state updates
 - Never hand-roll listener registries: no `Map`s of listener `Set`s, no custom subscribe/unsubscribe functions, no revision counters. Use the standard `EventTarget` (`addEventListener` / `removeEventListener` / `dispatchEvent`) — extend it or compose one in the service.
 - Signal state changes with granular, scoped events (e.g. one event type per card or per card+action). Never republish or refresh a whole object (card, snapshot) to announce a change to one of its fields: every component watching that object would repaint.
 - In React, subscribe with `useSyncExternalStore`. `getSnapshot` must return a value derived from the actual service data (a primitive or stable reference), not a revision counter.
+
+## State ownership and data flow
+
+- Services own model data and view data. Components only subscribe and render.
+- Model data is canonical. View data derives from it and must not become another source of truth.
+- Apply external updates in services before notifying subscribers.
+- Never create or mutate application state during React rendering.
+- Treat “stable” as an update-frequency expectation, not an immutability guarantee.
 
 ## react component style guide
 - dialogs have buttons in the bottom right corner
@@ -102,6 +116,8 @@ Keep analysis and documentation **short, precise, and to the point**. Avoid verb
 - for styling, read and use this guide: `design\STYLE_GUIDE.md`
 - application states belong in services, not in components.
 - Root components own layout; leaf components bind to changing application data. Place subscriptions in the smallest component that renders their value.
+- Do not design components that pass feature-specific components or JSX through props. Render them in the component that owns their layout; pass data, services, or callbacks instead.
+- `children`/`ReactNode` props are only for generic layout components, providers, dialogs, and portals.
 
 ## Linting
 As an agent working on this codebase, you must:
@@ -133,9 +149,7 @@ you must:
    - Bug fixes (a regression test that would fail before the fix).
 3. **Run tests in proportion to the change**:
    - During implementation, run test files directly with `npm run test -- <test paths>`. In `app/`, `npm run test:related -- <source paths>` can find ESM dependents when the affected set is useful.
-   - Before submitting, run `npm run test:unit` in `app/` plus the directly affected UI or desktop tests.
-   - Run `npm run test:full` in each affected subproject for cross-cutting changes, shared infrastructure changes, releases, and changes whose impact cannot be isolated confidently.
-   - Full suites also run in merge, scheduled, and release CI; they are not required after every local edit.
+   - you do not need to run full tests. you should not decide upon yourself to run the full test suite. you should only do so when instructed to.
    - A selectively run test file must pass independently. Treat order-dependent failures, leaked asynchronous work, and shared-state contamination as test defects.
 4. **Keep only tests for stable behavior**
   Temporary tests must be removed before finishing when they:

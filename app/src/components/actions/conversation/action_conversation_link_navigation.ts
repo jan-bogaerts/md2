@@ -11,6 +11,10 @@ const ENCODED_ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:(?:%2f|%5c)/iu
 const FILE_URL_PATTERN = /^file:\/+/iu
 const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/iu
 
+function stripWindowsDriveLeadingSlash(path: string) {
+    return path.startsWith('/') && ABSOLUTE_WINDOWS_PATH_PATTERN.test(path.slice(1)) ? path.slice(1) : path
+}
+
 function decodeLinkPath(href: string) {
     try {
         return decodeURIComponent(href)
@@ -40,11 +44,11 @@ function normalizePathSegments(path: string, allowDrive: boolean) {
 }
 
 function fileUrlPath(href: string) {
-    if (!FILE_URL_PATTERN.test(href)) return href
+    if (!FILE_URL_PATTERN.test(href)) return stripWindowsDriveLeadingSlash(href)
 
     const path = href.replace(FILE_URL_PATTERN, '')
 
-    return path.startsWith('/') && ABSOLUTE_WINDOWS_PATH_PATTERN.test(path.slice(1)) ? path.slice(1) : path
+    return stripWindowsDriveLeadingSlash(path)
 }
 
 function isPathInsideFolder(path: string, folder: string) {
@@ -86,7 +90,7 @@ export function resolveConversationRepositoryRoot(
 
 /** True when a Markdown href represents a repository file rather than normal browser navigation. */
 export function isLocalFileLink(href: string) {
-    const normalizedHref = href.trim().replace(/\\/gu, '/')
+    const normalizedHref = stripWindowsDriveLeadingSlash(href.trim().replace(/\\/gu, '/'))
     if (!normalizedHref || normalizedHref.startsWith('#') || normalizedHref.startsWith('/') || normalizedHref.startsWith('//')) return false
     if (
         ABSOLUTE_WINDOWS_PATH_PATTERN.test(normalizedHref)
@@ -153,5 +157,5 @@ export async function openActionConversationLink(href: string, cardInternalId: s
     const bridge = getElectronActionBridge()
     if (!bridge) throw new Error('Opening local project files requires Electron local mode')
 
-    await bridge.openInEditor({ path: href, repositoryRoot })
+    await bridge.openInEditor({ path: stripWindowsDriveLeadingSlash(href), repositoryRoot })
 }

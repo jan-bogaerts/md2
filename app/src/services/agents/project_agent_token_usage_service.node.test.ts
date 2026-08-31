@@ -40,10 +40,10 @@ function activity(cardInternalId: string, totalTokens: number) {
     return JSON.stringify(value)
 }
 
-function legacyActivity(cardInternalId: string, totalTokens: number, version: 1 | 2 | 3) {
+function legacyActivity(cardInternalId: string, totalTokens: number, version: 1 | 2 | 3 | 4) {
     const value = JSON.parse(activity(cardInternalId, totalTokens))
     value.version = version
-    if (version !== 3) delete value.actionSettings
+    if (version < 3) delete value.actionSettings
 
     return JSON.stringify(value)
 }
@@ -121,7 +121,7 @@ describe('ProjectAgentTokenUsageService', () => {
         expect(reportFailure).not.toHaveBeenCalled()
     })
 
-    it.each([1, 2, 3] as const)('migrates version %s card activity into the summary', async (version) => {
+    it.each([1, 2, 3, 4] as const)('migrates version %s card activity into the summary', async (version) => {
         const activityPath = `design/activity/card__legacy-${version}.json`
         const harness = storage({ [activityPath]: legacyActivity(`legacy-${version}`, 12, version) })
         const service = new ProjectAgentTokenUsageService()

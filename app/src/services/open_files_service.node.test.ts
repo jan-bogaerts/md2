@@ -11,7 +11,7 @@ function card(internalId: string, path = `design/${internalId}.md`, content = `#
     return {
         agentConversationErrors: [], agentConversations: [], content,
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id: internalId.toUpperCase(), internalId,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: internalId.toUpperCase(), internalId,
             owner: null, policy: {}, references: [], status: 'todo', title: internalId, worktree: null,
         },
         hasFrontmatter:true,
@@ -25,7 +25,8 @@ function action(id: string, sourcePath = `actions/${id}.json`, label = id): Acti
         agent: null, appliesTo: null, permissionMode: null, builtin: false, command: null,
         description: id, icon: null, id, label,
         model: null, needsWorkTree: false, on: [], onAfter: [], onBefore: [], onState: null, phrases: [],
-        prompt: id, sourcePath, thinkingLevel: null, trackFileChanges: false, streaming: false, type: 'agent',
+        prompt: id, showCommandWindow: false, sourcePath, thinkingLevel: null,
+        trackFileChanges: false, streaming: false, type: 'agent',
     }
 }
 
@@ -37,13 +38,13 @@ function owners(initialCards: Card[] = [], initialActions: ActionDefinition[] = 
         getActions: () => actions,
         draftStore: {
             getDeletedDraftActions: () => [],
-            getDraft: (path: string): ActionDraftState => {
-                const actionDefinition = actions.find((candidate) => candidate.sourcePath === path)
-                if (!actionDefinition) throw new Error(`Missing action: ${path}`)
+            getDraft: (actionId: string): ActionDraftState => {
+                const actionDefinition = actions.find((candidate) => candidate.id === actionId)
+                if (!actionDefinition?.sourcePath) throw new Error(`Missing action: ${actionId}`)
                 return {
                     conflict: null, definition: editableActionDefinition(actionDefinition), deleted: false, error: null,
                     revision: 0, savedRevision: 0,
-                    saving: false,
+                    saving: false, sourcePath: actionDefinition.sourcePath, targetPath: actionDefinition.sourcePath,
                     validation: { code: null, error: null, field: null, fieldPath: null, index: null, valid: true },
                 }
             },

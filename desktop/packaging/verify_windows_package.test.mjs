@@ -1,6 +1,13 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assertAppContentIsReleaseSafe, assertPackageEntries, resolveArtifactPaths } from './verify_windows_package.mjs';
+import {
+    assertAppContentIsReleaseSafe,
+    assertPackageEntries,
+    collectSignatureVerificationPaths,
+    collectWindowsExecutableCodePaths,
+    createAuthenticodeVerificationArgs,
+    resolveArtifactPaths,
+} from './verify_windows_package.mjs';
 
 const validEntries = [
     'package.json',
@@ -51,4 +58,70 @@ describe('Windows package verification', () => {
         expect(() => assertAppContentIsReleaseSafe('app.asar', validEntries, extractFile))
             .toThrow('Forbidden release content in desktop/main.js: http://localhost:5173');
     });
+
+    it('recursively discovers Windows executable code and excludes irrelevant files', async () => {
+        const directoryEntries = new Map([
+            ['C:\\unpacked', [directoryEntry('md2.exe'), directoryEntry('resources', true), directoryEntry('LICENSE.txt')]],
+            [
+                path.join('C:\\unpacked', 'resources'),
+                [directoryEntry('electron.dll'), directoryEntry('app.asar.unpacked', true), directoryEntry('app.asar')],
+            ],
+            [
+                path.join('C:\\unpacked', 'resources', 'app.asar.unpacked'),
+                [directoryEntry('dependency', true), directoryEntry('metadata.json')],
+            ],
+            [
+                path.join('C:\\unpacked', 'resources', 'app.asar.unpacked', 'dependency'),
+                [directoryEntry('native.node'), directoryEntry('helper.EXE'), directoryEntry('readme.md')],
+            ],
+        ]);
+        const readDirectory = async (directory) => directoryEntries.get(directory);
+
+        await expect(collectWindowsExecutableCodePaths('C:\\unpacked', readDirectory)).resolves.toEqual([
+            path.join('C:\\unpacked', 'md2.exe'),
+            path.join('C:\\unpacked', 'resources', 'app.asar.unpacked', 'dependency', 'helper.EXE'),
+            path.join('C:\\unpacked', 'resources', 'app.asar.unpacked', 'dependency', 'native.node'),
+            path.join('C:\\unpacked', 'resources', 'electron.dll'),
+        ].sort());
+    });
+
+    it('passes all discovered executable code plus outer installer to signature verification', async () => {
+        const unpackedDirectory = 'C:\\unpacked';
+        const installerPath = 'C:\\release\\MD2-Setup-2.3.4-x64.exe';
+        const directoryEntries = new Map([
+            [unpackedDirectory, [directoryEntry('md2.exe'), directoryEntry('resources', true)]],
+            [path.join(unpackedDirectory, 'resources'), [directoryEntry('native.node'), directoryEntry('data.json')]],
+        ]);
+        const readDirectory = async (directory) => directoryEntries.get(directory);
+
+        await expect(collectSignatureVerificationPaths(
+            { installerPath, unpackedDirectory },
+            readDirectory,
+        )).resolves.toEqual([
+            path.join(unpackedDirectory, 'md2.exe'),
+            path.join(unpackedDirectory, 'resources', 'native.node'),
+            installerPath,
+        ]);
+    });
+
+    it('requires configured publisher only for main executable and outer installer', () => {
+        const paths = resolveArtifactPaths('2.3.4', 'C:\\release');
+        const scriptPath = 'C:\\verify_authenticode.ps1';
+        const runtimeDllPath = path.join(paths.unpackedDirectory, 'd3dcompiler_47.dll');
+
+        expect(createAuthenticodeVerificationArgs(scriptPath, runtimeDllPath, 'Elastetic', paths))
+            .not.toContain('-ExpectedPublisher');
+        expect(createAuthenticodeVerificationArgs(scriptPath, paths.executablePath, 'Elastetic', paths))
+            .toEqual(expect.arrayContaining(['-ExpectedPublisher', 'Elastetic']));
+        expect(createAuthenticodeVerificationArgs(scriptPath, paths.installerPath, 'Elastetic', paths))
+            .toEqual(expect.arrayContaining(['-ExpectedPublisher', 'Elastetic']));
+    });
 });
+
+function directoryEntry(name, isDirectory = false) {
+    return {
+        isDirectory: () => isDirectory,
+        isFile: () => !isDirectory,
+        name,
+    };
+}

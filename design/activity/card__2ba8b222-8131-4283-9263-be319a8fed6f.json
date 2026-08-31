@@ -1,0 +1,438 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "2ba8b222-8131-4283-9263-be319a8fed6f",
+      "cardPath": "design/feature_descriptions/F_202_improve_manual_sentry_import.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_202_improve_manual_sentry_import.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-08-27T17:56:02.291Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll start by reading the feature description file.",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-08-28T08:04:55.571Z"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_202_improve_manual_sentry_import.md\"",
+          "content": "---\r\nauthor: \r\nid: F_202\r\ninternalId: 2ba8b222-8131-4283-9263-be319a8fed6f\r\ntitle: improve manual sentry import\r\nstatus: new\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__2ba8b222-8131-4283-9263-be319a8fed6f.json\r\npolicy:\r\nafter: f5e9bc66-ebde-41f7-ae6e-503e9e8e284a\r\n---\r\ncurrently:\n\n> Manual import exists only in config page:\n\n> Config > Sentry > Import now\n\n> Automatic import setting does not control this button. Button enables when:\n\n> Sentry connection is authenticated.\r\n> All Sentry/card settings are complete.\r\n> Project is writable.\r\n> No import currently runs.\r\n> No menu, toolbar, command palette, or project-level action exists elsewhere. So discoverability is poor; user must reopen Sentry config to import manually.\n\nWe should add a button to the run menu for importing bugs",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-3",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_202_improve_manual_sentry_import.md\"",
+          "providerItemId": "toolu_01BY9n3ccTcse7JN38WkjjGc",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:07.692Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTgdjTgjrX5h1CUeWeaP:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:56:09.348Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -ril \"sentry\" app/src --include=*.ts --include=*.tsx | head -60",
+          "content": "app/src/app.tsx\napp/src/components/actions/editor/action_filter_editor.tsx\napp/src/components/actions/run/popup/action_popup_operations.ts\napp/src/components/config/config_page.test.tsx\napp/src/components/config/config_page.tsx\napp/src/components/config/sentry_config_section.test.tsx\napp/src/components/config/sentry_config_section.tsx\napp/src/components/hooks/use_sentry_connection.ts\napp/src/components/hooks/use_sentry_import.ts\napp/src/components/sentry_import_confirmation_dialog.test.tsx\napp/src/components/sentry_import_confirmation_dialog.tsx\napp/src/data/data_types.ts\napp/src/data/electron_sentry_bridge.node.test.ts\napp/src/data/electron_sentry_bridge.ts\napp/src/services/application_startup_service.ts\napp/src/services/card_popup_service.test.ts\napp/src/services/data/card_operations.test.ts\napp/src/services/data/card_operations.ts\napp/src/services/data/markdown_parsing_service.node.test.ts\napp/src/services/data/markdown_parsing_service.ts\napp/src/services/github/github_storage_loader.ts\napp/src/services/sentry/sentry_api_client.node.test.ts\napp/src/services/sentry/sentry_api_client.ts\napp/src/services/sentry/sentry_connection_service.node.test.ts\napp/src/services/sentry/sentry_connection_service.ts\napp/src/services/sentry/sentry_import_service.node.test.ts\napp/src/services/sentry/sentry_import_service.ts\napp/src/services/sentry/sentry_issue_markdown.ts\napp/src/services/sentry/sentry_types.ts\napp/src/services/storage/application_storage.ts\napp/src/services/telemetry/telemetry_service.test.ts\napp/src/services/telemetry/telemetry_service.ts",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-5",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -ril \"sentry\" app/src --include=*.ts --include=*.tsx | head -60",
+          "providerItemId": "toolu_01Fs6kSPGNsXQFWmpKhkHE1F",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:10.982Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -ril \"run.*menu\\|runmenu\" app/src --include=*.tsx | head -40",
+          "content": "app/src/components/actions/agent/action_agent_selectors.tsx\napp/src/components/card_view/card_view.test.tsx",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-6",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -ril \"run.*menu\\|runmenu\" app/src --include=*.tsx | head -40",
+          "providerItemId": "toolu_01Rxki92j4snM16k1L6eTigu",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:11.288Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTgdzgE9oFgdesbtmwYr:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:56:12.782Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls app/src/components/actions/run/ && ls app/src/components/actions/",
+          "content": "popup\nschedule\nstate\ntrigger\nagent\nconversation\neditor\nrun\nshared",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-8",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls app/src/components/actions/run/ && ls app/src/components/actions/",
+          "providerItemId": "toolu_01Y125rMGUyChUHAFres8hxt",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:14.368Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/config/sentry_config_section.tsx",
+          "content": "import {\n    Alert,\n    Box,\n    Button,\n    FormControl,\n    FormControlLabel,\n    FormHelperText,\n    MenuItem,\n    Select,\n    Stack,\n    Switch,\n    TextField,\n    Typography,\n    type SelectChangeEvent,\n} from '@mui/material'\nimport { useState, type ChangeEvent } from 'react'\nimport { useProjectConfig } from '../hooks/use_project_config'\nimport { useProjectReadOnly } from '../hooks/use_project_read_only'\nimport { useProjectReference } from '../hooks/use_project_reference'\nimport { useSentryConnection } from '../hooks/use_sentry_connection'\nimport { useSentryImport } from '../hooks/use_sentry_import'\nimport { sentryConnectionService, type SentryConnectionSnapshot } from '../../services/sentry/sentry_connection_service'\nimport { sentryImportService } from '../../services/sentry/sentry_import_service'\nimport type { SentryProjectSettings } from '../../services/sentry/sentry_types'\n\nconst SENTRY_CONFIG_SECTION_ID = 'sentry'\n\nfunction settingsComplete(settings: SentryProjectSettings) {\n    return settings.apiBaseUrl.trim().length > 0\n        && settings.apiToken.trim().length > 0\n        && settings.organization.trim().length > 0\n        && settings.project.trim().length > 0\n        && settings.environment.trim().length > 0\n        && settings.cardType.length > 0\n        && settings.cardState.trim().length > 0\n}\n\ninterface SentryConfigFormProps {\n    connection: SentryConnectionSnapshot\n}\n\nfunction SentryConfigForm({ connection }: SentryConfigFormProps) {\n    const importState = useSentryImport()\n    const project = useProjectReference()\n    const projectConfig = useProjectConfig()\n    const readOnly = useProjectReadOnly()\n    const [draft, setDraft] = useState(connection.settings)\n    const controlsDisabled = !project || readOnly || connection.isConnecting\n    const canConnect = !controlsDisabled && settingsComplete(draft)\n    const canImport = !controlsDisabled && connection.isAuthenticated && settingsComplete(connection.settings) && !importState.isPolling\n\n    const updateTextField = (field: keyof SentryProjectSettings) => (event: ChangeEvent<HTMLInputElement>) => {\n        setDraft((current) => ({ ...current, [field]: event.target.value }))\n    }\n    const handleCardTypeChange = (event: SelectChangeEvent) => {\n        setDraft((current) => ({ ...current, cardType: event.target.value }))\n    }\n    const handleCardStateChange = (event: SelectChangeEvent) => {\n        setDraft((current) => ({ ...current, cardState: event.target.value }))\n    }\n    const handleConnect = () => {\n        void sentryConnectionService.connect(draft)\n    }\n    const handleDisconnect = () => {\n        sentryConnectionService.disconnect()\n        setDraft({ ...connection.settings, apiToken: '', automaticImport: false })\n    }\n    const handleAutomaticImportChange = (event: ChangeEvent<HTMLInputElement>) => {\n        sentryConnectionService.saveSettings({ ...connection.settings, automaticImport: event.target.checked })\n    }\n    const handleImportNow = () => {\n        void sentryImportService.importNow()\n    }\n\n    return (\n        <Box aria-labelledby=\"sentry-config-heading\" component=\"section\" id={SENTRY_CONFIG_SECTION_ID}>\n            <Stack spacing={3}>\n                <Typography component=\"h3\" id=\"sentry-config-heading\" variant=\"h6\">Sentry</Typography>\n                <Typography color=\"text.secondary\" variant=\"body2\">\n                    Connect this MD² project to one Sentry project. Credentials stay in this browser.\n                </Typography>\n                {!project ? <Alert severity=\"info\">Open a project to configure Sentry imports.</Alert> : null}\n                <Stack spacing={1}>\n                    <Typography color=\"text.secondary\" component=\"label\" htmlFor=\"sentry-api-base-url\" sx={{ fontWeight: 'fontWeightMedium' }} variant=\"body2\">\n                        Sentry API base URL\n                    </Typography>\n                    <TextField\n                        disabled={controlsDisabled}\n                        helperText=\"Use https://sentry.io for Sentry SaaS, or your self-hosted instance origin without /ap\n[3453 characters omitted]\n   value={draft.apiToken}\n                    />\n                </Stack>\n                <Stack spacing={1}>\n                    <Typography color=\"text.secondary\" id=\"sentry-card-type-label\" sx={{ fontWeight: 'fontWeightMedium' }} variant=\"body2\">\n                        Target card type\n                    </Typography>\n                    <FormControl disabled={controlsDisabled} size=\"small\">\n                        <Select displayEmpty labelId=\"sentry-card-type-label\" onChange={handleCardTypeChange} value={draft.cardType}>\n                            <MenuItem disabled value=\"\"><em>Select card type</em></MenuItem>\n                            {(projectConfig?.cardTypes ?? []).map(({ label, type }) => (\n                                <MenuItem key={type} value={type}>{label}</MenuItem>\n                            ))}\n                        </Select>\n                        <FormHelperText>Imported Sentry issues become cards of this type.</FormHelperText>\n                    </FormControl>\n                </Stack>\n                <Stack spacing={1}>\n                    <Typography color=\"text.secondary\" id=\"sentry-card-state-label\" sx={{ fontWeight: 'fontWeightMedium' }} variant=\"body2\">\n                        Target card state\n                    </Typography>\n                    <FormControl disabled={controlsDisabled} size=\"small\">\n                        <Select displayEmpty labelId=\"sentry-card-state-label\" onChange={handleCardStateChange} value={draft.cardState}>\n                            <MenuItem disabled value=\"\"><em>Select card state</em></MenuItem>\n                            {(projectConfig?.states ?? []).map(({ state }) => <MenuItem key={state} value={state}>{state}</MenuItem>)}\n                        </Select>\n                        <FormHelperText>New cards start in this project state.</FormHelperText>\n                    </FormControl>\n                </Stack>\n                {connection.errorMessage ? <Alert severity=\"error\">{connection.errorMessage}</Alert> : null}\n                <Stack direction=\"row\" spacing={1}>\n                    <Button disabled={!canConnect} onClick={handleConnect} variant=\"contained\">\n                        {connection.isConnecting ? 'Connecting...' : connection.isAuthenticated ? 'Reconnect' : 'Connect'}\n                    </Button>\n                    <Button disabled={controlsDisabled || !connection.isAuthenticated} onClick={handleDisconnect} variant=\"outlined\">Disconnect</Button>\n                </Stack>\n                <FormControlLabel\n                    control={(\n                        <Switch\n                            checked={connection.settings.automaticImport}\n                            disabled={!canImport}\n                            onChange={handleAutomaticImportChange}\n                        />\n                    )}\n                    label=\"Enable automatic import\"\n                />\n                <Stack direction=\"row\" spacing={1} sx={{ alignItems: 'center' }}>\n                    <Button disabled={!canImport} onClick={handleImportNow} variant=\"outlined\">Import now</Button>\n                    {importState.isPolling ? <Typography color=\"text.secondary\" variant=\"body2\">Checking Sentry...</Typography> : null}\n                </Stack>\n                {importState.lastImportCount !== null ? (\n                    <Typography color=\"text.secondary\" variant=\"body2\">Last import created {importState.lastImportCount} card(s).</Typography>\n                ) : null}\n                {importState.lastSuccessfulPollAt ? (\n                    <Typography color=\"text.secondary\" variant=\"body2\">Last successful poll: {importState.lastSuccessfulPollAt}</Typography>\n                ) : null}\n                {importState.latestError ? <Alert severity=\"error\">Latest import error: {importState.latestError}</Alert> : null}\n            </Stack>\n        </Box>\n    )\n}\n\nexport function SentryConfigSection() {\n    const connection = useSentryConnection()\n\n    return <SentryConfigForm connection={connection} key={connection.projectId ?? 'no-project'} />\n}",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-9",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/config/sentry_config_section.tsx",
+          "providerItemId": "toolu_01AV7ffrjibJGMW4RjNPVrAy",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:14.632Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-10",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTgeF2vmVaMkvQUx17hB:thinking:0",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:56:16.283Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rl \"Menu\" app/src/components --include=*.tsx | grep -vi test | head -40",
+          "content": "app/src/components/actions/agent/action_agent_capability_fields.tsx\napp/src/components/actions/agent/action_agent_question.tsx\napp/src/components/actions/agent/action_agent_selectors.tsx\napp/src/components/actions/conversation/action_conversation_picker.tsx\napp/src/components/actions/editor/action_definition_fields.tsx\napp/src/components/actions/editor/action_filter_editor.tsx\napp/src/components/actions/editor/action_selector_field.tsx\napp/src/components/actions/run/trigger/action_entry_points.tsx\napp/src/components/card_view/card_body_popover.tsx\napp/src/components/card_view/card_commit_menu.tsx\napp/src/components/card_view/card_path_menu_items.tsx\napp/src/components/card_view/card_policy_menu_item.tsx\napp/src/components/card_view/card_state_selector.tsx\napp/src/components/card_view/mobile_card_view_menu.tsx\napp/src/components/card_view/project_card_drag_container.tsx\napp/src/components/card_view/project_card_view.tsx\napp/src/components/config/agent_profiles_editor.tsx\napp/src/components/config/config_value_editor.tsx\napp/src/components/config/markdown_config_section.tsx\napp/src/components/config/sentry_config_section.tsx\napp/src/components/editor/markdown_file_search_menu.tsx\napp/src/components/editor/markdown_file_search_typeahead_plugin.tsx\napp/src/components/editor/markdown_placeholder_menu.tsx\napp/src/components/editor/markdown_placeholder_toolbar_control.tsx\napp/src/components/editor/markdown_placeholder_typeahead_plugin.tsx\napp/src/components/project_workspace.tsx\napp/src/components/remarkable_import_panel.tsx\napp/src/components/shell/main_window.tsx\napp/src/components/shell/menu/app_menu.tsx\napp/src/components/shell/menu/branch_menu_select.tsx\napp/src/components/shell/menu/main_toolbar.tsx\napp/src/components/shell/menu/menu.tsx\napp/src/components/shell/menu/menu_icon_button.tsx\napp/src/components/shell/menu/menu_select.tsx\napp/src/components/shell/menu/mobile_create_menu.tsx\napp/src/components/shell/menu/mobile_menu_button.tsx\napp/src/components/shell/mobile_main_window.tsx\napp/src/components/shell/project/branch_switch_dialog.tsx\napp/src/components/shell/project/new_card_column_picker.tsx\napp/src/components/shell/project/project_open_dialog.tsx",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-11",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rl \"Menu\" app/src/components --include=*.tsx | grep -vi test | head -40",
+          "providerItemId": "toolu_018EysoQRQvJE6kg9ePatXfE",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:17.621Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls app/src/components/shell/menu/ && cat app/src/components/shell/menu/app_menu.tsx",
+          "content": "app_menu.test.tsx\napp_menu.tsx\nbranch_menu_select.tsx\nmain_toolbar.test.tsx\nmain_toolbar.tsx\nmenu.test.tsx\nmenu.tsx\nmenu_icon_button.tsx\nmenu_select.test.tsx\nmenu_select.tsx\nmobile_create_menu.test.tsx\nmobile_create_menu.tsx\nmobile_menu_button.test.tsx\nmobile_menu_button.tsx\nproject_name.node.test.ts\nproject_name.ts\nproject_name_label.test.tsx\nproject_name_label.tsx\nsection.test.tsx\nsection.tsx\ntab.test.tsx\ntab.tsx\ntheme_mode_toggle.tsx\nimport { Box, Button, Divider, MenuItem, Tab as MuiTab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'\nimport type { SelectChangeEvent } from '@mui/material'\nimport type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode, SyntheticEvent } from 'react'\nimport { useCallback, useEffect, useState } from 'react'\nimport CardsOutline from 'mdi-material-ui/CardsOutline'\nimport CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'\nimport CloudArrowDownOutline from 'mdi-material-ui/CloudArrowDownOutline'\nimport CloudArrowUpOutline from 'mdi-material-ui/CloudArrowUpOutline'\nimport Cog from 'mdi-material-ui/Cog'\nimport ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'\nimport FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'\nimport FolderOpen from 'mdi-material-ui/FolderOpen'\nimport TextBoxOutline from 'mdi-material-ui/TextBoxOutline'\nimport BarChartOutlined from '@mui/icons-material/BarChartOutlined'\nimport {\n    findAgentProfile,\n    mergeAgentProfiles,\n    PERMISSION_MODE_OPTIONS,\n    supportsPermissionMode,\n    supportsThinkingLevel,\n    THINKING_LEVELS,\n    validateAgentSelection,\n    validatePermissionMode,\n    validateThinkingLevel,\n} from '../../../data/agent_profiles'\nimport {\n    projectAgentSelection,\n    selectAgent,\n    selectModel,\n    selectPermissionMode,\n    selectThinkingLevel,\n    type AgentSelectionState,\n} from '../../../data/agent_selection'\nimport { configService } from '../../../services/config/config_service'\nimport { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'\nimport { projectSessionService } from '../../../services/project/project_session_service'\nimport { workspaceViewService, type WorkspaceViewMode } from '../../../services/project/workspace_view_service'\nimport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\nimport { actionService } from '../../../services/actions/action_service'\nimport { dialogService } from '../../../services/dialog_service'\nimport { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'\nimport { projectContext } from '../../../data/action_context'\nimport type { UseGithubAuthResult } from '../../../auth/use_github_auth'\nimport { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'\nimport { useProjectState } from '../../hooks/use_project_state'\nimport { useProjectPersistence } from '../../hooks/use_project_persistence'\nimport { useProjectConfig } from '../../hooks/use_project_config'\nimport { useProjectReadOnly } from '../../hooks/use_project_read_only'\nimport { usePrimaryWorktreeStatus } from '../../hooks/use_worktrees'\nimport { useWorkspaceView } from '../../hooks/use_workspace_view'\nimport { ActionEntryPoints } from '../../actions/run/trigger/action_entry_points'\nimport { MainToolbar } from './main_toolbar'\nimport { GithubAuthToolbarButton } from '../github_auth_toolbar_button'\nimport { NO_DRAG_REGION } from '../drag_region'\nimport { BranchSwitchDialog } from '../project/branch_switch_dialog'\nimport { CompleteReleaseDialog } from '../project/complete_release_dialog'\nimport { NewCardDialog } from '../project/new_card_dialog'\nimport { ProjectOpenDialog } from '../project/project_open_dialog'\nimport { useProjectToolbarMenuActions } from '../project/use_project_toolbar_menu_actions'\nimport { Menu } from './menu'\nimport { BranchMenuSelect } from './branch_menu_select'\nimport { MenuIconButton } from './menu_icon_button'\nimport { MenuSelect } from './menu_select'\nimport { MobileCreateMenu } from './mobile_create_menu'\nimport { Section }\n[19383 characters omitted]\n{readOnly || !actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}\n                            label=\"Complete release\"\n                            onClick={handleOpenReleaseDialog}\n                        >\n                            <CheckCircleOutline fontSize=\"small\" />\n                        </MenuIconButton>\n                    </Section>\n                </Tab>\n            </Box>\n            <ProjectOpenDialog\n                branches={actions.branches}\n                initialSource={actions.initialProjectSource}\n                isDesktopMode={actions.isDesktopMode}\n                isGithubAuthenticated={isGithubAuthenticated}\n                isLoading={actions.isLoading}\n                onChooseLocalFolder={actions.chooseLocalProjectFolder}\n                onCreateProjectFolders={handleCreateProjectFolders}\n                projectOpenResolution={actions.projectOpenResolution}\n                onBranchChange={() => undefined}\n                onClose={actions.closeDialog}\n                onCreateRemoteProject={actions.createRemoteProject}\n                onCreateWorkingFolder={() => void actions.createWorkingFolder()}\n                onDiscardGithubPendingCommits={handleDiscardGithubPendingCommits}\n                onLoadManualBranches={actions.loadManualBranches}\n                onLoadRemoteBranches={actions.loadRemoteBranches}\n                onOpenGithub={actions.openGithubProject}\n                onOpenLocal={actions.openLocalProject}\n                onOpenRemote={actions.openRemoteProject}\n                onRepositoryChange={actions.loadRepositoryBranches}\n                onSourceChange={actions.clearOpenDialogState}\n                onUseWorkingFolder={(folder) => void actions.openWorkingFolder(folder)}\n                open={dialogMode === 'open'}\n                pendingGithubConflictProject={actions.pendingGithubConflictProject}\n                recentLocalRepositories={actions.recentLocalRepositories}\n                repositories={actions.repositories}\n            />\n            <BranchSwitchDialog\n                branches={actions.branches}\n                isLoading={actions.isLoading}\n                onBranchChange={actions.setSwitchBranch}\n                onClose={actions.closeDialog}\n                onSwitchBranch={(branch) => void actions.switchProjectBranch(branch)}\n                open={dialogMode === 'branch'}\n                selectedBranch={actions.switchBranch}\n            />\n            <CompleteReleaseDialog\n                branchCandidates={actions.releaseBranchCandidates}\n                defaultSelectAll={actions.releaseSelectAllDefault}\n                isLoading={actions.isLoading}\n                key={dialogMode === 'release' ? 'release-open' : 'release-closed'}\n                onClose={actions.closeDialog}\n                onCompleteRelease={actions.completeRelease}\n                onSelectAllDefaultChange={actions.setReleaseSelectAllDefault}\n                open={dialogMode === 'release'}\n            />\n            <NewCardDialog\n                cardTypes={actions.cardTypes}\n                initialTargetStatus={actions.newCardInitialStatus}\n                isLoading={actions.isLoading}\n                isProjectOpen={actions.isProjectOpen}\n                onClose={actions.closeDialog}\n                onCreateCard={actions.createCard}\n                open={dialogMode === 'card'}\n                states={actions.states}\n            />\n        </Menu>\n    )\n\n    return (\n        <MainToolbar\n            isMobile={isMobile}\n            mobileAction={isMobile && currentTab === 'home' ? (\n                <MobileCreateMenu\n                    isNewActionDisabled={!project || readOnly}\n                    isNewCardDisabled={!actions.isProjectOpen || readOnly}\n                    onCreateAction={handleCreateAction}\n                    onCreateCard={handleOpenCardDialog}\n                />\n            ) : null}\n            onOpenMenu={onOpenMobileMenu}\n            panel={menuPanel}\n            search={search}\n            tabs={menuTabs}\n        />\n    )\n}",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-12",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls app/src/components/shell/menu/ && cat app/src/components/shell/menu/app_menu.tsx",
+          "providerItemId": "toolu_01S7pjrc6qpxUghzVC36fcFL",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:19.995Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTgee9UbeZ39wa65fmVo:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:56:22.476Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/services/sentry/sentry_import_service.ts && echo \"=====HOOK\" && cat app/src/components/hooks/use_sentry_import.ts && echo \"=====CONN HOOK\" && cat app/src/components/hooks/use_sentry_connection.ts",
+          "content": "import type { Card, ProjectReference, ProjectSnapshot } from '../../data/data_types'\nimport type { SentryIssueImportRequest } from '../data/card_operations'\nimport type { DataService } from '../data/data_service'\nimport { dataService } from '../data/data_service'\nimport type { ProjectAccessService } from '../project/project_access_service'\nimport { projectAccessService } from '../project/project_access_service'\nimport { register } from '../service_injector'\nimport type { SentryApiClient, SentryApiRequest } from './sentry_api_client'\nimport { sentryApiClient } from './sentry_api_client'\nimport type { SentryConnectionService } from './sentry_connection_service'\nimport { sentryConnectionService } from './sentry_connection_service'\nimport { sentryIdentityKey, type SentryIssueSummary, type SentryProjectSettings } from './sentry_types'\n\nexport const SENTRY_POLL_INTERVAL_MS = 15 * 60 * 1000\n\nexport interface SentryImportConfirmation {\n    count: number\n    projectId: string\n}\n\nexport interface SentryImportSnapshot {\n    confirmation: SentryImportConfirmation | null\n    isPolling: boolean\n    lastImportCount: number | null\n    lastSuccessfulPollAt: string | null\n    latestError: string | null\n}\n\nexport interface SentryImportServiceDependencies {\n    apiClient: Pick<SentryApiClient, 'listUnresolvedIssues' | 'loadRecommendedEvent'>\n    connectionService: SentryConnectionService\n    dataService: DataService\n    now(): Date\n    projectAccessService: ProjectAccessService\n    setInterval(callback: () => void, delay: number): number\n    clearInterval(handle: number): void\n}\n\nconst INITIAL_SNAPSHOT: SentryImportSnapshot = {\n    confirmation: null,\n    isPolling: false,\n    lastImportCount: null,\n    lastSuccessfulPollAt: null,\n    latestError: null,\n}\n\nfunction errorMessage(error: unknown) {\n    return error instanceof Error ? error.message : 'Unexpected Sentry import error'\n}\n\nfunction allCards(snapshot: ProjectSnapshot) {\n    return [...snapshot.activeCards, ...snapshot.backgroundCards]\n}\n\nfunction importedIdentities(cards: Card[]) {\n    return new Set(cards.flatMap(({ header }) => {\n        const { sentryBaseUrl, sentryIssueId, sentryOrganization } = header\n        if (!sentryBaseUrl || !sentryIssueId || !sentryOrganization) return []\n\n        return [sentryIdentityKey(sentryBaseUrl, sentryOrganization, sentryIssueId)]\n    }))\n}\n\nfunction uniqueUnseenIssues(issues: SentryIssueSummary[], snapshot: ProjectSnapshot, settings: SentryProjectSettings) {\n    const existing = importedIdentities(allCards(snapshot))\n    const selected = new Set<string>()\n\n    return issues.filter(({ id }) => {\n        const identity = sentryIdentityKey(settings.apiBaseUrl, settings.organization, id)\n        if (existing.has(identity) || selected.has(identity)) return false\n        selected.add(identity)\n\n        return true\n    })\n}\n\nfunction isComplete(settings: SentryProjectSettings) {\n    return settings.apiBaseUrl.trim().length > 0\n        && settings.apiToken.trim().length > 0\n        && settings.organization.trim().length > 0\n        && settings.project.trim().length > 0\n        && settings.environment.trim().length > 0\n        && settings.cardType.length > 0\n        && settings.cardState.trim().length > 0\n}\n\nfunction requestFromSettings(settings: SentryProjectSettings): SentryApiRequest {\n    return {\n        apiBaseUrl: settings.apiBaseUrl,\n        apiToken: settings.apiToken,\n        environment: settings.environment,\n        organization: settings.organization,\n        project: settings.project,\n    }\n}\n\nfunction scheduleKey(project: ProjectReference, settings: SentryProjectSettings) {\n    return [\n        project.id,\n        settings.apiBaseUrl,\n        settings.organization,\n        settings.project,\n        settings.environment,\n        settings.cardType,\n        settings.cardState,\n    ].join('\\n')\n}\n\nexport class SentryImportService extends EventTarget {\n    private readonly dependencies: SentryImportServiceDependencies\n    private intervalHandle: number | null = null\n    private pollPromise: Promise<number> | null = null\n    privat\n[4732 characters omitted]\n    if (!settings.firstImportConfirmed && unseenIssues.length > 0) {\n                this.setSnapshot({\n                    confirmation: { count: unseenIssues.length, projectId },\n                    lastSuccessfulPollAt: this.dependencies.now().toISOString(),\n                })\n                return 0\n            }\n\n            const importedIssues = await Promise.all(unseenIssues.map(async (issue) => {\n                const event = await apiClient.loadRecommendedEvent(requestFromSettings(settings), issue.id)\n\n                return { event: { ...event, environment: event.environment ?? settings.environment }, issue }\n            }))\n            if (!this.isCurrentRequest(projectId, startingKey)) return 0\n\n            const importRequest: SentryIssueImportRequest = {\n                apiBaseUrl: settings.apiBaseUrl,\n                cardState: settings.cardState,\n                cardType: settings.cardType,\n                issues: importedIssues,\n                organization: settings.organization,\n                projectId,\n            }\n            const importedFiles = await dataService.cards.importSentryIssues(importRequest)\n            this.setSnapshot({\n                confirmation: null,\n                lastImportCount: importedFiles.length,\n                lastSuccessfulPollAt: this.dependencies.now().toISOString(),\n                latestError: null,\n            })\n\n            return importedFiles.length\n        } catch (error) {\n            connectionService.handleApiError(error)\n            this.setSnapshot({ latestError: errorMessage(error) })\n            return 0\n        } finally {\n            this.setSnapshot({ isPolling: false })\n        }\n    }\n\n    private isCurrentRequest(projectId: string, startingKey: string) {\n        const project = this.dependencies.dataService.getState().project\n        const connection = this.dependencies.connectionService.getSnapshot()\n\n        return project?.id === projectId\n            && connection.projectId === projectId\n            && scheduleKey(project, connection.settings) === startingKey\n            && !this.dependencies.projectAccessService.getSnapshot()\n    }\n\n    private setSnapshot(snapshot: Partial<SentryImportSnapshot>) {\n        this.snapshot = { ...this.snapshot, ...snapshot }\n        this.dispatchEvent(new CustomEvent<SentryImportSnapshot>('changed', { detail: this.snapshot }))\n    }\n}\n\nconst DEFAULT_DEPENDENCIES: SentryImportServiceDependencies = {\n    apiClient: sentryApiClient,\n    clearInterval: (handle) => window.clearInterval(handle),\n    connectionService: sentryConnectionService,\n    dataService,\n    now: () => new Date(),\n    projectAccessService,\n    setInterval: (callback, delay) => window.setInterval(callback, delay),\n}\n\nexport const sentryImportService = new SentryImportService(DEFAULT_DEPENDENCIES)\n=====HOOK\nimport { useSyncExternalStore } from 'react'\nimport {\n    sentryImportService,\n    type SentryImportService,\n    type SentryImportSnapshot,\n} from '../../services/sentry/sentry_import_service'\n\nexport function useSentryImport(service: SentryImportService = sentryImportService): SentryImportSnapshot {\n    return useSyncExternalStore(\n        (onStoreChange) => {\n            service.addEventListener('changed', onStoreChange)\n\n            return () => service.removeEventListener('changed', onStoreChange)\n        },\n        () => service.getSnapshot(),\n        () => service.getSnapshot(),\n    )\n}\n=====CONN HOOK\nimport { useSyncExternalStore } from 'react'\nimport {\n    sentryConnectionService,\n    type SentryConnectionService,\n    type SentryConnectionSnapshot,\n} from '../../services/sentry/sentry_connection_service'\n\nexport function useSentryConnection(service: SentryConnectionService = sentryConnectionService): SentryConnectionSnapshot {\n    return useSyncExternalStore(\n        (onStoreChange) => {\n            service.addEventListener('changed', onStoreChange)\n\n            return () => service.removeEventListener('changed', onStoreChange)\n        },\n        () => service.getSnapshot(),\n        () => service.getSnapshot(),\n    )\n}",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-14",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/services/sentry/sentry_import_service.ts && echo \"=====HOOK\" && cat app/src/components/hooks/use_sentry_import.ts && echo \"=====CONN HOOK\" && cat app/src/components/hooks/use_sentry_connection.ts",
+          "providerItemId": "toolu_017puAVRJQTk12T3KrG6xVnK",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:24.148Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/menu/menu_icon_button.tsx && echo \"=====DIALOG\" && cat app/src/components/sentry_import_confirmation_dialog.tsx && echo \"=====WHERE USED\" && grep -rn \"SentryImportConfirmationDialog\" app/src --include=*.tsx | grep -v test",
+          "content": "import { IconButton, Tooltip } from '@mui/material'\nimport type { ReactNode } from 'react'\n\ninterface MenuIconButtonProps {\n    children: ReactNode\n    disabled?: boolean\n    label: string\n    onClick: () => void\n    tooltip?: string\n}\n\n/** Tooltip-wrapped icon button used by menu sections. */\nexport function MenuIconButton(props: MenuIconButtonProps) {\n    const { children, disabled = false, label, onClick, tooltip = label } = props\n\n    return (\n        <Tooltip title={tooltip}>\n            <span>\n                <IconButton aria-label={label} disabled={disabled} onClick={onClick} size=\"small\" sx={{ height: 34, width: 34 }}>\n                    {children}\n                </IconButton>\n            </span>\n        </Tooltip>\n    )\n}\n=====DIALOG\nimport { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'\nimport { useSentryImport } from './hooks/use_sentry_import'\nimport { sentryImportService, type SentryImportService } from '../services/sentry/sentry_import_service'\n\ninterface SentryImportConfirmationDialogProps {\n    service?: SentryImportService\n}\n\nexport function SentryImportConfirmationDialog({ service = sentryImportService }: SentryImportConfirmationDialogProps) {\n    const snapshot = useSentryImport(service)\n    const confirmation = snapshot.confirmation\n    const handleCancel = () => service.cancelFirstImport()\n    const handleImport = () => {\n        void service.confirmFirstImport()\n    }\n\n    return (\n        <Dialog aria-labelledby=\"sentry-import-confirmation-title\" open={!!confirmation}>\n            <DialogTitle id=\"sentry-import-confirmation-title\">Import Sentry issues?</DialogTitle>\n            <DialogContent>\n                <Typography>\n                    {confirmation ? `${confirmation.count} unresolved Sentry issue${confirmation.count === 1 ? '' : 's'} will be imported as bug cards.` : ''}\n                </Typography>\n            </DialogContent>\n            <DialogActions>\n                <Button disabled={snapshot.isPolling} onClick={handleCancel} variant=\"outlined\">Cancel</Button>\n                <Button disabled={snapshot.isPolling} onClick={handleImport} variant=\"contained\">Import</Button>\n            </DialogActions>\n        </Dialog>\n    )\n}\n=====WHERE USED\napp/src/app.tsx:15:import { SentryImportConfirmationDialog } from './components/sentry_import_confirmation_dialog'\napp/src/app.tsx:46:            <SentryImportConfirmationDialog />\napp/src/components/sentry_import_confirmation_dialog.tsx:5:interface SentryImportConfirmationDialogProps {\napp/src/components/sentry_import_confirmation_dialog.tsx:9:export function SentryImportConfirmationDialog({ service = sentryImportService }: SentryImportConfirmationDialogProps) {",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-15",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/menu/menu_icon_button.tsx && echo \"=====DIALOG\" && cat app/src/components/sentry_import_confirmation_dialog.tsx && echo \"=====WHERE USED\" && grep -rn \"SentryImportConfirmationDialog\" app/src --include=*.tsx | grep -v test",
+          "providerItemId": "toolu_01BFfZiU2wxQmz9o89iqbbdm",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:27.581Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTgfCqzSonk1kjxHY7Lq:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:56:30.704Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rli \"acceptance criteria\" design/feature_descriptions | tail -5",
+          "content": "design/feature_descriptions/F_256_action_phrases_are_appended_instead_of_replacements.md\ndesign/feature_descriptions/F_94_no_prefill_prompt_running_conv.md.bak\ndesign/feature_descriptions/J_31_refactor_project_stats_service.md\ndesign/feature_descriptions/J_33_second_instance_strange_behaviour.md\ndesign/feature_descriptions/J_34_finish_agent_selection_hardening.md",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-17",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rli \"acceptance criteria\" design/feature_descriptions | tail -5",
+          "providerItemId": "toolu_012ZzmrWZn8ZJSxycPvCV1BC",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:32.275Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,60p' app/src/services/sentry/sentry_connection_service.ts",
+          "content": "import type { ProjectReference } from '../../data/data_types'\nimport { register } from '../service_injector'\nimport { applicationStorage } from '../storage/application_storage'\nimport { SentryApiClient, SentryApiError, sentryApiClient } from './sentry_api_client'\nimport {\n    createDefaultSentryProjectSettings,\n    normalizeSentryBaseUrl,\n    type SentryProjectSettings,\n} from './sentry_types'\n\nexport const SENTRY_CONNECTION_STORAGE_KEY = 'md2.sentry.connections'\n\nexport interface SentryConnectionSnapshot {\n    errorMessage: string | null\n    isAuthenticated: boolean\n    isConnecting: boolean\n    projectId: string | null\n    settings: SentryProjectSettings\n}\n\nexport interface SentryConnectionServiceDependencies {\n    apiClient: Pick<SentryApiClient, 'validateProject'>\n    storage: Pick<Storage, 'getItem' | 'setItem'>\n}\n\ntype StoredConnections = Record<string, SentryProjectSettings>\n\nfunction errorMessage(error: unknown) {\n    return error instanceof Error ? error.message : 'Unexpected Sentry connection error'\n}\n\nconst SENTRY_FORBIDDEN_MESSAGE = 'Sentry denied access. Confirm token has event:read access to configured organization and project.'\n\nfunction readConnections(storage: Pick<Storage, 'getItem'>): StoredConnections {\n    const stored = storage.getItem(SENTRY_CONNECTION_STORAGE_KEY)\n    if (!stored) return {}\n\n    const parsed: unknown = JSON.parse(stored)\n    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Stored Sentry connections are invalid')\n\n    return parsed as StoredConnections\n}\n\nfunction normalizedSettings(settings: SentryProjectSettings): SentryProjectSettings {\n    const apiToken = settings.apiToken.trim()\n    const organization = settings.organization.trim()\n    const project = settings.project.trim()\n    const environment = settings.environment.trim()\n    if (!apiToken) throw new Error('Sentry API token is required')\n    if (!organization) throw new Error('Sentry organization is required')\n    if (!project) throw new Error('Sentry project is required')\n    if (!environment) throw new Error('Sentry environment is required')\n\n    return {\n        ...settings,\n        apiBaseUrl: normalizeSentryBaseUrl(settings.apiBaseUrl),\n        apiToken,\n        environment,\n        organization,\n        project,",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-18",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,60p' app/src/services/sentry/sentry_connection_service.ts",
+          "providerItemId": "toolu_01TMmuewi3TPRQe6L98WdBUj",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:32.724Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat design/feature_descriptions/J_34_finish_agent_selection_hardening.md",
+          "content": "---\nauthor:\nid: J_34\ninternalId: d3078abd-23e1-4c90-8b8e-6ee6459b005f\ntitle: finish agent selection hardening\nstatus: ready\nowner:\naffects:\nagents:\n  - design/activity/card__d3078abd-23e1-4c90-8b8e-6ee6459b005f.json\npolicy:\nafter: 56bd50ce-b28c-4eb4-83cb-1951221f7864\n---\n\nF_216 introduced shared per-agent model and thinking-level memory, but several persistence, compatibility, and execution paths remain incomplete.\n\n## Fixes\n\n* Use migration-aware activity parsing at every activity-file boundary. Existing version-4 files must load and migrate for action history, conversations, card settings, release operations, GitHub storage, activity updates, and token usage. Do not require a prior write or repair pass.\n* Keep non-card agent selections for the renderer session. Project, folder, regular-file, and merge-conflict popup close/reopen cycles must reuse a stable store keyed by action and context. Clear these stores when project identity changes.\n* Keep shared permission mode in selection memory, but omit it from flat execution input for agents that do not support permission modes. Custom-agent popup runs must not fail because another agent's shared permission choice is present.\n* Reject profile default thinking levels unsupported by that profile. Custom profiles without a thinking-level adapter may use only `none` unless explicit profile capability support is added.\n* Normalize legacy agent profiles before strict validation wherever desktop config enters the renderer or host, including remote-desktop config. Profiles missing `defaultThinkingLevel` migrate to `none`.\n* Keep unavailable remembered agents, models, and thinking levels visible in config, global controls, and action-popup submenus. Mark them unavailable and surface the existing validation error; never silently replace or hide them.\n* Register `actionAgentSelectionDraftService` with the service injector, following singleton-service architecture.\n* Remove duplicated hard-coded desktop selection fallback. Use one exported canonical default.\n\n## Compatibility and failure behavior\n\n* Version-4 activity migration preserves active agent, model, thinking level, permission mode, conversations, records, and origin.\n* Migration participates in existing queued read-modify-write activity updates and must not introduce unqueued rewrites or lost concurrent changes.\n* Stored invalid or unavailable remembered values remain unchanged until user edits them.\n* Persistence and migration failures continue through `dialogService`; affected actions remain safely disabled when settings cannot be resolved.\n* Conversation selection must not change selection scope or copy settings between actions or cards.\n\n## Tests\n\nAdd regression coverage for:\n\n* Real version-4 files loaded through every production consumer, not only direct migration helpers.\n* Version-4 activity updated concurrently after migration.\n* Non-card popup settings restored after close/reopen and cleared after project change.\n* Custom-agent execution with retained shared permission mode.\n* Rejection of unsupported custom-profile thinking defaults.\n* Remote config containing legacy profiles without `defaultThinkingLevel`.\n* Unavailable remembered values remaining visible with validation errors.\n\n## Acceptance criteria\n\n* All F_216 acceptance criteria pass through production entry points.\n* Existing version-4 activity and legacy desktop config load without data loss.\n* Built-in and custom agents receive only supported flat execution settings.\n* Card memory persists per card/action; non-card memory persists for renderer session only.\n* Shared selection code remains single source for transitions, defaults, validation, and projection.\n* `npm run typecheck`, `npm run lint`, affected tests, app full tests, and desktop full tests pass.\n\n## See also\n\n* `design/feature_descriptions/F_216_improve_agent_selection.md`\n* `design/architecture/architectural_decisions.md`",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-19",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat design/feature_descriptions/J_34_finish_agent_selection_hardening.md",
+          "providerItemId": "toolu_012ytPRwVeeFrrS6k6wzDhTs",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:35.339Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTgfmaUu3YmWGKpfA62v:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:56:39.799Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rh \"^status:\" design/feature_descriptions/*.md | sort | uniq -c",
+          "content": "     70 status: new\n     43 status: ready\n      1 status: ready for implementation",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-21",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rh \"^status:\" design/feature_descriptions/*.md | sort | uniq -c",
+          "providerItemId": "toolu_019BLyZkJ4ZNAzztywq97Poq",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:41.430Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/menu/section.tsx && echo \"==== ENTRYPOINTS\" && sed -n '1,80p' app/src/components/actions/run/trigger/action_entry_points.tsx",
+          "content": "import { Box } from '@mui/material'\nimport type { ReactNode } from 'react'\n\ninterface SectionProps {\n    children: ReactNode\n    label: string\n}\n\n/** An accessible toolbar group; its visible controls are explained with tooltips. */\nexport function Section(props: SectionProps) {\n    const { children, label } = props\n\n    return (\n        <Box aria-label={label} role=\"group\" sx={{ alignItems: 'center', display: 'flex', gap: 0.75 }}>\n            {children}\n        </Box>\n    )\n}\n==== ENTRYPOINTS\nimport { IconButton, ListItemIcon, MenuItem, Stack, Tooltip } from '@mui/material'\nimport { useEffect, useMemo, useState } from 'react'\nimport type { MouseEvent } from 'react'\nimport { displayActionsForContext, type ActionContext } from '../../../../data/action_context'\nimport type { ActionDefinition } from '../../../../data/action_types'\nimport { dialogService } from '../../../../services/dialog_service'\nimport { useActions } from '../../../hooks/use_actions'\nimport { useRunningActionForContext } from '../../../hooks/use_action_runs'\nimport { ActionIcon } from './action_icon'\nimport { resolveActionIcon, type ActionIconSource } from './action_icon_resolver'\nimport { ActionPopup } from '../popup/action_popup'\nimport { useProjectReadOnly } from '../../../hooks/use_project_read_only'\n\n/** How action entry points are rendered in an existing toolbar or menu. */\nexport type ActionEntryVariant = 'icons' | 'menuItems'\nexport type ActionEntryVisibility = 'all-matching' | 'explicit-context'\n\ninterface ActionEntryPointsProps {\n    context: ActionContext\n    onMenuItemSelected?: () => void\n    popupAnchorElement?: HTMLElement | null\n    variant: ActionEntryVariant\n    visibility?: ActionEntryVisibility\n}\n\nconst DEFAULT_ICON_SOURCE: ActionIconSource = { dataUri: null }\n\ninterface ActionPopupState {\n    actionId: string\n    anchorElement: HTMLElement\n}\n\n/**\n * Context-sensitive action entry points shown close to a card/file/folder. Filters\n * the loaded actions by `appliesTo`, and on activation opens a resizable popup bound\n * to the action and context. `before`/`after` shortcuts push a new popup for the\n * related action with the same context.\n */\nexport function ActionEntryPoints(props: ActionEntryPointsProps) {\n    const { context, onMenuItemSelected, popupAnchorElement, variant, visibility = 'all-matching' } = props\n    const { actions: loadedActions } = useActions()\n    const runningRun = useRunningActionForContext(context)\n    const readOnly = useProjectReadOnly()\n    const runDisabled = readOnly || !!runningRun\n    const [iconSources, setIconSources] = useState<Record<string, ActionIconSource>>({})\n    const [popupState, setPopupState] = useState<ActionPopupState | null>(null)\n\n    const matching = useMemo(() => {\n        const contextActions = displayActionsForContext(loadedActions, context)\n        if (visibility === 'explicit-context') {\n            return contextActions.filter((action) => action.appliesTo?.kind === context.kind)\n        }\n\n        return contextActions\n    }, [context, loadedActions, visibility])\n\n    useEffect(() => {\n        let isActive = true\n\n        const loadIcons = async () => {\n            const entries = await Promise.all(matching.map(async (action) => [action.id, await resolveActionIcon(action.icon)] as const))\n            if (!isActive) return\n\n            setIconSources(Object.fromEntries(entries))\n        }\n\n        void loadIcons()\n\n        return () => {\n            isActive = false\n        }\n    }, [matching])\n\n    if (matching.length === 0) return null\n\n    const open = (actionId: string, anchorElement: HTMLElement) => {\n        onMenuItemSelected?.()\n        setPopupState({ actionId, anchorElement })\n    }",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-22",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/menu/section.tsx && echo \"==== ENTRYPOINTS\" && sed -n '1,80p' app/src/components/actions/run/trigger/action_entry_points.tsx",
+          "providerItemId": "toolu_015VnNgymQrbQgw5hRBctPcN",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:42.627Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-23",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTggK5KFLLZwtrztMnLu:thinking:0",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:56:46.434Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n -i \"sentry\" app/src/components/config/config_page.tsx app/src/app.tsx app/src/services/application_startup_service.ts",
+          "content": "app/src/components/config/config_page.tsx:39:import { SentryConfigSection } from './sentry_config_section'\napp/src/components/config/config_page.tsx:46:const SENTRY_CONFIG_SECTION = { id: 'sentry', label: 'Sentry' }\napp/src/components/config/config_page.tsx:71:        if (section.id === 'project') return [...visibleSection, SENTRY_CONFIG_SECTION]\napp/src/components/config/config_page.tsx:300:                        {activeSection === 'sentry' ? <SentryConfigSection /> : null}\napp/src/app.tsx:15:import { SentryImportConfirmationDialog } from './components/sentry_import_confirmation_dialog'\napp/src/app.tsx:46:            <SentryImportConfirmationDialog />\napp/src/services/application_startup_service.ts:19:import { initDefaultSentryConnectionService, sentryConnectionService } from './sentry/sentry_connection_service'\napp/src/services/application_startup_service.ts:20:import { sentryImportService } from './sentry/sentry_import_service'\napp/src/services/application_startup_service.ts:43:    initDefaultSentryConnectionService(sentryConnectionService)\napp/src/services/application_startup_service.ts:53:    sentryImportService.start()",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-24",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n -i \"sentry\" app/src/components/config/config_page.tsx app/src/app.tsx app/src/services/application_startup_service.ts",
+          "providerItemId": "toolu_01Vyc6we3RKVqSFpiQSAL8Wa",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:47.881Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,60p' app/src/components/shell/menu/app_menu.test.tsx",
+          "content": "import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\nimport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\nimport type { UseGithubAuthResult } from '../../../auth/use_github_auth'\nimport type { StorageService } from '../../../data/data_types'\nimport type { ElectronDataBridge } from '../../../data/electron_data_bridge'\nimport { actionService } from '../../../services/actions/action_service'\nimport { configService } from '../../../services/config/config_service'\nimport { dataService } from '../../../services/data/data_service'\nimport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\nimport { workspaceViewService } from '../../../services/project/workspace_view_service'\nimport { projectAccessService } from '../../../services/project/project_access_service'\nimport { projectPersistenceService } from '../../../services/project/project_persistence_service'\nimport { projectSessionService } from '../../../services/project/project_session_service'\nimport { openFilesService } from '../../../services/open_files_service'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { DialogDisplay } from '../../dialog_display'\nimport { AppMenu } from './app_menu'\nimport { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../../shared/agent_token_usage_summary.mjs'\n\nconst auth: UseGithubAuthResult = {\n    accessToken: null,\n    errorMessage: null,\n    isAuthenticated: false,\n    isLoadingUser: false,\n    logout: vi.fn(),\n    savePersonalAccessToken: vi.fn(),\n    status: 'idle',\n    user: null,\n}\n\nfunction createBridge(): ElectronDataBridge {\n    const usageSummary = {\n        content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()),\n        path: 'agent_token_usage.json',\n    }\n\n    return {\n        checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),\n        commit: vi.fn(async () => []),\n        createProject: vi.fn(async (project) => project),\n        deleteFile: vi.fn(),\n        deleteFolder: vi.fn(),\n        getMergeConflictSession: vi.fn(async () => null),\n        hasPendingPush: vi.fn(async () => false),\n        listBranches: vi.fn(async () => [{ name: 'main' }]),\n        listRepositoryFiles: vi.fn(async () => [usageSummary.path]),\n        listTopLevelFolders: vi.fn(async () => [{ name: 'design', path: 'design' }]),\n        loadActionFiles: vi.fn(async () => []),\n        loadFile: vi.fn(async () => ({ content: '', path: 'design/empty.md' })),\n        loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),\n        loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),\n        loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'design' })),\n        loadTextFile: vi.fn(async (_project, path) => {\n            if (path !== usageSummary.path) throw new Error(`Missing file: ${path}`)\n\n            return usageSummary\n        }),\n        onMergeConflictSessionChanged: vi.fn(() => vi.fn()),\n        onWorktreesChanged: vi.fn(() => vi.fn()),\n        moveFiles: vi.fn(),",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-25",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,60p' app/src/components/shell/menu/app_menu.test.tsx",
+          "providerItemId": "toolu_01P89b23yjxMjoBtLceURRXx",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:48.215Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTggijrXnhgcSTgAe7TY:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:56:53.605Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls app/node_modules/mdi-material-ui/ 2>/dev/null | grep -i \"^Bug\" | head",
+          "content": "Bug.d.ts\nBug.js\nBugCheck.d.ts\nBugCheck.js\nBugCheckOutline.d.ts\nBugCheckOutline.js\nBugOutline.d.ts\nBugOutline.js\nBugPause.d.ts\nBugPause.js",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-27",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls app/node_modules/mdi-material-ui/ 2>/dev/null | grep -i \"^Bug\" | head",
+          "providerItemId": "toolu_01HEtkUu662A1ifnNCQ3hT7T",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-08-27T17:56:55.470Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-28",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeTghEYVQA5BcreM8NDmy:thinking:0",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-27T17:56:56.949Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"questions\":[{\"question\":\"Run tab button when Sentry not connected / not configured: hide or show disabled?\",\"header\":\"Visibility\",\"multiSelect\":false,\"options\":[{\"label\":\"Hide unless connected (Recommended)\",\"description\":\"Button renders only when Sentry connection is authenticated and settings complete. Keeps Run tab clean for users who never use Sentry. Disabled-only-while-polling once visible.\"},{\"label\":\"Always show, disabled + tooltip\",\"description\":\"Button always present in Run > Actions. Disabled with tooltip naming the blocker (no project, read-only, not connected, incomplete settings, import running). Better discoverability of the Sentry feature itself.\"}]},{\"question\":\"Does the new button live only in the desktop Run tab, or also mobile?\",\"header\":\"Mobile\",\"multiSelect\":false,\"options\":[{\"label\":\"Both (Recommended)\",\"description\":\"Run tab panel already renders on mobile and desktop; button placed in Run > Actions section inherits both with no extra work.\"},{\"label\":\"Desktop only\",\"description\":\"Gate on isMobile so mobile Run tab omits the import button.\"}]}]}",
+          "id": "agent-turn-def40f71-fd42-48bf-ab0a-b71196fe9671-event-29",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "providerItemId": "toolu_01BhywxmJBjGrkPUebioaw7Z",
+          "sequence": 29,
+          "status": "inProgress",
+          "timestamp": "2026-08-27T17:57:01.524Z",
+          "type": "tool.AskUserQuestion"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-3a2f649f-8cdd-4b2a-887e-86ea0f1ad8b3",
+      "providerSessions": [],
+      "startedAt": "2026-08-27T17:56:02.291Z",
+      "status": "waitingForInput",
+      "timer": {
+        "elapsedMs": 59237,
+        "runningStartedAt": null
+      },
+      "title": "complete",
+      "usageSchemaVersion": 1,
+      "viewed": false
+    }
+  ],
+  "origin": {
+    "cardInternalId": "2ba8b222-8131-4283-9263-be319a8fed6f",
+    "kind": "card"
+  },
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-08-28T08:04:56.436Z",
+      "conversationIds": [
+        "agent-3a2f649f-8cdd-4b2a-887e-86ea0f1ad8b3"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-bf00f484-f617-4a57-bfad-3c606a9324ed",
+      "origin": {
+        "cardInternalId": "2ba8b222-8131-4283-9263-be319a8fed6f",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-3a2f649f-8cdd-4b2a-887e-86ea0f1ad8b3",
+      "startedAt": "2026-08-27T17:56:02.290Z",
+      "status": "cancelled"
+    }
+  ],
+  "version": 5
+}

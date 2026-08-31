@@ -1,7 +1,7 @@
 import type { ActionFile } from '../../data/action_types'
 import { ACTION_SCHEDULES_FILE } from '../../data/action_schedule_types'
 import { MissingWorkingFolderError, type AgentConversation, type MarkdownFile, type ProjectReference } from '../../data/data_types'
-import { findActivityConversation, parseActivityFile } from '../../../../shared/card_activity.mjs'
+import { findActivityConversation, parseActivityFileForMigration } from '../../../../shared/card_activity.mjs'
 import { conversationActivityReference, parseConversationActivityReference } from '../../../../shared/activity_paths.mjs'
 import {
     normalizeBranches,
@@ -63,9 +63,9 @@ export class GithubStorageLoader {
         this.gitData = gitData
     }
 
-    async loadProject(project: ProjectReference, workingFolder: string) {
+    async loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string) {
         this.context.requireGithubProject(project)
-        const files = await this.readDirectory(project, workingFolder, true)
+        const files = await this.readDirectory(project, workingFolder, true, excludedRootFolder)
 
         return { files, workingFolder }
     }
@@ -94,7 +94,7 @@ export class GithubStorageLoader {
         this.context.requireGithubProject(project)
         const { activityPath, conversationId } = parseConversationActivityReference(path)
         const file = await this.gitData.readFile(project, activityPath)
-        const activity = parseActivityFile(file.content)
+        const activity = parseActivityFileForMigration(file.content)
         const conversation = findActivityConversation(activity, conversationId)
 
         return { ...conversation, path }
@@ -103,7 +103,7 @@ export class GithubStorageLoader {
     async loadActivityConversations(project: ProjectReference, path: string): Promise<AgentConversation[]> {
         this.context.requireGithubProject(project)
         const file = await this.gitData.readFile(project, path)
-        const activity = parseActivityFile(file.content)
+        const activity = parseActivityFileForMigration(file.content)
 
         return activity.conversations.map((conversation) => ({
             ...conversation,
@@ -175,13 +175,21 @@ export class GithubStorageLoader {
         return { ...project, branch: project.branch }
     }
 
-    private async readDirectory(project: ProjectReference, path: string, isWorkingFolder = false): Promise<MarkdownFile[]> {
+    private async readDirectory(
+        project: ProjectReference,
+        path: string,
+        isWorkingFolder = false,
+        excludedRootFolder?: string,
+    ): Promise<MarkdownFile[]> {
         const folderPath = normalizeFolderPath(path)
+        const excludedRootFolderPath = excludedRootFolder === undefined ? null : normalizeFolderPath(excludedRootFolder)
         const entries = await this.gitData.getProjectRecursiveTreeEntries(project)
         const folderExists = folderPath.length === 0 || entries.some((entry) => isEntryInFolder(entry.path, folderPath))
         if (!folderExists && isWorkingFolder) throw new MissingWorkingFolderError(path)
 
-        const markdownEntries = entries.filter((entry) => isMarkdownBlob(entry) && isEntryInFolder(entry.path, folderPath))
+        const markdownEntries = entries.filter((entry) => isMarkdownBlob(entry)
+            && isEntryInFolder(entry.path, folderPath)
+            && (excludedRootFolderPath === null || !isDirectFileInFolder(entry.path, excludedRootFolderPath)))
 
         return this.gitData.readBlobFiles(project, markdownEntries)
     }

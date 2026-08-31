@@ -9,7 +9,7 @@ const card: Card = {
     agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true,
     header: {
         affects: [], after: null, agentLogReferences: [], author: 'JB', id: 'F-1', internalId: 'card-1',
-        owner: null, policy: {}, references: [], status: 'design', title: 'Alpha', worktree: null, worktreeError: null, worktreeValue: null,
+        changedFiles: [], owner: null, policy: {}, references: [], status: 'design', title: 'Alpha', worktree: null, worktreeError: null, worktreeValue: null,
     },
     path: 'design/F-1.md',
 }
@@ -47,11 +47,19 @@ describe('CardPropertiesPanel', () => {
         expect(properties.getByText('Status')).toBeInTheDocument()
         expect(properties.getByText('Author')).toBeInTheDocument()
         expect(properties.getByText('Affects')).toBeInTheDocument()
+        expect(properties.getByText('Changed files')).toBeInTheDocument()
         expect(properties.getByText('Policy')).toBeInTheDocument()
-        expect(properties.getByText('None')).toBeInTheDocument()
+        expect(properties.getAllByText('None')).toHaveLength(2)
         expect(properties.queryByText('Owner')).not.toBeInTheDocument()
         expect(properties.queryByText('Agents')).not.toBeInTheDocument()
         expect(properties.queryByText('Internal ID')).not.toBeInTheDocument()
+    })
+
+    it('shows changed files with full comma-separated value in title', () => {
+        renderPanel({ ...card, header: { ...card.header, changedFiles: ['app/src/a.ts', 'desktop/main.js'] } })
+
+        const value = screen.getByText('app/src/a.ts, desktop/main.js')
+        expect(value).toHaveAttribute('title', 'app/src/a.ts, desktop/main.js')
     })
 
     it('commits Title and Author edits through the active card data source', () => {

@@ -52,10 +52,11 @@ describe('Codex event normalization', () => {
         ];
         const item = { changes, id: 'file-1', type: 'fileChange' };
 
-        expect(normalizeCodexEvent(item, 'completed')).toMatchObject({
+        expect(normalizeCodexEvent(item, 'completed', 'C:\\repo')).toMatchObject({
             content: 'update: updated.txt\nadd: added.txt\ndelete: deleted.txt',
             deletions: 2,
             insertions: 3,
+            paths: ['updated.txt', 'added.txt', 'deleted.txt'],
             status: 'completed',
         });
     });
@@ -169,4 +170,31 @@ describe('Codex event normalization', () => {
             if (type !== 'commandExecution') expect(event.content).toBe('Query: input stays complete');
         },
     );
+
+    it('counts the child threads a collaboration call is still waiting on', () => {
+        const item = {
+            agentsStates: {
+                'thread-done': { status: 'completed' },
+                'thread-one': { status: 'running' },
+                'thread-two': { status: 'running' },
+            },
+            id: 'wait-1',
+            prompt: 'investigate',
+            receiverThreadIds: ['thread-done', 'thread-one', 'thread-two'],
+            tool: 'wait',
+            type: 'collabAgentToolCall',
+        };
+
+        expect(normalizeCodexEvent(item, 'inProgress')).toMatchObject({
+            content: 'investigate',
+            label: 'Collaboration: wait',
+            runningSubThreads: 2,
+            status: 'inProgress',
+        });
+        expect(normalizeCodexEvent(item, 'completed')).toMatchObject({ runningSubThreads: 0, status: 'completed' });
+        expect(normalizeCodexEvent({ id: 'wait-2', type: 'collabAgentToolCall' }, 'inProgress')).toMatchObject({
+            label: 'Collaboration: Agent tool',
+            runningSubThreads: 0,
+        });
+    });
 });

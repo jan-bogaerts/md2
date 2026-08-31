@@ -1,10 +1,11 @@
 import { Box, ButtonBase, Stack, Tooltip, Typography, type SxProps, type Theme } from '@mui/material'
 import type { ReactNode } from 'react'
-import type { AgentConversation, AgentTokenUsage } from '../../../../data/data_types'
-import type { ActionRunHistoryEntry, CommitReference } from '../../../../data/electron_action_bridge'
+import type { AgentTokenUsage } from '../../../../data/data_types'
+import type { CommitReference } from '../../../../data/electron_action_bridge'
 import type { AgentFileChangeUsage } from '../../../../services/agents/agent_usage'
 import type { ActionUsageScope } from './action_usage_scope_store'
-import { scopedActionUsage, type ActionUsageValues } from './action_usage_summary_data'
+import type { ActionUsageValues } from './action_usage_summary_data'
+import type { ActionUsageValuesSnapshot } from './action_usage_values_service'
 
 const NUMBER_FORMAT = new Intl.NumberFormat('en-US')
 const ZERO_CHANGES: AgentFileChangeUsage = { deletions: 0, insertions: 0 }
@@ -27,14 +28,8 @@ const USAGE_CONTROL_SX: SxProps<Theme> = {
 }
 
 interface ActionUsageSummaryProps {
-    actionId: string
-    cardInternalId: string
-    conversation: AgentConversation | null
-    conversations: AgentConversation[]
-    history: ActionRunHistoryEntry[]
-    liveConversation: AgentConversation | null
     onToggleScope: () => void
-    scope: ActionUsageScope
+    snapshot: ActionUsageValuesSnapshot
 }
 
 function commitLine(commit: CommitReference) {
@@ -100,24 +95,16 @@ function resolveChanges(usage: ActionUsageValues): ResolvedChanges | null {
 
 /** Two shared-scope usage controls for one agent action on one card. */
 export function ActionUsageSummary(props: ActionUsageSummaryProps) {
-    const { actionId, cardInternalId, conversation, conversations, history, liveConversation, onToggleScope, scope } = props
-    const scopedUsage = scopedActionUsage(
-        conversations,
-        liveConversation,
-        conversation,
-        history,
-        actionId,
-        cardInternalId,
-    )
-    const conversationUsage = scopedUsage.conversation
-    const activeScope: ActionUsageScope = scope === 'conversation' && conversationUsage ? 'conversation' : 'actionCard'
+    const { onToggleScope, snapshot } = props
+    const conversationUsage = snapshot.conversation
+    const activeScope = snapshot.activeScope
     const activeUsage = activeScope === 'conversation' && conversationUsage
         ? conversationUsage
-        : scopedUsage.actionCard
+        : snapshot.actionCard
     const activeLines = activeUsage.lines
     const activeChanges = resolveChanges(activeUsage)
-    const conversationChanges = scopedUsage.conversation ? resolveChanges(scopedUsage.conversation) : null
-    const actionCardChanges = resolveChanges(scopedUsage.actionCard)
+    const conversationChanges = snapshot.conversation ? resolveChanges(snapshot.conversation) : null
+    const actionCardChanges = resolveChanges(snapshot.actionCard)
     const commitDetails = (
         <>
             <Typography color="inherit" variant="caption">
@@ -141,8 +128,8 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
         >
             <Tooltip describeChild title={scopeTooltip(
                 'Tokens are cumulative provider token usage.',
-                scopedUsage.conversation ? tokenValue(scopedUsage.conversation.tokens) : null,
-                tokenValue(scopedUsage.actionCard.tokens),
+                snapshot.conversation ? tokenValue(snapshot.conversation.tokens) : null,
+                tokenValue(snapshot.actionCard.tokens),
                 activeScope,
             )}>
                 <ButtonBase
@@ -165,7 +152,7 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                     activeChanges.fromCommits
                         ? 'Changes are additions plus deletions in captured Git commit diffs; the conversation reported no file changes.'
                         : 'Changes are additions and deletions across completed provider file-change patches.',
-                    scopedUsage.conversation ? changeValue(conversationChanges ?? ZERO_CHANGES) : null,
+                    snapshot.conversation ? changeValue(conversationChanges ?? ZERO_CHANGES) : null,
                     changeValue(actionCardChanges ?? ZERO_CHANGES),
                     activeScope,
                     activeChanges.fromCommits ? commitDetails : undefined,

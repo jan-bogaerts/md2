@@ -1,0 +1,65 @@
+- generic [ref=f3e3]:
+  - banner [ref=f3e4]:
+    - generic [ref=f3e5]:
+      - img "MD² application icon" [ref=f3e7]
+      - tablist "Application menu" [ref=f3e11]:
+        - tab "Home" [selected] [ref=f3e12] [cursor=pointer]
+        - tab "Run" [ref=f3e13] [cursor=pointer]
+      - button "Switch to dark theme" [ref=f3e16] [cursor=pointer]
+      - generic [ref=f3e21]:
+        - textbox "Search project" [ref=f3e25]:
+          - /placeholder: Search cards…
+        - generic [ref=f3e26]: ⌘K
+        - group
+    - tabpanel [ref=f3e30]:
+      - generic [ref=f3e31]:
+        - group "Project" [ref=f3e32]:
+          - generic "Open project" [ref=f3e33]:
+            - button "Open project" [ref=f3e34] [cursor=pointer]
+          - generic "Switch branch" [ref=f3e37]:
+            - generic [ref=f3e38]:
+              - combobox "Switch branch" [disabled] [ref=f3e39]
+              - textbox [disabled]
+              - group
+          - generic "Commit" [ref=f3e40]:
+            - button "Commit" [disabled]
+          - generic "Push" [ref=f3e41]:
+            - button "Push" [disabled]
+          - generic "Pull" [ref=f3e42]:
+            - button "Pull" [disabled]
+        - separator [ref=f3e43]
+        - group "Settings" [ref=f3e44]:
+          - generic "Config" [ref=f3e45]:
+            - button "Config" [ref=f3e46] [cursor=pointer]
+          - generic "ws://127.0.0.1:5174" [ref=f3e49]:
+            - button "Connecting" [disabled]
+        - separator [ref=f3e50]
+        - group "View" [ref=f3e51]:
+          - group [ref=f3e52]:
+            - button "Cards view" [pressed] [ref=f3e53] [cursor=pointer]:
+              - generic [ref=f3e56]: Board
+            - button "Text view" [ref=f3e57] [cursor=pointer]:
+              - generic [ref=f3e60]: List
+            - button "Stats view" [ref=f3e61] [cursor=pointer]:
+              - generic [ref=f3e64]: Stats
+        - separator [ref=f3e65]
+        - button "New action" [disabled]
+        - button "New card" [disabled]
+        - group "Account" [ref=f3e66]:
+          - button "GitHub account" [ref=f3e67] [cursor=pointer]
+  - region "Project workspace" [ref=f3e70]:
+    - generic [ref=f3e71]:
+      - heading "No project open" [level=2] [ref=f3e72]
+      - paragraph [ref=f3e73]: Open a GitHub repository or local folder to work with project cards.
+      - button "Open project..." [ref=f3e74] [cursor=pointer]
+  - contentinfo [ref=f3e75]:
+    - generic [ref=f3e76]:
+      - generic [ref=f3e79]: "0"
+      - generic [ref=f3e80]: cards
+    - generic [ref=f3e81]:
+      - generic [ref=f3e83]: "0"
+      - generic [ref=f3e84]: active
+    - generic [ref=f3e85]: Saved locally
+    - generic [ref=f3e89]: Synced
+    - button "Agent token usage summary" [ref=f3e93] [cursor=pointer]: Usage unavailable
+    - 'button "Running agents: 0" [ref=f3e97] [cursor=pointer]': 0 agents

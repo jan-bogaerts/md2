@@ -32,7 +32,7 @@ function provider(overrides: Partial<AgentCapabilitiesProvider> = {}): AgentCapa
 function renderFields(service: AgentCapabilitiesService, value = definition, onChange = vi.fn()) {
     return render(
         <AppThemeProvider>
-            <ActionAgentCapabilityFields definition={value} errors={{}} onChange={onChange} service={service} />
+            <ActionAgentCapabilityFields definition={value} errors={{}} onChange={onChange} service={service} sourcePath="actions/review.json" />
         </AppThemeProvider>,
     )
 }
@@ -81,7 +81,7 @@ describe('ActionAgentCapabilityFields', () => {
         const switchedDefinition = { ...definition, agent: 'claude', model: 'removed-model', thinkingLevel: 'max' }
         rendered.rerender(
             <AppThemeProvider>
-                <ActionAgentCapabilityFields definition={switchedDefinition} errors={{}} onChange={vi.fn()} service={service} />
+                <ActionAgentCapabilityFields definition={switchedDefinition} errors={{}} onChange={vi.fn()} service={service} sourcePath="actions/review.json" />
             </AppThemeProvider>,
         )
 
@@ -106,7 +106,7 @@ describe('ActionAgentCapabilityFields', () => {
         expect(screen.getByLabelText('Thinking level')).toHaveTextContent('extreme — unavailable')
     })
 
-    it('resets incompatible agent capabilities to profile defaults when agent changes', async () => {
+    it('restores profile defaults when agent changes without remembered settings', async () => {
         const service = new AgentCapabilitiesService(provider())
         const onChange = vi.fn()
         renderFields(service, definition, onChange)
@@ -117,9 +117,8 @@ describe('ActionAgentCapabilityFields', () => {
 
         expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
             agent: 'claude',
-            model: undefined,
-            permissionMode: undefined,
-            thinkingLevel: undefined,
+            model: 'default',
+            thinkingLevel: 'none',
         }))
     })
 })

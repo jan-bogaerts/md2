@@ -14,12 +14,13 @@ function liveActionStatuses(activeRuns: ActiveActionRun[]) {
     return statuses
 }
 
-/** Resolves one popup action from explicit choice, active work, persisted attention state, then selector order. */
+/** Resolves one popup action from explicit choice, active work, persisted attention state, column default, then selector order. */
 export function resolveInitialActionId(
     actions: Pick<ActionDefinition, 'id'>[],
     initialActionId: string | undefined,
     activeRuns: ActiveActionRun[],
     persistedStates: PersistedActionStates,
+    defaultActionId?: string,
 ) {
     if (initialActionId) return initialActionId
 
@@ -41,5 +42,7 @@ export function resolveInitialActionId(
             || (!liveStatus && (persistedState === 'waiting for input' || persistedState === 'unseen result'))
     })
 
-    return attentionAction?.id ?? actions[0]?.id ?? null
+    const defaultAction = actions.find(({ id }) => id === defaultActionId)
+
+    return attentionAction?.id ?? defaultAction?.id ?? actions[0]?.id ?? null
 }

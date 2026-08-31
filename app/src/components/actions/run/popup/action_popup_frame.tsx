@@ -7,8 +7,10 @@ import type { ActionContext } from '../../../../data/action_context'
 import { ResizablePopper } from '../../../resizable_popper'
 import type { WorktreeAssignmentTarget } from '../../../worktree_selector'
 import { MarkdownTypeaheadLayerProvider } from '../../../editor/markdown_typeahead_layer_provider'
+import { NO_DRAG_REGION } from '../../../shell/drag_region'
 import { ActionConversationPickerOwner } from '../../conversation/action_conversation_picker_owner'
 import type { ActionConversationStore } from '../../conversation/action_conversation_store'
+import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 import { ActionSelector } from './action_selector'
 import type { ActionPopupContentProps } from './action_popup_types'
 import { ActionWorktreeSelectorOwner } from './action_worktree_selector_owner'
@@ -17,6 +19,7 @@ export const CARD_RUN_POPUP_SIZE_STORAGE_KEY = 'md2.cardRunPopupSize'
 export const PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY = 'md2.projectAgentPopupSize'
 
 interface ActionPopupFrameProps {
+    bindingStore: ActionRunBindingStore
     children: ReactNode
     contentProps: ActionPopupContentProps
     conversationStore: ActionConversationStore
@@ -32,11 +35,11 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 }
 
 /** Shared popup surface, toolbar, and action selector. */
-export function ActionPopupFrame({ children, contentProps, conversationStore }: ActionPopupFrameProps) {
+export function ActionPopupFrame({ bindingStore, children, contentProps, conversationStore }: ActionPopupFrameProps) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
         onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,
-        target, titleId,
+        target, targetTitle, titleId,
     } = contentProps
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -54,10 +57,26 @@ export function ActionPopupFrame({ children, contentProps, conversationStore }: 
     const assignmentTarget = baseContext.kind === 'card' || baseContext.kind === 'file' || baseContext.kind === 'project'
         ? worktreeAssignmentTarget(baseContext)
         : null
+    // The badge stays a span carrying only tabIndex: a button or a role attribute would match the
+    // popper's INTERACTIVE_SELECTOR, which would stop a pointer press on the badge from dragging the popup.
+    const targetBadge = target ? (
+        <Box
+            component="span"
+            sx={{
+                bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,
+                fontFamily: '"Roboto Mono", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,
+                px: 0.875, py: 0.25,
+            }}
+            tabIndex={0}
+        >
+            {target}
+        </Box>
+    ) : null
 
     return (
         <ResizablePopper
             anchorElement={anchorElement}
+            bottomInset={0}
             draggable={isMobile ? false : draggable}
             fullHeight={isMobile || fullHeight}
             initialSize={{ height: 450, width: 400 }}
@@ -66,6 +85,7 @@ export function ActionPopupFrame({ children, contentProps, conversationStore }: 
             onClose={onClose}
             open={open}
             paperSx={{
+                ...NO_DRAG_REGION,
                 bgcolor: 'background.paper',
                 border: 1,
                 borderColor: 'divider',
@@ -102,30 +122,19 @@ export function ActionPopupFrame({ children, contentProps, conversationStore }: 
                     }}
                 >
                     <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
-                        {target ? (
-                            <Box
-                                component="span"
-                                sx={{
-                                    bgcolor: 'custom.primaryBg', borderRadius: '5px', color: 'primary.main', flexShrink: 0,
-                                    fontFamily: '"Roboto Mono", ui-monospace, monospace', fontSize: 11.5, fontWeight: 600,
-                                    px: 0.875, py: 0.25,
-                                }}
-                            >
-                                {target}
-                            </Box>
-                        ) : null}
+                        {targetBadge && targetTitle ? <Tooltip title={targetTitle}>{targetBadge}</Tooltip> : targetBadge}
                         {assignmentTarget && !readOnlyMessage ? (
                             <ActionWorktreeSelectorOwner
-                                actionId={action.id}
                                 assignment={worktreeAssignment}
                                 assignmentTarget={assignmentTarget}
-                                context={assignmentContext}
+                                bindingStore={bindingStore}
                                 primaryPath={primaryPath}
                             />
                         ) : null}
                         {action.type === 'agent' ? (
                             <ActionConversationPickerOwner
                                 actionId={action.id}
+                                bindingStore={bindingStore}
                                 context={assignmentContext}
                                 store={conversationStore}
                             />

@@ -2,6 +2,7 @@ import { useId, useMemo, useState } from 'react'
 import { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../../../data/action_context'
 import { dataService } from '../../../../services/data/data_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { cardAgentState } from '../../../../services/agents/card_agent_state'
 import { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'
 import { useActions } from '../../../hooks/use_actions'
@@ -12,13 +13,19 @@ import { resolveInitialActionId, type PersistedActionStates } from './action_pop
 
 export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'
 
+/**
+ * Badge id plus the title shown in its tooltip. The title comes from the live snapshot so it
+ * follows a card renamed while the popup stays open, and falls back to the title captured in the
+ * context when the card is not in the snapshot.
+ */
 function resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {
-    if (context.kind === 'project') return 'Project'
-    if (context.kind !== 'card') return null
+    if (context.kind === 'project') return { id: 'Project', title: null }
+    if (context.kind !== 'card') return { id: null, title: null }
 
     const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+    const card = cards.find(({ header }) => header.internalId === context.cardInternalId)
 
-    return cards.find(({ header }) => header.internalId === context.cardInternalId)?.header.id ?? null
+    return { id: card?.header.id ?? null, title: card?.header.title ?? context.title ?? null }
 }
 
 function resolveCardInternalId(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {
@@ -28,6 +35,12 @@ function resolveCardInternalId(context: ActionContext, snapshot: ReturnType<type
         : cards.find(({ path }) => path === context.file)
 
     return card?.header.internalId ?? context.cardInternalId ?? null
+}
+
+function resolveColumnDefaultActionId(context: ActionContext) {
+    if (context.kind !== 'card' || !context.state) return undefined
+
+    return dataService.getConfig()?.states.find(({ state }) => state === context.state)?.defaultActionId
 }
 
 function persistedActionStates(
@@ -51,6 +64,7 @@ interface ActionPopupProps {
     context: ActionContext
     draggable?: boolean
     initialActionId?: string
+    initialRunId?: string
     onActivate?: () => void
     onClose: () => void
     open?: boolean
@@ -60,7 +74,7 @@ interface ActionPopupProps {
 
 /** Universal action selector and run popup for the supplied context. */
 export function ActionPopup(props: ActionPopupProps) {
-    const { anchorElement, context, initialActionId, open } = props
+    const { anchorElement, context, initialActionId, initialRunId, onClose, open } = props
     const { actions: loadedActions } = useActions()
     const { project, snapshot } = useProjectState()
     const projectActionWorktree = useProjectActionWorktree()
@@ -74,6 +88,7 @@ export function ActionPopup(props: ActionPopupProps) {
         initialActionId,
         actionRunRegistry.getContextActiveSnapshot(effectiveContext),
         persistedActionStates(actions, effectiveContext, snapshot),
+        resolveColumnDefaultActionId(effectiveContext),
     ))
     const [fullHeight, setFullHeight] = useState(false)
     const titleId = useId()
@@ -85,7 +100,7 @@ export function ActionPopup(props: ActionPopupProps) {
     const selectableActions = selectedAction && !actions.some(({ id }) => id === selectedAction.id)
         ? [...actions, selectedAction]
         : actions
-    const target = resolvePopupTarget(context, snapshot)
+    const { id: target, title: targetTitle } = resolvePopupTarget(context, snapshot)
     const releasesFolder = dataService.getConfig()?.releasesFolder
     const readOnlyMessage = releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)
         ? RELEASED_CARD_RUN_MESSAGE
@@ -93,6 +108,11 @@ export function ActionPopup(props: ActionPopupProps) {
 
     const handleSelectAction = (actionId: string) => {
         setSelectedActionId(actionId)
+    }
+
+    const handleClose = () => {
+        actionPromptDraftService.deleteEmptyDrafts()
+        onClose()
     }
 
     const handleToggleFullHeight = () => setFullHeight((current) => !current)
@@ -107,12 +127,15 @@ export function ActionPopup(props: ActionPopupProps) {
             assignmentContext={effectiveContext}
             baseContext={context}
             fullHeight={fullHeight}
+            initialRunId={selectedAction.id === initialActionId ? initialRunId : undefined}
+            onClose={handleClose}
             onSelectAction={handleSelectAction}
             onToggleFullHeight={handleToggleFullHeight}
             open={open ?? !!anchorElement}
             primaryPath={project?.rootPath ?? project?.id ?? null}
             readOnlyMessage={readOnlyMessage}
             target={target}
+            targetTitle={targetTitle}
             titleId={titleId}
         />
     )

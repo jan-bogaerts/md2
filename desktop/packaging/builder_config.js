@@ -53,6 +53,9 @@ function createBuilderConfig(secrets = loadSigningSecrets()) {
         extraMetadata: { main: 'desktop/main.js' },
         files: [
             '!**/*.map',
+            '!node_modules/node-pty/prebuilds/darwin-arm64/**',
+            '!node_modules/node-pty/prebuilds/darwin-x64/**',
+            '!node_modules/node-pty/prebuilds/win32-arm64/**',
             {
                 from: '.',
                 to: '.',
@@ -86,6 +89,7 @@ function createBuilderConfig(secrets = loadSigningSecrets()) {
             artifactName: 'MD2-Setup-${version}-${arch}.${ext}',
             executableName: EXECUTABLE_NAME,
             icon: 'build/md2.ico',
+            signExts: ['.dll', '.node'],
             signtoolOptions: createSigntoolOptions(secrets),
             target: [{ arch: ['x64'], target: 'nsis' }],
         },

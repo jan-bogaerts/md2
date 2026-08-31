@@ -19,7 +19,6 @@ export interface CardOperationsDeps {
     addRepositoryFile(path: string): void
     applyMoves(moves: MoveFile[], workingFolder: string): void
     cardPathChanged(fromPath: string, toPath: string): void
-    commitPathsInFlight(): Set<string>
     deleteFile(path: string, committedFiles: MarkdownFile[], workingFolder: string): void
     dispatchChanged(): void
     dispatchPersistenceChanged(): void
@@ -28,6 +27,7 @@ export interface CardOperationsDeps {
     mutateCard(path: string, mutation: (card: Card) => void, workingFolder: string): Card
     project(): ProjectReference | null
     recordCurrentContent(files: MarkdownFile[]): void
+    reconcileDeletedActionFile(path: string): void
     refreshSnapshot(workingFolder: string): void
     reloadCurrentProjectSnapshot(): Promise<ProjectSnapshot | null>
     removeFolder(path: string, workingFolder: string): void
@@ -128,27 +128,16 @@ export class CardOperationContext {
         })
     }
 
-    /** Commits while every touched path is marked in flight so snapshot reloads skip them. */
+    /** Commits through storage, which records expected persistence outcomes before mutation. */
     async commitTrackingPaths(request: CommitRequest): Promise<MarkdownFile[]> {
         const { storage } = this.dependencies.requireDependencies()
-        const commitPaths = [
-            ...request.files.map((file) => file.path),
-            ...(request.moves ?? []).flatMap(({ fromPath, toPath }) => [fromPath, toPath]),
-        ]
-        const inFlightCommitPaths = this.dependencies.commitPathsInFlight()
-        commitPaths.forEach((path) => inFlightCommitPaths.add(path))
+        const committedFiles = await storage.commit(request)
+        this.dependencies.recordCurrentContent([
+            ...request.files,
+            ...(request.moves ?? []).map(({ content, toPath }) => ({ content, path: toPath })),
+        ])
 
-        try {
-            const committedFiles = await storage.commit(request)
-            this.dependencies.recordCurrentContent([
-                ...request.files,
-                ...(request.moves ?? []).map(({ content, toPath }) => ({ content, path: toPath })),
-            ])
-
-            return committedFiles
-        } finally {
-            commitPaths.forEach((path) => inFlightCommitPaths.delete(path))
-        }
+        return committedFiles
     }
 
     /** Commits and merges the result into local state. */
@@ -211,7 +200,8 @@ export class CardOperationContext {
         if (existingFile.content === file.content) return existingFile
 
         this.replaceUpdatedFiles([file])
-        commitBatcher.schedule(project.branch, [attachSaveReference(file, saveReference)], `Update ${file.path}`)
+        const change = { ...attachSaveReference(file, saveReference), kind: 'file' as const }
+        commitBatcher.schedule(project.branch, [change], `Update ${file.path}`)
         this.dependencies.dispatchChanged()
 
         return file
@@ -231,7 +221,8 @@ export class CardOperationContext {
         if (!cardInternalId) throw new Error(`Cannot save a card without an internal ID: ${path}`)
         const documentSaveReference = saveReference ?? openDocument?.createSaveReference()
 
-        commitBatcher.schedule(project.branch, [{ cardInternalId, path: card.path, saveReference: documentSaveReference }], message)
+        const change = { cardInternalId, kind: 'card' as const, path: card.path, saveReference: documentSaveReference }
+        commitBatcher.schedule(project.branch, [change], message)
         this.dependencies.dispatchChanged()
 
         return card

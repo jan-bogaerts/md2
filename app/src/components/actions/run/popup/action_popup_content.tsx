@@ -1,8 +1,7 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { actionContextIdentity } from '../../../../data/action_context'
 import {
     actionRunSettingsService,
-    createSessionActionRunSettingsStore,
 } from '../../../../services/actions/action_run_settings_service'
 import { AgentAction } from './agent_action'
 import { ActionPopupFrame } from './action_popup_frame'
@@ -14,18 +13,26 @@ export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY }
 
 /** Selects the action-specific popup content while preserving its runtime for the selected action. */
 export function ActionPopupContent(props: ActionPopupContentProps) {
-    const { action, assignmentContext } = props
+    const { action, assignmentContext, initialRunId } = props
     const settingsContextIdentity = actionContextIdentity(assignmentContext)
     const settingsStore = useMemo(
         () => assignmentContext.cardInternalId
             ? actionRunSettingsService.getCardStore(assignmentContext.cardInternalId, action.id)
-            : createSessionActionRunSettingsStore(action.id, settingsContextIdentity),
+            : actionRunSettingsService.getSessionStore(action.id, settingsContextIdentity),
         [action.id, assignmentContext.cardInternalId, settingsContextIdentity],
     )
     const bindings = useMemo(
-        () => createActionPopupBindings(action, assignmentContext),
-        [action, assignmentContext],
+        () => createActionPopupBindings(action, assignmentContext, initialRunId),
+        [action, assignmentContext, initialRunId],
     )
+    useEffect(() => {
+        bindings.usageValuesService.start()
+
+        return () => {
+            bindings.usageValuesService.stop()
+            bindings.bindingStore.dispose()
+        }
+    }, [bindings])
     const runtime: ActionPopupRuntime = {
         ...bindings,
         runValidationError: worktreeValidationMessage(action, assignmentContext),
@@ -33,7 +40,11 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     }
 
     return (
-        <ActionPopupFrame contentProps={props} conversationStore={bindings.conversationStore}>
+        <ActionPopupFrame
+            bindingStore={bindings.bindingStore}
+            contentProps={props}
+            conversationStore={bindings.conversationStore}
+        >
             {action.type === 'agent'
                 ? (
                     <AgentAction

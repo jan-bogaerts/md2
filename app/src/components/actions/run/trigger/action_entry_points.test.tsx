@@ -32,7 +32,7 @@ function card(id: string, status: string | null, title = id): Card {
         agentConversations: [],
         content: '',
         header: {
-            affects: [], after: null, agentLogReferences: [], author: null, id, internalId: id.toLowerCase(), owner: null,
+            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id, internalId: id.toLowerCase(), owner: null,
             policy: {}, references: [], status, title,
         },
         hasFrontmatter:true,

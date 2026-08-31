@@ -9,8 +9,11 @@ function createDispatch(options = {}) {
     const actionRunnerService = {
         answerAgentApproval: vi.fn(),
         answerAgentQuestion: vi.fn(),
-        beginAgentPromptDraft: vi.fn(() => 2),
         cancel: vi.fn(),
+        deleteQueuedAgentPrompt: vi.fn(async () => ({ deleted: true })),
+        editQueuedAgentPrompt: vi.fn(async (_runId, _promptId, _revision, content) => ({ content })),
+        enqueueAgentPrompt: vi.fn(async (_runId, content) => ({ content })),
+        dismissAgentQuestions: vi.fn(),
         finishAgentRun: vi.fn(),
         handleCardStateChange: vi.fn(),
         loadRunRecoverySnapshot: vi.fn((rendererRunIds) => ({
@@ -24,8 +27,6 @@ function createDispatch(options = {}) {
         start: vi.fn(async () => 'action-1'),
         subscribe: vi.fn(() => vi.fn()),
         sendAgentMessage: vi.fn(),
-        sendQueuedAgentMessage: vi.fn(),
-        setAgentQueuedMessage: vi.fn(),
     };
     const actionSchedulerService = {
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
@@ -33,6 +34,7 @@ function createDispatch(options = {}) {
         subscribeRunEvents: vi.fn(() => vi.fn()),
     };
     const agentRunnerService = {
+        requestProjectUsageRefresh: vi.fn(),
         run: vi.fn(async () => ({ runId: 'run-1' })),
         start: vi.fn(async () => ({ runId: 'run-2' })),
         stop: vi.fn(),
@@ -137,7 +139,14 @@ function createDispatch(options = {}) {
         updateMetadata: vi.fn((_request, updates) => updates),
         verify: vi.fn(async () => null),
     };
-    const desktopConfig = options.desktopConfig ?? {agent: 'codex', agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }], editorCommand: 'code -g "{{file}}:{{line}}"', model: 'gpt-5'};
+    const desktopConfig = options.desktopConfig ?? {
+        agentProfiles: [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+        agentSelection: {
+            activeAgent: 'codex', permissionMode: 'ask-for-approval',
+            settingsByAgent: { codex: { model: 'gpt-5', thinkingLevel: 'none' } },
+        },
+        editorCommand: 'code -g "{{file}}:{{line}}"',
+    };
     const saveDesktopConfig = vi.fn((_store, values) => values);
     const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn() };
     const projectStatsWorkerService = {
@@ -157,6 +166,7 @@ function createDispatch(options = {}) {
         localGitService,
         mergeConflictService,
         openProjectFolder: options.openProjectFolder,
+        openProjectSubFolder: options.openProjectSubFolder,
         openWorktreeFolder: options.openWorktreeFolder,
         projectStatsWorkerService,
         readDesktopConfig: () => desktopConfig,
@@ -198,14 +208,14 @@ describe('createLocalBridgeDispatch', () => {
 
     it('loads and saves desktop config without requiring an active project', async () => {
         const desktopConfig = {
-            agent: 'custom',
             agentProfiles: [{ command: ['custom'], models: ['model'], name: 'custom' }],
+            agentSelection: {
+                activeAgent: 'custom', permissionMode: 'ask-for-approval',
+                settingsByAgent: { custom: { model: 'model', thinkingLevel: 'high' } },
+            },
             codexSearchEnabled: true,
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
-            model: 'model',
-            permissionMode: 'ask-for-approval',
-            thinkingLevel: 'high',
         };
         const { dispatch, saveDesktopConfig } = createDispatch({ desktopConfig });
 
@@ -216,7 +226,15 @@ describe('createLocalBridgeDispatch', () => {
 
     it('opens chat and diff files through shared configured editor launcher inputs', async () => {
         const editorCommand = 'notepad "{{file}}"';
-        const { diffService, dispatch, worktreeService } = createDispatch({ desktopConfig: { agent: 'codex', agentProfiles: [], editorCommand, model: '' } });
+        const desktopConfig = {
+            agentProfiles: [],
+            agentSelection: {
+                activeAgent: 'codex', permissionMode: 'ask-for-approval',
+                settingsByAgent: { codex: { model: '', thinkingLevel: 'none' } },
+            },
+            editorCommand,
+        };
+        const { diffService, dispatch, worktreeService } = createDispatch({ desktopConfig });
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         worktreeService.getRecords.mockReturnValue([
             { path: 'C:/worktree', valid: true },
@@ -294,11 +312,11 @@ describe('createLocalBridgeDispatch', () => {
         const { dispatch, localGitService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 
-        await dispatch.dataBridge.createProject(project, 'design/active');
+        await dispatch.dataBridge.createProject(project, ['design/active', 'design/history']);
         localGitService.commit.mockResolvedValueOnce(undefined);
         const result = await dispatch.dataBridge.commit({ branch: 'main', files: [], message: 'Add defaults' });
 
-        expect(localGitService.createProject).toHaveBeenCalledWith(project, 'design/active');
+        expect(localGitService.createProject).toHaveBeenCalledWith(project, ['design/active', 'design/history']);
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project);
         expect(result).toEqual([]);
     });
@@ -314,6 +332,14 @@ describe('createLocalBridgeDispatch', () => {
         expect(project).toEqual({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' });
         expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project);
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project);
+    });
+
+    it('opens the project sub-folder picker at the repository root', async () => {
+        const openProjectSubFolder = vi.fn(async () => 'C:/repo/design/active');
+        const { dispatch } = createDispatch({ openProjectSubFolder });
+
+        await expect(dispatch.dataBridge.selectProjectSubFolder('C:/repo')).resolves.toBe('C:/repo/design/active');
+        expect(openProjectSubFolder).toHaveBeenCalledWith('C:/repo');
     });
 
     it('leaves the current project unchanged when folder selection is cancelled', async () => {
@@ -352,6 +378,34 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadProjectRoot).toHaveBeenCalledOnce();
         expect(actionSchedulerService.startProject).toHaveBeenCalledOnce();
         expect(worktreeService.startProject).toHaveBeenCalledOnce();
+    });
+
+    it('starts the account usage refresh in the activated project folder, and only then', async () => {
+        const { agentRunnerService, dispatch } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        // Creating the dispatch is the whole of app start; no project has been activated yet.
+        expect(agentRunnerService.requestProjectUsageRefresh).not.toHaveBeenCalled();
+
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenCalledOnce();
+        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenCalledWith(
+            project,
+            [{ command: ['codex'], models: ['gpt-5'], name: 'codex' }],
+        );
+    });
+
+    it('moves the account usage refresh to the newly activated project', async () => {
+        const { agentRunnerService, dispatch } = createDispatch();
+        const first = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const second = { branch: 'main', id: 'other', rootPath: 'C:/other' };
+
+        await dispatch.dataBridge.loadProject(first, 'design');
+        await dispatch.dataBridge.loadProject(second, 'design');
+
+        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenCalledTimes(2);
+        expect(agentRunnerService.requestProjectUsageRefresh).toHaveBeenLastCalledWith(second, expect.any(Array));
     });
 
     it('selects a worktree folder without mutating Git', async () => {
@@ -634,20 +688,22 @@ describe('createLocalBridgeDispatch', () => {
 
         await dispatch.actionBridge.cancelActionRun('action-1');
         await dispatch.actionBridge.sendActionMessage('action-1', 'approved');
-        expect(dispatch.actionBridge.beginActionPromptDraft('action-1')).toBe(2);
-        await dispatch.actionBridge.setActionQueuedMessage('action-1', 2, 'next', 3);
-        await dispatch.actionBridge.sendActionQueuedMessage('action-1', 2, 3);
+        await dispatch.actionBridge.enqueueActionPrompt('action-1', 'next');
+        await dispatch.actionBridge.editActionQueuedPrompt('action-1', 'prompt-1', 0, 'edited');
+        await dispatch.actionBridge.deleteActionQueuedPrompt('action-1', 'prompt-1', 1);
         await dispatch.actionBridge.answerActionApproval('action-1', 41, 'accept');
         await dispatch.actionBridge.answerActionQuestion('action-1', 7, { confirm: ['Yes'] });
+        await dispatch.actionBridge.dismissActionQuestions('action-1', 7);
         await dispatch.actionBridge.finishActionRun('action-1');
 
         expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
         expect(actionRunnerService.sendAgentMessage).toHaveBeenCalledWith('action-1', 'approved');
-        expect(actionRunnerService.beginAgentPromptDraft).toHaveBeenCalledWith('action-1');
-        expect(actionRunnerService.setAgentQueuedMessage).toHaveBeenCalledWith('action-1', 2, 'next', 3);
-        expect(actionRunnerService.sendQueuedAgentMessage).toHaveBeenCalledWith('action-1', 2, 3);
+        expect(actionRunnerService.enqueueAgentPrompt).toHaveBeenCalledWith('action-1', 'next');
+        expect(actionRunnerService.editQueuedAgentPrompt).toHaveBeenCalledWith('action-1', 'prompt-1', 0, 'edited');
+        expect(actionRunnerService.deleteQueuedAgentPrompt).toHaveBeenCalledWith('action-1', 'prompt-1', 1);
         expect(actionRunnerService.answerAgentApproval).toHaveBeenCalledWith('action-1', 41, 'accept');
         expect(actionRunnerService.answerAgentQuestion).toHaveBeenCalledWith('action-1', 7, { confirm: ['Yes'] });
+        expect(actionRunnerService.dismissAgentQuestions).toHaveBeenCalledWith('action-1', 7);
         expect(actionRunnerService.finishAgentRun).toHaveBeenCalledWith('action-1');
     });
 
@@ -719,6 +775,15 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.invoke('loadProjectRoot', [project, 'design']);
 
         expect(localGitService.loadProjectRoot).toHaveBeenCalledWith(project, 'design');
+    });
+
+    it('forwards project root exclusion through the shared method table', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        await dispatch.invoke('loadProject', [project, 'design', 'design/active']);
+
+        expect(localGitService.loadProject).toHaveBeenCalledWith(project, 'design', 'design/active');
     });
 
     it('forwards single file reads through the data bridge', async () => {

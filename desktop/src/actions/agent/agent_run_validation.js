@@ -24,15 +24,9 @@ function readOptionalString(value, fieldName) {
     return value;
 }
 
-function requireQueuedMessageSession(run, sessionId) {
-    if (!Number.isSafeInteger(sessionId) || sessionId <= 0) throw new Error('Invalid queued agent message session');
-    if (sessionId !== run.queuedMessageSessionId) throw new Error('Queued agent message session expired');
-}
-
 module.exports = {
     readOptionalString,
     requireCommand,
     requireProjectFolder,
-    requireQueuedMessageSession,
     requireString,
 };
