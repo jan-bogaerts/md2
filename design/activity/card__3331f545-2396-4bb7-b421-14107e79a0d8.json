@@ -4116,7 +4116,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 108009
+        "usedTokens": 108552
       },
       "entries": [
         {
@@ -4860,27 +4860,65 @@
           "role": "assistant",
           "sequence": 55,
           "timestamp": "2026-08-31T20:27:43.379Z"
+        },
+        {
+          "content": "Lets focus on 1 first: why does a completion read full snapshot instead of just calling a service method that adds diagram",
+          "id": "agent-turn-953ec2f0-d427-44cd-8501-80ffa20f73af-user-55",
+          "kind": "message",
+          "role": "user",
+          "sequence": 56,
+          "timestamp": "2026-08-31T20:32:07.785Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-953ec2f0-d427-44cd-8501-80ffa20f73af-event-57",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_027bcfdf7c45ed2e016a95e4cc112087d2ad819e882b819618",
+          "sequence": 57,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-08-31T20:32:17.242Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "It already calls a service method: `addRecord()`. The problem is that this method is a pure transformation, not an atomic service operation.\n\nCurrent flow in [diagram_view_service.ts:263](C:/Users/janbo/Documents/dev/md2_workers/dev1/app/src/services/diagrams/diagram_view_service.ts:263):\n\n```ts\nconst index = this.addRecord(this.snapshot.index, record);\nawait storage.commit(...);\nthis.publish({ ...this.snapshot, index });\n```\n\nTwo completions can interleave:\n\n1. Completion A reads index `I` and creates `I+A`.\n2. Completion B reads the same index `I` and creates `I+B`.\n3. A commits and publishes `I+A`.\n4. B commits and publishes `I+B`.\n5. Record A is lost from the index.\n\nSo “reads the full snapshot” was imprecise. It reads the complete current index from the snapshot. The real issue is that `addRecord + commit + publish` is not one serialized operation.\n\nThe correct fix is a service operation such as:\n\n```ts\nawait service.addCompletedDiagram(record, sanitizedSvg);\n```\n\nInternally, that operation must serialize index mutations:\n\n```ts\ncurrent index\n    -> add record\n    -> persist SVG and index\n    -> publish committed index\n    -> process next mutation\n```\n\nMerely moving the existing code into another method would not fix the race. The method must own exclusive sequencing across the asynchronous commit.\n\n",
+          "id": "agent-turn-953ec2f0-d427-44cd-8501-80ffa20f73af-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 58,
+          "timestamp": "2026-08-31T20:32:28.236Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-cb2346ce-c493-468c-878a-2946a34b211e",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0597a-5948-7d53-b559-d780d1bb8de9",
+          "createdAt": "2026-08-31T20:27:43.379Z",
+          "lastUsedAt": "2026-08-31T20:27:43.379Z",
+          "synchronizedThroughMessageId": "agent-turn-953ec2f0-d427-44cd-8501-80ffa20f73af-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-08-31T20:19:45.019Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-08-31T20:19:45.019Z"
+        "elapsedMs": 478360,
+        "runningStartedAt": "2026-08-31T20:32:07.785Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 1626880,
-        "inputTokens": 194094,
-        "outputTokens": 4368,
-        "reasoningTokens": 6388,
-        "totalTokens": 1831730
+        "cachedInputTokens": 1733120,
+        "inputTokens": 195893,
+        "outputTokens": 4675,
+        "reasoningTokens": 6594,
+        "totalTokens": 1940282
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
