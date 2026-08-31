@@ -3,7 +3,7 @@ author:
 id: B_202
 internalId: 25d602ba-1743-4365-b35d-08224cd0b98e
 title: queued messages work incorrectly
-status: new
+status: design
 owner: 
 affects:
 agents:
