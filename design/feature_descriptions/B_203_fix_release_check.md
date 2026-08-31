@@ -20,16 +20,16 @@ Release cards are narrower: cards whose `status` equals last configured state, c
 
 ## implementation details
 
-- In both `getReleaseBranchCandidates` and `completeRelease`, derive release cards from `activeCards` with existing `statusOf(card) === finalState.state` rule before checking worktrees.
-- Pass only release cards to `requireNoAssignedWorktrees`. Rename helper parameter from `activeCards` to `releaseCards` so scope is explicit. Both verified call sites need same narrowed behavior; no compatibility flag or alternate mode is needed.
-- Keep existing failure behavior for release cards with assigned worktrees: abort before commit, push, or branch deletion and list affected card IDs in existing error.
-- Keep release-card locking, archiving, asset/activity handling, branch candidate filtering, and user-visible error path unchanged.
-- Update `release_operations.test.ts` expectations that currently include non-release cards. Add regression coverage for mixed columns in both release preparation and completion.
+* In both `getReleaseBranchCandidates` and `completeRelease`, derive release cards from `activeCards` with existing `statusOf(card) === finalState.state` rule before checking worktrees.
+* Pass only release cards to `requireNoAssignedWorktrees`. Rename helper parameter from `activeCards` to `releaseCards` so scope is explicit. Both verified call sites need same narrowed behavior; no compatibility flag or alternate mode is needed.
+* Keep existing failure behavior for release cards with assigned worktrees: abort before commit, push, or branch deletion and list affected card IDs in existing error.
+* Keep release-card locking, archiving, asset/activity handling, branch candidate filtering, and user-visible error path unchanged.
+* Update `release_operations.test.ts` expectations that currently include non-release cards. Add regression coverage for mixed columns in both release preparation and completion.
 
 ## acceptance criteria
 
-- Assigned worktree on card outside final column does not block opening release dialog or completing release. Card remains in working folder and is not archived.
-- Assigned worktree on card in final column blocks release preparation and completion before commit, push, or branch deletion.
-- Error lists every final-column card with assigned worktree and no card from another column.
-- With mixed columns, branch candidates and archived cards still include only final-column cards.
-- Existing behavior remains unchanged when no release card has assigned worktree, including error when final column contains no cards.
+* Assigned worktree on card outside final column does not block opening release dialog or completing release. Card remains in working folder and is not archived.
+* Assigned worktree on card in final column blocks release preparation and completion before commit, push, or branch deletion.
+* Error lists every final-column card with assigned worktree and no card from another column.
+* With mixed columns, branch candidates and archived cards still include only final-column cards.
+* Existing behavior remains unchanged when no release card has assigned worktree, including error when final column contains no cards.
