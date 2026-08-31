@@ -3,7 +3,7 @@ author:
 id: F_263
 internalId: 29a27cb6-cc51-4457-9270-eab33d4550b1
 title: stats add releases filter
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,19 @@ policy:
 after: 72313751-3701-45e2-8c8c-59b095a770e2
 branch: f_263_stats_add_releases_filter
 worktree: 1
+changedFiles:
+  - app/src/components/stats_view/stats_content.test.tsx
+  - app/src/components/stats_view/stats_controls.tsx
+  - app/src/services/stats/project_stats_loader.ts
+  - app/src/services/stats/project_stats_service.node.test.ts
+  - app/src/services/stats/project_stats_types.ts
+  - app/src/services/stats/stats_activity_dataset.ts
+  - app/src/services/stats/stats_options.node.test.ts
+  - app/src/services/stats/stats_options.ts
+  - app/src/services/stats/stats_performance_dataset.ts
+  - app/src/services/stats/stats_snapshot_builder.ts
+  - app/src/services/stats/stats_totals_dataset.ts
+  - app/src/services/stats/stats_usage_comparison_dataset.ts
 ---
 
 we already have a date from and to filter, we should add a 'releases' filter which only includes cards in the results that belong to the selected release or the current release.
