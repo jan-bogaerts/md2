@@ -16,6 +16,7 @@ changedFiles:
   - app/src/components/card_view/card_body_popover_commit.test.tsx
   - app/src/components/resizable_popper.test.tsx
   - app/src/components/resizable_popper.tsx
+after: 279da862-4385-442f-9c26-10d3bdde07e5
 ---
 when the height of the action popup wants to be bigger than the height of the app, it sort of shows up as max height, but the popup tries to leave some room at the bottom of the popup and perhaps also a little bit at the top.&#x20;
 

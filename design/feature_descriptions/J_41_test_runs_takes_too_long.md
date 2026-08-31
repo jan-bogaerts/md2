@@ -3,13 +3,13 @@ author:
 id: J_41
 internalId: e2ffca78-6736-4ef9-ab31-224364a9ae4c
 title: test runs takes too long
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__e2ffca78-6736-4ef9-ab31-224364a9ae4c.json
 policy:
-after: 25d602ba-1743-4365-b35d-08224cd0b98e
+after: 3b6ae28a-dbbc-4229-be1b-f9b7ecd00fc1
 branch: j_41_test_runs_takes_too_long
 worktree: 1
 changedFiles:
@@ -21,8 +21,41 @@ changedFiles:
   - app/src/components/config/config_page.test.tsx
   - app/src/components/editor/editor_no_mock.test.tsx
   - app/src/components/project_workspace.test.tsx
+  - app/src/components/shell/claude_rate_limit_status.test.tsx
+  - app/src/components/shell/codex_rate_limit_status.test.tsx
+  - app/src/components/shell/github_auth_toolbar_button.test.tsx
+  - app/src/components/shell/keyboard_status.test.tsx
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/menu/main_toolbar.test.tsx
+  - app/src/components/shell/menu/menu.test.tsx
+  - app/src/components/shell/menu/menu_components_no_mock.test.tsx
+  - app/src/components/shell/menu/menu_select.grouped.test.tsx
+  - app/src/components/shell/menu/menu_select.test.tsx
+  - app/src/components/shell/menu/mobile_create_menu.test.tsx
+  - app/src/components/shell/menu/project_name_label.test.tsx
+  - app/src/components/shell/menu/section.test.tsx
+  - app/src/components/shell/menu/tab.test.tsx
+  - app/src/components/shell/mobile_layout.test.tsx
+  - app/src/components/shell/mobile_main_window.test.tsx
+  - app/src/components/shell/project/new_card_dialog_attachment.test.tsx
   - app/src/components/shell/project/new_card_dialog_render.test.tsx
+  - app/src/components/shell/project/new_card_markdown_editor.test.tsx
+  - app/src/components/shell/project/new_card_no_mock.test.tsx
+  - app/src/components/shell/project/project_dialogs.test.tsx
+  - app/src/components/shell/remarkable_import_toolbar_button.test.tsx
+  - app/src/components/shell/remote_connect_button.test.tsx
+  - app/src/components/shell/remote_control_button.test.tsx
+  - app/src/components/shell/remote_control_connection_info.test.tsx
+  - app/src/components/shell/remote_control_status_indicator.test.tsx
+  - app/src/components/shell/search/search_card_preview_dialog.test.tsx
+  - app/src/components/shell/shell_connections_no_mock.test.tsx
+  - app/src/components/shell/shell_controls_no_mock.test.tsx
   - app/src/components/shell/shell_no_mock.test.tsx
+  - app/src/components/shell/split_layout.test.tsx
+  - app/src/components/shell/status_bar.test.tsx
+  - app/src/components/shell/theme_settings_dialog.test.tsx
+  - app/src/components/shell/theme_toggle_button.test.tsx
+  - app/src/components/shell/update_notification.test.tsx
   - app/src/components/text_view/text_view_no_mock.test.tsx
   - app/src/services/release_operations.service.test.ts
   - app/src/services/release_operations.test.ts

@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__d0c8354f-cfea-4ad6-b863-9bd2dbb54b52.json
 policy:
+after: 8a886351-0de3-4d2e-bcab-9865c8fdeced
 ---
 We have a list of previously opened projects in the `open project` dialog. When user clicks on a folder, it gets opened immediately. this is annoying. it should only select. user should still click on `open`
 

@@ -12,6 +12,7 @@ policy:
 changedFiles:
   - app/src/services/release_operations.test.ts
   - app/src/services/release_operations.ts
+after: 25d602ba-1743-4365-b35d-08224cd0b98e
 ---
 we currently get an error like this: `Cannot complete release. Unassign worktrees from cards` for a card that is not in the `release` column. We should not check cards that are not being released.
 

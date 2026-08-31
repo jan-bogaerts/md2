@@ -41,6 +41,7 @@ changedFiles:
   - desktop/verify_command_window.js
   - shared/action_definitions.d.mts
   - shared/action_definitions.mjs
+after: 67aa408b-6038-40b7-a82d-76678ca7b201
 ---
 We need to check something: some command agents also might need input from the command line, we also need to support this. do we?
 

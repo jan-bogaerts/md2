@@ -12,6 +12,7 @@ policy:
 changedFiles:
   - desktop/src/actions/action/action_run.js
   - desktop/src/actions/action/action_run.test.mjs
+after: 66c61696-aa0f-473b-bd5a-e241c64a933f
 ---
 
 it seems that the system will only try to send the next queued message after the agent fully completed it's turn. it is not possible to send it while the agent is still doing something. we need to fix this.
