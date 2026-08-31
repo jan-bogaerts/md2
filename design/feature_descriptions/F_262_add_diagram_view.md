@@ -3,7 +3,7 @@ author:
 id: F_262
 internalId: 3331f545-2396-4bb7-b421-14107e79a0d8
 title: Add diagram view
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,36 @@ policy:
 after: 3509c194-adbf-4e1c-ad64-6aa9560354b4
 branch: f_262_add_diagram_view
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/card_action_popup_host.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/components/project_workspace.tsx
+  - app/src/components/project_workspace_availability.tsx
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/components/shell/mobile_main_window.grouped.test.tsx
+  - app/src/components/shell/mobile_main_window.tsx
+  - app/src/data/action_context.node.test.ts
+  - app/src/data/action_context.ts
+  - app/src/data/action_placeholders.ts
+  - app/src/data/data_types.ts
+  - app/src/services/actions/action_text.node.test.ts
+  - app/src/services/actions/action_text.ts
+  - app/src/services/config/config_service.service.test.ts
+  - app/src/services/diagrams/diagram_index.node.test.ts
+  - app/src/services/diagrams/diagram_index.ts
+  - app/src/services/diagrams/diagram_svg_sanitizer.test.ts
+  - app/src/services/diagrams/diagram_svg_sanitizer.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
+  - app/src/services/project/project_loading.test.ts
+  - app/src/services/project/project_loading.ts
+  - app/src/services/project/workspace_view_service.ts
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/action/action_text.js
+  - desktop/src/actions/action/action_text.test.mjs
 ---
 * Add toggle to app menu bar, before stats-view toggle. When clicked, shows diagram view
 * Diagram view shows:
