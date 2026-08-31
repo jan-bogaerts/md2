@@ -10,8 +10,6 @@ agents:
   - design/activity/card__e2ffca78-6736-4ef9-ab31-224364a9ae4c.json
 policy:
 after: 3b6ae28a-dbbc-4229-be1b-f9b7ecd00fc1
-branch: j_41_test_runs_takes_too_long
-worktree: 1
 changedFiles:
   - app/package-lock.json
   - app/package.json
