@@ -1,6 +1,6 @@
 import type { StatsActionFact } from '../../../../shared/project_stats.mjs';
 import type { UsageMetricsTokenRow } from '../agents/project_usage_metrics_service';
-import type { LoadedStatsSource, StatsChartRow, StatsControls, StatsGranularity } from './project_stats_types';
+import type { StatsChartRow, StatsControls, StatsDatasetSource, StatsGranularity } from './project_stats_types';
 import { emptyTimeRow } from './stats_chart_rows';
 import { actionLabel } from './stats_identities';
 import { bucketContexts, bucketDomain, inRange, indexByBucket, type StatsBucketContext } from './stats_time_buckets';
@@ -76,7 +76,7 @@ function tokenTotalRow(context: StatsBucketContext, granularity: StatsGranularit
 }
 
 /** Zero-filled activity per UTC bucket, counted from a single bucket index instead of a scan per bucket. */
-export function activityRows(source: LoadedStatsSource, controls: StatsControls, granularity: StatsGranularity): StatsChartRow[] {
+export function activityRows(source: StatsDatasetSource, controls: StatsControls, granularity: StatsGranularity): StatsChartRow[] {
     const metric = controls.activityMetric;
     const actionRecords = source.stats.actions.filter(({ completedAt }) => inRange(completedAt, controls));
     const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));

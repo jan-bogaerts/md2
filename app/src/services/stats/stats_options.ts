@@ -1,4 +1,11 @@
-import type { LoadedStatsSource, StatsControls, StatsOptions } from './project_stats_types';
+import {
+    CURRENT_RELEASE_IDENTITY,
+    type LoadedStatsSource,
+    type StatsControls,
+    type StatsDatasetSource,
+    type StatsOptions,
+    type StatsReleaseOption,
+} from './project_stats_types';
 import { accountSeriesIdentity, modelIdentity } from './stats_identities';
 
 function optionList(entries: Array<[string, string]>) {
@@ -7,8 +14,21 @@ function optionList(entries: Array<[string, string]>) {
         .sort((left, right) => left.label.localeCompare(right.label) || left.identity.localeCompare(right.identity));
 }
 
-/** Derives the selectable action, agent, model, and account-series catalogs from one loaded source. */
-export function buildOptions(source: LoadedStatsSource): StatsOptions {
+export function completedReleaseIdentity(releaseName: string) {
+    return `completed-release:${releaseName}`;
+}
+
+/** Builds stable release choices without treating persistence paths as release identity. */
+export function buildReleaseOptions(source: LoadedStatsSource): StatsReleaseOption[] {
+    const completedReleases = Object.keys(source.releaseStats)
+        .sort((left, right) => left.localeCompare(right))
+        .map((releaseName) => ({ identity: completedReleaseIdentity(releaseName), label: releaseName, releaseName }));
+
+    return [{ identity: CURRENT_RELEASE_IDENTITY, label: 'Current release', releaseName: null }, ...completedReleases];
+}
+
+/** Derives entity and account-series catalogs from selected release plus release choices. */
+export function buildOptions(source: StatsDatasetSource, releases: StatsReleaseOption[]): StatsOptions {
     const attributed = source.stats.conversations.filter(({ agent, isRootConversation, model }) => isRootConversation && agent && model);
     const actions = optionList([
         ...source.stats.actions.map(({ actionId, actionLabel }) => [actionId, actionLabel] as [string, string]),
@@ -26,7 +46,7 @@ export function buildOptions(source: LoadedStatsSource): StatsOptions {
         windowId: row.windowId,
     }])).values()].sort((left, right) => left.identity.localeCompare(right.identity));
 
-    return { accountSeries, actions, agents, models };
+    return { accountSeries, actions, agents, models, releases };
 }
 
 function retainValidSelections(selected: string[], available: Set<string>) {
@@ -35,6 +55,10 @@ function retainValidSelections(selected: string[], available: Set<string>) {
 
 /** Drops entity selections that the freshly loaded source no longer offers. */
 export function reconcileControls(controls: StatsControls, options: StatsOptions): StatsControls {
+    const releaseIdentity = options.releases.some(({ identity }) => identity === controls.releaseIdentity)
+        ? controls.releaseIdentity
+        : CURRENT_RELEASE_IDENTITY;
+
     return {
         ...controls,
         performanceActionIds: retainValidSelections(
@@ -43,5 +67,6 @@ export function reconcileControls(controls: StatsControls, options: StatsOptions
         ),
         performanceAgentIds: retainValidSelections(controls.performanceAgentIds, new Set(options.agents.map(({ identity }) => identity))),
         performanceModelIds: retainValidSelections(controls.performanceModelIds, new Set(options.models.map(({ identity }) => identity))),
+        releaseIdentity,
     };
 }

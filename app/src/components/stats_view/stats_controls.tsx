@@ -103,6 +103,10 @@ function handleEndChange(event: ChangeEvent<HTMLInputElement>) {
     setStatsControls({ endUtc: isoTimestampFromInput(event.target.value) });
 }
 
+function handleReleaseChange(event: SelectChangeEvent) {
+    setStatsControls({ releaseIdentity: event.target.value });
+}
+
 function exportStats(dataset: StatsDataset, rows: StatsChartRow[]) {
     downloadStatsCsv(dataset, rows);
 }
@@ -234,6 +238,12 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                     </Stack>
                 </>
             ) : null}
+            <Stack spacing={0.75}>
+                <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Releases</Typography>
+                <Select aria-label="Releases" onChange={handleReleaseChange} size="small" value={controls.releaseIdentity}>
+                    {options.releases.map(({ identity, label }) => <MenuItem key={identity} value={identity}>{label}</MenuItem>)}
+                </Select>
+            </Stack>
             <Stack spacing={0.75}>
                 <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">From (local time)</Typography>
                 <TextField onChange={handleStartChange} size="small" slotProps={{ htmlInput: { 'aria-label': 'Range start local time' } }} type="datetime-local" value={localDateTimeValue(controls.startUtc)} />

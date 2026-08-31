@@ -2,10 +2,10 @@ import type { StatsConversationFact } from '../../../../shared/project_stats.mjs
 import { findAgentProfile } from '../../data/agent_profiles';
 import {
     TERMINAL_CONVERSATION_STATUSES,
-    type LoadedStatsSource,
     type StatsAccountSeriesOption,
     type StatsChartRow,
     type StatsControls,
+    type StatsDatasetSource,
     type StatsUnit,
 } from './project_stats_types';
 import { accountSeriesIdentity, actionLabel, cardDisplay } from './stats_identities';
@@ -114,7 +114,7 @@ function totalRow(
     };
 }
 
-function cardsIndex(source: LoadedStatsSource) {
+function cardsIndex(source: StatsDatasetSource) {
     return new Map(source.cards.map((card) => [card.internalId, card]));
 }
 
@@ -130,7 +130,7 @@ function displayFor(
     return { label, title: label };
 }
 
-function basicTotalsRows(source: LoadedStatsSource, controls: StatsControls, conversations: StatsConversationFact[]) {
+function basicTotalsRows(source: StatsDatasetSource, controls: StatsControls, conversations: StatsConversationFact[]) {
     const cardsById = cardsIndex(source);
     const totals = new Map<string, TotalEntry>();
     for (const conversation of conversations) {
@@ -147,7 +147,7 @@ function basicTotalsRows(source: LoadedStatsSource, controls: StatsControls, con
     return [...totals.entries()].map(([identity, entry]) => totalRow(controls, identity, entry, unit));
 }
 
-function conversationGroups(source: LoadedStatsSource, controls: StatsControls, conversations: StatsConversationFact[]) {
+function conversationGroups(source: StatsDatasetSource, controls: StatsControls, conversations: StatsConversationFact[]) {
     const cardsById = cardsIndex(source);
     const groups = new Map<string, ConversationGroup>();
     for (const conversation of conversations) {
@@ -162,7 +162,7 @@ function conversationGroups(source: LoadedStatsSource, controls: StatsControls, 
     return groups;
 }
 
-function accountSeries(source: LoadedStatsSource, controls: StatsControls) {
+function accountSeries(source: StatsDatasetSource, controls: StatsControls) {
     const seriesByIdentity = new Map<string, StatsAccountSeriesOption>();
     for (const row of source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls))) {
         const identity = accountSeriesIdentity(row);
@@ -179,7 +179,7 @@ function accountSeries(source: LoadedStatsSource, controls: StatsControls) {
 }
 
 /** One subscription rate per agent, taken from that agent's longest reported limit window. */
-function providerRates(source: LoadedStatsSource, controls: StatsControls) {
+function providerRates(source: StatsDatasetSource, controls: StatsControls) {
     const accountRows = source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls));
     const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));
     const denominatorsBySeries = new Map<string, number>();
@@ -281,7 +281,7 @@ function costRow(
     };
 }
 
-function costTotalsRows(source: LoadedStatsSource, controls: StatsControls, conversations: StatsConversationFact[]) {
+function costTotalsRows(source: StatsDatasetSource, controls: StatsControls, conversations: StatsConversationFact[]) {
     const rates = providerRates(source, controls);
 
     return [...conversationGroups(source, controls, conversations)]
@@ -289,7 +289,7 @@ function costTotalsRows(source: LoadedStatsSource, controls: StatsControls, conv
 }
 
 /** One bar per card or action; cost prices every run at the rate of the agent that ran it. */
-export function totalsRows(source: LoadedStatsSource, controls: StatsControls): StatsChartRow[] {
+export function totalsRows(source: StatsDatasetSource, controls: StatsControls): StatsChartRow[] {
     const conversations = source.stats.conversations.filter((fact) => isCountedConversation(fact, controls));
     const rows = controls.totalsMetric === 'cost'
         ? costTotalsRows(source, controls, conversations)

@@ -2,11 +2,11 @@ import type { StatsActionFact } from '../../../../shared/project_stats.mjs';
 import { findAgentProfile, type AgentProfile } from '../../data/agent_profiles';
 import type { UsageMetricsAccountRow, UsageMetricsTokenRow } from '../agents/project_usage_metrics_service';
 import type {
-    LoadedStatsSource,
     StatsAccountSeriesOption,
     StatsChartRole,
     StatsChartRow,
     StatsControls,
+    StatsDatasetSource,
     StatsOptions,
     StatsShortGranularity,
     StatsUnit,
@@ -494,7 +494,7 @@ function buildComparisonIndexes(
 }
 
 /** Project work against account-wide consumption, aligned on one shared UTC bucket domain. */
-export function usageComparisonRows(source: LoadedStatsSource, controls: StatsControls, options: StatsOptions): StatsChartRow[] {
+export function usageComparisonRows(source: StatsDatasetSource, controls: StatsControls, options: StatsOptions): StatsChartRow[] {
     const granularity = controls.usageGranularity;
     const accountRows = source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls));
     const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));

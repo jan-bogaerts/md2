@@ -1,9 +1,9 @@
 import type { StatsConversationFact } from '../../../../shared/project_stats.mjs';
 import {
     TERMINAL_CONVERSATION_STATUSES,
-    type LoadedStatsSource,
     type StatsChartRow,
     type StatsControls,
+    type StatsDatasetSource,
     type StatsExclusionReason,
     type StatsPerformanceAggregation,
     type StatsPerformanceMetric,
@@ -48,7 +48,7 @@ function performanceMetricValue(conversation: StatsConversationFact, metric: Sta
 }
 
 /** Splits canonical root conversations into comparable samples and counted exclusion reasons. */
-export function eligibleSamples(source: LoadedStatsSource, controls: StatsControls): PerformanceSamples {
+export function eligibleSamples(source: StatsDatasetSource, controls: StatsControls): PerformanceSamples {
     const exclusionCounts: Partial<Record<StatsExclusionReason, number>> = {};
     const samples: EligibleSample[] = [];
     for (const conversation of source.stats.conversations.filter(({ isRootConversation }) => isRootConversation)) {
