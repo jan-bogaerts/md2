@@ -11,8 +11,12 @@ agents:
 policy:
 after: 49c227f7-c9c7-4773-a246-b4ec451244f1
 changedFiles:
+  - app/src/components/project_workspace.test.tsx
+  - app/src/services/actions/action_service.node.test.ts
+  - app/src/services/actions/action_service.ts
   - app/src/services/data/card_operation_context.ts
   - app/src/services/data/data_service.ts
+  - app/src/services/data/project_file_operations.ts
   - app/src/services/project/expected_persistence_outcomes.test.ts
   - app/src/services/project/expected_persistence_outcomes.ts
   - app/src/services/project/expected_persistence_storage.test.ts
