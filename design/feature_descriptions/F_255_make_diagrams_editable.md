@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 76f878ff-f21b-405e-9f6e-baf43a3caa4f
+after: 526d5eb3-f1f1-4d3e-a65f-a5721d69a23c
 ---
 
 allow user to split view of diagram:
