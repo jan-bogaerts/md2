@@ -33,3 +33,5 @@ after: 3509c194-adbf-4e1c-ad64-6aa9560354b4
   * when user clicks on a menu item:
     * either the action popup opens with the selected diagram-action enabled and the input contains prompt where placeholders have been replaced.
     * or the diagram is shown & breadcrumb is added to breadcrumb path.
+
+Also see F\_246, almost implemented.
