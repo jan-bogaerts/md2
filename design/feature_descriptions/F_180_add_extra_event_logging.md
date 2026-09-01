@@ -10,10 +10,10 @@ agents:
 policy:
 after: 38781d24-46e6-4824-9587-b95bf62a0738
 ---
-
 we currently only appear to log start and end of app. other things we can log:
 
 * create card
 * create action
 * add worktree
 * run action
+* Release
