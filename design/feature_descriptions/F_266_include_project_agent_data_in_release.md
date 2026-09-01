@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__db346664-48c2-4cf0-833c-3c5508a85591.json
 policy:
-branch: f_266_include_project_agent_data_in_release
-worktree: 2
 changedFiles:
   - add_release_tests.py
 ---
