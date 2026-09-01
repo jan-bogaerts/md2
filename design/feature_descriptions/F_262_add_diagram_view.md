@@ -10,8 +10,6 @@ agents:
   - design/activity/card__3331f545-2396-4bb7-b421-14107e79a0d8.json
 policy:
 after: 29a27cb6-cc51-4457-9270-eab33d4550b1
-branch: f_262_add_diagram_view
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/popup/card_action_popup_host.tsx
   - app/src/components/diagram_view/diagram_view.test.tsx
