@@ -252,20 +252,20 @@ describe('ActionSchedulerService', () => {
         expect(scheduler.actionRunnerService.diagramFooter).toBe('Custom diagram instructions. Save to {{diagram-file}}.');
     });
 
-    it('uses accessible interactive-item contract in default diagram footer', async () => {
+    it('uses versioned JSON contract in default diagram footer', async () => {
         const scheduler = createScheduler(createLocalGitService([]));
 
         await scheduler.startProject(project);
 
-        expect(scheduler.actionRunnerService.diagramFooter).toContain('unique data-diagram-id and data-diagram-label');
-        expect(scheduler.actionRunnerService.diagramFooter).toContain('role="button"');
-        expect(scheduler.actionRunnerService.diagramFooter).toContain('Do not include scripts');
+        expect(scheduler.actionRunnerService.diagramFooter).toContain('Save one version 1 JSON object');
+        expect(scheduler.actionRunnerService.diagramFooter).toContain('architecture, dependency, sequence, flow, entity');
+        expect(scheduler.actionRunnerService.diagramFooter).toContain('do not create SVG or markup');
     });
 
     it.each([
         [{ diagramsFolder: '' }, 'Invalid project diagramsFolder'],
         [{ diagramFooter: '' }, 'Invalid project diagramFooter'],
-        [{ diagramFooter: 'Create SVG output.' }, 'requires {{diagram-file}} placeholder'],
+        [{ diagramFooter: 'Create JSON output.' }, 'requires {{diagram-file}} placeholder'],
     ])('rejects invalid diagram config %#', async (projectConfig, message) => {
         const localGitService = createLocalGitService([], undefined, projectConfig);
         const scheduler = createScheduler(localGitService);

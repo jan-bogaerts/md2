@@ -15,23 +15,23 @@ describe('diagram output paths', () => {
         expect(sanitizeDiagramLabel('CON')).toBe('diagram-CON');
     });
 
-    it('creates repository-relative SVG paths with millisecond UTC timestamps', () => {
+    it('creates repository-relative JSON paths with millisecond UTC timestamps', () => {
         const timestamp = Date.parse('2026-08-31T14:25:30.123Z');
 
         expect(formatDiagramTimestamp(timestamp)).toBe('20260831T142530123Z');
         expect(createDiagramPath('Project overview', 'design/diagrams', timestamp))
-            .toBe('design/diagrams/Project-overview-20260831T142530123Z.svg');
+            .toBe('design/diagrams/Project-overview-20260831T142530123Z.json');
     });
 
-    it('resolves only SVG paths inside configured diagrams folder', () => {
+    it('resolves only JSON paths inside configured diagrams folder', () => {
         const project = { rootPath: 'C:/worktree' };
-        const validPath = 'design/diagrams/Overview-20260831T142530123Z.svg';
+        const validPath = 'design/diagrams/Overview-20260831T142530123Z.json';
 
         expect(resolveDiagramFile(project, 'design/diagrams', validPath))
-            .toBe('C:\\worktree\\design\\diagrams\\Overview-20260831T142530123Z.svg');
-        expect(() => resolveDiagramFile(project, 'design/diagrams', 'design/outside.svg'))
+            .toBe('C:\\worktree\\design\\diagrams\\Overview-20260831T142530123Z.json');
+        expect(() => resolveDiagramFile(project, 'design/diagrams', 'design/outside.json'))
             .toThrow('must stay inside the configured diagrams folder');
         expect(() => resolveDiagramFile(project, 'design/diagrams', 'design/diagrams/output.txt'))
-            .toThrow('must identify an SVG file');
+            .toThrow('must identify a JSON file');
     });
 });

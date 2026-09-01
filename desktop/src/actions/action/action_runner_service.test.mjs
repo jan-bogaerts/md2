@@ -7,7 +7,7 @@ const { ActionRunnerService } = require('./action_runner_service');
 
 const context = { cardInternalId: 'card-010', file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' };
 const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
-const diagramFooter = 'Use the diagram skill. Create SVG output and save it to {{diagram-file}}.';
+const diagramFooter = 'Create diagram JSON output and save it to {{diagram-file}}.';
 const agentSelection = {
     activeAgent: 'codex',
     permissionMode: 'ask-for-approval',
@@ -315,8 +315,8 @@ describe('ActionRunnerService', () => {
 
         const prepared = await runner.prepareActionPrompt({ actionId: 'main', context: diagramContext });
         expect(prepared).toEqual({
-            diagramPath: 'design/diagrams/Project-overview-20260831T142530123Z.svg',
-            prompt: `Create overview\n\nUse the diagram skill. Create SVG output and save it to ${path.resolve('C:/repo', 'design/diagrams/Project-overview-20260831T142530123Z.svg')}.`,
+            diagramPath: 'design/diagrams/Project-overview-20260831T142530123Z.json',
+            prompt: `Create overview\n\nCreate diagram JSON output and save it to ${path.resolve('C:/repo', 'design/diagrams/Project-overview-20260831T142530123Z.json')}.`,
         });
 
         const result = await runToCompletion(runner, {
@@ -328,7 +328,7 @@ describe('ActionRunnerService', () => {
         expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe(prepared.prompt);
 
         await expect(runner.prepareActionPrompt({ actionId: 'main', context: diagramContext }))
-            .resolves.toMatchObject({ diagramPath: 'design/diagrams/Project-overview-20260831T142530124Z.svg' });
+            .resolves.toMatchObject({ diagramPath: 'design/diagrams/Project-overview-20260831T142530124Z.json' });
     });
 
     it('adds configured footer exactly once to direct and chained diagram prompts', async () => {
@@ -349,10 +349,10 @@ describe('ActionRunnerService', () => {
         const result = await runToCompletion(runner, {actionId: 'main', context: { kind: 'diagram', type: 'root' }, runInput: { prompt: 'Root override' }});
         const prompts = agentRunnerService.start.mock.calls.map((call) => call[1].prompt);
 
-        expect(result).toMatchObject({ diagramPath: expect.stringMatching(/^design\/diagrams\/main-\d{8}T\d{9}Z\.svg$/u) });
+        expect(result).toMatchObject({ diagramPath: expect.stringMatching(/^design\/diagrams\/main-\d{8}T\d{9}Z\.json$/u) });
         expect(prompts).toHaveLength(2);
-        expect(prompts[0].match(/Use the diagram skill\./gu)).toHaveLength(1);
-        expect(prompts[1].match(/Use the diagram skill\./gu)).toHaveLength(1);
+        expect(prompts[0].match(/Create diagram JSON output/gu)).toHaveLength(1);
+        expect(prompts[1].match(/Create diagram JSON output/gu)).toHaveLength(1);
         expect(prompts[0].replace('Root override', '')).toBe(prompts[1].replace('Child', ''));
     });
 

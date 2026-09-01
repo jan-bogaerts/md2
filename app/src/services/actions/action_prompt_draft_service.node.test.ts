@@ -140,10 +140,10 @@ describe('ActionPromptDraftService', () => {
     it('retains prepared diagram path through local prompt edits and clears it with draft', async () => {
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('diagram', { kind: 'diagram', type: 'root' }, null, { prepare: true })
-        await draft.prepare(async () => ({ diagramPath: 'design/diagrams/overview.svg', prompt: 'Create overview' }))
+        await draft.prepare(async () => ({ diagramPath: 'design/diagrams/overview.json', prompt: 'Create overview' }))
 
         draft.edit('Create detailed overview')
-        expect(draft.getDiagramPath()).toBe('design/diagrams/overview.svg')
+        expect(draft.getDiagramPath()).toBe('design/diagrams/overview.json')
 
         draft.clear()
         expect(draft.getDiagramPath()).toBeNull()

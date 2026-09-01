@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
 import type { DiagramMenuState, DiagramViewSnapshot, DiagramViewService } from '../../services/diagrams/diagram_view_service'
+import { layout } from '../../services/diagrams/diagram_layout'
 import { DiagramView } from './diagram_view'
 
 vi.mock('../hooks/use_workspace_view', () => ({ useWorkspaceView: () => ({ selectedPath: null, viewMode: 'diagrams' }) }))
@@ -21,8 +22,22 @@ vi.mock('../actions/run/popup/action_popup', () => ({
 
 function initialSnapshot(): DiagramViewSnapshot {
     return {
-        currentSvg: '<svg xmlns="http://www.w3.org/2000/svg"><text data-diagram-id="customer" data-diagram-label="Customer" role="button" tabindex="0">Customer</text></svg>',
-        currentSvgError: null,
+        currentDiagram: layout({
+            edges: [{ from: 'customer', id: 'customer-orders', kind: 'connection', label: 'places', to: 'orders' }],
+            groups: [{ id: 'domain', label: 'Domain', nodeIds: ['customer', 'orders'] }],
+            meta: {
+                description: 'Customer ordering flow',
+                legend: [{ label: 'Focus', role: 'focal' }],
+                title: 'Orders',
+                type: 'architecture',
+                version: 1,
+            },
+            nodes: [
+                { id: 'customer', label: 'Customer', role: 'focal' },
+                { id: 'orders', label: 'Orders', role: 'backend' },
+            ],
+        }),
+        currentDiagramError: null,
         error: null,
         index: {
             activePath: ['root-1', 'child-1'],
@@ -31,9 +46,9 @@ function initialSnapshot(): DiagramViewSnapshot {
                 'child-1': {
                     actionId: 'detail', id: 'child-1', label: 'Orders',
                     parent: { diagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders' },
-                    path: 'design/diagrams/child.svg',
+                    path: 'design/diagrams/child.json',
                 },
-                'root-1': { actionId: 'overview', id: 'root-1', label: 'Overview', path: 'design/diagrams/root.svg' },
+                'root-1': { actionId: 'overview', id: 'root-1', label: 'Overview', path: 'design/diagrams/root.json' },
             },
             roots: { overview: ['root-1'] },
             version: 1,
@@ -54,7 +69,7 @@ function createService() {
     const service = {
         closeItemMenu: vi.fn(() => publish({ ...snapshot, menu: null })),
         closePopup: vi.fn(() => publish({ ...snapshot, popup: null })),
-        getSavedChildren: vi.fn(() => [{ actionId: 'saved-action', id: 'saved-1', label: 'Saved Orders', path: 'design/diagrams/saved.svg' }]),
+        getSavedChildren: vi.fn(() => [{ actionId: 'saved-action', id: 'saved-1', label: 'Saved Orders', path: 'design/diagrams/saved.json' }]),
         getSnapshot: () => snapshot,
         navigateBack: vi.fn(async () => undefined),
         navigateToCrumb: vi.fn(async () => undefined),
@@ -125,6 +140,16 @@ describe('DiagramView', () => {
         const popup = screen.getByText('Action popup')
         expect(popup).toHaveAttribute('data-action-id', 'detail')
         expect(popup.getAttribute('data-context')).toContain('"parentNode":"Customer"')
+    })
+
+    it('opens item menu from a selectable edge with its accessible label', async () => {
+        const service = createService()
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+
+        await user.click(screen.getByRole('button', { name: 'places' }))
+
+        expect(service.openItemMenu).toHaveBeenCalledWith(expect.objectContaining({diagramId: 'child-1', itemId: 'customer-orders', itemLabel: 'places'}))
     })
 
     it('navigates Back, breadcrumbs, and saved diagrams without opening action popup', async () => {

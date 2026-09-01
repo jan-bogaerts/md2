@@ -9,7 +9,7 @@ export const ACTION_PROMPT_PLACEHOLDERS: readonly ActionPlaceholder[] = [
     { description: 'Alias of {{card-file}} with the same selected Markdown card file path.', name: 'this-card' },
     { description: 'Title of the selected card.', name: 'card-title' },
     { description: 'Additional prompt entered when the card action runs.', name: 'card-prompt' },
-    { description: 'Absolute path where the current diagram action must save its SVG output.', name: 'diagram-file' },
+    { description: 'Absolute path where the current diagram action must save its JSON output.', name: 'diagram-file' },
     { description: 'Label of the selected parent diagram item for a child diagram action.', name: 'parent-node' },
     { description: 'Absolute path to the configured project folder.', name: 'project-folder' },
     { description: 'Absolute path to the configured releases folder.', name: 'releases-folder' },

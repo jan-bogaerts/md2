@@ -16,9 +16,9 @@ function populatedIndex(): DiagramIndex {
             'child-1': {
                 actionId: 'detail', id: 'child-1', label: 'Orders',
                 parent: { diagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders' },
-                path: 'design/diagrams/detail.svg',
+                path: 'design/diagrams/detail.json',
             },
-            'root-1': { actionId: 'overview', id: 'root-1', label: 'Overview', path: 'design/diagrams/root.svg' },
+            'root-1': { actionId: 'overview', id: 'root-1', label: 'Overview', path: 'design/diagrams/root.json' },
         },
         roots: { overview: ['root-1'] },
         version: 1,
@@ -45,8 +45,8 @@ describe('diagram index', () => {
     })
 
     it('accepts only repository paths below configured diagrams folder', () => {
-        expect(isPathInsideDiagramsFolder('design/diagrams/root.svg', 'design/diagrams')).toBe(true)
-        expect(isPathInsideDiagramsFolder('design/diagrams/../outside.svg', 'design/diagrams')).toBe(false)
-        expect(isPathInsideDiagramsFolder('design/other/root.svg', 'design/diagrams')).toBe(false)
+        expect(isPathInsideDiagramsFolder('design/diagrams/root.json', 'design/diagrams')).toBe(true)
+        expect(isPathInsideDiagramsFolder('design/diagrams/../outside.json', 'design/diagrams')).toBe(false)
+        expect(isPathInsideDiagramsFolder('design/other/root.json', 'design/diagrams')).toBe(false)
     })
 })

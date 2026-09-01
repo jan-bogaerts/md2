@@ -1,6 +1,6 @@
 import { diagramContext, type ActionContext } from '../../data/action_context'
 import type { ActionRunEvent } from '../../data/action_run_types'
-import type { MarkdownFile, ProjectAsset, ProjectConfig, ProjectReference, StorageService } from '../../data/data_types'
+import type { MarkdownFile, ProjectConfig, ProjectReference, StorageService } from '../../data/data_types'
 import { generateUuid } from '../../data/uuid'
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { actionService } from '../actions/action_service'
@@ -16,7 +16,8 @@ import {
     type DiagramIndex,
     type DiagramRecord,
 } from './diagram_index'
-import { sanitizeDiagramSvg } from './diagram_svg_sanitizer'
+import { isDiagramDataPath, parseDiagramData } from './diagram_data'
+import { layout, type PositionedDiagramData } from './diagram_layout'
 
 const DIAGRAM_INDEX_COMMIT_MESSAGE = 'Update diagram view'
 
@@ -36,8 +37,8 @@ export interface DiagramMenuState {
 }
 
 export interface DiagramViewSnapshot {
-    currentSvg: string | null
-    currentSvgError: string | null
+    currentDiagram: PositionedDiagramData | null
+    currentDiagramError: string | null
     error: string | null
     index: DiagramIndex
     menu: DiagramMenuState | null
@@ -62,8 +63,8 @@ interface DiagramViewDependencies {
 }
 
 const INITIAL_SNAPSHOT: DiagramViewSnapshot = {
-    currentSvg: null,
-    currentSvgError: null,
+    currentDiagram: null,
+    currentDiagramError: null,
     error: null,
     index: emptyDiagramIndex(),
     menu: null,
@@ -79,13 +80,6 @@ function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error)
 }
 
-function decodeSvgAsset(asset: ProjectAsset) {
-    if (asset.contentType !== 'image/svg+xml') throw new Error(`Diagram asset is not SVG: ${asset.path}`)
-    const bytes = Uint8Array.from(atob(asset.content), (character) => character.charCodeAt(0))
-
-    return new TextDecoder().decode(bytes)
-}
-
 function defaultDependencies(): DiagramViewDependencies {
     return {
         createId: generateUuid,
@@ -99,24 +93,26 @@ function defaultDependencies(): DiagramViewDependencies {
 }
 
 function validateDiagramPaths(index: DiagramIndex, diagramsFolder: string) {
-    const invalid = Object.values(index.diagrams).find(({ path }) => !isPathInsideDiagramsFolder(path, diagramsFolder))
-    if (invalid) throw new Error(`Diagram path must stay inside configured diagrams folder: ${invalid.path}`)
+    const outside = Object.values(index.diagrams).find(({ path }) => !isPathInsideDiagramsFolder(path, diagramsFolder))
+    if (outside) throw new Error(`Diagram path must stay inside configured diagrams folder: ${outside.path}`)
+    const wrongFormat = Object.values(index.diagrams).find(({ path }) => !isDiagramDataPath(path))
+    if (wrongFormat) throw new Error(`Diagram path must identify a JSON file: ${wrongFormat.path}`)
 }
 
-async function loadSanitizedSvg(binding: DiagramProjectBinding, path: string) {
-    if (!binding.storage.loadProjectAsset) throw new Error('Project asset loading is not available')
-    const asset = await binding.storage.loadProjectAsset(binding.project, path)
+async function loadDiagram(binding: DiagramProjectBinding, path: string) {
+    if (!binding.storage.loadTextFile) throw new Error('Repository text file loading is not available')
+    const file = await binding.storage.loadTextFile(binding.project, path)
 
-    return sanitizeDiagramSvg(decodeSvgAsset(asset))
+    return layout(parseDiagramData(file.content))
 }
 
-async function loadActiveSvg(binding: DiagramProjectBinding, index: DiagramIndex) {
+async function loadActiveDiagram(binding: DiagramProjectBinding, index: DiagramIndex) {
     const diagramId = index.activePath.at(-1)
-    if (!diagramId) return { currentSvg: null, currentSvgError: null }
+    if (!diagramId) return { currentDiagram: null, currentDiagramError: null }
     try {
-        return { currentSvg: await loadSanitizedSvg(binding, index.diagrams[diagramId].path), currentSvgError: null }
+        return { currentDiagram: await loadDiagram(binding, index.diagrams[diagramId].path), currentDiagramError: null }
     } catch (error) {
-        return { currentSvg: null, currentSvgError: errorMessage(error) }
+        return { currentDiagram: null, currentDiagramError: errorMessage(error) }
     }
 }
 
@@ -175,7 +171,7 @@ function addRecord(current: DiagramIndex, record: DiagramRecord): DiagramIndex {
     return { ...current, activePath: [...pathToDiagram(current, diagramId), record.id], children, diagrams }
 }
 
-/** Owns diagram records, navigation, popup state, SVG loading, and persistence for one project. */
+/** Owns diagram records, navigation, popup state, JSON loading, and persistence for one project. */
 export class DiagramViewService extends EventTarget {
     private binding: DiagramProjectBinding | null = null
     private readonly dependencies: DiagramViewDependencies
@@ -312,8 +308,8 @@ export class DiagramViewService extends EventTarget {
         try {
             const index = await loadDiagramIndex(binding)
             validateDiagramPaths(index, binding.config.diagramsFolder)
-            const activeSvg = await loadActiveSvg(binding, index)
-            this.publish({ ...activeSvg, error: null, index, menu: null, popup: null, status: 'ready' })
+            const activeDiagram = await loadActiveDiagram(binding, index)
+            this.publish({ ...activeDiagram, error: null, index, menu: null, popup: null, status: 'ready' })
         } catch (error) {
             this.loadPromise = null
             this.publish({ ...INITIAL_SNAPSHOT, error: errorMessage(error), status: 'error' })
@@ -328,7 +324,8 @@ export class DiagramViewService extends EventTarget {
         if (!isPathInsideDiagramsFolder(diagramPath, binding.config.diagramsFolder)) {
             throw new Error(`Diagram output path must stay inside configured diagrams folder: ${diagramPath}`)
         }
-        const currentSvg = await loadSanitizedSvg(binding, diagramPath)
+        if (!isDiagramDataPath(diagramPath)) throw new Error(`Diagram output path must identify a JSON file: ${diagramPath}`)
+        const currentDiagram = await loadDiagram(binding, diagramPath)
         const action = this.dependencies.loadActions().find(({ id }) => id === event.rootActionId)
         if (!action) throw new Error(`Diagram action no longer exists: ${event.rootActionId}`)
         const { context } = event
@@ -353,19 +350,19 @@ export class DiagramViewService extends EventTarget {
         const index = addRecord(this.snapshot.index, record)
         await this.persistIndex(index)
         this.navigationToken += 1
-        this.publish({ ...this.snapshot, currentSvg, currentSvgError: null, index, menu: null, popup: null })
+        this.publish({ ...this.snapshot, currentDiagram, currentDiagramError: null, index, menu: null, popup: null })
     }
 
-    /** Shows the requested path once its SVG resolves, discarding results of superseded navigations. */
+    /** Shows the requested path once its JSON resolves, discarding results of superseded navigations. */
     private async applyActivePath(activePath: string[]) {
         const binding = this.requireBinding()
         const index = { ...this.snapshot.index, activePath }
         this.navigationToken += 1
         const token = this.navigationToken
-        const activeSvg = await loadActiveSvg(binding, index)
+        const activeDiagram = await loadActiveDiagram(binding, index)
         if (token !== this.navigationToken) return
 
-        this.publish({ ...this.snapshot, ...activeSvg, index, menu: null })
+        this.publish({ ...this.snapshot, ...activeDiagram, index, menu: null })
         this.scheduleIndexCommit(index)
     }
 

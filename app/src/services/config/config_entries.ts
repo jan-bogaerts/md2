@@ -199,7 +199,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
     },
     {
         defaultValue: DEFAULT_DIAGRAMS_FOLDER,
-        description: 'Folder inside the project folder where diagram actions save generated SVG files.',
+        description: 'Folder inside the project folder where diagram actions save generated JSON diagram data.',
         editable: true,
         key: 'project.diagramsFolder',
         label: 'Diagrams folder',

@@ -6,20 +6,26 @@ import { DiagramViewService } from './diagram_view_service'
 import { serializeDiagramIndex, type DiagramIndex } from './diagram_index'
 
 const INDEX_PATH = 'design/diagrams/diagram-view.json'
-const SVG = '<svg xmlns="http://www.w3.org/2000/svg"><text data-diagram-id="orders" data-diagram-label="Orders">Orders</text></svg>'
+const DIAGRAM_JSON = JSON.stringify({
+    edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' }],
+    meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
+    nodes: [
+        { id: 'orders', label: 'Orders', role: 'focal' },
+        { id: 'store', label: 'Store', role: 'store' },
+    ],
+})
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 const config = resolveProjectConfigPaths(DEFAULT_PROJECT_CONFIG)
-
-function asset(path: string) {
-    return { content: btoa(SVG), contentType: 'image/svg+xml', encoding: 'base64' as const, path }
-}
 
 function createHarness(repositoryFiles: string[] = []) {
     let runListener: ((event: ActionRunEvent) => void) | null = null
     const storage = {
         listRepositoryFiles: vi.fn(async () => repositoryFiles),
-        loadProjectAsset: vi.fn(async (_project, path) => asset(path)),
-        loadTextFile: vi.fn(async () => { throw new Error('missing') }),
+        loadTextFile: vi.fn(async (_project, path) => {
+            if (path === INDEX_PATH) throw new Error('missing')
+
+            return { content: DIAGRAM_JSON, path }
+        }),
     } as unknown as StorageService
     const flushCommits = vi.fn(async () => undefined)
     const reportError = vi.fn()
@@ -55,7 +61,7 @@ function completedEvent(overrides: Partial<ActionRunEvent> = {}): ActionRunEvent
     return {
         actionId: 'overview',
         context: { kind: 'diagram', type: 'root' },
-        diagramPath: 'design/diagrams/overview.svg',
+        diagramPath: 'design/diagrams/overview.json',
         phase: 'main',
         rootActionId: 'overview',
         runId: 'run-1',
@@ -74,10 +80,10 @@ describe('DiagramViewService', () => {
         await service.open()
 
         expect(storage.loadTextFile).toHaveBeenCalledTimes(1)
-        expect(service.getSnapshot()).toMatchObject({ currentSvg: null, index: { activePath: [], diagrams: {} }, status: 'ready' })
+        expect(service.getSnapshot()).toMatchObject({ currentDiagram: null, index: { activePath: [], diagrams: {} }, status: 'ready' })
     })
 
-    it('restores global active path and exact last SVG from versioned index', async () => {
+    it('restores global active path and parses exact last diagram JSON from versioned index', async () => {
         const index: DiagramIndex = {
             activePath: ['root-1', 'child-1'],
             children: { 'root-1': { orders: { detail: ['child-1'] } } },
@@ -85,21 +91,24 @@ describe('DiagramViewService', () => {
                 'child-1': {
                     actionId: 'detail', id: 'child-1', label: 'Orders',
                     parent: { diagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders' },
-                    path: 'design/diagrams/child.svg',
+                    path: 'design/diagrams/child.json',
                 },
-                'root-1': { actionId: 'overview', id: 'root-1', label: 'Overview', path: 'design/diagrams/root.svg' },
+                'root-1': { actionId: 'overview', id: 'root-1', label: 'Overview', path: 'design/diagrams/root.json' },
             },
             roots: { overview: ['root-1'] },
             version: 1,
         }
         const { service, storage } = createHarness([INDEX_PATH])
-        vi.mocked(storage.loadTextFile!).mockResolvedValue({ content: serializeDiagramIndex(index), path: INDEX_PATH })
+        vi.mocked(storage.loadTextFile!).mockImplementation(async (_project, path) => path === INDEX_PATH
+            ? { content: serializeDiagramIndex(index), path }
+            : { content: DIAGRAM_JSON, path })
 
         await service.open()
 
         expect(service.getSnapshot().index.activePath).toEqual(['root-1', 'child-1'])
-        expect(storage.loadProjectAsset).toHaveBeenCalledWith(project, 'design/diagrams/child.svg')
-        expect(service.getSnapshot().currentSvg).toContain('data-diagram-id="orders"')
+        expect(storage.loadTextFile).toHaveBeenCalledWith(project, 'design/diagrams/child.json')
+        expect(service.getSnapshot().currentDiagram?.nodes[0]).toMatchObject({ id: 'orders', label: 'Orders' })
+        expect(service.getSnapshot().currentDiagram?.width).toBeGreaterThan(0)
     })
 
     it('reports malformed index without replacing it and retries on the next open', async () => {
@@ -130,13 +139,13 @@ describe('DiagramViewService', () => {
         expect(flushCommits).toHaveBeenCalledTimes(1)
         expect(service.getSnapshot().index.diagrams['root-1'].createdAt).toBe('2026-09-01T10:00:00.000Z')
 
-        run(completedEvent({ diagramPath: 'design/diagrams/overview-2.svg', runId: 'run-2' }))
+        run(completedEvent({ diagramPath: 'design/diagrams/overview-2.json', runId: 'run-2' }))
         await vi.waitFor(() => expect(service.getSnapshot().index.roots.overview).toEqual(['root-1', 'root-2']))
 
         run(completedEvent({
             actionId: 'detail',
             context: { diagramId: 'root-2', diagramItemId: 'orders', kind: 'diagram', parentNode: 'Orders', type: 'child' },
-            diagramPath: 'design/diagrams/detail.svg',
+            diagramPath: 'design/diagrams/detail.json',
             rootActionId: 'detail',
             runId: 'run-3',
             status: 'okButNotAfter',
@@ -154,7 +163,7 @@ describe('DiagramViewService', () => {
         run(completedEvent({
             actionId: 'detail',
             context: { diagramId: 'root-1', diagramItemId: 'orders', kind: 'diagram', parentNode: 'Orders', type: 'child' },
-            diagramPath: 'design/diagrams/detail.svg',
+            diagramPath: 'design/diagrams/detail.json',
             rootActionId: 'detail',
             runId: 'run-2',
         }))
@@ -184,7 +193,7 @@ describe('DiagramViewService', () => {
 
         expect(service.getSnapshot().index.activePath).toEqual([])
         expect(service.getSnapshot().popup).not.toBeNull()
-        expect(service.getSnapshot().currentSvg).toBeNull()
+        expect(service.getSnapshot().currentDiagram).toBeNull()
     })
 
     it('ignores cancelled and failed runs', async () => {
@@ -202,11 +211,31 @@ describe('DiagramViewService', () => {
         const { reportError, run, scheduleCommit, service } = createHarness()
         await service.open()
 
-        run(completedEvent({ diagramPath: 'design/outside.svg' }))
+        run(completedEvent({ diagramPath: 'design/outside.json' }))
         await vi.waitFor(() => expect(reportError).toHaveBeenCalled())
 
         expect(scheduleCommit).not.toHaveBeenCalled()
         expect(service.getSnapshot().index.diagrams).toEqual({})
+    })
+
+    it('rejects non-JSON and malformed JSON output without changing current diagram', async () => {
+        const { reportError, run, scheduleCommit, service, storage } = createHarness()
+        await service.open()
+
+        run(completedEvent({ diagramPath: 'design/diagrams/overview.svg', runId: 'svg' }))
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledTimes(1))
+        expect(storage.loadTextFile).not.toHaveBeenCalledWith(project, 'design/diagrams/overview.svg')
+
+        vi.mocked(storage.loadTextFile!).mockImplementation(async (_project, path) => {
+            if (path === INDEX_PATH) throw new Error('missing')
+
+            return { content: '{', path }
+        })
+        run(completedEvent({ runId: 'malformed' }))
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledTimes(2))
+
+        expect(scheduleCommit).not.toHaveBeenCalled()
+        expect(service.getSnapshot().currentDiagram).toBeNull()
     })
 })
 

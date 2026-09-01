@@ -94,7 +94,7 @@ describe('resolvePlaceholders', () => {
     })
 
     it('resolves diagram-file only in diagram context', () => {
-        const diagramFolders = { ...folders, diagramFile: 'C:/worktree/design/diagrams/overview.svg' }
+        const diagramFolders = { ...folders, diagramFile: 'C:/worktree/design/diagrams/overview.json' }
 
         expect(resolvePlaceholders('{{diagram-file}}', { kind: 'diagram', type: 'root' }, diagramFolders, ''))
             .toBe(diagramFolders.diagramFile)

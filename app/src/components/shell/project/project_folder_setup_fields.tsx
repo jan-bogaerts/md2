@@ -31,7 +31,7 @@ const FOLDER_FIELDS: FolderFieldDescriptor[] = [
     { field: 'archivedFolder', helperText: 'Archived cards, inside the project folder.', label: 'Archived folder' },
     { field: 'actionsFolder', helperText: 'Action definitions, inside the project folder.', label: 'Actions folder' },
     { field: 'releasesFolder', helperText: 'Release history, inside the project folder.', label: 'Releases folder' },
-    { field: 'diagramsFolder', helperText: 'Generated SVG diagrams, inside the project folder.', label: 'Diagrams folder' },
+    { field: 'diagramsFolder', helperText: 'Generated JSON diagram data, inside the project folder.', label: 'Diagrams folder' },
 ]
 
 /** Resolved repository path of one field, so the form can show what will be created. */

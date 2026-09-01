@@ -139,12 +139,12 @@ describe('ActionRunRegistry', () => {
         emit({
             ...runEvent('completed'),
             changedPaths: ['app/a.ts', 'desktop/b.js'],
-            diagramPath: 'design/diagrams/overview.svg',
+            diagramPath: 'design/diagrams/overview.json',
         })
 
         await expect(completion).resolves.toEqual({
             changedPaths: ['app/a.ts', 'desktop/b.js'],
-            diagramPath: 'design/diagrams/overview.svg',
+            diagramPath: 'design/diagrams/overview.json',
             logs: [],
             status: 'completed',
         })
@@ -797,7 +797,7 @@ describe('ActionRunRegistry', () => {
             loadActionRunRecoverySnapshot: vi.fn(async () => ({
                 activeRunEvents: [],
                 terminalResults: [{
-                    changedPaths: ['app/recovered.ts'], diagramPath: 'design/diagrams/recovered.svg', failure: null,
+                    changedPaths: ['app/recovered.ts'], diagramPath: 'design/diagrams/recovered.json', failure: null,
                     runId: 'run-1', status: 'completed' as const,
                 }],
             })),
@@ -815,7 +815,7 @@ describe('ActionRunRegistry', () => {
         }))
         expect(store.getSnapshot().logs[0]).toMatchObject({ message: 'build completed', status: 'completed' })
         expect(second.bridge.loadActionRunRecoverySnapshot).toHaveBeenCalledWith(['run-1'])
-        await expect(completion).resolves.toMatchObject({changedPaths: ['app/recovered.ts'], diagramPath: 'design/diagrams/recovered.svg', status: 'completed'})
+        await expect(completion).resolves.toMatchObject({changedPaths: ['app/recovered.ts'], diagramPath: 'design/diagrams/recovered.json', status: 'completed'})
         release()
         service.stop()
     })

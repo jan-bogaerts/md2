@@ -3,7 +3,7 @@ import {
 } from '@mui/material'
 import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
 import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined'
-import type { KeyboardEvent, MouseEvent } from 'react'
+import type { MouseEvent } from 'react'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { actionsForContext, diagramContext } from '../../data/action_context'
 import { dialogService } from '../../services/dialog_service'
@@ -12,13 +12,8 @@ import { diagramViewService, type DiagramViewService } from '../../services/diag
 import { useActions } from '../hooks/use_actions'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
 import { ActionPopup } from '../actions/run/popup/action_popup'
-
-function interactiveDiagramElement(target: EventTarget | null, container: HTMLElement) {
-    if (!(target instanceof Element)) return null
-    const element = target.closest('[data-diagram-id][data-diagram-label]')
-
-    return element && container.contains(element) ? element : null
-}
+import { DiagramRenderer } from './diagram_renderer'
+import type { DiagramSelection } from './diagram_selection'
 
 function reportNavigationFailure(error: unknown) {
     dialogService.error(error, { fallbackMessage: 'Diagram navigation failed' })
@@ -28,7 +23,7 @@ interface DiagramViewProps {
     service?: DiagramViewService
 }
 
-/** Full workspace surface for navigating generated SVG diagrams. */
+/** Full workspace surface for navigating validated diagram data. */
 export function DiagramView({ service = diagramViewService }: DiagramViewProps) {
     const { viewMode } = useWorkspaceView()
     const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot)
@@ -58,26 +53,11 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
         })
     }, [service, viewMode])
 
-    const openMenuForElement = (container: HTMLDivElement, element: Element, left: number, top: number) => {
+    const handleDiagramSelect = (anchorElement: HTMLElement, selection: DiagramSelection) => {
         const diagramId = snapshot.index.activePath.at(-1)
-        const itemId = element.getAttribute('data-diagram-id')?.trim()
-        const itemLabel = element.getAttribute('data-diagram-label')?.trim()
-        if (!diagramId || !itemId || !itemLabel) return
-        service.openItemMenu({ anchorElement: container, diagramId, itemId, itemLabel, left, top })
-    }
-
-    const handleSvgClick = (event: MouseEvent<HTMLDivElement>) => {
-        const element = interactiveDiagramElement(event.target, event.currentTarget)
-        if (element) openMenuForElement(event.currentTarget, element, event.clientX, event.clientY)
-    }
-
-    const handleSvgKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-        if (event.key !== 'Enter' && event.key !== ' ') return
-        const element = interactiveDiagramElement(event.target, event.currentTarget)
-        if (!element) return
-        event.preventDefault()
-        const bounds = element.getBoundingClientRect()
-        openMenuForElement(event.currentTarget, element, bounds.left, bounds.bottom)
+        if (!diagramId) return
+        const { id: itemId, label: itemLabel, left, top } = selection
+        service.openItemMenu({ anchorElement, diagramId, itemId, itemLabel, left, top })
     }
 
     const handleMenuClick = (event: MouseEvent<HTMLElement>) => {
@@ -130,21 +110,15 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
                 <Button data-diagram-root-id={record.id} key={record.id} size="small" variant="text">{diagramTitle(record)}</Button>
             ))}
         </Paper>
-    ) : snapshot.currentSvgError ? (
-        <Alert severity="warning">Diagram unavailable: {snapshot.currentSvgError}</Alert>
+    ) : snapshot.currentDiagramError ? (
+        <Alert severity="warning">Diagram unavailable: {snapshot.currentDiagramError}</Alert>
     ) : (
         <Box
             aria-label="Active diagram"
-            dangerouslySetInnerHTML={{ __html: snapshot.currentSvg ?? '' }}
-            onClick={handleSvgClick}
-            onKeyDown={handleSvgKeyDown}
-            sx={{
-                alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center', minHeight: 0, overflow: 'auto',
-                '& > svg': { height: '100%', maxWidth: '100%', width: '100%' },
-                '& [data-diagram-id]': { cursor: 'pointer' },
-                '& [data-diagram-id]:focus': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
-            }}
-        />
+            sx={{alignItems: 'flex-start', display: 'flex', flex: 1, justifyContent: 'flex-start', minHeight: 0, overflow: 'auto'}}
+        >
+            {snapshot.currentDiagram ? <DiagramRenderer data={snapshot.currentDiagram} onSelect={handleDiagramSelect} /> : null}
+        </Box>
     )
 
     return (

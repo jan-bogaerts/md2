@@ -28,7 +28,7 @@ describe('validateStartRequest', () => {
     });
 
     it('preserves accepted optional strings', () => {
-        const runInput = { agent: 'codex', command: 'npm test', continueFrom: 'log.json', diagramPath: 'design/diagrams/output.svg', extraPrompt: 'next', model: 'gpt', permissionMode: 'approve-for-me', prompt: '', thinkingLevel: 'high' };
+        const runInput = { agent: 'codex', command: 'npm test', continueFrom: 'log.json', diagramPath: 'design/diagrams/output.json', extraPrompt: 'next', model: 'gpt', permissionMode: 'approve-for-me', prompt: '', thinkingLevel: 'high' };
 
         expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput }).runInput).toEqual(runInput);
     });

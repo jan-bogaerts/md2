@@ -912,7 +912,7 @@ describe('ActionPopup', () => {
 
     it('starts a prepared diagram prompt with its generated repository-relative path', async () => {
         const startAction = vi.fn(async () => 'diagram-run')
-        const diagramPath = 'design/diagrams/Overview-20260831T142530123Z.svg'
+        const diagramPath = 'design/diagrams/Overview-20260831T142530123Z.json'
         mockCodexAvailable()
         window.md2Actions = {
             onActionRun: vi.fn(() => vi.fn()),

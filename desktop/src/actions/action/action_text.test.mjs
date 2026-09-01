@@ -74,7 +74,7 @@ describe('resolvePlaceholders', () => {
     });
 
     it('resolves diagram-file only for diagram context', () => {
-        const diagramFile = 'C:\\worktrees\\2\\design\\diagrams\\Overview.svg';
+        const diagramFile = 'C:\\worktrees\\2\\design\\diagrams\\Overview.json';
 
         expect(resolvePlaceholders(
             'Save {{diagram-file}}',
@@ -139,7 +139,7 @@ describe('resolveAgentPrompt', () => {
 
     it('appends configured diagram footer exactly once before resolution', () => {
         const context = { kind: 'diagram', type: 'root' };
-        const diagramFile = 'C:\\worktrees\\2\\design\\diagrams\\Overview.svg';
+        const diagramFile = 'C:\\worktrees\\2\\design\\diagrams\\Overview.json';
 
         expect(resolveAgentPrompt(
             { prompt: 'Create overview' },

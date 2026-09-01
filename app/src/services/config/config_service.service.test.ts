@@ -34,8 +34,8 @@ describe('ConfigService', () => {
         })
         expect(service.getProjectConfig().cardTypes).toEqual(DEFAULT_CARD_TYPES)
         expect(service.getProjectConfig().states).toEqual(DEFAULT_STATES)
-        expect(service.getProjectConfig().diagramFooter).toContain('unique data-diagram-id and data-diagram-label')
-        expect(service.getProjectConfig().diagramFooter).toContain('role="button"')
+        expect(service.getProjectConfig().diagramFooter).toContain('Save one version 1 JSON object')
+        expect(service.getProjectConfig().diagramFooter).toContain('architecture, dependency, sequence, flow, entity')
     })
 
     it('ignores obsolete card body templates and omits them from saved project config', () => {

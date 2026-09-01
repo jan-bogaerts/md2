@@ -23,14 +23,14 @@ function formatDiagramTimestamp(timestampMs) {
 
 function createDiagramPath(actionLabel, diagramsFolder, timestampMs) {
     if (typeof diagramsFolder !== 'string' || diagramsFolder.length === 0) throw new Error('Diagram output folder is required');
-    const fileName = `${sanitizeDiagramLabel(actionLabel)}-${formatDiagramTimestamp(timestampMs)}.svg`;
+    const fileName = `${sanitizeDiagramLabel(actionLabel)}-${formatDiagramTimestamp(timestampMs)}.json`;
 
     return path.posix.join(diagramsFolder.replace(/\\/gu, '/'), fileName);
 }
 
 function resolveDiagramFile(runProject, diagramsFolder, diagramPath) {
-    if (typeof diagramPath !== 'string' || path.extname(diagramPath).toLowerCase() !== '.svg') {
-        throw new Error('Diagram output path must identify an SVG file');
+    if (typeof diagramPath !== 'string' || path.extname(diagramPath).toLowerCase() !== '.json') {
+        throw new Error('Diagram output path must identify a JSON file');
     }
     const repositoryRoot = requireRootPath(runProject);
     const outputFolder = ensureInsideRoot(repositoryRoot, path.resolve(repositoryRoot, diagramsFolder));
