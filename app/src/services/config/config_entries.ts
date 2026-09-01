@@ -47,6 +47,7 @@ export interface ConfigValueTypes {
     'react.autoCommitDelayMs': number
     'react.deleteBranchAfterIntegration': boolean
     'react.deleteBranchesAfterRelease': boolean
+    'react.includeProjectActivityInRelease': boolean
     'react.showStartupSplash': boolean
 }
 
@@ -128,6 +129,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         editable: false,
         key: 'react.deleteBranchesAfterRelease',
         label: 'Delete released card branches',
+        section: 'react',
+        source: 'react',
+        type: 'boolean',
+    },
+    {
+        defaultValue: false,
+        description: 'Include the project agent activity in the release folder by default.',
+        editable: false,
+        key: 'react.includeProjectActivityInRelease',
+        label: 'Include project agent activity in release',
         section: 'react',
         source: 'react',
         type: 'boolean',

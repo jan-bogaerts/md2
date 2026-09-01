@@ -34,6 +34,7 @@ describe('config persistence', () => {
             'react.autoCommitDelayMs': 5000,
             'react.deleteBranchAfterIntegration': false,
             'react.deleteBranchesAfterRelease': false,
+            'react.includeProjectActivityInRelease': false,
             'react.showStartupSplash': true,
         })
     })

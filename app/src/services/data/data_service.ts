@@ -464,6 +464,7 @@ export class DataService extends EventTarget {
             files: () => this.projectState.files,
             project: () => this.projectState.project,
             requireDependencies: () => this.requireDependencies(),
+            resetAgentConversations: () => this.agents.resetLoadedConversations(),
             snapshot: () => this.projectState.snapshot,
         }
     }

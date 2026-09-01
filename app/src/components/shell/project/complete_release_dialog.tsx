@@ -1,4 +1,15 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material'
+import {
+    Button,
+    Checkbox,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    FormControlLabel,
+    Stack,
+    TextField,
+    Typography,
+} from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
 import type { ReleaseBranchCandidate } from '../../../data/data_types'
@@ -6,18 +17,31 @@ import { ReleaseBranchCheckbox } from './release_branch_checkbox'
 
 interface CompleteReleaseDialogProps {
     branchCandidates: ReleaseBranchCandidate[]
+    defaultIncludeProjectActivity: boolean
     defaultSelectAll: boolean
     isLoading: boolean
     open: boolean
     onClose: () => void
-    onCompleteRelease: (releaseName: string, selectedBranchNames: string[]) => Promise<void>
+    onCompleteRelease: (releaseName: string, selectedBranchNames: string[], includeProjectActivity: boolean) => Promise<void>
+    onIncludeProjectActivityChange: (included: boolean) => void
     onSelectAllDefaultChange: (selected: boolean) => void
 }
 
 /** Dialog for confirming and naming release completion. */
 export function CompleteReleaseDialog(props: CompleteReleaseDialogProps) {
-    const { branchCandidates, defaultSelectAll, isLoading, onClose, onCompleteRelease, onSelectAllDefaultChange, open } = props
+    const {
+        branchCandidates,
+        defaultIncludeProjectActivity,
+        defaultSelectAll,
+        isLoading,
+        onClose,
+        onCompleteRelease,
+        onIncludeProjectActivityChange,
+        onSelectAllDefaultChange,
+        open,
+    } = props
     const [releaseName, setReleaseName] = useState('')
+    const [includeProjectActivity, setIncludeProjectActivity] = useState(defaultIncludeProjectActivity)
     const [selectedBranchNames, setSelectedBranchNames] = useState<Set<string>>(
         defaultSelectAll ? new Set(branchCandidates.map(({ branchName }) => branchName)) : new Set(),
     )
@@ -32,8 +56,12 @@ export function CompleteReleaseDialog(props: CompleteReleaseDialogProps) {
         const selectedBranches = branchCandidates
             .map(({ branchName }) => branchName)
             .filter((branchName) => selectedBranchNames.has(branchName))
-        await onCompleteRelease(releaseName, selectedBranches)
+        await onCompleteRelease(releaseName, selectedBranches, includeProjectActivity)
         setReleaseName('')
+    }
+    const handleIncludeProjectActivityChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setIncludeProjectActivity(event.target.checked)
+        onIncludeProjectActivityChange(event.target.checked)
     }
     const handleBranchChange = (branchName: string, checked: boolean) => {
         const nextSelectedBranchNames = new Set(selectedBranchNames)
@@ -56,6 +84,17 @@ export function CompleteReleaseDialog(props: CompleteReleaseDialogProps) {
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>
                     <TextField label="Release name" onChange={handleReleaseNameChange} size="small" value={releaseName} />
+                    <FormControlLabel
+                        control={(
+                            <Checkbox
+                                checked={includeProjectActivity}
+                                disabled={isLoading}
+                                onChange={handleIncludeProjectActivityChange}
+                                size="small"
+                            />
+                        )}
+                        label="Include project agent activity"
+                    />
                     {branchCandidates.length > 0 ? (
                         <Stack spacing={1}>
                             <Typography color="text.secondary">Delete local branches</Typography>

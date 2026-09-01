@@ -1209,10 +1209,12 @@ describe('project dialog components', () => {
         render(
             <CompleteReleaseDialog
                 branchCandidates={[]}
+                defaultIncludeProjectActivity={false}
                 defaultSelectAll={false}
                 isLoading={false}
                 onClose={vi.fn()}
                 onCompleteRelease={completeRelease}
+                onIncludeProjectActivityChange={vi.fn()}
                 onSelectAllDefaultChange={vi.fn()}
                 open
             />,
@@ -1221,7 +1223,36 @@ describe('project dialog components', () => {
         fireEvent.change(screen.getByLabelText('Release name'), { target: { value: 'v1' } })
         fireEvent.click(screen.getByRole('button', { name: 'Complete release' }))
 
-        await waitFor(() => expect(completeRelease).toHaveBeenCalledWith('v1', []))
+        await waitFor(() => expect(completeRelease).toHaveBeenCalledWith('v1', [], false))
+    })
+
+    it('starts the project activity checkbox from its persisted default and reports every change', async () => {
+        const completeRelease = vi.fn(async () => undefined)
+        const setIncludeProjectActivity = vi.fn()
+        render(
+            <CompleteReleaseDialog
+                branchCandidates={[]}
+                defaultIncludeProjectActivity
+                defaultSelectAll={false}
+                isLoading={false}
+                onClose={vi.fn()}
+                onCompleteRelease={completeRelease}
+                onIncludeProjectActivityChange={setIncludeProjectActivity}
+                onSelectAllDefaultChange={vi.fn()}
+                open
+            />,
+        )
+
+        const includeCheckbox = screen.getByRole('checkbox', { name: 'Include project agent activity' })
+        expect((includeCheckbox as HTMLInputElement).checked).toBe(true)
+
+        fireEvent.click(includeCheckbox)
+        expect(setIncludeProjectActivity).toHaveBeenLastCalledWith(false)
+
+        fireEvent.change(screen.getByLabelText('Release name'), { target: { value: 'v1' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Complete release' }))
+
+        await waitFor(() => expect(completeRelease).toHaveBeenCalledWith('v1', [], false))
     })
 
     it('restores release branch defaults and supports select-all and clear-all', async () => {
@@ -1233,26 +1264,30 @@ describe('project dialog components', () => {
                     { branchName: 'f-1-card', cardId: 'F-1', cardPath: 'design/F-1.md' },
                     { branchName: 'f-2-card', cardId: 'F-2', cardPath: 'design/F-2.md' },
                 ]}
+                defaultIncludeProjectActivity={false}
                 defaultSelectAll
                 isLoading={false}
                 onClose={vi.fn()}
                 onCompleteRelease={completeRelease}
+                onIncludeProjectActivityChange={vi.fn()}
                 onSelectAllDefaultChange={setDefault}
                 open
             />,
         )
 
-        expect(screen.getAllByRole('checkbox')).toHaveLength(2)
-        expect(screen.getAllByRole('checkbox').every((checkbox) => (checkbox as HTMLInputElement).checked)).toBe(true)
+        const branchCheckboxes = () => screen.getAllByRole('checkbox')
+            .filter((checkbox) => checkbox !== screen.getByRole('checkbox', { name: 'Include project agent activity' }))
+        expect(branchCheckboxes()).toHaveLength(2)
+        expect(branchCheckboxes().every((checkbox) => (checkbox as HTMLInputElement).checked)).toBe(true)
         fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
-        expect(screen.getAllByRole('checkbox').every((checkbox) => !(checkbox as HTMLInputElement).checked)).toBe(true)
+        expect(branchCheckboxes().every((checkbox) => !(checkbox as HTMLInputElement).checked)).toBe(true)
         expect(setDefault).toHaveBeenLastCalledWith(false)
         fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
         expect(setDefault).toHaveBeenLastCalledWith(true)
         fireEvent.change(screen.getByLabelText('Release name'), { target: { value: 'v1' } })
         fireEvent.click(screen.getByRole('button', { name: 'Complete release' }))
 
-        await waitFor(() => expect(completeRelease).toHaveBeenCalledWith('v1', ['f-1-card', 'f-2-card']))
+        await waitFor(() => expect(completeRelease).toHaveBeenCalledWith('v1', ['f-1-card', 'f-2-card'], false))
     })
 
     it('renders the branch switch dialog without mounting the menu', () => {

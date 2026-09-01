@@ -91,6 +91,7 @@ const ACTION_METHODS = [
     'finishActionRun',
     'generateDiff',
     'generateWorktreeDiff',
+    'listActiveActionRuns',
     'loadActionRunHistory',
     'loadActionRunRecoverySnapshot',
     'notifyActionCardStateChange',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { MarkdownFile, Card } from './data_types'
-import { buildReleaseMoves } from './release_archiving'
+import { buildReleaseMoves, splitProjectActivity } from './release_archiving'
+import { parseActivityFileForMigration } from '../../../shared/card_activity.mjs'
 
 function card(path: string, agentLogReferences: string[] = [], references: string[] = []): Card {
     return {
@@ -320,5 +321,100 @@ describe('buildReleaseMoves', () => {
 
         expect(moves[0].content).toContain('design/releases/v1/card__card-1.json')
         expect(moves[0].content).not.toContain('#conversation=')
+    })
+})
+
+describe('splitProjectActivity', () => {
+    const projectConversation = (id: string, actionId: string, status: string) => ({
+        actionId,
+        cardInternalId: null,
+        completedAt: status === 'running' ? null : '2026-08-05T12:01:00.000Z',
+        entries: [],
+        id,
+        providerSessions: [],
+        startedAt: '2026-08-05T12:00:00.000Z',
+        status,
+        title: actionId,
+    })
+    const agentRecord = (runId: string, rootActionId: string, rootConversationId: string, conversationIds: string[]) => ({
+        commits: [],
+        completedAt: '2026-08-05T12:01:00.000Z',
+        conversationIds,
+        details: { agent: 'claude', model: 'opus', type: 'agent' },
+        origin: { kind: 'project' },
+        rootActionId,
+        rootActionLabel: rootActionId,
+        rootConversationId,
+        runId,
+        startedAt: '2026-08-05T12:00:00.000Z',
+        status: 'completed',
+    })
+    const systemRecord = {
+        commits: [{
+            branch: 'main',
+            commit: 'a'.repeat(40),
+            committedAt: '2026-08-05T12:02:00.000Z',
+            deletions: 0,
+            filePaths: ['design/project.md'],
+            filesChanged: 1,
+            insertions: 1,
+        }],
+        completedAt: '2026-08-05T12:02:00.000Z',
+        label: 'Project synchronized',
+        origin: { kind: 'project' },
+        type: 'system',
+    }
+    const parseProjectActivity = (conversations: unknown[], records: unknown[]) => parseActivityFileForMigration(JSON.stringify({
+        actionSettings: {},
+        conversations,
+        origin: { kind: 'project' },
+        records,
+        version: 4,
+    }), { kind: 'project' })
+
+    it('archives terminal conversations and keeps the ones that can still produce activity', () => {
+        const activity = parseProjectActivity([
+            projectConversation('conversation-done', 'review', 'completed'),
+            projectConversation('conversation-stopped', 'plan', 'cancelled'),
+            projectConversation('conversation-live', 'build', 'running'),
+            projectConversation('conversation-waiting', 'ask', 'waitingForInput'),
+            projectConversation('conversation-failed', 'lint', 'failed'),
+        ], [])
+
+        const { archived, hasArchivableActivity, kept } = splitProjectActivity(activity)
+
+        expect(hasArchivableActivity).toBe(true)
+        expect(archived.conversations.map(({ id }) => id)).toEqual(['conversation-done', 'conversation-stopped'])
+        expect(kept.conversations.map(({ id }) => id)).toEqual(['conversation-live', 'conversation-waiting', 'conversation-failed'])
+    })
+
+    it('keeps a record whose conversations are split across both sides', () => {
+        const activity = parseProjectActivity([
+            projectConversation('conversation-done', 'review', 'completed'),
+            projectConversation('conversation-live', 'build', 'running'),
+        ], [
+            agentRecord('run-archived', 'review', 'conversation-done', ['conversation-done']),
+            agentRecord('run-straddling', 'build', 'conversation-live', ['conversation-live', 'conversation-done']),
+            systemRecord,
+        ])
+
+        const { archived, kept } = splitProjectActivity(activity)
+
+        expect(archived.records.map((record) => (record.type === 'system' ? 'system' : record.runId)))
+            .toEqual(['run-archived', 'system'])
+        expect(kept.records.map((record) => (record.type === 'system' ? 'system' : record.runId))).toEqual(['run-straddling'])
+    })
+
+    it('reports nothing archivable when every conversation stays behind and no record can travel', () => {
+        const activity = parseProjectActivity(
+            [projectConversation('conversation-live', 'build', 'running')],
+            [agentRecord('run-live', 'build', 'conversation-live', ['conversation-live'])],
+        )
+
+        const { archived, hasArchivableActivity } = splitProjectActivity(activity)
+
+        expect(hasArchivableActivity).toBe(false)
+        expect(archived.conversations).toEqual([])
+        expect(archived.records).toEqual([])
     })
 })

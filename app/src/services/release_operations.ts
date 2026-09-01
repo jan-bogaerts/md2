@@ -2,6 +2,7 @@ import {
     buildReleaseMoves,
     findArchiveAssetPaths,
     findReleaseActivityPaths,
+    splitProjectActivity,
     validateReleaseName,
 } from '../data/release_archiving'
 import { statusOf } from '../data/card_ordering'
@@ -22,12 +23,21 @@ import {
     serializeAgentTokenUsageSummary,
     type AgentSummaryUsage,
 } from '../../../shared/agent_token_usage_summary.mjs'
-import { parseProjectStatsFile, projectStatsFilePath, serializeProjectStats } from '../../../shared/project_stats.mjs'
+import {
+    calculateActivityStatsFromSources,
+    parseProjectStatsFile,
+    projectStatsFilePath,
+    serializeProjectStats,
+} from '../../../shared/project_stats.mjs'
+import { activityFilePath, projectActivityFileName } from '../../../shared/activity_paths.mjs'
+import { normalizePath } from '../../../shared/path_utils.mjs'
+import { mergeStats } from './stats/project_stats_loader'
 import { calculateActivityStatsOutsideMainThread } from './stats/project_stats_worker_client'
 
 export interface ReleaseOperationsDeps {
     applyMoves(moves: MoveFile[], workingFolder: string): void
     dispatchChanged(): void
+    resetAgentConversations(): void
     files(): MarkdownFile[]
     project(): ProjectReference | null
     requireDependencies(): RequiredDataServiceDependencies
@@ -41,6 +51,18 @@ function requireNoAssignedWorktrees(releaseCards: ProjectSnapshot['activeCards']
     if (assignedCardIds.length > 0) {
         throw new Error(`Cannot complete release. Unassign worktrees from cards: ${assignedCardIds.join(', ')}.`)
     }
+}
+
+/** Refuses a release while any agent run is in flight, whatever card or project it belongs to. */
+async function requireNoRunningActions() {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.listActiveActionRuns) return
+
+    const activeRuns = await bridge.listActiveActionRuns()
+    if (activeRuns.length === 0) return
+
+    const labels = activeRuns.map(({ label }) => label).join(', ')
+    throw new Error(`Cannot complete release while agent actions are running: ${labels}`)
 }
 
 interface ReleaseCardLock {
@@ -71,6 +93,12 @@ async function acquireReleaseCardLock(
 async function releaseCardLock(lock: ReleaseCardLock | null) {
     if (!lock?.bridge.releaseReleaseCardLocks) return
     await lock.bridge.releaseReleaseCardLocks(lock.leaseId)
+}
+
+/** Matches the on-disk activity file layout written by the desktop activity writer. */
+function serializeActivity(activity: ReturnType<typeof parseActivityFileForMigration>) {
+    return `${JSON.stringify(activity, null, 2)}
+`
 }
 
 function conversationReleaseUsage(conversation: ReturnType<typeof parseActivityFileForMigration>['conversations'][number]): AgentSummaryUsage {
@@ -131,7 +159,7 @@ export class ReleaseOperations {
             })
     }
 
-    async completeRelease(releaseName: string, selectedBranchNames: string[]) {
+    async completeRelease(releaseName: string, selectedBranchNames: string[], includeProjectActivity = false) {
         projectAccessService.requireWritable()
         const { config, storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
@@ -147,6 +175,7 @@ export class ReleaseOperations {
         const releaseCards = activeCards.filter((card) => statusOf(card) === finalState.state)
         requireNoAssignedWorktrees(releaseCards)
         if (releaseCards.length === 0) throw new Error(`Cannot complete a release without cards in the final column: ${finalState.state}`)
+        await requireNoRunningActions()
         const releaseLock = await acquireReleaseCardLock(releaseCards, currentProject)
 
         try {
@@ -174,6 +203,9 @@ export class ReleaseOperations {
             if (calculatedStats.warnings.length > 0) {
                 throw new Error(`Cannot calculate released stats: ${calculatedStats.warnings.join('; ')}`)
             }
+            const archivedProjectActivity = includeProjectActivity
+                ? await this.loadArchivedProjectActivity(config.projectFolder, config.releasesFolder, safeReleaseName, repositoryFiles)
+                : null
             const moves = buildReleaseMoves(
                 [...files, ...assetFiles],
                 releaseCards,
@@ -190,7 +222,13 @@ export class ReleaseOperations {
             if (Object.hasOwn(summary.releases, safeReleaseName)) throw new Error(`Release already exists: ${safeReleaseName}`)
             const nextSummary = {
                 ...summary,
-                releases: { ...summary.releases, [safeReleaseName]: releaseUsage(activityFiles) },
+                releases: {
+                    ...summary.releases,
+                    [safeReleaseName]: releaseUsage([
+                        ...activityFiles,
+                        ...(archivedProjectActivity ? [archivedProjectActivity.archivedFile] : []),
+                    ]),
+                },
             }
             const statsPath = projectStatsFilePath(config.projectFolder)
             const existingStatsPath = repositoryFiles.find((path) => path.replace(/\\/gu, '/') === statsPath)
@@ -203,7 +241,9 @@ export class ReleaseOperations {
             }
             const statsContent = serializeProjectStats({
                 ...parsedStats.releases,
-                [safeReleaseName]: calculatedStats.stats,
+                [safeReleaseName]: archivedProjectActivity
+                    ? mergeStats([calculatedStats.stats, archivedProjectActivity.stats])
+                    : calculatedStats.stats,
             })
             const preparedStatsFile = statsFile ? { ...statsFile, content: statsContent } : { content: statsContent, path: statsPath }
             await storage.commit({
@@ -211,11 +251,13 @@ export class ReleaseOperations {
                 files: [
                     { ...summaryFile, content: serializeAgentTokenUsageSummary(nextSummary) },
                     preparedStatsFile,
+                    ...(archivedProjectActivity ? [archivedProjectActivity.archivedFile, archivedProjectActivity.keptFile] : []),
                 ],
                 message: `Complete release ${safeReleaseName}`,
                 moves,
             })
             await projectAgentTokenUsageService.refresh()
+            if (archivedProjectActivity) this.dependencies.resetAgentConversations()
 
             if (config.pushMode === 'auto') await storage.push(currentProject)
 
@@ -293,6 +335,46 @@ export class ReleaseOperations {
             encoding: asset.encoding,
             path: asset.path,
         }))
+    }
+
+    /**
+     * Splits `activity/project.json` into the part the release archives and the part that stays,
+     * and returns null when the file is absent or holds nothing archivable.
+     */
+    private async loadArchivedProjectActivity(
+        projectFolder: string,
+        releasesFolder: string,
+        safeReleaseName: string,
+        repositoryFiles: string[],
+    ) {
+        const { storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) throw new Error('Cannot archive project activity before a project is open')
+        if (!storage.loadTextFile) throw new Error('Repository text file loading is not available')
+
+        const projectActivityPath = activityFilePath(projectFolder, { kind: 'project' })
+        const exists = repositoryFiles.some((path) => normalizePath(path) === normalizePath(projectActivityPath))
+        if (!exists) return null
+
+        const projectActivityFile = await storage.loadTextFile(currentProject, projectActivityPath)
+        const { archived, hasArchivableActivity, kept } = splitProjectActivity(
+            parseActivityFileForMigration(projectActivityFile.content),
+        )
+        if (!hasArchivableActivity) return null
+
+        const releaseFolder = normalizePath(releasesFolder).replace(/\/+$/u, '')
+        const archivedPath = `${releaseFolder}/${safeReleaseName}/${projectActivityFileName()}`
+        const archivedContent = serializeActivity(archived)
+        const calculated = calculateActivityStatsFromSources([{ content: archivedContent, path: archivedPath }])
+        if (calculated.warnings.length > 0) {
+            throw new Error(`Cannot calculate archived project activity stats: ${calculated.warnings.join('; ')}`)
+        }
+
+        return {
+            archivedFile: { content: archivedContent, path: archivedPath },
+            keptFile: { ...projectActivityFile, content: serializeActivity(kept) },
+            stats: calculated.stats,
+        }
     }
 
     private async loadReleaseActivityFiles(activityPaths: string[]) {

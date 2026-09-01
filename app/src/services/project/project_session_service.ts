@@ -562,9 +562,12 @@ export class ProjectSessionService extends EventTarget {
         return this.withLoading('Release preparation failed', () => dataService.releases.getReleaseBranchCandidates())
     }
 
-    async completeRelease(releaseName: string, selectedBranchNames: string[]) {
+    async completeRelease(releaseName: string, selectedBranchNames: string[], includeProjectActivity = false) {
         projectAccessService.requireWritable()
-        await this.withLoading('Release completion failed', () => dataService.releases.completeRelease(releaseName, selectedBranchNames))
+        await this.withLoading(
+            'Release completion failed',
+            () => dataService.releases.completeRelease(releaseName, selectedBranchNames, includeProjectActivity),
+        )
     }
 
     async createCard(draft: CardDraft, initialState: string) {

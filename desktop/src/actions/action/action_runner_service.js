@@ -430,6 +430,11 @@ class ActionRunnerService {
         }
     }
 
+    /** Reports every in-flight run so a release can refuse to start while agents are working. */
+    listActiveRuns() {
+        return [...this.runs.values()].map((run) => ({ label: run.rootAction.label, runId: run.runId }));
+    }
+
     requireRun(runId) {
         const run = this.runs.get(runId);
         if (!run) throw new Error(`Unknown action run: ${runId}`);

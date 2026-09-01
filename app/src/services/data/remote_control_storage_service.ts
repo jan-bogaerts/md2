@@ -14,6 +14,7 @@ import type {
     ActionRunHistoryEntry,
     ActionRunHistoryRequest,
     ActionRunRecoverySnapshot,
+    ActiveActionRun,
     CardActivityRequest,
     CardActionSettingsRequest,
     DiffRequest,
@@ -625,6 +626,10 @@ export class RemoteControlStorageService implements
 
     async finishActionRun(runId: string): Promise<void> {
         await this.request('finishActionRun', [runId])
+    }
+
+    async listActiveActionRuns(): Promise<ActiveActionRun[]> {
+        return this.request<ActiveActionRun[]>('listActiveActionRuns', [])
     }
 
     async acquireReleaseCardLocks(cardInternalIds: string[]): Promise<string> {

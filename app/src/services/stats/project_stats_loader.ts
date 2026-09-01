@@ -11,7 +11,6 @@ import { projectUsageMetricsService } from '../agents/project_usage_metrics_serv
 import type { LoadedStatsSource, StatsCardDescriptor, StatsProjectBinding } from './project_stats_types';
 import { calculateActivityStatsOutsideMainThread } from './project_stats_worker_client';
 
-const RELEASE_CARD_FILE_PATTERN = /^card__[^/]+\.json$/u;
 const RELEASE_STATS_COMMIT_MESSAGE = 'Update calculated release stats';
 
 interface ReleasedStatsResult {
@@ -56,7 +55,7 @@ export function findStatsSourcePaths(repositoryFiles: string[], config: ProjectC
         if (releaseParts.length < 2 || releaseParts[0].length === 0) continue;
         const releaseName = releaseParts[0];
         releaseActivityPaths[releaseName] ??= [];
-        if (releaseParts.length !== 2 || !RELEASE_CARD_FILE_PATTERN.test(releaseParts[1]) || !activityOriginFromPath(path)) continue;
+        if (releaseParts.length !== 2 || !activityOriginFromPath(path)) continue;
         releaseActivityPaths[releaseName] = [...(releaseActivityPaths[releaseName] ?? []), path];
     }
     for (const paths of Object.values(releaseActivityPaths)) paths.sort((left, right) => left.localeCompare(right));
@@ -65,6 +64,15 @@ export function findStatsSourcePaths(repositoryFiles: string[], config: ProjectC
 }
 
 /** Deduplicates facts by canonical identity so a conversation counted in two sources counts once. */
+export function mergeStats(statsSources: ReleaseStats[]): ReleaseStats {
+    const actions = new Map(statsSources.flatMap(({ actions }) => actions.map((action) => [action.identity, action])));
+    const conversations = new Map(statsSources.flatMap(({ conversations }) => (
+        conversations.map((conversation) => [conversation.identity, conversation])
+    )));
+
+    return { actions: [...actions.values()], conversations: [...conversations.values()] };
+}
+
 /**
  * Owns stats source discovery, the released-stat cache, and cache persistence.
  * Awaits are guarded by the caller's `isCurrent` check so a closed session stops before touching shared services.

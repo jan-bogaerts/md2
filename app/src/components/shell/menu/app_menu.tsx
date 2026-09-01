@@ -576,11 +576,13 @@ export function AppMenu(props: AppMenuProps) {
             />
             <CompleteReleaseDialog
                 branchCandidates={actions.releaseBranchCandidates}
+                defaultIncludeProjectActivity={actions.releaseIncludeProjectActivityDefault}
                 defaultSelectAll={actions.releaseSelectAllDefault}
                 isLoading={actions.isLoading}
                 key={dialogMode === 'release' ? 'release-open' : 'release-closed'}
                 onClose={actions.closeDialog}
                 onCompleteRelease={actions.completeRelease}
+                onIncludeProjectActivityChange={actions.setReleaseIncludeProjectActivityDefault}
                 onSelectAllDefaultChange={actions.setReleaseSelectAllDefault}
                 open={dialogMode === 'release'}
             />

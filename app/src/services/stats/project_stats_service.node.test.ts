@@ -136,7 +136,7 @@ async function openService(
 }
 
 describe('ProjectStatsService source parsing', () => {
-    it('discovers only current and released activity plus project usage metrics', () => {
+    it('discovers current and released card and project activity plus project usage metrics', () => {
         expect(findStatsSourcePaths([
             'design/activity/project.json',
             'design/activity/card__card-1.json',
@@ -149,7 +149,9 @@ describe('ProjectStatsService source parsing', () => {
                 'design/activity/card__card-1.json',
                 'design/activity/project.json',
             ],
-            releaseActivityPaths: { '0_3_0': ['design/history/0_3_0/card__card-2.json'] },
+            releaseActivityPaths: {
+                '0_3_0': ['design/history/0_3_0/card__card-2.json', 'design/history/0_3_0/project.json'],
+            },
         })
     })
 
