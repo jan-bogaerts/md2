@@ -25,6 +25,7 @@ changedFiles:
   - app/src/components/diagram_view/diagram_path.ts
   - app/src/components/diagram_view/diagram_renderer.test.tsx
   - app/src/components/diagram_view/diagram_renderer.tsx
+  - app/src/components/diagram_view/diagram_role_style.ts
   - app/src/components/diagram_view/diagram_selection.ts
   - app/src/components/diagram_view/diagram_view.test.tsx
   - app/src/components/diagram_view/diagram_view.tsx
@@ -32,11 +33,14 @@ changedFiles:
   - app/src/components/diagram_view/flow_diagram.tsx
   - app/src/components/diagram_view/sequence_activation.tsx
   - app/src/components/diagram_view/sequence_diagram.tsx
+  - app/src/components/diagram_view/sequence_fragment.tsx
+  - app/src/components/shell/project/project_folder_setup_fields.tsx
   - app/src/data/action_placeholders.ts
   - app/src/data/data_types.ts
   - app/src/services/actions/action_prompt_draft_service.node.test.ts
   - app/src/services/actions/action_run_registry.node.test.ts
   - app/src/services/actions/action_text.node.test.ts
+  - app/src/services/config/config_entries.ts
   - app/src/services/config/config_service.service.test.ts
   - app/src/services/diagrams/diagram_data.node.test.ts
   - app/src/services/diagrams/diagram_data.ts
