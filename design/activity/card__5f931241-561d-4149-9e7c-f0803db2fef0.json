@@ -518,13 +518,50 @@
         "costUsd": 1.3238754999999998
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "5f931241-561d-4149-9e7c-f0803db2fef0",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "f9dfb83ed11b230751fa8a769731678b990be7f4",
+          "committedAt": "2026-09-01T19:20:58+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/J_39_size_of_questions_box.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 49
+        }
+      ],
+      "completedAt": "2026-09-01T17:20:58.530Z",
+      "conversationIds": [
+        "agent-23c756e2-200c-4768-896b-f9ec4c3c5095"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-1dc80353-0f1b-429f-b7ca-836ab71370ad",
+      "origin": {
+        "cardInternalId": "5f931241-561d-4149-9e7c-f0803db2fef0",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-23c756e2-200c-4768-896b-f9ec4c3c5095",
+      "startedAt": "2026-09-01T17:12:35.901Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
