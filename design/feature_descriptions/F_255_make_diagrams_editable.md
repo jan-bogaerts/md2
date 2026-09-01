@@ -29,7 +29,22 @@ Tools:
 
 * Select:&#x20;
   * Click on surface: draw rect, everithing in rect is selected.
-  * Click on node or
+  * Click on node, edge or group: select it
+  * Ctrl click: add to selection
+  * Drag on node, zdge or group: move around
+  * Drag on one of select handlers: resize
+  * Delete key: delete selection
+  * Double click: edit details
+* Section edit
+  * Delete: delete selection
+  * Cut, copy, paste.
+* Node: draw nodes, each node type has button, this is section, section can be collapsed, expanded. Put in reusable toolsSection component
+* Edge: draw edges, other section, all edges
+* Groups: section, all groups
+
+I Suppose edges can be dropped anywhere on surface and nodes are between edges, so they must hook up to the connection points of the edges. So edges must have connection points, which should be relative coordinates, perhaps an angle that is converted into coordinates for the nodes.
+
+More about section on toolbox: limit size, dont autosize to content. Allow user to resize.
 
 Services:
 
