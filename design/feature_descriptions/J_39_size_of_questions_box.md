@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__5f931241-561d-4149-9e7c-f0803db2fef0.json
 policy:
-branch: j_39_size_of_questions_box
-worktree: 3
 changedFiles:
   - app/src/components/actions/agent/action_agent_prompt.test.tsx
   - app/src/components/actions/agent/action_agent_prompt.tsx
