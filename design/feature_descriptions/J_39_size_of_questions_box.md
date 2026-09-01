@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__5f931241-561d-4149-9e7c-f0803db2fef0.json
 policy:
-after: db346664-48c2-4cf0-833c-3c5508a85591
 branch: j_39_size_of_questions_box
 worktree: 3
 ---

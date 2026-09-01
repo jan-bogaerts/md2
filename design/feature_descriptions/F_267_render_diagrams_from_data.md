@@ -3,7 +3,7 @@ author:
 id: F_267
 internalId: d7ab38b3-a791-4448-9b4d-65ce56961971
 title: render diagrams from data instead of generated svg
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -11,19 +11,20 @@ agents:
 policy:
 branch: f_267_render_diagrams_from_data_instead_of_generated_svg
 worktree: 1
+after: 5f931241-561d-4149-9e7c-f0803db2fef0
 ---
 Follow-up on [F\_262\_add\_diagram\_view.md](design/feature_descriptions/F_262_add_diagram_view.md), which is implemented.
 
 Today the diagram agent generates a complete standalone SVG and MD² sanitizes it and injects it into the DOM. Replace that: the agent produces **JSON data** describing shapes and connections, and MD² owns rendering through React components.
 
 * Diagram actions return a JSON file, not an SVG file.
-* MD² renders the diagram with React components that emit SVG through JSX.
+* MD² renders the diagram with React components. Nodes are rendered by node components and connections by edge components.
 * Support a fixed set of five diagram types instead of the skill's full catalogue.
 * Data may carry position and size per item. When absent, MD² computes the layout itself with a simple algorithm.
 
 ## Why
 
-* **Sanitizing disappears.** React builds the SVG from typed props. There is no agent-authored markup, so no parser, no attribute allowlist, and no injection surface. `diagram_svg_sanitizer.ts` and its tests are removed.
+* **Sanitizing disappears.** React builds the diagram from typed props. There is no agent-authored markup, so no parser, no attribute allowlist, and no injection surface. `diagram_svg_sanitizer.ts` and its tests are removed.
 * **Interaction is a prop, not a convention.** Today the default diagram footer asks the agent to remember `data-diagram-id`, `data-diagram-label`, `tabindex`, and `role` on every drill-down item, and the app hopes it complied. With components, click handling, keyboard focus, and the accessible name are guaranteed by construction.
 * **Correct geometry by construction.** The skill's connector rules (orthogonal routing, no overlapping connectors, fanned attach points on a shared edge, label-to-connector margin) become invariants of the renderer rather than instructions an agent may ignore.
 * **Validation gets cheap.** A JSON schema replaces inspecting generated geometry. Malformed output is rejected with a precise message.
@@ -61,7 +62,15 @@ Every node is a potential drill-down item, so `id` and `label` replace the `data
 
 Build the components from the diagram-design skill definition, which stays a **design source read once**, never a runtime dependency and never vendored. Its `references/type-*.md` files specify each type's box anatomy, connector semantics, complexity budget, and anti-patterns in prose; `references/style-guide.md` holds the tokens; `assets/example-*.html` are the visual targets to match. Note that most type references carry no SVG at all, so the components are written from the written spec and checked against the examples by eye.
 
-Component set, roughly: a diagram frame owning the `viewBox` and background, a node box, a group or zone box, a connector, a connector label, and a legend strip. Each of the five types gets a thin wrapper that maps its data onto those primitives.
+The renderer is component-based, not SVG-based. Its core components are:
+
+* `Diagram` — owns the diagram surface and renders the positioned data.
+* `Node` — renders a node from its type, role, content, position, and size. Type-specific node components may implement distinct structures such as an entity with fields or a sequence participant.
+* `Edge` — renders a connection from its kind, endpoints, route, label, and interaction data. Type-specific edge components may implement semantics such as dependency direction, sequence messages, state transitions, or entity cardinality.
+* `Group` — renders optional containment or zone information.
+* `Legend` — renders optional diagram legend data.
+
+Each of the five diagram types gets a thin React component that maps its validated data onto these shared components. Nodes and edges own their pointer, keyboard, tooltip, and accessible-name behaviour directly through React handlers and props.
 
 Typography and palette map onto MD²'s existing MUI theme rather than the skill's fonts, so diagrams match the rest of the app in both light and dark mode.
 
