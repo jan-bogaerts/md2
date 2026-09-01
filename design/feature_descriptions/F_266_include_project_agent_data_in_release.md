@@ -3,7 +3,7 @@ author:
 id: F_266
 internalId: db346664-48c2-4cf0-833c-3c5508a85591
 title: include project agent data in release
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,8 @@ agents:
 policy:
 branch: f_266_include_project_agent_data_in_release
 worktree: 2
+changedFiles:
+  - add_release_tests.py
 ---
 when we do a release, all the project agent's logs and activity data should also be moved into the release folder.
 
