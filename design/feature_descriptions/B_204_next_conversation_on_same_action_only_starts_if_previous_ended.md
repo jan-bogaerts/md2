@@ -9,5 +9,4 @@ affects:
 agents:
 policy:
 ---
-
-When the user goes to a new conversation and the previous conversation on the same action (especially the 'custom' or '+' one) has not been closed completely, then the new one wont start.
+When the user goes to a new conversation and the previous conversation on the same or anither  action (especially the 'custom' or '+' one) has not been closed completely, then the new one wont start. Is there a tecnical reason for this, otherwise we need to remove restriction
