@@ -21,6 +21,10 @@
       "cardInternalId": "2ba8b222-8131-4283-9263-be319a8fed6f",
       "cardPath": "design/feature_descriptions/F_202_improve_manual_sentry_import.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 56041
+      },
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_202_improve_manual_sentry_import.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -388,20 +392,227 @@
           "status": "inProgress",
           "timestamp": "2026-08-27T17:57:01.524Z",
           "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "Can you ask again",
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 30,
+          "timestamp": "2026-09-01T18:29:00.099Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-31",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedCBtukr88gaMQdJMPc5:thinking:0",
+          "sequence": 31,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T18:29:04.680Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"questions\":[{\"question\":\"Sentry not connected or settings incomplete — how should the Run-tab import button behave?\",\"header\":\"Visibility\",\"multiSelect\":false,\"options\":[{\"label\":\"Hide unless connected (Recommended)\",\"description\":\"Button renders only when the Sentry connection is authenticated and all settings are complete. Run tab stays clean for users who never use Sentry. Once visible, it disables only while an import is polling or the project is read-only.\"},{\"label\":\"Always show, disabled + tooltip\",\"description\":\"Button always present in the Run tab. Disabled with a tooltip naming the blocker (no project, read-only, not connected, incomplete settings, import running). Makes the Sentry feature itself discoverable.\"}]},{\"question\":\"Should the button appear on mobile too, or desktop only?\",\"header\":\"Mobile\",\"multiSelect\":false,\"options\":[{\"label\":\"Both (Recommended)\",\"description\":\"The Run tab panel already renders on mobile and desktop, so a button placed in the Run tab inherits both with no extra work.\"},{\"label\":\"Desktop only\",\"description\":\"Gate on isMobile so the mobile Run tab omits the import button.\"}]}]}",
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-32",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "output": "The user answered: \"Sentry not connected or settings incomplete — how should the Run-tab import button behave?\"=\"Hide unless connected (Recommended)\", \"Should the button appear on mobile too, or desktop only?\"=\"Both (Recommended)\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
+          "providerItemId": "toolu_016wZrbvqvzShr5Ez3vFJ5jw",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:29:32.868Z",
+          "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "claude-question-0: Hide unless connected (Recommended)\nclaude-question-1: Both (Recommended)",
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-answer-32",
+          "kind": "message",
+          "role": "user",
+          "sequence": 33,
+          "timestamp": "2026-09-01T18:29:32.860Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-34",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedCEDJ7KTNRMyCX4nhfP:thinking:0",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T18:29:35.117Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"Tab\\b\\|<Section\\|value=\\\"run\\\"\\|'run'\\|MenuIconButton\\|currentTab\" app/src/components/shell/menu/app_menu.tsx | head -80",
+          "content": "1:import { Box, Button, Divider, MenuItem, Tab as MuiTab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'\n67:import { MenuIconButton } from './menu_icon_button'\n71:import { Tab } from './tab'\n73:type AppMenuTab = 'home' | 'agents'\n88:const MENU_TABS: { label: string; value: AppMenuTab }[] = [\n131:    const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')\n175:    const handleTabChange = (_event: SyntheticEvent, value: AppMenuTab) => {\n176:        setCurrentTab(value)\n304:            value={currentTab}\n308:                <MuiTab\n319:        <Section label=\"View\">\n364:            <Box role=\"tabpanel\" sx={{ display: currentTab === 'home' ? 'block' : 'none' }}>\n365:                <Tab>\n372:                    <Section label=\"Project\">\n373:                        <MenuIconButton label=\"Open project\" onClick={handleOpenProject}>\n375:                        </MenuIconButton>\n383:                        <MenuIconButton\n390:                        </MenuIconButton>\n391:                        <MenuIconButton\n402:                        </MenuIconButton>\n403:                        <MenuIconButton\n419:                        </MenuIconButton>\n422:                    <Section label=\"Settings\">\n423:                        <MenuIconButton label=\"Config\" onClick={onOpenConfig}>\n425:                        </MenuIconButton>\n445:                            <Section label=\"Account\">\n450:                </Tab>\n452:            <Box role=\"tabpanel\" sx={{ display: currentTab === 'agents' ? 'block' : 'none' }}>\n453:                <Tab>\n454:                    <Section label=\"Setup\">\n530:                    <Section label=\"Actions\">\n532:                        <MenuIconButton\n538:                        </MenuIconButton>\n540:                </Tab>\n605:            mobileAction={isMobile && currentTab === 'home' ? (",
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-35",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"Tab\\b\\|<Section\\|value=\\\"run\\\"\\|'run'\\|MenuIconButton\\|currentTab\" app/src/components/shell/menu/app_menu.tsx | head -80",
+          "providerItemId": "toolu_01GkU12AErG7uo54LcF9m9o9",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:29:36.843Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-36",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedCEWetUruuk1tHPBRkb:thinking:0",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T18:29:39.467Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '86,95p;450,540p' app/src/components/shell/menu/app_menu.tsx",
+          "content": "}\n\nconst MENU_TABS: { label: string; value: AppMenuTab }[] = [\n    { label: 'Home', value: 'home' },\n    { label: 'Run', value: 'agents' },\n]\nconst PROJECT_CONTEXT = projectContext()\n\nfunction desktopSelectionError(\n    selection: AgentSelectionState,\n                </Tab>\n            </Box>\n            <Box role=\"tabpanel\" sx={{ display: currentTab === 'agents' ? 'block' : 'none' }}>\n                <Tab>\n                    <Section label=\"Setup\">\n                        <MenuSelect\n                            disabled={!desktopAvailable}\n                            errorMessage={selectionError}\n                            label=\"Default agent\"\n                            minWidth={130}\n                            onChange={handleAgentChange}\n                            value={selectedAgent}\n                        >\n                            {!selectedProfile ? <MenuItem disabled value={selectedAgent}>{selectedAgent} — unavailable</MenuItem> : null}\n                            {agentProfiles.map((profile) => (\n                                <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>\n                            ))}\n                        </MenuSelect>\n                        {selectedModels.length > 0 ? (\n                            <MenuSelect\n                                disabled={!desktopAvailable}\n                                errorMessage={selectionError}\n                                label=\"Default model\"\n                                minWidth={150}\n                                onChange={handleModelSelectChange}\n                                value={selectedModel}\n                            >\n                                {!selectedModelAvailable ? <MenuItem disabled value={selectedModel}>{selectedModel || 'Default'} — unavailable</MenuItem> : null}\n                                {selectedModels.map((model) => (\n                                    <MenuItem key={model} value={model}>{model}</MenuItem>\n                                ))}\n                            </MenuSelect>\n                        ) : (\n                            <Tooltip title={selectionError ?? 'Default model'}>\n                                <TextField\n                                    disabled={!desktopAvailable}\n                                    error={!!selectionError}\n                                    helperText={selectionError ? 'Unavailable' : undefined}\n                                    onChange={handleModelTextChange}\n                                    size=\"small\"\n                                    slotProps={{ htmlInput: { 'aria-label': 'Default model' } }}\n                                    style={NO_DRAG_REGION}\n                                    sx={{ width: 150 }}\n                                    value={selectedModel}\n                                />\n                            </Tooltip>\n                        )}\n                        <MenuSelect\n                            disabled={!desktopAvailable}\n                            errorMessage={selectionError}\n                            label=\"Default reasoning level\"\n                            minWidth={120}\n                            onChange={handleThinkingLevelChange}\n                            value={selectedThinkingLevel}\n                        >\n                            {THINKING_LEVELS.map((level) => {\n                                const available = !!selectedProfile && supportsThinkingLevel(selectedProfile, level)\n\n                                return (\n                                    <MenuItem disabled={!available} key={level} value={level}>\n                                        {level === selectedThinkingLevel && !available ? `${level} — unavailable` : level}\n                                    </MenuItem>\n                                )\n                            })}\n                        </MenuSelect>\n                        {selectedProfile && supportsPermissionMode(selectedProfile) ? (\n                            <MenuSelect\n                                disabled={!desktopAvailable}\n                                label=\"Default permission mode\"\n                                minWidth={190}\n                                onChange={handlePermissionModeChange}\n                                value={selectedPermissionMode}\n                            >\n                                {PERMISSION_MODE_OPTIONS.map(({ label, value }) => (\n                                    <MenuItem key={value} value={value}>{label}</MenuItem>\n                                ))}\n                            </MenuSelect>\n                        ) : <TextField disabled size=\"small\" value=\"Permissions unsupported\" />}\n                    </Section>\n                    <Divider flexItem orientation=\"vertical\" sx={{ my: 1.5 }} />\n                    <Section label=\"Actions\">\n                        <ActionEntryPoints context={PROJECT_CONTEXT} variant=\"icons\" visibility=\"explicit-context\" />\n                        <MenuIconButton\n                            disabled={readOnly || !actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}\n                            label=\"Complete release\"\n                            onClick={handleOpenReleaseDialog}\n                        >\n                            <CheckCircleOutline fontSize=\"small\" />\n                        </MenuIconButton>\n                    </Section>\n                </Tab>",
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-37",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '86,95p;450,540p' app/src/components/shell/menu/app_menu.tsx",
+          "providerItemId": "toolu_012wRxCtWoJJFszP83q8vfpp",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:29:39.945Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedCEk1Jygy1fPHZy83Tv:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T18:29:43.703Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"importNow\\|confirmFirstImport\\|cancelFirstImport\\|getSnapshot()\\|start()\\|firstImportConfirmed\" app/src/services/sentry/sentry_import_service.ts | head -30",
+          "content": "123:    getSnapshot() {\n127:    start() {\n145:    importNow() {\n149:    confirmFirstImport() {\n158:        connectionService.saveSettings({ ...connectionService.getSnapshot().settings, firstImportConfirmed: true })\n164:    cancelFirstImport() {\n176:        const connection = connectionService.getSnapshot()\n180:            && !projectAccessService.getSnapshot()\n222:        const connection = connectionService.getSnapshot()\n227:            && !projectAccessService.getSnapshot()\n241:            if (!settings.firstImportConfirmed && unseenIssues.length > 0) {\n284:        const connection = this.dependencies.connectionService.getSnapshot()\n289:            && !this.dependencies.projectAccessService.getSnapshot()",
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-39",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"importNow\\|confirmFirstImport\\|cancelFirstImport\\|getSnapshot()\\|start()\\|firstImportConfirmed\" app/src/services/sentry/sentry_import_service.ts | head -30",
+          "providerItemId": "toolu_016VdVJD55MwEJp1XNEdu5sg",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:29:45.442Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '140,175p' app/src/services/sentry/sentry_import_service.ts",
+          "content": "        this.dependencies.connectionService.removeEventListener('changed', this.handleDependencyChange)\n        this.dependencies.projectAccessService.removeEventListener('changed', this.handleDependencyChange)\n        this.clearSchedule()\n    }\n\n    importNow() {\n        return this.poll(true)\n    }\n\n    confirmFirstImport() {\n        const confirmation = this.snapshot.confirmation\n        if (!confirmation) return Promise.resolve(0)\n        const { connectionService, dataService } = this.dependencies\n        if (dataService.getState().project?.id !== confirmation.projectId) {\n            this.setSnapshot({ confirmation: null })\n            return Promise.resolve(0)\n        }\n\n        connectionService.saveSettings({ ...connectionService.getSnapshot().settings, firstImportConfirmed: true })\n        this.setSnapshot({ confirmation: null })\n\n        return this.poll(true)\n    }\n\n    cancelFirstImport() {\n        this.setSnapshot({ confirmation: null })\n    }\n\n    private readonly handleDependencyChange = () => {\n        this.syncSchedule()\n    }\n\n    private syncSchedule() {\n        const { connectionService, dataService, projectAccessService } = this.dependencies\n        const { project, snapshot } = dataService.getState()\n        connectionService.setProject(project)",
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-40",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '140,175p' app/src/services/sentry/sentry_import_service.ts",
+          "providerItemId": "toolu_01PFY9xao8q7rt8owrfonS3i",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:29:47.559Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-41",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedCFJH2K79ZoZRipB88M:thinking:0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T18:29:53.635Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io,re\np='design/feature_descriptions/F_202_improve_manual_sentry_import.md'\ns=io.open(p,encoding='utf-8').read()\ns=s.replace('status: new','status: ready for implementation',1)\ns=s.rstrip('\\n')+'\\n'+r'''\n## Current state\n\nManual Sentry import has exactly one entry point: `app/src/components/config/sentry_config_section.tsx`, the \"Import now\" button in Config > Sentry. It calls `sentryImportService.importNow()`, which runs `poll(true)` in `app/src/services/sentry/sentry_import_service.ts`.\n\nThat button enables only when `canImport` holds: a project is open, the project is not read-only, the connection is not mid-connect, `connection.isAuthenticated` is true, `settingsComplete(connection.settings)` is true, and `importState.isPolling` is false. \"Settings complete\" means every one of `apiBaseUrl`, `apiToken`, `organization`, `project`, `environment`, `cardType`, `cardState` is non-empty. The \"Enable automatic import\" switch is a separate stored setting (`automaticImport`) that drives the 15-minute background schedule only; it does not gate the manual button.\n\nThe completeness check is duplicated: `settingsComplete` in `sentry_config_section.tsx` and `isComplete` in `sentry_import_service.ts` have identical bodies.\n\nThe Run menu is the second tab of the main menu in `app/src/components/shell/menu/app_menu.tsx`: tab value `agents`, label `Run`. Its right-hand group is `<Section label=\"Actions\">`, currently holding `ActionEntryPoints` plus the \"Complete release\" `MenuIconButton`. The same `AppMenu` renders on desktop and mobile through `MainToolbar`, so anything added to that section appears on both.\n\nFirst-import confirmation is already global: `SentryImportConfirmationDialog` is mounted once in `app/src/app.tsx`, opens on `snapshot.confirmation`, and is therefore reachable regardless of which button started the import.\n\nConsequence: a user who wants an on-demand import must leave their board, open Config, scroll to the Sentry section, click, and navigate back. Discoverability and cost per manual import are both poor.\n\n## Implementation details\n\n* Export one shared completeness predicate — `isSentryConfigurationComplete(settings: SentryProjectSettings)` — from `app/src/services/sentry/sentry_types.ts`. Replace both `settingsComplete` in `sentry_config_section.tsx` and `isComplete` in `sentry_import_service.ts` with it. No behavior change; single source of truth for the new button's gating.\n* Add a `MenuIconButton` labelled `Import Sentry issues` to `<Section label=\"Actions\">` in `app_menu.tsx`, placed after \"Complete release\". Icon: `BugOutline` from `mdi-material-ui`, `fontSize=\"small\"`, matching neighbouring buttons.\n* Render the button conditionally, not permanently disabled. It mounts only when a project is open, `useSentryConnection().isAuthenticated` is true, and `isSentryConfigurationComplete(connection.settings)` is true. When Sentry is unconfigured or disconnected the Run menu looks exactly as it does today.\n* Once mounted, disable it when the project is read-only (`useProjectReadOnly()`) or `useSentryImport().isPolling` is true. Tooltip while polling: `Checking Sentry...`; otherwise the label.\n* `onClick` calls `void sentryImportService.importNow()`. No new service method, no new state, no local copy of import status — read status through the existing `useSentryImport` / `useSentryConnection` hooks, which are `useSyncExternalStore` subscriptions over the services' scoped `changed` events.\n* Because both buttons share `sentryImportService.isPolling`, a run started from either entry point disables the other for its duration; no second concurrent poll can start.\n* If `firstImportConfirmed` is false, `importNow()` sets `confirmation` instead of writing cards, and the already-mounted `SentryImportConfirmationDialog` opens over the Run menu. Do not mount a second dialog.\n* Errors surface through the existing paths: `sentryConnectionService.handleApiError` may drop authentication (which then unmounts the button), and `latestError` remains visible in the Sentry config section. The Run menu shows no error text of its own.\n* Mobile requires no extra work: it uses the same `AppMenu` Run tab. Do not gate on `isMobile`.\n\n## Tests\n\n* `app_menu.test.tsx`: button absent when no Sentry connection; present when authenticated with complete settings; disabled while `isPolling`; disabled when project is read-only; click calls `sentryImportService.importNow` once.\n* `sentry_config_section.test.tsx`: existing \"Import now\" gating still passes after the swap to the shared predicate.\n* A node test asserting `isSentryConfigurationComplete` rejects each individually missing field.\n\n## Acceptance criteria\n\n* Run menu > Actions shows an \"Import Sentry issues\" button whenever the open project has an authenticated Sentry connection with complete settings, on desktop and mobile.\n* The button is absent — not greyed out — when no project is open, the connection is not authenticated, or any required Sentry setting is empty.\n* When visible, the button is disabled while the project is read-only or an import is running, and re-enables when the import finishes.\n* Clicking it runs the same import as Config > Sentry > Import now, including first-import confirmation through the existing global dialog.\n* Import status, counts, and errors continue to appear in the Sentry config section; the Run menu adds no duplicate status surface.\n* `automaticImport` still governs only the background schedule and does not affect the new button.\n* Completeness checking exists in exactly one exported function used by the config section, the import service, and the Run menu button.\n* `npm run typecheck`, `npm run lint`, and app tests pass.\n\n## See also\n\n* `app/src/components/shell/menu/app_menu.tsx`\n* `app/src/components/config/sentry_config_section.tsx`\n* `app/src/services/sentry/sentry_import_service.ts`\n* `app/src/components/sentry_import_confirmation_dialog.tsx`\n'''\nio.open(p,'w',encoding='utf-8',newline='\\n').write(s)\nprint('ok')\nPY",
+          "content": "ok",
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-42",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io,re\np='design/feature_descriptions/F_202_improve_manual_sentry_import.md'\ns=io.open(p,encoding='utf-8').read()\ns=s.replace('status: new','status: ready for implementation',1)\ns=s.rstrip('\\n')+'\\n'+r'''\n## Current state\n\nManual Sentry import has exactly one entry point: `app/src/components/config/sentry_config_section.tsx`, the \"Import now\" button in Config > Sentry. It calls `sentryImportService.importNow()`, which runs `poll(true)` in `app/src/services/sentry/sentry_import_service.ts`.\n\nThat button enables only when `canImport` holds: a project is open, the project is not read-only, the connection is not mid-connect, `connection.isAuthenticated` is true, `settingsComplete(connection.settings)` is true, and `importState.isPolling` is false. \"Settings complete\" means every one of `apiBaseUrl`, `apiToken`, `organization`, `project`, `environment`, `cardType`, `cardState` is non-empty. The \"Enable automatic import\" switch is a separate stored setting (`automaticImport`) that drives the 15-minute background schedule only; it does not gate the manual button.\n\nThe completeness check is duplicated: `settingsComplete` in `sentry_config_section.tsx` and `isComplete` in `sentry_import_service.ts` have identical bodies.\n\nThe Run menu is the second tab of the main menu in `app/src/components/shell/menu/app_menu.tsx`: tab value `agents`, label `Run`. Its right-hand group is `<Section label=\"Actions\">`, currently holding `ActionEntryPoints` plus the \"Complete release\" `MenuIconButton`. The same `AppMenu` renders on desktop and mobile through `MainToolbar`, so anything added to that section appears on both.\n\nFirst-import confirmation is already global: `SentryImportConfirmationDialog` is mounted once in `app/src/app.tsx`, opens on `snapshot.confirmation`, and is therefore reachable regardless of which button started the import.\n\nConsequence: a user who wants an on-demand import must leave their board, open Config, scroll to the Sentry section, click, and navigate back. Discoverability and cost per manual import are both poor.\n\n## Implementation details\n\n* Export one shared completeness predicate — `isSentryConfigurationComplete(settings: SentryProjectSettings)` — from `app/src/services/sentry/sentry_types.ts`. Replace both `settingsComplete` in `sentry_config_section.tsx` and `isComplete` in `sentry_import_service.ts` with it. No behavior change; single source of truth for the new button's gating.\n* Add a `MenuIconButton` labelled `Import Sentry issues` to `<Section label=\"Actions\">` in `app_menu.tsx`, placed after \"Complete release\". Icon: `BugOutline` from `mdi-material-ui`, `fontSize=\"small\"`, matching neighbouring buttons.\n* Render the button conditionally, not permanently disabled. It mounts only when a project is open, `useSentryConnection().isAuthenticated` is true, and `isSentryConfigurationComplete(connection.settings)` is true. When Sentry is unconfigured or disconnected the Run menu looks exactly as it does today.\n* Once mounted, disable it when the project is read-only (`useProjectReadOnly()`) or `useSentryImport().isPolling` is true. Tooltip while polling: `Checking Sentry...`; otherwise the label.\n* `onClick` calls `void sentryImportService.importNow()`. No new service method, no new state, no local copy of import status — read status through the existing `useSentryImport` / `useSentryConnection` hooks, which are `useSyncExternalStore` subscriptions over the services' scoped `changed` events.\n* Because both buttons share `sentryImportService.isPolling`, a run started from either entry point disables the other for its duration; no second concurrent poll can start.\n* If `firstImportConfirmed` is false, `importNow()` sets `confirmation` instead of writing cards, and the already-mounted `SentryImportConfirmationDialog` opens over the Run menu. Do not mount a second dialog.\n* Errors surface through the existing paths: `sentryConnectionService.handleApiError` may drop authentication (which then unmounts the button), and `latestError` remains visible in the Sentry config section. The Run menu shows no error text of its own.\n* Mobile requires no extra work: it uses the same `AppMenu` Run tab. Do not gate on `isMobile`.\n\n## Tests\n\n* `app_menu.test.tsx`: button absent when no Sentry connection; present when authenticated with complete settings; disabled while `isPolling`; disabled when project is read-only; click calls `sentryImportService.importNow` once.\n* `sentry_config_section.test.tsx`: existing \"Import now\" gating still passes after the swap to the shared predicate.\n* A node test asserting `isSentryConfigurationComplete` rejects each individually missing field.\n\n## Acceptance criteria\n\n* Run menu > Actions shows an \"Import Sentry issues\" button whenever the open project has an authenticated Sentry connection with complete settings, on desktop and mobile.\n* The button is absent — not greyed out — when no project is open, the connection is not authenticated, or any required Sentry setting is empty.\n* When visible, the button is disabled while the project is read-only or an import is running, and re-enables when the import finishes.\n* Clicking it runs the same import as Config > Sentry > Import now, including first-import confirmation through the existing global dialog.\n* Import status, counts, and errors continue to appear in the Sentry config section; the Run menu adds no duplicate status surface.\n* `automaticImport` still governs only the background schedule and does not affect the new button.\n* Completeness checking exists in exactly one exported function used by the config section, the import service, and the Run menu button.\n* `npm run typecheck`, `npm run lint`, and app tests pass.\n\n## See also\n\n* `app/src/components/shell/menu/app_menu.tsx`\n* `app/src/components/config/sentry_config_section.tsx`\n* `app/src/services/sentry/sentry_import_service.ts`\n* `app/src/components/sentry_import_confirmation_dialog.tsx`\n'''\nio.open(p,'w',encoding='utf-8',newline='\\n').write(s)\nprint('ok')\nPY",
+          "providerItemId": "toolu_01XnaKCPhAfdy9xY28uPtq7k",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:30:18.539Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-43",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedCHaoFeYpnNxQKqCqge:thinking:0",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T18:30:20.311Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,22p' design/feature_descriptions/F_202_improve_manual_sentry_import.md",
+          "content": "---\nauthor: \nid: F_202\ninternalId: 2ba8b222-8131-4283-9263-be319a8fed6f\ntitle: improve manual sentry import\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__2ba8b222-8131-4283-9263-be319a8fed6f.json\npolicy:\nafter: f5e9bc66-ebde-41f7-ae6e-503e9e8e284a\n---\ncurrently:\n\n> Manual import exists only in config page:\n\n> Config > Sentry > Import now\n\n> Automatic import setting does not control this button. Button enables when:\n\n> Sentry connection is authenticated.",
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-event-44",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,22p' design/feature_descriptions/F_202_improve_manual_sentry_import.md",
+          "providerItemId": "toolu_017CGvxUngVXhxgEZVU6PTv3",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:30:21.592Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "F_202 done. Original text untouched, sections appended, `status: ready for implementation`.\n\nKey decisions in doc:\n- **Run menu** = tab value `agents`, label `Run`, in `app/src/components/shell/menu/app_menu.tsx`; button goes in `<Section label=\"Actions\">`, so desktop + mobile get it from one place.\n- Button **mounts only** when project open + `isAuthenticated` + settings complete. Disabled only for read-only or `isPolling`.\n- Click calls existing `sentryImportService.importNow()`. No new service method, no new status surface.\n- First-import confirm already global in `app.tsx` — reused, not duplicated.\n- Found real duplication: `settingsComplete` (config section) and `isComplete` (import service) have identical bodies. Doc calls for one exported `isSentryConfigurationComplete` in `sentry_types.ts` used by all three call sites.\n\nNothing staged or committed.\n\nSide note: caveman statusline badge not configured. Want me to add the `statusLine` entry to `~/.claude/settings.json`?",
+          "id": "agent-turn-bfd2d4b0-a596-46aa-9c29-638dcde4d840-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 45,
+          "timestamp": "2026-09-01T18:30:28.487Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-3a2f649f-8cdd-4b2a-887e-86ea0f1ad8b3",
       "providerSessions": [],
       "startedAt": "2026-08-27T17:56:02.291Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
-        "elapsedMs": 59237,
-        "runningStartedAt": null
+        "elapsedMs": 67412,
+        "runningStartedAt": "2026-09-01T18:29:32.860Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 416040,
+        "inputTokens": 16,
+        "outputTokens": 4554,
+        "reasoningTokens": 0,
+        "totalTokens": 420610,
+        "costUsd": 0.7139200000000001
+      },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -416,11 +627,11 @@
         "agent-3a2f649f-8cdd-4b2a-887e-86ea0f1ad8b3"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-bf00f484-f617-4a57-bfad-3c606a9324ed",
       "origin": {
@@ -429,9 +640,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-3a2f649f-8cdd-4b2a-887e-86ea0f1ad8b3",
       "startedAt": "2026-08-27T17:56:02.290Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-3a2f649f-8cdd-4b2a-887e-86ea0f1ad8b3"
     }
   ],
   "version": 5
