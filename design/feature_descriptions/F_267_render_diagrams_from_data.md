@@ -3,7 +3,7 @@ author:
 id: F_267
 internalId: d7ab38b3-a791-4448-9b4d-65ce56961971
 title: render diagrams from data instead of generated svg
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,48 @@ policy:
 branch: f_267_render_diagrams_from_data_instead_of_generated_svg
 worktree: 1
 after: 5f931241-561d-4149-9e7c-f0803db2fef0
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/diagram_view/architecture_diagram.tsx
+  - app/src/components/diagram_view/dependency_diagram.tsx
+  - app/src/components/diagram_view/diagram.tsx
+  - app/src/components/diagram_view/diagram_edge.tsx
+  - app/src/components/diagram_view/diagram_group.tsx
+  - app/src/components/diagram_view/diagram_legend.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_path.node.test.ts
+  - app/src/components/diagram_view/diagram_path.ts
+  - app/src/components/diagram_view/diagram_renderer.test.tsx
+  - app/src/components/diagram_view/diagram_renderer.tsx
+  - app/src/components/diagram_view/diagram_selection.ts
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/components/diagram_view/entity_diagram.tsx
+  - app/src/components/diagram_view/flow_diagram.tsx
+  - app/src/components/diagram_view/sequence_activation.tsx
+  - app/src/components/diagram_view/sequence_diagram.tsx
+  - app/src/data/action_placeholders.ts
+  - app/src/data/data_types.ts
+  - app/src/services/actions/action_prompt_draft_service.node.test.ts
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_text.node.test.ts
+  - app/src/services/config/config_service.service.test.ts
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_data.ts
+  - app/src/services/diagrams/diagram_index.node.test.ts
+  - app/src/services/diagrams/diagram_layout.node.test.ts
+  - app/src/services/diagrams/diagram_layout.ts
+  - app/src/services/diagrams/diagram_svg_sanitizer.test.ts
+  - app/src/services/diagrams/diagram_svg_sanitizer.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
+  - desktop/src/actions/action/action_diagram_output.js
+  - desktop/src/actions/action/action_diagram_output.test.mjs
+  - desktop/src/actions/action/action_run_request.test.mjs
+  - desktop/src/actions/action/action_runner_service.test.mjs
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/action/action_text.test.mjs
 ---
 Follow-up on [F\_262\_add\_diagram\_view.md](design/feature_descriptions/F_262_add_diagram_view.md), which is implemented.
 
