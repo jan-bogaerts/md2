@@ -4,7 +4,7 @@ const { requireRootPath } = require('../../git/git_commands');
 const PLACEHOLDER_NAMES = [
     'active-cards-folder', 'worktree-folder', 'repository-folder', 'project-folder',
     'releases-folder', 'card-file', 'this-card', 'card-title', 'card-prompt',
-    'conflict-file', 'conflict-files', 'diagram-file',
+    'conflict-file', 'conflict-files', 'diagram-file', 'parent-node',
 ].join('|');
 const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
@@ -54,6 +54,16 @@ function resolvePlaceholders(
             }
 
             return diagramFile;
+        }
+        if (name === 'parent-node') {
+            if (context.kind !== 'diagram' || context.type !== 'child') {
+                throw new Error('Cannot resolve parent-node placeholder outside child diagram context');
+            }
+            if (!context.parentNode) {
+                throw new Error('Cannot resolve parent-node placeholder without a selected diagram item label');
+            }
+
+            return context.parentNode;
         }
         if (name === 'conflict-file') {
             if (!context.conflictFile) throw new Error('Cannot resolve conflict-file placeholder without a selected conflict file');

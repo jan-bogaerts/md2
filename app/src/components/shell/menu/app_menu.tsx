@@ -12,6 +12,7 @@ import FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'
 import FolderOpen from 'mdi-material-ui/FolderOpen'
 import TextBoxOutline from 'mdi-material-ui/TextBoxOutline'
 import BarChartOutlined from '@mui/icons-material/BarChartOutlined'
+import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
 import {
     findAgentProfile,
     mergeAgentProfiles,
@@ -340,6 +341,12 @@ export function AppMenu(props: AppMenuProps) {
                     <ToggleButton aria-label="Text view" value="text">
                         <TextBoxOutline fontSize="small" />
                         <Box component="span" sx={{ ml: 0.75 }}>List</Box>
+                    </ToggleButton>
+                </Tooltip>
+                <Tooltip title="Diagrams view">
+                    <ToggleButton aria-label="Diagrams view" value="diagrams">
+                        <AccountTreeOutlined fontSize="small" />
+                        <Box component="span" sx={{ ml: 0.75 }}>Diagrams</Box>
                     </ToggleButton>
                 </Tooltip>
                 <Tooltip title="Stats view">

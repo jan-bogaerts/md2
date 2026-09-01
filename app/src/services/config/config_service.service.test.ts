@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
-import { DEFAULT_CARD_TYPES, DEFAULT_STATES, defaultColumnAccent, resolveProjectConfigPaths } from '../../data/data_types'
+import { DEFAULT_CARD_TYPES, DEFAULT_DIAGRAM_FOOTER, DEFAULT_STATES, defaultColumnAccent, resolveProjectConfigPaths } from '../../data/data_types'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../../data/agent_profiles'
 import { CONFIG_ENTRIES, ConfigService, REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_service'
 
@@ -25,7 +25,7 @@ describe('ConfigService', () => {
             archivedFolder: 'archived',
             backgroundShade: 'green',
             cardSeparator: '-',
-            diagramFooter: 'Use the diagram skill. Create SVG output and save it to {{diagram-file}}.',
+            diagramFooter: DEFAULT_DIAGRAM_FOOTER,
             diagramsFolder: 'diagrams',
             projectFolder: 'design',
             pushMode: 'manual',
@@ -34,6 +34,8 @@ describe('ConfigService', () => {
         })
         expect(service.getProjectConfig().cardTypes).toEqual(DEFAULT_CARD_TYPES)
         expect(service.getProjectConfig().states).toEqual(DEFAULT_STATES)
+        expect(service.getProjectConfig().diagramFooter).toContain('unique data-diagram-id and data-diagram-label')
+        expect(service.getProjectConfig().diagramFooter).toContain('role="button"')
     })
 
     it('ignores obsolete card body templates and omits them from saved project config', () => {

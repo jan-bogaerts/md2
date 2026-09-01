@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { DEFAULT_STATES, defaultColumnAccent, type AgentConversation, type CommitRequest, type MarkdownFile, type ProjectWatchEvent, type StorageProjectFiles, type StorageService } from '../../data/data_types'
+import { DEFAULT_DIAGRAM_FOOTER, DEFAULT_STATES, defaultColumnAccent, type AgentConversation, type CommitRequest, type MarkdownFile, type ProjectWatchEvent, type StorageProjectFiles, type StorageService } from '../../data/data_types'
 import type { RawActionDefinition } from '../../data/action_types'
 import { actionService } from '../actions/action_service'
 import { configService } from '../config/config_service'
@@ -636,7 +636,7 @@ describe('ProjectLoading', () => {
             { branch: 'main', id: 'project' },
             expect.objectContaining({
                 backgroundShade: expect.stringMatching(/^(amber|blue|green|purple|red)$/u),
-                diagramFooter: 'Use the diagram skill. Create SVG output and save it to {{diagram-file}}.',
+                diagramFooter: DEFAULT_DIAGRAM_FOOTER,
                 diagramsFolder: 'diagrams',
             }),
         )

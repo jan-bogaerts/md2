@@ -1,6 +1,6 @@
 export interface ActionPlaceholder {
     description: string
-    name: 'active-cards-folder' | 'card-file' | 'card-prompt' | 'card-title' | 'diagram-file' | 'project-folder' | 'releases-folder' | 'repository-folder' | 'this-card' | 'worktree-folder'
+    name: 'active-cards-folder' | 'card-file' | 'card-prompt' | 'card-title' | 'diagram-file' | 'parent-node' | 'project-folder' | 'releases-folder' | 'repository-folder' | 'this-card' | 'worktree-folder'
 }
 
 export const ACTION_PROMPT_PLACEHOLDERS: readonly ActionPlaceholder[] = [
@@ -10,6 +10,7 @@ export const ACTION_PROMPT_PLACEHOLDERS: readonly ActionPlaceholder[] = [
     { description: 'Title of the selected card.', name: 'card-title' },
     { description: 'Additional prompt entered when the card action runs.', name: 'card-prompt' },
     { description: 'Absolute path where the current diagram action must save its SVG output.', name: 'diagram-file' },
+    { description: 'Label of the selected parent diagram item for a child diagram action.', name: 'parent-node' },
     { description: 'Absolute path to the configured project folder.', name: 'project-folder' },
     { description: 'Absolute path to the configured releases folder.', name: 'releases-folder' },
     { description: 'Absolute path to the opened repository.', name: 'repository-folder' },

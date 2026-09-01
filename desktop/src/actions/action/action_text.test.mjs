@@ -100,6 +100,20 @@ describe('resolvePlaceholders', () => {
         )).toThrow('outside diagram context');
     });
 
+    it('resolves parent-node only for child diagram context', () => {
+        const context = { diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Orders', type: 'child' };
+
+        expect(resolvePlaceholders(
+            '{{parent-node}}', context, project, project, projectFolder, releasesFolder, activeCardsFolder, '',
+        )).toBe('Orders');
+        expect(() => resolvePlaceholders(
+            '{{parent-node}}', { kind: 'diagram', type: 'root' }, project, project, projectFolder, releasesFolder, activeCardsFolder, '',
+        )).toThrow('outside child diagram context');
+        expect(() => resolvePlaceholders(
+            '{{parent-node}}', { kind: 'diagram', type: 'child' }, project, project, projectFolder, releasesFolder, activeCardsFolder, '',
+        )).toThrow('without a selected diagram item label');
+    });
+
     it('does not resolve removed placeholder names', () => {
         expect(resolvePlaceholders('{{rootProjectFolder}} {{file}} {{prompt}}', { file: 'design/card.md' }, project, project, projectFolder, releasesFolder, activeCardsFolder, 'focus'))
             .toBe('{{rootProjectFolder}} {{file}} {{prompt}}');

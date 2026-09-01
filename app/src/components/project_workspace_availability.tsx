@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { hasActionRunBackend } from '../data/electron_action_bridge'
 import { AgentChatFab } from './agents/agent_chat_fab'
 import { useProjectReference } from './hooks/use_project_reference'
+import { useWorkspaceView } from './hooks/use_workspace_view'
 import { requestOpenProjectDialog } from './project_command_events'
 
 interface ProjectWorkspaceAvailabilityProps {
@@ -16,8 +17,9 @@ function openProjectDialog() {
 /** Show project workspace content only while a project is open. */
 export function ProjectWorkspaceAvailability({ children }: ProjectWorkspaceAvailabilityProps) {
     const project = useProjectReference()
+    const { viewMode } = useWorkspaceView()
 
-    if (project) return <>{children}{hasActionRunBackend() ? <AgentChatFab /> : null}</>
+    if (project) return <>{children}{hasActionRunBackend() && viewMode !== 'diagrams' ? <AgentChatFab /> : null}</>
 
     return (
         <Stack

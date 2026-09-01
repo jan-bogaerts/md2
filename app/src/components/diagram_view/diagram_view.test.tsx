@@ -1,0 +1,155 @@
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ActionDefinition } from '../../data/action_types'
+import type { DiagramMenuState, DiagramViewSnapshot, DiagramViewService } from '../../services/diagrams/diagram_view_service'
+import { DiagramView } from './diagram_view'
+
+vi.mock('../hooks/use_workspace_view', () => ({ useWorkspaceView: () => ({ selectedPath: null, viewMode: 'diagrams' }) }))
+
+const actions = vi.hoisted(() => [
+    { appliesTo: { kind: 'diagram', type: 'child' }, builtin: false, id: 'detail', label: 'Detail' },
+    { appliesTo: { kind: 'diagram', type: 'root' }, builtin: false, id: 'overview', label: 'Overview' },
+]) as ActionDefinition[]
+
+vi.mock('../hooks/use_actions', () => ({ useActions: () => ({ actions }) }))
+vi.mock('../actions/run/popup/action_popup', () => ({
+    ActionPopup: ({ context, initialActionId }: { context: unknown, initialActionId?: string }) => (
+        <div data-action-id={initialActionId} data-context={JSON.stringify(context)} role="dialog">Action popup</div>
+    ),
+}))
+
+function initialSnapshot(): DiagramViewSnapshot {
+    return {
+        currentSvg: '<svg xmlns="http://www.w3.org/2000/svg"><text data-diagram-id="customer" data-diagram-label="Customer" role="button" tabindex="0">Customer</text></svg>',
+        currentSvgError: null,
+        error: null,
+        index: {
+            activePath: ['root-1', 'child-1'],
+            children: {},
+            diagrams: {
+                'child-1': {
+                    actionId: 'detail', id: 'child-1', label: 'Orders',
+                    parent: { diagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders' },
+                    path: 'design/diagrams/child.svg',
+                },
+                'root-1': { actionId: 'overview', id: 'root-1', label: 'Overview', path: 'design/diagrams/root.svg' },
+            },
+            roots: { overview: ['root-1'] },
+            version: 1,
+        },
+        menu: null,
+        popup: null,
+        status: 'ready',
+    }
+}
+
+function createService() {
+    let snapshot = initialSnapshot()
+    const listeners = new Set<() => void>()
+    const publish = (next: DiagramViewSnapshot) => {
+        snapshot = next
+        for (const listener of listeners) listener()
+    }
+    const service = {
+        closeItemMenu: vi.fn(() => publish({ ...snapshot, menu: null })),
+        closePopup: vi.fn(() => publish({ ...snapshot, popup: null })),
+        getSavedChildren: vi.fn(() => [{ actionId: 'saved-action', id: 'saved-1', label: 'Saved Orders', path: 'design/diagrams/saved.svg' }]),
+        getSnapshot: () => snapshot,
+        navigateBack: vi.fn(async () => undefined),
+        navigateToCrumb: vi.fn(async () => undefined),
+        navigateToSavedDiagram: vi.fn(async () => undefined),
+        open: vi.fn(async () => undefined),
+        openChildPopup: vi.fn((actionId: string) => {
+            const menu = snapshot.menu
+            if (!menu) return
+            publish({
+                ...snapshot,
+                menu: null,
+                popup: {
+                    anchorElement: menu.anchorElement as HTMLElement,
+                    context: {
+                        diagramId: menu.diagramId,
+                        diagramItemId: menu.itemId,
+                        kind: 'diagram',
+                        parentNode: menu.itemLabel,
+                        type: 'child',
+                    },
+                    initialActionId: actionId,
+                },
+            })
+        }),
+        openItemMenu: vi.fn((menu: DiagramMenuState) => publish({ ...snapshot, menu })),
+        openRootPopup: vi.fn((anchorElement: HTMLElement) => publish({...snapshot, popup: { anchorElement, context: { kind: 'diagram', type: 'root' } }})),
+        subscribe: (listener: () => void) => {
+            listeners.add(listener)
+
+            return () => listeners.delete(listener)
+        },
+    }
+
+    return service as unknown as DiagramViewService & {
+        navigateBack: ReturnType<typeof vi.fn>
+        navigateToCrumb: ReturnType<typeof vi.fn>
+        navigateToSavedDiagram: ReturnType<typeof vi.fn>
+        openItemMenu: ReturnType<typeof vi.fn>
+    }
+}
+
+describe('DiagramView', () => {
+    beforeEach(() => vi.clearAllMocks())
+    afterEach(cleanup)
+
+    it('opens item menu by pointer and offers matching child actions plus saved diagrams', async () => {
+        const service = createService()
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+
+        await user.click(screen.getByRole('button', { name: 'Customer' }))
+
+        expect(service.openItemMenu).toHaveBeenCalledWith(expect.objectContaining({diagramId: 'child-1', itemId: 'customer', itemLabel: 'Customer'}))
+        expect(screen.getByRole('menuitem', { name: 'Detail' })).toBeInTheDocument()
+        expect(screen.getByRole('menuitem', { name: 'Saved Orders' })).toBeInTheDocument()
+    })
+
+    it('supports keyboard activation and opens preselected child action with parent label', async () => {
+        const service = createService()
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+
+        const item = screen.getByRole('button', { name: 'Customer' })
+        item.focus()
+        await user.keyboard('{Enter}')
+        await user.click(screen.getByRole('menuitem', { name: 'Detail' }))
+
+        const popup = screen.getByText('Action popup')
+        expect(popup).toHaveAttribute('data-action-id', 'detail')
+        expect(popup.getAttribute('data-context')).toContain('"parentNode":"Customer"')
+    })
+
+    it('navigates Back, breadcrumbs, and saved diagrams without opening action popup', async () => {
+        const service = createService()
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+
+        await user.click(screen.getByRole('button', { name: 'Back' }))
+        await user.click(screen.getByRole('button', { name: 'Overview' }))
+        await user.click(screen.getByRole('button', { name: 'Customer' }))
+        await user.click(screen.getByRole('menuitem', { name: 'Saved Orders' }))
+
+        expect(service.navigateBack).toHaveBeenCalledTimes(1)
+        expect(service.navigateToCrumb).toHaveBeenCalledWith(0)
+        expect(service.navigateToSavedDiagram).toHaveBeenCalledWith('saved-1')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('opens root diagram context from diagram FAB', async () => {
+        const service = createService()
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+
+        await user.click(screen.getByRole('button', { name: 'Diagram action' }))
+
+        expect(screen.getByText('Action popup').getAttribute('data-context')).toBe('{"kind":"diagram","type":"root"}')
+    })
+})

@@ -252,6 +252,16 @@ describe('ActionSchedulerService', () => {
         expect(scheduler.actionRunnerService.diagramFooter).toBe('Custom diagram instructions. Save to {{diagram-file}}.');
     });
 
+    it('uses accessible interactive-item contract in default diagram footer', async () => {
+        const scheduler = createScheduler(createLocalGitService([]));
+
+        await scheduler.startProject(project);
+
+        expect(scheduler.actionRunnerService.diagramFooter).toContain('unique data-diagram-id and data-diagram-label');
+        expect(scheduler.actionRunnerService.diagramFooter).toContain('role="button"');
+        expect(scheduler.actionRunnerService.diagramFooter).toContain('Do not include scripts');
+    });
+
     it.each([
         [{ diagramsFolder: '' }, 'Invalid project diagramsFolder'],
         [{ diagramFooter: '' }, 'Invalid project diagramFooter'],

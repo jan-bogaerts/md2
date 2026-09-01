@@ -1,7 +1,7 @@
 import { CARD_PATH_CHANGED_EVENT, dataService, type CardPathChangedEventDetail, type DataService } from '../data/data_service'
 import { register } from '../service_injector'
 
-export type WorkspaceViewMode = 'cards' | 'stats' | 'text'
+export type WorkspaceViewMode = 'cards' | 'diagrams' | 'stats' | 'text'
 
 export interface WorkspaceViewSnapshot {
     selectedPath: string | null

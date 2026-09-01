@@ -4,7 +4,7 @@ const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = re
 
 const DEFAULT_ACTIONS_FOLDER = 'actions';
 const DEFAULT_DIAGRAMS_FOLDER = 'diagrams';
-const DEFAULT_DIAGRAM_FOOTER = 'Use the diagram skill. Create SVG output and save it to {{diagram-file}}.';
+const DEFAULT_DIAGRAM_FOOTER = 'Use the diagram skill. Create standalone SVG output and save it to {{diagram-file}}. For every drill-down item, set unique data-diagram-id and data-diagram-label attributes, set tabindex="0", and set role="button". Do not include scripts, event-handler attributes, foreignObject, links, or external resources.';
 const DEFAULT_PROJECT_FOLDER = '';
 const DEFAULT_RELEASES_FOLDER = 'releases';
 const DEFAULT_WORKING_FOLDER = 'active';

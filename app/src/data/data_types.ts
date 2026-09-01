@@ -18,7 +18,7 @@ export const DEFAULT_PROJECT_FOLDER = 'design'
 export const DEFAULT_RELEASES_FOLDER = 'history'
 export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
 export const DEFAULT_DIAGRAMS_FOLDER = 'diagrams'
-export const DEFAULT_DIAGRAM_FOOTER = 'Use the diagram skill. Create SVG output and save it to {{diagram-file}}.'
+export const DEFAULT_DIAGRAM_FOOTER = 'Use the diagram skill. Create standalone SVG output and save it to {{diagram-file}}. For every drill-down item, set unique data-diagram-id and data-diagram-label attributes, set tabindex="0", and set role="button". Do not include scripts, event-handler attributes, foreignObject, links, or external resources.'
 export const AUTO_COMMIT_DELAY_MS = 30000
 
 /** Card type id; projects can configure custom types beyond the default feature/job/bug. */

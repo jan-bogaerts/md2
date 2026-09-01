@@ -102,6 +102,16 @@ describe('resolvePlaceholders', () => {
             .toThrow('outside diagram context')
     })
 
+    it('resolves parent-node only for a child diagram with a selected label', () => {
+        const childContext: ActionContext = {diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Orders', type: 'child'}
+
+        expect(resolvePlaceholders('{{parent-node}}', childContext, folders, '')).toBe('Orders')
+        expect(() => resolvePlaceholders('{{parent-node}}', { kind: 'diagram', type: 'root' }, folders, ''))
+            .toThrow('outside child diagram context')
+        expect(() => resolvePlaceholders('{{parent-node}}', { kind: 'diagram', type: 'child' }, folders, ''))
+            .toThrow('without a selected diagram item label')
+    })
+
     it('does not resolve removed placeholder names', () => {
         expect(resolvePlaceholders('{{rootProjectFolder}} {{file}} {{prompt}}', context, folders, 'focus'))
             .toBe('{{rootProjectFolder}} {{file}} {{prompt}}')

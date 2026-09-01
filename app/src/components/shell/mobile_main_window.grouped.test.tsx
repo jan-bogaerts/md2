@@ -106,10 +106,10 @@ describe('MobileMainWindow', () => {
         expect(screen.getByText('Board navigation')).not.toBeVisible()
     })
 
-    it('hides both navigation surfaces in stats view', () => {
+    it.each(['diagrams', 'stats'] as const)('hides both navigation surfaces in %s view', (viewMode) => {
         renderMobileMainWindow(false)
 
-        act(() => workspaceViewService.setViewMode('stats'))
+        act(() => workspaceViewService.setViewMode(viewMode))
 
         expect(screen.getByText('Project navigation')).not.toBeVisible()
         expect(screen.getByText('Board navigation')).not.toBeVisible()

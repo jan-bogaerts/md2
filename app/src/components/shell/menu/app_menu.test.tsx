@@ -175,6 +175,7 @@ describe('AppMenu', () => {
         expect(screen.getByRole('button', { name: 'Config' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Cards view' })).toHaveTextContent('Board')
         expect(screen.getByRole('button', { name: 'Text view' })).toHaveTextContent('List')
+        expect(screen.getByRole('button', { name: 'Diagrams view' })).toHaveTextContent('Diagrams')
         expect(screen.getByRole('button', { name: 'Stats view' })).toHaveTextContent('Stats')
         expect(screen.getByRole('button', { name: 'New action' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'New card' })).toBeInTheDocument()
@@ -182,6 +183,7 @@ describe('AppMenu', () => {
 
         const settingsSection = screen.getByRole('group', { name: 'Settings' })
         const viewSection = screen.getByRole('group', { name: 'View' })
+        expect(within(viewSection).getAllByRole('button').map((button) => button.textContent)).toEqual(['Board', 'List', 'Diagrams', 'Stats'])
         expect(settingsSection.compareDocumentPosition(viewSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
         expect(screen.queryByRole('button', { name: 'Complete release' })).not.toBeInTheDocument()
@@ -335,6 +337,9 @@ describe('AppMenu', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Text view' }))
 
         expect(workspaceViewService.getSnapshot().viewMode).toBe('text')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Diagrams view' }))
+        expect(workspaceViewService.getSnapshot().viewMode).toBe('diagrams')
 
         fireEvent.click(screen.getByRole('button', { name: 'Stats view' }))
         expect(workspaceViewService.getSnapshot().viewMode).toBe('stats')
