@@ -330,3 +330,148 @@ describe('ActionAgentPrompt', () => {
         expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('176')
     })
 })
+
+describe('ActionAgentPrompt with a pending question', () => {
+    const questionsPanel = <div data-testid="questions-content">Pending question</div>
+
+    it('caps the unsized questions box at 40% of the agent column and scrolls its content', () => {
+        mockAvailablePromptHeight(400)
+        const promptDraft = new ActionPromptDraft('', false)
+        render(
+            <ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} questionsPanel={questionsPanel} />,
+        )
+
+        expect(screen.getByTestId('questions-content')).toBeInTheDocument()
+        expect(screen.getByTestId('action-questions-region')).toHaveStyle({
+            maxHeight: '160px',
+            overflowY: 'auto',
+        })
+        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: 'auto' })
+    })
+
+    it('keeps the questions box at its 96px floor for a short agent column', () => {
+        mockAvailablePromptHeight(120)
+        const promptDraft = new ActionPromptDraft('', false)
+        render(
+            <ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} questionsPanel={questionsPanel} />,
+        )
+
+        expect(screen.getByTestId('action-questions-region')).toHaveStyle({ maxHeight: '96px' })
+    })
+
+    it('keeps the resize bar active while the prompt is empty', () => {
+        mockAvailablePromptHeight(400)
+        const promptDraft = new ActionPromptDraft('', false)
+        render(
+            <ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} questionsPanel={questionsPanel} />,
+        )
+        const separator = screen.getByRole('separator', { name: 'Resize prompt and questions' })
+
+        expect(separator).not.toHaveAttribute('aria-disabled')
+        expect(separator).toHaveAttribute('tabindex', '0')
+        expect(separator).toHaveAttribute('aria-valuemin', '168')
+    })
+
+    it('resizes the bottom block by drag without rewriting the stored prompt height', () => {
+        window.localStorage.setItem('md2.actionPromptHeight', '140')
+        window.localStorage.setItem('md2.actionQuestionsBlockHeight', '200')
+        mockAvailablePromptHeight(400)
+        const promptDraft = new ActionPromptDraft('', false)
+        render(
+            <ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} questionsPanel={questionsPanel} />,
+        )
+        const separator = screen.getByRole('separator', { name: 'Resize prompt and questions' })
+
+        fireEvent.pointerDown(separator, { clientY: 200, pointerId: 3 })
+        fireEvent.pointerMove(separator, { clientY: 160, pointerId: 3 })
+        fireEvent.pointerUp(separator, { clientY: 160, pointerId: 3 })
+
+        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '240px' })
+        expect(separator).toHaveAttribute('aria-valuenow', '240')
+        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBe('240')
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('140')
+    })
+
+    it('shrinks the questions box before the prompt and stops both at their floors', () => {
+        window.localStorage.setItem('md2.actionPromptHeight', '160')
+        window.localStorage.setItem('md2.actionQuestionsBlockHeight', '300')
+        mockAvailablePromptHeight(400)
+        const promptDraft = new ActionPromptDraft('', false)
+        render(
+            <ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} questionsPanel={questionsPanel} />,
+        )
+        const separator = screen.getByRole('separator', { name: 'Resize prompt and questions' })
+
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '160px' })
+
+        fireEvent.pointerDown(separator, { clientY: 300, pointerId: 4 })
+        fireEvent.pointerMove(separator, { clientY: 344, pointerId: 4 })
+
+        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '256px' })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '160px' })
+
+        fireEvent.pointerMove(separator, { clientY: 400, pointerId: 4 })
+
+        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '200px' })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '104px' })
+
+        fireEvent.pointerMove(separator, { clientY: 900, pointerId: 4 })
+        fireEvent.pointerUp(separator, { clientY: 900, pointerId: 4 })
+
+        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '168px' })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '72px' })
+        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBe('168')
+    })
+
+    it('stops growing the block once the chat reaches its minimum height', () => {
+        window.localStorage.setItem('md2.actionQuestionsBlockHeight', '200')
+        mockAvailablePromptHeight(400)
+        const promptDraft = new ActionPromptDraft('', false)
+        render(
+            <ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} questionsPanel={questionsPanel} />,
+        )
+        const separator = screen.getByRole('separator', { name: 'Resize prompt and questions' })
+
+        fireEvent.pointerDown(separator, { clientY: 300, pointerId: 5 })
+        fireEvent.pointerMove(separator, { clientY: -500, pointerId: 5 })
+        fireEvent.pointerUp(separator, { clientY: -500, pointerId: 5 })
+
+        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '304px' })
+        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBe('304')
+    })
+
+    it('restores and re-persists the block height through its own storage key', () => {
+        window.localStorage.setItem('md2.actionQuestionsBlockHeight', '260')
+        mockAvailablePromptHeight(400)
+        const promptDraft = new ActionPromptDraft('', false)
+        render(
+            <ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} questionsPanel={questionsPanel} />,
+        )
+        const separator = screen.getByRole('separator', { name: 'Resize prompt and questions' })
+
+        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '260px' })
+
+        fireEvent.keyDown(separator, { key: 'ArrowUp' })
+        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '284px' })
+        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBe('284')
+
+        fireEvent.keyDown(separator, { key: 'ArrowDown' })
+        expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: '260px' })
+        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBe('260')
+    })
+
+    it('leaves the prompt-only bar untouched when no question is pending', () => {
+        window.localStorage.setItem('md2.actionPromptHeight', '160')
+        mockAvailablePromptHeight(400)
+        const promptDraft = new ActionPromptDraft('Plan', false)
+        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
+        const separator = screen.getByRole('separator', { name: 'Resize prompt' })
+
+        fireEvent.keyDown(separator, { key: 'ArrowUp' })
+
+        expect(screen.queryByTestId('action-questions-region')).not.toBeInTheDocument()
+        expect(separator).toHaveAttribute('aria-valuemin', '72')
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('184')
+        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBeNull()
+    })
+})
