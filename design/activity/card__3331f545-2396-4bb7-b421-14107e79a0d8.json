@@ -8050,11 +8050,11 @@
         "agent-33d80b96-9cea-4893-8b34-2cc90664600f"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-1021144d-c45d-4c4e-8827-06276849be0d",
       "origin": {
@@ -8063,9 +8063,60 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-33d80b96-9cea-4893-8b34-2cc90664600f",
       "startedAt": "2026-09-01T14:44:01.931Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-33d80b96-9cea-4893-8b34-2cc90664600f"
+    },
+    {
+      "commits": [
+        {
+          "commit": "5e5d45a5e0bf3c5b70c26af2597e21912150610f",
+          "committedAt": "2026-09-01T17:08:29+02:00",
+          "deletions": 19,
+          "filePaths": [
+            "app/src/components/actions/run/popup/card_action_popup_host.tsx",
+            "app/src/components/diagram_view/diagram_view.test.tsx",
+            "app/src/components/diagram_view/diagram_view.tsx",
+            "app/src/components/project_workspace.tsx",
+            "app/src/components/project_workspace_availability.tsx",
+            "app/src/components/shell/menu/app_menu.test.tsx",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/shell/mobile_main_window.grouped.test.tsx",
+            "app/src/components/shell/mobile_main_window.tsx",
+            "app/src/data/action_context.node.test.ts",
+            "app/src/data/action_context.ts",
+            "app/src/data/action_placeholders.ts",
+            "app/src/data/data_types.ts",
+            "app/src/services/actions/action_text.node.test.ts",
+            "app/src/services/actions/action_text.ts",
+            "app/src/services/config/config_service.service.test.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/diagrams/diagram_index.node.test.ts",
+            "app/src/services/diagrams/diagram_index.ts",
+            "app/src/services/diagrams/diagram_svg_sanitizer.test.ts",
+            "app/src/services/diagrams/diagram_svg_sanitizer.ts",
+            "app/src/services/diagrams/diagram_view_service.test.ts",
+            "app/src/services/diagrams/diagram_view_service.ts",
+            "app/src/services/project/project_loading.test.ts",
+            "app/src/services/project/project_loading.ts",
+            "app/src/services/project/workspace_view_service.ts",
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/action/action_scheduler_service.test.mjs",
+            "desktop/src/actions/action/action_text.js",
+            "desktop/src/actions/action/action_text.test.mjs"
+          ],
+          "filesChanged": 30,
+          "insertions": 1439,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-01T17:08:29+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "3331f545-2396-4bb7-b421-14107e79a0d8",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
