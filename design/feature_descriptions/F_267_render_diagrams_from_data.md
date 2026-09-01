@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: 5f931241-561d-4149-9e7c-f0803db2fef0
+branch: f_267_render_diagrams_from_data_instead_of_generated_svg
+worktree: 1
 ---
 Follow-up on [F\_262\_add\_diagram\_view.md](design/feature_descriptions/F_262_add_diagram_view.md), which is implemented.
 
