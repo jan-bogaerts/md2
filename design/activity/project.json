@@ -12873,7 +12873,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": "2026-09-01T15:31:04.140Z",
+      "completedAt": null,
       "entries": [
         {
           "content": "can you check this folder `C:\\Users\\janbo\\Documents\\dev\\diagram-design` it has a skill definition to generate diagrams. there should be some example diagrams in `C:\\Users\\janbo\\Documents\\dev\\diagram-design\\skills\\diagram-design\\assets`&#x20;\n\nare we correct to presume that the diagrams are made of shapes and connectors between the shapes? if more categories, which?\n\ncan we create a prompt that is able to extract the core svg shapes (like `class` or `db`) from the examples and save them as separate svgs?\n\nsame for connectors",
@@ -12882,18 +12882,283 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-09-01T15:30:59.428Z"
+        },
+        {
+          "content": "can you investigate this",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 2,
+          "timestamp": "2026-09-01T15:31:25.234Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-3",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CecxeT1Q2kffFwVCLUjcz:thinking:0",
+          "sequence": 3,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T15:31:28.296Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "find \"C:/Users/janbo/Documents/dev/diagram-design\" -type f | head -100",
+          "content": "C:/Users/janbo/Documents/dev/diagram-design/.agents/plugins/marketplace.json\nC:/Users/janbo/Documents/dev/diagram-design/.claude-plugin/marketplace.json\nC:/Users/janbo/Documents/dev/diagram-design/.claude-plugin/plugin.json\nC:/Users/janbo/Documents/dev/diagram-design/.codex-plugin/plugin.json\nC:/Users/janbo/Documents/dev/diagram-design/.factory-plugin/marketplace.json\nC:/Users/janbo/Documents/dev/diagram-design/.factory-plugin/plugin.json\nC:/Users/janbo/Documents/dev/diagram-design/.github/ISSUE_TEMPLATE/bug_report.yml\nC:/Users/janbo/Documents/dev/diagram-design/.github/ISSUE_TEMPLATE/config.yml\nC:/Users/janbo/Documents/dev/diagram-design/.github/ISSUE_TEMPLATE/feature_request.yml\nC:/Users/janbo/Documents/dev/diagram-design/.github/pr-previews/editorial-diagrams-2.5.10.jpg\nC:/Users/janbo/Documents/dev/diagram-design/.github/PULL_REQUEST_TEMPLATE.md\nC:/Users/janbo/Documents/dev/diagram-design/.github/workflows/ci.yml\nC:/Users/janbo/Documents/dev/diagram-design/.github/workflows/pages.yml\nC:/Users/janbo/Documents/dev/diagram-design/.gitignore\nC:/Users/janbo/Documents/dev/diagram-design/.maintainer-policy.json\nC:/Users/janbo/Documents/dev/diagram-design/CODE_OF_CONDUCT.md\nC:/Users/janbo/Documents/dev/diagram-design/commands/doctor.md\nC:/Users/janbo/Documents/dev/diagram-design/commands/export-diagram.md\nC:/Users/janbo/Documents/dev/diagram-design/commands/import-drawio.md\nC:/Users/janbo/Documents/dev/diagram-design/commands/import-mermaid.md\nC:/Users/janbo/Documents/dev/diagram-design/commands/profile.md\nC:/Users/janbo/Documents/dev/diagram-design/CONTRIBUTING.md\nC:/Users/janbo/Documents/dev/diagram-design/docs/adr/0001-static-by-default-single-pinned-controller.md\nC:/Users/janbo/Documents/dev/diagram-design/docs/adr/0002-semantic-patterns-do-not-expand-the-taxonomy.md\nC:/Users/janbo/Documents/dev/diagram-design/docs/adr/0003-reveal-is-the-only-sanctioned-autoplay.md\nC:/Users/janbo/Documents/dev/diagram-design/docs/adr/0004-skill-md-byte-cap-and-trigger-rich-description.md\nC:/Users/janbo/Documents/dev/diagram-design/docs/adr/0005-label-geometry-is-verified.md\nC:/Users/janbo/Documents/dev/diagram-design/docs/adr/0006-client-profiles-and-marker-first-resolution.md\nC:/Users/janbo/Documents/dev/diagram-design/docs/adr/0007-new-layout-grammars.md\nC:/Users/janbo/Documents/dev/diagram-design/docs/adr/0008-native-host-manifests-share-one-plugin-root.md\nC:/Users/janbo/Documents/dev/diagram-design/docs/pr-previews/2.6.11/variants-desktop.jpg\nC:/Users/janbo/Documents/dev/diagram-design/docs/pr-previews/2.6.11/variants-mobile.jpg\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/architecture.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/bar.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/data-flow.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/db-schema.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/dependency.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/deployment.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/dp-integration.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/dp-security-matrix.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/er.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/fishbone.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/flowchart.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/gantt.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/high-level.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/import-drawio.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/it-state.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/journey.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/kanban.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/layers.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/line.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/loop.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/manifest.json\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/medallion.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/nested.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/org-chart.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/polar.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/process.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/pyramid.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/quadrant-consultant.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/quadrant.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/radar.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/sankey.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/scatter.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/sequence.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/state.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/story-map.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/swimlane.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/timeline.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/tree.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/treemap.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/uml-class.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/venn.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/screenshots/wardley.png\nC:/Users/janbo/Documents/dev/diagram-design/docs/superpowers/plans/2026-08-18-polar-chart.md\nC:/Users/janbo/Documents/dev/diagram-design/docs/superpowers/specs/2026-08-18-polar-chart-design.md\nC:/Users/janbo/Documents/dev/diagram-design/LICENSE\nC:/Users/janbo/Documents/dev/diagram-design/prompts/doctor.md\nC:/Users/janbo/Documents/dev/diagram-design/prompts/export-diagram.md\nC:/Users/janbo/Documents/dev/diagram-design/prompts/import-mermaid.md\nC:/Users/janbo/Documents/dev/diagram-design/prompts/profile.md\nC:/Users/janbo/Documents/dev/diagram-design/README.md\nC:/Users/janbo/Documents/dev/diagram-design/scripts/build-icons.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/bump-plugin-version.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/fix-mojibake.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/fixtures/sample-adversarial.mmd\nC:/Users/janbo/Documents/dev/diagram-design/scripts/fixtures/sample-architecture.drawio\nC:/Users/janbo/Documents/dev/diagram-design/scripts/fixtures/sample-flowchart.mmd\nC:/Users/janbo/Documents/dev/diagram-design/scripts/fixtures/sample-readme-with-mermaid.md\nC:/Users/janbo/Documents/dev/diagram-design/scripts/lint-render.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/lint-skin-baseline.txt\nC:/Users/janbo/Documents/dev/diagram-design/scripts/lint-skin.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/render-canonical-screenshots.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/screenshot_catalog.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/test-build-icons-devicon.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/test-build-icons-quoted-attributes.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/test-fix-mojibake.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/test-lint-a11y.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/test-maintainer-policy.py\nC:/Users/janbo/Documents/dev/diagram-design/scripts/test-plugin-package.py",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-4",
+          "kind": "event",
+          "label": "find \"C:/Users/janbo/Documents/dev/diagram-design\" -type f | head -100",
+          "providerItemId": "toolu_01ST6ZnWHojQ3Rp9ibRH36aY",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-09-01T15:31:31.853Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && ls -la && echo \"=== ASSETS ===\" && ls -la assets/ | head -60",
+          "content": "total 144\ndrwxr-xr-x 1 janbo 197609     0 Sep  1 17:26 .\ndrwxr-xr-x 1 janbo 197609     0 Sep  1 17:26 ..\n-rw-r--r-- 1 janbo 197609 39996 Sep  1 17:26 SKILL.md\ndrwxr-xr-x 1 janbo 197609     0 Sep  1 17:26 assets\ndrwxr-xr-x 1 janbo 197609     0 Sep  1 17:26 references\ndrwxr-xr-x 1 janbo 197609     0 Sep  1 17:26 scripts\n=== ASSETS ===\ntotal 2484\ndrwxr-xr-x 1 janbo 197609      0 Sep  1 17:26 .\ndrwxr-xr-x 1 janbo 197609      0 Sep  1 17:26 ..\n-rw-r--r-- 1 janbo 197609  12036 Sep  1 17:26 example-architecture-dark.html\n-rw-r--r-- 1 janbo 197609  14987 Sep  1 17:26 example-architecture-full.html\n-rw-r--r-- 1 janbo 197609  12089 Sep  1 17:26 example-architecture.html\n-rw-r--r-- 1 janbo 197609   9122 Sep  1 17:26 example-bar-dark.html\n-rw-r--r-- 1 janbo 197609  11254 Sep  1 17:26 example-bar-full.html\n-rw-r--r-- 1 janbo 197609   8919 Sep  1 17:26 example-bar.html\n-rw-r--r-- 1 janbo 197609  32654 Sep  1 17:26 example-beeswarm-dark.html\n-rw-r--r-- 1 janbo 197609  36452 Sep  1 17:26 example-beeswarm-full.html\n-rw-r--r-- 1 janbo 197609  32182 Sep  1 17:26 example-beeswarm.html\n-rw-r--r-- 1 janbo 197609  11428 Sep  1 17:26 example-bubble-dark.html\n-rw-r--r-- 1 janbo 197609  15126 Sep  1 17:26 example-bubble-full.html\n-rw-r--r-- 1 janbo 197609  11337 Sep  1 17:26 example-bubble.html\n-rw-r--r-- 1 janbo 197609  12916 Sep  1 17:26 example-bump-dark.html\n-rw-r--r-- 1 janbo 197609  16625 Sep  1 17:26 example-bump-full.html\n-rw-r--r-- 1 janbo 197609  12797 Sep  1 17:26 example-bump.html\n-rw-r--r-- 1 janbo 197609  12966 Sep  1 17:26 example-data-flow-dark.html\n-rw-r--r-- 1 janbo 197609  15835 Sep  1 17:26 example-data-flow-full.html\n-rw-r--r-- 1 janbo 197609  12803 Sep  1 17:26 example-data-flow.html\n-rw-r--r-- 1 janbo 197609  25137 Sep  1 17:26 example-datalake-dark.html\n-rw-r--r-- 1 janbo 197609  28649 Sep  1 17:26 example-datalake-full.html\n-rw-r--r-- 1 janbo 197609  26680 Sep  1 17:26 example-datalake.html\n-rw-r--r-- 1 janbo 197609  24716 Sep  1 17:26 example-db-schema-dark.html\n-rw-r--r-- 1 janbo 197609  27605 Sep  1 17:26 example-db-schema-full.html\n-rw-r--r-- 1 janbo 197609  24501 Sep  1 17:26 example-db-schema.html\n-rw-r--r-- 1 janbo 197609  17822 Sep  1 17:26 example-dependency-dark.html\n-rw-r--r-- 1 janbo 197609  21122 Sep  1 17:26 example-dependency-full.html\n-rw-r--r-- 1 janbo 197609  17607 Sep  1 17:26 example-dependency.html\n-rw-r--r-- 1 janbo 197609  13554 Sep  1 17:26 example-deployment-dark.html\n-rw-r--r-- 1 janbo 197609  16831 Sep  1 17:26 example-deployment-full.html\n-rw-r--r-- 1 janbo 197609  13451 Sep  1 17:26 example-deployment.html\n-rw-r--r-- 1 janbo 197609  14746 Sep  1 17:26 example-dp-integration-dark.html\n-rw-r--r-- 1 janbo 197609  17263 Sep  1 17:26 example-dp-integration-full.html\n-rw-r--r-- 1 janbo 197609  14715 Sep  1 17:26 example-dp-integration.html\n-rw-r--r-- 1 janbo 197609  10279 Sep  1 17:26 example-dp-security-matrix-dark.html\n-rw-r--r-- 1 janbo 197609  12602 Sep  1 17:26 example-dp-security-matrix-full.html\n-rw-r--r-- 1 janbo 197609  10906 Sep  1 17:26 example-dp-security-matrix.html\n-rw-r--r-- 1 janbo 197609  14198 Sep  1 17:26 example-er-dark.html\n-rw-r--r-- 1 janbo 197609  17128 Sep  1 17:26 example-er-full.html\n-rw-r--r-- 1 janbo 197609  14139 Sep  1 17:26 example-er.html\n-rw-r--r-- 1 janbo 197609   8675 Sep  1 17:26 example-fishbone-dark.html\n-rw-r--r-- 1 janbo 197609  11411 Sep  1 17:26 example-fishbone-full.html\n-rw-r--r-- 1 janbo 197609   8652 Sep  1 17:26 example-fishbone.html\n-rw-r--r-- 1 janbo 197609   9221 Sep  1 17:26 example-flowchart-dark.html\n-rw-r--r-- 1 janbo 197609  12199 Sep  1 17:26 example-flowchart-full.html\n-rw-r--r-- 1 janbo 197609   9171 Sep  1 17:26 example-flowchart.html\n-rw-r--r-- 1 janbo 197609  10331 Sep  1 17:26 example-gantt-dark.html\n-rw-r--r-- 1 janbo 197609  11897 Sep  1 17:26 example-gantt-full.html\n-rw-r--r-- 1 janbo 197609  10074 Sep  1 17:26 example-gantt.html\n-rw-r--r-- 1 janbo 197609  24210 Sep  1 17:26 example-high-level-dark.html\n-rw-r--r-- 1 janbo 197609  28494 Sep  1 17:26 example-high-level-full.html\n-rw-r--r-- 1 janbo 197609  24980 Sep  1 17:26 example-high-level-vertical-dark.html\n-rw-r--r-- 1 janbo 197609  28749 Sep  1 17:26 example-high-level-vertical-full.html\n-rw-r--r-- 1 janbo 197609  30457 Sep  1 17:26 example-high-level-vertical.html\n-rw-r--r-- 1 janbo 197609  26976 Sep  1 17:26 example-high-level.html\n-rw-r--r-- 1 janbo 197609  12130 Sep  1 17:26 example-import-drawio.html\n-rw-r--r-- 1 janbo 197609   8107 Sep  1 17:26 example-import-mermaid.html\n-rw-r--r-- 1 janbo 197609  11992 Sep  1 17:26 example-it-state-dark.html\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-5",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && ls -la && echo \"=== ASSETS ===\" && ls -la assets/ | head -60",
+          "providerItemId": "toolu_01UuHsmcBcLjEqGCzeGGnzJP",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-09-01T15:31:35.913Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-6",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cecxf8grVKyUhY1gHf6tv:thinking:0",
+          "sequence": 6,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T15:31:37.548Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && ls assets | wc -l && ls references scripts && echo \"=== SKILL headings ===\" && grep -n '^#\\+ ' SKILL.md | head -80",
+          "content": "155\nreferences:\nanimation.md\ndoctor.md\nexport.md\nimport-drawio.md\nimport-mermaid.md\nonboarding.md\noutput-spec.md\nprimitive-annotation.md\nprimitive-icons.md\nprimitive-sketchy.md\nprimitive-terminal.md\nprofiles.md\nsemantic-patterns.md\nstyle-guide.md\ntype-architecture.md\ntype-bar.md\ntype-data-flow.md\ntype-db-schema.md\ntype-dependency.md\ntype-deployment.md\ntype-dp-integration.md\ntype-dp-security-matrix.md\ntype-er.md\ntype-fishbone.md\ntype-flowchart.md\ntype-gantt.md\ntype-high-level.md\ntype-it-state.md\ntype-journey.md\ntype-kanban.md\ntype-layers.md\ntype-line.md\ntype-loop.md\ntype-medallion.md\ntype-nested.md\ntype-org-chart.md\ntype-polar.md\ntype-process.md\ntype-pyramid.md\ntype-quadrant.md\ntype-radar.md\ntype-sankey.md\ntype-scatter.md\ntype-sequence.md\ntype-state.md\ntype-story-map.md\ntype-swimlane.md\ntype-timeline.md\ntype-tree.md\ntype-treemap.md\ntype-uml-class.md\ntype-venn.md\ntype-wardley.md\n\nscripts:\ndrawio_extract.py\nmermaid_extract.py\nself_check.py\n=== SKILL headings ===\n9:# Diagram Design\n17:## 0. First-time setup — style guide gate\n35:## 1. Philosophy\n50:## 2. When to Use\n65:## 3. Selection: semantic pattern, then visual type\n81:### Visual-type guide (39)\n133:### Confirm before drawing\n139:## 4. Universal Anti-patterns\n162:## 5. Design System\n168:### Semantic roles (at a glance)\n181:### Node type → treatment\n193:### Typography (summary — full spec in style-guide.md)\n212:## 6. Core SVG Primitives\n222:### Background\n244:### Arrow markers (define all three, always)\n267:### Mandatory connector rules\n293:### Node box — full pattern\n312:### Arrow labels — always mask, always with margin\n330:### Legend — horizontal strip at the bottom\n346:## 7. Layout & Spacing\n348:### 4px grid\n365:### Complexity budget (per diagram)\n412:### Page layout\n421:## 8. Summary Card Pattern\n446:## 9. Pre-Output Checklist (Taste Gate)\n504:## 10. Templates & Variants\n521:### To create a new diagram\n531:## 11. Importing an Existing Diagram (draw.io) and Mermaid\n544:### Output dials — format, size, detail level, audience\n559:## 12. Output\n569:### Accessible SVG contract\n580:### Exporting to PNG / SVG\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-7",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && ls assets | wc -l && ls references scripts && echo \"=== SKILL headings ===\" && grep -n '^#\\+ ' SKILL.md | head -80",
+          "providerItemId": "toolu_01JKDa7ByCWmHvL8DhM338k3",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-09-01T15:31:40.759Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && sed -n '212,346p' SKILL.md",
+          "content": "## 6. Core SVG Primitives\n\nUniversal building blocks. Type-specialized primitives (lifeline, activation bar, region) live in the relevant type reference linked in the guide. Optional primitives:\n\n- Editorial callouts → [primitive-annotation.md](references/primitive-annotation.md)\n- Hand-drawn variant → [primitive-sketchy.md](references/primitive-sketchy.md)\n- Icon set (laptop, server, DB, K8s, Docker, AWS, …) → [primitive-icons.md](references/primitive-icons.md). Browse the gallery at [`assets/icons.html`](assets/icons.html).\n- Terminal / CLI-window variant → [primitive-terminal.md](references/primitive-terminal.md)\n- Optional explanatory motion → [animation.md](references/animation.md)\n\n### Background\n\n**Default: clean paper, no dot pattern.** Single `<rect>` filled with `paper`. Don't wrap the diagram in a secondary container background — the diagram sits directly on the page.\n\n```svg\n<rect width=\"100%\" height=\"100%\" fill=\"#f5f5f5\"/>\n```\n\n**Optional: dotted paper variant.** When a long-form editorial diagram benefits from textured ground (essays, hero diagrams on a dedicated page), opt in by adding the `dots` pattern and a second rect:\n\n```svg\n<defs>\n  <pattern id=\"dots\" width=\"22\" height=\"22\" patternUnits=\"userSpaceOnUse\">\n    <circle cx=\"1\" cy=\"1\" r=\"0.9\" fill=\"rgba(45,49,66,0.10)\"/>\n  </pattern>\n</defs>\n<rect width=\"100%\" height=\"100%\" fill=\"#f5f5f5\"/>\n<rect width=\"100%\" height=\"100%\" fill=\"url(#dots)\" opacity=\"0.6\"/>\n```\n\nDon't use the dot pattern when the diagram sits inside a product page, slide, or card — the texture compounds with surrounding chrome and reads as noise.\n\n### Arrow markers (define all three, always)\n\n```svg\n<marker id=\"arrow\" markerWidth=\"8\" markerHeight=\"6\" refX=\"7\" refY=\"3\" orient=\"auto\">\n  <polygon points=\"0 0, 8 3, 0 6\" fill=\"#4f5d75\"/>\n</marker>\n<marker id=\"arrow-accent\" markerWidth=\"8\" markerHeight=\"6\" refX=\"7\" refY=\"3\" orient=\"auto\">\n  <polygon points=\"0 0, 8 3, 0 6\" fill=\"#eb6c36\"/>\n</marker>\n<marker id=\"arrow-link\" markerWidth=\"8\" markerHeight=\"6\" refX=\"7\" refY=\"3\" orient=\"auto\">\n  <polygon points=\"0 0, 8 3, 0 6\" fill=\"#2e5aa8\"/>\n</marker>\n```\n\n| Arrow | Stroke | When |\n|---|---|---|\n| Default | muted `#4f5d75` | Internal, generic |\n| Accent | coral `#eb6c36` | Primary / highlighted / headline |\n| Link-blue | `#2e5aa8` | HTTP/API calls, external systems |\n| Dashed | `stroke-dasharray=\"5,4\"` + any color | Optional, passive, return, async |\n\n**Draw arrows before boxes** so z-order puts lines behind nodes.\n\n### Mandatory connector rules\n\nThese six rules are **non-negotiable**. Run the pre-output checklist (§9) to verify before producing any diagram.\n\n1. **Rounded right-angle (orthogonal) connectors are mandatory.** Never use diagonal `<line>` or straight slanted paths between nodes that don't share an x or y axis. Every bend must be a quarter-arc with `r=8` (or `r=6` minimum for tight layouts). See `references/type-architecture.md` for the elbow-path formula. Reserve plain straight `<line>` only for connections whose endpoints share the same x or y coordinate. Diagonal connectors are an automatic fail.\n\n2. **Label-to-connector margin: 6–10px gap, always.** A label must never sit *on* its arrow — the connector must remain visible. Place the label centered above (or beside, for vertical segments) the line with a **minimum 6px gap** between the bottom of the label's mask rect and the connector stroke. The opaque mask rect prevents the arrow from bleeding through, but the *visible* gap between mask edge and line preserves the reader's ability to trace the connection. If the label is large enough that 6px feels cramped, push it to 8–10px. Never let the mask rect touch or overlap the stroke.\n\n3. **No overlapping connectors.** Two connectors must never share the same stroke path, run parallel on top of each other, or be drawn on top of each other for any segment. When two orthogonal arrows must cross at a single point, apply the **bridge / hop** primitive (see `references/type-architecture.md` § Crossing arrows). When two arrows naturally want to overlap, offset their routing by ≥12px\n[1569 characters omitted]\nt path between them — for example, a `METRICS` arrow exiting an `Observability` footer bar and rising into a zone above must cross the `Active Directory` footer bar that sits between them. In that exception:\n   - The stroke must be **dashed** (e.g., `stroke-dasharray=\"4,3\"`) to signal \"transit, not interaction\" — it tells the reader the intervening box is not an endpoint.\n   - The label sits at the **visible end** of the connector (typically near the source) so it doesn't fall behind the intervening box.\n   - No marker (arrowhead) may land on the intervening box's edge — the marker resolves at the true destination only.\n\n   When in doubt, reroute. The exception exists for the narrow case where rerouting is geometrically impossible, not as a shortcut to avoid layout work.\n\n6. **A label mask must not overlap a node drawn after it.** Rule 2 keeps the label off its own connector; this one keeps it off the boxes. Because nodes are painted after labels, a mask that lands partly inside a node is covered by the node fill and the text renders as a fragment sitting on the node border. Place the label on a segment of the connector that runs through open canvas — for a connector leaving a node's right edge, that means clearing the node's `x + width` before the mask starts. A mask fully *inside* a node is a badge chip and is fine; a mask overlapping a zone container is fine too, since zones are painted first. From a repository checkout, verify with `python3 <repo-root>/scripts/verify-geometry.py <file>`.\n\n### Node box — full pattern\n\n```svg\n<!-- 1. Opaque paper mask — prevents arrows bleeding through transparent fills -->\n<rect x=\"X\" y=\"Y\" width=\"W\" height=\"H\" rx=\"6\" fill=\"#f5f5f5\"/>\n<!-- 2. Styled box -->\n<rect x=\"X\" y=\"Y\" width=\"W\" height=\"H\" rx=\"6\" fill=\"FILL\" stroke=\"STROKE\" stroke-width=\"1\"/>\n<!-- 3. Rectangular type tag (rx=2, NOT a pill) -->\n<rect x=\"X+8\" y=\"Y+6\" width=\"28\" height=\"12\" rx=\"2\" fill=\"transparent\" stroke=\"STROKE@0.40\" stroke-width=\"0.8\"/>\n<text x=\"X+22\" y=\"Y+15\" fill=\"STROKE@0.8\" font-size=\"7\" font-family=\"'Geist Mono', monospace\"\n      text-anchor=\"middle\" letter-spacing=\"0.08em\">API</text>\n<!-- 4. Node name (Geist sans — human-readable) -->\n<text x=\"CX\" y=\"CY+2\" fill=\"#2d3142\" font-size=\"12\" font-weight=\"600\"\n      font-family=\"'Geist', sans-serif\" text-anchor=\"middle\">Node Name</text>\n<!-- 5. Technical sublabel (Geist Mono) -->\n<text x=\"CX\" y=\"CY+18\" fill=\"#4f5d75\" font-size=\"9\"\n      font-family=\"'Geist Mono', monospace\" text-anchor=\"middle\">tech:port</text>\n```\n\n### Arrow labels — always mask, always with margin\n\nEvery arrow label needs an opaque rect behind it. Without one it bleeds through the line. **And the label must sit with a visible gap above the connector — never on top of it.**\n\n```svg\n<!-- Mask sits 14px above the arrow (8px text height + 6px gap). Stroke is at ARROW_Y. -->\n<rect x=\"MID_X-18\" y=\"ARROW_Y-20\" width=\"36\" height=\"12\" rx=\"2\" fill=\"#f5f5f5\"/>\n<text x=\"MID_X\" y=\"ARROW_Y-11\" fill=\"#7a8399\" font-size=\"8\"\n      font-family=\"'Geist Mono', monospace\" text-anchor=\"middle\" letter-spacing=\"0.06em\">WRITE</text>\n```\n\nRules:\n\n- ≤14 characters, all-caps, centered on segment midpoint.\n- **Mandatory 6–10px gap** between the bottom of the mask rect and the arrow stroke. The connector must remain visible — a label that hides its own arrow is a hard fail.\n- Never `writing-mode` vertical.\n- For vertical segments, place the label to the side (not on the line) with the same 6–10px horizontal gap.\n\n### Legend — horizontal strip at the bottom\n\n**Never put the legend inside the diagram area.** Place as a horizontal strip after all nodes, with a hairline separator:\n\n```svg\n<line x1=\"30\" y1=\"LEGEND_Y-8\" x2=\"VIEWBOX_W-30\" y2=\"LEGEND_Y-8\"\n      stroke=\"rgba(45,49,66,0.10)\" stroke-width=\"0.8\"/>\n<text x=\"30\" y=\"LEGEND_Y+8\" fill=\"#4f5d75\" font-size=\"8\" font-family=\"'Geist Mono', monospace\"\n      letter-spacing=\"0.14em\">LEGEND</text>\n<!-- Items — horizontal row, ~160px apart -->\n```\n\nExpand SVG `viewBox` height by ~60px.\n\n---\n\n## 7. Layout & Spacing\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-8",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && sed -n '212,346p' SKILL.md",
+          "providerItemId": "toolu_01TSEAmk4dKbe29KMHTVpM4j",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-09-01T15:31:44.856Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-9",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CecxfndPSYcwvQKYAdfeo:thinking:0",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T15:31:46.971Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design/assets\" && sed -n '1,120p' example-architecture.html",
+          "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Content site · Architecture</title>\n  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n  <style>\n    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }\n    :root {\n      --color-paper:   #f5f5f5;\n      --color-ink:     #2d3142;\n      --color-muted:   #4f5d75;\n      --color-accent:  #eb6c36;\n      --font-sans:     'Geist', system-ui, sans-serif;\n      --font-serif:    'Instrument Serif', serif;\n      --font-mono:     'Geist Mono', ui-monospace, monospace;\n    }\n\n    body {\n      font-family: var(--font-sans);\n      background: var(--color-paper);\n      color: var(--color-ink);\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 3rem 2rem;\n    }\n\n    .frame { max-width: 1200px; width: 100%; }\n\n    .eyebrow {\n      font-family: var(--font-mono);\n      font-size: 0.66rem;\n      font-weight: 500;\n      letter-spacing: 0.18em;\n      text-transform: uppercase;\n      color: var(--color-muted);\n      margin-bottom: 0.5rem;\n    }\n\n    h1 {\n      font-family: var(--font-serif);\n      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);\n      font-weight: 400;\n      letter-spacing: -0.02em;\n      line-height: 1.15;\n      color: var(--color-ink);\n      margin-bottom: 1.5rem;\n    }\n\n    svg { width: 100%; min-width: 900px; display: block; }\n  </style>\n</head>\n<body>\n  <div class=\"frame\">\n    <p class=\"eyebrow\">Architecture · Diagram Design</p>\n    <h1>Content site in production</h1>\n\n    <svg viewBox=\"0 0 1000 480\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\" aria-labelledby=\"architecture-title architecture-desc\">\n      <title id=\"architecture-title\">Content site in production</title>\n      <desc id=\"architecture-desc\">Architecture diagram showing reader requests moving through Cloudflare to an Astro origin, MDX bundle, and content CMS.</desc>\n        <defs>\n          <pattern id=\"dots\" width=\"22\" height=\"22\" patternUnits=\"userSpaceOnUse\">\n            <circle cx=\"1\" cy=\"1\" r=\"0.9\" fill=\"rgba(45,49,66,0.10)\"/>\n          </pattern>\n          <marker id=\"arrow\" markerWidth=\"8\" markerHeight=\"6\" refX=\"7\" refY=\"3\" orient=\"auto\"><polygon points=\"0 0, 8 3, 0 6\" fill=\"#4f5d75\"/></marker>\n          <marker id=\"arrow-accent\" markerWidth=\"8\" markerHeight=\"6\" refX=\"7\" refY=\"3\" orient=\"auto\"><polygon points=\"0 0, 8 3, 0 6\" fill=\"#eb6c36\"/></marker>\n          <marker id=\"arrow-link\" markerWidth=\"8\" markerHeight=\"6\" refX=\"7\" refY=\"3\" orient=\"auto\"><polygon points=\"0 0, 8 3, 0 6\" fill=\"#2e5aa8\"/></marker>\n        </defs>\n\n        <rect width=\"100%\" height=\"100%\" fill=\"#f5f5f5\"/>\n        <rect width=\"100%\" height=\"100%\" fill=\"url(#dots)\" opacity=\"0.55\"/>\n\n        <!-- Zone: Content services (drawn before arrows and nodes) -->\n        <rect x=\"616\" y=\"128\" width=\"164\" height=\"272\" rx=\"8\"\n              fill=\"rgba(45,49,66,0.02)\" stroke=\"rgba(45,49,66,0.10)\" stroke-width=\"0.8\"/>\n        <rect x=\"672\" y=\"132\" width=\"52\" height=\"12\" rx=\"2\" fill=\"#f5f5f5\"/>\n        <text x=\"698\" y=\"141\" fill=\"rgba(45,49,66,0.40)\" font-size=\"7\" font-family=\"'Geist Mono', monospace\"\n              text-anchor=\"middle\" letter-spacing=\"0.14em\">CONTENT</text>\n\n        <!-- Arrows first (behind boxes) -->\n        <line x1=\"168\" y1=\"272\" x2=\"220\" y2=\"272\" stroke=\"#2e5aa8\" stroke-width=\"1.2\" marker-end=\"url(#arrow-link)\"/>\n        <line x1=\"364\" y1=\"272\" x2=\"416\" y2=\"272\" stroke=\"#eb6c36\" stroke-width=\"1.4\" marker-end=\"url(#arrow-accent)\"/>\n        <!-- Exit Astro top→enter MDX bottom; exit Astro bottom→enter CMS top -->\n        <path d=\"M 496,240 H 692 Q 700,240 700,232 V 224\"\n              fill=\"none\" stroke=\"#4f5d75\" stroke-width=\"1.2\" marker-end=\"url(#arrow)\"/>\n        <path d=\"M 496,304 H 692 Q 700,304 700,312 V 320\"\n              fill=\"none\" stroke=\"#4f5d75\" stroke-width=\"1.2\" marker-end=\"url(#arrow)\"/>\n\n        <!-- Dashed return: Cloudflare→Reader (cached HTML — same orthogonal rules as solid) -->\n        <path d=\"M 220,288 H 168\" fill=\"none\" stroke=\"#4f5d75\" stroke-width=\"1\" stroke-dasharray=\"4,3\" marker-end=\"url(#arrow)\"/>\n\n        <!-- Arrow labels -->\n        <rect x=\"172\" y=\"252\" width=\"48\" height=\"12\" rx=\"2\" fill=\"#f5f5f5\"/>\n        <text x=\"196\" y=\"262\" fill=\"#2e5aa8\" font-size=\"8\" font-family=\"'Geist Mono', monospace\" text-anchor=\"middle\" letter-spacing=\"0.08em\">HTTPS</text>\n\n        <rect x=\"172\" y=\"278\" width=\"32\" height=\"12\" rx=\"2\" fill=\"#f5f5f5\"/>\n        <text x=\"188\" y=\"287\" fill=\"#4f5d75\" font-size=\"8\" font-family=\"'Geist Mono', monospace\" text-anchor=\"middle\" letter-spacing=\"0.08em\">RESP</text>\n\n        <rect x=\"368\" y=\"252\" width=\"48\" height=\"12\" rx=\"2\" fill=\"#f5f5f5\"/>\n        <text x=\"392\" y=\"262\" fill=\"#eb6c36\" font-size=\"8\" font-family=\"'Geist Mono', monospace\" text-anchor=\"middle\" letter-spacing=\"0.08em\">SSR</text>\n\n        <rect x=\"632\" y=\"246\" width=\"60\" height=\"12\" rx=\"2\" fill=\"#f5f5f5\"/>\n        <text x=\"662\" y=\"255\" fill=\"#4f5d75\" font-size=\"8\" font-family=\"'Geist Mono', monospace\" text-anchor=\"middle\" letter-spacing=\"0.08em\">READ MDX</text>\n\n        <rect x=\"632\" y=\"286\" width=\"44\" height=\"12\" rx=\"2\" fill=\"#f5f5f5\"/>\n        <text x=\"654\" y=\"295\" fill=\"#4f5d75\" font-size=\"8\" font-family=\"'Geist Mono', monospace\" text-anchor=\"middle\" letter-spacing=\"0.08em\">QUERY</text>\n\n        <!-- Node: Reader -->\n        <rect x=\"40\" y=\"240\" width=\"128\" height=\"64\" rx=\"6\" fill=\"#f5f5f5\"/>\n        <rect x=\"40\" y=\"240\" width=\"128\" height=\"64\" rx=\"6\" fill=\"rgba(79,93,117,0.10)\" stroke=\"#7a8399\" stroke-width=\"1\"/>\n        <rect x=\"48\" y=\"248\" width=\"28\" height=\"12\" rx=\"2\" fill=\"transparent\" stroke=\"rgba(122,131,153,0.40)\" stroke-width=\"0.8\"/>\n        <text x=\"62\" y=\"257\" fill=\"#7a8399\" font-size=\"7\" font-family=\"'Geist Mono', monospace\" text-anchor=\"middle\" letter-spacing=\"0.08em\">EXT</text>\n        <text x=\"104\" y=\"276\" fill=\"#2d3142\" font-size=\"12\" font-weight=\"600\" font-family=\"'Geist', sans-serif\" text-anchor=\"middle\">Reader</text>\n        <text x=\"104\" y=\"292\" fill=\"#4f5d75\" font-size=\"9\" font-family=\"'Geist Mono', monospace\" text-anchor=\"middle\">Browser</text>\n\n        <!-- Node: Cloudflare -->\n        <rect x=\"220\" y=\"240\" width=\"144\" height=\"64\" rx=\"6\" fill=\"#f5f5f5\"/>\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-10",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design/assets\" && sed -n '1,120p' example-architecture.html",
+          "providerItemId": "toolu_01XQLmfN3k59BjhxwqbboDhi",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-09-01T15:31:49.704Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cecxg9k8dduMcBHySKxQa:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T15:31:53.521Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && grep -n '^#\\+ ' references/type-uml-class.md references/type-db-schema.md references/primitive-icons.md references/style-guide.md | head -60",
+          "content": "references/type-uml-class.md:1:# UML Class Diagram\nreferences/type-uml-class.md:16:## Layout conventions\nreferences/type-uml-class.md:26:## Relationship vocabulary\nreferences/type-uml-class.md:41:## Connector rules\nreferences/type-uml-class.md:45:## Complexity budget\nreferences/type-uml-class.md:51:## Anti-patterns\nreferences/type-uml-class.md:61:## Examples\nreferences/type-db-schema.md:1:# Database Schema\nreferences/type-db-schema.md:7:## Layout conventions\nreferences/type-db-schema.md:9:### Table box\nreferences/type-db-schema.md:16:### Foreign-key connectors — the defining rule\nreferences/type-db-schema.md:20:### Schema grouping\nreferences/type-db-schema.md:24:### Focal rule\nreferences/type-db-schema.md:30:## Complexity budget\nreferences/type-db-schema.md:34:## Anti-patterns\nreferences/type-db-schema.md:44:## Examples\nreferences/primitive-icons.md:1:# Icons (primitive)\nreferences/primitive-icons.md:5:## Usage\nreferences/primitive-icons.md:11:## Compute\nreferences/primitive-icons.md:13:### laptop\nreferences/primitive-icons.md:22:### phone\nreferences/primitive-icons.md:31:### desktop\nreferences/primitive-icons.md:40:### server\nreferences/primitive-icons.md:49:### container\nreferences/primitive-icons.md:58:### vm\nreferences/primitive-icons.md:67:## People\nreferences/primitive-icons.md:69:### user\nreferences/primitive-icons.md:78:### users\nreferences/primitive-icons.md:87:### admin\nreferences/primitive-icons.md:96:### robot\nreferences/primitive-icons.md:105:## Network\nreferences/primitive-icons.md:107:### cloud\nreferences/primitive-icons.md:116:### internet\nreferences/primitive-icons.md:125:### cdn\nreferences/primitive-icons.md:134:### firewall\nreferences/primitive-icons.md:143:### vpn\nreferences/primitive-icons.md:152:### load-balancer\nreferences/primitive-icons.md:161:### gateway\nreferences/primitive-icons.md:170:### dns\nreferences/primitive-icons.md:179:## Data\nreferences/primitive-icons.md:181:### database\nreferences/primitive-icons.md:190:### file\nreferences/primitive-icons.md:199:### log\nreferences/primitive-icons.md:208:### queue\nreferences/primitive-icons.md:217:### cache\nreferences/primitive-icons.md:226:### bucket\nreferences/primitive-icons.md:235:### backup\nreferences/primitive-icons.md:244:### search\nreferences/primitive-icons.md:253:## Kubernetes\nreferences/primitive-icons.md:255:### pod\nreferences/primitive-icons.md:264:### node\nreferences/primitive-icons.md:273:### service\nreferences/primitive-icons.md:282:### deployment\nreferences/primitive-icons.md:291:### ingress\nreferences/primitive-icons.md:300:### volume\nreferences/primitive-icons.md:309:## Action\nreferences/primitive-icons.md:311:### api\nreferences/primitive-icons.md:320:### request\nreferences/primitive-icons.md:329:### response\nreferences/primitive-icons.md:338:### sync\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-12",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && grep -n '^#\\+ ' references/type-uml-class.md references/type-db-schema.md references/primitive-icons.md references/style-guide.md | head -60",
+          "providerItemId": "toolu_012QJoQpxoyE4jAgjtrHmqfx",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-09-01T15:31:56.101Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && sed -n '1,30p' references/primitive-icons.md && echo \"--- DB TABLE BOX ---\" && sed -n '1,30p' references/type-db-schema.md",
+          "content": "# Icons (primitive)\n\nA monochrome 24×24 icon library for IT/cloud diagrams. Each icon uses `currentColor` so it inherits ink from its parent SVG and adapts to the editorial skin or any user-onboarded brand palette.\n\n## Usage\n\nFind the icon by name (the `### name` headings below). Copy the fenced `<svg>` snippet into your diagram. Default size is 24×24; wrap in `<g transform=\"translate(x,y) scale(s)\">` to position and resize. Set `color`, `fill`, or `stroke` on the parent group/SVG to control color.\n\nGeneric icons are stroked (1.5px, hairline, like the rest of the skill); brand silhouettes are filled. Don't mix the two styles in the same diagram unnecessarily.\n\n## Compute\n\n### laptop\nUser laptop or workstation.\n\n```svg\n<svg aria-hidden=\"true\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 19l18 0\" /> <path d=\"M5 7a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v8a1 1 0 0 1 -1 1h-12a1 1 0 0 1 -1 -1l0 -8\" /></svg>\n```\n\nSource: Tabler Icons / `device-laptop` (MIT)\n\n### phone\nMobile phone or tablet client.\n\n```svg\n<svg aria-hidden=\"true\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 5a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-14\" /> <path d=\"M11 4h2\" /> <path d=\"M12 17v.01\" /></svg>\n```\n\nSource: Tabler Icons / `device-mobile` (MIT)\n\n--- DB TABLE BOX ---\n# Database Schema\n\n**Best for:** the *physical* schema — real tables, real SQL types, real constraints, real indexes, and foreign keys that connect one column to another column. It's the DDL made legible: migrations, review of a real database, and anything where the column type or the `ON DELETE` behavior is the point.\n\n**Not for domain modeling.** [ER / data model](type-er.md) is entity-level: relationship lines join *boxes* and carry cardinality, fields are a plain list, and it's the right tool for a conceptual or domain conversation. Database schema is column-level: the FK connector anchors to the specific column row on both ends — the one capability ER doesn't have, and the reason this type exists. If you're discussing what an Order *is*, use ER. If you're discussing what happens when a row is deleted, use this.\n\n## Layout conventions\n\n### Table box\n\n- **Header band** — `schema.table` (e.g. `public.orders`) in Geist sans 12px weight 600, with a rectangular type tag (`rx=2`, NOT a pill) reading `TABLE`. A hairline separates it from the body.\n- **Column rows** — fixed 24px row height so connectors can anchor predictably. Each row: column name in Geist sans 12px anchored left, SQL type in Geist Mono 9px `muted` anchored right (`uuid`, `text`, `numeric(12,2)`, `timestamptz`), and constraint chips between them as small `rx=2` tags in Geist Mono 8px: `PK`, `FK`, `UQ`, `NN`. Alternate row background `ink @ 0.02` on even rows for scannability.\n- **Overflow row** — when a table has more columns than the budget allows, the last row is a Geist Mono 9px `muted` line: `+ N more columns`. Never silently truncate a table without saying so.\n- **Index compartment** — an optional final compartment separated by a hairline, labelled with a Geist Mono 8px uppercase `INDEXES` eyebrow, listing index names in Geist Mono 9px (`idx_orders_customer_id`, `uq_products_sku`). List only the indexes that matter to the story, not every index on the table.\n\n### Foreign-key connectors — the defining rule\n\nEach FK edge starts at the **vertical centre of its source column row** and ends at the **vertical centre of the referenced column row**, routed with orthogonal rounded elbows (see SKILL.md §6 and [type-architecture.md](type-architecture.md) for the elbow formula and bridge/hop primitive). Label each edge in Geist Mono 8px with its referential action — `ON DELETE CASCADE`, `ON DELETE RESTRICT`, `ON DELETE SET NULL` — masked with the standard 6–10px gap. Fixed 24px row height guarantees ≥12px separation only when two FKs attach to *different* rows on the same table edge — the row spacing itself is the fan. When two or more FKs attach to the *same* row on the same edge (e.g. two child tables both referencing the same parent's primary key), anchoring all of them at the exact row centre would collide at a single point, which SKILL.md §6 rule 4 forbids. Offset each attach point symmetrically around the row's vertical centre instead — ±8px for two edges, keeping every point inside the row's 24px band and ≥12px from its neighbor — so each connector still reads as attaching to that row while remaining independently traceable.\n\n### Schema grouping\n\nTables in a non-default schema sit inside a containment rect (`rx=8`, `ink @ 0.02` fill, `ink @ 0.20` stroke dashed `4,4`) with a Geist Mono 8px uppercase tracked schema label in its top-left corner. Draw the group rect first so tables paint over it.\n\n### Focal rule\n\nThe 2 accent elements are: (1) the one destructive FK (`ON DELETE CASCADE`) — the edge and its label count together, since a labelled edge is one thing; and (2) the table that FK cascades into, carrying `accent-tint` on its **header band only**, never on the whole box. Nothing else on the diagram is `accent`.\n\nIf a schema has no destructive FK, it has no focal element. Leave it unaccented rather than promoting an arbitrary table.\n\n## Complexity budget\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-13",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && sed -n '1,30p' references/primitive-icons.md && echo \"--- DB TABLE BOX ---\" && sed -n '1,30p' references/type-db-schema.md",
+          "providerItemId": "toolu_01AEy8YRLGU9KffQEBz1tuZC",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-09-01T15:32:00.437Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-14",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CecxgwnpZjWC1yxwtnYhj:thinking:0",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T15:32:06.977Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design/assets\" && echo \"g count:\" && grep -o '<g[ >]' example-architecture.html | wc -l && grep -o '<g[^>]*>' example-db-schema.html | head -5 && echo \"--- comments as delimiters ---\" && grep -o '<!-- [A-Za-z][^-]*-->' example-db-schema.html | head -20 && echo \"--- classes/ids on shapes ---\" && grep -o 'class=\"[^\"]*\"' example-architecture.html example-db-schema.html example-uml-class.html | sort -u | head -20",
+          "content": "g count:\n0\n--- comments as delimiters ---\n<!-- BILLING schema group (drawn first so tables paint over it) -->\n<!-- FK connectors (drawn before boxes) -->\n<!-- Table: public.customers -->\n<!-- Table: public.orders -->\n<!-- Table: public.products -->\n<!-- Table: billing.invoices (inside BILLING group) -->\n<!-- Legend -->\n--- classes/ids on shapes ---\nexample-architecture.html:class=\"eyebrow\"\nexample-architecture.html:class=\"frame\"\nexample-db-schema.html:class=\"eyebrow\"\nexample-db-schema.html:class=\"frame\"\nexample-uml-class.html:class=\"eyebrow\"\nexample-uml-class.html:class=\"frame\"\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-15",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design/assets\" && echo \"g count:\" && grep -o '<g[ >]' example-architecture.html | wc -l && grep -o '<g[^>]*>' example-db-schema.html | head -5 && echo \"--- comments as delimiters ---\" && grep -o '<!-- [A-Za-z][^-]*-->' example-db-schema.html | head -20 && echo \"--- classes/ids on shapes ---\" && grep -o 'class=\"[^\"]*\"' example-architecture.html example-db-schema.html example-uml-class.html | sort -u | head -20",
+          "providerItemId": "toolu_01Ka1M7qT2ybiekn3A8L2Y7j",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-09-01T15:32:11.908Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CecxhoAw72awCUA1cfds4:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T15:32:15.800Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design/assets\" && echo \"files w/ comments:\" && grep -l '<!--' example-*.html | wc -l && echo \"total example files:\" && ls example-*.html | wc -l && echo \"files with <g:\" && grep -l '<g ' example-*.html | wc -l && echo \"files with <use:\" && grep -l '<use ' example-*.html | wc -l && echo \"files with symbol:\" && grep -l '<symbol' example-*.html | wc -l",
+          "content": "files w/ comments:\n132\ntotal example files:\n148\nfiles with <g:\n21\nfiles with <use:\n6\nfiles with symbol:\n3\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-17",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design/assets\" && echo \"files w/ comments:\" && grep -l '<!--' example-*.html | wc -l && echo \"total example files:\" && ls example-*.html | wc -l && echo \"files with <g:\" && grep -l '<g ' example-*.html | wc -l && echo \"files with <use:\" && grep -l '<use ' example-*.html | wc -l && echo \"files with symbol:\" && grep -l '<symbol' example-*.html | wc -l",
+          "providerItemId": "toolu_01DUBVQe87owyYvacHxWcuDd",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-09-01T15:32:19.685Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CecxiMpy7zVH95QaKWQhZ:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T15:32:22.444Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && sed -n '162,212p' SKILL.md",
+          "content": "## 5. Design System\n\n**The design system is skinnable.** All colors, typography, and tokens live in a single source of truth — [`references/style-guide.md`](references/style-guide.md). This file describes semantic roles (`paper`, `ink`, `muted`, `accent`, `link`, …). The default skin is a cool editorial palette (white-smoke paper, jet-black ink, atomic-tangerine accent, blue-slate muted, silver hairlines); to apply your own brand, either edit `style-guide.md` directly or run the URL-based flow described in [`references/onboarding.md`](references/onboarding.md).\n\n> When specs below or in type references mention \"ink\", \"accent\", \"muted\", etc., look up the current hex value in `style-guide.md`.\n\n### Semantic roles (at a glance)\n\n| Role | Purpose |\n|---|---|\n| `paper`, `paper-2` | Page bg and container bg |\n| `ink` | Primary text / stroke |\n| `muted`, `soft` | Secondary text, default arrows, sublabels |\n| `rule`, `rule-solid` | Hairline borders |\n| `accent`, `accent-tint` | 1–2 focal elements per diagram |\n| `link` | HTTP/API calls, external arrows |\n\n**Focal rule:** `accent` goes on 1–2 elements max. Everything else is `ink` / `muted` / `soft`. If you're tempted to accent 4 things, you haven't decided what's focal yet.\n\n### Node type → treatment\n\n| Type | Fill | Stroke |\n|---|---|---|\n| **Focal** (1–2 max) | `accent-tint` | `accent` |\n| **Backend / API / Step** | white | `ink` |\n| **Store / State** | `ink @ 0.05` | `muted` |\n| **External / Cloud** | `ink @ 0.03` | `ink @ 0.30` |\n| **Input / User** | `muted @ 0.10` | `soft` |\n| **Optional / Async** | `ink @ 0.02` | `ink @ 0.20` dashed `4,3` |\n| **Security / Boundary** | `accent @ 0.05` | `accent @ 0.50` dashed `4,4` |\n\n### Typography (summary — full spec in style-guide.md)\n\n- **Title** — Instrument Serif, 1.75rem, 400 — H1 only\n- **Node name** — Geist (sans), 12px, 600 — human-readable labels\n- **Sublabel** — Geist Mono, 9px — ports, URLs, field types\n- **Eyebrow / tag** — Geist Mono, 7–8px, uppercase, tracked — type tags, axis labels\n- **Arrow label** — Geist Mono, 8px — annotation on arrows\n- **Editorial aside** — Instrument Serif *italic*, 14px — callouts only\n\n**Korean labels** — Geist and Instrument Serif carry no Hangul. Extend the family on that `<text>`, budget 1em per Unicode wide or full-width character and the Latin advance for every other, and never set Hangul below 12px. Full rules in [`style-guide.md`](references/style-guide.md#korean-labels).\n\n**Mono is for technical content only** — never as a blanket \"dev\" font, and never JetBrains Mono.\n\n```html\n<link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap\" rel=\"stylesheet\">\n```\n\n---\n\n## 6. Core SVG Primitives\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-19",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/diagram-design/skills/diagram-design\" && sed -n '162,212p' SKILL.md",
+          "providerItemId": "toolu_01Jb7mXUaARsCPMuxhh8kwvf",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-09-01T15:32:24.990Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CecxikZSyqkNE2SWHmWiv:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T15:32:29.420Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Investigated. Findings:\n\n## 1. Shapes + connectors? Partly right, but incomplete\n\nNode-and-edge diagram types (architecture, data-flow, db-schema, ER, UML class, deployment, dependency, flowchart, sequence, state) do decompose into shapes + connectors. But the asset set is 148 example files spanning 39 visual types, and a large slice is **not** node-and-edge at all: bar, line, scatter, polar, radar, bump, beeswarm, bubble, sankey, treemap, gantt, venn, pyramid, wardley, quadrant. Those are data-driven geometry — axes, plotted marks, scales — with no reusable \"shape vocabulary\".\n\nActual element categories in the SVG (from SKILL.md §6 and the examples):\n\n| Category | What it is |\n|---|---|\n| **Background** | `paper` rect, optional `dots` pattern rect |\n| **Defs** | three arrow markers (`arrow`, `arrow-accent`, `arrow-link`), patterns, gradients |\n| **Zone / container** | grouping rects drawn first (schema group, layer bar, security boundary) with corner eyebrow label |\n| **Connector** | `<line>` or orthogonal `<path>` with `r=8` quarter-arc elbows + marker-end |\n| **Connector label** | opaque mask rect + mono `<text>`, 6–10px gap off the stroke |\n| **Node box** | composite of 5 elements: paper mask rect, styled rect, type tag rect, tag text, name text, sublabel text |\n| **Icons** | separate 24×24 `currentColor` library in `references/primitive-icons.md` — ~60 named icons already extracted as standalone SVG snippets |\n| **Legend** | hairline + horizontal item strip at bottom |\n| **A11y** | `<title>` / `<desc>` bound via `aria-labelledby` |\n| **Annotation / sketchy / terminal** | optional primitives, own reference files |\n\nSo: at minimum **six** structural categories, not two.\n\n## 2. Extraction feasibility — the blocker\n\nThe examples are **flat, absolute-coordinate SVG**. Concretely:\n\n- `example-architecture.html` contains **zero** `<g>` elements. Only 21 of 148 files use `<g>` at all, 6 use `<use>`, 3 use `<symbol>`.\n- No `class` or `id` on any diagram shape — the only classes are HTML page chrome (`.frame`, `.eyebrow`).\n- A node is 5–7 sibling elements at hard-coded `x`/`y`, adjacent in document order, with nothing machine-readable joining them.\n- The **only** semantic marker is an HTML comment: `<!-- Node: Reader -->`, `<!-- Table: public.orders -->`, `<!-- FK connectors (drawn before boxes) -->`. Present in 132 of 148 files, absent in 16, and the wording is not standardized.\n\nSo a purely mechanical extractor (parse the DOM, pull a subtree) does not work — there is no subtree. Two workable routes:\n\n**A. Comment-delimited slicing (deterministic, ~89% coverage).** Script walks the SVG, splits at comment boundaries, takes all elements between one comment and the next as one candidate shape, computes the bounding box, translates to origin, emits a standalone SVG with a `viewBox` sized to the box. Fast and repeatable; fails on the 16 comment-less files and mis-slices wherever a comment groups several nodes.\n\n**B. LLM extraction prompt (what you asked for).** Model reads the SVG, identifies each logical unit, classifies it, and emits normalized parameterized SVG. Handles the comment-less files, but needs strict output rules or it invents geometry.\n\nRoute B is what your question wants; route A is a useful pre-pass to give B its candidates.\n\n## 3. Also worth knowing\n\n- `references/primitive-icons.md` is **already** the extracted-shape library you're describing, for icons: ~60 named, standalone, 24×24, `currentColor`, one fenced `<svg>` per `### name` heading. Building the shape/connector library in that same format keeps it consistent with the skill, and `scripts/build-icons.py` already exists as a precedent for generating such a file.\n- Normalization is the real design question. A raw slice of `<!-- Node: Reader -->` bakes in `x=\"40\" y=\"240\" width=\"128\"` and hex colors. To be reusable, a shape must be re-origined to `0,0` and have its palette hexes swapped back to the semantic role tokens (`paper`, `ink`, `accent`) — `style-guide.md` is the mapping table for that. Otherwise you get 148 near-duplicate one-off snippets, not a library.\n- Connectors are harder than shapes: an elbow path's `d` attribute encodes the routing between two specific box positions. Extracting one verbatim gives you a frozen path. Useful connector \"shapes\" have to be templates by topology (straight, single elbow, double elbow / S-bend, bridge-hop, fan) plus marker and dash variants — closer to a formula library than a clipped snippet.\n\nTwo prompts are needed, not one, since the normalization targets differ.\n\nWant me to write them? I'd propose:\n1. `extract-shapes.md` — per-file pass emitting normalized, role-tokenized, origin-anchored shape SVGs into a `primitive-shapes.md` gallery matching the icon-file format.\n2. `extract-connectors.md` — classifies connector geometry into the five topology templates and emits each as a parameterized `d`-formula plus a rendered example.\n\nConfirm and say where the output should land (new files under `references/`, or a scratch dir outside the skill), and I'll build them.",
+          "id": "agent-turn-5f84248a-f436-4087-b66d-d60ea1f96fb4-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 21,
+          "timestamp": "2026-09-01T15:32:59.303Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-4aefb97c-e285-47f0-87a4-8a0d5dca8381",
       "providerSessions": [],
       "startedAt": "2026-09-01T15:30:59.428Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "elapsedMs": 4474,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-01T15:31:25.234Z"
       },
       "title": "+",
+      "usage": {
+        "cachedInputTokens": 450581,
+        "inputTokens": 22,
+        "outputTokens": 4673,
+        "reasoningTokens": 0,
+        "totalTokens": 455276,
+        "costUsd": 0.676122
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
@@ -13483,11 +13748,11 @@
         "agent-4aefb97c-e285-47f0-87a4-8a0d5dca8381"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-c9666eeb-87e6-4f28-b3fe-d28aabb13627",
       "origin": {
@@ -13495,9 +13760,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-4aefb97c-e285-47f0-87a4-8a0d5dca8381",
       "startedAt": "2026-09-01T15:30:59.427Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-4aefb97c-e285-47f0-87a4-8a0d5dca8381"
     }
   ],
   "version": 5
