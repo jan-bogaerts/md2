@@ -538,10 +538,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "5f931241-561d-4149-9e7c-f0803db2fef0",
       "cardPath": "design/feature_descriptions/J_39_size_of_questions_box.md",
-      "completedAt": "2026-09-01T17:35:57.176Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 50115
+        "usedTokens": 126260
       },
       "entries": [
         {
@@ -1341,6 +1341,194 @@
           "role": "assistant",
           "sequence": 63,
           "timestamp": "2026-09-01T17:35:57.176Z"
+        },
+        {
+          "content": "Continue",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 64,
+          "timestamp": "2026-09-01T18:21:49.032Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-65",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedBe8fMWtkdxmR6pdTS3:thinking:0",
+          "sequence": 65,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T18:21:59.943Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Fixing the three lint errors.",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 66,
+          "timestamp": "2026-09-01T18:21:59.944Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\components\\actions\\agent\\action_agent_prompt.tsx",
+          "deletions": 12,
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-67",
+          "insertions": 12,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\components\\actions\\agent\\action_agent_prompt.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_019pfPvNmwuqegUHYptykxJe",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:22:05.837Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\components\\actions\\agent\\action_agent_prompt.tsx",
+          "deletions": 1,
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-68",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\components\\actions\\agent\\action_agent_prompt.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01KfHrkLvfoMRMXbioEVAQbV",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:22:08.920Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\components\\actions\\agent\\action_agent_question.grouped.test.tsx",
+          "deletions": 1,
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-69",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3\\app\\src\\components\\actions\\agent\\action_agent_question.grouped.test.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01NJCFXKKcn4ixVbaaCesXsi",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:22:12.203Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev3/app && npm run typecheck 2>&1 | tail -10; npx eslint src/components/actions/agent src/components/actions/run/popup/action_agent_interaction.tsx src/services/storage/application_storage.ts 2>&1 | tail -20",
+          "content": "> app@0.5.0 typecheck\n> tsc --noEmit",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-70",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev3/app && npm run typecheck 2>&1 | tail -10; npx eslint src/components/actions/agent src/components/actions/run/popup/action_agent_interaction.tsx src/services/storage/application_storage.ts 2>&1 | tail -20",
+          "providerItemId": "toolu_01XuY5QjyfFBFESvUYybMUA8",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:22:31.088Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nTypecheck and lint clean. Re-running the tests.",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 71,
+          "timestamp": "2026-09-01T18:22:32.897Z"
+        },
+        {
+          "command": "npx vitest run src/components/actions/agent/action_agent_prompt.test.tsx src/services/storage/application_storage.service.test.ts 2>&1 | tail -30",
+          "content": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  2 passed (2)\n      Tests  31 passed (31)\n   Start at  20:22:34\n   Duration  2.29s (transform 123ms, setup 105ms, import 943ms, tests 301ms, environment 719ms)",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-72",
+          "kind": "event",
+          "label": "npx vitest run src/components/actions/agent/action_agent_prompt.test.tsx src/services/storage/application_storage.service.test.ts 2>&1 | tail -30",
+          "providerItemId": "toolu_019Ksd91xirR4XwbS3vMy1Jj",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:22:37.303Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cp src/components/actions/agent/action_agent_question.grouped.test.tsx src/components/actions/agent/tmp_qcheck.test.tsx && npx vitest run src/components/actions/agent/tmp_qcheck.test.tsx 2>&1 | tail -30; rm src/components/actions/agent/tmp_qcheck.test.tsx",
+          "content": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev3/app\n\n\n Test Files  1 passed (1)\n      Tests  18 passed (18)\n   Start at  20:22:40\n   Duration  3.37s (transform 129ms, setup 86ms, import 1.11s, tests 1.38s, environment 693ms)",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-73",
+          "kind": "event",
+          "label": "cp src/components/actions/agent/action_agent_question.grouped.test.tsx src/components/actions/agent/tmp_qcheck.test.tsx && npx vitest run src/components/actions/agent/tmp_qcheck.test.tsx 2>&1 | tail -30; rm src/components/actions/agent/tmp_qcheck.test.tsx",
+          "providerItemId": "toolu_01M5iUr7W7WLqh9k5CrvwjrQ",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:22:44.437Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-74",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedBi7D9y6TmKkcgAtqvs:thinking:0",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T18:22:46.896Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rln \"ActionAgentInteraction\\|ActionAgentQuestionOwner\\|ActionPromptOwner\" --include=*.test.tsx --include=*.test.ts src | head",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-75",
+          "kind": "event",
+          "label": "grep -rln \"ActionAgentInteraction\\|ActionAgentQuestionOwner\\|ActionPromptOwner\" --include=*.test.tsx --include=*.test.ts src | head",
+          "providerItemId": "toolu_01S51KvfMWGE2fBYNmTqEVyr",
+          "sequence": 75,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:22:47.745Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -rln \"Cancel questions\\|action_agent_question_owner\\|Resize prompt\" --include=*.test.tsx --include=*.test.ts src | head",
+          "content": "src/components/actions/agent/action_agent_prompt.test.tsx\nsrc/components/actions/agent/action_agent_question.grouped.test.tsx",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-76",
+          "kind": "event",
+          "label": "grep -rln \"Cancel questions\\|action_agent_question_owner\\|Resize prompt\" --include=*.test.tsx --include=*.test.ts src | head",
+          "providerItemId": "toolu_017FKLwTbgj77C66nPFtNtih",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:22:49.986Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow Block 5: flip the spec status.",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 77,
+          "timestamp": "2026-09-01T18:22:51.964Z"
+        },
+        {
+          "command": "python - <<'PYEOF'\nimport io\np='C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_39_size_of_questions_box.md'\ns=io.open(p,encoding='utf-8').read()\ns=s.replace('status: ready for implementation','status: ready',1)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nPYEOF\nsed -n '1,14p' \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_39_size_of_questions_box.md\"",
+          "content": "---\nauthor: \nid: J_39\ninternalId: 5f931241-561d-4149-9e7c-f0803db2fef0\ntitle: size of questions box\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__5f931241-561d-4149-9e7c-f0803db2fef0.json\npolicy:\nbranch: j_39_size_of_questions_box\nworktree: 3\nchangedFiles:",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-event-78",
+          "kind": "event",
+          "label": "python - <<'PYEOF'\nimport io\np='C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_39_size_of_questions_box.md'\ns=io.open(p,encoding='utf-8').read()\ns=s.replace('status: ready for implementation','status: ready',1)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nPYEOF\nsed -n '1,14p' \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_39_size_of_questions_box.md\"",
+          "providerItemId": "toolu_01Phn5BGsjGwzyib3b3UCrBE",
+          "sequence": 78,
+          "status": "completed",
+          "timestamp": "2026-09-01T18:22:55.118Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. All five blocks landed.\n\n**What changed**\n\n- `action_agent_interaction.tsx` — reads pending `question`, passes `questionsPanel` to `ActionPromptOwner` instead of rendering `ActionAgentQuestionOwner` as a chat sibling. Approvals unmoved.\n- `action_prompt_owner.tsx` — forwards `questionsPanel` verbatim.\n- `action_agent_prompt.tsx` — prompt editor + questions panel now live in one bottom-block `Box`. Unsized panel caps at `max(96, column × 0.4)` and scrolls. New `blockHeight` state persisted to `md2.actionQuestionsBlockHeight`; bar drives block height while a question is up, prompt height otherwise. `resizeDisabled = promptEmpty && !questionsPanel` keeps the bar live with an empty prompt. `effectivePromptHeight` eats questions space first, prompt second. Aria label/valuemin/valuenow switch with the mode.\n- `application_storage.ts` — new key added to `MIGRATED_APPLICATION_STORAGE_KEYS` so desktop migration carries it.\n- Spec `status: ready`.\n\n**Verification**\n\n- `npm run typecheck` — clean.\n- eslint on touched files — clean (fixed a `set-state-in-effect` violation by folding the restore into the block ref callback, and unused mock params).\n- `action_agent_prompt.test.tsx` + `application_storage.service.test.ts` — 31 passed, 8 new tests covering cap, floor, live bar with empty prompt, block drag persistence, shrink order down to 96/72, chat-floor ceiling, arrow-key round-trip, and no-question regression.\n- `action_agent_question.grouped.test.tsx` — 18 passed, 1 new integration test for capped scroll with 20 options.\n\nOne thing worth flagging: `*.grouped.test.tsx` matches no vitest project in `vite.config.ts` — the `ui` project explicitly excludes it and nothing else includes it, so those files never run in `npm test`. I verified the new grouped test by copying it to a temporary non-grouped filename, running it, and deleting the copy. That config gap predates this work and I left it alone.",
+          "id": "agent-turn-cd8cbb2e-9356-414c-b601-e906f29a2fa6-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 79,
+          "timestamp": "2026-09-01T18:23:06.247Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1355,22 +1543,22 @@
         }
       ],
       "startedAt": "2026-09-01T17:24:56.380Z",
-      "status": "failed",
+      "status": "running",
       "timer": {
         "elapsedMs": 435667,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-01T18:21:49.032Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 436216,
-        "inputTokens": 22,
-        "outputTokens": 3886,
+        "cachedInputTokens": 1682897,
+        "inputTokens": 42,
+        "outputTokens": 7866,
         "reasoningTokens": 0,
-        "totalTokens": 440124,
-        "costUsd": 0.651041
+        "totalTokens": 1690805,
+        "costUsd": 2.433032
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1421,11 +1609,11 @@
         "agent-61a97bd1-01aa-4928-b178-6a4b0d11ceb5"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-2100cff5-dd74-4c17-9506-217feacdd49d",
       "origin": {
@@ -1434,9 +1622,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-61a97bd1-01aa-4928-b178-6a4b0d11ceb5",
       "startedAt": "2026-09-01T17:24:56.379Z",
-      "status": "failed"
+      "status": "failed",
+      "rootConversationId": "agent-61a97bd1-01aa-4928-b178-6a4b0d11ceb5"
     }
   ],
   "version": 5
