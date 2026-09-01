@@ -3,7 +3,7 @@ author:
 id: J_39
 internalId: 5f931241-561d-4149-9e7c-f0803db2fef0
 title: size of questions box
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
