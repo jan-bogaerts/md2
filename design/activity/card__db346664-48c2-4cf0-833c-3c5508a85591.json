@@ -3224,6 +3224,47 @@
       "startedAt": "2026-09-01T17:23:22.676Z",
       "status": "completed",
       "rootConversationId": "agent-b0bf4bfc-d6ac-4188-a482-0cead1ca5ac2"
+    },
+    {
+      "commits": [
+        {
+          "commit": "7eb56466e12f79227db890f149dc48b53edd368b",
+          "committedAt": "2026-09-01T20:23:57+02:00",
+          "deletions": 54,
+          "filePaths": [
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/shell/project/complete_release_dialog.tsx",
+            "app/src/components/shell/project/project_dialogs.test.tsx",
+            "app/src/components/shell/project/use_project_toolbar_menu_actions.ts",
+            "app/src/components/shell/project_toolbar_menu.tsx",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/data/release_archiving.node.test.ts",
+            "app/src/data/release_archiving.ts",
+            "app/src/services/config/config_entries.ts",
+            "app/src/services/config/config_persistence.service.test.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/project/project_session_service.ts",
+            "app/src/services/release_operations.service.test.ts",
+            "app/src/services/release_operations.ts",
+            "app/src/services/stats/project_stats_loader.ts",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/preload.js"
+          ],
+          "filesChanged": 20,
+          "insertions": 589,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-01T20:23:57+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "db346664-48c2-4cf0-833c-3c5508a85591",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
