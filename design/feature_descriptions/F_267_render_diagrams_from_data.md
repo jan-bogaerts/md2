@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__d7ab38b3-a791-4448-9b4d-65ce56961971.json
 policy:
-branch: f_267_render_diagrams_from_data_instead_of_generated_svg
-worktree: 1
 after: 5f931241-561d-4149-9e7c-f0803db2fef0
 changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx
