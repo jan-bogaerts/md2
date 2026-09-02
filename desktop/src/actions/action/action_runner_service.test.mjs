@@ -119,6 +119,19 @@ describe('ActionRunnerService', () => {
         expect(reservation.reference).toBe(`design/activity/card__card-010.json#conversation=${reservation.conversationId}`);
     });
 
+    it('reserves project-origin conversations for diagram and non-card file contexts', async () => {
+        const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
+        const { localGitService, runner } = createRunner(files);
+
+        await expect(runner.reserveConversation({ actionId: 'main', context: { diagramId: 'diagram-1', kind: 'diagram', type: 'root' }, runInput: {} }))
+            .resolves.toMatchObject({ activityPath: 'design/activity/card__card-010.json' });
+        await expect(runner.reserveConversation({ actionId: 'main', context: { file: 'design/notes.md', kind: 'file' }, runInput: {} }))
+            .resolves.toMatchObject({ activityPath: 'design/activity/card__card-010.json' });
+
+        expect(localGitService.ensureActivityFile.mock.calls.map(([, , origin]) => origin))
+            .toEqual([{ kind: 'project' }, { kind: 'project' }]);
+    });
+
     const releasedContext = {
         ...context,
         file: 'design/releases/v1/F-010.md',

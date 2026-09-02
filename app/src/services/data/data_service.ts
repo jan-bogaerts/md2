@@ -267,9 +267,9 @@ export class DataService extends EventTarget {
         return getProjectConfigOrNull(this.storage)
     }
 
+    /** Conversation ownership follows the presence of cardInternalId, not the context kind. */
     async listAgentConversations(context: ActionContext) {
-        if (context.kind === 'project' || context.kind === 'merge-conflict') return this.agents.listProjectAgentConversations()
-        if (!context.cardInternalId) throw new Error(`Missing cardInternalId for ${context.kind} agent conversation context`)
+        if (!context.cardInternalId) return this.agents.listProjectAgentConversations()
 
         return this.agents.ensureAgentConversationsForCard(context.cardInternalId)
     }

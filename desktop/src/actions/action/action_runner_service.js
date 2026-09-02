@@ -16,12 +16,9 @@ function createRunId() {
 
 const TERMINAL_RECOVERY_RETENTION_MS = 5 * 60 * 1000;
 
+// Activity ownership follows the presence of cardInternalId, not the context kind.
 function activityOrigin(context) {
-    if (context.kind === 'card' || context.kind === 'file') {
-        if (typeof context.cardInternalId !== 'string' || context.cardInternalId.length === 0) {
-            throw new Error('Card-origin action requires cardInternalId');
-        }
-
+    if (typeof context.cardInternalId === 'string' && context.cardInternalId.length > 0) {
         return { cardInternalId: context.cardInternalId, kind: 'card' };
     }
 

@@ -24,11 +24,9 @@ function scheduleFilePath(rootPath, actionsFolder) {
     return ensureInsideRoot(rootPath, path.join(actionsFolderPath, ACTION_SCHEDULES_FILE));
 }
 
+// History ownership follows the presence of cardInternalId, not the context kind.
 function activityOrigin(context) {
-    if (context.kind !== 'card' && context.kind !== 'file') return { kind: 'project' };
-    if (typeof context.cardInternalId !== 'string' || context.cardInternalId.length === 0) {
-        throw new Error('Card action history requires cardInternalId');
-    }
+    if (typeof context.cardInternalId !== 'string' || context.cardInternalId.length === 0) return { kind: 'project' };
 
     return { cardInternalId: context.cardInternalId, kind: 'card' };
 }

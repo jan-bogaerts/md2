@@ -48,6 +48,19 @@ describe('DataService', () => {
         expect(listProjectAgentConversations).toHaveBeenCalledOnce()
     })
 
+    it('lists diagram, folder and non-card file conversations through the project loader', async () => {
+        const service = createDataService()
+        const listProjectAgentConversations = vi.spyOn(service.agents, 'listProjectAgentConversations').mockResolvedValue([])
+        const ensureAgentConversationsForCard = vi.spyOn(service.agents, 'ensureAgentConversationsForCard').mockResolvedValue([])
+
+        await expect(service.listAgentConversations({ kind: 'diagram', type: 'root' })).resolves.toEqual([])
+        await expect(service.listAgentConversations({ file: 'design', kind: 'folder' })).resolves.toEqual([])
+        await expect(service.listAgentConversations({ file: 'design/notes.md', kind: 'file' })).resolves.toEqual([])
+
+        expect(listProjectAgentConversations).toHaveBeenCalledTimes(3)
+        expect(ensureAgentConversationsForCard).not.toHaveBeenCalled()
+    })
+
     it('replaces remote storage and project watch without reopening loaded project', async () => {
         configService.init()
         const firstMergeConflictCleanup = vi.fn()

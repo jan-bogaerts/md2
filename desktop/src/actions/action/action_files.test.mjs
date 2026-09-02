@@ -73,6 +73,26 @@ describe('action-files', () => {
         }
     });
 
+    it('loads history for a diagram and a non-card file context from project activity', async () => {
+        const rootPath = await createRoot('md2-project-history-');
+        const project = { branch: 'main', rootPath };
+        const projectOrigin = { kind: 'project' };
+        try {
+            await appendActionActivity(project, 'design', projectOrigin, { ...activityRecord('run-project'), origin: projectOrigin });
+
+            const expected = [{
+                command: 'implement', completedAt: '2026-07-20T10:01:00.000Z', output: 'done',
+                startedAt: '2026-07-20T10:00:00.000Z', status: 'completed', type: 'command',
+            }];
+            await expect(loadActionRunHistory(project, { actionId: 'implement', context: { kind: 'diagram', type: 'root' }, projectFolder: 'design' }))
+                .resolves.toEqual(expected);
+            await expect(loadActionRunHistory(project, { actionId: 'implement', context: { file: 'design/notes.md', kind: 'file' }, projectFolder: 'design' }))
+                .resolves.toEqual(expected);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
     it('loads agent metadata and root conversation reference without transcript text', async () => {
         const rootPath = await createRoot('md2-agent-history-');
         const project = { branch: 'main', rootPath };
