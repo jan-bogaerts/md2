@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 0d606964-ffae-4742-8986-6bdb592488ff
+after: df7f7a94-ee33-44a3-b499-2b230d484fef
 ---
 
 when attaching a file to a card, we ask the user to copy the file in the project or link to from where it is currently. if the card popup is open, then this dialog is not visible cause the z-index of the card popups. so we need to set the z-index of the dialog I think
