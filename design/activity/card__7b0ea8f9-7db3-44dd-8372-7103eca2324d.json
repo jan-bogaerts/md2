@@ -1565,6 +1565,35 @@
       "startedAt": "2026-09-02T14:29:23.792Z",
       "status": "completed",
       "rootConversationId": "agent-76a553a2-f159-46cf-aa91-cf67fdcd9276"
+    },
+    {
+      "commits": [
+        {
+          "commit": "fa74579e5040c7f5daa1c92077d70e7423657e91",
+          "committedAt": "2026-09-02T16:33:39+02:00",
+          "deletions": 14,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_store.node.test.ts",
+            "app/src/components/actions/conversation/action_conversation_store.ts",
+            "app/src/services/data/data_service.service.test.ts",
+            "app/src/services/data/data_service.ts",
+            "desktop/src/actions/action/action_files.js",
+            "desktop/src/actions/action/action_files.test.mjs",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/action/action_runner_service.test.mjs"
+          ],
+          "filesChanged": 8,
+          "insertions": 89,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-02T16:33:39+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "7b0ea8f9-7db3-44dd-8372-7103eca2324d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
