@@ -3,7 +3,7 @@ author:
 id: F_202
 internalId: 2ba8b222-8131-4283-9263-be319a8fed6f
 title: improve manual sentry import
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
