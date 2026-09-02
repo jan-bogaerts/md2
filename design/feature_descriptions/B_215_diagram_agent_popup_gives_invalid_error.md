@@ -3,7 +3,7 @@ author:
 id: B_215
 internalId: 7b0ea8f9-7db3-44dd-8372-7103eca2324d
 title: diagram agent popup gives invalid error
-status: new
+status: design
 owner: 
 affects:
 agents:
