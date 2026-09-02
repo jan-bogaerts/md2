@@ -10,8 +10,9 @@ agents:
   - design/activity/card__711befe5-b3f9-400b-b077-2b44830c9e38.json
 policy:
 after: 3f00b054-71c0-4d3f-abd5-0148f716b536
+branch: b_207_command_actions_replace_chars_in_command
+worktree: 1
 ---
-
 it appears we are replacing characters that we entered in the command line of a command action. apart from replacing placeholders, we should not be doing this. so:
 
 * why are we doing this
@@ -20,6 +21,7 @@ it appears we are replacing characters that we entered in the command line of a 
 
 ex: input: `powershell.exe -NoProfile -File "C:\Users\janbo\Documents\dev\vidsy\tools\release_electron.ps1"`
 actually executed: `powershell.exe -NoProfile -File "C:\Users\janbo\Documents\dev\vidsy\tools\release\_electron.ps1"`&#x20;
+
 ## Current state
 
 **Where the command text comes from.** A command action stores its command line in its action JSON file. The action editor edits that field in a plain MUI text field (`app/src/components/actions/editor/action_definition_fields.tsx:311`), so the stored JSON is never mangled. The action *run popup* is a different editor: for `action.type === 'command'` it seeds a prompt draft with `action.command` (`app/src/components/actions/run/popup/action_popup_operations.ts:83`) and renders that draft in the shared `MarkdownEditor` (`action_prompt_owner.tsx` → `action_agent_prompt.tsx:302`), which wraps MDXEditor 4.
