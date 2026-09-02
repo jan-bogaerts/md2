@@ -27,15 +27,16 @@ on design surface, show floating toolbox: resizable popup (reuse exiting compone
 
 Tools:
 
-* Select:&#x20;
-  * Click on surface: draw rect, everithing in rect is selected.
-  * Click on node, edge or group: select it
-  * Ctrl click: add to selection
-  * Drag on node, zdge or group: move around
-  * Drag on one of select handlers: resize
-  * Delete key: delete selection
-  * Double click: edit details
 * Section edit
+  * zoom: in and out
+  * Select:
+    * Click on surface: draw rect, everithing in rect is selected.
+    * Click on node, edge or group: select it
+    * Ctrl click: add to selection
+    * Drag on node, zdge or group: move around
+    * Drag on one of select handlers: resize
+    * Delete key: delete selection
+    * Double click: edit details
   * Delete: delete selection
   * Cut, copy, paste.
 * Node: draw nodes, each node type has button, this is section, section can be collapsed, expanded. Put in reusable toolsSection component
