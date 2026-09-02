@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__0d606964-ffae-4742-8986-6bdb592488ff.json
 policy:
-branch: j_43_code_blocks_in_read_only_markdown
-worktree: 2
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
   - app/src/components/actions/conversation/action_conversation_message.tsx
