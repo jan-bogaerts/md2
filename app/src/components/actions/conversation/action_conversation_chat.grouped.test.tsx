@@ -17,6 +17,9 @@ import { dialogService } from '../../../services/dialog_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { AppThemeContext } from '../../../theme/theme_context'
 import { useAppTheme } from '../../../theme/use_app_theme'
+import { createAppTheme } from '../../../theme/app_theme'
+import { MARKDOWN_STYLE_PRESETS } from '../../../theme/theme_config'
+import { THEME_MODE_STORAGE_KEY } from '../../../theme/use_theme_settings'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import type { ActionConversationStore } from './action_conversation_store'
 import { ActionConversationTranscript } from './action_conversation_transcript'
@@ -308,6 +311,7 @@ describe('ActionConversationChat', () => {
 
     afterEach(() => {
         cleanup()
+        window.localStorage.removeItem(THEME_MODE_STORAGE_KEY)
         setActionBridgeOverride(null)
         vi.restoreAllMocks()
         vi.unstubAllGlobals()
@@ -399,6 +403,97 @@ describe('ActionConversationChat', () => {
         const messageBox = screen.getByText('Styled').closest('.mdxeditor-content')?.parentElement
 
         expect(messageBox).toHaveStyle({ paddingTop: '37px' })
+    })
+
+    it.each(['light', 'dark'] as const)(
+        'renders fenced code as a contained theme surface in %s mode without changing inline code',
+        (mode) => {
+            const longToken = 'https://example.test/one/continuous/path/that/must/remain/inside/the/message/balloon'
+            const markdown = [
+                'Inline `inlineValue`.',
+                '',
+                '```text',
+                'first line',
+                '  indented  columns',
+                longToken,
+                '```',
+            ].join('\n')
+            window.localStorage.setItem(THEME_MODE_STORAGE_KEY, mode)
+            const { container } = renderChat(conversation('code.json', [message('message-1', markdown)]))
+            const blockCode = container.querySelector('pre > code')
+            const codeBlock = blockCode?.parentElement
+            const theme = createAppTheme(mode)
+            const configuredCodeBlock = MARKDOWN_STYLE_PRESETS.modern.codeBlock
+
+            expect(blockCode?.textContent).toContain(`first line\n  indented  columns\n${longToken}`)
+            expect(codeBlock).toHaveStyle({
+                backgroundColor: theme.palette.background.paper,
+                borderColor: theme.palette.divider,
+                borderRadius: `${theme.shape.borderRadius}px`,
+                borderStyle: 'solid',
+                borderWidth: '1px',
+                boxSizing: 'border-box',
+                maxWidth: '100%',
+                overflowWrap: 'anywhere',
+                padding: theme.spacing(1),
+                whiteSpace: 'pre-wrap',
+                width: '100%',
+            })
+            expect(codeBlock).toHaveStyle({
+                fontFamily: configuredCodeBlock.fontFamily,
+                fontSize: configuredCodeBlock.fontSize,
+                lineHeight: configuredCodeBlock.lineHeight,
+                marginBottom: configuredCodeBlock.marginBottom,
+                marginTop: configuredCodeBlock.marginTop,
+            })
+            const inlineCode = screen.getByText('inlineValue')
+            expect(inlineCode.parentElement).toHaveProperty('tagName', 'P')
+            expect(inlineCode.closest('pre')).toBeNull()
+            expect(inlineCode).not.toHaveStyle({ padding: theme.spacing(1) })
+            expect(inlineCode).not.toHaveStyle({ borderWidth: '1px' })
+        },
+    )
+
+    it('renders indented Markdown code with preserved indentation and wrapping styles', () => {
+        const markdown = ['Before', '', '    alpha', '      beta  gap', '', 'After'].join('\n')
+        const { container } = renderChat(conversation('indented-code.json', [message('message-1', markdown)]))
+        const blockCode = container.querySelector('pre > code')
+
+        expect(blockCode?.textContent).toContain('alpha\n  beta  gap')
+        expect(blockCode?.parentElement).toHaveStyle({ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' })
+    })
+
+    it('uses the same block-code presentation for historical and streaming messages', () => {
+        const historical = message('message-1', '```text\nhistorical code\n```')
+        const user = { ...message('message-2', '```text\nuser code\n```'), role: 'user' as const }
+        const streaming = { ...message('message-3', '```text\nstreaming code\n```'), agent: 'codex' }
+        const first = conversation('streaming-code.json', [historical, user, streaming], 'codex')
+        const { container, rerender } = renderChat(first, 'running')
+
+        expect(container.querySelectorAll('pre')).toHaveLength(3)
+        for (const codeBlock of container.querySelectorAll('pre')) {
+            expect(codeBlock).toHaveStyle({
+                backgroundColor: createAppTheme('light').palette.background.paper,
+                overflowWrap: 'anywhere',
+                whiteSpace: 'pre-wrap',
+            })
+        }
+
+        const updatedStreaming = { ...streaming, content: '```text\nstreaming code extended\n```' }
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat
+                    conversation={conversation('streaming-code.json', [historical, user, updatedStreaming], 'codex')}
+                    status="running"
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByText('streaming code extended')).toBeInTheDocument()
+        expect(screen.getByText('streaming code extended').parentElement).toHaveStyle({
+            overflowWrap: 'anywhere',
+            whiteSpace: 'pre-wrap',
+        })
     })
 
     it('returns to the end when the selected conversation changes', () => {
