@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "7b0ea8f9-7db3-44dd-8372-7103eca2324d",
       "cardPath": "design/feature_descriptions/B_215_diagram_agent_popup_gives_invalid_error.md",
-      "completedAt": null,
+      "completedAt": "2026-09-02T14:15:21.815Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 89387
@@ -784,17 +784,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 59,
-          "timestamp": "2026-09-02T14:15:21.227Z"
+          "timestamp": "2026-09-02T14:15:21.815Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-fac08f75-f8d0-415b-8cb2-72eccce0ea88",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "4d2c5d92-91a9-4413-a8fb-f35bfd4d25e9",
+          "createdAt": "2026-09-02T14:15:21.815Z",
+          "lastUsedAt": "2026-09-02T14:15:21.815Z",
+          "synchronizedThroughMessageId": "agent-turn-bdd2845c-d4d2-4717-b82c-63a6b2acfb5e-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-02T14:11:23.225Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-02T14:11:23.225Z"
+        "elapsedMs": 238590,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
