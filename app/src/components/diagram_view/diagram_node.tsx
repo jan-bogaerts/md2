@@ -1,5 +1,5 @@
 import { Box, ButtonBase, Typography } from '@mui/material'
-import type { KeyboardEvent, MouseEvent } from 'react'
+import { useRef, type KeyboardEvent, type MouseEvent } from 'react'
 import type { DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data'
 import type { PositionedDiagramNode } from '../../services/diagrams/diagram_layout'
 import { diagramRoleStyle } from './diagram_role_style'
@@ -42,8 +42,15 @@ function fieldPrefix(key: 'primary' | 'foreign' | undefined) {
 export function DiagramNode({ diagramType, flowPreset, node, onSelect }: DiagramNodeProps) {
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
     const interactive = node.drilldown !== false
+    const scrollRef = useRef<HTMLDivElement>(null)
+    const pressScrollTop = useRef(0)
     const handleSelect = (left: number, top: number) => onSelect({ id: node.id, label: node.label, left, top })
-    const handleClick = (event: MouseEvent<HTMLButtonElement>) => handleSelect(event.clientX, event.clientY)
+    const handleMouseDown = () => { pressScrollTop.current = scrollRef.current?.scrollTop ?? 0 }
+    const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+        // A scrollbar drag inside the content area presses and releases on the button; that is a scroll, not a selection.
+        if ((scrollRef.current?.scrollTop ?? 0) !== pressScrollTop.current) return
+        handleSelect(event.clientX, event.clientY)
+    }
     const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
         if (event.key !== 'Enter' && event.key !== ' ') return
         event.preventDefault()
@@ -58,10 +65,11 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect }: Diagram
             disabled={!interactive}
             onClick={interactive ? handleClick : undefined}
             onKeyDown={interactive ? handleKeyDown : undefined}
+            onMouseDown={interactive ? handleMouseDown : undefined}
             role="button"
             sx={{
                 alignItems: 'stretch', border: '1px solid', color: 'text.primary', display: 'flex', flexDirection: 'column',
-                height: node.height, justifyContent: 'center', left: node.x, overflow: 'hidden', position: 'absolute', textAlign: 'left',
+                height: node.height, left: node.x, overflow: 'hidden', position: 'absolute', textAlign: 'left',
                 top: node.y, width: node.width, zIndex: 2,
                 ...diagramRoleStyle(node.role),
                 ...kindStyles(node, flowPreset),
@@ -69,10 +77,32 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect }: Diagram
             }}
         >
             {!stateMarker ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 2, py: 1 }}>
-                    {node.tag ? <Typography color="custom.text3" variant="overline">{node.tag}</Typography> : null}
-                    <Typography sx={{ fontWeight: 600 }} variant="body2">{node.label}</Typography>
-                    {node.sublabel ? <Typography color="text.secondary" variant="caption">{node.sublabel}</Typography> : null}
+                <Box
+                    data-diagram-scroll="content"
+                    ref={scrollRef}
+                    sx={{
+                        display: 'flex', flex: 1, flexDirection: 'column',
+                        // `safe center` centres content that fits and falls back to top alignment once it overflows,
+                        // so the tag and label stay reachable instead of being clipped above the scroll origin.
+                        justifyContent: 'safe center', minHeight: 0, overflowX: 'hidden', overflowY: 'auto',
+                    }}
+                >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 2, py: 1 }}>
+                        {node.tag ? <Typography color="custom.text3" variant="overline">{node.tag}</Typography> : null}
+                        <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }} variant="body2">{node.label}</Typography>
+                        {node.sublabel ? (
+                            <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="caption">{node.sublabel}</Typography>
+                        ) : null}
+                    </Box>
+                    {diagramType === 'entity' && node.fields ? (
+                        <Box sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', px: 2, py: 1 }}>
+                            {node.fields.map((field) => (
+                                <Typography key={`${field.key ?? 'field'}:${field.name}`} sx={{ fontFamily: 'monospace' }} variant="caption">
+                                    {fieldPrefix(field.key)}{field.name}{field.type ? `: ${field.type}` : ''}
+                                </Typography>
+                            ))}
+                        </Box>
+                    ) : null}
                 </Box>
             ) : null}
             {diagramType === 'dependency' ? (
@@ -83,15 +113,6 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect }: Diagram
                 >
                     {node.fanIn} in
                 </Typography>
-            ) : null}
-            {diagramType === 'entity' && node.fields ? (
-                <Box sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', px: 2, py: 1 }}>
-                    {node.fields.map((field) => (
-                        <Typography key={`${field.key ?? 'field'}:${field.name}`} sx={{ fontFamily: 'monospace' }} variant="caption">
-                            {fieldPrefix(field.key)}{field.name}{field.type ? `: ${field.type}` : ''}
-                        </Typography>
-                    ))}
-                </Box>
             ) : null}
         </ButtonBase>
     )
