@@ -102,4 +102,20 @@ describe('DiagramNode', () => {
 
         expect(onSelect).not.toHaveBeenCalled()
     })
+
+    it('keeps non-drilldown node content scrollable without allowing selection', async () => {
+        const { button, onSelect } = renderNode(positioned({ drilldown: false, sublabel: 'long enough to scroll' }))
+        const wrapper = scrollWrapper(button) as HTMLElement
+        const user = userEvent.setup()
+
+        expect(button).toHaveAttribute('aria-disabled', 'true')
+        expect(button).toHaveAttribute('tabindex', '-1')
+        expect(button).not.toBeDisabled()
+        expect(getComputedStyle(wrapper).overflowY).toBe('auto')
+
+        await user.click(wrapper)
+        fireEvent.keyDown(button, { key: 'Enter' })
+
+        expect(onSelect).not.toHaveBeenCalled()
+    })
 })

@@ -973,15 +973,15 @@
           "agent": "codex",
           "conversationId": "01a06350-ade4-70e3-b934-dced2dae030f",
           "createdAt": "2026-09-02T18:12:55.290Z",
-          "lastUsedAt": "2026-09-02T18:12:55.290Z",
-          "synchronizedThroughMessageId": "agent-turn-eaf6ff49-334a-457d-9791-ac0e5ffc95a9-turn-1-assistant-3"
+          "lastUsedAt": "2026-09-02T18:20:29.709Z",
+          "synchronizedThroughMessageId": "agent-turn-eaf6ff49-334a-457d-9791-ac0e5ffc95a9-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-09-02T18:10:26.371Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 148919,
-        "runningStartedAt": "2026-09-02T18:18:30.982Z"
+        "elapsedMs": 267646,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
@@ -992,7 +992,7 @@
         "totalTokens": 1588869
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {

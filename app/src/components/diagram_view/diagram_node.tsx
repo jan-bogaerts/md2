@@ -61,8 +61,8 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect }: Diagram
     return (
         <ButtonBase
             aria-label={node.label}
+            aria-disabled={interactive ? undefined : true}
             data-diagram-id={node.id}
-            disabled={!interactive}
             onClick={interactive ? handleClick : undefined}
             onKeyDown={interactive ? handleKeyDown : undefined}
             onMouseDown={interactive ? handleMouseDown : undefined}
@@ -75,6 +75,7 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect }: Diagram
                 ...kindStyles(node, flowPreset),
                 '&:focus-visible': { borderColor: 'primary.main', outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
+            tabIndex={interactive ? undefined : -1}
         >
             {!stateMarker ? (
                 <Box

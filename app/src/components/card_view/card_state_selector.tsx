@@ -1,4 +1,4 @@
-import { Box, MenuItem, Select, Typography } from '@mui/material'
+import { Box, MenuItem, Select } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { StateConfig } from '../../data/data_types'
 import { statusOf } from '../../data/card_ordering'

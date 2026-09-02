@@ -599,7 +599,7 @@
       },
       "title": "complete",
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -614,11 +614,11 @@
         "agent-534217a3-07dd-46f7-8bd3-14040caa642f"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-7bf05d56-b463-4fc2-ac01-77b132896918",
       "origin": {
@@ -627,9 +627,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-534217a3-07dd-46f7-8bd3-14040caa642f",
       "startedAt": "2026-09-01T18:28:19.351Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-534217a3-07dd-46f7-8bd3-14040caa642f"
     }
   ],
   "version": 5

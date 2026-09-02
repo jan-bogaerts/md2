@@ -68,12 +68,12 @@ describe('DiagramRenderer', () => {
         expect(onSelect).toHaveBeenCalledWith(expect.any(HTMLElement), expect.objectContaining({ id: 'one-two', label: 'connects' }))
     })
 
-    it('renders dependency fan-in and disables explicit non-drilldown nodes', () => {
+    it('renders dependency fan-in and marks explicit non-drilldown nodes as disabled', () => {
         const data = diagram('dependency')
         data.nodes[0].drilldown = false
         renderDiagram(data)
 
         expect(screen.getByText('1 in')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'One' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'One' })).toHaveAttribute('aria-disabled', 'true')
     })
 })

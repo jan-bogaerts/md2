@@ -798,11 +798,11 @@
         "agent-2868137a-eb4b-4617-ab28-8750cbe5852a"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-7aa737a2-d3e4-47d8-b04d-8725e88d2625",
       "origin": {
@@ -811,9 +811,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-2868137a-eb4b-4617-ab28-8750cbe5852a",
       "startedAt": "2026-09-02T15:47:03.255Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-2868137a-eb4b-4617-ab28-8750cbe5852a"
     }
   ],
   "version": 5
