@@ -3,7 +3,7 @@ author:
 id: J_43
 internalId: 0d606964-ffae-4742-8986-6bdb592488ff
 title: code blocks in read only markdown
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,9 @@ agents:
 policy:
 branch: j_43_code_blocks_in_read_only_markdown
 worktree: 2
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
+  - app/src/components/actions/conversation/action_conversation_message.tsx
 ---
 in the action popup's chatlog, we show read only markdown. the formatting of code blocks is terrible: no word-wrap, no clear block. this needs to be improved.
 
