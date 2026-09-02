@@ -9,4 +9,4 @@ affects:
 agents:
 policy:
 ---
-seems that we have some duplicate stuff in [action\_diagram\_output.js](desktop/src/actions/action/action_diagram_output.js)
+seems that we have some duplicate stuff in @
