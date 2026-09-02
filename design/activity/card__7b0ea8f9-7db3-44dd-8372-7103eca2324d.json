@@ -834,7 +834,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "7b0ea8f9-7db3-44dd-8372-7103eca2324d",
       "cardPath": "design/feature_descriptions/B_215_diagram_agent_popup_gives_invalid_error.md",
-      "completedAt": null,
+      "completedAt": "2026-09-02T14:32:46.959Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 62421
@@ -1480,17 +1480,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 53,
-          "timestamp": "2026-09-02T14:32:46.234Z"
+          "timestamp": "2026-09-02T14:32:46.959Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-76a553a2-f159-46cf-aa91-cf67fdcd9276",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "d8114a94-0b2a-4a44-8d51-95113736e802",
+          "createdAt": "2026-09-02T14:32:46.959Z",
+          "lastUsedAt": "2026-09-02T14:32:46.959Z",
+          "synchronizedThroughMessageId": "agent-turn-42dd4734-13fc-413d-8a19-9fe76ccb4994-turn-1-assistant-7"
+        }
+      ],
       "startedAt": "2026-09-02T14:16:37.410Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 44799,
-        "runningStartedAt": "2026-09-02T14:29:23.798Z"
+        "elapsedMs": 247960,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
