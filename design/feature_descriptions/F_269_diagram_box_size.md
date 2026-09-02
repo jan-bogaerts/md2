@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__eb493428-5ac9-4256-aaa3-da3a26d73aca.json
 policy:
-branch: f_269_diagram_box_size
-worktree: 1
 ---
 
 is it possible to have the initial box size fit the size of the content?
