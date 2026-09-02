@@ -12,6 +12,34 @@ policy:
 after: 6ea2e797-b87b-4246-974a-d45ddc3fefc1
 branch: f_270_add_auto_finish_support_for_diagram_actions
 worktree: 3
+changedFiles:
+  - app/src/components/actions/editor/action_definition_fields.grouped.test.tsx
+  - app/src/components/actions/editor/action_definition_fields.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/data/action_run_types.ts
+  - app/src/data/action_types.ts
+  - app/src/project_template/actions/complete.json
+  - app/src/project_template/actions/implement.json
+  - app/src/services/actions/action_service_helpers.ts
+  - app/src/services/actions/electron_action_runner.node.test.ts
+  - app/src/services/diagrams/diagram_data.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
+  - desktop/src/actions/action/action_agent_executor.js
+  - desktop/src/actions/action/action_command_executor.js
+  - desktop/src/actions/action/action_definitions.test.mjs
+  - desktop/src/actions/action/action_diagram_output_watcher.js
+  - desktop/src/actions/action/action_diagram_output_watcher.test.mjs
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_run.test.mjs
+  - desktop/src/actions/action/action_runner_service.js
+  - desktop/src/actions/action/action_runner_service.test.mjs
+  - desktop/src/actions/action/action_text.js
+  - desktop/src/actions/action/action_text.test.mjs
+  - shared/action_definitions.d.mts
+  - shared/action_definitions.mjs
+  - shared/diagram_data.d.mts
+  - shared/tolerant_action_definitions.mjs
 ---
 
 We can automatically finish a streaming agent action when its card enters a configured state. Diagram-producing actions need equivalent support: finish the streaming agent when the generated diagram JSON is ready.
