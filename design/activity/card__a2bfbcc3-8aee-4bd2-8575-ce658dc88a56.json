@@ -808,6 +808,31 @@
     "cardInternalId": "a2bfbcc3-8aee-4bd2-8575-ce658dc88a56",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-09-02T16:45:57.813Z",
+      "conversationIds": [
+        "agent-6c5abb0c-0fd5-4266-94f7-208862e76eb1"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-01d03445-9307-4522-9ed7-465588f9668d",
+      "origin": {
+        "cardInternalId": "a2bfbcc3-8aee-4bd2-8575-ce658dc88a56",
+        "kind": "card"
+      },
+      "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "rootActionLabel": "fix bug",
+      "rootConversationId": "agent-6c5abb0c-0fd5-4266-94f7-208862e76eb1",
+      "startedAt": "2026-09-02T16:17:17.556Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
