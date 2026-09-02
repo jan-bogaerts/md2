@@ -3,7 +3,7 @@ author:
 id: B_214
 internalId: 6f26ee8a-2ac0-4b8b-aad9-2953cbf7dcc1
 title: remove artificial limitations
-status: new
+status: design
 owner: 
 affects:
 agents:
