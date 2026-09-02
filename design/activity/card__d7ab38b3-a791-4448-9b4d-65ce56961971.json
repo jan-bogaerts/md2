@@ -6142,12 +6142,20 @@
       ],
       "hasExplicitTitle": true,
       "id": "agent-d8f54ad1-26d3-4637-b952-4ba22f8a32c4",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a061e5-77e7-7132-8b44-8da304ded43b",
+          "createdAt": "2026-09-02T11:36:58.214Z",
+          "lastUsedAt": "2026-09-02T11:36:58.214Z",
+          "synchronizedThroughMessageId": "agent-turn-55ecd1cc-0d45-4553-90dc-b6c9d6ca70ca-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-02T11:33:42.824Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-02T11:33:42.824Z"
+        "elapsedMs": 195390,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
