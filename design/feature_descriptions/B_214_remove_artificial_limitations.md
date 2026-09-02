@@ -10,6 +10,8 @@ agents:
   - design/activity/card__6f26ee8a-2ac0-4b8b-aad9-2953cbf7dcc1.json
 policy:
 after: 0d606964-ffae-4742-8986-6bdb592488ff
+branch: b_214_remove_artificial_limitations
+worktree: 1
 ---
 
 apparently, the implementation of the diagram display introduced limitations that were not asked for:&#x20;
