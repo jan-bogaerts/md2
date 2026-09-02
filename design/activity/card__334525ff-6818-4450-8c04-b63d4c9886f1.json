@@ -687,6 +687,31 @@
     "cardInternalId": "334525ff-6818-4450-8c04-b63d4c9886f1",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-09-02T07:40:25.809Z",
+      "conversationIds": [
+        "agent-e8579c7b-8b47-48e2-82cc-3088dae0f304"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-7ae42ee4-51e6-46cd-bc3f-6152d2d27e8d",
+      "origin": {
+        "cardInternalId": "334525ff-6818-4450-8c04-b63d4c9886f1",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-e8579c7b-8b47-48e2-82cc-3088dae0f304",
+      "startedAt": "2026-09-01T17:20:20.573Z",
+      "status": "cancelled"
+    }
+  ],
   "version": 5
 }
