@@ -403,6 +403,43 @@ describe('ActionPopup', () => {
         expect(startAction).toHaveBeenCalledOnce()
     })
 
+    it('submits a command containing markdown characters without escaping them', async () => {
+        const startAction = vi.fn(async () => 'run-1')
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        const command = 'powershell.exe -File "C:\\dev\\tools\\release_electron.ps1" *all*'
+
+        fireEvent.change(prompt, { target: { value: command } })
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: 'first',
+            runInput: { command },
+        })))
+    })
+
+    it('submits a command starting with a dash unchanged', async () => {
+        const startAction = vi.fn(async () => 'run-1')
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+
+        fireEvent.change(prompt, { target: { value: '- npm run build' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: 'first',
+            runInput: { command: '- npm run build' },
+        })))
+    })
+
     it('retains command input and reports a start failure before Electron acceptance', async () => {
         const failure = new Error('Start rejected')
         const reportError = vi.spyOn(dialogService, 'error')

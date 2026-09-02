@@ -138,6 +138,7 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
             convertMessage={inputSnapshot.convertMessage}
             monospace={action.type === 'command'}
             onRunShortcut={handleRunShortcut}
+            plainText={action.type === 'command'}
             promptDraft={promptDraft}
             questionsPanel={questionsPanel}
             responsePrompts={action.type === 'agent' ? (

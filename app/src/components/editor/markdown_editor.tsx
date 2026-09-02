@@ -6,6 +6,7 @@ import {
     type MDXEditorMethods, type ViewMode,
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
+import type { LexicalEditor } from 'lexical'
 import {
     forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef,
     type DragEvent, type FocusEvent, type ReactNode,
@@ -21,6 +22,8 @@ import { markdownFileSearchPlugin } from './markdown_file_search_realm_plugin'
 import { markdownLocalTextSearchPlugin } from './markdown_local_text_search_realm_plugin'
 import { plainMarkdownPlugin } from './plain_markdown_realm_plugin'
 import { markdownPlaceholderPlugin } from './markdown_placeholder_realm_plugin'
+import { markdownPlainTextPlugin } from './markdown_plain_text_realm_plugin'
+import { readPlainText, writePlainText } from './markdown_plain_text'
 import { registerMarkdownEditorStage } from '../../services/project/markdown_editor_staging'
 import { markdownPastePlugin } from './markdown_paste_realm_plugin'
 import type { MarkdownImagePasteHandler } from './markdown_paste_cell'
@@ -59,6 +62,8 @@ interface MarkdownEditorPresentationProps {
     localTextSearch?: boolean
     monospace?: boolean
     overlayContainer?: HTMLElement | null
+    /** Exchange literal text instead of Markdown source, for fields that are not Markdown. */
+    plainText?: boolean
     placeholders?: readonly ActionPlaceholder[]
     readOnly?: boolean
     toolbarContents?: () => ReactNode
@@ -130,6 +135,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         monospace = false,
         overlayContainer,
         placeholders = EMPTY_PLACEHOLDERS,
+        plainText = false,
         readOnly = false,
         toolbarContents: customToolbarContents,
         viewMode,
@@ -145,6 +151,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const initialDocumentSnapshot = initialDocumentRef.current
     const { markdownContentSx, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
+    const plainTextEditorRef = useRef<LexicalEditor | null>(null)
     const activeDraftRef = useRef(draft)
     const activeTargetRef = useRef(initialDocumentSnapshot.target)
     const latestMarkdownRef = useRef(initialDocumentSnapshot.markdown)
@@ -164,10 +171,18 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         onDirtyChangeRef.current?.(dirty)
     }, [])
 
+    const readEditorContent = useCallback(() => {
+        if (!plainText) return editorRef.current?.getMarkdown()
+        const plainTextEditor = plainTextEditorRef.current
+        if (!plainTextEditor) return undefined
+
+        return readPlainText(plainTextEditor)
+    }, [plainText])
+
     const flush = useCallback(() => {
         const activeDraft = activeDraftRef.current
         if (activeDraft) {
-            const editorMarkdown = editorRef.current?.getMarkdown()
+            const editorMarkdown = readEditorContent()
             if (editorMarkdown !== undefined && editorMarkdown !== latestMarkdownRef.current) {
                 latestMarkdownRef.current = editorMarkdown
                 activeDraft.edit(editorMarkdown)
@@ -188,7 +203,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         queueMicrotask(() => applyPendingDocumentChangeRef.current())
 
         return true
-    }, [binding, dataSource, setDirty])
+    }, [binding, dataSource, readEditorContent, setDirty])
 
     const prepareDocumentSwitch = useCallback((detail: ActiveMarkdownDocumentChangedDetail, nextMarkdown: string) => {
         if (detail.discard) lastEmittedMarkdownRef.current = latestMarkdownRef.current
@@ -213,9 +228,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
     const replaceMarkdown = useCallback((markdown: string) => {
         replacingMarkdownRef.current = true
-        editorRef.current?.setMarkdown(markdown)
+        const plainTextEditor = plainTextEditorRef.current
+        if (plainText && plainTextEditor) writePlainText(plainTextEditor, markdown)
+        else editorRef.current?.setMarkdown(markdown)
         replacingMarkdownRef.current = false
-    }, [])
+    }, [plainText])
 
     const replaceDraftMarkdown = useCallback((markdown: string) => {
         replaceMarkdown(markdown)
@@ -267,11 +284,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             return
         }
 
-        const normalizedMarkdown = editorRef.current.getMarkdown()
-        latestMarkdownRef.current = normalizedMarkdown
-        lastEmittedMarkdownRef.current = normalizedMarkdown
+        const normalizedMarkdown = readEditorContent()
+        if (normalizedMarkdown !== undefined) {
+            latestMarkdownRef.current = normalizedMarkdown
+            lastEmittedMarkdownRef.current = normalizedMarkdown
+        }
         dirtyBaselineEstablishedRef.current = true
-    }, [])
+    }, [readEditorContent])
 
     useEffect(() => {
         const unregister = registerMarkdownEditorStage(flush)
@@ -293,7 +312,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         },
     }), [flush, replaceMarkdown, setDirty])
 
-    const handleEditorChange = useCallback((markdown: string) => {
+    const handleEditorChange = useCallback((serializedMarkdown: string) => {
+        const markdown = plainText ? readEditorContent() ?? serializedMarkdown : serializedMarkdown
         if (replacingMarkdownRef.current || latestMarkdownRef.current === markdown) return
 
         latestMarkdownRef.current = markdown
@@ -303,7 +323,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         activeDraftRef.current?.edit(markdown)
         const activeTarget = activeTargetRef.current
         if (dataSource && binding && activeTarget) dataSource.edit(binding, activeTarget, markdown)
-    }, [binding, dataSource, setDirty])
+    }, [binding, dataSource, plainText, readEditorContent, setDirty])
 
     const handleEditorError = useCallback(({ error }: MarkdownProcessingError) => {
         dialogService.error(new Error(error), { fallbackMessage: 'Markdown could not be parsed' })
@@ -320,6 +340,14 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
         editor.focus(() => editor.insertMarkdown(markdown), { defaultSelection: 'rootEnd' })
     }, [])
+
+    const handlePlainTextEditorReady = useCallback((plainTextEditor: LexicalEditor) => {
+        plainTextEditorRef.current = plainTextEditor
+    }, [])
+    const plainTextConfig = useMemo(
+        () => ({ initialText: initialDocumentSnapshot.markdown, onEditorReady: handlePlainTextEditorReady }),
+        [handlePlainTextEditorReady, initialDocumentSnapshot.markdown],
+    )
 
     const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
 
@@ -382,7 +410,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         tablePlugin(),
         codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),
         codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
-        markdownShortcutPlugin(),
+        ...(plainText ? [markdownPlainTextPlugin(plainTextConfig)] : [markdownShortcutPlugin()]),
         plainMarkdownPlugin(),
         ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),
         ...(!hideToolbar || (attachmentHandler && !hideAttachmentControl) ? [toolbarPlugin({ toolbarContents })] : []),
@@ -404,7 +432,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             <MDXEditor
                 className={mode === 'dark' ? 'dark-theme' : 'light-theme'}
                 contentEditableClassName="mdxeditor-content"
-                markdown={initialDocumentSnapshot.markdown}
+                markdown={plainText ? '' : initialDocumentSnapshot.markdown}
                 onChange={handleEditorChange}
                 onError={handleEditorError}
                 overlayContainer={overlayContainer}

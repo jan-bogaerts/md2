@@ -46,6 +46,8 @@ interface ActionAgentPromptProps {
     bottomRow?: ReactNode
     convertMessage: string | null
     monospace?: boolean
+    /** Exchange literal text with the editor; set for command actions. */
+    plainText?: boolean
     onRunShortcut?: () => void
     promptDraft: ActionPromptDraft
     questionsPanel?: ReactNode
@@ -55,8 +57,8 @@ interface ActionAgentPromptProps {
 /** Resizable prompt editor, plus any pending agent question, shown below an agent conversation. */
 export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     const {
-        attachmentHandler, bottomRow, convertMessage, monospace = false, onRunShortcut, promptDraft, questionsPanel,
-        responsePrompts,
+        attachmentHandler, bottomRow, convertMessage, monospace = false, onRunShortcut, plainText = false, promptDraft,
+        questionsPanel, responsePrompts,
     } = props
     const promptEditorRef = useRef<MarkdownEditorHandle>(null)
     const promptHeightStartRef = useRef(0)
@@ -309,6 +311,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                             monospace={monospace}
                             onLiveChange={handleLivePromptChange}
                             placeholders={ACTION_PROMPT_PLACEHOLDERS}
+                            plainText={plainText}
                             readOnly={editorSnapshot.preparationStatus !== 'ready'}
                             ref={promptEditorRef}
                         />
