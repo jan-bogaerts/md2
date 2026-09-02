@@ -39,13 +39,16 @@ Tools:
     * Double click: edit details
   * Delete: delete selection
   * Cut, copy, paste.
-* Node: draw nodes, each node type has button, this is section, section can be collapsed, expanded. Put in reusable toolsSection component
+* Node: draw nodes, each node type has button, this is section.
 * Edge: draw edges, other section, all edges
 * Groups: section, all groups
+* Others
 
 I Suppose edges can be dropped anywhere on surface and nodes are between edges, so they must hook up to the connection points of the edges. So edges must have connection points, which should be relative coordinates, perhaps an angle that is converted into coordinates for the nodes.
 
-More about section on toolbox: limit size, dont autosize to content. Allow user to resize.
+Sections are tabs on the toolbox
+
+Allow user to resize the toolbox
 
 Services:
 
