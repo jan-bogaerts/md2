@@ -3,7 +3,7 @@ author:
 id: F_269
 internalId: eb493428-5ac9-4256-aaa3-da3a26d73aca
 title: diagram box size
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
