@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__7037a625-d650-4574-b1d5-874d90ba82a4.json
 policy:
 ---
 seems that we have some duplicate stuff in [action\_scheduler\_service.js](desktop/src/actions/action/action_scheduler_service.js),  `DEFAULT_DIAGRAM_FOOTER` is already outdated.
