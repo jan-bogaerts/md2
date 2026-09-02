@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__7b0ea8f9-7db3-44dd-8372-7103eca2324d.json
 policy:
-branch: b_215_diagram_agent_popup_gives_invalid_error
-worktree: 1
 ---
 
 when opening the action popup when in diagram view, and it prepares the prompt, we get this error:
