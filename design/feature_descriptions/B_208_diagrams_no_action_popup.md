@@ -3,7 +3,7 @@ author:
 id: B_208
 internalId: 3f00b054-71c0-4d3f-abd5-0148f716b536
 title: diagrams no action popup
-status: new
+status: design
 owner: 
 affects:
 agents:
