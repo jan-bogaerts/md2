@@ -61,13 +61,85 @@ describe('parseDiagramData', () => {
         expect(() => parseDiagramData(JSON.stringify(diagram))).toThrow('nodes.fields has value only allowed for entity diagrams')
     })
 
-    it('rejects invalid type semantics, geometry, and complexity', () => {
+    it('rejects invalid type semantics and geometry', () => {
         expect(() => parseDiagramData(JSON.stringify({...validDiagram(), nodes: [{ ...validDiagram().nodes[0], kind: 'decision' }, validDiagram().nodes[1]]}))).toThrow('unsupported value decision for architecture')
         expect(() => parseDiagramData(JSON.stringify({...validDiagram(), edges: [{ ...validDiagram().edges[0], waypoints: [{ x: 0, y: 0 }] }]}))).toThrow('fewer than two points')
         expect(() => parseDiagramData(JSON.stringify({...validDiagram(), edges: [{ ...validDiagram().edges[0], waypoints: [{ x: 0, y: 0 }, { x: 8, y: 8 }] }]}))).toThrow('diagonal segment')
-        const nodes = Array.from({ length: 10 }, (_unused, index) => ({ id: `node-${index}`, label: `Node ${index}`, role: 'backend' }))
-        expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), edges: [], groups: [], nodes })))
-            .toThrow('nodes has more than 9 items')
+    })
+
+    it('parses a large architecture document with many focal nodes and groups', () => {
+        const nodes = Array.from({ length: 40 }, (_unused, index) => ({
+            id: `node-${index}`, label: `Node ${index}`, role: index % 5 === 0 ? 'focal' : 'backend',
+        }))
+        const edges = Array.from({ length: 60 }, (_unused, index) => ({
+            from: `node-${index % 40}`, id: `edge-${index}`, kind: 'connection', to: `node-${(index + 7) % 40}`,
+        }))
+        const groups = Array.from({ length: 6 }, (_unused, index) => ({
+            id: `group-${index}`, label: `Group ${index}`, nodeIds: [`node-${index * 2}`, `node-${index * 2 + 1}`],
+        }))
+        const parsed = parseDiagramData(JSON.stringify({ ...validDiagram(), edges, groups, nodes }))
+
+        expect(parsed.nodes).toHaveLength(40)
+        expect(parsed.edges).toHaveLength(60)
+        expect(parsed.nodes.filter(({ role }) => role === 'focal').length).toBeGreaterThan(3)
+        expect(parsed.groups.length).toBeGreaterThan(3)
+    })
+
+    it('parses three sequence fragments including an alt beside an opt', () => {
+        const sequence = {
+            edges: [
+                { from: 'client', id: 'call', kind: 'call', to: 'server' },
+                { from: 'server', id: 'ok', kind: 'success', to: 'client' },
+                { from: 'server', id: 'fail', kind: 'return', to: 'client' },
+                { from: 'client', id: 'retry', kind: 'call', to: 'server' },
+            ],
+            fragments: [
+                { id: 'branch', operator: 'alt', regions: [{ edgeIds: ['ok'], guard: 'valid' }, { edgeIds: ['fail'], guard: 'invalid' }] },
+                { id: 'optional', operator: 'opt', regions: [{ edgeIds: ['call'], guard: 'enabled' }] },
+                { id: 'repeat', operator: 'loop', regions: [{ edgeIds: ['retry'], guard: 'until ok' }] },
+            ],
+            meta: { description: 'Request path', title: 'Request', type: 'sequence', version: 1 },
+            nodes: [
+                { id: 'client', label: 'Client', role: 'input' },
+                { id: 'server', label: 'Server', role: 'backend' },
+            ],
+        }
+
+        expect(parseDiagramData(JSON.stringify(sequence)).fragments).toHaveLength(3)
+    })
+
+    it('parses wide decisions, repeated cycles, and dense state transitions', () => {
+        const flowchart = {
+            edges: Array.from({ length: 4 }, (_unused, index) => ({
+                from: 'choose', id: `branch-${index}`, kind: 'flow', label: `case ${index}`, to: `step-${index}`,
+            })),
+            meta: { description: 'Wide decision', preset: 'flowchart', title: 'Choices', type: 'flow', version: 1 },
+            nodes: [
+                { id: 'choose', kind: 'decision', label: 'Choose', role: 'focal' },
+                ...Array.from({ length: 4 }, (_unused, index) => ({ id: `step-${index}`, kind: 'step', label: `Step ${index}`, role: 'backend' })),
+            ],
+        }
+        expect(parseDiagramData(JSON.stringify(flowchart)).edges).toHaveLength(4)
+
+        const dependency = {
+            edges: [
+                { from: 'a', id: 'a-b', kind: 'cycle', to: 'b' },
+                { from: 'b', id: 'b-a', kind: 'cycle', to: 'a' },
+                { from: 'b', id: 'b-c', kind: 'cycle', to: 'c' },
+            ],
+            meta: { description: 'Cycles', title: 'Deps', type: 'dependency', version: 1 },
+            nodes: ['a', 'b', 'c'].map((id) => ({ id, label: id.toUpperCase(), role: 'backend' })),
+        }
+        expect(parseDiagramData(JSON.stringify(dependency)).edges.filter(({ kind }) => kind === 'cycle')).toHaveLength(3)
+
+        const state = {
+            edges: Array.from({ length: 7 }, (_unused, index) => ({
+                from: `state-${index % 3}`, id: `transition-${index}`, kind: 'transition', label: `t${index}`, to: `state-${(index + 1) % 3}`,
+            })),
+            meta: { description: 'Dense states', preset: 'state', title: 'States', type: 'flow', version: 1 },
+            nodes: Array.from({ length: 3 }, (_unused, index) => ({ id: `state-${index}`, kind: 'state', label: `State ${index}`, role: 'backend' })),
+        }
+        expect(parseDiagramData(JSON.stringify(state)).edges).toHaveLength(7)
     })
 
     it('parses bounded sequence fragments', () => {

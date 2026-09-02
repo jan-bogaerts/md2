@@ -113,4 +113,88 @@ describe('diagram layout', () => {
         expect(positioned.activations[0].height).toBeGreaterThan(positioned.activations[1].height)
         expect(positioned.fragments[0]).toMatchObject({ id: 'loop', operator: 'loop' })
     })
+
+    it('routes every edge of a dense graph even when clean lanes run out', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = Array.from({ length: 12 }, (_unused, index) => ({
+            id: `node-${index}`, label: `Node ${index}`, role: 'backend' as const,
+            x: (index % 4) * 160, y: Math.floor(index / 4) * 72,
+        }))
+        data.edges = Array.from({ length: 24 }, (_unused, index) => ({
+            from: `node-${index % 12}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index + 5) % 12}`,
+        }))
+
+        const positioned = layout(data)
+
+        const obstructed = positioned.edges.some((edge) => edge.points.slice(1).some((end, index) => {
+            const start = edge.points[index]
+
+            return positioned.nodes.filter(({ id }) => id !== edge.from && id !== edge.to).some((node) => {
+                const insideRow = start.y === end.y && start.y > node.y && start.y < node.y + node.height
+                    && Math.max(start.x, end.x) > node.x && Math.min(start.x, end.x) < node.x + node.width
+                const insideColumn = start.x === end.x && start.x > node.x && start.x < node.x + node.width
+                    && Math.max(start.y, end.y) > node.y && Math.min(start.y, end.y) < node.y + node.height
+
+                return insideRow || insideColumn
+            })
+        }))
+
+        expect(positioned.edges.map(({ id }) => id)).toEqual(data.edges.map(({ id }) => id))
+        expect(positioned.edges.every(({ points }) => points.length >= 2)).toBe(true)
+        expect(obstructed).toBe(true)
+    })
+
+    it('clamps connector ports on a node too narrow to keep them apart', () => {
+        const data: DiagramData = {
+            edges: Array.from({ length: 6 }, (_unused, index) => ({
+                from: `state-${index}`, id: `transition-${index}`, kind: 'transition', label: `t${index}`, to: 'done',
+            })),
+            groups: [],
+            meta: { description: 'Narrow terminator', preset: 'state', title: 'States', type: 'flow', version: 1 },
+            nodes: [
+                ...Array.from({ length: 6 }, (_unused, index) => ({
+                    id: `state-${index}`, kind: 'state' as const, label: `State ${index}`, role: 'backend' as const,
+                })),
+                { id: 'done', kind: 'end', label: 'Done', role: 'backend' },
+            ],
+        }
+
+        const positioned = layout(data)
+        const terminator = positioned.nodes.find(({ id }) => id === 'done')
+
+        expect(terminator).toMatchObject({ height: 24, width: 24 })
+        expect(positioned.edges).toHaveLength(6)
+    })
+
+    it('lays out a dependency graph deeper than four ranks', () => {
+        const ids = ['a', 'b', 'c', 'd', 'e', 'f']
+        const data: DiagramData = {
+            edges: ids.slice(1).map((id, index) => ({ from: ids[index], id: `${ids[index]}-${id}`, kind: 'dependency', to: id })),
+            groups: [],
+            meta: { description: 'Deep chain', title: 'Deps', type: 'dependency', version: 1 },
+            nodes: ids.map((id) => ({ id, label: id.toUpperCase(), role: 'backend' as const })),
+        }
+
+        const positioned = layout(data)
+
+        expect(new Set(positioned.nodes.map(({ y }) => y)).size).toBe(6)
+    })
+
+    it('lays out a hundred nodes and a hundred and fifty edges quickly', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = Array.from({ length: 100 }, (_unused, index) => ({
+            id: `node-${index}`, label: `Node ${index}`, role: 'backend' as const,
+        }))
+        data.edges = Array.from({ length: 150 }, (_unused, index) => ({
+            from: `node-${index % 100}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index * 7 + 3) % 100}`,
+        }))
+
+        const started = Date.now()
+        const positioned = layout(data)
+
+        expect(positioned.edges).toHaveLength(150)
+        expect(Date.now() - started).toBeLessThan(1000)
+    })
 })

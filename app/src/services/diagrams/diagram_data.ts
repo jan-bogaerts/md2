@@ -10,15 +10,6 @@ export const DIAGRAM_FLOW_PRESETS = ['flowchart', 'state'] as const
 export const DIAGRAM_CARDINALITIES = ['1', 'N', '0..1', '1..*'] as const
 export const DIAGRAM_SEQUENCE_OPERATORS = ['alt', 'opt', 'loop'] as const
 
-const MAX_NODES = 9
-const MAX_EDGES = 12
-const MAX_DEPENDENCY_EDGES = 14
-const MAX_ENTITY_NODES = 8
-const MAX_SEQUENCE_NODES = 5
-const MAX_FOCAL_NODES = 2
-const MAX_ARCHITECTURE_GROUPS = 3
-const MAX_SEQUENCE_FRAGMENTS = 2
-
 export type DiagramType = typeof DIAGRAM_TYPES[number]
 export type DiagramRole = typeof DIAGRAM_ROLES[number]
 export type DiagramNodeKind = typeof DIAGRAM_NODE_KINDS[number]
@@ -343,28 +334,9 @@ function validateReferences(data: DiagramData) {
     }
 }
 
-function validateComplexity(data: DiagramData) {
-    const maximumNodes = data.meta.type === 'entity' ? MAX_ENTITY_NODES
-        : data.meta.type === 'sequence' ? MAX_SEQUENCE_NODES : MAX_NODES
-    const maximumEdges = data.meta.type === 'dependency' ? MAX_DEPENDENCY_EDGES : MAX_EDGES
-    if (data.nodes.length > maximumNodes) malformed('nodes', `more than ${maximumNodes} items`)
-    if (data.edges.length > maximumEdges) malformed('edges', `more than ${maximumEdges} items`)
-    if (data.nodes.filter(({ role }) => role === 'focal').length > MAX_FOCAL_NODES) {
-        malformed('nodes.role', `more than ${MAX_FOCAL_NODES} focal items`)
-    }
-    if (data.meta.type === 'architecture' && data.groups.length > MAX_ARCHITECTURE_GROUPS) {
-        malformed('groups', `more than ${MAX_ARCHITECTURE_GROUPS} zones`)
-    }
-}
-
 function validateSequenceFragments(data: DiagramData) {
     const fragments = data.fragments ?? []
     if (data.meta.type !== 'sequence' && fragments.length > 0) malformed('fragments', 'value only allowed for sequence diagrams')
-    if (fragments.length > MAX_SEQUENCE_FRAGMENTS) malformed('fragments', `more than ${MAX_SEQUENCE_FRAGMENTS} items`)
-    if (fragments.length === MAX_SEQUENCE_FRAGMENTS
-        && fragments.some(({ operator }) => operator === 'alt')) {
-        malformed('fragments', 'two fragments must both use opt or loop')
-    }
     for (const { id, operator, regions } of fragments) {
         const requiredRegionCount = operator === 'alt' ? 2 : 1
         if (regions.length !== requiredRegionCount) malformed(`fragments.${id}.regions`, `expected ${requiredRegionCount} regions`)
@@ -400,13 +372,7 @@ function validateTypeSpecificData(data: DiagramData) {
         const invalidNode = data.nodes.find(({ kind }) => !kind || !allowedKinds.includes(kind))
         if (invalidNode) malformed(`nodes.${invalidNode.id}.kind`, `required ${data.meta.preset} node kind`)
     }
-    if (data.meta.type === 'dependency' && data.edges.filter(({ kind }) => kind === 'cycle').length > 1) {
-        malformed('edges.kind', 'more than one dependency cycle')
-    }
     if (data.meta.type === 'flow' && data.meta.preset === 'flowchart') {
-        const invalidDecision = data.nodes.find(({ id, kind }) => kind === 'decision'
-            && data.edges.filter(({ from }) => from === id).length > 3)
-        if (invalidDecision) malformed(`nodes.${invalidDecision.id}`, 'decision with more than three exits')
         const unlabeledBranch = data.edges.find(({ from, label }) => {
             const source = data.nodes.find(({ id }) => id === from)
 
@@ -415,11 +381,9 @@ function validateTypeSpecificData(data: DiagramData) {
         if (unlabeledBranch) malformed(`edges.${unlabeledBranch.id}.label`, 'required decision branch label')
     }
     if (data.meta.type === 'flow' && data.meta.preset === 'state') {
-        if (data.edges.length > data.nodes.length * 2) malformed('edges', 'more than twice the state count')
         const unlabeledTransition = data.edges.find(({ label }) => !label)
         if (unlabeledTransition) malformed(`edges.${unlabeledTransition.id}.label`, 'required state transition label')
     }
-    validateComplexity(data)
     validateSequenceFragments(data)
 }
 

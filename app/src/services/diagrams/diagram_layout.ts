@@ -23,8 +23,6 @@ const GROUP_HORIZONTAL_PADDING = 24
 const GROUP_HEADER_HEIGHT = 32
 const GROUP_BOTTOM_PADDING = 24
 const CONNECTOR_CLEARANCE = 20
-const PORT_GAP = 8
-const MAX_DEPENDENCY_RANKS = 4
 const EDGE_LABEL_HEIGHT = 12
 const EDGE_LABEL_GAP = 8
 
@@ -125,28 +123,63 @@ function incomingEdges(data: DiagramData, nodeId: string) {
     return data.edges.filter(({ kind, to }) => to === nodeId && kind !== 'cycle')
 }
 
+/** Groups nodes into strongly connected components with an iterative Tarjan pass, ignoring cycle edges. */
 function graphComponents(data: DiagramData) {
     const nodeIds = data.nodes.map(({ id }) => id)
-    const reachable = new Map(nodeIds.map((id) => [id, new Set([id])]))
+    const successors = new Map(nodeIds.map((id) => [id, [] as string[]]))
     for (const { from, kind, to } of data.edges) {
-        if (kind !== 'cycle') reachable.get(from)?.add(to)
-    }
-    for (let pass = 0; pass < nodeIds.length; pass += 1) {
-        for (const id of nodeIds) {
-            const destinations = [...(reachable.get(id) ?? [])]
-            for (const destination of destinations) {
-                for (const transitive of reachable.get(destination) ?? []) reachable.get(id)?.add(transitive)
-            }
-        }
+        if (kind !== 'cycle') successors.get(from)?.push(to)
     }
     const componentByNode = new Map<string, number>()
+    const indexByNode = new Map<string, number>()
+    const lowLinkByNode = new Map<string, number>()
+    const onStack = new Set<string>()
+    const stack: string[] = []
+    let nextIndex = 0
     let component = 0
-    for (const id of nodeIds) {
-        if (componentByNode.has(id)) continue
-        for (const candidate of nodeIds) {
-            if (reachable.get(id)?.has(candidate) && reachable.get(candidate)?.has(id)) componentByNode.set(candidate, component)
+    for (const root of nodeIds) {
+        if (indexByNode.has(root)) continue
+        const frames: { id: string, successorIndex: number }[] = [{ id: root, successorIndex: 0 }]
+        indexByNode.set(root, nextIndex)
+        lowLinkByNode.set(root, nextIndex)
+        nextIndex += 1
+        stack.push(root)
+        onStack.add(root)
+        while (frames.length > 0) {
+            const frame = frames[frames.length - 1]
+            const frameSuccessors = successors.get(frame.id) ?? []
+            if (frame.successorIndex < frameSuccessors.length) {
+                const next = frameSuccessors[frame.successorIndex]
+                frame.successorIndex += 1
+                if (!indexByNode.has(next)) {
+                    indexByNode.set(next, nextIndex)
+                    lowLinkByNode.set(next, nextIndex)
+                    nextIndex += 1
+                    stack.push(next)
+                    onStack.add(next)
+                    frames.push({ id: next, successorIndex: 0 })
+                } else if (onStack.has(next)) {
+                    lowLinkByNode.set(frame.id, Math.min(lowLinkByNode.get(frame.id) as number, indexByNode.get(next) as number))
+                }
+                continue
+            }
+            frames.pop()
+            if (lowLinkByNode.get(frame.id) === indexByNode.get(frame.id)) {
+                let member = stack.pop() as string
+                onStack.delete(member)
+                componentByNode.set(member, component)
+                while (member !== frame.id) {
+                    member = stack.pop() as string
+                    onStack.delete(member)
+                    componentByNode.set(member, component)
+                }
+                component += 1
+            }
+            const parent = frames[frames.length - 1]
+            if (parent) {
+                lowLinkByNode.set(parent.id, Math.min(lowLinkByNode.get(parent.id) as number, lowLinkByNode.get(frame.id) as number))
+            }
         }
-        component += 1
     }
 
     return { componentByNode, count: component }
@@ -184,9 +217,6 @@ function orderedRankNodes(data: DiagramData, rankNodes: DiagramNode[], priorPosi
 function layoutLayeredNodes(data: DiagramData) {
     const ranks = graphRanks(data)
     const rankValues = [...new Set(ranks.values())].sort((left, right) => left - right)
-    if (data.meta.type === 'dependency' && rankValues.length > MAX_DEPENDENCY_RANKS) {
-        throw new Error(`Malformed diagram data: dependency layout has more than ${MAX_DEPENDENCY_RANKS} ranks`)
-    }
     const priorPositions = new Map<string, number>()
     const positioned: PositionedDiagramNode[] = []
     let y = SURFACE_PADDING
@@ -253,10 +283,8 @@ function portPoint(
     const index = matches.findIndex(({ id }) => id === edge.id)
     const horizontal = side === 'bottom' || side === 'top'
     const sideLength = horizontal ? node.width : node.height
+    // Ports spread evenly across the side; on a node too small for distinct ports they clamp onto shared grid positions.
     const offset = snap(sideLength * (index + 1) / (matches.length + 1))
-    if (matches.length > 1 && sideLength / (matches.length + 1) < PORT_GAP) {
-        throw new Error(`Malformed diagram data: node ${node.id} is too small for distinct connector ports`)
-    }
     if (side === 'top') return { x: node.x + offset, y: node.y }
     if (side === 'bottom') return { x: node.x + offset, y: node.y + node.height }
     if (side === 'left') return { x: node.x, y: node.y + offset }
@@ -327,15 +355,16 @@ function bestRoute(
     nodes: PositionedDiagramNode[],
     priorEdges: PositionedDiagramEdge[],
 ) {
-    const route = [...candidates].sort((left, right) => routePenalty(edge, left, nodes, priorEdges)
-        - routePenalty(edge, right, nodes, priorEdges))[0]
-    const crossesNode = route.slice(1).some((end, index) => nodes
-        .filter(({ id }) => id !== edge.from && id !== edge.to)
-        .some((node) => segmentIntersectsNode(route[index], end, node)))
-    if (crossesNode) throw new Error(`Malformed diagram data: no unobstructed route exists for edge ${edge.id}`)
-    const overlapsEdge = route.slice(1).some((end, index) => priorEdges.some(({ points }) => points.slice(1)
-        .some((priorEnd, priorIndex) => segmentsOverlap(route[index], end, points[priorIndex], priorEnd))))
-    if (overlapsEdge) throw new Error(`Malformed diagram data: no non-overlapping route exists for edge ${edge.id}`)
+    // Each candidate is scored once; the lowest penalty wins even when it still crosses a node or overlaps an earlier edge.
+    let route = candidates[0]
+    let lowest = Number.POSITIVE_INFINITY
+    for (const candidate of candidates) {
+        const penalty = routePenalty(edge, candidate, nodes, priorEdges)
+        if (penalty < lowest) {
+            lowest = penalty
+            route = candidate
+        }
+    }
 
     return route
 }
@@ -608,6 +637,7 @@ function edgeLabelPlacement(
         return { end, length: Math.abs(end.x - start.x) + Math.abs(end.y - start.y), start }
     }).filter(({ end, start }) => end.x === start.x || end.y === start.y)
         .sort((left, right) => right.length - left.length)
+    let fallback: PositionedDiagramLabel | undefined
     for (const { end, start } of segments) {
         const middleX = (start.x + end.x) / 2
         const middleY = (start.y + end.y) / 2
@@ -619,8 +649,11 @@ function edgeLabelPlacement(
             width, x: middleX + EDGE_LABEL_GAP, y: middleY - 6,
         }
         if (!nodes.some((node) => rectangleIntersectsNode(placement, node))) return placement
+        fallback = fallback ?? placement
     }
-    throw new Error(`Malformed diagram data: no collision-free label position exists for edge ${edge.id}`)
+
+    // A crowded diagram places the label on its longest segment rather than failing the whole layout.
+    return fallback
 }
 
 function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]) {
