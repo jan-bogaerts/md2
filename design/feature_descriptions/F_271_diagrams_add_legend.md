@@ -3,7 +3,7 @@ author:
 id: F_271
 internalId: 6ea2e797-b87b-4246-974a-d45ddc3fefc1
 title: diagrams add legend
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,26 @@ policy:
 after: 7037a625-d650-4574-b1d5-874d90ba82a4
 branch: f_271_diagrams_add_legend
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram.tsx
+  - app/src/components/diagram_view/diagram_edge.tsx
+  - app/src/components/diagram_view/diagram_edge_style.node.test.ts
+  - app/src/components/diagram_view/diagram_edge_style.ts
+  - app/src/components/diagram_view/diagram_legend.test.tsx
+  - app/src/components/diagram_view/diagram_legend.tsx
+  - app/src/components/diagram_view/diagram_legend_connection_sample.tsx
+  - app/src/components/diagram_view/diagram_legend_entries.node.test.ts
+  - app/src/components/diagram_view/diagram_legend_entries.ts
+  - app/src/components/diagram_view/diagram_legend_position.ts
+  - app/src/components/diagram_view/diagram_renderer.test.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/data/data_types.ts
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_data.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
+  - desktop/src/actions/action/action_scheduler_service.js
 ---
 add a legend to the diagrams with the different nodes and connections.
 
