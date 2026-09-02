@@ -2982,3 +2982,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-02T18:12:41.965Z,token_usage,codex,,,,,13993,603008,2231,1707,620939,,
 2026-09-02T18:12:55.290Z,token_usage,codex,,,,,85128,768256,3423,2264,859071,,
 2026-09-02T18:20:29.709Z,token_usage,codex,,,,,20082,705024,2477,2215,729798,,
+2026-09-02T18:22:15.143Z,token_usage,codex,,,,,62999,390016,2665,1359,457039,,

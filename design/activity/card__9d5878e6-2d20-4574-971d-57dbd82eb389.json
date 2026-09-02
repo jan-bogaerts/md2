@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "9d5878e6-2d20-4574-971d-57dbd82eb389",
+      "cardPath": "design/feature_descriptions/F_255_make_diagrams_editable.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "design/feature_descriptions/F_255_make_diagrams_editable.md describes a large feature. It needs to be split up in sub jobs. Fot instance: toolbox is job, every tool should also have its job,...\n\nStart by proposing all the jobs we should make",
+          "id": "agent-turn-2a8f70b8-0eb8-4a9e-b1c1-e74cade1e20a-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-02T18:27:25.398Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-93d97ad2-fc5f-42e5-9256-e1e43444f14c",
+      "providerSessions": [],
+      "startedAt": "2026-09-02T18:27:25.398Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-02T18:27:25.398Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "9d5878e6-2d20-4574-971d-57dbd82eb389",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
