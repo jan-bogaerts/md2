@@ -3,7 +3,7 @@ author:
 id: B_207
 internalId: 711befe5-b3f9-400b-b077-2b44830c9e38
 title: command actions replace chars in command
-status: new
+status: design
 owner: 
 affects:
 agents:

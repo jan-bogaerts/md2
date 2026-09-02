@@ -11,7 +11,6 @@ policy:
 sentryBaseUrl: https://sentry.io
 sentryIssueId: 141203399
 sentryOrganization: elastetic
-after: 2ba8b222-8131-4283-9263-be319a8fed6f
 ---
 
 ## Sentry issue

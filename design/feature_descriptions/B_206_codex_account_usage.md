@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: f5e9bc66-ebde-41f7-ae6e-503e9e8e284a
 ---
 
 we already put a filter on the 'account usage' for codex, but it appears to have been done wrong. instead of only allowing 'codex', it appears it is filtering away the exact item we had at that time and letting everything else pass. wrong approach, we only want to let 1 item through.
