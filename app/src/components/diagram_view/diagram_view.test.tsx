@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
@@ -15,9 +15,25 @@ const actions = vi.hoisted(() => [
 
 vi.mock('../hooks/use_actions', () => ({ useActions: () => ({ actions }) }))
 vi.mock('../actions/run/popup/action_popup', () => ({
-    ActionPopup: ({ context, initialActionId }: { context: unknown, initialActionId?: string }) => (
-        <div data-action-id={initialActionId} data-context={JSON.stringify(context)} role="dialog">Action popup</div>
-    ),
+    ActionPopup: ({ context, draggable, initialActionId }: {
+        context: { kind: string, type?: string }, draggable?: boolean, initialActionId?: string,
+    }) => {
+        const matchingActions = actions.filter(({ appliesTo, builtin }) => (
+            !builtin && appliesTo?.kind === context.kind && (appliesTo.type === undefined || appliesTo.type === context.type)
+        ))
+        if (matchingActions.length === 0) return null
+
+        return (
+            <div
+                data-action-id={initialActionId}
+                data-context={JSON.stringify(context)}
+                data-draggable={String(!!draggable)}
+                role="dialog"
+            >
+                {matchingActions.map(({ label }) => <span key={label}>{label}</span>)}
+            </div>
+        )
+    },
 }))
 
 function initialSnapshot(): DiagramViewSnapshot {
@@ -95,7 +111,12 @@ function createService() {
             })
         }),
         openItemMenu: vi.fn((menu: DiagramMenuState) => publish({ ...snapshot, menu })),
-        openRootPopup: vi.fn((anchorElement: HTMLElement) => publish({...snapshot, popup: { anchorElement, context: { kind: 'diagram', type: 'root' } }})),
+        openRootPopup: vi.fn((anchorElement: HTMLElement) => publish({
+            ...snapshot,
+            popup: snapshot.popup?.context.type === 'root'
+                ? null
+                : { anchorElement, context: { kind: 'diagram', type: 'root' } },
+        })),
         subscribe: (listener: () => void) => {
             listeners.add(listener)
 
@@ -107,12 +128,22 @@ function createService() {
         navigateBack: ReturnType<typeof vi.fn>
         navigateToCrumb: ReturnType<typeof vi.fn>
         navigateToSavedDiagram: ReturnType<typeof vi.fn>
+        closePopup: ReturnType<typeof vi.fn>
         openItemMenu: ReturnType<typeof vi.fn>
+        openRootPopup: ReturnType<typeof vi.fn>
     }
 }
 
 describe('DiagramView', () => {
-    beforeEach(() => vi.clearAllMocks())
+    beforeEach(() => {
+        vi.clearAllMocks()
+        actions.splice(0, actions.length,
+            { appliesTo: { kind: 'diagram', type: 'child' }, builtin: false, id: 'detail', label: 'Detail' },
+            { appliesTo: { kind: 'diagram', type: 'root' }, builtin: false, id: 'overview', label: 'Overview' },
+        )
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 })
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 })
+    })
     afterEach(cleanup)
 
     it('opens item menu by pointer and offers matching child actions plus saved diagrams', async () => {
@@ -137,7 +168,7 @@ describe('DiagramView', () => {
         await user.keyboard('{Enter}')
         await user.click(screen.getByRole('menuitem', { name: 'Detail' }))
 
-        const popup = screen.getByText('Action popup')
+        const popup = screen.getByRole('dialog')
         expect(popup).toHaveAttribute('data-action-id', 'detail')
         expect(popup.getAttribute('data-context')).toContain('"parentNode":"Customer"')
     })
@@ -168,13 +199,57 @@ describe('DiagramView', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    it('opens root diagram context from diagram FAB', async () => {
+    it('opens only matching root actions, passes draggable, then closes on second plain click', async () => {
         const service = createService()
         const user = userEvent.setup()
         render(<DiagramView service={service} />)
 
-        await user.click(screen.getByRole('button', { name: 'Diagram action' }))
+        const button = screen.getByRole('button', { name: 'Diagram action' })
+        await user.click(button)
 
-        expect(screen.getByText('Action popup').getAttribute('data-context')).toBe('{"kind":"diagram","type":"root"}')
+        const popup = screen.getByRole('dialog')
+        expect(popup).toHaveTextContent('Overview')
+        expect(popup).not.toHaveTextContent('Detail')
+        expect(popup).toHaveAttribute('data-context', '{"kind":"diagram","type":"root"}')
+        expect(popup).toHaveAttribute('data-draggable', 'true')
+
+        await user.click(button)
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(service.openRootPopup).toHaveBeenCalledTimes(2)
+    })
+
+    it('moves launcher without opening popup, then opens it on following plain click', async () => {
+        const service = createService()
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+        const button = screen.getByRole('button', { name: 'Diagram action' })
+
+        fireEvent.pointerDown(button, { clientX: 1140, clientY: 740, pointerId: 1 })
+        fireEvent.pointerMove(button, { clientX: 900, clientY: 500, pointerId: 1 })
+        fireEvent.pointerUp(button, { pointerId: 1 })
+        fireEvent.click(button)
+
+        expect(screen.getByTestId('movable-fab-position')).toHaveStyle({ left: '888px', top: '488px' })
+        expect(service.closePopup).toHaveBeenCalledTimes(1)
+        expect(service.openRootPopup).not.toHaveBeenCalled()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+        await user.click(button)
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    it('keeps launcher disabled with explanation when no root actions exist', async () => {
+        actions.splice(1, 1, { appliesTo: { kind: 'project' }, builtin: false, id: 'generic', label: 'Generic' })
+        const service = createService()
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+        const button = screen.getByRole('button', { name: 'Diagram action' })
+
+        expect(button).toBeDisabled()
+        await user.hover(screen.getByTestId('movable-fab-position'))
+
+        expect(await screen.findByText('No root diagram actions configured')).toBeInTheDocument()
+        expect(service.openRootPopup).not.toHaveBeenCalled()
     })
 })

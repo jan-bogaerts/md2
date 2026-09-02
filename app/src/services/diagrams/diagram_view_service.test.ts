@@ -83,6 +83,27 @@ describe('DiagramViewService', () => {
         expect(service.getSnapshot()).toMatchObject({ currentDiagram: null, index: { activePath: [], diagrams: {} }, status: 'ready' })
     })
 
+    it('toggles root popup while preserving child popup opening behavior', async () => {
+        const { service } = createHarness()
+        const rootAnchor = document.createElement('button')
+        await service.open()
+
+        service.openRootPopup(rootAnchor)
+        expect(service.getSnapshot().popup).toMatchObject({ anchorElement: rootAnchor, context: { kind: 'diagram', type: 'root' } })
+
+        service.openRootPopup(rootAnchor)
+        expect(service.getSnapshot().popup).toBeNull()
+
+        const childAnchor = document.createElement('button')
+        service.openItemMenu({ anchorElement: childAnchor, diagramId: 'diagram-1', itemId: 'item-1', itemLabel: 'Item', left: 1, top: 2 })
+        service.openChildPopup('detail')
+        expect(service.getSnapshot().popup).toMatchObject({
+            anchorElement: childAnchor,
+            context: { diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Item', type: 'child' },
+            initialActionId: 'detail',
+        })
+    })
+
     it('restores global active path and parses exact last diagram JSON from versioned index', async () => {
         const index: DiagramIndex = {
             activePath: ['root-1', 'child-1'],

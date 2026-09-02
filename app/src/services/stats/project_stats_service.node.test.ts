@@ -149,9 +149,7 @@ describe('ProjectStatsService source parsing', () => {
                 'design/activity/card__card-1.json',
                 'design/activity/project.json',
             ],
-            releaseActivityPaths: {
-                '0_3_0': ['design/history/0_3_0/card__card-2.json', 'design/history/0_3_0/project.json'],
-            },
+            releaseActivityPaths: {'0_3_0': ['design/history/0_3_0/card__card-2.json', 'design/history/0_3_0/project.json']},
         })
     })
 

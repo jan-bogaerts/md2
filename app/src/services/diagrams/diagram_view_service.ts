@@ -223,6 +223,11 @@ export class DiagramViewService extends EventTarget {
 
     openRootPopup(anchorElement: HTMLElement) {
         this.requireReady()
+        if (this.snapshot.popup?.context.type === 'root') {
+            this.closePopup()
+
+            return
+        }
         this.publish({ ...this.snapshot, menu: null, popup: { anchorElement, context: diagramContext('root') } })
     }
 

@@ -1,5 +1,5 @@
 import {
-    Alert, Box, Breadcrumbs, Button, CircularProgress, Fab, Menu, MenuItem, Paper, Tooltip, Typography,
+    Alert, Box, Breadcrumbs, Button, CircularProgress, Menu, MenuItem, Paper, Tooltip, Typography,
 } from '@mui/material'
 import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
 import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined'
@@ -12,8 +12,11 @@ import { diagramViewService, type DiagramViewService } from '../../services/diag
 import { useActions } from '../hooks/use_actions'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
 import { ActionPopup } from '../actions/run/popup/action_popup'
+import { MovableFab } from '../movable_fab'
 import { DiagramRenderer } from './diagram_renderer'
 import type { DiagramSelection } from './diagram_selection'
+
+const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
 
 function reportNavigationFailure(error: unknown) {
     dialogService.error(error, { fallbackMessage: 'Diagram navigation failed' })
@@ -28,6 +31,7 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
     const { viewMode } = useWorkspaceView()
     const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot)
     const { actions } = useActions()
+    const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions])
     const activeRecords = snapshot.index.activePath.map((id) => snapshot.index.diagrams[id])
     const selectedContext = useMemo(() => snapshot.menu
         ? diagramContext('child', snapshot.menu.diagramId, snapshot.menu.itemId, snapshot.menu.itemLabel)
@@ -90,7 +94,8 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
     }
     const handleCloseMenu = () => service.closeItemMenu()
     const handleClosePopup = () => service.closePopup()
-    const handleFabClick = (event: MouseEvent<HTMLButtonElement>) => service.openRootPopup(event.currentTarget)
+    const handleFabActivate = (anchorElement: HTMLElement) => service.openRootPopup(anchorElement)
+    const handleFabDragStart = () => service.closePopup()
 
     const content = snapshot.status === 'loading' ? (
         <Box sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center' }}><CircularProgress aria-label="Loading diagrams" /></Box>
@@ -156,16 +161,15 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
             </Box>
             {content}
             {snapshot.status === 'ready' ? (
-                <Tooltip title="Diagram action">
-                    <Fab
-                        aria-label="Diagram action"
-                        color="primary"
-                        onClick={handleFabClick}
-                        sx={{ bottom: 2, position: 'fixed', right: 2, zIndex: 'appBar' }}
-                    >
-                        <AccountTreeOutlined />
-                    </Fab>
-                </Tooltip>
+                <MovableFab
+                    ariaLabel="Diagram action"
+                    disabled={rootActions.length === 0}
+                    onActivate={handleFabActivate}
+                    onDragStart={handleFabDragStart}
+                    tooltip={rootActions.length === 0 ? 'No root diagram actions configured' : 'Diagram action'}
+                >
+                    <AccountTreeOutlined />
+                </MovableFab>
             ) : null}
             <Menu
                 anchorPosition={snapshot.menu ? { left: snapshot.menu.left, top: snapshot.menu.top } : undefined}
@@ -189,6 +193,7 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
                 <ActionPopup
                     anchorElement={snapshot.popup.anchorElement}
                     context={snapshot.popup.context}
+                    draggable
                     initialActionId={snapshot.popup.initialActionId}
                     onClose={handleClosePopup}
                 />
