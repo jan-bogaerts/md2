@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__6ea2e797-b87b-4246-974a-d45ddc3fefc1.json
 policy:
-after: 906cff2c-d23c-4647-bc78-2cb5580125e2
+after: 7037a625-d650-4574-b1d5-874d90ba82a4
 branch: f_271_diagrams_add_legend
 worktree: 2
 ---
