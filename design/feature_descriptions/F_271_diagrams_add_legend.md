@@ -10,7 +10,8 @@ agents:
 policy:
 after: 906cff2c-d23c-4647-bc78-2cb5580125e2
 ---
-
 add a legend to the diagrams with the different nodes and connections.
 
 legend needs to be collapsible and movable
+
+It needs to be above the diagram and not follow scroll of diagram, so legend is in same plane as the diagram container. This way it can always stay in view
