@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 3a81bbba-94cd-4b06-9c53-198d765510b9
 ---
 
 We are already able to automatically mark an action as ready when a card enters a specific state.
