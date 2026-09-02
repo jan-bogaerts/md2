@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__3f00b054-71c0-4d3f-abd5-0148f716b536.json
 policy:
+branch: b_208_diagrams_no_action_popup
+worktree: 3
 ---
 
 for diagrams: there is a fab button for the diagrams, but can't move it, when clicking on it, doesn't do anything: popup is not opened.
