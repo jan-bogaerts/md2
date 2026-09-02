@@ -3,7 +3,7 @@ author:
 id: B_218
 internalId: a2bfbcc3-8aee-4bd2-8575-ce658dc88a56
 title: diagram boxes disabled prevents scrolling
-status: new
+status: design
 owner: 
 affects:
 agents:
