@@ -3,7 +3,7 @@ author:
 id: B_207
 internalId: 711befe5-b3f9-400b-b077-2b44830c9e38
 title: command actions replace chars in command
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,10 @@ policy:
 after: 3f00b054-71c0-4d3f-abd5-0148f716b536
 branch: b_207_command_actions_replace_chars_in_command
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/editor/markdown_editor_plain_text.real.test.tsx
+  - app/src/test/mdx_editor_stub.tsx
 ---
 it appears we are replacing characters that we entered in the command line of a command action. apart from replacing placeholders, we should not be doing this. so:
 
