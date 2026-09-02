@@ -3,6 +3,7 @@ import type { SelectChangeEvent } from '@mui/material'
 import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode, SyntheticEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import CardsOutline from 'mdi-material-ui/CardsOutline'
+import BugOutline from 'mdi-material-ui/BugOutline'
 import CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'
 import CloudArrowDownOutline from 'mdi-material-ui/CloudArrowDownOutline'
 import CloudArrowUpOutline from 'mdi-material-ui/CloudArrowUpOutline'
@@ -43,6 +44,8 @@ import { workspaceViewService, type WorkspaceViewMode } from '../../../services/
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { actionService } from '../../../services/actions/action_service'
 import { dialogService } from '../../../services/dialog_service'
+import { sentryImportService } from '../../../services/sentry/sentry_import_service'
+import { isSentryConfigurationComplete } from '../../../services/sentry/sentry_types'
 import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
 import { projectContext } from '../../../data/action_context'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
@@ -51,6 +54,8 @@ import { useProjectState } from '../../hooks/use_project_state'
 import { useProjectPersistence } from '../../hooks/use_project_persistence'
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectReadOnly } from '../../hooks/use_project_read_only'
+import { useSentryConnection } from '../../hooks/use_sentry_connection'
+import { useSentryImport } from '../../hooks/use_sentry_import'
 import { usePrimaryWorktreeStatus } from '../../hooks/use_worktrees'
 import { useWorkspaceView } from '../../hooks/use_workspace_view'
 import { ActionEntryPoints } from '../../actions/run/trigger/action_entry_points'
@@ -145,6 +150,11 @@ export function AppMenu(props: AppMenuProps) {
     const selectedModelAvailable = selectedModels.includes(selectedModel)
     const projectBranch = project?.branch ?? ''
     const readOnly = useProjectReadOnly()
+    const sentryConnection = useSentryConnection()
+    const sentryImport = useSentryImport()
+    const canShowSentryImport = !!project
+        && sentryConnection.isAuthenticated
+        && isSentryConfigurationComplete(sentryConnection.settings)
 
     useEffect(() => {
         if (!hasActiveAgentSettings) {
@@ -190,6 +200,10 @@ export function AppMenu(props: AppMenuProps) {
 
     const handleBranchChange = (event: SelectChangeEvent) => {
         void actions.switchProjectBranch(event.target.value)
+    }
+
+    const handleImportSentryIssues = () => {
+        void sentryImportService.importNow()
     }
 
     const handleOpenReleaseDialog = () => {
@@ -536,6 +550,16 @@ export function AppMenu(props: AppMenuProps) {
                         >
                             <CheckCircleOutline fontSize="small" />
                         </MenuIconButton>
+                        {canShowSentryImport ? (
+                            <MenuIconButton
+                                disabled={readOnly || sentryImport.isPolling}
+                                label="Import Sentry issues"
+                                onClick={handleImportSentryIssues}
+                                tooltip={sentryImport.isPolling ? 'Checking Sentry...' : 'Import Sentry issues'}
+                            >
+                                <BugOutline fontSize="small" />
+                            </MenuIconButton>
+                        ) : null}
                     </Section>
                 </Tab>
             </Box>

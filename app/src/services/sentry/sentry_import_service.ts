@@ -9,7 +9,12 @@ import type { SentryApiClient, SentryApiRequest } from './sentry_api_client'
 import { sentryApiClient } from './sentry_api_client'
 import type { SentryConnectionService } from './sentry_connection_service'
 import { sentryConnectionService } from './sentry_connection_service'
-import { sentryIdentityKey, type SentryIssueSummary, type SentryProjectSettings } from './sentry_types'
+import {
+    isSentryConfigurationComplete,
+    sentryIdentityKey,
+    type SentryIssueSummary,
+    type SentryProjectSettings,
+} from './sentry_types'
 
 export const SENTRY_POLL_INTERVAL_MS = 15 * 60 * 1000
 
@@ -72,16 +77,6 @@ function uniqueUnseenIssues(issues: SentryIssueSummary[], snapshot: ProjectSnaps
 
         return true
     })
-}
-
-function isComplete(settings: SentryProjectSettings) {
-    return settings.apiBaseUrl.trim().length > 0
-        && settings.apiToken.trim().length > 0
-        && settings.organization.trim().length > 0
-        && settings.project.trim().length > 0
-        && settings.environment.trim().length > 0
-        && settings.cardType.length > 0
-        && settings.cardState.trim().length > 0
 }
 
 function requestFromSettings(settings: SentryProjectSettings): SentryApiRequest {
@@ -180,7 +175,7 @@ export class SentryImportService extends EventTarget {
             && !projectAccessService.getSnapshot()
             && connection.isAuthenticated
             && connection.settings.automaticImport
-            && isComplete(connection.settings)
+            && isSentryConfigurationComplete(connection.settings)
         if (!canPoll || !project) {
             this.clearSchedule()
             return
@@ -226,7 +221,7 @@ export class SentryImportService extends EventTarget {
             && dataService.isFullProjectLoaded()
             && !projectAccessService.getSnapshot()
             && connection.isAuthenticated
-            && isComplete(settings)
+            && isSentryConfigurationComplete(settings)
             && (manual || settings.automaticImport)
         if (!canPoll || !project || !snapshot) return 0
 

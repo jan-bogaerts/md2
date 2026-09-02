@@ -12,6 +12,9 @@ import { projectAccessService } from '../../../services/project/project_access_s
 import { projectPersistenceService } from '../../../services/project/project_persistence_service'
 import { projectSessionService } from '../../../services/project/project_session_service'
 import { openFilesService } from '../../../services/open_files_service'
+import { sentryConnectionService } from '../../../services/sentry/sentry_connection_service'
+import { sentryImportService } from '../../../services/sentry/sentry_import_service'
+import { createDefaultSentryProjectSettings } from '../../../services/sentry/sentry_types'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { DialogDisplay } from '../../dialog_display'
 import { AppMenu } from './app_menu'
@@ -123,6 +126,24 @@ async function activateLocalProject(bridge: ElectronDataBridge) {
     await projectSessionService.openProject('local', LOCAL_PROJECT, null)
 }
 
+function completeSentrySettings() {
+    return {
+        ...createDefaultSentryProjectSettings(),
+        apiToken: 'token',
+        cardState: 'to fix',
+        cardType: 'Bug',
+        organization: 'acme',
+        project: 'frontend',
+    }
+}
+
+async function connectSentry() {
+    sentryConnectionService.setProject(LOCAL_PROJECT)
+    await act(async () => {
+        await sentryConnectionService.connect(completeSentrySettings())
+    })
+}
+
 async function renderProjectWithPendingChanges() {
     const bridge = createBridge()
     const files = [{ content: '---\nid: F-1\ninternalId: f-1\ntitle: Root\nstatus: active\n---\n\n# Root', path: 'design/F-1-root.md' }]
@@ -146,6 +167,7 @@ describe('AppMenu', () => {
         openFilesService.init({ actionService, dataService })
         projectPersistenceService.init({ actionService, dataService, openFilesService })
         dataService.init({ storage: createResetStorage() })
+        sentryConnectionService.init({ apiClient: { validateProject: vi.fn(async () => undefined) }, storage: window.localStorage })
         projectAccessService.setReadOnly(false)
         workspaceViewService.setViewMode('cards')
         const { selectedPath } = workspaceViewService.getSnapshot()
@@ -518,6 +540,74 @@ describe('AppMenu', () => {
 
         await waitFor(() => expect(bridge.push).toHaveBeenCalledWith(expect.objectContaining({ id: 'local' })))
         expect(pushButton).toBeDisabled()
+    })
+
+    it('hides the Sentry import button until the project has a complete authenticated connection', async () => {
+        await activateLocalProject(createBridge())
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        expect(screen.queryByRole('button', { name: 'Import Sentry issues' })).not.toBeInTheDocument()
+
+        await connectSentry()
+
+        expect(await screen.findByRole('button', { name: 'Import Sentry issues' })).toBeEnabled()
+    })
+
+    it('keeps the Sentry import button hidden while settings are incomplete', async () => {
+        await activateLocalProject(createBridge())
+        await connectSentry()
+        act(() => {
+            sentryConnectionService.saveSettings({ ...completeSentrySettings(), cardType: '' })
+        })
+
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+
+        expect(screen.queryByRole('button', { name: 'Import Sentry issues' })).not.toBeInTheDocument()
+    })
+
+    it('disables the Sentry import button while an import runs', async () => {
+        await activateLocalProject(createBridge())
+        await connectSentry()
+        vi.spyOn(sentryImportService, 'getSnapshot').mockReturnValue({
+            confirmation: null,
+            isPolling: true,
+            lastImportCount: null,
+            lastSuccessfulPollAt: null,
+            latestError: null,
+        })
+
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+
+        const importButton = screen.getByRole('button', { name: 'Import Sentry issues' })
+        expect(importButton).toBeDisabled()
+        fireEvent.mouseOver(importButton.parentElement as HTMLElement)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Checking Sentry...')
+    })
+
+    it('disables the Sentry import button for a read-only project', async () => {
+        await activateLocalProject(createBridge())
+        await connectSentry()
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        expect(screen.getByRole('button', { name: 'Import Sentry issues' })).toBeEnabled()
+
+        act(() => projectAccessService.setReadOnly(true))
+
+        expect(screen.getByRole('button', { name: 'Import Sentry issues' })).toBeDisabled()
+    })
+
+    it('runs one manual Sentry import per click from the Run menu', async () => {
+        await activateLocalProject(createBridge())
+        await connectSentry()
+        const importNow = vi.spyOn(sentryImportService, 'importNow').mockResolvedValue(0)
+
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Import Sentry issues' }))
+
+        expect(importNow).toHaveBeenCalledTimes(1)
     })
 
     it('pulls only when the primary worktree monitor reports clean incoming commits', async () => {
