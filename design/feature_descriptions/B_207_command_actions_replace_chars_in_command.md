@@ -10,8 +10,6 @@ agents:
   - design/activity/card__711befe5-b3f9-400b-b077-2b44830c9e38.json
 policy:
 after: 3f00b054-71c0-4d3f-abd5-0148f716b536
-branch: b_207_command_actions_replace_chars_in_command
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/editor/markdown_editor_plain_text.real.test.tsx
