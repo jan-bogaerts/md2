@@ -2733,6 +2733,38 @@
       "startedAt": "2026-09-02T08:26:42.138Z",
       "status": "completed",
       "rootConversationId": "agent-1ffbd188-8ef8-45f2-8a28-d9973c5d6b44"
+    },
+    {
+      "commits": [
+        {
+          "commit": "86493a027d5308254f95c12c78c2c6af98652ade",
+          "committedAt": "2026-09-02T11:31:14+02:00",
+          "deletions": 361,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.tsx",
+            "app/src/components/actions/agent/action_prompt_owner.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/editor/markdown_editor.tsx",
+            "app/src/components/editor/markdown_editor_plain_text.real.test.tsx",
+            "app/src/components/editor/markdown_plain_text.test.ts",
+            "app/src/components/editor/markdown_plain_text.ts",
+            "app/src/components/editor/markdown_plain_text_config_cell.ts",
+            "app/src/components/editor/markdown_plain_text_plugin.tsx",
+            "app/src/components/editor/markdown_plain_text_realm_plugin.ts",
+            "app/src/test/mdx_editor_stub.tsx"
+          ],
+          "filesChanged": 11,
+          "insertions": 652,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-02T11:31:14+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "711befe5-b3f9-400b-b077-2b44830c9e38",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
