@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__3f00b054-71c0-4d3f-abd5-0148f716b536.json
 policy:
-branch: b_208_diagrams_no_action_popup
-worktree: 3
 changedFiles:
   - app/src/components/agents/agent_chat_fab.test.tsx
   - app/src/components/agents/agent_chat_fab.tsx
