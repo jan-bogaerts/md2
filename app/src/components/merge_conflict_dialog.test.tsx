@@ -56,6 +56,7 @@ function action(id: string, kind: 'merge-conflict' | 'project', type: 'agent' | 
         onAfter: [],
         onBefore: [],
         onState: null,
+        output: null,
         phrases: [],
         prompt: type === 'agent' ? 'resolve' : null,
         showCommandWindow: false,

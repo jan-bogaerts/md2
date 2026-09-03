@@ -166,6 +166,38 @@ describe('ActionRun', () => {
         expect(close).toHaveBeenCalledOnce();
     });
 
+    it('closes diagram watcher when action is cancelled', async () => {
+        const watcherStarted = deferred();
+        const close = vi.fn(async () => undefined);
+        const agentExecutor = {
+            execute: vi.fn(async (input) => new Promise((_resolve, reject) => {
+                input.signal.addEventListener('abort', () => reject(new Error('cancelled')), { once: true });
+            })),
+        };
+        const rootAction = action('diagram', {
+            agent: 'codex', appliesTo: { kind: 'diagram', type: 'root' },
+            autoFinish: { when: 'diagram-created' }, command: null,
+            output: { kind: 'diagram' }, prompt: 'Create diagram', streaming: true, type: 'agent',
+        });
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            context: { kind: 'diagram', type: 'root' },
+            diagramFooter: 'Save {{diagram-file}}',
+            diagramOutputWatcherFactory: () => ({
+                close,
+                start: vi.fn(async () => watcherStarted.resolve()),
+            }),
+            diagramPath: 'design/diagrams/output.json',
+            diagramsFolder: 'design/diagrams',
+        });
+        await watcherStarted.promise;
+
+        run.cancel();
+
+        await expect(run.completion).resolves.toMatchObject({ status: 'cancelled' });
+        expect(close).toHaveBeenCalledOnce();
+    });
+
     it.each(['', '   '])('rejects incomplete root command %j before worktree resolution or process start', async (command) => {
         const rootAction = action('main', { command });
         const { actionWorktreeRunService, commandRunner, run } = createRun(rootAction);

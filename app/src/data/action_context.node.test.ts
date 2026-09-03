@@ -34,6 +34,7 @@ function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionD
         onAfter: [],
         onBefore: [],
         onState: null,
+        output: null,
         phrases: [],
         prompt: null,
         showCommandWindow: false,

@@ -25,6 +25,7 @@ function action(overrides: Partial<ActionDefinition> = {}): ActionDefinition {
         trackFileChanges: false,
         type: 'agent',
         ...overrides,
+        output: overrides.output ?? null,
         permissionMode: overrides.permissionMode ?? null,
         phrases: overrides.phrases ?? [],
         showCommandWindow: overrides.showCommandWindow ?? false,
