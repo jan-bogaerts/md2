@@ -3,7 +3,7 @@ author:
 id: F_270
 internalId: d65c7486-a435-44f6-b2a0-3f6dce01fa35
 title: add auto finish support for diagram actions
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -14,15 +14,24 @@ changedFiles:
   - app/src/components/actions/editor/action_definition_fields.grouped.test.tsx
   - app/src/components/actions/editor/action_definition_fields.tsx
   - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/editor/action_markdown_data_source.node.test.ts
+  - app/src/components/merge_conflict_dialog.test.tsx
+  - app/src/data/action_context.node.test.ts
   - app/src/data/action_run_types.ts
   - app/src/data/action_types.ts
   - app/src/project_template/actions/complete.json
   - app/src/project_template/actions/implement.json
+  - app/src/services/actions/action_service.node.test.ts
   - app/src/services/actions/action_service_helpers.ts
+  - app/src/services/actions/action_text.node.test.ts
   - app/src/services/actions/electron_action_runner.node.test.ts
   - app/src/services/diagrams/diagram_data.ts
   - app/src/services/diagrams/diagram_view_service.test.ts
   - app/src/services/diagrams/diagram_view_service.ts
+  - app/src/services/open_files_service.node.test.ts
+  - app/src/services/search/search_project.node.test.ts
+  - app/vitest.grouped.temp.config.ts
   - desktop/src/actions/action/action_agent_executor.js
   - desktop/src/actions/action/action_command_executor.js
   - desktop/src/actions/action/action_definitions.test.mjs
