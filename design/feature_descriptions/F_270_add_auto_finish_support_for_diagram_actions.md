@@ -10,8 +10,6 @@ agents:
   - design/activity/card__d65c7486-a435-44f6-b2a0-3f6dce01fa35.json
 policy:
 after: 6ea2e797-b87b-4246-974a-d45ddc3fefc1
-branch: f_270_add_auto_finish_support_for_diagram_actions
-worktree: 3
 changedFiles:
   - app/src/components/actions/editor/action_definition_fields.grouped.test.tsx
   - app/src/components/actions/editor/action_definition_fields.tsx
