@@ -20,7 +20,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "4d275542-e6f6-493e-9cb4-d75cbb83cea7",
       "cardPath": "design/feature_descriptions/J_45_use_dagre_for_layered_diagram_layout.md",
-      "completedAt": null,
+      "completedAt": "2026-09-03T18:05:18.796Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 87579
@@ -904,17 +904,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 71,
-          "timestamp": "2026-09-03T18:05:18.269Z"
+          "timestamp": "2026-09-03T18:05:18.796Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-0434af70-14e0-40ea-93d1-d482bdc21dd5",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "c9ddaa82-620c-47d3-b9b3-8eee4b16743c",
+          "createdAt": "2026-09-03T18:05:18.796Z",
+          "lastUsedAt": "2026-09-03T18:05:18.796Z",
+          "synchronizedThroughMessageId": "agent-turn-7e1f076b-1afd-4b19-91e7-8c8e7dd6e5c3-turn-1-assistant-9"
+        }
+      ],
       "startedAt": "2026-09-03T17:58:54.333Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 76275,
-        "runningStartedAt": "2026-09-03T18:00:22.246Z"
+        "elapsedMs": 372825,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
