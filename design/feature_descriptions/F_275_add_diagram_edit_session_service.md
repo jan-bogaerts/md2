@@ -10,8 +10,6 @@ agents:
   - design/activity/card__cc6a602a-de2d-46bd-a49e-eae08d85495d.json
 policy:
 after: cfe002ea-7a48-4c32-bed1-078fae7b5d5c
-branch: f_275_add_diagram_edit_session_service
-worktree: 2
 changedFiles:
   - app/src/services/diagrams/diagram_edit_session_service.test.ts
   - app/src/services/diagrams/diagram_edit_session_service.ts

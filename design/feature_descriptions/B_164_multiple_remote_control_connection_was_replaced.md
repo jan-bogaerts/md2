@@ -12,6 +12,14 @@ policy:
 after: 64640333-ea8c-4d4f-b2a4-2d32e74f7545
 branch: b_164_multiple_remote_control_connection_was_replaced
 worktree: 3
+changedFiles:
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
+  - app/src/services/data/remote_connection_service.service.test.ts
+  - app/src/services/data/remote_connection_service.ts
+  - app/src/services/data/remote_control_storage_service.node.test.ts
+  - app/src/services/data/remote_control_storage_service.ts
+  - app/src/services/project/project_session_service.service.test.ts
 ---
 Once the error 'remote-control connection was replaced' is shown, it comes back at a regular interval. seems like the websocket is not stable.
 
