@@ -14,6 +14,7 @@ import { useWorkspaceView } from '../hooks/use_workspace_view'
 import { ActionPopup } from '../actions/run/popup/action_popup'
 import { MovableFab } from '../movable_fab'
 import { DiagramRenderer } from './diagram_renderer'
+import { DiagramLegend } from './diagram_legend'
 import type { DiagramSelection } from './diagram_selection'
 
 const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
@@ -96,6 +97,9 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
     const handleClosePopup = () => service.closePopup()
     const handleFabActivate = (anchorElement: HTMLElement) => service.openRootPopup(anchorElement)
     const handleFabDragStart = () => service.closePopup()
+    const handleCollapseLegend = () => service.collapseLegend()
+    const handleExpandLegend = () => service.expandLegend()
+    const handleMoveLegend = (position: { left: number, top: number }) => service.moveLegend(position)
 
     const content = snapshot.status === 'loading' ? (
         <Box sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center' }}><CircularProgress aria-label="Loading diagrams" /></Box>
@@ -118,11 +122,23 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
     ) : snapshot.currentDiagramError ? (
         <Alert severity="warning">Diagram unavailable: {snapshot.currentDiagramError}</Alert>
     ) : (
-        <Box
-            aria-label="Active diagram"
-            sx={{alignItems: 'flex-start', display: 'flex', flex: 1, justifyContent: 'flex-start', minHeight: 0, overflow: 'auto'}}
-        >
-            {snapshot.currentDiagram ? <DiagramRenderer data={snapshot.currentDiagram} onSelect={handleDiagramSelect} /> : null}
+        <Box aria-label="Active diagram" sx={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+            <Box
+                aria-label="Diagram scroller"
+                sx={{ alignItems: 'flex-start', display: 'flex', height: '100%', justifyContent: 'flex-start', overflow: 'auto' }}
+            >
+                {snapshot.currentDiagram ? <DiagramRenderer data={snapshot.currentDiagram} onSelect={handleDiagramSelect} /> : null}
+            </Box>
+            {snapshot.currentDiagram ? (
+                <DiagramLegend
+                    collapsed={snapshot.legend.collapsed}
+                    data={snapshot.currentDiagram}
+                    onCollapse={handleCollapseLegend}
+                    onExpand={handleExpandLegend}
+                    onMove={handleMoveLegend}
+                    position={snapshot.legend.position}
+                />
+            ) : null}
         </Box>
     )
 

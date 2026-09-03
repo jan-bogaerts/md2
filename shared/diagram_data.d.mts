@@ -15,10 +15,8 @@ export type DiagramFlowPreset = typeof DIAGRAM_FLOW_PRESETS[number]
 export type DiagramCardinality = typeof DIAGRAM_CARDINALITIES[number]
 export type DiagramSequenceOperator = typeof DIAGRAM_SEQUENCE_OPERATORS[number]
 
-export interface DiagramLegendItem { label: string; role: DiagramRole }
 export interface DiagramMeta {
     description: string
-    legend?: DiagramLegendItem[]
     preset?: DiagramFlowPreset
     title: string
     type: DiagramType

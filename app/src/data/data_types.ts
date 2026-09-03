@@ -30,7 +30,6 @@ Optional root fields:
 - fragments for sequence data only
 
 Optional meta fields:
-- legend: [{ label, role }]
 - preset, required for flow data and forbidden for other types
 
 Supported diagram types:

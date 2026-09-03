@@ -3,7 +3,6 @@ import { useRef } from 'react'
 import type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'
 import { DiagramEdge } from './diagram_edge'
 import { DiagramGroup } from './diagram_group'
-import { DiagramLegend } from './diagram_legend'
 import { DiagramNode } from './diagram_node'
 import type { DiagramSelectHandler, DiagramSelection } from './diagram_selection'
 import { SequenceActivation } from './sequence_activation'
@@ -55,7 +54,6 @@ export function Diagram({ data, onSelect }: DiagramProps) {
                     />
                 ))}
             </Box>
-            {data.meta.legend ? <DiagramLegend items={data.meta.legend} /> : null}
         </Box>
     )
 }

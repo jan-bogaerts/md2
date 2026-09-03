@@ -116,6 +116,27 @@ describe('DiagramViewService', () => {
         })
     })
 
+    it('owns transient legend state and resets it only when project changes or service clears', async () => {
+        const { scheduleCommit, service, storage } = createHarness()
+
+        service.collapseLegend()
+        service.moveLegend({ left: 120, top: 40 })
+        service.bindProject({ config, project, storage })
+
+        expect(service.getSnapshot().legend).toEqual({ collapsed: true, position: { left: 120, top: 40 } })
+        expect(scheduleCommit).not.toHaveBeenCalled()
+
+        service.expandLegend()
+        expect(service.getSnapshot().legend.collapsed).toBe(false)
+
+        service.bindProject({ config, project: { ...project, branch: 'other' }, storage })
+        expect(service.getSnapshot().legend).toEqual({ collapsed: false, position: null })
+
+        service.moveLegend({ left: 20, top: 10 })
+        service.clear()
+        expect(service.getSnapshot().legend).toEqual({ collapsed: false, position: null })
+    })
+
     it('restores global active path and parses exact last diagram JSON from versioned index', async () => {
         const index: DiagramIndex = {
             activePath: ['root-1', 'child-1'],
@@ -202,16 +223,20 @@ describe('DiagramViewService', () => {
         }))
         await vi.waitFor(() => expect(service.getSnapshot().index.activePath).toEqual(['root-1', 'root-2']))
         flushCommits.mockClear()
+        service.collapseLegend()
+        service.moveLegend({ left: 80, top: 24 })
 
         await service.navigateBack()
 
         expect(service.getSnapshot().index.activePath).toEqual(['root-1'])
+        expect(service.getSnapshot().legend).toEqual({ collapsed: true, position: { left: 80, top: 24 } })
         expect(scheduledIndex(scheduleCommit)?.activePath).toEqual(['root-1'])
         expect(flushCommits).not.toHaveBeenCalled()
 
         await service.navigateToSavedDiagram('root-2')
 
         expect(service.getSnapshot().index.activePath).toEqual(['root-1', 'root-2'])
+        expect(service.getSnapshot().legend).toEqual({ collapsed: true, position: { left: 80, top: 24 } })
         expect(scheduledIndex(scheduleCommit)?.activePath).toEqual(['root-1', 'root-2'])
     })
 

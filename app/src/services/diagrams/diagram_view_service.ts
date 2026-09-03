@@ -36,11 +36,22 @@ export interface DiagramMenuState {
     top: number
 }
 
+export interface DiagramLegendPosition {
+    left: number
+    top: number
+}
+
+export interface DiagramLegendState {
+    collapsed: boolean
+    position: DiagramLegendPosition | null
+}
+
 export interface DiagramViewSnapshot {
     currentDiagram: PositionedDiagramData | null
     currentDiagramError: string | null
     error: string | null
     index: DiagramIndex
+    legend: DiagramLegendState
     menu: DiagramMenuState | null
     popup: DiagramPopupState | null
     status: 'idle' | 'loading' | 'ready' | 'error'
@@ -67,6 +78,7 @@ const INITIAL_SNAPSHOT: DiagramViewSnapshot = {
     currentDiagramError: null,
     error: null,
     index: emptyDiagramIndex(),
+    legend: { collapsed: false, position: null },
     menu: null,
     popup: null,
     status: 'idle',
@@ -248,6 +260,20 @@ export class DiagramViewService extends EventTarget {
         this.publish({ ...this.snapshot, popup: null })
     }
 
+    collapseLegend() {
+        if (this.snapshot.legend.collapsed) return
+        this.publish({ ...this.snapshot, legend: { ...this.snapshot.legend, collapsed: true } })
+    }
+
+    expandLegend() {
+        if (!this.snapshot.legend.collapsed) return
+        this.publish({ ...this.snapshot, legend: { ...this.snapshot.legend, collapsed: false } })
+    }
+
+    moveLegend(position: DiagramLegendPosition) {
+        this.publish({ ...this.snapshot, legend: { ...this.snapshot.legend, position } })
+    }
+
     openItemMenu(menu: DiagramMenuState) {
         this.requireReady()
         this.publish({ ...this.snapshot, menu })
@@ -310,15 +336,15 @@ export class DiagramViewService extends EventTarget {
 
     private async load() {
         const binding = this.requireBinding()
-        this.publish({ ...INITIAL_SNAPSHOT, status: 'loading' })
+        this.publish({ ...INITIAL_SNAPSHOT, legend: this.snapshot.legend, status: 'loading' })
         try {
             const index = await loadDiagramIndex(binding)
             validateDiagramPaths(index, binding.config.diagramsFolder)
             const activeDiagram = await loadActiveDiagram(binding, index)
-            this.publish({ ...activeDiagram, error: null, index, menu: null, popup: null, status: 'ready' })
+            this.publish({ ...activeDiagram, error: null, index, legend: this.snapshot.legend, menu: null, popup: null, status: 'ready' })
         } catch (error) {
             this.loadPromise = null
-            this.publish({ ...INITIAL_SNAPSHOT, error: errorMessage(error), status: 'error' })
+            this.publish({ ...INITIAL_SNAPSHOT, error: errorMessage(error), legend: this.snapshot.legend, status: 'error' })
             this.dependencies.reportError(error, 'Diagram index could not be loaded')
         }
     }

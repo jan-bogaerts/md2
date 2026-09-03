@@ -57,17 +57,6 @@ function requireEnum(value, values, field) {
 function optionalEnum(value, values, field) {
     return value === undefined ? undefined : requireEnum(value, values, field);
 }
-function parseLegend(value) {
-    if (value === undefined)
-        return undefined;
-    return requireArray(value, 'meta.legend').map((entry, index) => {
-        const item = requireObject(entry, `meta.legend[${index}]`);
-        return {
-            label: requireString(item.label, `meta.legend[${index}].label`),
-            role: requireEnum(item.role, DIAGRAM_ROLES, `meta.legend[${index}].role`),
-        };
-    });
-}
 function parseMeta(value) {
     const meta = requireObject(value, 'meta');
     if (meta.version !== DIAGRAM_DATA_VERSION)
@@ -78,10 +67,8 @@ function parseMeta(value) {
         malformed('meta.preset', 'required value for flow diagrams');
     if (type !== 'flow' && preset)
         malformed('meta.preset', 'value only allowed for flow diagrams');
-    const legend = parseLegend(meta.legend);
     return {
         description: requireString(meta.description, 'meta.description'),
-        ...(legend ? { legend } : {}),
         ...(preset ? { preset } : {}),
         title: requireString(meta.title, 'meta.title'),
         type,

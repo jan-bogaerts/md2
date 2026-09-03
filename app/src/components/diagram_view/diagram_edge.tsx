@@ -1,14 +1,11 @@
 import { useId, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { useTheme } from '@mui/material'
 import type { PositionedDiagramEdge, PositionedDiagramNode } from '../../services/diagrams/diagram_layout'
+import { diagramEdgeStyle } from './diagram_edge_style'
 import { roundedDiagramPath } from './diagram_path'
 import type { DiagramSelectHandler } from './diagram_selection'
 
 const EDGE_LABEL_FONT_SIZE = 8
-const DEFAULT_EDGE_STROKE_WIDTH = 1.2
-const ACCENT_EDGE_STROKE_WIDTH = 1.5
-const FOCUSED_EDGE_STROKE_WIDTH = 3
-
 interface DiagramEdgeProps {
     edge: PositionedDiagramEdge
     nodes: Map<string, PositionedDiagramNode>
@@ -29,12 +26,7 @@ export function DiagramEdge({ edge, nodes, onSelect }: DiagramEdgeProps) {
     const [focused, setFocused] = useState(false)
     const label = edgeLabel(edge, nodes)
     const path = roundedDiagramPath(edge.points)
-    const dashed = ['async', 'cycle', 'return'].includes(edge.kind)
-    const accent = edge.kind === 'cycle' || edge.kind === 'success'
-    const color = focused || accent ? theme.palette.primary.main : theme.palette.text.secondary
-    const strokeWidth = focused
-        ? FOCUSED_EDGE_STROKE_WIDTH
-        : accent ? ACCENT_EDGE_STROKE_WIDTH : DEFAULT_EDGE_STROKE_WIDTH
+    const { arrowhead, color, strokeDasharray, strokeWidth } = diagramEdgeStyle(edge.kind, theme, focused)
     const visibleLabel = edge.label ?? (edge.kind === 'cycle' ? 'CYCLE' : null)
     const markerId = `diagram-arrow-${useId().replace(/:/gu, '')}`
     const handleSelect = (left: number, top: number) => onSelect({ id: edge.id, label, left, top })
@@ -63,7 +55,7 @@ export function DiagramEdge({ edge, nodes, onSelect }: DiagramEdgeProps) {
         >
             <defs>
                 <marker id={markerId} markerHeight="6" markerWidth="8" orient="auto" refX="7" refY="3">
-                    {edge.kind === 'async'
+                    {arrowhead === 'open'
                         ? <polyline fill="none" points="0 0, 8 3, 0 6" stroke="currentColor" strokeWidth="1.2" />
                         : <path d="M0,0 L8,3 L0,6 Z" fill="currentColor" />}
                 </marker>
@@ -74,7 +66,7 @@ export function DiagramEdge({ edge, nodes, onSelect }: DiagramEdgeProps) {
                 fill="none"
                 markerEnd={`url(#${markerId})`}
                 stroke="currentColor"
-                strokeDasharray={dashed ? '4 3' : undefined}
+                strokeDasharray={strokeDasharray}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={strokeWidth}

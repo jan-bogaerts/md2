@@ -18,6 +18,13 @@ describe('parseDiagramData', () => {
         expect(parseDiagramData(JSON.stringify(validDiagram()))).toEqual(validDiagram())
     })
 
+    it('ignores legacy legend metadata', () => {
+        const diagram = validDiagram()
+        diagram.meta = { ...diagram.meta, legend: [{ label: 'Legacy label', role: 'focal' }] } as typeof diagram.meta
+
+        expect(parseDiagramData(JSON.stringify(diagram)).meta).toEqual(validDiagram().meta)
+    })
+
     it('requires flow preset and accepts entity fields and cardinality', () => {
         const flow = {
             ...validDiagram(),
@@ -68,15 +75,9 @@ describe('parseDiagramData', () => {
     })
 
     it('parses a large architecture document with many focal nodes and groups', () => {
-        const nodes = Array.from({ length: 40 }, (_unused, index) => ({
-            id: `node-${index}`, label: `Node ${index}`, role: index % 5 === 0 ? 'focal' : 'backend',
-        }))
-        const edges = Array.from({ length: 60 }, (_unused, index) => ({
-            from: `node-${index % 40}`, id: `edge-${index}`, kind: 'connection', to: `node-${(index + 7) % 40}`,
-        }))
-        const groups = Array.from({ length: 6 }, (_unused, index) => ({
-            id: `group-${index}`, label: `Group ${index}`, nodeIds: [`node-${index * 2}`, `node-${index * 2 + 1}`],
-        }))
+        const nodes = Array.from({ length: 40 }, (_unused, index) => ({id: `node-${index}`, label: `Node ${index}`, role: index % 5 === 0 ? 'focal' : 'backend'}))
+        const edges = Array.from({ length: 60 }, (_unused, index) => ({from: `node-${index % 40}`, id: `edge-${index}`, kind: 'connection', to: `node-${(index + 7) % 40}`}))
+        const groups = Array.from({ length: 6 }, (_unused, index) => ({id: `group-${index}`, label: `Group ${index}`, nodeIds: [`node-${index * 2}`, `node-${index * 2 + 1}`]}))
         const parsed = parseDiagramData(JSON.stringify({ ...validDiagram(), edges, groups, nodes }))
 
         expect(parsed.nodes).toHaveLength(40)
@@ -110,9 +111,7 @@ describe('parseDiagramData', () => {
 
     it('parses wide decisions, repeated cycles, and dense state transitions', () => {
         const flowchart = {
-            edges: Array.from({ length: 4 }, (_unused, index) => ({
-                from: 'choose', id: `branch-${index}`, kind: 'flow', label: `case ${index}`, to: `step-${index}`,
-            })),
+            edges: Array.from({ length: 4 }, (_unused, index) => ({from: 'choose', id: `branch-${index}`, kind: 'flow', label: `case ${index}`, to: `step-${index}`})),
             meta: { description: 'Wide decision', preset: 'flowchart', title: 'Choices', type: 'flow', version: 1 },
             nodes: [
                 { id: 'choose', kind: 'decision', label: 'Choose', role: 'focal' },
@@ -133,9 +132,7 @@ describe('parseDiagramData', () => {
         expect(parseDiagramData(JSON.stringify(dependency)).edges.filter(({ kind }) => kind === 'cycle')).toHaveLength(3)
 
         const state = {
-            edges: Array.from({ length: 7 }, (_unused, index) => ({
-                from: `state-${index % 3}`, id: `transition-${index}`, kind: 'transition', label: `t${index}`, to: `state-${(index + 1) % 3}`,
-            })),
+            edges: Array.from({ length: 7 }, (_unused, index) => ({from: `state-${index % 3}`, id: `transition-${index}`, kind: 'transition', label: `t${index}`, to: `state-${(index + 1) % 3}`})),
             meta: { description: 'Dense states', preset: 'state', title: 'States', type: 'flow', version: 1 },
             nodes: Array.from({ length: 3 }, (_unused, index) => ({ id: `state-${index}`, kind: 'state', label: `State ${index}`, role: 'backend' })),
         }
