@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: cfe002ea-7a48-4c32-bed1-078fae7b5d5c
+branch: f_275_add_diagram_edit_session_service
+worktree: 2
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
