@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "ed8ce460-5ff7-46f0-8bf2-09764585b8b2",
       "cardPath": "design/feature_descriptions/B_164_multiple_remote_control_connection_was_replaced.md",
-      "completedAt": null,
+      "completedAt": "2026-09-03T16:50:58.815Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 102522
@@ -1195,17 +1195,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 85,
-          "timestamp": "2026-09-03T16:50:58.524Z"
+          "timestamp": "2026-09-03T16:50:58.815Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-8df33bec-b8a3-4e24-80ec-7eb271968e04",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0682a-d69c-7533-bf01-ccefa92fcaae",
+          "createdAt": "2026-09-03T16:50:58.815Z",
+          "lastUsedAt": "2026-09-03T16:50:58.815Z",
+          "synchronizedThroughMessageId": "agent-turn-b4cd18b7-f266-4df4-a30f-3c10a71ed630-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-03T16:47:12.002Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-03T16:47:12.002Z"
+        "elapsedMs": 226813,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
