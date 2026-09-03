@@ -1256,6 +1256,32 @@
       "startedAt": "2026-09-03T17:26:50.309Z",
       "status": "completed",
       "rootConversationId": "agent-50497e5e-da3f-4677-98dc-ee4fbec175c7"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f91315cc573c138ae7332a336a6554a9f2d2d458",
+          "committedAt": "2026-09-03T19:36:33+02:00",
+          "deletions": 13,
+          "filePaths": [
+            "app/src/services/diagrams/diagram_edit_session_service.test.ts",
+            "app/src/services/diagrams/diagram_edit_session_service.ts",
+            "app/src/services/diagrams/diagram_view_service.test.ts",
+            "app/src/services/diagrams/diagram_view_service.ts",
+            "app/src/services/project/project_loading.ts"
+          ],
+          "filesChanged": 5,
+          "insertions": 347,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-03T19:36:33+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "cc6a602a-de2d-46bd-a49e-eae08d85495d",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
