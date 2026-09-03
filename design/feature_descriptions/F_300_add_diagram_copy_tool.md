@@ -1,0 +1,34 @@
+---
+author:
+id: F_300
+internalId: 1baf99c7-1d5e-40a4-8702-29de72e0be62
+title: add diagram copy tool
+status: new
+owner:
+affects:
+agents:
+policy:
+after: 280027c6-d553-4c20-9fb4-af9010ce2c39
+---
+
+Parent: [F_255](F_255_make_diagrams_editable.md).
+
+## Goal
+
+Add Copy and a versioned internal diagram-fragment clipboard format.
+
+## Scope
+
+Serialize selected nodes, edges, groups, and relevant group or fragment relationships without copying the complete diagram. Clipboard data retains source IDs only for internal relationship reconstruction.
+
+## Acceptance criteria
+
+* Copy does not mutate selection, diagram data, or dirty state.
+* Only edges with both required selected endpoints are included automatically.
+* The clipboard payload is versioned and validated before paste.
+* Clipboard failure is reported through `dialogService`.
+* Copy is disabled for empty selection.
+
+## Dependencies
+
+[F_290](F_290_add_diagram_selection_service.md).

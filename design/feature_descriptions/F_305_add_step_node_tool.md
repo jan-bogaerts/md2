@@ -1,0 +1,29 @@
+---
+author:
+id: F_305
+internalId: a0dbf3d9-3dde-43d0-962a-58d79e747f8d
+title: add step node tool
+status: new
+owner:
+affects:
+agents:
+policy:
+after: c27b7bc9-72f5-4547-beeb-009ea47174fc
+---
+
+Parent: [F_255](F_255_make_diagrams_editable.md).
+
+## Goal
+
+Add a Step button for flowchart diagrams.
+
+## Acceptance criteria
+
+* The tool is available only for flow diagrams with the flowchart preset.
+* Placement creates a valid step node using the shared placement workflow.
+* The node uses existing step styling, is selected, and exposes permitted details.
+* State diagrams and other diagram types do not offer the button.
+
+## Dependencies
+
+[F_302](F_302_add_node_placement_infrastructure.md).

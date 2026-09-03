@@ -1,0 +1,30 @@
+---
+author:
+id: F_292
+internalId: 91ef53f7-f3da-4b1a-acf1-ca3520128a0f
+title: add additive diagram selection
+status: new
+owner:
+affects:
+agents:
+policy:
+after: 2f8b255c-a6f9-4f92-ad54-3f4358b2e512
+---
+
+Parent: [F_255](F_255_make_diagrams_editable.md).
+
+## Goal
+
+Allow Ctrl-click to add or remove individual objects from selection.
+
+## Acceptance criteria
+
+* Ctrl-clicking an unselected node, edge, or group adds it.
+* Ctrl-clicking a selected object removes only that object.
+* Plain click still replaces selection.
+* The behavior works with mixed object kinds and does not trigger moving, resizing, or drill-down.
+* Tests use actual user interaction rather than service internals.
+
+## Dependencies
+
+[F_291](F_291_add_direct_diagram_selection.md).

@@ -44,7 +44,7 @@ Linked worktrees are managed from this section too — see [Worktrees](worktrees
 | `desktop.model` | *(empty)* | Default model; empty uses the profile default. |
 | `desktop.thinkingLevel` | `none` | Default reasoning level. |
 | `desktop.codexSearchEnabled` | `true` | Allow Codex runs to use web search. |
-| `desktop.agentProfiles` | built-ins | Agent profile definitions. See [Agent setup](../actions/agent-setup.md). |
+| `desktop.agentProfiles` | built-ins | Agent profile definitions, including optional monthly subscription cost for Stats estimates. See [Agent setup](../actions/agent-setup.md). |
 
 Agent, model, and reasoning level can also be set straight from the **Run** tab of the menu.
 
@@ -56,4 +56,4 @@ Choose a predefined Markdown style, or adjust font, size, weight, and color per 
 
 Light and dark mode toggle from the title bar. The desktop app reads the theme before creating its window, so the window buttons match from the first frame.
 
-See also: [Project layout](../concepts/project-layout.md).
+See also: [Project layout](../concepts/project-layout.md), [Stats](stats.md), [How usage and cost are calculated](../concepts/usage-and-cost.md).

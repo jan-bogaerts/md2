@@ -1,0 +1,30 @@
+---
+author:
+id: F_313
+internalId: 38dda9b3-29d3-4797-9d49-d2e435ccd6f1
+title: add dependency edge tools
+status: new
+owner:
+affects:
+agents:
+policy:
+after: a19922cd-3580-4417-8906-3b8b73d4f46f
+---
+
+Parent: [F_255](F_255_make_diagrams_editable.md).
+
+## Goal
+
+Add Dependency and Cycle buttons for dependency diagrams.
+
+## Acceptance criteria
+
+* Both kinds use shared drawing and persisted connection points.
+* Dependency direction matches the existing from and to contract.
+* Cycle edges retain cycle styling and cycle routing behavior.
+* Reconnecting or deleting either kind leaves fan-in and routes correctly derived.
+* The buttons appear only for dependency diagrams.
+
+## Dependencies
+
+[F_311](F_311_add_edge_drawing_infrastructure.md).

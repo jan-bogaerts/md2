@@ -48,9 +48,11 @@ Output streams into the popup while the agent works. The card shows **Running**,
 - The conversation stays attached to the card — reopen it any time.
 - Commits made during the run are listed under the card's commit icon, with their diff.
 - Token usage is shown per run, per card, and in the status bar for the project.
+- Open **Stats** from the Board/List/Stats switch to compare activity, performance, token usage, and estimated cost by card or action.
 
 ## Where to go next
 
 - [Actions and agents](../concepts/actions-and-agents.md) — the model behind actions.
 - [Cookbook](../actions/cookbook.md) — ready-made action definitions.
 - [Worktrees](../guide/worktrees.md) — several agents at once, one branch each.
+- [Stats](../guide/stats.md) — understand where agent time, tokens, and subscription value are spent.

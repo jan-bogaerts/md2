@@ -1,0 +1,33 @@
+---
+author:
+id: F_289
+internalId: 71998afb-3b7f-4da7-87e4-95e5c931a702
+title: add diagram coordinate conversion
+status: new
+owner:
+affects:
+agents:
+policy:
+after: ec72c355-fcfa-4d53-ad26-3812fcb1c7ba
+---
+
+Parent: [F_255](F_255_make_diagrams_editable.md).
+
+## Goal
+
+Provide one tested conversion between client, viewport, and diagram coordinates.
+
+## Scope
+
+Account for viewport bounds, independent scrolling, zoom, and comparison layout. Expose a reusable pure conversion used by marquee selection, placement, moving, resizing, and edge drawing.
+
+## Acceptance criteria
+
+* The same pointer location resolves to the expected diagram point at every supported zoom.
+* Scrolling either comparison pane cannot offset gestures in the other pane.
+* Conversion has no DOM writes and is covered by unit tests.
+* Tools do not implement their own coordinate formulas.
+
+## Dependencies
+
+[F_280](F_280_add_current_and_new_diagram_comparison.md).
