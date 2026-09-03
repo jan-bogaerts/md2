@@ -47,8 +47,6 @@ changedFiles:
   - shared/action_definitions.mjs
   - shared/diagram_data.d.mts
   - shared/tolerant_action_definitions.mjs
-branch: f_270_add_auto_finish_support_for_diagram_actions
-worktree: 3
 ---
 
 We can automatically finish a streaming agent action when its card enters a configured state. Diagram-producing actions need equivalent support: finish the streaming agent when the generated diagram JSON is ready.
