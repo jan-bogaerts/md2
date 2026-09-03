@@ -1,0 +1,8 @@
+{
+  "id": "08f06be2-ad73-4e24-8d05-f63b5f5c8340",
+  "label": "describe on website",
+  "description": "Describe this action.",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Describe what the agent should do."
+}
