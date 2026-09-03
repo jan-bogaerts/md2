@@ -7,6 +7,7 @@ status: design
 owner:
 affects:
 agents:
+  - design/activity/card__cfe002ea-7a48-4c32-bed1-078fae7b5d5c.json
 policy:
 branch: f_274_add_editable_connection_points
 worktree: 2
