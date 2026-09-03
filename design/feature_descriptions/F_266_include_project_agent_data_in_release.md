@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - add_release_tests.py
+after: 3331f545-2396-4bb7-b421-14107e79a0d8
 ---
 when we do a release, all the project agent's logs and activity data should also be moved into the release folder.
 

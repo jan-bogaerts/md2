@@ -61,6 +61,7 @@ changedFiles:
   - desktop/src/actions/action/action_text.js
   - desktop/src/actions/action/action_text.test.mjs
   - shared/action_definitions.mjs
+after: 2ba8b222-8131-4283-9263-be319a8fed6f
 ---
 We can link actions to different types of targets like cards, project, merge,... we need a new target: diagram. these actions are available in diagram mode.
 

@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__7b0ea8f9-7db3-44dd-8372-7103eca2324d.json
 policy:
+after: 711befe5-b3f9-400b-b077-2b44830c9e38
 ---
 
 when opening the action popup when in diagram view, and it prepares the prompt, we get this error:

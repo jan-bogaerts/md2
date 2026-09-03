@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - design/architecture/editable_diagram_contract.md
+after: d65c7486-a435-44f6-b2a0-3f6dce01fa35
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 

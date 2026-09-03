@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__eb493428-5ac9-4256-aaa3-da3a26d73aca.json
 policy:
+after: db346664-48c2-4cf0-833c-3c5508a85591
 ---
 
 is it possible to have the initial box size fit the size of the content?
