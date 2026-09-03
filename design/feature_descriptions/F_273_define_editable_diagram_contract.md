@@ -3,14 +3,18 @@ author:
 id: F_273
 internalId: cd29dd64-c875-44fb-b4c4-e131a4a113c8
 title: define editable diagram contract
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__cd29dd64-c875-44fb-b4c4-e131a4a113c8.json
 policy:
+changedFiles:
+  - design/architecture/editable_diagram_contract.md
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
+
+Contract document: [editable diagram contract](../architecture/editable_diagram_contract.md).
 
 ## Goal
 
