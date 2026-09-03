@@ -820,6 +820,32 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('recovers tracked runs after the same bridge reconnects', async () => {
+        const loadActionRunRecoverySnapshot = vi.fn()
+            .mockResolvedValueOnce({ activeRunEvents: [], terminalResults: [] })
+            .mockResolvedValue({
+                activeRunEvents: [],
+                terminalResults: [{ changedPaths: [], failure: null, runId: 'run-1', status: 'completed' }],
+            })
+        const { bridge, emit } = bridgeWithEvents({ loadActionRunRecoverySnapshot })
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        await vi.waitFor(() => expect(loadActionRunRecoverySnapshot).toHaveBeenCalledOnce())
+        emit({ ...runEvent('running'), sequence: 1 })
+        const store = service.getRunStore('run-1')
+        if (!store) throw new Error('Missing run store')
+        const release = store.subscribe(vi.fn())
+
+        await service.recoverConnection()
+
+        expect(bridge.onActionRun).toHaveBeenCalledOnce()
+        expect(loadActionRunRecoverySnapshot).toHaveBeenLastCalledWith(['run-1'])
+        expect(store.getSnapshot().status).toBe('completed')
+        release()
+        service.stop()
+    })
+
     it('keeps live terminal event over older snapshot events during recovery', async () => {
         const first = bridgeWithEvents()
         setActionBridgeOverride(first.bridge)

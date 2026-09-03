@@ -10,7 +10,7 @@ import { codexRateLimitService } from '../agents/codex_rate_limit_service'
 import { readDesktopConfigFromBridge } from '../config/config_persistence'
 import { configService } from '../config/config_service'
 import { setDesktopConfigTransportOverride } from '../config/desktop_config_transport'
-import { getService, register } from '../service_injector'
+import { register } from '../service_injector'
 import {
     isRemoteControlConnectionError,
     RemoteControlConnectionError,
@@ -26,17 +26,16 @@ export interface RemoteConnectionSnapshot {
 }
 
 export interface RemoteConnectionServiceDependencies {
-    activate(storage: RemoteControlStorageService): Promise<void>
+    activate(storage: RemoteControlStorageService, reconnecting: boolean): Promise<void>
     clearActivation(): void
     createStorage(): RemoteControlStorageService
-    replaceProjectStorage(storage: RemoteControlStorageService): void
 }
 
 const INITIAL_RECONNECT_DELAY_MS = 1_000
 const MAX_RECONNECT_DELAY_MS = 30_000
 const INITIAL_SNAPSHOT: RemoteConnectionSnapshot = { endpoint: null, errorMessage: null, status: 'disconnected' }
 
-async function activateRemoteStorage(storage: RemoteControlStorageService) {
+async function activateRemoteStorage(storage: RemoteControlStorageService, reconnecting: boolean) {
     try {
         const desktopConfig = await storage.loadDesktopConfig()
         configService.replaceDesktopConfig(desktopConfig)
@@ -47,6 +46,7 @@ async function activateRemoteStorage(storage: RemoteControlStorageService) {
         claudeRateLimitService.start()
         codexRateLimitService.start()
         actionRunRegistry.start()
+        if (reconnecting) await actionRunRegistry.recoverConnection()
         await agentCapabilitiesService.reload()
     } catch (error) {
         if (isRemoteControlConnectionError(error)) throw error
@@ -75,8 +75,6 @@ const DEFAULT_DEPENDENCIES: RemoteConnectionServiceDependencies = {
     activate: activateRemoteStorage,
     clearActivation: clearRemoteActivation,
     createStorage: () => new RemoteControlStorageService(),
-    replaceProjectStorage: (storage) => getService<{ replaceRemoteStorage(storage: RemoteControlStorageService): void }>('dataService')
-        .replaceRemoteStorage(storage),
 }
 
 function sameSettings(left: RemoteControlConnectionSettings | null, right: RemoteControlConnectionSettings) {
@@ -89,11 +87,14 @@ export class RemoteConnectionService extends EventTarget {
     private connectingStorage: RemoteControlStorageService | null = null
     private connectionPromise: Promise<RemoteControlStorageService | null> | null = null
     private readonly dependencies: RemoteConnectionServiceDependencies
+    private connectionLossCount = 0
     private lifecycleId = 0
     private projectFlowHandled = false
     private projectStorageActive = false
     private reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS
-    private retryResolve: (() => void) | null = null
+    private reconnectResolve: ((storage: RemoteControlStorageService | null) => void) | null = null
+    private retryLifecycleId: number | null = null
+    private retryStorage: RemoteControlStorageService | null = null
     private retryTimeout: number | null = null
     private settings: RemoteControlConnectionSettings | null = null
     private snapshot = INITIAL_SNAPSHOT
@@ -134,12 +135,14 @@ export class RemoteConnectionService extends EventTarget {
             if (this.connectionPromise) {
                 const storage = await this.connectionPromise
                 if (storage) return storage
+                throw new RemoteControlConnectionError('Remote-control connection cancelled')
             }
         }
 
         this.lifecycleId += 1
         const lifecycleId = this.lifecycleId
         this.stopCurrentConnection()
+        this.reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS
         this.projectFlowHandled = false
         this.settings = settings
         this.publish({ endpoint: settings.endpoint, errorMessage: null, status: 'connecting' })
@@ -191,18 +194,20 @@ export class RemoteConnectionService extends EventTarget {
         const storage = initialStorage ?? this.dependencies.createStorage()
         if (!initialStorage) storage.init(settings)
         this.connectingStorage = storage
-        let connectionClosed = false
-        const unsubscribe = storage.onConnectionChanged((connected) => {
-            if (connected) return
-            connectionClosed = true
-            if (this.activeStorage === storage && this.snapshot.status === 'ready') this.startReconnecting(lifecycleId)
-        })
+        const connectionLossCount = this.connectionLossCount
+        const unsubscribe = reconnecting
+            ? null
+            : storage.onConnectionChanged((connected) => {
+                if (connected) return
+                this.connectionLossCount += 1
+                if (this.activeStorage === storage && this.snapshot.status === 'ready') this.startReconnecting(lifecycleId)
+            })
 
         try {
             await storage.connect()
-            if (connectionClosed) throw new RemoteControlConnectionError('Remote-control connection closed')
-            await this.dependencies.activate(storage)
-            if (connectionClosed) throw new RemoteControlConnectionError('Remote-control connection closed')
+            if (connectionLossCount !== this.connectionLossCount) throw new RemoteControlConnectionError('Remote-control connection closed')
+            await this.dependencies.activate(storage, reconnecting)
+            if (connectionLossCount !== this.connectionLossCount) throw new RemoteControlConnectionError('Remote-control connection closed')
             if (lifecycleId !== this.lifecycleId) {
                 if (this.connectingStorage === storage) this.connectingStorage = null
                 storage.retire()
@@ -210,18 +215,21 @@ export class RemoteConnectionService extends EventTarget {
                 return null
             }
 
-            this.unsubscribeConnection?.()
-            this.unsubscribeConnection = unsubscribe
+            if (unsubscribe) {
+                this.unsubscribeConnection?.()
+                this.unsubscribeConnection = unsubscribe
+            }
             this.activeStorage = storage
             if (this.connectingStorage === storage) this.connectingStorage = null
             this.reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS
-            if (reconnecting && this.projectStorageActive) this.dependencies.replaceProjectStorage(storage)
             this.publish({ endpoint: settings.endpoint, errorMessage: null, status: 'ready' })
 
             return storage
         } catch (error) {
             if (this.connectingStorage === storage) this.connectingStorage = null
-            unsubscribe()
+            if (reconnecting) throw error
+
+            unsubscribe?.()
             storage.retire()
             if (lifecycleId !== this.lifecycleId) return null
             this.dependencies.clearActivation()
@@ -233,67 +241,71 @@ export class RemoteConnectionService extends EventTarget {
 
     private startReconnecting(lifecycleId: number) {
         if (lifecycleId !== this.lifecycleId || !this.settings) return
+        if (this.snapshot.status === 'reconnecting') return
 
-        this.unsubscribeConnection?.()
-        this.unsubscribeConnection = null
-        const staleStorage = this.activeStorage
-        this.activeStorage = null
-        staleStorage?.retire()
-        this.dependencies.clearActivation()
+        const storage = this.activeStorage
+        if (!storage) return
+
         this.publish({ endpoint: this.settings.endpoint, errorMessage: null, status: 'reconnecting' })
-        const connectionPromise = this.reconnect(this.settings, lifecycleId)
+        const connectionPromise = new Promise<RemoteControlStorageService | null>((resolve) => {
+            this.reconnectResolve = resolve
+        })
         this.connectionPromise = connectionPromise
-        void connectionPromise.finally(() => {
-            if (this.connectionPromise === connectionPromise) this.connectionPromise = null
-        })
+        this.retryLifecycleId = lifecycleId
+        this.retryStorage = storage
+        this.scheduleRetry()
     }
 
-    private async reconnect(
-        settings: RemoteControlConnectionSettings,
-        lifecycleId: number,
-    ): Promise<RemoteControlStorageService | null> {
-        let delayMs = 0
-        while (lifecycleId === this.lifecycleId) {
-            if (delayMs > 0) await this.waitForRetry(delayMs)
-            if (lifecycleId !== this.lifecycleId) return null
+    private scheduleRetry() {
+        if (this.retryTimeout !== null || this.retryLifecycleId === null || !this.retryStorage) return
 
-            try {
-                return await this.connectOnce(settings, lifecycleId, true)
-            } catch (error) {
-                if (lifecycleId !== this.lifecycleId) return null
-                const errorMessage = error instanceof Error ? error.message : 'Remote-control reconnection failed'
-                this.publish({ endpoint: settings.endpoint, errorMessage, status: 'reconnecting' })
-                delayMs = this.reconnectDelayMs
-                this.reconnectDelayMs = Math.min(this.reconnectDelayMs * 2, MAX_RECONNECT_DELAY_MS)
-            }
+        const delayMs = this.reconnectDelayMs
+        this.reconnectDelayMs = Math.min(delayMs * 2, MAX_RECONNECT_DELAY_MS)
+        this.retryTimeout = window.setTimeout(() => void this.runRetry(), delayMs)
+    }
+
+    private async runRetry() {
+        this.retryTimeout = null
+        const lifecycleId = this.retryLifecycleId
+        const storage = this.retryStorage
+        const settings = this.settings
+        if (lifecycleId === null || !storage || !settings || lifecycleId !== this.lifecycleId) return
+
+        try {
+            const connectedStorage = await this.connectOnce(settings, lifecycleId, true, storage)
+            if (!connectedStorage || lifecycleId !== this.lifecycleId) return
+
+            this.reconnectResolve?.(connectedStorage)
+            this.clearRetryState()
+            if (this.connectionPromise) this.connectionPromise = null
+        } catch (error) {
+            if (lifecycleId !== this.lifecycleId) return
+            const errorMessage = error instanceof Error ? error.message : 'Remote-control reconnection failed'
+            this.publish({ endpoint: settings.endpoint, errorMessage, status: 'reconnecting' })
+            this.scheduleRetry()
         }
-
-        return null
-    }
-
-    private waitForRetry(delayMs: number) {
-        return new Promise<void>((resolve) => {
-            this.retryResolve = resolve
-            this.retryTimeout = window.setTimeout(() => {
-                this.retryResolve = null
-                this.retryTimeout = null
-                resolve()
-            }, delayMs)
-        })
     }
 
     private stopCurrentConnection() {
         if (this.retryTimeout !== null) window.clearTimeout(this.retryTimeout)
-        this.retryTimeout = null
-        this.retryResolve?.()
-        this.retryResolve = null
+        this.reconnectResolve?.(null)
+        this.clearRetryState()
         this.unsubscribeConnection?.()
         this.unsubscribeConnection = null
-        this.connectingStorage?.retire()
+        const connectingStorage = this.connectingStorage
+        const activeStorage = this.activeStorage
+        connectingStorage?.retire()
         this.connectingStorage = null
-        this.activeStorage?.retire()
+        if (activeStorage !== connectingStorage) activeStorage?.retire()
         this.activeStorage = null
         this.connectionPromise = null
+    }
+
+    private clearRetryState() {
+        this.retryTimeout = null
+        this.retryLifecycleId = null
+        this.retryStorage = null
+        this.reconnectResolve = null
     }
 
     private publish(snapshot: RemoteConnectionSnapshot) {

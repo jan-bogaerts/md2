@@ -97,6 +97,12 @@ interface PendingRequest {
     resolve: (value: unknown) => void
 }
 
+interface ConnectionWaiter {
+    promise: Promise<void>
+    reject: (error: Error) => void
+    resolve: () => void
+}
+
 interface AgentRunPayload {
     event: AgentRunEvent
     requestId: string
@@ -147,13 +153,19 @@ interface MergeConflictSessionChangedPayload {
     subscriptionId: string
 }
 
-interface MergeConflictSubscription {
-    cancelled: boolean
-    subscriptionId: string | null
-}
-
 const SOCKET_OPEN_STATE = 1
 const WORKTREES_CHANGED_EVENT = 'worktreesChanged'
+
+function createConnectionWaiter(): ConnectionWaiter {
+    let reject!: (error: Error) => void
+    let resolve!: () => void
+    const promise = new Promise<void>((promiseResolve, promiseReject) => {
+        reject = promiseReject
+        resolve = promiseResolve
+    })
+
+    return { promise, reject, resolve }
+}
 
 export class RemoteControlConnectionError extends Error {
     constructor(message: string) {
@@ -180,6 +192,7 @@ export class RemoteControlStorageService implements
     private actionRunListeners: Set<(event: ActionRunEvent) => void>
     private actionRunSubscriptions: Map<(event: ActionRunEvent) => void, string>
     private connectPromise: Promise<void> | null
+    private connectReject: ((error: Error) => void) | null
     private connectionListeners: Set<(connected: boolean) => void>
     private claudeRateLimitCallbacks: Map<string, (snapshot: ClaudeRateLimitSnapshot) => void>
     private claudeRateLimitListeners: Set<(snapshot: ClaudeRateLimitSnapshot) => void>
@@ -187,8 +200,11 @@ export class RemoteControlStorageService implements
     private codexRateLimitCallbacks: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private codexRateLimitListeners: Set<(snapshot: CodexRateLimitSnapshot) => void>
     private codexRateLimitSubscriptions: Map<(snapshot: CodexRateLimitSnapshot) => void, string>
+    private disconnecting: boolean
     private endpoint: string
     private mergeConflictCallbacks: Map<string, (session: MergeConflictSession | null) => void>
+    private mergeConflictListeners: Set<(session: MergeConflictSession | null) => void>
+    private mergeConflictSubscriptions: Map<(session: MergeConflictSession | null) => void, string>
     private nextId: number
     private readonly pendingPushBranches: Set<string>
     private pending: Map<string, PendingRequest>
@@ -197,6 +213,8 @@ export class RemoteControlStorageService implements
     private requestClaudeRateLimitEvents: Map<string, (snapshot: ClaudeRateLimitSnapshot) => void>
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private requestWatchEvents: Map<string, ProjectWatchSubscription>
+    private reconnectWaiter: ConnectionWaiter | null
+    private reconnecting: boolean
     private retired: boolean
     private requestMergeConflictEvents: Map<string, (session: MergeConflictSession | null) => void>
     private runAgentEvents: Map<string, (event: AgentRunEvent) => void>
@@ -213,6 +231,7 @@ export class RemoteControlStorageService implements
         this.actionRunListeners = new Set()
         this.actionRunSubscriptions = new Map()
         this.connectPromise = null
+        this.connectReject = null
         this.connectionListeners = new Set()
         this.claudeRateLimitCallbacks = new Map()
         this.claudeRateLimitListeners = new Set()
@@ -220,8 +239,11 @@ export class RemoteControlStorageService implements
         this.codexRateLimitCallbacks = new Map()
         this.codexRateLimitListeners = new Set()
         this.codexRateLimitSubscriptions = new Map()
+        this.disconnecting = false
         this.endpoint = ''
         this.mergeConflictCallbacks = new Map()
+        this.mergeConflictListeners = new Set()
+        this.mergeConflictSubscriptions = new Map()
         this.nextId = 1
         this.pendingPushBranches = new Set()
         this.pending = new Map()
@@ -231,6 +253,8 @@ export class RemoteControlStorageService implements
         this.requestCodexRateLimitEvents = new Map()
         this.requestMergeConflictEvents = new Map()
         this.requestWatchEvents = new Map()
+        this.reconnectWaiter = null
+        this.reconnecting = false
         this.retired = false
         this.runAgentEvents = new Map()
         this.socket = null
@@ -251,16 +275,19 @@ export class RemoteControlStorageService implements
     }
 
     async connect(): Promise<void> {
-        await this.ensureConnected()
+        await this.connectSocket()
     }
 
     disconnect() {
+        this.cancelReconnect(new RemoteControlConnectionError('Remote-control connection closed'))
+        this.disconnecting = true
         this.socket?.close()
     }
 
     retire() {
         this.retired = true
-        this.disconnect()
+        this.cancelReconnect(new RemoteControlConnectionError('Remote-control connection was replaced'))
+        this.socket?.close()
     }
 
     getConnectionSettings(): RemoteControlConnectionSettings {
@@ -547,18 +574,18 @@ export class RemoteControlStorageService implements
     }
 
     onMergeConflictSessionChanged(callback: (session: MergeConflictSession | null) => void): () => void {
-        const id = this.createRequestId()
-        const subscription: MergeConflictSubscription = { cancelled: false, subscriptionId: null }
-        this.requestMergeConflictEvents.set(id, callback)
-        void this.subscribeMergeConflict(id, callback, subscription).catch(() => undefined)
+        this.mergeConflictListeners.add(callback)
+        void this.subscribeMergeConflict(callback).catch(() => undefined)
 
         return () => {
-            subscription.cancelled = true
-            this.requestMergeConflictEvents.delete(id)
-            const { subscriptionId } = subscription
-            subscription.subscriptionId = null
+            this.mergeConflictListeners.delete(callback)
+            for (const [requestId, pendingCallback] of this.requestMergeConflictEvents) {
+                if (pendingCallback === callback) this.requestMergeConflictEvents.delete(requestId)
+            }
+            const subscriptionId = this.mergeConflictSubscriptions.get(callback)
             if (!subscriptionId) return
 
+            this.mergeConflictSubscriptions.delete(callback)
             this.mergeConflictCallbacks.delete(subscriptionId)
             this.unsubscribeBestEffort(subscriptionId)
         }
@@ -821,37 +848,65 @@ export class RemoteControlStorageService implements
 
     private async ensureConnected() {
         if (this.retired) throw new RemoteControlConnectionError('Remote-control connection was replaced')
+        if (this.reconnecting) {
+            const waiter = this.reconnectWaiter ?? createConnectionWaiter()
+            this.reconnectWaiter = waiter
+            await waiter.promise
+            if (this.retired) throw new RemoteControlConnectionError('Remote-control connection was replaced')
+        }
         if (this.socket?.readyState === SOCKET_OPEN_STATE) return
+
+        await this.connectSocket()
+    }
+
+    private connectSocket(): Promise<void> {
+        if (this.retired) return Promise.reject(new RemoteControlConnectionError('Remote-control connection was replaced'))
+        if (this.socket?.readyState === SOCKET_OPEN_STATE) return Promise.resolve()
         if (this.connectPromise) return this.connectPromise
 
-        this.socket = new WebSocket(this.endpoint)
-        this.socket.addEventListener('message', (event) => this.handleMessage(event))
-        this.socket.addEventListener('close', () => this.handleClose())
-        this.socket.addEventListener('error', () => this.handleClose())
+        this.disconnecting = false
+        const socket = new WebSocket(this.endpoint)
+        this.socket = socket
+        socket.addEventListener('message', (event) => this.handleMessage(socket, event))
+        socket.addEventListener('close', () => this.handleClose(socket))
+        socket.addEventListener('error', () => this.handleError(socket))
         this.connectPromise = new Promise((resolve, reject) => {
             const handleOpen = () => {
+                if (this.socket !== socket) return
+
                 this.connectPromise = null
+                this.connectReject = null
+                this.reconnecting = false
+                this.reconnectWaiter?.resolve()
+                this.reconnectWaiter = null
                 resolve()
                 for (const listener of this.connectionListeners) listener(true)
                 void this.restoreActionRunSubscriptions()
                 void this.restoreClaudeRateLimitSubscriptions()
                 void this.restoreCodexRateLimitSubscriptions()
+                void this.restoreMergeConflictSubscriptions()
                 void this.restoreProjectWatchSubscriptions()
                 void this.restoreWorktreeSubscription()
             }
             const handleError = () => {
-                this.connectPromise = null
+                if (this.socket === socket) {
+                    this.connectPromise = null
+                    this.connectReject = null
+                }
                 reject(new RemoteControlConnectionError('Remote-control connection failed'))
             }
 
-            this.requireSocket().addEventListener('open', handleOpen, { once: true })
-            this.requireSocket().addEventListener('error', handleError, { once: true })
+            this.connectReject = reject
+            socket.addEventListener('open', handleOpen, { once: true })
+            socket.addEventListener('error', handleError, { once: true })
         })
 
         return this.connectPromise
     }
 
-    private handleMessage(event: MessageEvent) {
+    private handleMessage(socket: WebSocket, event: MessageEvent) {
+        if (socket !== this.socket) return
+
         const message = JSON.parse(String(event.data)) as RemoteControlResponse | RemoteControlEvent
         if (isResponse(message)) {
             this.handleResponse(message)
@@ -972,28 +1027,31 @@ export class RemoteControlStorageService implements
         await Promise.allSettled(subscriptions.map((subscription) => this.subscribeProjectWatch(subscription, true)))
     }
 
+    private async restoreMergeConflictSubscriptions() {
+        const pendingCallbacks = new Set(this.requestMergeConflictEvents.values())
+        const callbacks = [...this.mergeConflictListeners].filter((callback) => !pendingCallbacks.has(callback))
+        await Promise.allSettled(callbacks.map((callback) => this.subscribeMergeConflict(callback)))
+    }
+
     private async restoreWorktreeSubscription() {
         await this.subscribeWorktreesChanged()
     }
 
-    private async subscribeMergeConflict(
-        id: string,
-        callback: (session: MergeConflictSession | null) => void,
-        subscription: MergeConflictSubscription,
-    ) {
+    private async subscribeMergeConflict(callback: (session: MergeConflictSession | null) => void) {
+        const id = this.createRequestId()
+        this.requestMergeConflictEvents.set(id, callback)
         try {
             const result = await this.sendRequest<{ subscriptionId: string }>({
                 id,
                 method: 'onMergeConflictSessionChanged',
                 params: [],
             })
-            subscription.subscriptionId = result.subscriptionId
-            if (subscription.cancelled) {
-                subscription.subscriptionId = null
+            if (!this.mergeConflictListeners.has(callback)) {
                 this.unsubscribeBestEffort(result.subscriptionId)
                 return
             }
 
+            this.mergeConflictSubscriptions.set(callback, result.subscriptionId)
             this.mergeConflictCallbacks.set(result.subscriptionId, callback)
         } finally {
             this.requestMergeConflictEvents.delete(id)
@@ -1120,8 +1178,24 @@ export class RemoteControlStorageService implements
         if (payload.event.type === 'closed') this.runAgentEvents.delete(payload.event.runId)
     }
 
-    private handleClose() {
-        const error = new RemoteControlConnectionError('Remote-control connection closed')
+    private handleClose(socket: WebSocket) {
+        this.closeSocket(socket, new RemoteControlConnectionError('Remote-control connection closed'))
+    }
+
+    private handleError(socket: WebSocket) {
+        const message = this.connectPromise
+            ? 'Remote-control connection failed'
+            : 'Remote-control connection closed'
+        this.closeSocket(socket, new RemoteControlConnectionError(message))
+    }
+
+    private closeSocket(socket: WebSocket, error: RemoteControlConnectionError) {
+        if (socket !== this.socket) return
+
+        this.connectReject?.(error)
+        this.connectReject = null
+        this.reconnecting = !this.retired && !this.disconnecting
+        this.disconnecting = false
         for (const listener of this.connectionListeners) listener(false)
         for (const pending of this.pending.values()) pending.reject(error)
         this.pending.clear()
@@ -1132,6 +1206,7 @@ export class RemoteControlStorageService implements
         this.codexRateLimitCallbacks.clear()
         this.codexRateLimitSubscriptions.clear()
         this.mergeConflictCallbacks.clear()
+        this.mergeConflictSubscriptions.clear()
         this.requestAgentEvents.clear()
         this.requestActionRunEvents.clear()
         this.requestClaudeRateLimitEvents.clear()
@@ -1148,6 +1223,12 @@ export class RemoteControlStorageService implements
         this.worktreeServerSubscriptionId = null
         this.connectPromise = null
         this.socket = null
+    }
+
+    private cancelReconnect(error: RemoteControlConnectionError) {
+        this.reconnecting = false
+        this.reconnectWaiter?.reject(error)
+        this.reconnectWaiter = null
     }
 
     private requireSocket() {

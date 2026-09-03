@@ -483,15 +483,20 @@ export class ActionRunRegistry extends EventTarget {
         if (!bridge) return
         if (this.unsubscribeBridge && bridge === this.subscribedBridge) return
 
-        const rendererRunIds = new Set(this.waiters.keys())
-        for (const [runId, store] of this.runs) {
-            if (ACTIVE_STATUSES.has(store.getSnapshot().status)) rendererRunIds.add(runId)
-        }
         this.unsubscribeBridge?.()
         this.subscribedBridge = bridge
         this.recoveryEvents = bridge.loadActionRunRecoverySnapshot ? [] : null
         this.unsubscribeBridge = bridge.onActionRun((event) => this.handleIncomingEvent(event))
-        if (bridge.loadActionRunRecoverySnapshot) void this.recoverActiveRuns(bridge, [...rendererRunIds])
+        if (bridge.loadActionRunRecoverySnapshot) void this.recoverActiveRuns(bridge, this.rendererRunIds())
+    }
+
+    /** Reconcile renderer-owned runs after the current bridge reconnects. */
+    async recoverConnection() {
+        const bridge = this.subscribedBridge
+        if (!bridge?.loadActionRunRecoverySnapshot || this.recoveryEvents) return
+
+        this.recoveryEvents = []
+        await this.recoverActiveRuns(bridge, this.rendererRunIds())
     }
 
     stop() {
@@ -688,6 +693,15 @@ export class ActionRunRegistry extends EventTarget {
             for (const event of byRunSequence(recoveryEvents)) this.handleEvent(event)
             this.dispatchEvent(new CustomEvent('recoveryFailed', { detail: error }))
         }
+    }
+
+    private rendererRunIds() {
+        const rendererRunIds = new Set(this.waiters.keys())
+        for (const [runId, store] of this.runs) {
+            if (ACTIVE_STATUSES.has(store.getSnapshot().status)) rendererRunIds.add(runId)
+        }
+
+        return [...rendererRunIds]
     }
 
     private applyRecoverySnapshot(
