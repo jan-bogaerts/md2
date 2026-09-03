@@ -16308,17 +16308,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 41,
-          "timestamp": "2026-09-03T17:05:22.651Z"
+          "timestamp": "2026-09-03T17:23:08.044Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-893be1fe-e335-43ee-ab13-5dd8f944462c",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a06838-b969-7fe2-ad25-2b3d2065ee2a",
+          "createdAt": "2026-09-03T17:05:22.651Z",
+          "lastUsedAt": "2026-09-03T17:05:22.651Z",
+          "synchronizedThroughMessageId": "agent-turn-0411ca65-b2a2-476b-aeff-27028388e932-turn-1-assistant-6"
+        }
+      ],
       "startedAt": "2026-09-03T17:02:22.313Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-03T17:02:22.313Z"
+        "elapsedMs": 180338,
+        "runningStartedAt": null
       },
       "title": "merge",
       "usage": {
