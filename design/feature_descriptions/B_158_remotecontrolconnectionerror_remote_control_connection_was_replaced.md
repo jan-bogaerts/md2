@@ -13,7 +13,6 @@ sentryIssueId: 141912396
 sentryOrganization: elastetic
 after: 47a847c9-cf6e-4a8a-823c-6a6b012bb21a
 ---
-
 ## Sentry issue
 
 **Title:** RemoteControlConnectionError: Remote-control connection was replaced
@@ -38,21 +37,21 @@ after: 47a847c9-cf6e-4a8a-823c-6a6b012bb21a
 
 ### Application stack frames
 
-- `/assets/index-DBkJOzlp.js:25:6718` — WebSocket.r
-- `/assets/index-DBkJOzlp.js:26:36977` — WebSocket.<anonymous>
-- `/assets/index-DBkJOzlp.js:26:37699` — Nm.handleMessage
-- `/assets/index-DBkJOzlp.js:26:37990` — Nm.handleEvent
-- `/assets/index-DBkJOzlp.js:26:38554` — Nm.handleActionRunEvent
-- `/assets/index-DBkJOzlp.js:27:9996` — unknown function
-- `/assets/index-DBkJOzlp.js:27:14857` — EventTarget.handleIncomingEvent
-- `/assets/index-DBkJOzlp.js:27:18909` — EventTarget.handleEvent
-- `/assets/index-DBkJOzlp.js:27:19656` — EventTarget.publishScopedEvents
-- `/assets/index-DBkJOzlp.js:180:4635` — unknown function
-- `/assets/index-DBkJOzlp.js:175:6856` — EventTarget.refresh
-- `/assets/index-DBkJOzlp.js:175:8942` — EventTarget.enqueueOperation
-- `/assets/index-DBkJOzlp.js:175:6884` — unknown function
-- `/assets/index-DBkJOzlp.js:175:7831` — EventTarget.loadOrMigrateSummary
-- `/assets/index-DBkJOzlp.js:26:29244` — Nm.listRepositoryFiles
-- `/assets/index-DBkJOzlp.js:26:36221` — Nm.request
-- `/assets/index-DBkJOzlp.js:26:36319` — Nm.sendRequest
-- `/assets/index-DBkJOzlp.js:26:36759` — Nm.ensureConnected
+* `/assets/index-DBkJOzlp.js:25:6718` — WebSocket.r
+* `/assets/index-DBkJOzlp.js:26:36977` — WebSocket.\<anonymous>
+* `/assets/index-DBkJOzlp.js:26:37699` — Nm.handleMessage
+* `/assets/index-DBkJOzlp.js:26:37990` — Nm.handleEvent
+* `/assets/index-DBkJOzlp.js:26:38554` — Nm.handleActionRunEvent
+* `/assets/index-DBkJOzlp.js:27:9996` — unknown function
+* `/assets/index-DBkJOzlp.js:27:14857` — EventTarget.handleIncomingEvent
+* `/assets/index-DBkJOzlp.js:27:18909` — EventTarget.handleEvent
+* `/assets/index-DBkJOzlp.js:27:19656` — EventTarget.publishScopedEvents
+* `/assets/index-DBkJOzlp.js:180:4635` — unknown function
+* `/assets/index-DBkJOzlp.js:175:6856` — EventTarget.refresh
+* `/assets/index-DBkJOzlp.js:175:8942` — EventTarget.enqueueOperation
+* `/assets/index-DBkJOzlp.js:175:6884` — unknown function
+* `/assets/index-DBkJOzlp.js:175:7831` — EventTarget.loadOrMigrateSummary
+* `/assets/index-DBkJOzlp.js:26:29244` — Nm.listRepositoryFiles
+* `/assets/index-DBkJOzlp.js:26:36221` — Nm.request
+* `/assets/index-DBkJOzlp.js:26:36319` — Nm.sendRequest
+* `/assets/index-DBkJOzlp.js:26:36759` — Nm.ensureConnected
