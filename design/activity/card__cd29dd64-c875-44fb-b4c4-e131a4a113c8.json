@@ -533,7 +533,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 53505
+        "usedTokens": 69584
       },
       "entries": [
         {
@@ -822,25 +822,181 @@
           "role": "assistant",
           "sequence": 23,
           "timestamp": "2026-09-03T09:25:53.059Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-user-23",
+          "kind": "message",
+          "role": "user",
+          "sequence": 24,
+          "timestamp": "2026-09-03T09:26:29.599Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-event-25",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CegGS5weizGSZMfCBYGX6:thinking:0",
+          "sequence": 25,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-03T09:26:31.642Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "node -e \"console.log(require('crypto').randomUUID())\"",
+          "content": "eb6fb57e-6a7a-41ff-8010-a784d8998bcc",
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-event-26",
+          "kind": "event",
+          "label": "node -e \"console.log(require('crypto').randomUUID())\"",
+          "providerItemId": "toolu_01Ci3DYRv7FsPc96rCPPhrcn",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-09-03T09:26:34.055Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-event-27",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CegGSPoSepvsLNqXZZfmB:thinking:0",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-03T09:26:36.405Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat > design/architecture/editable_diagram_contract.md <<'EOF'\n---\ninternalId: eb6fb57e-6a7a-41ff-8010-a784d8998bcc\n---\n\n# Editable diagram contract\n\nWritten by [F_273](../feature_descriptions/F_273_define_editable_diagram_contract.md) for the jobs of\n[F_255 make diagrams editable](../feature_descriptions/F_255_make_diagrams_editable.md). Every later F_255 job cites this\ndocument instead of restating it. This document adds no schema field and changes no code; it records what the\nimplementing jobs must build.\n\nThe contract covers all five diagram types in `DIAGRAM_TYPES` (`architecture`, `dependency`, `sequence`, `flow`,\n`entity`) and every object the F_255 toolbox exposes.\n\n## 1. Vocabulary\n\nThese six terms are defined here once and are used with exactly this meaning everywhere else.\n\n| Term | Definition |\n|---|---|\n| **Original diagram** | The `DiagramData` parsed by `parseDiagramData` from the file at `DiagramRecord.path`, together with that `DiagramRecord`. Both are immutable for the whole edit flow: no edit, no save, and no agent handoff ever writes either of them. |\n| **Editable diagram** | One deep in-memory copy of that `DiagramData`, owned by the edit session of [F_275](../feature_descriptions/F_275_add_diagram_edit_session_service.md). It is model data (`DiagramData`), never positioned data. All mutations apply to it. |\n| **Derived layout** | The `PositionedDiagramData` that `layout` in `app/src/services/diagrams/diagram_layout.ts` produces from the editable diagram. It is recomputed after a mutation, is never edited directly, and is never saved. |\n| **Dirty** | The editable diagram differs by value from the original diagram. It is one state of the session, not a per-object flag. Selection, active tool, zoom, pan, and scroll never make a session dirty, because none of them changes `DiagramData`. |\n| **Change set** | The ordered record of applied mutations that [F_277](../feature_descriptions/F_277_track_diagram_changes.md) tracks and [F_322](../feature_descriptions/F_322_generate_diagram_change_descriptions.md) turns into text. It describes model changes only. |\n| **Saved copy** | The new JSON file plus the new `DiagramRecord` created by the first save of a session. Every later save of the same session overwrites that file and updates that record only. |\n\n## 2. Object identity\n\nThe toolbox can select and delete each object type, so each one needs a stated addressing rule. Two kinds exist:\n**identifier-addressed** objects carry their own identifier in the JSON, and **position-addressed** content has no\nidentifier and is addressed as owner plus index.\n\n| Object | Addressing | Rule |\n|---|---|---|\n| Node | Identifier-addressed | `DiagramNode.id`, an opaque non-empty string. |\n| Edge | Identifier-addressed | `DiagramEdge.id`, an opaque non-empty string, in the **same namespace as node identifiers**. |\n| Group | Identifier-addressed | `DiagramGroup.id`, unique within `groups` only. |\n| Sequence fragment | Identifier-addressed | `DiagramSequenceFragment.id`, unique within `fragments` only. Fragments exist on sequence diagrams only. |\n| Diagram metadata | Singleton, no identifier | `meta` is addressed as the diagram itself. |\n| Entity field | Position-addressed | Owner node identifier plus index into `DiagramNode.fields`. |\n| Legend content | Not editable content | Derived from the diagram; see [section 6](#6-legend-resolution-of-the-f_271-conflict). |\n\nConsequences that later jobs must respect:\n\n* **One shared node and edge namespace.** `validateReferences` already rejects a diagram in which an identifier is used\n  by both a node and an edge, so a single selection identifier can address either object. Selection, delete, cut, copy,\n  and the drill-down child record all rely on that.\n* **Generated identifiers are never derived from labels.** A newly created node, edge, group, or fragment receives a\n  generated identifier that carries no label text. Renaming an object therefore never changes its identity and never\n  orphans a group membership, a fragment region, or a drill-down child `DiagramRecord`.\n* **Existing identifiers are never rewritten by an edit.** This includes copy and paste inside the same diagram: the\n  pasted objects are new objects with new generated identifiers, and the originals keep theirs. Nothing in the edit\n  flow renumbers, compacts, or normalises identifiers.\n* **Position-addressed content reorders as an owner change.** Reordering entity fields is a change to the owning node,\n  not a change of identity, so [F_296](../feature_descriptions/F_296_edit_diagram_object_details.md) must not invent\n  per-field identifiers.\n\n## 3. Geometry: persisted versus derived\n\nEvery geometry field is classified below. Nothing is unclassified. Persisted geometry lives in `DiagramData` and is\nwritten to the saved copy. Derived geometry is computed by `layout` into `PositionedDiagramData` and is never written.\n\n### Persisted geometry\n\n| Field | Owner | Notes |\n|---|---|---|\n| `x`, `y` | `DiagramNode` | Optional; finite multiple of four. |\n| `width`, `height` | `DiagramNode` | Optional; positive finite multiple of four. |\n| `waypoints[].x`, `waypoints[].y` | `DiagramEdge` | Optional; at least two points; every segment orthogonal. |\n| Connection-point data | `DiagramEdge` source and target | Added by [F_274](../feature_descriptions/F_274_add_editable_connection_points.md) as node side plus relative offset. Persisted from the day F_274 adds it. |\n| `x`, `y`, `width`, `height` | `DiagramGroup` | **Moves from derived to persisted.** Schema and layout change assigned to [F_278](../feature_descriptions/F_278_make_diagram_layout_compatible_with_editing.md). Same optionality and same four-pixel grid rule as node geometry. Until a group carries these fields, it keeps today's box computed from member-node extents, so existing diagrams stay readable. |\n\n### Derived geometry\n\nEverything `layout` computes, and nothing else:\n\n| Field | Owner | Source |\n|---|---|---|\n| `x`, `y` when the node omits them | `PositionedDiagramNode` | Rank and column placement, snapped to the four-pixel grid. |\n| `width`, `height` when the node omits them | `PositionedDiagramNode` | Default sizes per diagram type and node kind, including entity height from field count. |\n| `fanIn` | `PositionedDiagramNode` | Incoming-edge count. |\n| `points` | `PositionedDiagramEdge` | Routed path, seeded by `waypoints` when present. |\n| `labelPlacement` | `PositionedDiagramEdge` | Edge label box and text position. |\n| `x`, `y`, `width`, `height` | `PositionedSequenceActivation` | Sequence activation bars. |\n| `x`, `y`, `width`, `height`, `dividerY`, `guardPositions` | `PositionedSequenceFragment` | Fragment boxes and guard placement. |\n| `x`, `y`, `width`, `height` when the group omits them | `PositionedDiagramGroup` | Member-node extents plus padding. |\n| `width`, `height` | `PositionedDiagramData` | Surface size. |\n\n### Rules binding on edited geometry\n\n* **Four-pixel grid.** Every persisted coordinate and size stays a finite multiple of four, because `requireGridNumber`\n  in `shared/diagram_data.mjs` rejects anything else. Pointer coordinates are snapped to the grid *before* they reach\n  the editable diagram, not at save time.\n* **Orthogonal waypoints.** Every waypoint segment changes one coordinate only, because `parseWaypoints` rejects a\n  segment in which both coordinates change.\n* **The editable diagram is never populated from `PositionedDiagramData`.** Because `PositionedDiagramNode extends\n  DiagramNode` and `PositionedDiagramEdge extends DiagramEdge`, a derived coordinate and a persisted coordinate are\n  indistinguishable by shape once layout has run. Writing a positioned object back into the model would silently\n  promote layout defaults into persisted geometry for every untouched object in the diagram. A mutation therefore\n  writes only the fields the user actually changed, onto the editable model object.\n\nBecause the same grid and orthogonality rules apply, an edited diagram parses under exactly the same validator as an\nauthored one.\n\n## 4. Validation layers\n\nValidation is split across three layers. No layer is permitted to relax a rule the parser enforces.\n\n1. **Parser validation — `parseDiagramData` in `shared/diagram_data.mjs`.** The single authority on what a valid\n   diagram file is. It runs on load and again on save. Its errors keep the `Malformed diagram data: <field> has\n   <reason>` form that names the exact field path.\n2. **Operation validation — [F_279](../feature_descriptions/F_279_validate_diagram_edit_operations.md).** Decides\n   whether one edit is allowed *before* it is applied, so the editable diagram never enters an invalid state. It reuses\n   the diagram-type rules the parser already encodes: permitted edge kinds per diagram type, permitted node kinds per\n   diagram type and flow preset, required decision-branch labels on `flowchart`, required transition labels on `state`,\n   entity-only `fields` and cardinalities, fragment region counts per operator (`alt` needs two, `opt` and `loop` need\n   one), no duplicate edge references across a fragment's regions, and fragments on sequence diagrams only.\n3. **Save validation — [F_327](../feature_descriptions/F_327_save_edited_diagram_as_copy.md).** Parses the serialized\n   result once more and refuses to write a diagram the parser would reject. This is the last gate before the file\n   system.\n\nLayer 2 exists so an invalid edit is refused with useful context, not so the parser can be bypassed. If layers 2 and 1\never disagree, layer 1 wins and the operation is a defect.\n\n## 5. Copy and save behaviour\n\nEditing never writes the original file or the original `DiagramRecord`. Saving proceeds in this order.\n\n**First save of a session**\n\n1. Serialize the editable diagram with the canonical serializer (below).\n2. Validate the serialized text with `parseDiagramData`; abort the save on failure without touching the file system.\n3. Write the text to a **new** path inside the configured diagrams folder. `isPathInsideDiagramsFolder` and the\n   `.json` suffix rule of `validateDiagramPaths` both still apply.\n4. Create a new `DiagramRecord` with a newly generated `id`, keeping the source record's `actionId` and its `parent`\n   reference, and pointing `path` at the new file.\n5. Add that record to the diagram index and write the index with `serializeDiagramIndex`.\n6. Rebind the edit session to the new record. The session is no longer dirty.\n\n**Later saves in the same session**\n\nWrite the same path and update the same record. No new file and no new record are created, and the index gains no\nfurther entry.\n\n**Canonical serializer**\n\nThe serializer emits the parser's field set only — no derived geometry, no editor state, no unknown keys — with\ntwo-space indentation and a trailing newline, matching `serializeDiagramIndex`. Field order is stable across saves, so\na saved diagram produces a readable repository diff.\n\n## 6. Legend: resolution of the F_271 conflict\n\n[F_271](../feature_descriptions/F_271_diagrams_add_legend.md) plans to delete `DiagramMeta.legend`,\n`DiagramLegendItem`, and `parseLegend`, deriving legend content from the roles and kinds actually present in the\ndiagram. F_255 listed the legend as an editable object. **The conflict is resolved in favour of F_271.**\n\n* The legend is derived content, not editable content. It is removed from the editable object set of F_255.\n* The toolbox `Others` section therefore holds **diagram metadata and sequence fragments only**.\n* [F_321 edit diagram legend](../feature_descriptions/F_321_edit_diagram_legend.md) becomes a documentation-only job\n  under this resolution: it records that legend content follows the diagram and offers no legend editor.\n* `meta.legend` still parses today, because F_271 is not implemented yet. Until F_271 lands, an existing `meta.legend`\n  is carried through the editable diagram and the serializer unchanged, and is never presented as editable.\n\nThe reason is one source of truth: a hand-maintained legend can drift from the roles and kinds the diagram actually\nuses, and a second editable copy would make that drift invisible.\n\n## 7. Paths are locations, not identity\n\nDiagram identity is `DiagramRecord.id`. Object identity is the object identifier inside the JSON. A repository path is\na persistence location and nothing more, in both the diagram record and the file system. Moving a diagram file changes\n`DiagramRecord.path` and nothing else: no diagram identifier, no node or edge identifier, no group membership, no\nfragment region, and no drill-down child reference changes. Nothing in the edit flow may key state by path.\n\n## 8. What this contract forbids\n\n* There is **one** diagram model: `DiagramData`. No second editable diagram type is introduced.\n* `PositionedDiagramData` stays derived rendering data. It never becomes a source of truth and is never serialized.\n* No positioned-model hybrid: no type that mixes persisted and derived geometry into the saved shape.\n* No per-object editor state inside diagram data — selection, hover, active tool, dirty marks, and undo bookkeeping\n  live in the edit session, never in `DiagramData`.\nEOF\necho written; wc -l design/architecture/editable_diagram_contract.md",
+          "content": "Exit code 2\n/usr/bin/bash: -c: line 73: unexpected EOF while looking for matching `''",
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-event-28",
+          "kind": "event",
+          "label": "cat > design/architecture/editable_diagram_contract.md <<'EOF'\n---\ninternalId: eb6fb57e-6a7a-41ff-8010-a784d8998bcc\n---\n\n# Editable diagram contract\n\nWritten by [F_273](../feature_descriptions/F_273_define_editable_diagram_contract.md) for the jobs of\n[F_255 make diagrams editable](../feature_descriptions/F_255_make_diagrams_editable.md). Every later F_255 job cites this\ndocument instead of restating it. This document adds no schema field and changes no code; it records what the\nimplementing jobs must build.\n\nThe contract covers all five diagram types in `DIAGRAM_TYPES` (`architecture`, `dependency`, `sequence`, `flow`,\n`entity`) and every object the F_255 toolbox exposes.\n\n## 1. Vocabulary\n\nThese six terms are defined here once and are used with exactly this meaning everywhere else.\n\n| Term | Definition |\n|---|---|\n| **Original diagram** | The `DiagramData` parsed by `parseDiagramData` from the file at `DiagramRecord.path`, together with that `DiagramRecord`. Both are immutable for the whole edit flow: no edit, no save, and no agent handoff ever writes either of them. |\n| **Editable diagram** | One deep in-memory copy of that `DiagramData`, owned by the edit session of [F_275](../feature_descriptions/F_275_add_diagram_edit_session_service.md). It is model data (`DiagramData`), never positioned data. All mutations apply to it. |\n| **Derived layout** | The `PositionedDiagramData` that `layout` in `app/src/services/diagrams/diagram_layout.ts` produces from the editable diagram. It is recomputed after a mutation, is never edited directly, and is never saved. |\n| **Dirty** | The editable diagram differs by value from the original diagram. It is one state of the session, not a per-object flag. Selection, active tool, zoom, pan, and scroll never make a session dirty, because none of them changes `DiagramData`. |\n| **Change set** | The ordered record of applied mutations that [F_277](../feature_descriptions/F_277_track_diagram_changes.md) tracks and [F_322](../feature_descriptions/F_322_generate_diagram_change_descriptions.md) turns into text. It describes model changes only. |\n| **Saved copy** | The new JSON file plus the new `DiagramRecord` created by the first save of a session. Every later save of the same session overwrites that file and updates that record only. |\n\n## 2. Object identity\n\nThe toolbox can select and delete each object type, so each one needs a stated addressing rule. Two kinds exist:\n**identifier-addressed** objects carry their own identifier in the JSON, and **position-addressed** content has no\nidentifier and is addressed as owner plus index.\n\n| Object | Addressing | Rule |\n|---|---|---|\n| Node | Identifier-addressed | `DiagramNode.id`, an opaque non-empty string. |\n| Edge | Identifier-addressed | `DiagramEdge.id`, an opaque non-empty string, in the **same namespace as node identifiers**. |\n| Group | Identifier-addressed | `DiagramGroup.id`, unique within `groups` only. |\n| Sequence fragment | Identifier-addressed | `DiagramSequenceFragment.id`, unique within `fragments` only. Fragments exist on sequence diagrams only. |\n| Diagram metadata | Singleton, no identifier | `meta` is addressed as the diagram itself. |\n| Entity field | Position-addressed | Owner node identifier plus index into `DiagramNode.fields`. |\n| Legend content | Not editable content | Derived from the diagram; see [section 6](#6-legend-resolution-of-the-f_271-conflict). |\n\nConsequences that later jobs must respect:\n\n* **One shared node and edge namespace.** `validateReferences` already rejects a diagram in which an identifier is used\n  by both a node and an edge, so a single selection identifier can address either object. Selection, delete, cut, copy,\n  and the drill-down child record all rely on that.\n* **Generated identifiers are never derived from labels.** A newly created node, edge, group, or fragment receives a\n  generated identifier that carries no label text. Renaming an object therefore never changes its identity and never\n  orphans a group membership, a fragment region, or a drill-down child `DiagramRecord`.\n* **Existing identifiers are never rewritten by an edit.** This includes copy and paste inside the same diagram: the\n  pasted objects are new objects with new generated identifiers, and the originals keep theirs. Nothing in the edit\n  flow renumbers, compacts, or normalises identifiers.\n* **Position-addressed content reorders as an owner change.** Reordering entity fields is a change to the owning node,\n  not a change of identity, so [F_296](../feature_descriptions/F_296_edit_diagram_object_details.md) must not invent\n  per-field identifiers.\n\n## 3. Geometry: persisted versus derived\n\nEvery geometry field is classified below. Nothing is unclassified. Persisted geometry lives in `DiagramData` and is\nwritten to the saved copy. Derived geometry is computed by `layout` into `PositionedDiagramData` and is never written.\n\n### Persisted geometry\n\n| Field | Owner | Notes |\n|---|---|---|\n| `x`, `y` | `DiagramNode` | Optional; finite multiple of four. |\n| `width`, `height` | `DiagramNode` | Optional; positive finite multiple of four. |\n| `waypoints[].x`, `waypoints[].y` | `DiagramEdge` | Optional; at least two points; every segment orthogonal. |\n| Connection-point data | `DiagramEdge` source and target | Added by [F_274](../feature_descriptions/F_274_add_editable_connection_points.md) as node side plus relative offset. Persisted from the day F_274 adds it. |\n| `x`, `y`, `width`, `height` | `DiagramGroup` | **Moves from derived to persisted.** Schema and layout change assigned to [F_278](../feature_descriptions/F_278_make_diagram_layout_compatible_with_editing.md). Same optionality and same four-pixel grid rule as node geometry. Until a group carries these fields, it keeps today's box computed from member-node extents, so existing diagrams stay readable. |\n\n### Derived geometry\n\nEverything `layout` computes, and nothing else:\n\n| Field | Owner | Source |\n|---|---|---|\n| `x`, `y` when the node omits them | `PositionedDiagramNode` | Rank and column placement, snapped to the four-pixel grid. |\n| `width`, `height` when the node omits them | `PositionedDiagramNode` | Default sizes per diagram type and node kind, including entity height from field count. |\n| `fanIn` | `PositionedDiagramNode` | Incoming-edge count. |\n| `points` | `PositionedDiagramEdge` | Routed path, seeded by `waypoints` when present. |\n| `labelPlacement` | `PositionedDiagramEdge` | Edge label box and text position. |\n| `x`, `y`, `width`, `height` | `PositionedSequenceActivation` | Sequence activation bars. |\n| `x`, `y`, `width`, `height`, `dividerY`, `guardPositions` | `PositionedSequenceFragment` | Fragment boxes and guard placement. |\n| `x`, `y`, `width`, `height` when the group omits them | `PositionedDiagramGroup` | Member-node extents plus padding. |\n| `width`, `height` | `PositionedDiagramData` | Surface size. |\n\n### Rules binding on edited geometry\n\n* **Four-pixel grid.** Every persisted coordinate and size stays a finite multiple of four, because `requireGridNumber`\n  in `shared/diagram_data.mjs` rejects anything else. Pointer coordinates are snapped to the grid *before* they reach\n  the editable diagram, not at save time.\n* **Orthogonal waypoints.** Every waypoint segment changes one coordinate only, because `parseWaypoints` rejects a\n  segment in which both coordinates change.\n* **The editable diagram is never populated from `PositionedDiagramData`.** Because `PositionedDiagramNode extends\n  DiagramNode` and `PositionedDiagramEdge extends DiagramEdge`, a derived coordinate and a persisted coordinate are\n  indistinguishable by shape once layout has run. Writing a positioned object back into the model would silently\n  promote layout defaults into persisted geometry for every untouched object in the diagram. A mutation therefore\n  writes only the fields the user actually changed, onto the editable model object.\n\nBecause the same grid and orthogonality rules apply, an edited diagram parses under exactly the same validator as an\nauthored one.\n\n## 4. Validation layers\n\nValidation is split across three layers. No layer is permitted to relax a rule the parser enforces.\n\n1. **Parser validation — `parseDiagramData` in `shared/diagram_data.mjs`.** The single authority on what a valid\n   diagram file is. It runs on load and again on save. Its errors keep the `Malformed diagram data: <field> has\n   <reason>` form that names the exact field path.\n2. **Operation validation — [F_279](../feature_descriptions/F_279_validate_diagram_edit_operations.md).** Decides\n   whether one edit is allowed *before* it is applied, so the editable diagram never enters an invalid state. It reuses\n   the diagram-type rules the parser already encodes: permitted edge kinds per diagram type, permitted node kinds per\n   diagram type and flow preset, required decision-branch labels on `flowchart`, required transition labels on `state`,\n   entity-only `fields` and cardinalities, fragment region counts per operator (`alt` needs two, `opt` and `loop` need\n   one), no duplicate edge references across a fragment's regions, and fragments on sequence diagrams only.\n3. **Save validation — [F_327](../feature_descriptions/F_327_save_edited_diagram_as_copy.md).** Parses the serialized\n   result once more and refuses to write a diagram the parser would reject. This is the last gate before the file\n   system.\n\nLayer 2 exists so an invalid edit is refused with useful context, not so the parser can be bypassed. If layers 2 and 1\never disagree, layer 1 wins and the operation is a defect.\n\n## 5. Copy and save behaviour\n\nEditing never writes the original file or the original `DiagramRecord`. Saving proceeds in this order.\n\n**First save of a session**\n\n1. Serialize the editable diagram with the canonical serializer (below).\n2. Validate the serialized text with `parseDiagramData`; abort the save on failure without touching the file system.\n3. Write the text to a **new** path inside the configured diagrams folder. `isPathInsideDiagramsFolder` and the\n   `.json` suffix rule of `validateDiagramPaths` both still apply.\n4. Create a new `DiagramRecord` with a newly generated `id`, keeping the source record's `actionId` and its `parent`\n   reference, and pointing `path` at the new file.\n5. Add that record to the diagram index and write the index with `serializeDiagramIndex`.\n6. Rebind the edit session to the new record. The session is no longer dirty.\n\n**Later saves in the same session**\n\nWrite the same path and update the same record. No new file and no new record are created, and the index gains no\nfurther entry.\n\n**Canonical serializer**\n\nThe serializer emits the parser's field set only — no derived geometry, no editor state, no unknown keys — with\ntwo-space indentation and a trailing newline, matching `serializeDiagramIndex`. Field order is stable across saves, so\na saved diagram produces a readable repository diff.\n\n## 6. Legend: resolution of the F_271 conflict\n\n[F_271](../feature_descriptions/F_271_diagrams_add_legend.md) plans to delete `DiagramMeta.legend`,\n`DiagramLegendItem`, and `parseLegend`, deriving legend content from the roles and kinds actually present in the\ndiagram. F_255 listed the legend as an editable object. **The conflict is resolved in favour of F_271.**\n\n* The legend is derived content, not editable content. It is removed from the editable object set of F_255.\n* The toolbox `Others` section therefore holds **diagram metadata and sequence fragments only**.\n* [F_321 edit diagram legend](../feature_descriptions/F_321_edit_diagram_legend.md) becomes a documentation-only job\n  under this resolution: it records that legend content follows the diagram and offers no legend editor.\n* `meta.legend` still parses today, because F_271 is not implemented yet. Until F_271 lands, an existing `meta.legend`\n  is carried through the editable diagram and the serializer unchanged, and is never presented as editable.\n\nThe reason is one source of truth: a hand-maintained legend can drift from the roles and kinds the diagram actually\nuses, and a second editable copy would make that drift invisible.\n\n## 7. Paths are locations, not identity\n\nDiagram identity is `DiagramRecord.id`. Object identity is the object identifier inside the JSON. A repository path is\na persistence location and nothing more, in both the diagram record and the file system. Moving a diagram file changes\n`DiagramRecord.path` and nothing else: no diagram identifier, no node or edge identifier, no group membership, no\nfragment region, and no drill-down child reference changes. Nothing in the edit flow may key state by path.\n\n## 8. What this contract forbids\n\n* There is **one** diagram model: `DiagramData`. No second editable diagram type is introduced.\n* `PositionedDiagramData` stays derived rendering data. It never becomes a source of truth and is never serialized.\n* No positioned-model hybrid: no type that mixes persisted and derived geometry into the saved shape.\n* No per-object editor state inside diagram data — selection, hover, active tool, dirty marks, and undo bookkeeping\n  live in the edit session, never in `DiagramData`.\nEOF\necho written; wc -l design/architecture/editable_diagram_contract.md",
+          "providerItemId": "toolu_01Ao9FHDmE6qvKqt69g1zPqc",
+          "sequence": 28,
+          "status": "failed",
+          "timestamp": "2026-09-03T09:27:32.363Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-event-29",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CegGWhSSzbYD8tGSSdii2:thinking:0",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-03T09:27:35.538Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\architecture\\editable_diagram_contract.md",
+          "deletions": 0,
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-event-30",
+          "insertions": 0,
+          "kind": "event",
+          "label": "Write",
+          "output": "File created successfully at: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\architecture\\editable_diagram_contract.md (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01BkP3ypC8WR3kK5f155dB8c",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-09-03T09:28:18.545Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "Now Block 4: reference + status in F_273.",
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 31,
+          "timestamp": "2026-09-03T09:28:20.174Z"
+        },
+        {
+          "command": "python - <<'PY'\nimport io\np='design/feature_descriptions/F_273_define_editable_diagram_contract.md'\ns=io.open(p,encoding='utf-8').read()\ns=s.replace('status: ready for implementation','status: ready',1)\nold='## Goal'\nnew='Contract document: [editable diagram contract](../architecture/editable_diagram_contract.md).\\n\\n## Goal'\nassert old in s\ns=s.replace(old,new,1)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nPY\nsed -n 1,20p design/feature_descriptions/F_273_define_editable_diagram_contract.md",
+          "content": "---\nauthor:\nid: F_273\ninternalId: cd29dd64-c875-44fb-b4c4-e131a4a113c8\ntitle: define editable diagram contract\nstatus: ready\nowner:\naffects:\nagents:\n  - design/activity/card__cd29dd64-c875-44fb-b4c4-e131a4a113c8.json\npolicy:\n---\nParent: [F\\_255 make diagrams editable](F_255_make_diagrams_editable.md).\n\nContract document: [editable diagram contract](../architecture/editable_diagram_contract.md).\n\n## Goal\n\nPin down the editable JSON contract before interaction code is added. `DiagramData` remains canonical; `PositionedDiagramData` remains derived.",
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-event-32",
+          "kind": "event",
+          "label": "python - <<'PY'\nimport io\np='design/feature_descriptions/F_273_define_editable_diagram_contract.md'\ns=io.open(p,encoding='utf-8').read()\ns=s.replace('status: ready for implementation','status: ready',1)\nold='## Goal'\nnew='Contract document: [editable diagram contract](../architecture/editable_diagram_contract.md).\\n\\n## Goal'\nassert old in s\ns=s.replace(old,new,1)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nPY\nsed -n 1,20p design/feature_descriptions/F_273_define_editable_diagram_contract.md",
+          "providerItemId": "toolu_0172Q3W36oxKELQQTYN8XBiL",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-09-03T09:28:22.837Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-event-33",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CegGaRHiEAtEVgEkMxdrh:thinking:0",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-03T09:28:24.705Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -o \"(\\.\\./[^)]*)\" design/architecture/editable_diagram_contract.md | tr -d '()' | sort -u | while read l; do [ -f \"design/architecture/$l\" ] && echo \"OK  $l\" || echo \"MISSING $l\"; done; echo ====; git status --porcelain",
+          "content": "OK  ../feature_descriptions/F_255_make_diagrams_editable.md\nOK  ../feature_descriptions/F_271_diagrams_add_legend.md\nOK  ../feature_descriptions/F_273_define_editable_diagram_contract.md\nOK  ../feature_descriptions/F_274_add_editable_connection_points.md\nOK  ../feature_descriptions/F_275_add_diagram_edit_session_service.md\nOK  ../feature_descriptions/F_277_track_diagram_changes.md\nOK  ../feature_descriptions/F_278_make_diagram_layout_compatible_with_editing.md\nOK  ../feature_descriptions/F_279_validate_diagram_edit_operations.md\nOK  ../feature_descriptions/F_296_edit_diagram_object_details.md\nOK  ../feature_descriptions/F_321_edit_diagram_legend.md\nOK  ../feature_descriptions/F_322_generate_diagram_change_descriptions.md\nOK  ../feature_descriptions/F_327_save_edited_diagram_as_copy.md\n====\n M design/activity/card__cd29dd64-c875-44fb-b4c4-e131a4a113c8.json\n M design/feature_descriptions/F_273_define_editable_diagram_contract.md\n M design/usage_metrics.csv\n?? design/architecture/editable_diagram_contract.md",
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-event-34",
+          "kind": "event",
+          "label": "grep -o \"(\\.\\./[^)]*)\" design/architecture/editable_diagram_contract.md | tr -d '()' | sort -u | while read l; do [ -f \"design/architecture/$l\" ] && echo \"OK  $l\" || echo \"MISSING $l\"; done; echo ====; git status --porcelain",
+          "providerItemId": "toolu_01FbHoABgttWiM9NJViktYPC",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-09-03T09:28:27.765Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. Doc-only job, no code touched.\n\n**Written:** `design/architecture/editable_diagram_contract.md` (`internalId: eb6fb57e-...`, front matter matches siblings).\n\nSections and how they meet the criteria:\n1. **Vocabulary** — original diagram, editable diagram, derived layout, dirty, change set, saved copy; one definition each.\n2. **Object identity** — table splits identifier-addressed (node, edge, group, fragment) from position-addressed (entity field) and singleton (`meta`); states the shared node/edge namespace enforced by `validateReferences`, that generated ids never come from labels, and that existing ids are never rewritten (copy/paste creates new ids).\n3. **Geometry** — two tables classify every field. Persisted: node `x`/`y`/`width`/`height`, edge `waypoints`, F_274 connection points, plus group `x`/`y`/`width`/`height` moving derived → persisted with the change assigned to F_278 and a fallback to today's computed box. Derived: layout defaults, `fanIn`, `points`, `labelPlacement`, activations, fragment boxes, surface size. Then the four-pixel grid rule, the orthogonal-waypoint rule, and the ban on populating the editable diagram from `PositionedDiagramData`.\n4. **Validation layers** — parser (`parseDiagramData`, gate on load and save), operation validation (F_279), save validation (F_327); layer 1 wins on disagreement, no layer relaxes a parser rule.\n5. **Copy and save** — ordered first-save sequence (serialize → re-parse → new path → new `DiagramRecord` keeping `actionId` and `parent` → index write → session rebind), later saves overwrite the same path/record, canonical serializer with two-space indent and trailing newline; original file and record never written.\n6. **Legend** — resolved for F_271: legend derived, not editable; toolbox `Others` = metadata + fragments only; F_321 becomes documentation-only; `meta.legend` carried through untouched until F_271 lands.\n7. **Paths** — persistence locations only; a move changes `DiagramRecord.path` and nothing else.\n8. **Forbidden** — one model, no second editable type, no positioned hybrid, no editor state in `DiagramData`.\n\n**F_273 edits:** added the `Contract document:` link line and set `status: ready`.\n\n**Tests:** none added. The repo has no doc-lint or architecture-doc test suite, and this job changes no code — a new suite would be new code outside its scope. Verification done instead: all twelve relative links in the new document resolve to existing files, and `git status` shows no source file touched.",
+          "id": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 35,
+          "timestamp": "2026-09-03T09:28:40.530Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-bb1295cb-0288-41e8-8211-b2ce89f3fa06",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "bcd38586-6b62-4a65-a814-c69d399f6f5f",
+          "createdAt": "2026-09-03T09:25:53.059Z",
+          "lastUsedAt": "2026-09-03T09:25:53.059Z",
+          "synchronizedThroughMessageId": "agent-turn-ebac6773-6042-437c-a99e-cc36022fc8a1-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-09-03T09:24:40.192Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-03T09:24:40.192Z"
+        "elapsedMs": 72867,
+        "runningStartedAt": "2026-09-03T09:26:29.599Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 543839,
-        "inputTokens": 24,
-        "outputTokens": 3669,
+        "cachedInputTokens": 918371,
+        "inputTokens": 36,
+        "outputTokens": 15177,
         "reasoningTokens": 0,
-        "totalTokens": 547532,
-        "costUsd": 0.7316425000000001
+        "totalTokens": 933584,
+        "costUsd": 2.0910615000000004
       },
       "usageSchemaVersion": 1,
       "viewed": true
