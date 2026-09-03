@@ -1,8 +1,12 @@
 {
   "id": "08f06be2-ad73-4e24-8d05-f63b5f5c8340",
   "label": "describe on website",
-  "description": "Describe this action.",
+  "description": "researches a feature in code and specs and then updates the website",
   "type": "agent",
   "phrases": [],
-  "prompt": "Describe what the agent should do."
+  "prompt": "Describe what the agent should do.",
+  "streaming": true,
+  "appliesTo": {
+    "kind": "project"
+  }
 }
