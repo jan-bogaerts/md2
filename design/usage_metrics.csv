@@ -3110,3 +3110,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-03T17:32:00.890Z,account_usage,codex,codex,primary,10080,2026-09-07T07:50:34.000Z,,,,,,32,-1
 2026-09-03T17:32:12.947Z,account_usage,codex,codex,primary,10080,2026-09-07T07:50:34.000Z,,,,,,33,1
 2026-09-03T17:35:48.719Z,token_usage,codex,,,,,19934,1767680,7717,3417,1798748,,
+2026-09-03T17:36:34.056Z,token_usage,codex,,,,,69933,5783040,16492,13087,5882552,,
