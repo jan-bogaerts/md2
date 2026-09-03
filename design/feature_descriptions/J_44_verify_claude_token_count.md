@@ -9,5 +9,4 @@ affects:
 agents:
 policy:
 ---
-
-we need to verify if the token count coming from claude is done correctly cause it seems on the low side
+we need to verify if the token count coming from claude is done correctly cause it seems on the low side. lets to a comparison on how both claude and codex count the token usage and lets make certain they both use the same and correct approach.
