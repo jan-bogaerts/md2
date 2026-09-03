@@ -59,6 +59,10 @@ Edge kinds by diagram type:
 Optional edge fields:
 - label
 - waypoints: [{ x, y }]
+- sourceAttachment and targetAttachment: { nodeId, side, offset }
+- Attachment side must be top, right, bottom, or left
+- Attachment offset must be a number from 0 through 1, measured along that node side
+- sourceAttachment.nodeId must equal edge.from; targetAttachment.nodeId must equal edge.to
 - fromCardinality and toCardinality for entity relationships only
 - Cardinalities must be 1, N, 0..1, or 1..*
 
@@ -82,7 +86,7 @@ Reference rules:
 - Every group.nodeIds entry must reference an existing node
 - Every fragment edgeIds entry must reference an existing edge
 
-Layout is owned by the application. Prefer omitting x, y, width, height, and waypoints. If supplied, all geometry values must be multiples of 4, width and height must be positive, and waypoint segments must be horizontal or vertical.
+Layout is owned by the application. Prefer omitting x, y, width, height, waypoints, sourceAttachment, and targetAttachment. If supplied, all geometry values must be multiples of 4, width and height must be positive, and waypoint segments must be horizontal or vertical. Attachments persist precise connection points across node movement and resizing.
 `
 
 export function normalizeFolderPath(folderPath) {

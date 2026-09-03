@@ -1,4 +1,5 @@
 import type {
+    DiagramConnectionPoint,
     DiagramData,
     DiagramEdge,
     DiagramGroup,
@@ -267,6 +268,23 @@ function edgeSide(edge: DiagramEdge, field: 'from' | 'to', nodes: Map<string, Po
     return otherCenter.x >= center.x ? 'right' : 'left'
 }
 
+function absoluteConnectionPoint(connectionPoint: DiagramConnectionPoint, node: PositionedDiagramNode) {
+    const { offset, side } = connectionPoint
+    if (side === 'top') return { x: node.x + node.width * offset, y: node.y }
+    if (side === 'bottom') return { x: node.x + node.width * offset, y: node.y + node.height }
+    if (side === 'left') return { x: node.x, y: node.y + node.height * offset }
+
+    return { x: node.x + node.width, y: node.y + node.height * offset }
+}
+
+function endpointAttachment(edge: DiagramEdge, field: 'from' | 'to') {
+    return field === 'from' ? edge.sourceAttachment : edge.targetAttachment
+}
+
+function endpointSide(edge: DiagramEdge, field: 'from' | 'to', nodes: Map<string, PositionedDiagramNode>): NodeSide {
+    return endpointAttachment(edge, field)?.side ?? edgeSide(edge, field, nodes)
+}
+
 function portPoint(
     edge: DiagramEdge,
     edges: DiagramEdge[],
@@ -290,6 +308,36 @@ function portPoint(
     if (side === 'left') return { x: node.x, y: node.y + offset }
 
     return { x: node.x + node.width, y: node.y + offset }
+}
+
+function edgeEndpoint(
+    edge: DiagramEdge,
+    edges: DiagramEdge[],
+    field: 'from' | 'to',
+    nodes: Map<string, PositionedDiagramNode>,
+) {
+    const attachment = endpointAttachment(edge, field)
+    const node = nodes.get(edge[field]) as PositionedDiagramNode
+
+    return attachment ? absoluteConnectionPoint(attachment, node) : portPoint(edge, edges, field, nodes)
+}
+
+function samePoint(left: DiagramWaypoint, right: DiagramWaypoint) {
+    return left.x === right.x && left.y === right.y
+}
+
+function usesSuppliedRoute(edge: DiagramEdge, nodes: Map<string, PositionedDiagramNode>) {
+    if (!edge.waypoints) return false
+    const first = edge.waypoints[0]
+    const last = edge.waypoints.at(-1) as DiagramWaypoint
+    const from = nodes.get(edge.from) as PositionedDiagramNode
+    const to = nodes.get(edge.to) as PositionedDiagramNode
+    const sourceMatches = !edge.sourceAttachment
+        || samePoint(first, absoluteConnectionPoint(edge.sourceAttachment, from))
+    const targetMatches = !edge.targetAttachment
+        || samePoint(last, absoluteConnectionPoint(edge.targetAttachment, to))
+
+    return sourceMatches && targetMatches
 }
 
 function segmentIntersectsNode(start: DiagramWaypoint, end: DiagramWaypoint, node: PositionedDiagramNode) {
@@ -433,16 +481,35 @@ function graphEdgePoints(
     nodes: Map<string, PositionedDiagramNode>,
     priorEdges: PositionedDiagramEdge[],
 ) {
-    if (edge.waypoints) return edge.waypoints
+    if (usesSuppliedRoute(edge, nodes)) return edge.waypoints as DiagramWaypoint[]
     const positionedNodes = [...nodes.values()]
-    if (data.meta.type === 'dependency' && edge.kind === 'cycle') return dependencyCyclePoints(edge, nodes, priorEdges)
+    const hasAttachment = !!edge.sourceAttachment || !!edge.targetAttachment
+    if (!hasAttachment && data.meta.type === 'dependency' && edge.kind === 'cycle') {
+        return dependencyCyclePoints(edge, nodes, priorEdges)
+    }
     const from = nodes.get(edge.from) as PositionedDiagramNode
-    if (edge.from === edge.to) return selfLoopPoints(edge, from, positionedNodes, priorEdges)
-    const start = portPoint(edge, data.edges, 'from', nodes)
-    const end = portPoint(edge, data.edges, 'to', nodes)
-    const fromSide = edgeSide(edge, 'from', nodes)
-    const toSide = edgeSide(edge, 'to', nodes)
-    const verticalRoute = fromSide === 'bottom' || fromSide === 'top'
+    if (!hasAttachment && edge.from === edge.to) return selfLoopPoints(edge, from, positionedNodes, priorEdges)
+    const start = edgeEndpoint(edge, data.edges, 'from', nodes)
+    const end = edgeEndpoint(edge, data.edges, 'to', nodes)
+    const fromSide = endpointSide(edge, 'from', nodes)
+    const toSide = endpointSide(edge, 'to', nodes)
+    const fromVertical = fromSide === 'bottom' || fromSide === 'top'
+    const toVertical = toSide === 'bottom' || toSide === 'top'
+    if (fromVertical !== toVertical) {
+        const exit = fromVertical
+            ? { x: start.x, y: start.y + (fromSide === 'bottom' ? CONNECTOR_CLEARANCE : -CONNECTOR_CLEARANCE) }
+            : { x: start.x + (fromSide === 'right' ? CONNECTOR_CLEARANCE : -CONNECTOR_CLEARANCE), y: start.y }
+        const entry = toVertical
+            ? { x: end.x, y: end.y + (toSide === 'bottom' ? CONNECTOR_CLEARANCE : -CONNECTOR_CLEARANCE) }
+            : { x: end.x + (toSide === 'right' ? CONNECTOR_CLEARANCE : -CONNECTOR_CLEARANCE), y: end.y }
+        const candidates = [
+            [start, exit, { x: entry.x, y: exit.y }, entry, end],
+            [start, exit, { x: exit.x, y: entry.y }, entry, end],
+        ]
+
+        return bestRoute(edge, candidates, positionedNodes, priorEdges)
+    }
+    const verticalRoute = fromVertical
     if (verticalRoute) {
         const horizontalLanes = positionedNodes.flatMap((node) => [
             snap(node.x - CONNECTOR_CLEARANCE), snap(node.x + node.width + CONNECTOR_CLEARANCE),
@@ -482,12 +549,19 @@ function graphEdgePoints(
 }
 
 function sequenceEdgePoints(edge: DiagramEdge, index: number, nodes: Map<string, PositionedDiagramNode>) {
-    if (edge.waypoints) return edge.waypoints
+    if (usesSuppliedRoute(edge, nodes)) return edge.waypoints as DiagramWaypoint[]
     const from = nodes.get(edge.from) as PositionedDiagramNode
     const to = nodes.get(edge.to) as PositionedDiagramNode
     const rowY = snap(SEQUENCE_MESSAGE_START + index * SEQUENCE_MESSAGE_GAP)
-    const startX = snap(from.x + from.width / 2)
-    const endX = snap(to.x + to.width / 2)
+    const automaticStart = { x: snap(from.x + from.width / 2), y: rowY }
+    const automaticEnd = { x: snap(to.x + to.width / 2), y: rowY }
+    const start = edge.sourceAttachment ? absoluteConnectionPoint(edge.sourceAttachment, from) : automaticStart
+    const end = edge.targetAttachment ? absoluteConnectionPoint(edge.targetAttachment, to) : automaticEnd
+    if (edge.sourceAttachment || edge.targetAttachment) {
+        return [start, { x: start.x, y: rowY }, { x: end.x, y: rowY }, end]
+    }
+    const startX = automaticStart.x
+    const endX = automaticEnd.x
     if (edge.from === edge.to) {
         return [
             { x: startX, y: rowY },
@@ -666,11 +740,12 @@ function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]
     })
     routeOrder.forEach((edge) => {
         const index = data.edges.findIndex(({ id }) => id === edge.id)
+        const suppliedRoute = usesSuppliedRoute(edge, nodes)
         const points = data.meta.type === 'sequence'
             ? sequenceEdgePoints(edge, index, nodes)
             : graphEdgePoints(data, edge, nodes, baseEdges)
-        if (edge.waypoints && data.meta.type !== 'sequence') validateSuppliedRoute(edge, points, nodes, baseEdges)
-        const routedPoints = edge.waypoints ? points : addCrossingHops(points, baseEdges)
+        if (suppliedRoute && data.meta.type !== 'sequence') validateSuppliedRoute(edge, points, nodes, baseEdges)
+        const routedPoints = suppliedRoute ? points : addCrossingHops(points, baseEdges)
         const labelPlacement = edgeLabelPlacement(edge, routedPoints, positionedNodes)
         baseEdges.push({ ...edge, points })
         positionedEdges.push({

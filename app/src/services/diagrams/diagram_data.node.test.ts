@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isDiagramDataPath, parseDiagramData, type DiagramData } from './diagram_data'
+import { isDiagramDataPath, parseDiagramData, serializeDiagramData, type DiagramData } from './diagram_data'
 
 function validDiagram() {
     return {
@@ -16,6 +16,25 @@ function validDiagram() {
 describe('parseDiagramData', () => {
     it('parses versioned semantic data and optional geometry', () => {
         expect(parseDiagramData(JSON.stringify(validDiagram()))).toEqual(validDiagram())
+    })
+
+    it('parses and serializes canonical edge connection points', () => {
+        const diagram = validDiagram() as DiagramData
+        diagram.edges[0] = {
+            ...diagram.edges[0],
+            sourceAttachment: { nodeId: 'api', offset: 0.25, side: 'right' },
+            targetAttachment: { nodeId: 'store', offset: 0.75, side: 'left' },
+        }
+
+        const parsed = parseDiagramData(JSON.stringify(diagram))
+        const serialized = serializeDiagramData(parsed)
+
+        expect(parsed.edges[0]).toMatchObject({
+            sourceAttachment: { nodeId: 'api', offset: 0.25, side: 'right' },
+            targetAttachment: { nodeId: 'store', offset: 0.75, side: 'left' },
+        })
+        expect(serialized.endsWith('\n')).toBe(true)
+        expect(parseDiagramData(serialized)).toEqual(parsed)
     })
 
     it('ignores legacy legend metadata', () => {
@@ -72,6 +91,13 @@ describe('parseDiagramData', () => {
         expect(() => parseDiagramData(JSON.stringify({...validDiagram(), nodes: [{ ...validDiagram().nodes[0], kind: 'decision' }, validDiagram().nodes[1]]}))).toThrow('unsupported value decision for architecture')
         expect(() => parseDiagramData(JSON.stringify({...validDiagram(), edges: [{ ...validDiagram().edges[0], waypoints: [{ x: 0, y: 0 }] }]}))).toThrow('fewer than two points')
         expect(() => parseDiagramData(JSON.stringify({...validDiagram(), edges: [{ ...validDiagram().edges[0], waypoints: [{ x: 0, y: 0 }, { x: 8, y: 8 }] }]}))).toThrow('diagonal segment')
+    })
+
+    it('rejects malformed connection points with precise fields', () => {
+        const edge = validDiagram().edges[0]
+        expect(() => parseDiagramData(JSON.stringify({...validDiagram(), edges: [{ ...edge, sourceAttachment: { nodeId: 'api', offset: 1.1, side: 'right' } }]}))).toThrow('edges[0].sourceAttachment.offset has number outside the 0..1 range')
+        expect(() => parseDiagramData(JSON.stringify({...validDiagram(), edges: [{ ...edge, targetAttachment: { nodeId: 'store', offset: 0.5, side: 'middle' } }]}))).toThrow('edges[0].targetAttachment.side has unsupported value middle')
+        expect(() => parseDiagramData(JSON.stringify({...validDiagram(), edges: [{ ...edge, sourceAttachment: { nodeId: 'store', offset: 0.5, side: 'right' } }]}))).toThrow('edges.request.sourceAttachment.nodeId has node store does not match from api')
     })
 
     it('parses a large architecture document with many focal nodes and groups', () => {

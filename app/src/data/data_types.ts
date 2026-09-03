@@ -31,7 +31,6 @@ export {
     DEFAULT_WORKING_FOLDER,
 }
 export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
-
 export const AUTO_COMMIT_DELAY_MS = 30000
 
 /** Card type id; projects can configure custom types beyond the default feature/job/bug. */

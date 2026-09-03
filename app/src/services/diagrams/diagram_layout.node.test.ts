@@ -41,12 +41,90 @@ describe('diagram layout', () => {
         expect(positioned.nodes.find(({ id }) => id === 'two')?.x).toBeDefined()
     })
 
+    it('resolves connection points against moved and resized node boundaries', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = [
+            { height: 80, id: 'one', label: 'One', role: 'focal', width: 160, x: 40, y: 80 },
+            { height: 120, id: 'two', label: 'Two', role: 'backend', width: 200, x: 400, y: 120 },
+        ]
+        data.edges = [{
+            from: 'one', id: 'attached', kind: 'connection',
+            sourceAttachment: { nodeId: 'one', offset: 0.25, side: 'right' },
+            targetAttachment: { nodeId: 'two', offset: 0.75, side: 'left' }, to: 'two',
+        }]
+
+        expect(layout(data).edges[0].points).toMatchObject([
+            { x: 200, y: 100 }, {}, {}, { x: 400, y: 210 },
+        ])
+
+        data.nodes[0] = { ...data.nodes[0], height: 120, width: 200, x: 80, y: 120 }
+        expect(layout(data).edges[0].points[0]).toEqual({ x: 280, y: 150 })
+    })
+
+    it('keeps distinct connection offsets on one node side', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = [
+            { height: 80, id: 'one', label: 'One', role: 'focal', width: 160, x: 40, y: 80 },
+            { height: 80, id: 'two', label: 'Two', role: 'backend', width: 160, x: 400, y: 40 },
+            { height: 80, id: 'three', label: 'Three', role: 'backend', width: 160, x: 400, y: 200 },
+        ]
+        data.edges = [
+            {
+                from: 'one', id: 'upper', kind: 'connection',
+                sourceAttachment: { nodeId: 'one', offset: 0.25, side: 'right' }, to: 'two',
+            },
+            {
+                from: 'one', id: 'lower', kind: 'connection',
+                sourceAttachment: { nodeId: 'one', offset: 0.75, side: 'right' }, to: 'three',
+            },
+        ]
+
+        const positioned = layout(data)
+
+        expect(positioned.edges[0].points[0]).toEqual({ x: 200, y: 100 })
+        expect(positioned.edges[1].points[0]).toEqual({ x: 200, y: 140 })
+    })
+
+    it('regenerates stale waypoints from authoritative connection points', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = [
+            { height: 80, id: 'one', label: 'One', role: 'focal', width: 160, x: 40, y: 80 },
+            { height: 80, id: 'two', label: 'Two', role: 'backend', width: 160, x: 400, y: 80 },
+        ]
+        data.edges = [{
+            from: 'one', id: 'attached', kind: 'connection',
+            sourceAttachment: { nodeId: 'one', offset: 0.5, side: 'right' },
+            to: 'two', waypoints: [{ x: 160, y: 120 }, { x: 400, y: 120 }],
+        }]
+
+        expect(layout(data).edges[0].points[0]).toEqual({ x: 200, y: 120 })
+    })
+
     it('places sequence participants in columns and messages in deterministic rows', () => {
         const positioned = layout(diagram('sequence'))
 
         expect(positioned.nodes[0].y).toBe(positioned.nodes[1].y)
         expect(positioned.edges[0].points[0].y).toBeLessThan(positioned.edges[1].points[0].y)
         expect(positioned.edges[0].points[0].y % 4).toBe(0)
+    })
+
+    it('uses explicit connection points for sequence edges', () => {
+        const data = diagram('sequence')
+        data.edges = [{
+            from: 'one', id: 'message', kind: 'call',
+            sourceAttachment: { nodeId: 'one', offset: 0.25, side: 'bottom' },
+            targetAttachment: { nodeId: 'two', offset: 0.75, side: 'bottom' }, to: 'two',
+        }]
+
+        const positioned = layout(data)
+        const source = positioned.nodes.find(({ id }) => id === 'one') as NonNullable<typeof positioned.nodes[number]>
+        const target = positioned.nodes.find(({ id }) => id === 'two') as NonNullable<typeof positioned.nodes[number]>
+
+        expect(positioned.edges[0].points[0]).toEqual({ x: source.x + source.width * 0.25, y: source.y + source.height })
+        expect(positioned.edges[0].points.at(-1)).toEqual({ x: target.x + target.width * 0.75, y: target.y + target.height })
     })
 
     it('adds a hop to the later connector when generated routes cross', () => {
@@ -121,9 +199,7 @@ describe('diagram layout', () => {
             id: `node-${index}`, label: `Node ${index}`, role: 'backend' as const,
             x: (index % 4) * 160, y: Math.floor(index / 4) * 72,
         }))
-        data.edges = Array.from({ length: 24 }, (_unused, index) => ({
-            from: `node-${index % 12}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index + 5) % 12}`,
-        }))
+        data.edges = Array.from({ length: 24 }, (_unused, index) => ({from: `node-${index % 12}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index + 5) % 12}`}))
 
         const positioned = layout(data)
 
@@ -147,15 +223,11 @@ describe('diagram layout', () => {
 
     it('clamps connector ports on a node too narrow to keep them apart', () => {
         const data: DiagramData = {
-            edges: Array.from({ length: 6 }, (_unused, index) => ({
-                from: `state-${index}`, id: `transition-${index}`, kind: 'transition', label: `t${index}`, to: 'done',
-            })),
+            edges: Array.from({ length: 6 }, (_unused, index) => ({from: `state-${index}`, id: `transition-${index}`, kind: 'transition', label: `t${index}`, to: 'done'})),
             groups: [],
             meta: { description: 'Narrow terminator', preset: 'state', title: 'States', type: 'flow', version: 1 },
             nodes: [
-                ...Array.from({ length: 6 }, (_unused, index) => ({
-                    id: `state-${index}`, kind: 'state' as const, label: `State ${index}`, role: 'backend' as const,
-                })),
+                ...Array.from({ length: 6 }, (_unused, index) => ({id: `state-${index}`, kind: 'state' as const, label: `State ${index}`, role: 'backend' as const})),
                 { id: 'done', kind: 'end', label: 'Done', role: 'backend' },
             ],
         }
@@ -184,12 +256,8 @@ describe('diagram layout', () => {
     it('lays out a hundred nodes and a hundred and fifty edges quickly', () => {
         const data = diagram()
         data.groups = []
-        data.nodes = Array.from({ length: 100 }, (_unused, index) => ({
-            id: `node-${index}`, label: `Node ${index}`, role: 'backend' as const,
-        }))
-        data.edges = Array.from({ length: 150 }, (_unused, index) => ({
-            from: `node-${index % 100}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index * 7 + 3) % 100}`,
-        }))
+        data.nodes = Array.from({ length: 100 }, (_unused, index) => ({id: `node-${index}`, label: `Node ${index}`, role: 'backend' as const}))
+        data.edges = Array.from({ length: 150 }, (_unused, index) => ({from: `node-${index % 100}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index * 7 + 3) % 100}`}))
 
         const started = Date.now()
         const positioned = layout(data)

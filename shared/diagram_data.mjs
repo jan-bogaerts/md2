@@ -8,6 +8,7 @@ export const DIAGRAM_EDGE_KINDS = [
 export const DIAGRAM_FLOW_PRESETS = ['flowchart', 'state'];
 export const DIAGRAM_CARDINALITIES = ['1', 'N', '0..1', '1..*'];
 export const DIAGRAM_SEQUENCE_OPERATORS = ['alt', 'opt', 'loop'];
+export const DIAGRAM_CONNECTION_SIDES = ['top', 'right', 'bottom', 'left'];
 function malformed(field, reason = 'invalid value') {
     throw new Error(`Malformed diagram data: ${field} has ${reason}`);
 }
@@ -47,6 +48,12 @@ function requireGridNumber(value, field, positive = false) {
     const result = optionalNumber(value, field, positive);
     if (result === undefined || result % 4 !== 0)
         malformed(field, 'number outside the 4px grid');
+    return result;
+}
+function requireRelativeOffset(value, field) {
+    const result = optionalNumber(value, field);
+    if (result === undefined || result < 0 || result > 1)
+        malformed(field, 'number outside the 0..1 range');
     return result;
 }
 function requireEnum(value, values, field) {
@@ -128,10 +135,22 @@ function parseWaypoints(value, field) {
     }
     return waypoints;
 }
+function parseConnectionPoint(value, field) {
+    if (value === undefined)
+        return undefined;
+    const connectionPoint = requireObject(value, field);
+    return {
+        nodeId: requireString(connectionPoint.nodeId, `${field}.nodeId`),
+        offset: requireRelativeOffset(connectionPoint.offset, `${field}.offset`),
+        side: requireEnum(connectionPoint.side, DIAGRAM_CONNECTION_SIDES, `${field}.side`),
+    };
+}
 function parseEdge(value, index) {
     const field = `edges[${index}]`;
     const edge = requireObject(value, field);
     const fromCardinality = optionalEnum(edge.fromCardinality, DIAGRAM_CARDINALITIES, `${field}.fromCardinality`);
+    const sourceAttachment = parseConnectionPoint(edge.sourceAttachment, `${field}.sourceAttachment`);
+    const targetAttachment = parseConnectionPoint(edge.targetAttachment, `${field}.targetAttachment`);
     const toCardinality = optionalEnum(edge.toCardinality, DIAGRAM_CARDINALITIES, `${field}.toCardinality`);
     const waypoints = parseWaypoints(edge.waypoints, `${field}.waypoints`);
     return {
@@ -140,6 +159,8 @@ function parseEdge(value, index) {
         id: requireString(edge.id, `${field}.id`),
         kind: requireEnum(edge.kind, DIAGRAM_EDGE_KINDS, `${field}.kind`),
         ...(edge.label === undefined ? {} : { label: requireString(edge.label, `${field}.label`) }),
+        ...(sourceAttachment ? { sourceAttachment } : {}),
+        ...(targetAttachment ? { targetAttachment } : {}),
         to: requireString(edge.to, `${field}.to`),
         ...(toCardinality ? { toCardinality } : {}),
         ...(waypoints ? { waypoints } : {}),
@@ -196,11 +217,15 @@ function validateReferences(data) {
         malformed('nodes and edges', `duplicate id ${duplicateSelectableId}`);
     requireUniqueIds(data.groups, 'groups');
     requireUniqueIds(data.fragments ?? [], 'fragments');
-    for (const { from, id, to } of data.edges) {
+    for (const { from, id, sourceAttachment, targetAttachment, to } of data.edges) {
         if (!nodeIds.has(from))
             malformed(`edges.${id}.from`, `unknown node ${from}`);
         if (!nodeIds.has(to))
             malformed(`edges.${id}.to`, `unknown node ${to}`);
+        if (sourceAttachment && sourceAttachment.nodeId !== from)
+            malformed(`edges.${id}.sourceAttachment.nodeId`, `node ${sourceAttachment.nodeId} does not match from ${from}`);
+        if (targetAttachment && targetAttachment.nodeId !== to)
+            malformed(`edges.${id}.targetAttachment.nodeId`, `node ${targetAttachment.nodeId} does not match to ${to}`);
     }
     for (const { id, nodeIds: groupNodeIds } of data.groups) {
         for (const nodeId of groupNodeIds) {
@@ -294,6 +319,11 @@ export function parseDiagramData(content) {
     validateReferences(data);
     validateTypeSpecificData(data);
     return data;
+}
+export function serializeDiagramData(data) {
+    const canonicalData = parseDiagramData(JSON.stringify(data));
+
+    return `${JSON.stringify(canonicalData, null, 2)}\n`;
 }
 export function isDiagramDataPath(path) {
     return path.toLowerCase().endsWith('.json');
