@@ -3,12 +3,24 @@ author:
 id: B_216
 internalId: 7037a625-d650-4574-b1d5-874d90ba82a4
 title: remove duplicate code
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__7037a625-d650-4574-b1d5-874d90ba82a4.json
 policy:
+changedFiles:
+  - _t.mjs
+  - desktop/src/actions/action/action_runner_service.js
+  - desktop/src/actions/action/action_runner_service.test.mjs
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/project/project_paths.js
+  - desktop/src/project/project_paths.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - shared/project_config_defaults.d.mts
+  - shared/project_config_defaults.mjs
 ---
 seems that we have some duplicate stuff in [action\_scheduler\_service.js](desktop/src/actions/action/action_scheduler_service.js),  `DEFAULT_DIAGRAM_FOOTER` is already outdated.
 
