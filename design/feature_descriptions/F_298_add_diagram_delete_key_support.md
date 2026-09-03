@@ -24,6 +24,10 @@ Invoke the same deletion behavior from the Delete key.
 * Keyboard and toolbox deletion use the same service operation and cascading rules.
 * The listener is installed and removed with the editor lifecycle.
 
+## State and rendering rule
+
+The keyboard handler delegates to the same granular deletion operation as the toolbox. It owns no diagram state and introduces no additional notification or rerender path.
+
 ## Dependencies
 
 [F_297](F_297_add_diagram_delete_tool.md).

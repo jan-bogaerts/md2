@@ -30,6 +30,10 @@ Allow users to add, rename, reorder, and remove explicit legend entries for node
 * Existing diagrams without explicit legend entries retain their derived legend.
 * Legend edits appear in the semantic change set.
 
+## State and rendering rule
+
+Legend view and editable legend data, if this card retains them after its F_271 compatibility decision, are service-owned by entry. Changing one label assigns only that entry field; reordering changes only legend membership/order view data. Diagram objects and roots never subscribe to a complete legend or diagram snapshot.
+
 ## Dependencies
 
 [F_276](F_276_add_diagram_mutation_operations.md), [F_285](F_285_add_resizable_diagram_toolbox.md), and [F_271](F_271_diagrams_add_legend.md).

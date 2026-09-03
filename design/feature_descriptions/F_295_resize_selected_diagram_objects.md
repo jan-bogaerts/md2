@@ -26,6 +26,10 @@ Resize selected nodes and groups through visible handles.
 * Edge-only and multi-object selections do not show unsupported handles.
 * Cancelled resize restores the starting geometry and creates no change.
 
+## State and rendering rule
+
+Resizing assigns width and height on the existing selected object. Only that object's geometry leaves, incident endpoint or route leaves, and a changed surface bound may receive events. No complete object, collection, positioned diagram, or diagram root is rebuilt.
+
 ## Dependencies
 
 [F_274](F_274_add_editable_connection_points.md), [F_289](F_289_add_diagram_coordinate_conversion.md), and [F_291](F_291_add_direct_diagram_selection.md).

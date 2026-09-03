@@ -24,6 +24,10 @@ Offer Current and New as accessible tabs when two simultaneous panes are unsuita
 * Only New accepts edit gestures.
 * Keyboard tab navigation follows the existing application pattern.
 
+## State and rendering rule
+
+The tab owner subscribes only to the active tab. New diagram field events rerender their subscribing leaves even while New is visible, but never republish tab state or rerender the tab layout and Current.
+
 ## Dependencies
 
 [F_280](F_280_add_current_and_new_diagram_comparison.md).

@@ -25,6 +25,10 @@ Add a Component button to Nodes for architecture and dependency diagrams.
 * Details can edit all component fields permitted by the schema.
 * Architecture and dependency tests cover placement and unavailable states.
 
+## State and rendering rule
+
+The button subscribes only to the diagram-type primitive needed for availability. Creation adds one component ID and object; later component fields are read by that component leaf from the service. Existing nodes and diagram parents do not receive component field events.
+
 ## Dependencies
 
 [F_302](F_302_add_node_placement_infrastructure.md).

@@ -20,8 +20,8 @@ These six terms are defined here once and are used with exactly this meaning eve
 |---|---|
 | **Original diagram** | The `DiagramData` parsed by `parseDiagramData` from the file at `DiagramRecord.path`, together with that `DiagramRecord`. Both are immutable for the whole edit flow: no edit, no save, and no agent handoff ever writes either of them. |
 | **Editable diagram** | One deep in-memory copy of that `DiagramData`, owned by the edit session of [F_275](../feature_descriptions/F_275_add_diagram_edit_session_service.md). It is model data (`DiagramData`), never positioned data. All mutations apply to it. |
-| **Derived layout** | The `PositionedDiagramData` that `layout` in `app/src/services/diagrams/diagram_layout.ts` produces from the editable diagram. It is recomputed after a mutation, is never edited directly, and is never saved. |
-| **Dirty** | The editable diagram differs by value from the original diagram. It is one state of the session, not a per-object flag. Selection, active tool, zoom, pan, and scroll never make a session dirty, because none of them changes `DiagramData`. |
+| **Derived layout** | Stable service-owned positioned view objects. `layout` in `app/src/services/diagrams/diagram_layout.ts` may build their initial values when a diagram loads; an ordinary edit updates only geometry affected by that edit. Derived geometry is never written into the editable diagram and is never saved. |
+| **Dirty** | The session's semantic change registry contains at least one entry. A mutation updates only its affected entry and never compares complete diagrams. Selection, active tool, zoom, pan, and scroll never make a session dirty, because none of them changes `DiagramData`. |
 | **Change set** | The ordered record of applied mutations that [F_277](../feature_descriptions/F_277_track_diagram_changes.md) tracks and [F_322](../feature_descriptions/F_322_generate_diagram_change_descriptions.md) turns into text. It describes model changes only. |
 | **Saved copy** | The new JSON file plus the new `DiagramRecord` created by the first save of a session. Every later save of the same session overwrites that file and updates that record only. |
 
@@ -55,6 +55,22 @@ Consequences that later jobs must respect:
 * **Position-addressed content reorders as an owner change.** Reordering entity fields is a change to the owning node,
   not a change of identity, so [F_296](../feature_descriptions/F_296_edit_diagram_object_details.md) must not invent
   per-field identifiers.
+
+### State publication
+
+The edit session may deep-clone the source diagram once when a session starts and may traverse or serialize the
+complete editable diagram at an explicit persistence, validation, agent-output, or final-output boundary. Ordinary
+edits assign only the requested field on the existing service-owned object. They do not use object spread, `map`,
+`structuredClone`, array replacement, or complete-diagram comparison to publish an update.
+
+Each editable field has an `EventTarget` event scoped by object kind, stable object identifier, and field. Entity
+fields use node identifier plus field index; connection points use edge identifier plus endpoint. Collection
+membership has a separate event for each object kind. Stable ordered identifier-list snapshots change reference only
+when that collection gains, loses, or reorders an object.
+
+React leaves subscribe with `useSyncExternalStore` to the smallest primitive or stable reference they render.
+Collection hosts subscribe only to ordered identifier lists. Diagram roots, comparison roots, pane layouts, and
+toolbox roots never subscribe to a complete `DiagramData`, `PositionedDiagramData`, or catch-all diagram event.
 
 ## 3. Geometry: persisted versus derived
 

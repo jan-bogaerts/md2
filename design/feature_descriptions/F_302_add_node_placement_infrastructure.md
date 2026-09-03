@@ -29,6 +29,10 @@ Handle tool activation, pointer preview, grid-snapped placement, cancellation, c
 * Unsupported node kinds are unavailable for the active diagram type.
 * Shared behavior is tested once and node tools do not duplicate it.
 
+## State and rendering rule
+
+Placement adds one canonical node through the node-membership operation. The node ID-list snapshot changes once, the new leaf mounts by ID, and existing node objects and leaves retain their references. Preview position is isolated transient view state and never modifies diagram data.
+
 ## Dependencies
 
 [F_286](F_286_manage_active_diagram_tool.md), [F_289](F_289_add_diagram_coordinate_conversion.md), and [F_276](F_276_add_diagram_mutation_operations.md).

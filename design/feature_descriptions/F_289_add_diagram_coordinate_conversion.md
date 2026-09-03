@@ -28,6 +28,10 @@ Account for viewport bounds, independent scrolling, zoom, and comparison layout.
 * Conversion has no DOM writes and is covered by unit tests.
 * Tools do not implement their own coordinate formulas.
 
+## State and rendering rule
+
+Coordinate conversion is a pure read of the relevant viewport metrics and zoom primitive. It creates no state, dispatches no event, and cannot cause diagram or layout components to rerender.
+
 ## Dependencies
 
 [F_280](F_280_add_current_and_new_diagram_comparison.md).

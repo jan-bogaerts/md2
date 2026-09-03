@@ -25,6 +25,10 @@ Add Dependency and Cycle buttons for dependency diagrams.
 * Reconnecting or deleting either kind leaves fan-in and routes correctly derived.
 * The buttons appear only for dependency diagrams.
 
+## State and rendering rule
+
+Dependency and cycle edges are stable service-owned objects. Creating one changes edge membership once; reconnecting one assigns its endpoint fields and updates only that route and affected endpoint fan-in. Unrelated edges are never rerouted or rerendered.
+
 ## Dependencies
 
 [F_311](F_311_add_edge_drawing_infrastructure.md).

@@ -25,6 +25,10 @@ Add Relationship for entity diagrams.
 * Cardinality labels follow reconnected or moved endpoints.
 * Invalid cardinalities or non-entity endpoints are rejected before mutation.
 
+## State and rendering rule
+
+Relationship label, endpoints, and cardinalities are separate fields on a stable edge object. Changing one assigns that field and rerenders only the relationship leaf and any directly affected endpoint-derived data.
+
 ## Dependencies
 
 [F_311](F_311_add_edge_drawing_infrastructure.md) and [F_296](F_296_edit_diagram_object_details.md).

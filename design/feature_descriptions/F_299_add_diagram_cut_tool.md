@@ -25,6 +25,10 @@ Add Cut to the Edit toolbox section.
 * A failed clipboard write leaves the diagram unchanged and reports an error.
 * A successful cut produces the same change set as deleting that selection.
 
+## State and rendering rule
+
+Cut reads selected fields for clipboard serialization, then uses granular deletion. Reading does not publish state. Successful removal notifies only affected collections and references; clipboard or serialization work cannot rebuild or republish the diagram.
+
 ## Dependencies
 
 [F_297](F_297_add_diagram_delete_tool.md) and [F_300](F_300_add_diagram_copy_tool.md).

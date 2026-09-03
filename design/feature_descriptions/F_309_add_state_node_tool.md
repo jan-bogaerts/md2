@@ -24,6 +24,10 @@ Add a State button for state diagrams.
 * The node becomes selected and exposes state-node details.
 * Flowcharts and other diagram types do not offer the button.
 
+## State and rendering rule
+
+The button subscribes only to type and preset availability. Creation adds one stable state object; later field and geometry changes notify only that state leaf and direct edge dependants.
+
 ## Dependencies
 
 [F_302](F_302_add_node_placement_infrastructure.md).

@@ -29,6 +29,10 @@ Show a review dialog containing grouped semantic changes, generated text, valida
 * Closing review does not clear or modify edits.
 * Selecting a listed change identifies its affected diagram objects without moving them.
 
+## State and rendering rule
+
+The review list host subscribes only to ordered change IDs. Each row subscribes to its own change fields. Updating one existing change rerenders one row; it does not rebuild the list, diagram, comparison root, or generated report. Full text is generated only when the user requests review or handoff.
+
 ## Dependencies
 
 [F_279](F_279_validate_diagram_edit_operations.md) and [F_322](F_322_generate_diagram_change_descriptions.md).

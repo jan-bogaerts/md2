@@ -29,6 +29,10 @@ Resolve integration seams only: comparison modes, toolbox overlays, legend, brea
 * Review and agent handoff use the same current edit-session data.
 * Focused integration tests pass, existing diagram tests remain valid, and app lint passes.
 
+## State and rendering rule
+
+Integration must preserve the F_329 event graph. Add render-count tests for metadata, node, edge, group, fragment, selection, geometry, zoom, and tool changes. Each test must prove the owning leaf rerenders and root, parent, collection, sibling, and unrelated leaves do not.
+
 ## Dependencies
 
 All earlier F_255 jobs. Copy persistence is completed by [F_327](F_327_save_edited_diagram_as_copy.md).

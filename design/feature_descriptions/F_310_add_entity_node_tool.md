@@ -25,6 +25,10 @@ Add an Entity button for entity diagrams.
 * Height remains explicit after user resizing and otherwise follows existing entity defaults.
 * The created entity becomes selected.
 
+## State and rendering rule
+
+The entity leaf subscribes to its own fields. Editing one entity field assigns only that field entry or changes only the owning field-list membership; it does not replace the entity, node collection, or diagram. Only the owning entity leaf and directly affected geometry rerender.
+
 ## Dependencies
 
 [F_302](F_302_add_node_placement_infrastructure.md) and [F_296](F_296_edit_diagram_object_details.md).

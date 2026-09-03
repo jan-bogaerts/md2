@@ -1,3 +1,4 @@
+import dagre from '@dagrejs/dagre'
 import type {
     DiagramConnectionPoint,
     DiagramData,
@@ -120,122 +121,51 @@ function positionedNode(data: DiagramData, node: DiagramNode, x: number, y: numb
     }
 }
 
-function incomingEdges(data: DiagramData, nodeId: string) {
-    return data.edges.filter(({ kind, to }) => to === nodeId && kind !== 'cycle')
-}
-
-/** Groups nodes into strongly connected components with an iterative Tarjan pass, ignoring cycle edges. */
-function graphComponents(data: DiagramData) {
-    const nodeIds = data.nodes.map(({ id }) => id)
-    const successors = new Map(nodeIds.map((id) => [id, [] as string[]]))
-    for (const { from, kind, to } of data.edges) {
-        if (kind !== 'cycle') successors.get(from)?.push(to)
-    }
-    const componentByNode = new Map<string, number>()
-    const indexByNode = new Map<string, number>()
-    const lowLinkByNode = new Map<string, number>()
-    const onStack = new Set<string>()
-    const stack: string[] = []
-    let nextIndex = 0
-    let component = 0
-    for (const root of nodeIds) {
-        if (indexByNode.has(root)) continue
-        const frames: { id: string, successorIndex: number }[] = [{ id: root, successorIndex: 0 }]
-        indexByNode.set(root, nextIndex)
-        lowLinkByNode.set(root, nextIndex)
-        nextIndex += 1
-        stack.push(root)
-        onStack.add(root)
-        while (frames.length > 0) {
-            const frame = frames[frames.length - 1]
-            const frameSuccessors = successors.get(frame.id) ?? []
-            if (frame.successorIndex < frameSuccessors.length) {
-                const next = frameSuccessors[frame.successorIndex]
-                frame.successorIndex += 1
-                if (!indexByNode.has(next)) {
-                    indexByNode.set(next, nextIndex)
-                    lowLinkByNode.set(next, nextIndex)
-                    nextIndex += 1
-                    stack.push(next)
-                    onStack.add(next)
-                    frames.push({ id: next, successorIndex: 0 })
-                } else if (onStack.has(next)) {
-                    lowLinkByNode.set(frame.id, Math.min(lowLinkByNode.get(frame.id) as number, indexByNode.get(next) as number))
-                }
-                continue
-            }
-            frames.pop()
-            if (lowLinkByNode.get(frame.id) === indexByNode.get(frame.id)) {
-                let member = stack.pop() as string
-                onStack.delete(member)
-                componentByNode.set(member, component)
-                while (member !== frame.id) {
-                    member = stack.pop() as string
-                    onStack.delete(member)
-                    componentByNode.set(member, component)
-                }
-                component += 1
-            }
-            const parent = frames[frames.length - 1]
-            if (parent) {
-                lowLinkByNode.set(parent.id, Math.min(lowLinkByNode.get(parent.id) as number, lowLinkByNode.get(frame.id) as number))
-            }
-        }
-    }
-
-    return { componentByNode, count: component }
-}
-
-function graphRanks(data: DiagramData) {
-    const { componentByNode, count } = graphComponents(data)
-    const componentRanks = new Map(Array.from({ length: count }, (_unused, index) => [index, 0]))
-    const maxPasses = Math.max(0, count - 1)
-    for (let pass = 0; pass < maxPasses; pass += 1) {
-        for (const { from, kind, to } of data.edges) {
-            if (kind === 'cycle') continue
-            const fromComponent = componentByNode.get(from) as number
-            const toComponent = componentByNode.get(to) as number
-            if (fromComponent === toComponent) continue
-            const candidate = (componentRanks.get(fromComponent) ?? 0) + 1
-            if (candidate > (componentRanks.get(toComponent) ?? 0)) componentRanks.set(toComponent, candidate)
-        }
-    }
-
-    return new Map(data.nodes.map(({ id }) => [id, componentRanks.get(componentByNode.get(id) as number) ?? 0]))
-}
-
-function orderedRankNodes(data: DiagramData, rankNodes: DiagramNode[], priorPositions: Map<string, number>) {
-    return [...rankNodes].sort((left, right) => {
-        const leftParents = incomingEdges(data, left.id).map(({ from }) => priorPositions.get(from) ?? 0)
-        const rightParents = incomingEdges(data, right.id).map(({ from }) => priorPositions.get(from) ?? 0)
-        const leftAverage = leftParents.length > 0 ? leftParents.reduce((sum, value) => sum + value, 0) / leftParents.length : 0
-        const rightAverage = rightParents.length > 0 ? rightParents.reduce((sum, value) => sum + value, 0) / rightParents.length : 0
-
-        return leftAverage - rightAverage || data.nodes.indexOf(left) - data.nodes.indexOf(right)
+/** Builds the Dagre input graph. Self-edges and presentation `cycle` edges are excluded so they cannot influence ranks. */
+function layeredGraph(data: DiagramData) {
+    const graph = new dagre.graphlib.Graph()
+    graph.setGraph({
+        marginx: SURFACE_PADDING,
+        marginy: SURFACE_PADDING,
+        nodesep: NODE_GAP,
+        rankdir: 'TB',
+        ranksep: RANK_GAP,
     })
-}
-
-function layoutLayeredNodes(data: DiagramData) {
-    const ranks = graphRanks(data)
-    const rankValues = [...new Set(ranks.values())].sort((left, right) => left - right)
-    const priorPositions = new Map<string, number>()
-    const positioned: PositionedDiagramNode[] = []
-    let y = SURFACE_PADDING
-    for (const rank of rankValues) {
-        const nodes = orderedRankNodes(data, data.nodes.filter(({ id }) => ranks.get(id) === rank), priorPositions)
-        let x = SURFACE_PADDING
-        let maximumHeight = 0
-        for (const node of nodes) {
-            const result = positionedNode(data, node, x, y)
-            positioned.push(result)
-            priorPositions.set(node.id, result.x)
-            x += result.width + NODE_GAP
-            maximumHeight = Math.max(maximumHeight, result.height)
-        }
-        y += maximumHeight + RANK_GAP
+    graph.setDefaultEdgeLabel(() => ({}))
+    const known = new Set<string>()
+    for (const node of data.nodes) {
+        if (known.has(node.id)) continue
+        known.add(node.id)
+        graph.setNode(node.id, { height: nodeHeight(data, node), width: nodeWidth(data, node) })
+    }
+    const added = new Set<string>()
+    for (const { from, kind, to } of data.edges) {
+        if (kind === 'cycle' || from === to || !known.has(from) || !known.has(to)) continue
+        const key = JSON.stringify([from, to])
+        if (added.has(key)) continue
+        added.add(key)
+        graph.setEdge(from, to)
     }
 
-    return positioned
+    return graph
+}
+
+/**
+ * Places layered nodes with Dagre. Dagre reports node centres, so each centre is converted to a top-left
+ * corner and snapped to the grid; `positionedNode` then keeps any supplied coordinate as authoritative.
+ * A Dagre failure propagates as a layout failure rather than falling back to partial geometry.
+ */
+function layoutLayeredNodes(data: DiagramData) {
+    const graph = layeredGraph(data)
+    dagre.layout(graph)
+
+    return data.nodes.map((node) => {
+        const placement = graph.node(node.id)
+        const width = nodeWidth(data, node)
+        const height = nodeHeight(data, node)
+
+        return positionedNode(data, node, (placement?.x ?? SURFACE_PADDING) - width / 2, (placement?.y ?? SURFACE_PADDING) - height / 2)
+    })
 }
 
 function layoutSequenceNodes(data: DiagramData) {

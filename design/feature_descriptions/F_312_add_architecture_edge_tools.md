@@ -25,6 +25,10 @@ Add Connection and Data buttons for architecture diagrams, plus Async where supp
 * Details can edit the optional label and reconnect either endpoint.
 * Incompatible diagram types do not offer these buttons.
 
+## State and rendering rule
+
+Each button subscribes only to diagram-type availability. Creation adds one stable edge. Later label, kind, endpoint, connection-point, and route changes assign only the relevant fields and notify that edge leaf plus directly affected endpoint data.
+
 ## Dependencies
 
 [F_311](F_311_add_edge_drawing_infrastructure.md) and [F_296](F_296_edit_diagram_object_details.md).

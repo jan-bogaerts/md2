@@ -25,6 +25,10 @@ Implement direct selection in the Select tool.
 * Selected objects have a visible theme-backed focus treatment.
 * Keyboard activation selects the focused object without opening its drill-down menu while editing.
 
+## State and rendering rule
+
+A click invokes the selection service only. The clicked and previously selected leaves observe their own selected booleans; the diagram root, object collections, and unrelated objects do not subscribe to selection as a complete list and do not rerender.
+
 ## Dependencies
 
 [F_286](F_286_manage_active_diagram_tool.md) and [F_290](F_290_add_diagram_selection_service.md).

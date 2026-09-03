@@ -29,6 +29,10 @@ Add a {{diagram-changes}} placeholder for diagram action context and resolve it 
 * The exact reviewed text is retained for the started run even if the user edits the diagram later.
 * Context identity continues using diagram IDs, not paths.
 
+## State and rendering rule
+
+Agent handoff is an explicit output boundary. It captures the reviewed text once for the run without replacing edit-session state or subscribing action-popup parents to diagram fields. Later field events remain scoped to diagram leaves.
+
 ## Dependencies
 
 [F_323](F_323_add_diagram_change_review.md).

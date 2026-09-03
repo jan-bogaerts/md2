@@ -25,6 +25,10 @@ Add Zoom In to the Edit section.
 * The button disables at maximum zoom and has an accessible label.
 * Pointer hit testing remains accurate after zoom.
 
+## State and rendering rule
+
+Zoom is one service-owned viewport primitive. Only the New viewport transform and controls that display or constrain zoom subscribe to it. Zoom does not publish diagram, geometry, collection, selection, comparison-root, or toolbox-root events.
+
 ## Dependencies
 
 [F_285](F_285_add_resizable_diagram_toolbox.md) and [F_289](F_289_add_diagram_coordinate_conversion.md).

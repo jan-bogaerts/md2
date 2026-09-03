@@ -25,6 +25,10 @@ Allow Ctrl-click to add or remove individual objects from selection.
 * The behavior works with mixed object kinds and does not trigger moving, resizing, or drill-down.
 * Tests use actual user interaction rather than service internals.
 
+## State and rendering rule
+
+Ctrl-click changes one identity's selected membership in place and dispatches events only for that identity plus the selection-membership view used by selection-specific controls. It does not publish diagram data or rebuild selected objects.
+
 ## Dependencies
 
 [F_291](F_291_add_direct_diagram_selection.md).

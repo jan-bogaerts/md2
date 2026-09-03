@@ -18,6 +18,31 @@ function diagram(type: DiagramData['meta']['type'] = 'architecture'): DiagramDat
     }
 }
 
+type Positioned = ReturnType<typeof layout>
+
+type PositionedNode = Positioned['nodes'][number]
+
+function nodeById(positioned: Positioned, id: string) {
+    return positioned.nodes.find((node) => node.id === id) as PositionedNode
+}
+
+function overlaps(left: PositionedNode, right: PositionedNode) {
+    return left.x < right.x + right.width && right.x < left.x + left.width
+        && left.y < right.y + right.height && right.y < left.y + left.height
+}
+
+/** Counts crossing pairs of a two-layer graph by comparing the horizontal order of each edge's endpoints. */
+function layerCrossings(positioned: Positioned) {
+    const centre = (id: string) => {
+        const node = nodeById(positioned, id)
+
+        return node.x + node.width / 2
+    }
+
+    return positioned.edges.reduce((total, left, index) => total + positioned.edges.slice(index + 1)
+        .filter((right) => (centre(left.from) - centre(right.from)) * (centre(left.to) - centre(right.to)) < 0).length, 0)
+}
+
 describe('diagram layout', () => {
     it('places layered nodes on grid and routes orthogonal fanned edges', () => {
         const positioned = layout(diagram())
@@ -32,13 +57,22 @@ describe('diagram layout', () => {
     })
 
     it('preserves supplied node geometry and waypoints in mixed data', () => {
+        const automatic = layout(diagram())
+        const one = nodeById(automatic, 'one')
+        const two = nodeById(automatic, 'two')
+        const lane = one.y + one.height + 24
         const data = diagram()
-        data.edges[0].waypoints = [{ x: 120, y: 112 }, { x: 120, y: 208 }]
+        data.edges[0].waypoints = [
+            { x: one.x + one.width / 2, y: one.y + one.height },
+            { x: one.x + one.width / 2, y: lane },
+            { x: two.x + two.width / 2, y: lane },
+            { x: two.x + two.width / 2, y: two.y },
+        ]
         const positioned = layout(data)
 
-        expect(positioned.nodes.find(({ id }) => id === 'three')).toMatchObject({ height: 88, width: 200, x: 400, y: 300 })
+        expect(nodeById(positioned, 'three')).toMatchObject({ height: 88, width: 200, x: 400, y: 300 })
         expect(positioned.edges[0].points).toEqual(data.edges[0].waypoints)
-        expect(positioned.nodes.find(({ id }) => id === 'two')?.x).toBeDefined()
+        expect(nodeById(positioned, 'two').x).toBeDefined()
     })
 
     it('resolves connection points against moved and resized node boundaries', () => {
@@ -144,7 +178,7 @@ describe('diagram layout', () => {
         expect(layout(data).edges[1].points.length).toBeGreaterThan(4)
     })
 
-    it('keeps cyclic graph nodes in a bounded rank', () => {
+    it('places a cyclic graph at finite, non-overlapping, in-bounds positions', () => {
         const data = diagram()
         data.groups = []
         data.nodes = data.nodes.slice(0, 2)
@@ -154,8 +188,12 @@ describe('diagram layout', () => {
         ]
 
         const positioned = layout(data)
+        const [first, second] = positioned.nodes
 
-        expect(positioned.nodes[0].y).toBe(positioned.nodes[1].y)
+        expect(positioned.nodes.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y) && x >= 0 && y >= 0)).toBe(true)
+        expect(overlaps(first, second)).toBe(false)
+        expect(positioned.nodes.every((node) => node.x + node.width <= positioned.width
+            && node.y + node.height <= positioned.height)).toBe(true)
     })
 
     it('routes around a non-endpoint node', () => {
@@ -251,6 +289,113 @@ describe('diagram layout', () => {
         const positioned = layout(data)
 
         expect(new Set(positioned.nodes.map(({ y }) => y)).size).toBe(6)
+    })
+
+    it('produces identical positioned nodes for identical input', () => {
+        expect(layout(diagram()).nodes).toEqual(layout(diagram()).nodes)
+    })
+
+    it('separates ranks top to bottom by the configured rank gap', () => {
+        const ids = ['a', 'b', 'c']
+        const data: DiagramData = {
+            edges: ids.slice(1).map((id, index) => ({ from: ids[index], id: `${ids[index]}-${id}`, kind: 'dependency', to: id })),
+            groups: [],
+            meta: { description: 'Chain', title: 'Deps', type: 'dependency', version: 1 },
+            nodes: ids.map((id) => ({ id, label: id.toUpperCase(), role: 'backend' as const })),
+        }
+
+        const positioned = layout(data)
+        const [first, second, third] = ids.map((id) => nodeById(positioned, id))
+
+        expect(second.y - (first.y + first.height)).toBe(96)
+        expect(third.y - (second.y + second.height)).toBe(96)
+        expect(positioned.nodes.every(({ x, y }) => x % 4 === 0 && y % 4 === 0)).toBe(true)
+    })
+
+    it('reorders both layers so a graph the old one-pass ordering crossed stays crossing free', () => {
+        const data: DiagramData = {
+            edges: [
+                { from: 'a', id: 'a-p', kind: 'dependency', to: 'p' },
+                { from: 'b', id: 'b-q', kind: 'dependency', to: 'q' },
+                { from: 'c', id: 'c-p', kind: 'dependency', to: 'p' },
+                { from: 'd', id: 'd-q', kind: 'dependency', to: 'q' },
+            ],
+            groups: [],
+            meta: { description: 'Interleaved parents', title: 'Deps', type: 'dependency', version: 1 },
+            nodes: ['a', 'b', 'c', 'd', 'p', 'q'].map((id) => ({ id, label: id.toUpperCase(), role: 'backend' as const })),
+        }
+
+        expect(layerCrossings(layout(data))).toBe(0)
+    })
+
+    it('places disconnected subgraphs and isolated nodes without overlap', () => {
+        const data: DiagramData = {
+            edges: [
+                { from: 'a', id: 'a-b', kind: 'dependency', to: 'b' },
+                { from: 'c', id: 'c-d', kind: 'dependency', to: 'd' },
+            ],
+            groups: [],
+            meta: { description: 'Disconnected', title: 'Deps', type: 'dependency', version: 1 },
+            nodes: ['a', 'b', 'c', 'd', 'lonely'].map((id) => ({ id, label: id.toUpperCase(), role: 'backend' as const })),
+        }
+
+        const positioned = layout(data)
+        const collisions = positioned.nodes.some((left, index) => positioned.nodes.slice(index + 1).some((right) => overlaps(left, right)))
+
+        expect(positioned.nodes.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y))).toBe(true)
+        expect(collisions).toBe(false)
+    })
+
+    it('produces valid surface bounds for empty and single-node diagrams', () => {
+        const empty: DiagramData = {
+            edges: [], groups: [],
+            meta: { description: 'Empty', title: 'Empty', type: 'architecture', version: 1 }, nodes: [],
+        }
+        const single: DiagramData = { ...empty, nodes: [{ id: 'only', label: 'Only', role: 'focal' }] }
+
+        const emptyPositioned = layout(empty)
+        const singlePositioned = layout(single)
+
+        expect(emptyPositioned.nodes).toHaveLength(0)
+        expect(emptyPositioned.width).toBeGreaterThan(0)
+        expect(emptyPositioned.height).toBeGreaterThan(0)
+        expect(nodeById(singlePositioned, 'only')).toMatchObject({ x: 40, y: 40 })
+        expect(singlePositioned.width).toBeGreaterThanOrEqual(240)
+    })
+
+    it('keeps each supplied axis while filling the missing one', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = [
+            { id: 'one', label: 'One', role: 'focal' },
+            { id: 'two', label: 'Two', role: 'backend', x: 640 },
+            { id: 'three', label: 'Three', role: 'store', y: 720 },
+        ]
+
+        const positioned = layout(data)
+        const two = nodeById(positioned, 'two')
+        const three = nodeById(positioned, 'three')
+
+        expect(two.x).toBe(640)
+        expect(two.y).not.toBe(nodeById(positioned, 'one').y)
+        expect(three.y).toBe(720)
+        expect(Number.isFinite(three.x)).toBe(true)
+    })
+
+    it('ignores cycle edges and self edges when ranking nodes', () => {
+        const plain = diagram()
+        plain.groups = []
+        const decorated = diagram()
+        decorated.groups = []
+        decorated.edges = [
+            ...plain.edges,
+            { from: 'two', id: 'two-one-cycle', kind: 'cycle', to: 'one' },
+            { from: 'two', id: 'two-self', kind: 'connection', to: 'two' },
+        ]
+
+        const geometry = (positioned: Positioned) => positioned.nodes.map(({ height, id, width, x, y }) => ({ height, id, width, x, y }))
+
+        expect(geometry(layout(decorated))).toEqual(geometry(layout(plain)))
     })
 
     it('lays out a hundred nodes and a hundred and fifty edges quickly', () => {

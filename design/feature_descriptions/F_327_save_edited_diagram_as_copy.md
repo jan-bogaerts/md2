@@ -32,6 +32,10 @@ On first save, serialize canonical editable data to a collision-free JSON path i
 * Stored JSON contains canonical data only, never positioned rendering fields.
 * Tests cover root and child copies, repeated saves, path collisions, restart loading, and atomic failure.
 
+## State and rendering rule
+
+Save is a persistence boundary, so it may traverse and serialize the complete canonical diagram on explicit save. That read does not rebuild model objects or publish diagram events. Save status is its own primitive; only save controls subscribe to it. Successful persistence updates saved-record/path state without replacing the editable diagram or rerendering diagram leaves.
+
 ## Dependencies
 
 [F_277](F_277_track_diagram_changes.md), [F_279](F_279_validate_diagram_edit_operations.md), and [F_326](F_326_integrate_diagram_editor.md).

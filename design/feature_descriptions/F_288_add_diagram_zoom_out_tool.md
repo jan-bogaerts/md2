@@ -25,6 +25,10 @@ Add Zoom Out to the Edit section.
 * The button disables at minimum zoom and has an accessible label.
 * Selection, placement, moving, and resizing remain accurate after zooming out.
 
+## State and rendering rule
+
+Zoom is one service-owned viewport primitive. Only the New viewport transform and controls that display or constrain zoom subscribe to it. Zoom does not publish diagram, geometry, collection, selection, comparison-root, or toolbox-root events.
+
 ## Dependencies
 
 [F_287](F_287_add_diagram_zoom_in_tool.md).

@@ -29,6 +29,10 @@ Serialize selected nodes, edges, groups, and relevant group or fragment relation
 * Clipboard failure is reported through `dialogService`.
 * Copy is disabled for empty selection.
 
+## State and rendering rule
+
+Copy is a read boundary over selected identities. It reads only selected objects and required relationships, dispatches no state event, and never clones or traverses the complete diagram.
+
 ## Dependencies
 
 [F_290](F_290_add_diagram_selection_service.md).

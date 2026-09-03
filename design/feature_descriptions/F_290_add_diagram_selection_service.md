@@ -28,6 +28,10 @@ Store selections as object kind plus stable object ID. Use `EventTarget`, granul
 * Deleting an object removes it from selection before publication.
 * Multiple subscribers receive scoped updates without revision counters.
 
+## State and rendering rule
+
+Selection is stored by stable identity and updated without replacing a selected diagram object. Each selectable leaf subscribes to its own selected boolean. A selection-membership snapshot changes only when membership changes; diagram roots, object collections, unrelated leaves, and model data do not rerender or change.
+
 ## Dependencies
 
 [F_275](F_275_add_diagram_edit_session_service.md).

@@ -29,6 +29,10 @@ Edit title and description through a dialog. Diagram type, schema version, and f
 * Type, version, and preset are displayed only when useful and cannot be changed.
 * Metadata edits appear in the semantic change set.
 
+## State and rendering rule
+
+Title and description are separate service-owned fields with separate events. Editing one assigns only that field. The leaf displaying it rerenders; diagram root, object collections, nodes, edges, groups, and the other metadata field do not rerender.
+
 ## Dependencies
 
 [F_276](F_276_add_diagram_mutation_operations.md) and [F_285](F_285_add_resizable_diagram_toolbox.md).

@@ -3,7 +3,7 @@ author:
 id: J_45
 internalId: 4d275542-e6f6-493e-9cb4-d75cbb83cea7
 title: use Dagre for layered diagram layout
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:

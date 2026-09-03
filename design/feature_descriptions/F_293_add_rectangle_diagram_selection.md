@@ -25,6 +25,10 @@ Select objects by dragging a rectangle on empty New surface.
 * A zero-distance click clears selection instead of creating a marquee.
 * Pointer cancellation removes the transient rectangle without changing selection.
 
+## State and rendering rule
+
+The transient marquee is isolated service-owned view state. Completing it applies membership differences through identity-scoped selection events. Objects whose selected state did not change, all model fields, collections, and diagram roots remain untouched.
+
 ## Dependencies
 
 [F_289](F_289_add_diagram_coordinate_conversion.md) and [F_291](F_291_add_direct_diagram_selection.md).

@@ -24,7 +24,11 @@ Paste a validated diagram fragment into New.
 * Unsupported object kinds for the target diagram type are rejected before mutation.
 * Pasted objects become the active selection.
 * Repeated paste uses a deterministic additional offset.
-* One paste publishes one validated mutation batch and change set.
+* One paste dispatches the exact collection-membership and affected-reference events after its validated transaction.
+
+## State and rendering rule
+
+Paste mutates only target collections and newly created objects. Existing objects retain their references. Collection hosts rerender once for changed ID membership; new leaves mount by ID, while existing leaves, diagram roots, and unrelated collections do not rerender.
 
 ## Dependencies
 

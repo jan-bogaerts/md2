@@ -28,6 +28,10 @@ Use one dialog shell with focused editors for each object kind. Fields come from
 * Unsupported fields are not shown for the active diagram type.
 * Missing selected objects close safely and report the real error outside render.
 
+## State and rendering rule
+
+The dialog reads fields from service accessors and keeps only its temporary form draft locally. Save calls field-specific service operations; it never submits a replacement object. Each changed field dispatches only its scoped event, so unrelated fields and diagram parents do not rerender.
+
 ## Dependencies
 
 [F_276](F_276_add_diagram_mutation_operations.md), [F_279](F_279_validate_diagram_edit_operations.md), and [F_291](F_291_add_direct_diagram_selection.md).

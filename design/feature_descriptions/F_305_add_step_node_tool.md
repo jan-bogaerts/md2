@@ -24,6 +24,10 @@ Add a Step button for flowchart diagrams.
 * The node uses existing step styling, is selected, and exposes permitted details.
 * State diagrams and other diagram types do not offer the button.
 
+## State and rendering rule
+
+The button subscribes only to type and preset availability. Creation adds one step through collection membership; existing node leaves and diagram roots do not rerender. Later step edits assign fields on that stable node.
+
 ## Dependencies
 
 [F_302](F_302_add_node_placement_infrastructure.md).

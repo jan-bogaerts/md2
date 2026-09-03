@@ -29,6 +29,10 @@ Extend DiagramGroup with grid-aligned x, y, width, and height. Draw a rectangula
 * Moving member nodes does not move or resize the group.
 * A group without explicit geometry uses automatic layout; the first user move or resize writes explicit geometry.
 
+## State and rendering rule
+
+Creation changes group membership once and mounts one group leaf by ID. Group x, y, width, height, and label are assigned on that stable group object and observed only by its leaf. Member nodes and diagram parents do not rerender when independent group geometry changes.
+
 ## Dependencies
 
 [F_278](F_278_make_diagram_layout_compatible_with_editing.md), [F_289](F_289_add_diagram_coordinate_conversion.md), and [F_286](F_286_manage_active_diagram_tool.md).

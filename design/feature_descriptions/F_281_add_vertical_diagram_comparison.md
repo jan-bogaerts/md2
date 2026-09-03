@@ -25,6 +25,10 @@ Show Current and New side by side with a user-resizable divider.
 * Each pane scrolls independently.
 * Resizing does not change diagram geometry, selection, or edits.
 
+## State and rendering rule
+
+The vertical split component subscribes only to its divider position and comparison-mode state. Diagram field events stay inside New leaf components and must not rerender the split, either pane root, or Current.
+
 ## Dependencies
 
 [F_280](F_280_add_current_and_new_diagram_comparison.md).

@@ -28,6 +28,10 @@ Render Edit, Nodes, Edges, Groups, and Others as tabs. Tool buttons use horizont
 * Tabs and buttons have labels and tooltips.
 * The toolbox does not cover Current in tabbed or split layouts unless New owns that viewport.
 
+## State and rendering rule
+
+The toolbox shell observes only toolbox geometry and active-section state. Each tool button subscribes to its own availability or active primitive where needed. No toolbox component subscribes to complete diagram data, selection objects, or positioned data.
+
 ## Dependencies
 
 [F_280](F_280_add_current_and_new_diagram_comparison.md).

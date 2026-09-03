@@ -25,6 +25,10 @@ Add Flow for flowcharts and Transition for state diagrams.
 * Both kinds use shared connection points, routing, selection, reconnection, and details.
 * Invalid incomplete creation leaves the diagram unchanged.
 
+## State and rendering rule
+
+Flow and transition field changes stay on their stable edge objects. Validation reads the proposed edge and source node only. Creation updates edge membership once; editing or reconnecting notifies only that edge and directly affected endpoint leaves.
+
 ## Dependencies
 
 [F_311](F_311_add_edge_drawing_infrastructure.md) and [F_279](F_279_validate_diagram_edit_operations.md).

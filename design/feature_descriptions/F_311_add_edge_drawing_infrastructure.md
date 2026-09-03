@@ -29,6 +29,10 @@ Activate an edge kind, choose a source node connection point, preview an orthogo
 * An invalid target creates nothing and keeps the gesture recoverable.
 * Shared preview and completion behavior works through scroll and zoom.
 
+## State and rendering rule
+
+Preview route is transient service-owned view data scoped to the drawing gesture. Completion adds one stable edge and changes the edge ID-list snapshot once. Existing edge objects and leaves remain unchanged; only endpoint fan-in fields that actually change receive scoped events.
+
 ## Dependencies
 
 [F_274](F_274_add_editable_connection_points.md), [F_286](F_286_manage_active_diagram_tool.md), and [F_289](F_289_add_diagram_coordinate_conversion.md).

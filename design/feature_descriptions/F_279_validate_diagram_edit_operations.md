@@ -19,15 +19,17 @@ Prevent editing tools from creating diagram states that the parser or renderer c
 
 ## Scope
 
-Validate operation inputs at the service boundary, including diagram-type restrictions, references, required labels, grid geometry, edge kinds, cardinalities, and fragment regions. Report operational failures through `dialogService`; do not throw while React renders.
+Validate only the proposed operation and its directly affected relationships before assignment. Use service-owned identity indexes and current field values for diagram-type restrictions, references, required labels, grid geometry, edge kinds, cardinalities, and fragment regions. Do not validate an ordinary edit by cloning, serializing, parsing, or traversing the complete diagram. The complete parser remains the load and save boundary. Report operational failures through `dialogService`; do not throw while React renders.
 
 ## Acceptance criteria
 
 * Rejected operations leave canonical editable data and its change set unchanged.
 * Errors identify the attempted operation and invalid field.
 * Validation reuses the diagram contract instead of maintaining conflicting UI-only rules.
+* A one-field operation inspects only that field, its owner, and relationships whose validity depends on it.
+* Validation emits no state event and causes no component rerender.
 * Tests cover invalid references, types, geometry, and required semantic fields.
 
 ## Dependencies
 
-[F_276](F_276_add_diagram_mutation_operations.md) and [F_278](F_278_make_diagram_layout_compatible_with_editing.md).
+[F_329](F_329_make_diagram_edit_updates_granular.md) and [F_276](F_276_add_diagram_mutation_operations.md).

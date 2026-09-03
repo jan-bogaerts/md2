@@ -25,6 +25,10 @@ Add an End button for both flow presets.
 * Placement, selection, details, moving, and resizing use shared workflows.
 * Tests cover both presets.
 
+## State and rendering rule
+
+The button subscribes only to type and preset availability. Creation adds one stable end object and one node-membership update. Preset-specific rendering is selected inside the new node leaf, not by rebuilding the diagram tree.
+
 ## Dependencies
 
 [F_302](F_302_add_node_placement_infrastructure.md).

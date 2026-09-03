@@ -25,6 +25,10 @@ Add a Decision button for flowchart diagrams.
 * Outgoing branches remain subject to required-label validation.
 * The created decision is selected and editable.
 
+## State and rendering rule
+
+The button subscribes only to type and preset availability. Creation adds one stable decision object. Geometry and branch validation update only that node and directly dependent edge leaves; no diagram-wide layout or publication occurs.
+
 ## Dependencies
 
 [F_302](F_302_add_node_placement_infrastructure.md) and [F_279](F_279_validate_diagram_edit_operations.md).

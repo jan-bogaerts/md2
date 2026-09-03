@@ -24,6 +24,10 @@ Show Current above New with a user-resizable divider.
 * Each surface scrolls independently.
 * Changing the divider does not change model geometry, zoom, selection, or the change set.
 
+## State and rendering rule
+
+The horizontal split component subscribes only to its divider position and comparison-mode state. Diagram field events stay inside New leaf components and must not rerender the split, either pane root, or Current.
+
 ## Dependencies
 
 [F_280](F_280_add_current_and_new_diagram_comparison.md).

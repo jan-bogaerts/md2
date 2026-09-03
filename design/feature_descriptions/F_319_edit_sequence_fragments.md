@@ -30,6 +30,10 @@ Create, edit, and delete alt, opt, and loop fragments. Edit guards and assign or
 * Deleting an edge removes its fragment reference and reports a validation problem if a required region becomes empty.
 * Derived fragment bounds update without becoming canonical state.
 
+## State and rendering rule
+
+A fragment remains a stable object addressed by ID. Guard and region edits assign only affected fragment fields or region membership. Only that fragment leaf and sequence view data whose bounds depend on it update; fragment and diagram collections do not rerender for a field edit.
+
 ## Dependencies
 
 [F_278](F_278_make_diagram_layout_compatible_with_editing.md), [F_279](F_279_validate_diagram_edit_operations.md), and [F_314](F_314_add_sequence_edge_tools.md).

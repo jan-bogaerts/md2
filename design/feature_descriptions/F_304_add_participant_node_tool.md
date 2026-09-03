@@ -25,6 +25,10 @@ Add a Participant button to Nodes for sequence diagrams.
 * Existing messages, activations, and fragments remain valid.
 * The new participant is selected and editable after placement.
 
+## State and rendering rule
+
+Creation adds one participant without rebuilding the participant array or existing participant objects. Only the participant ID-list host, the new participant leaf, and sequence view objects whose positions truly depend on insertion receive updates.
+
 ## Dependencies
 
 [F_302](F_302_add_node_placement_infrastructure.md) and [F_278](F_278_make_diagram_layout_compatible_with_editing.md).

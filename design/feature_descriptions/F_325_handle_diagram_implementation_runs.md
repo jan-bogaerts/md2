@@ -25,6 +25,10 @@ Track implementation runs started from a diagram change review without losing pe
 * Results are matched by canonical action, run, and diagram context identities, never output paths.
 * Existing diagram-producing run handling remains unchanged.
 
+## State and rendering rule
+
+Run status and delivered state are separate service-owned primitives keyed by run and reviewed change-set identity. A run event updates only consumers of those primitives; it does not republish the editable diagram, change collection, or comparison UI.
+
 ## Dependencies
 
 [F_324](F_324_pass_diagram_changes_to_an_agent.md).

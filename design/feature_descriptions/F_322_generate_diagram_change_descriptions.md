@@ -30,6 +30,10 @@ Describe additions, removals, detail changes, moves, resizes, connections, group
 * Empty change sets produce no implementation instructions.
 * Tests cover every supported change kind and duplicate labels.
 
+## State and rendering rule
+
+Generation reads the change service, not the complete diagram. Updating one change invalidates only its generated line or the explicitly requested final text. Ordinary mutations do not regenerate the full textual report until review or agent handoff requests it.
+
 ## Dependencies
 
 [F_277](F_277_track_diagram_changes.md).

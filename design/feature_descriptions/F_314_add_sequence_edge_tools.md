@@ -29,6 +29,10 @@ Shared drawing chooses participants; completion also chooses or inserts the mess
 * Fragment references remain valid when rows are inserted, moved, or deleted.
 * Sequence edge labels and endpoints are editable.
 
+## State and rendering rule
+
+A new message changes edge membership once. Row insertion updates only the new message and later sequence view objects whose row-derived geometry shifts. Earlier messages, participants without changed derived data, diagram roots, and unrelated collections retain their snapshots.
+
 ## Dependencies
 
 [F_311](F_311_add_edge_drawing_infrastructure.md) and [F_278](F_278_make_diagram_layout_compatible_with_editing.md).

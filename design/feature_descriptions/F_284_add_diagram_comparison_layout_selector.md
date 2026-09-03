@@ -24,6 +24,10 @@ Let the user choose vertical, horizontal, or tabbed comparison without restartin
 * The chosen mode remains stable while navigating inside the active edit session.
 * Mobile presentation remains usable and does not overflow the workspace.
 
+## State and rendering rule
+
+The layout owner subscribes only to the comparison-mode primitive. It receives stable pane components or services, not complete diagram objects. A child field event cannot change the mode snapshot or rerender the selector and comparison root.
+
 ## Dependencies
 
 [F_281](F_281_add_vertical_diagram_comparison.md), [F_282](F_282_add_horizontal_diagram_comparison.md), and [F_283](F_283_add_tabbed_diagram_comparison.md).

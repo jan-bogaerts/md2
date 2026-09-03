@@ -25,6 +25,10 @@ Own the active toolbox section and tool in the edit-session service.
 * Components subscribe through `useSyncExternalStore`; the toolbox does not own application state.
 * Project change and session discard reset the active tool.
 
+## State and rendering rule
+
+Active section, active persistent tool, and transient gesture state are separate service-owned primitives with separate events. Changing one does not rebuild a toolbox model, diagram model, or button collection; only consumers of that primitive rerender.
+
 ## Dependencies
 
 [F_275](F_275_add_diagram_edit_session_service.md) and [F_285](F_285_add_resizable_diagram_toolbox.md).
