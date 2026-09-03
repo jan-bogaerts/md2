@@ -3,15 +3,14 @@ author:
 id: F_277
 internalId: d8f5366f-df99-4b4a-9537-15b3e395fbfb
 title: track diagram changes
-status: new
+status: design
 owner:
 affects:
 agents:
 policy:
-after: 056265ee-3d0f-4922-8e2d-282f91bad667
+after: 5347a970-419c-495a-9b4e-c9aafcce6741
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -34,4 +33,4 @@ Maintain a semantic change set between the immutable original and editable diagr
 
 ## Dependencies
 
-[F_275](F_275_add_diagram_edit_session_service.md) and [F_276](F_276_add_diagram_mutation_operations.md).
+[F\_275](F_275_add_diagram_edit_session_service.md) and [F\_276](F_276_add_diagram_mutation_operations.md).

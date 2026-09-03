@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__9d5878e6-2d20-4574-971d-57dbd82eb389.json
 policy:
-after: cc6a602a-de2d-46bd-a49e-eae08d85495d
 ---
 This is the umbrella for making JSON diagrams editable. The work is split into the focused jobs below.
 
