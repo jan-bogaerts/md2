@@ -27,6 +27,7 @@ function createDispatch(options = {}) {
         start: vi.fn(async () => 'action-1'),
         subscribe: vi.fn(() => vi.fn()),
         sendAgentMessage: vi.fn(),
+        startProject: vi.fn(),
     };
     const actionSchedulerService = {
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
@@ -75,7 +76,7 @@ function createDispatch(options = {}) {
         loadActionRunHistory: vi.fn(async () => []),
         loadCardActivity: vi.fn(async () => ({ actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 })),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
-        loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design' })),
+        loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', states: [{ state: 'ready' }] })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadTextFile: vi.fn(async (_project, path) => ({ content: '{"version":2}', path })),
@@ -330,7 +331,7 @@ describe('createLocalBridgeDispatch', () => {
 
         expect(localGitService.resolveLocalProject).toHaveBeenCalledWith('C:/repo/nested');
         expect(project).toEqual({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' });
-        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project);
+        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project, 'design/actions');
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project);
     });
 
@@ -378,6 +379,30 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadProjectRoot).toHaveBeenCalledOnce();
         expect(actionSchedulerService.startProject).toHaveBeenCalledOnce();
         expect(worktreeService.startProject).toHaveBeenCalledOnce();
+    });
+
+    it('reads the project config once per activation and starts the runner before the scheduler', async () => {
+        const { actionRunnerService, actionSchedulerService, dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        expect(localGitService.loadProjectConfig).toHaveBeenCalledOnce();
+        expect(actionRunnerService.startProject).toHaveBeenCalledWith(
+            project,
+            expect.objectContaining({
+                actionsFolder: 'design/actions',
+                activeCardsFolder: 'design/active',
+                diagramsFolder: 'design/diagrams',
+                projectFolder: 'design',
+                releasesFolder: 'design/history',
+            }),
+            [{ state: 'ready' }],
+        );
+        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project, 'design/actions');
+        // A reconciled schedule can fire immediately, and firing calls into the runner.
+        expect(actionRunnerService.startProject.mock.invocationCallOrder[0])
+            .toBeLessThan(actionSchedulerService.startProject.mock.invocationCallOrder[0]);
     });
 
     it('starts the account usage refresh in the activated project folder, and only then', async () => {
@@ -658,7 +683,7 @@ describe('createLocalBridgeDispatch', () => {
 
         expect(localGitService.resolveLocalProject).toHaveBeenCalledWith(storedProject.rootPath);
         expect(project).toEqual({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' });
-        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project);
+        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project, 'design/actions');
     });
 
     it('delegates safe action start requests to the shared runner', async () => {

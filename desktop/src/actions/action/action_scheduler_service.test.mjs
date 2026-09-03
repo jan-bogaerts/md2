@@ -195,6 +195,27 @@ describe('ActionSchedulerService', () => {
         expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 5000);
     });
 
+    // The bridge registers the project watcher independently of activation, so events can arrive first.
+    it('ignores a watcher event that arrives before the project is started', async () => {
+        const localGitService = createLocalGitService([]);
+        const scheduler = createScheduler(localGitService);
+
+        await expect(scheduler.handleProjectChange({ path: 'design/actions/.md2-schedules.json' })).resolves.toBeUndefined();
+        expect(localGitService.loadActionSchedules).not.toHaveBeenCalled();
+    });
+
+    it('reconciles when the schedules file changes in the actions folder', async () => {
+        const localGitService = createLocalGitService([]);
+        const scheduler = createScheduler(localGitService);
+        await startProject(scheduler, localGitService);
+        localGitService.loadActionSchedules.mockClear();
+
+        await scheduler.handleProjectChange({ path: 'design/actions/.md2-schedules.json' });
+        await scheduler.handleProjectChange({ path: 'design/actions/other.json' });
+
+        expect(localGitService.loadActionSchedules).toHaveBeenCalledOnce();
+    });
+
     it('loads schedules and actions from the actions folder inside the configured project folder', async () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
         const localGitService = createLocalGitService([schedule], [createAction('implement', { command: 'echo {{releases-folder}} {{active-cards-folder}}' })], {

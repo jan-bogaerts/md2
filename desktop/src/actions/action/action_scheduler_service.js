@@ -99,7 +99,11 @@ class ActionSchedulerService {
 
         cancelScheduleTimer(this.timers, scheduleId, this.clearTimeout);
 
-        const schedules = await this.localGitService.cancelActionSchedule(this.requireCurrentProject(), this.requireActionsFolder(), scheduleId);
+        const schedules = await this.localGitService.cancelActionSchedule(
+            this.requireCurrentProject(),
+            this.requireActionsFolder(),
+            scheduleId,
+        );
         await this.reconcile();
 
         return schedules;
