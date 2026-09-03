@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__d8f5366f-df99-4b4a-9537-15b3e395fbfb.json
 policy:
 after: 5347a970-419c-495a-9b4e-c9aafcce6741
 branch: f_277_track_diagram_changes
