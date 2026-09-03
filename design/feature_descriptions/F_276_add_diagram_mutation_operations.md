@@ -3,32 +3,39 @@ author:
 id: F_276
 internalId: 5347a970-419c-495a-9b4e-c9aafcce6741
 title: add diagram mutation operations
-status: design
+status: ready for implementation
 owner:
 affects:
 agents:
   - design/activity/card__5347a970-419c-495a-9b4e-c9aafcce6741.json
 policy:
-after: 9d5878e6-2d20-4574-971d-57dbd82eb389
+after: ce85fbc0-d5c2-4de1-a867-24325cbbd471
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
-Give the edit-session service focused operations for changing canonical `DiagramData`.
+Give the edit-session service focused operations that assign only the requested field or change only the requested collection membership.
 
 ## Scope
 
-Add operations to create, update, move, resize, and remove nodes, edges, groups, fragments, metadata, and legend data. Each operation receives stable object IDs, validates before publication, updates only affected fields, and emits granular events.
+* Add explicit operations for creating and removing nodes, edges, groups, and fragments.
+* Add field-specific operations for metadata and each object kind. Do not add `setDiagram`, `updateDiagram`, generic object replacement, or patch-object APIs.
+* A field operation looks up the stable owner by ID, validates the requested value, assigns that field on the existing object, and dispatches an identity-and-field-scoped `EventTarget` event.
+* A collection operation mutates membership in place. It publishes a new stable ID-list view snapshot only for that collection; existing member objects and unrelated collections retain their references.
+* Cascading operations update each affected reference in one service transaction, then dispatch the exact field and membership events caused by the transaction. There is no complete-diagram event.
+* Return values report success or the created stable ID; they do not return rebuilt diagram objects.
 
 ## Acceptance criteria
 
-* Components never replace or merge a complete diagram directly.
-* Every operation produces canonical data deterministically.
+* Changing one field preserves the diagram, all collection, owner-object, and unrelated-object references.
+* Components never replace, merge, or submit a complete diagram or diagram object.
 * Existing object IDs stay stable; new objects receive collision-free IDs.
 * Invalid operations do not partially mutate the edit session.
-* Unit tests cover every public operation and reference cleanup.
+* Adding or removing an object notifies only its collection host and directly affected reference leaves.
+* A field change never notifies a collection host, root, parent, or sibling object.
+* Unit tests cover every public operation, exact emitted events, retained references, and reference cleanup.
 
 ## Dependencies
 
-[F\_273](F_273_define_editable_diagram_contract.md) and [F\_275](F_275_add_diagram_edit_session_service.md).
+[F\_329](F_329_make_diagram_edit_updates_granular.md).
