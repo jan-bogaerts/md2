@@ -510,13 +510,50 @@
         "costUsd": 1.667642
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "cd29dd64-c875-44fb-b4c4-e131a4a113c8",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "c6025c9cc64cdaf8302c1582c34adb3569366a01",
+          "committedAt": "2026-09-03T11:19:05+02:00",
+          "deletions": 5,
+          "filePaths": [
+            "design/feature_descriptions/F_273_define_editable_diagram_contract.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 61
+        }
+      ],
+      "completedAt": "2026-09-03T09:19:05.861Z",
+      "conversationIds": [
+        "agent-ac25164d-27a8-422d-ae1d-6f54eff7b92e"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-0183ed28-7d1e-4d35-ad53-fcc35dc5f095",
+      "origin": {
+        "cardInternalId": "cd29dd64-c875-44fb-b4c4-e131a4a113c8",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-ac25164d-27a8-422d-ae1d-6f54eff7b92e",
+      "startedAt": "2026-09-03T08:55:55.562Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
