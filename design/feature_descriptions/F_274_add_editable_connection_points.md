@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__cfe002ea-7a48-4c32-bed1-078fae7b5d5c.json
 policy:
-branch: f_274_add_editable_connection_points
-worktree: 2
 changedFiles:
   - app/src/data/data_types.ts
   - app/src/services/config/config_service.service.test.ts
