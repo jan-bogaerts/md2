@@ -3,12 +3,12 @@ author:
 id: F_277
 internalId: d8f5366f-df99-4b4a-9537-15b3e395fbfb
 title: track diagram changes
-status: design
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 9d5878e6-2d20-4574-971d-57dbd82eb389
+after: 5347a970-419c-495a-9b4e-c9aafcce6741
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
