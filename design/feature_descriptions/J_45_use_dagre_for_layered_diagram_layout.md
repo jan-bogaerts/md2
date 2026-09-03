@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__4d275542-e6f6-493e-9cb4-d75cbb83cea7.json
 policy:
 changedFiles:
   - app/package-lock.json
