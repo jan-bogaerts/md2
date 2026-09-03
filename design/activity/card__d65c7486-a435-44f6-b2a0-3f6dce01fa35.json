@@ -2669,6 +2669,55 @@
       "startedAt": "2026-09-02T18:29:02.386Z",
       "status": "failed",
       "rootConversationId": "agent-4c88f35d-10f0-44bc-a5bd-56c4f626b5e4"
+    },
+    {
+      "commits": [
+        {
+          "commit": "832a1e3131ee25b5a109ce2c315c6f3c666a4d9f",
+          "committedAt": "2026-09-03T10:26:55+02:00",
+          "deletions": 483,
+          "filePaths": [
+            "app/src/components/actions/editor/action_definition_fields.grouped.test.tsx",
+            "app/src/components/actions/editor/action_definition_fields.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/data/action_run_types.ts",
+            "app/src/data/action_types.ts",
+            "app/src/project_template/actions/complete.json",
+            "app/src/project_template/actions/implement.json",
+            "app/src/services/actions/action_service_helpers.ts",
+            "app/src/services/actions/electron_action_runner.node.test.ts",
+            "app/src/services/diagrams/diagram_data.ts",
+            "app/src/services/diagrams/diagram_view_service.test.ts",
+            "app/src/services/diagrams/diagram_view_service.ts",
+            "desktop/src/actions/action/action_agent_executor.js",
+            "desktop/src/actions/action/action_command_executor.js",
+            "desktop/src/actions/action/action_definitions.test.mjs",
+            "desktop/src/actions/action/action_diagram_output_watcher.js",
+            "desktop/src/actions/action/action_diagram_output_watcher.test.mjs",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_run.test.mjs",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/action/action_runner_service.test.mjs",
+            "desktop/src/actions/action/action_text.js",
+            "desktop/src/actions/action/action_text.test.mjs",
+            "shared/action_definitions.d.mts",
+            "shared/action_definitions.mjs",
+            "shared/diagram_data.d.mts",
+            "shared/diagram_data.mjs",
+            "shared/tolerant_action_definitions.mjs"
+          ],
+          "filesChanged": 28,
+          "insertions": 919,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-03T10:26:55+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d65c7486-a435-44f6-b2a0-3f6dce01fa35",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
