@@ -8,9 +8,10 @@ owner:
 affects:
 agents:
 policy:
+branch: f_274_add_editable_connection_points
+worktree: 2
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -33,4 +34,4 @@ Represent edge endpoints as stable connection points on nodes so users can draw 
 
 ## Dependencies
 
-[F_273](F_273_define_editable_diagram_contract.md).
+[F\_273](F_273_define_editable_diagram_contract.md).
