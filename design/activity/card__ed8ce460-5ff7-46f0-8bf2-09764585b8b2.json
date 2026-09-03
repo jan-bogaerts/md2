@@ -3612,6 +3612,34 @@
       "startedAt": "2026-09-03T17:24:39.990Z",
       "status": "completed",
       "rootConversationId": "agent-42040da2-a37c-4557-b048-fa3aa5b5ae51"
+    },
+    {
+      "commits": [
+        {
+          "commit": "c96e3b81eb63b8f270707c8462a90595a04346a3",
+          "committedAt": "2026-09-03T19:36:59+02:00",
+          "deletions": 144,
+          "filePaths": [
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/data/remote_connection_service.service.test.ts",
+            "app/src/services/data/remote_connection_service.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "app/src/services/project/project_session_service.service.test.ts"
+          ],
+          "filesChanged": 7,
+          "insertions": 478,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-03T19:36:59+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "ed8ce460-5ff7-46f0-8bf2-09764585b8b2",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
