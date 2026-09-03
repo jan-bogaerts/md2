@@ -3,12 +3,18 @@ author:
 id: F_329
 internalId: ce85fbc0-d5c2-4de1-a867-24325cbbd471
 title: make diagram edit updates granular
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__ce85fbc0-d5c2-4de1-a867-24325cbbd471.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/use_editable_diagram.test.tsx
+  - app/src/components/diagram_view/use_editable_diagram.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - design/architecture/editable_diagram_contract.md
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
