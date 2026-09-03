@@ -14855,15 +14855,15 @@
           "agent": "codex",
           "conversationId": "01a062af-1052-7291-91b6-2b774d9f3079",
           "createdAt": "2026-09-02T15:15:02.855Z",
-          "lastUsedAt": "2026-09-02T15:15:02.855Z",
-          "synchronizedThroughMessageId": "agent-turn-8b168f5d-922f-4aa8-b7c2-7d617ce9c6da-turn-1-assistant-3"
+          "lastUsedAt": "2026-09-03T17:31:23.542Z",
+          "synchronizedThroughMessageId": "agent-turn-68b4ab60-834a-457b-b397-874ae514e029-turn-1-assistant-3"
         }
       ],
       "startedAt": "2026-09-02T15:13:53.197Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 69658,
-        "runningStartedAt": "2026-09-03T17:29:10.363Z"
+        "elapsedMs": 202837,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
