@@ -4,7 +4,7 @@
   "description": "researches a feature in code and specs and then updates the website",
   "type": "agent",
   "phrases": [],
-  "prompt": "* We recently introduced a new feature: `xxxx` in version `0.x.0`\n* Read the release notes and design docs about this feature\n* search for the best places on the website to add some relevant, commercial info regarding this new feature.\n* report back and prepare a task list for improving the website about this new feature.",
+  "prompt": "* We recently introduced a new feature: `xxxx`&#x20;\n* Read the release notes and design docs about this feature\n* search for the best places on the website to add some relevant, commercial info regarding this new feature.\n* report back and prepare a task list for improving the website about this new feature.",
   "streaming": true,
   "appliesTo": {
     "kind": "project"
