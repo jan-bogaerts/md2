@@ -576,6 +576,14 @@
           "role": "assistant",
           "sequence": 42,
           "timestamp": "2026-09-03T07:51:35.228Z"
+        },
+        {
+          "content": "ok. write jobs",
+          "id": "agent-turn-779105e1-756f-4a26-ba89-ca252867ed53-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 43,
+          "timestamp": "2026-09-03T08:29:04.835Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -590,10 +598,10 @@
         }
       ],
       "startedAt": "2026-09-02T18:27:25.398Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "elapsedMs": 213255,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-03T08:29:04.835Z"
       },
       "title": "+",
       "usage": {
@@ -619,11 +627,11 @@
         "agent-93d97ad2-fc5f-42e5-9256-e1e43444f14c"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-ac7fa1af-e630-4bf9-9fb8-667c780d30df",
       "origin": {
@@ -632,9 +640,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-93d97ad2-fc5f-42e5-9256-e1e43444f14c",
       "startedAt": "2026-09-02T18:27:25.397Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-93d97ad2-fc5f-42e5-9256-e1e43444f14c"
     }
   ],
   "version": 5
