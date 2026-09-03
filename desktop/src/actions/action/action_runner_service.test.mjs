@@ -311,6 +311,7 @@ describe('ActionRunnerService', () => {
             appliesTo: { kind: 'diagram', type: 'root' },
             command: undefined,
             label: 'Project: overview',
+            output: { kind: 'diagram' },
             prompt: 'Create overview',
             type: 'agent',
         })];
@@ -344,9 +345,9 @@ describe('ActionRunnerService', () => {
             .resolves.toMatchObject({ diagramPath: 'design/diagrams/Project-overview-20260831T142530124Z.json' });
     });
 
-    it('adds configured footer exactly once to direct and chained diagram prompts', async () => {
+    it('adds configured footer only to declared diagram output actions', async () => {
         const files = [
-            actionFile('main', {appliesTo: { kind: 'diagram', type: 'root' }, command: undefined, onAfter: ['child'], prompt: 'Root', type: 'agent'}),
+            actionFile('main', {appliesTo: { kind: 'diagram', type: 'root' }, command: undefined, onAfter: ['child'], output: { kind: 'diagram' }, prompt: 'Root', type: 'agent'}),
             actionFile('child', { command: undefined, prompt: 'Child', type: 'agent' }),
         ];
         const { agentRunnerService, runner } = createRunner(files);
@@ -365,8 +366,29 @@ describe('ActionRunnerService', () => {
         expect(result).toMatchObject({ diagramPath: expect.stringMatching(/^design\/diagrams\/main-\d{8}T\d{9}Z\.json$/u) });
         expect(prompts).toHaveLength(2);
         expect(prompts[0].match(/Create diagram JSON output/gu)).toHaveLength(1);
-        expect(prompts[1].match(/Create diagram JSON output/gu)).toHaveLength(1);
-        expect(prompts[0].replace('Root override', '')).toBe(prompts[1].replace('Child', ''));
+        expect(prompts[1]).toBe('Child');
+    });
+
+    it('runs command diagram actions with allocated diagram-file placeholder', async () => {
+        const files = [actionFile('main', {
+            appliesTo: { kind: 'diagram', type: 'root' },
+            command: 'write {{diagram-file}}',
+            output: { kind: 'diagram' },
+        })];
+        const { commandRunner, runner } = createRunner(files, {
+            now: vi.fn(() => Date.parse('2026-08-31T14:25:30.123Z')),
+        });
+
+        const result = await runToCompletion(runner, {
+            actionId: 'main', context: { kind: 'diagram', type: 'root' }, runInput: {},
+        });
+
+        expect(result).toMatchObject({
+            diagramPath: 'design/diagrams/main-20260831T142530123Z.json', status: 'completed',
+        });
+        expect(commandRunner.mock.calls[0][1]).toBe(
+            `write ${path.resolve('C:/repo', 'design/diagrams/main-20260831T142530123Z.json')}`,
+        );
     });
 
     it('prepares card prompt with references read from current persisted card', async () => {

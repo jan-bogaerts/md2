@@ -958,6 +958,7 @@ describe('ActionPopup', () => {
         } as unknown as typeof window.md2Actions
         actionService.loadFromFiles([file(agentDefinition('overview', {
             appliesTo: { kind: 'diagram', type: 'root' },
+            output: { kind: 'diagram' },
             label: 'Overview',
         }))])
 

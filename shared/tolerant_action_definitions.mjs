@@ -1,7 +1,9 @@
 import {
     ACTION_APPLIES_TO_FIELDS,
+    ACTION_AUTO_FINISH_FIELDS,
     ACTION_DEFINITION_FIELDS,
     ACTION_ON_RULE_FIELDS,
+    ACTION_OUTPUT_FIELDS,
     ACTION_PHRASE_FIELDS,
     BUILTIN_CUSTOM_PROMPT,
     BUILTIN_REMARKABLE_CONVERT,
@@ -98,6 +100,8 @@ function sanitizeDefinition(value, path, issues) {
     if (definition.type === 'agent') addMissingString(definition, 'prompt', DEFAULT_AGENT_PROMPT, path, issues)
     if (definition.type === 'command') addMissingString(definition, 'command', DEFAULT_COMMAND, path, issues)
     if (isPlainObject(definition.appliesTo)) definition.appliesTo = knownFields(definition.appliesTo, ACTION_APPLIES_TO_FIELDS)
+    if (isPlainObject(definition.autoFinish)) definition.autoFinish = knownFields(definition.autoFinish, ACTION_AUTO_FINISH_FIELDS)
+    if (isPlainObject(definition.output)) definition.output = knownFields(definition.output, ACTION_OUTPUT_FIELDS)
     definition.on = sanitizeOnRules(definition.on, path, issues)
     definition.phrases = sanitizePhrases(definition.phrases, path, issues)
 

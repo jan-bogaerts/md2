@@ -8,7 +8,7 @@ import type {
     AgentTokenUsage,
 } from './data_types'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
-import type { ActionAutoFinish, ActionType } from './action_types'
+import type { ActionAutoFinish, ActionOutput, ActionType } from './action_types'
 
 export type ActionRunTerminalStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
 export type ActionRunStatus = ActionRunTerminalStatus | 'queued' | 'running' | 'waitingForInput'
@@ -136,6 +136,7 @@ interface ActionRunEventBase {
     diagramPath?: string
     runId: string
     interactionReady?: boolean
+    output?: ActionOutput | null
     phase: ActionRunPhase
     rootActionId: string
     sequence?: number

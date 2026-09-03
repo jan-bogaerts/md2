@@ -292,7 +292,8 @@ export class DiagramViewService extends EventTarget {
     }
 
     private readonly handleRunEvent = (event: ActionRunEvent) => {
-        if (event.type !== 'run' || event.context.kind !== 'diagram') return
+        if (event.type !== 'run' || event.output?.kind !== 'diagram') return
+        if (event.context.kind !== 'diagram') return
         if (event.status !== 'completed' && event.status !== 'okButNotAfter') return
         if (this.processedRunIds.has(event.runId)) return
         this.processedRunIds.add(event.runId)

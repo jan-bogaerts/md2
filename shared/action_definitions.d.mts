@@ -6,6 +6,7 @@ export type ActionAppliesTo = Partial<Record<ActionAppliesToField, string>>
 
 export const ACTION_DEFINITION_FIELDS: readonly (keyof RawActionDefinition)[]
 export const ACTION_AUTO_FINISH_FIELDS: readonly (keyof ActionAutoFinish)[]
+export const ACTION_OUTPUT_FIELDS: readonly (keyof ActionOutput)[]
 export const ACTION_ON_RULE_FIELDS: readonly (keyof RawOnRule)[]
 export const ACTION_PHRASE_FIELDS: readonly (keyof ActionPhrase)[]
 export const ACTION_APPLIES_TO_FIELDS: readonly ActionAppliesToField[]
@@ -50,6 +51,7 @@ export interface RawActionDefinition {
     onAfter?: string[]
     onBefore?: string[]
     onState?: string
+    output?: ActionOutput
     phrases?: ActionPhrase[]
     permissionMode?: import('./agent_profiles.mjs').PermissionMode
     prompt?: string
@@ -59,8 +61,15 @@ export interface RawActionDefinition {
     type: ActionType
 }
 
-export interface ActionAutoFinish {
+export type ActionAutoFinish = {
+    when: 'card-state'
     state: string
+} | {
+    when: 'diagram-created'
+}
+
+export interface ActionOutput {
+    kind: 'diagram'
 }
 
 export interface OnRule extends RawOnRule {
@@ -84,6 +93,7 @@ export interface ActionDefinition {
     onAfter: ActionDefinition[]
     onBefore: ActionDefinition[]
     onState: string | null
+    output: ActionOutput | null
     phrases: ActionPhrase[]
     permissionMode: import('./agent_profiles.mjs').PermissionMode | null
     prompt: string | null

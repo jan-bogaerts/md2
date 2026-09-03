@@ -58,9 +58,9 @@ class ActionAgentExecutor {
             ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
         const hasPromptOverride = Object.hasOwn(input.runInput, 'prompt');
         const basePrompt = hasPromptOverride
-            ? input.context.kind === 'diagram' && !input.runInput.diagramPath
+            ? input.action.output?.kind === 'diagram' && !input.runInput.diagramPath
                 ? resolveAgentPrompt(
-                    { prompt: input.runInput.prompt },
+                    { output: input.action.output, prompt: input.runInput.prompt },
                     input.context,
                     input.project,
                     input.primaryProject,

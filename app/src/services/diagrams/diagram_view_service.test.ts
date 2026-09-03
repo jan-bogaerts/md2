@@ -62,6 +62,7 @@ function completedEvent(overrides: Partial<ActionRunEvent> = {}): ActionRunEvent
         actionId: 'overview',
         context: { kind: 'diagram', type: 'root' },
         diagramPath: 'design/diagrams/overview.json',
+        output: { kind: 'diagram' },
         phase: 'main',
         rootActionId: 'overview',
         runId: 'run-1',
@@ -72,6 +73,17 @@ function completedEvent(overrides: Partial<ActionRunEvent> = {}): ActionRunEvent
 }
 
 describe('DiagramViewService', () => {
+    it('ignores completed regular actions in diagram context', async () => {
+        const { reportError, run, scheduleCommit, service } = createHarness()
+        await service.open()
+
+        run(completedEvent({ output: null }))
+        await Promise.resolve()
+
+        expect(scheduleCommit).not.toHaveBeenCalled()
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
     it('loads missing index lazily once as empty state', async () => {
         const { service, storage } = createHarness()
 

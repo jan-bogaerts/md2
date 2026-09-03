@@ -41,6 +41,7 @@ class ActionRunnerService {
         this.agentRunnerService = dependencies?.agentRunnerService;
         this.commandRunner = dependencies?.commandRunner ?? runCommand;
         this.commandWindowRunner = dependencies?.commandWindowRunner ?? runCommandInWindow;
+        this.diagramOutputWatcherFactory = dependencies?.diagramOutputWatcherFactory;
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
         this.localGitService = dependencies?.localGitService;
         this.now = dependencies?.now ?? Date.now;
@@ -187,6 +188,7 @@ class ActionRunnerService {
             agentRunnerService: this.agentRunnerService,
             commandRunner: this.commandRunner,
             commandWindowRunner: this.commandWindowRunner,
+            diagramOutputWatcherFactory: this.diagramOutputWatcherFactory,
             localGitService: this.localGitService,
             publisher: this.publish.bind(this),
         });
@@ -240,7 +242,7 @@ class ActionRunnerService {
         const action = await this.loadRootAction(promptRequest.actionId);
         if (action.type !== 'agent') throw new Error('Cannot prepare a prompt for a command action');
         const resolution = await this.actionWorktreeRunService.resolve(project, action, promptRequest.context);
-        const diagramPath = promptRequest.context.kind === 'diagram' ? this.allocateDiagramPath(action.label) : null;
+        const diagramPath = action.output?.kind === 'diagram' ? this.allocateDiagramPath(action.label) : null;
         const diagramFile = diagramPath === null
             ? null
             : resolveDiagramFile(resolution.runProject, this.diagramsFolder, diagramPath);
@@ -384,13 +386,15 @@ class ActionRunnerService {
     }
 
     resolveStartDiagramPath(startRequest, rootAction) {
-        if (startRequest.context.kind !== 'diagram') {
+        if (rootAction.output?.kind !== 'diagram') {
             if (startRequest.runInput.diagramPath !== undefined) {
-                throw new Error('Diagram output path requires diagram context');
+                throw new Error('Diagram output path requires a diagram action');
             }
 
             return null;
         }
+
+        if (startRequest.context.kind !== 'diagram') throw new Error('Diagram action requires diagram context');
 
         return startRequest.runInput.diagramPath ?? this.allocateDiagramPath(rootAction.label);
     }

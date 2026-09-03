@@ -116,6 +116,7 @@ export function editableActionDefinition(action: ActionDefinition): RawActionDef
         ...(action.on.length > 0 ? { on: action.on.map(({ actionId, condition }) => ({ actionId, condition })) } : {}),
         ...(action.onAfter.length > 0 ? { onAfter: action.onAfter.map(({ id }) => id) } : {}),
         ...(action.onState !== null ? { onState: action.onState } : {}),
+        ...(action.output !== null ? { output: action.output } : {}),
         ...(action.needsWorkTree ? { needsWorkTree: true } : {}),
         ...(action.showCommandWindow ? { showCommandWindow: true } : {}),
         ...(action.agent !== null ? { agent: action.agent } : {}),

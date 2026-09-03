@@ -86,8 +86,8 @@ function resolvePlaceholders(
     });
 }
 
-function composeAgentPrompt(prompt, context, diagramFooter) {
-    if (context.kind !== 'diagram') return prompt;
+function composeAgentPrompt(prompt, output, diagramFooter) {
+    if (output?.kind !== 'diagram') return prompt;
     if (typeof diagramFooter !== 'string' || diagramFooter.length === 0) throw new Error('Missing diagram footer');
 
     return `${prompt}\n\n${diagramFooter}`;
@@ -105,7 +105,7 @@ function resolveAgentPrompt(
     diagramFooter,
     diagramFile,
 ) {
-    const composedPrompt = composeAgentPrompt(action.prompt, context, diagramFooter);
+    const composedPrompt = composeAgentPrompt(action.prompt, action.output, diagramFooter);
     const prompt = resolvePlaceholders(
         composedPrompt,
         context,

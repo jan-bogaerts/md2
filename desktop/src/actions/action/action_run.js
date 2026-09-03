@@ -4,6 +4,7 @@ const { executeCommandAction } = require('./action_command_executor');
 const { ActionPhaseError } = require('./action_phase_error');
 const { runWithGitOperationContext } = require('../../git/git_operation_context');
 const { resolveDiagramFile } = require('./action_diagram_output');
+const { ActionDiagramOutputWatcher } = require('./action_diagram_output_watcher');
 const { resolvePopupPrompt } = require('./action_text');
 const {
     captureCommitReferences,
@@ -38,6 +39,8 @@ class ActionRun {
         this.agentRunnerService = dependencies.agentRunnerService;
         this.commandRunner = dependencies.commandRunner;
         this.commandWindowRunner = dependencies.commandWindowRunner ?? dependencies.commandRunner;
+        this.diagramOutputWatcherFactory = dependencies.diagramOutputWatcherFactory
+            ?? ((input) => new ActionDiagramOutputWatcher(input));
         this.localGitService = dependencies.localGitService;
         this.publisher = dependencies.publisher;
         this.activeAction = null;
@@ -48,6 +51,7 @@ class ActionRun {
         this.activeAgentQuestionRequestId = null;
         this.activeAgentApprovals = new Map();
         this.autoFinishPending = false;
+        this.diagramWatcherFailure = null;
         this.commitReferenceKeys = new Set();
         this.commitReferences = [];
         this.changedPaths = new Set();
@@ -260,15 +264,19 @@ class ActionRun {
         if (
             this.activeAction?.type !== 'agent'
             || !this.activeAction.streaming
+            || this.activeAction.autoFinish?.when !== 'card-state'
             || this.activeAction.autoFinish?.state !== state
         ) return;
-        if (this.activeAgentRunId) {
-            this.discardQueuedPrompts();
-            this.agentRunnerService.finish(this.activeAgentRunId);
+        this.requestAutoFinish();
+    }
+
+    requestAutoFinish() {
+        if (!this.activeAgentRunId) {
+            this.autoFinishPending = true;
             return;
         }
-
-        this.autoFinishPending = true;
+        this.discardQueuedPrompts();
+        this.agentRunnerService.finish(this.activeAgentRunId);
     }
 
     async run() {
@@ -309,14 +317,14 @@ class ActionRun {
 
         const result = {
             changedPaths,
-            ...(this.diagramPath ? { diagramPath: this.diagramPath } : {}),
+            ...(this.rootAction.output?.kind === 'diagram' && this.diagramPath ? { diagramPath: this.diagramPath } : {}),
             runId: this.runId,
             failure: failure ? errorMessage(failure, 'Action failed') : null,
             status,
         };
         this.publish(this.rootAction, 'main', status, {
             changedPaths: result.changedPaths,
-            ...(this.diagramPath ? { diagramPath: this.diagramPath } : {}),
+            ...(this.rootAction.output?.kind === 'diagram' && this.diagramPath ? { diagramPath: this.diagramPath } : {}),
             message: result.failure,
             type: 'run',
         });
@@ -350,6 +358,7 @@ class ActionRun {
         this.activeAction = action;
         this.activeActionPhase = phase;
         this.autoFinishPending = false;
+        this.diagramWatcherFailure = null;
 
         try {
             const result = await this.executeAction(action, phase, isRoot);
@@ -412,7 +421,7 @@ class ActionRun {
         if (action.type === 'command' && isRoot && this.runInput.continueFrom) {
             throw new Error('Conversation continuation requires an agent action');
         }
-        if (action.autoFinish && (
+        if (action.autoFinish?.when === 'card-state' && (
             this.context.kind !== 'card'
             || typeof this.context.cardInternalId !== 'string'
             || this.context.cardInternalId.length === 0
@@ -538,6 +547,9 @@ class ActionRun {
             commandRunner: this.commandRunner,
             commandWindowRunner: this.commandWindowRunner,
             context: this.context,
+            diagramFile: action.output?.kind === 'diagram' && this.diagramPath
+                ? resolveDiagramFile(project, this.diagramsFolder, this.diagramPath)
+                : null,
             onOutput,
             primaryProject: this.project,
             project,
@@ -560,6 +572,7 @@ class ActionRun {
                     this.discardQueuedPrompts();
                     this.agentRunnerService.finish(runId);
                 }
+                if (this.diagramWatcherFailure) this.agentRunnerService.stop(runId);
             }
             else {
                 this.activeAgentQuestion = false;
@@ -688,7 +701,7 @@ class ActionRun {
             this.publish(action, phase, 'running', { type: 'update', update });
         };
         const runInput = isRoot ? this.runInput : { extraPrompt: '' };
-        const diagramFile = this.diagramPath
+        const diagramFile = action.output?.kind === 'diagram' && this.diagramPath
             ? resolveDiagramFile(project, this.diagramsFolder, this.diagramPath)
             : null;
 
@@ -710,29 +723,54 @@ class ActionRun {
             runInput,
             signal: this.controller.signal,
         };
-        let result = await this.agentExecutor.execute(input);
-        const changedPaths = new Set(result.changedPaths ?? []);
-        let stderr = result.stderr ?? '';
-        let stdout = result.stdout ?? '';
-        let queuedPrompt = result.exitCode === 0
-            ? await this.claimNextQueuedPromptOrCloseQueue()
+        const watcher = action.autoFinish?.when === 'diagram-created'
+            ? this.diagramOutputWatcherFactory({
+                diagramFile,
+                handleError: (error) => this.handleDiagramWatcherFailure(error),
+                handleReady: () => this.requestAutoFinish(),
+                projectRoot: project.rootPath,
+            })
             : null;
-        while (result.exitCode === 0 && queuedPrompt) {
-            result = await this.agentExecutor.execute({
-                ...input,
-                runInput: {
-                    ...runInput,
-                    continueFrom: result.reference,
-                    prompt: queuedPrompt,
-                },
-            });
-            for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
-            stderr += result.stderr ?? '';
-            stdout += result.stdout ?? '';
-            queuedPrompt = result.exitCode === 0 ? await this.claimNextQueuedPromptOrCloseQueue() : null;
-        }
+        try {
+            if (watcher) await watcher.start();
+            this.throwDiagramWatcherFailure();
+            let result = await this.agentExecutor.execute(input);
+            this.throwDiagramWatcherFailure();
+            const changedPaths = new Set(result.changedPaths ?? []);
+            let stderr = result.stderr ?? '';
+            let stdout = result.stdout ?? '';
+            let queuedPrompt = result.exitCode === 0
+                ? await this.claimNextQueuedPromptOrCloseQueue()
+                : null;
+            while (result.exitCode === 0 && queuedPrompt) {
+                result = await this.agentExecutor.execute({
+                    ...input,
+                    runInput: {
+                        ...runInput,
+                        continueFrom: result.reference,
+                        prompt: queuedPrompt,
+                    },
+                });
+                this.throwDiagramWatcherFailure();
+                for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);
+                stderr += result.stderr ?? '';
+                stdout += result.stdout ?? '';
+                queuedPrompt = result.exitCode === 0 ? await this.claimNextQueuedPromptOrCloseQueue() : null;
+            }
 
-        return { ...result, changedPaths: [...changedPaths], stderr, stdout };
+            return { ...result, changedPaths: [...changedPaths], stderr, stdout };
+        } finally {
+            if (watcher) await watcher.close();
+        }
+    }
+
+    handleDiagramWatcherFailure(error) {
+        this.diagramWatcherFailure = error instanceof Error ? error : new Error('Diagram output watcher failed');
+        if (this.activeAgentRunId) this.agentRunnerService.stop(this.activeAgentRunId);
+    }
+
+    throwDiagramWatcherFailure() {
+        if (this.diagramWatcherFailure) throw this.diagramWatcherFailure;
     }
 
     resolveActiveAgentPrompt(content) {
@@ -759,6 +797,7 @@ class ActionRun {
             runId: this.runId,
             interactionReady: details.interactionReady ?? false,
             phase,
+            output: action.output ?? null,
             rootActionId: this.rootAction.id,
             status,
             streaming: action.type === 'agent' && action.streaming,

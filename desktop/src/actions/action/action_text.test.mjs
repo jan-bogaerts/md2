@@ -142,7 +142,7 @@ describe('resolveAgentPrompt', () => {
         const diagramFile = 'C:\\worktrees\\2\\design\\diagrams\\Overview.json';
 
         expect(resolveAgentPrompt(
-            { prompt: 'Create overview' },
+            { output: { kind: 'diagram' }, prompt: 'Create overview' },
             context,
             worktreeProject,
             project,

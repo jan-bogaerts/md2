@@ -162,10 +162,31 @@ describe('ActionDefinitionFields', () => {
 
         fireEvent.click(autoFinishSwitch)
 
-        expect(getDefinition()).toEqual({ ...definition, autoFinish: { state: 'ready' } })
+        expect(getDefinition()).toEqual({ ...definition, autoFinish: { state: 'ready', when: 'card-state' } })
+        expect(screen.getByLabelText('Auto finish trigger')).toHaveTextContent('When card enters state')
         expect(screen.getByLabelText('Auto finish card state')).toHaveTextContent('ready')
         fireEvent.click(screen.getByRole('switch', { name: 'Streaming' }))
         expect(getDefinition()).toEqual({ ...definition, autoFinish: undefined, streaming: undefined })
+    })
+
+    it('edits diagram output independently and offers diagram-created auto finish', () => {
+        const definition = {
+            ...sharedFields,
+            appliesTo: { kind: 'diagram', type: 'root' },
+            output: { kind: 'diagram' },
+            prompt: 'Create diagram',
+            streaming: true,
+            type: 'agent',
+        } satisfies RawActionDefinition
+        const getDefinition = renderFields(definition)
+
+        expect(screen.getByLabelText('Output kind')).toHaveTextContent('Diagram')
+        fireEvent.click(screen.getByRole('switch', { name: 'Auto finish' }))
+
+        expect(getDefinition()).toEqual({ ...definition, autoFinish: { when: 'diagram-created' } })
+        expect(screen.getByLabelText('Auto finish trigger')).toHaveTextContent('When diagram is created')
+        expect(screen.queryByLabelText('Auto finish card state')).not.toBeInTheDocument()
+        expect(getDefinition().appliesTo).toEqual({ kind: 'diagram', type: 'root' })
     })
 
     it('shows and persists agent file-change tracking with its limitations', () => {

@@ -114,6 +114,14 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
         })
     }
 
+    const handleOutputChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const output = event.target.value === 'diagram' ? { kind: 'diagram' as const } : undefined
+        const autoFinish = definition.autoFinish?.when === 'diagram-created' && !output
+            ? undefined
+            : definition.autoFinish
+        handleDefinitionChange({ ...definition, autoFinish, output })
+    }
+
     const handleNeedsWorkTreeChange = (event: ChangeEvent<HTMLInputElement>) => {
         handleDefinitionChange({ ...definition, needsWorkTree: event.target.checked || undefined })
     }
@@ -137,12 +145,23 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
     const handleAutoFinishChange = (event: ChangeEvent<HTMLInputElement>) => {
         handleDefinitionChange({
             ...definition,
-            autoFinish: event.target.checked ? { state: states[0] } : undefined,
+            autoFinish: event.target.checked
+                ? definition.output?.kind === 'diagram'
+                    ? { when: 'diagram-created' }
+                    : { state: states[0], when: 'card-state' }
+                : undefined,
         })
     }
 
+    const handleAutoFinishTriggerChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const autoFinish = event.target.value === 'diagram-created'
+            ? { when: 'diagram-created' as const }
+            : { state: states[0], when: 'card-state' as const }
+        handleDefinitionChange({ ...definition, autoFinish })
+    }
+
     const handleAutoFinishStateChange = (event: ChangeEvent<HTMLInputElement>) => {
-        handleDefinitionChange({ ...definition, autoFinish: { state: event.target.value } })
+        handleDefinitionChange({ ...definition, autoFinish: { state: event.target.value, when: 'card-state' } })
     }
 
     const handleFiltersChange = (appliesTo: RawActionDefinition['appliesTo']) => {
@@ -184,6 +203,20 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
                     >
                         <MenuItem value="agent">Agent</MenuItem>
                         <MenuItem value="command">Command</MenuItem>
+                    </ActionEditorField>
+                    <ActionEditorField
+                        error={!!errors.output}
+                        fieldId="action-output-kind"
+                        fullWidth
+                        helperText={errors.output}
+                        label="Output kind"
+                        onChange={handleOutputChange}
+                        select
+                        size="small"
+                        value={definition.output?.kind ?? ''}
+                    >
+                        <MenuItem value="">Regular</MenuItem>
+                        <MenuItem value="diagram">Diagram</MenuItem>
                     </ActionEditorField>
                     <ActionEditorField error={!!errors.icon} fieldId="action-icon" fullWidth helperText={errors.icon} label="Icon" name="icon" onChange={handleOptionalTextChange} select size="small" value={definition.icon ?? ''}>
                         <MenuItem value="">No icon</MenuItem>
@@ -254,7 +287,7 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
                                         control={(
                                             <Switch
                                                 checked={!!definition.autoFinish}
-                                                disabled={states.length === 0}
+                                                disabled={states.length === 0 && definition.output?.kind !== 'diagram'}
                                                 onChange={handleAutoFinishChange}
                                                 size="small"
                                             />
@@ -263,7 +296,7 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
                                         sx={{ whiteSpace: 'nowrap' }}
                                     />
                                     <FormHelperText error={!!errors.autoFinish}>
-                                        {errors.autoFinish ?? 'finish when card enters selected state'}
+                                        {errors.autoFinish ?? 'finish when configured output condition occurs'}
                                     </FormHelperText>
                                 </Stack>
                             ) : null}
@@ -286,6 +319,22 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
                     )}
                 </Grid>
                 {definition.type === 'agent' && definition.streaming && definition.autoFinish ? (
+                    <ActionEditorField
+                        error={!!errors.autoFinish}
+                        fieldId="action-auto-finish-trigger"
+                        fullWidth
+                        helperText={errors.autoFinish}
+                        label="Auto finish trigger"
+                        onChange={handleAutoFinishTriggerChange}
+                        select
+                        size="small"
+                        value={definition.autoFinish.when}
+                    >
+                        {states.length > 0 ? <MenuItem value="card-state">When card enters state</MenuItem> : null}
+                        {definition.output?.kind === 'diagram' ? <MenuItem value="diagram-created">When diagram is created</MenuItem> : null}
+                    </ActionEditorField>
+                ) : null}
+                {definition.type === 'agent' && definition.streaming && definition.autoFinish?.when === 'card-state' ? (
                     <ActionEditorField
                         error={!!errors.autoFinish}
                         fieldId="action-auto-finish-state"

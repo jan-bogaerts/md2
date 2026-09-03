@@ -11,10 +11,11 @@ function normalizeActionId(value) {
 const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
 export const ACTION_DEFINITION_FIELDS = Object.freeze([
-    'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
+    'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'output', 'onBefore', 'on', 'onAfter',
     'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases',
 ])
-export const ACTION_AUTO_FINISH_FIELDS = Object.freeze(['state'])
+export const ACTION_AUTO_FINISH_FIELDS = Object.freeze(['when', 'state'])
+export const ACTION_OUTPUT_FIELDS = Object.freeze(['kind'])
 export const ACTION_ON_RULE_FIELDS = Object.freeze(['actionId', 'condition'])
 export const ACTION_PHRASE_FIELDS = Object.freeze(['title', 'text'])
 export const ACTION_APPLIES_TO_FIELDS = Object.freeze([
@@ -22,6 +23,7 @@ export const ACTION_APPLIES_TO_FIELDS = Object.freeze([
 ])
 const ACTION_DEFINITION_FIELD_SET = new Set(ACTION_DEFINITION_FIELDS)
 const ACTION_AUTO_FINISH_FIELD_SET = new Set(ACTION_AUTO_FINISH_FIELDS)
+const ACTION_OUTPUT_FIELD_SET = new Set(ACTION_OUTPUT_FIELDS)
 const ACTION_ON_RULE_FIELD_SET = new Set(ACTION_ON_RULE_FIELDS)
 const ACTION_PHRASE_FIELD_SET = new Set(ACTION_PHRASE_FIELDS)
 const ACTION_APPLIES_TO_FIELD_SET = new Set(ACTION_APPLIES_TO_FIELDS)
@@ -30,7 +32,7 @@ export const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-te
 
 // Fields the editor can route an error to. Anything else routes to the general summary.
 const ROUTABLE_FIELDS = new Set([
-    'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'onBefore', 'on', 'onAfter',
+    'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'output', 'onBefore', 'on', 'onAfter',
     'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases',
 ])
 
@@ -85,6 +87,7 @@ export const BUILTIN_CUSTOM_PROMPT = {
     onAfter: [],
     onBefore: [],
     onState: null,
+    output: null,
     phrases: [],
     prompt: '{{card-prompt}}',
     sourcePath: null,
@@ -112,6 +115,7 @@ export const BUILTIN_REMARKABLE_CONVERT = {
     onAfter: [],
     onBefore: [],
     onState: null,
+    output: null,
     phrases: [],
     prompt: 'Convert the following Remarkable images to text and append the transcription to {{card-file}}:\n{{card-prompt}}',
     sourcePath: null,
@@ -209,6 +213,17 @@ function readAppliesTo(value, source) {
     return result
 }
 
+function readOutput(value, source) {
+    if (value === undefined) return undefined
+    if (!isPlainObject(value)) throw fail(`Invalid output in ${source}`, 'invalid-field', source, 'output')
+    rejectUnknownFields(value, ACTION_OUTPUT_FIELD_SET, source, 'output')
+    if (value.kind !== 'diagram') {
+        throw fail(`Invalid output kind in ${source}: ${String(value.kind)}`, 'invalid-field', source, 'output.kind')
+    }
+
+    return { kind: 'diagram' }
+}
+
 function readActionIdList(value, fieldName, source) {
     if (value === undefined) return []
     if (!Array.isArray(value)) throw fail(`Invalid ${fieldName} list in ${source}`, 'invalid-list', source, fieldName)
@@ -265,11 +280,24 @@ function validateTypeSpecificFields(value, type, source) {
     if (value.autoFinish !== undefined) throw fail(`Agent action field autoFinish is not valid for command action in ${source}`, 'field-not-allowed', source, 'autoFinish')
 }
 
-function readAutoFinish(value, streaming, dependencies, source) {
+function readAutoFinish(value, streaming, output, dependencies, source) {
     if (value === undefined) return undefined
     if (!streaming) throw fail(`Action autoFinish requires streaming in ${source}`, 'streaming-required', source, 'autoFinish')
     if (!isPlainObject(value)) throw fail(`Invalid autoFinish in ${source}`, 'invalid-field', source, 'autoFinish')
     rejectUnknownFields(value, ACTION_AUTO_FINISH_FIELD_SET, source, 'autoFinish')
+    if (value.when !== 'card-state' && value.when !== 'diagram-created') {
+        throw fail(`Invalid autoFinish trigger in ${source}`, 'invalid-field', source, 'autoFinish.when')
+    }
+    if (value.when === 'diagram-created') {
+        if (value.state !== undefined) {
+            throw fail(`Auto finish diagram-created cannot declare state in ${source}`, 'field-not-allowed', source, 'autoFinish.state')
+        }
+        if (output?.kind !== 'diagram') {
+            throw fail(`Action autoFinish diagram-created requires diagram output in ${source}`, 'diagram-output-required', source, 'autoFinish')
+        }
+
+        return { when: 'diagram-created' }
+    }
     if (typeof value.state !== 'string' || value.state.trim().length === 0) {
         throw fail(`Invalid autoFinish state in ${source}`, 'invalid-field', source, 'autoFinish.state')
     }
@@ -277,7 +305,7 @@ function readAutoFinish(value, streaming, dependencies, source) {
         throw fail(`Unknown autoFinish state ${value.state} in ${source}`, 'unknown-state', source, 'autoFinish.state')
     }
 
-    return { state: value.state }
+    return { state: value.state, when: 'card-state' }
 }
 
 function validateAgentFields(raw, dependencies, source) {
@@ -325,8 +353,9 @@ function validateRawDefinition(value, source, dependencies) {
     requireHumanText(value.description, 'description', source)
     validateTypeSpecificFields(value, type, source)
     const appliesTo = readAppliesTo(value.appliesTo, source)
-    if (type === 'command' && appliesTo?.kind === 'diagram') {
-        throw fail(`Command action cannot target diagrams in ${source}`, 'diagram-agent-required', source, 'appliesTo')
+    const output = readOutput(value.output, source)
+    if (output?.kind === 'diagram' && appliesTo?.kind !== 'diagram') {
+        throw fail(`Diagram output requires diagram applicability in ${source}`, 'diagram-applies-to-required', source, 'output')
     }
     if (value.icon !== undefined && typeof value.icon !== 'string') throw fail(`Invalid icon in ${source}`, 'invalid-field', source, 'icon')
     if (value.onState !== undefined && typeof value.onState !== 'string') throw fail(`Invalid onState in ${source}`, 'invalid-field', source, 'onState')
@@ -339,7 +368,7 @@ function validateRawDefinition(value, source, dependencies) {
     const raw = {
         agent: readOptionalString(value.agent, 'agent', source),
         appliesTo,
-        autoFinish: readAutoFinish(value.autoFinish, streaming, dependencies, source),
+        autoFinish: readAutoFinish(value.autoFinish, streaming, output, dependencies, source),
         command: type === 'command' ? value.command : undefined,
         description: value.description,
         icon: value.icon,
@@ -351,6 +380,7 @@ function validateRawDefinition(value, source, dependencies) {
         onAfter: readActionIdList(value.onAfter, 'onAfter', source),
         onBefore: readActionIdList(value.onBefore, 'onBefore', source),
         onState: readOptionalString(value.onState, 'onState', source),
+        output,
         phrases: readPhrases(value.phrases, source),
         permissionMode: readOptionalString(value.permissionMode, 'permissionMode', source),
         prompt: type === 'agent' ? value.prompt : undefined,
@@ -451,6 +481,7 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
             onAfter: [],
             onBefore: [],
             onState: raw.onState ?? null,
+            output: raw.output ?? null,
             phrases: raw.phrases,
             permissionMode: raw.permissionMode ?? null,
             prompt: raw.prompt ?? null,

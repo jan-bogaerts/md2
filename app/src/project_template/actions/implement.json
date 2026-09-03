@@ -7,6 +7,7 @@
     "kind": "card"
   },
   "autoFinish": {
+    "when": "card-state",
     "state": "ready"
   },
   "streaming": true,
