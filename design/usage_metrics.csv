@@ -3088,3 +3088,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-03T16:32:24.531Z,account_usage,codex,codex,primary,10080,2026-09-07T07:50:34.000Z,,,,,,30,-1
 2026-09-03T16:32:40.699Z,account_usage,codex,codex,primary,10080,2026-09-07T07:50:34.000Z,,,,,,31,1
 2026-09-03T16:33:25.305Z,token_usage,codex,,,,,34625,716672,3180,939,755416,,
+2026-09-03T16:33:58.928Z,token_usage,codex,,,,,135547,3112192,6163,3500,3257402,,
+2026-09-03T16:34:05.488Z,account_usage,claude,default,weekly,10080,2026-09-06T16:59:00.000Z,,,,,,16,0
+2026-09-03T16:36:05.491Z,account_usage,claude,default,weekly,10080,2026-09-06T17:00:00.000Z,,,,,,16,0
