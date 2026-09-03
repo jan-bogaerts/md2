@@ -7,6 +7,7 @@ status: design
 owner:
 affects:
 agents:
+  - design/activity/card__cd29dd64-c875-44fb-b4c4-e131a4a113c8.json
 policy:
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
