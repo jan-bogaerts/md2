@@ -139,9 +139,7 @@ describe('ActionRun', () => {
             diagramsFolder: 'design/diagrams',
         });
 
-        await expect(run.completion).resolves.toMatchObject({
-            diagramPath: 'design/diagrams/output.json', status: 'completed',
-        });
+        await expect(run.completion).resolves.toMatchObject({diagramPath: 'design/diagrams/output.json', status: 'completed'});
         expect(agentRunnerService.finish).toHaveBeenCalledWith('provider-run');
         expect(close).toHaveBeenCalledOnce();
     });
@@ -158,9 +156,7 @@ describe('ActionRun', () => {
             agentExecutor,
             context: { kind: 'diagram', type: 'root' },
             diagramFooter: 'Save {{diagram-file}}',
-            diagramOutputWatcherFactory: () => ({
-                close, start: vi.fn(async () => { throw new Error('diagram watch failed'); }),
-            }),
+            diagramOutputWatcherFactory: () => ({close, start: vi.fn(async () => { throw new Error('diagram watch failed'); })}),
             diagramPath: 'design/diagrams/output.json',
             diagramsFolder: 'design/diagrams',
         });

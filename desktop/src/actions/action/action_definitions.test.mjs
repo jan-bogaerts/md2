@@ -140,12 +140,8 @@ describe('loadActionDefinitions', () => {
         };
         expect(loadActionDefinitions([file('diagram', diagramAction)]).find(({ id }) => id === IMPLEMENT.id).autoFinish)
             .toEqual({ when: 'diagram-created' });
-        expect(validationError([file('implement', {
-            ...IMPLEMENT, autoFinish: { when: 'diagram-created' }, streaming: true,
-        })])).toMatchObject({ code: 'diagram-output-required', field: 'autoFinish' });
-        expect(validationError([file('diagram', {
-            ...diagramAction, autoFinish: { state: 'ready', when: 'diagram-created' },
-        })])).toMatchObject({ code: 'field-not-allowed', fieldPath: 'autoFinish.state' });
+        expect(validationError([file('implement', {...IMPLEMENT, autoFinish: { when: 'diagram-created' }, streaming: true})])).toMatchObject({ code: 'diagram-output-required', field: 'autoFinish' });
+        expect(validationError([file('diagram', {...diagramAction, autoFinish: { state: 'ready', when: 'diagram-created' }})])).toMatchObject({ code: 'field-not-allowed', fieldPath: 'autoFinish.state' });
     });
 
     it.each([

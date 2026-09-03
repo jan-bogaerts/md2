@@ -375,17 +375,11 @@ describe('ActionRunnerService', () => {
             command: 'write {{diagram-file}}',
             output: { kind: 'diagram' },
         })];
-        const { commandRunner, runner } = createRunner(files, {
-            now: vi.fn(() => Date.parse('2026-08-31T14:25:30.123Z')),
-        });
+        const { commandRunner, runner } = createRunner(files, {now: vi.fn(() => Date.parse('2026-08-31T14:25:30.123Z'))});
 
-        const result = await runToCompletion(runner, {
-            actionId: 'main', context: { kind: 'diagram', type: 'root' }, runInput: {},
-        });
+        const result = await runToCompletion(runner, {actionId: 'main', context: { kind: 'diagram', type: 'root' }, runInput: {}});
 
-        expect(result).toMatchObject({
-            diagramPath: 'design/diagrams/main-20260831T142530123Z.json', status: 'completed',
-        });
+        expect(result).toMatchObject({diagramPath: 'design/diagrams/main-20260831T142530123Z.json', status: 'completed'});
         expect(commandRunner.mock.calls[0][1]).toBe(
             `write ${path.resolve('C:/repo', 'design/diagrams/main-20260831T142530123Z.json')}`,
         );
