@@ -10,8 +10,7 @@ agents:
 policy:
 after: cfe002ea-7a48-4c32-bed1-078fae7b5d5c
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -34,4 +33,4 @@ Add a project-bound service that owns the original diagram, editable diagram, di
 
 ## Dependencies
 
-[F_273](F_273_define_editable_diagram_contract.md).
+[F\_273](F_273_define_editable_diagram_contract.md).
