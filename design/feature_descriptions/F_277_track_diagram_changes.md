@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: 5347a970-419c-495a-9b4e-c9aafcce6741
+branch: f_277_track_diagram_changes
+worktree: 3
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
@@ -18,7 +20,7 @@ Maintain a semantic change set between the immutable original and editable diagr
 
 ## Scope
 
-* Consume the scoped mutation information produced by F_276; never diff, clone, stringify, parse, serialize, or traverse the complete diagram after an edit.
+* Consume the scoped mutation information produced by F\_276; never diff, clone, stringify, parse, serialize, or traverse the complete diagram after an edit.
 * Key field changes by object kind, stable object ID, and field. Store the original field value once and update only the latest value.
 * Track additions and removals through collection events. Add-then-remove eliminates that object's entries without inspecting unrelated objects.
 * Remove a field change when its latest value equals its stored original value.
