@@ -1093,16 +1093,24 @@
           "status": "inProgress",
           "timestamp": "2026-09-03T16:38:10.903Z",
           "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "claude-question-0: Approve, implement all",
+          "id": "agent-turn-119b559c-ffb5-47a2-8a56-0723e79a2b49-answer-25",
+          "kind": "message",
+          "role": "user",
+          "sequence": 26,
+          "timestamp": "2026-09-03T16:48:24.790Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-f22fee6c-350f-49be-93a0-fff313012ddb",
       "providerSessions": [],
       "startedAt": "2026-09-03T16:36:46.698Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "elapsedMs": 84207,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-03T16:48:24.790Z"
       },
       "title": "implement",
       "usageSchemaVersion": 1,

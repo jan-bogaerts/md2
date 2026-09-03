@@ -25,6 +25,16 @@ function activityOrigin(context) {
     return { kind: 'project' };
 }
 
+function requireConfiguredStates(states) {
+    if (!Array.isArray(states)) throw new Error('Invalid project states');
+
+    return states.map(({ state }) => {
+        if (typeof state !== 'string' || state.length === 0) throw new Error('Invalid project state');
+
+        return state;
+    });
+}
+
 function hasStreamingAction(action, visited = new Set()) {
     if (visited.has(action.id)) return false;
     visited.add(action.id);
@@ -69,20 +79,17 @@ class ActionRunnerService {
         this.project = null;
         this.projectFolder = null;
         this.releasesFolder = null;
-        this.diagramFooter = null;
-        this.diagramsFolder = null;
-        this.latestDiagramTimestampMs = 0;
         this.restartingRuns = new Set();
     }
 
-    async startProject(project, actionsFolder, projectFolder, releasesFolder, activeCardsFolder, diagramsFolder, diagramFooter) {
-        if (typeof projectFolder !== 'string') throw new Error('Missing action runner projectFolder');
-        if (typeof releasesFolder !== 'string' || releasesFolder.length === 0) throw new Error('Missing action runner releasesFolder');
-        if (typeof activeCardsFolder !== 'string' || activeCardsFolder.length === 0) throw new Error('Missing action runner activeCardsFolder');
-        if (typeof diagramsFolder !== 'string' || diagramsFolder.length === 0) throw new Error('Missing action runner diagramsFolder');
-        if (typeof diagramFooter !== 'string' || diagramFooter.length === 0) throw new Error('Missing action runner diagramFooter');
-        if (!diagramFooter.includes('{{diagram-file}}')) throw new Error('Action runner diagramFooter requires {{diagram-file}} placeholder');
+    // Paths arrive already resolved and validated from resolveProjectPaths, and states from the same
+    // config read, so the runner no longer loads `.md2/config` itself.
+    async startProject(project, paths, states) {
+        const { actionsFolder, activeCardsFolder, diagramFooter, diagramsFolder, projectFolder, releasesFolder } = paths ?? {};
+        const configuredStates = requireConfiguredStates(states);
         if (this.project) await this.stop();
+        // stop() clears configuredStates, so the validated list is stored after the teardown.
+        this.configuredStates = configuredStates;
         this.usageMetricsService?.startProject(project, projectFolder);
         this.project = project;
         this.actionsFolder = actionsFolder;
@@ -100,17 +107,7 @@ class ActionRunnerService {
     }
 
     async initializeProject(project, actionsFolder) {
-        const [, config] = await Promise.all([
-            this.actionDefinitionCache.startProject(project, actionsFolder),
-            this.localGitService.loadProjectConfig(project),
-        ]);
-        const states = config?.states;
-        if (!Array.isArray(states)) throw new Error('Invalid project states');
-        this.configuredStates = states.map(({ state }) => {
-            if (typeof state !== 'string' || state.length === 0) throw new Error('Invalid project state');
-
-            return state;
-        });
+        await this.actionDefinitionCache.startProject(project, actionsFolder);
     }
 
     async stop() {

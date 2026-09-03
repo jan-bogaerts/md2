@@ -86,7 +86,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         usageMetricsService,
         ...overrides,
     });
-    runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions', 'design/diagrams', diagramFooter);
+    runner.startProject(project, { actionsFolder: 'actions', activeCardsFolder: 'design/feature_descriptions', diagramFooter, diagramsFolder: 'design/diagrams', projectFolder: 'design', releasesFolder: 'design/releases' }, [{ state: 'design' }, { state: 'ready' }]);
 
     return { actionWorktreeRunService, agentRunnerService, commandRunner, localGitService, runner, usageMetricsService };
 }
@@ -242,8 +242,25 @@ describe('ActionRunnerService', () => {
         const runner = new ActionRunnerService({});
 
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no project');
-        runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions', 'design/diagrams', diagramFooter);
+        runner.startProject(project, { actionsFolder: 'actions', activeCardsFolder: 'design/feature_descriptions', diagramFooter, diagramsFolder: 'design/diagrams', projectFolder: 'design', releasesFolder: 'design/releases' }, [{ state: 'design' }, { state: 'ready' }]);
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no local Git service');
+    });
+
+    it.each([
+        [undefined, 'Invalid project states'],
+        [[{ state: '' }], 'Invalid project state'],
+    ])('rejects invalid configured states on project start %#', async (states, message) => {
+        const runner = new ActionRunnerService({});
+        const paths = {
+            actionsFolder: 'actions',
+            activeCardsFolder: 'design/feature_descriptions',
+            diagramFooter,
+            diagramsFolder: 'design/diagrams',
+            projectFolder: 'design',
+            releasesFolder: 'design/releases',
+        };
+
+        await expect(runner.startProject(project, paths, states)).rejects.toThrow(message);
     });
 
     it('rejects unattended streaming chains before starting a process', async () => {
@@ -579,7 +596,7 @@ describe('ActionRunnerService', () => {
         const runId = await runner.start({ actionId: 'main', context, runInput: {} });
         await vi.waitFor(() => expect(commandRunner).toHaveBeenCalledTimes(1));
 
-        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design', 'other-design/releases', 'other-design/active', 'other-design/diagrams', diagramFooter);
+        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, { actionsFolder: 'other-actions', activeCardsFolder: 'other-design/active', diagramFooter, diagramsFolder: 'other-design/diagrams', projectFolder: 'other-design', releasesFolder: 'other-design/releases' }, [{ state: 'design' }, { state: 'ready' }]);
         resolve();
         const result = await runner.wait(runId);
 

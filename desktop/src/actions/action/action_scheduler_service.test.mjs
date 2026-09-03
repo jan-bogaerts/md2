@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 const require = createRequire(import.meta.url);
 const { ActionSchedulerService } = require('./action_scheduler_service');
 const { ActionRunnerService } = require('./action_runner_service');
+const { resolveProjectPaths } = require('../../project/project_paths');
 
 const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 const context = { cardInternalId: 'card-022', file: 'design/F-022.md', kind: 'card', type: 'feature' };
@@ -174,6 +175,14 @@ function createScheduler(localGitService, timerDependencies = {}) {
     });
 }
 
+// Mirrors the bridge activation path: one config read, resolved paths, runner first, then scheduler.
+async function startProject(scheduler, localGitService) {
+    const config = await localGitService.loadProjectConfig(project);
+    const paths = resolveProjectPaths(config);
+    await scheduler.actionRunnerService.startProject(project, paths, config?.states);
+    await scheduler.startProject(project, paths.actionsFolder);
+}
+
 describe('ActionSchedulerService', () => {
     it('registers pending timers on project load', async () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' });
@@ -181,7 +190,7 @@ describe('ActionSchedulerService', () => {
         const setTimeout = vi.fn(() => 'timer-1');
         const scheduler = createScheduler(localGitService, { setTimeout });
 
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
 
         expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 5000);
     });
@@ -196,7 +205,7 @@ describe('ActionSchedulerService', () => {
         });
         const scheduler = createScheduler(localGitService);
 
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.fireSchedule('schedule-1');
 
         expect(localGitService.loadActionSchedules).toHaveBeenCalledWith(project, 'projects/demo/actions');
@@ -224,53 +233,10 @@ describe('ActionSchedulerService', () => {
         );
         const scheduler = createScheduler(localGitService);
 
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.fireSchedule('schedule-1');
 
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, `echo ${path.resolve('C:/repo', 'active')}`);
-    });
-
-    it('rejects invalid configured working folder before scheduled process start', async () => {
-        const localGitService = createLocalGitService([], undefined, { workingFolder: '' });
-        const scheduler = createScheduler(localGitService);
-
-        await expect(scheduler.startProject(project)).rejects.toThrow('Invalid project workingFolder');
-        expect(localGitService.runCommand).not.toHaveBeenCalled();
-    });
-
-    it('loads configured diagram folder and footer into action runner', async () => {
-        const localGitService = createLocalGitService([], undefined, {
-            diagramFooter: 'Custom diagram instructions. Save to {{diagram-file}}.',
-            diagramsFolder: 'visuals',
-            projectFolder: 'design',
-        });
-        const scheduler = createScheduler(localGitService);
-
-        await scheduler.startProject(project);
-
-        expect(scheduler.actionRunnerService.diagramsFolder).toBe('design/visuals');
-        expect(scheduler.actionRunnerService.diagramFooter).toBe('Custom diagram instructions. Save to {{diagram-file}}.');
-    });
-
-    it('uses versioned JSON contract in default diagram footer', async () => {
-        const scheduler = createScheduler(createLocalGitService([]));
-
-        await scheduler.startProject(project);
-
-        expect(scheduler.actionRunnerService.diagramFooter).toContain('Save one version 1 JSON object');
-        expect(scheduler.actionRunnerService.diagramFooter).toContain('architecture, dependency, sequence, flow, entity');
-        expect(scheduler.actionRunnerService.diagramFooter).toContain('do not create SVG or markup');
-    });
-
-    it.each([
-        [{ diagramsFolder: '' }, 'Invalid project diagramsFolder'],
-        [{ diagramFooter: '' }, 'Invalid project diagramFooter'],
-        [{ diagramFooter: 'Create JSON output.' }, 'requires {{diagram-file}} placeholder'],
-    ])('rejects invalid diagram config %#', async (projectConfig, message) => {
-        const localGitService = createLocalGitService([], undefined, projectConfig);
-        const scheduler = createScheduler(localGitService);
-
-        await expect(scheduler.startProject(project)).rejects.toThrow(message);
     });
 
     it('fires a due schedule and marks it done', async () => {
@@ -278,7 +244,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([schedule]);
         const scheduler = createScheduler(localGitService);
 
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.fireSchedule('schedule-1');
 
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done');
@@ -291,7 +257,7 @@ describe('ActionSchedulerService', () => {
         const clearTimeout = vi.fn();
         const scheduler = createScheduler(localGitService, { clearTimeout, setTimeout: vi.fn(() => 'timer-1') });
 
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.cancelActionSchedule('schedule-1');
 
         expect(clearTimeout).toHaveBeenCalledWith('timer-1');
@@ -302,7 +268,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([]);
         const setTimeout = vi.fn(() => 'timer-1');
         const scheduler = createScheduler(localGitService, { setTimeout });
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         const trigger = { timestamp: '2026-07-06T10:00:05.000Z', type: 'at' };
 
         const schedule = await scheduler.registerActionSchedule({ actionId: 'implement', context, trigger });
@@ -319,7 +285,7 @@ describe('ActionSchedulerService', () => {
     ])('rejects invalid schedule registration %#', async (trigger, message) => {
         const localGitService = createLocalGitService([]);
         const scheduler = createScheduler(localGitService);
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
 
         await expect(scheduler.registerActionSchedule({ actionId: 'implement', context, trigger })).rejects.toThrow(message);
         expect(localGitService.saveActionSchedules).not.toHaveBeenCalled();
@@ -332,7 +298,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([schedule]);
         const setTimeout = vi.fn(() => `timer-${setTimeout.mock.calls.length}`);
         const scheduler = createScheduler(localGitService, { now: () => currentTime, setTimeout });
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
 
         expect(setTimeout).toHaveBeenNthCalledWith(1, expect.any(Function), MAX_TIMER_DELAY_MS);
         currentTime += MAX_TIMER_DELAY_MS;
@@ -351,7 +317,7 @@ describe('ActionSchedulerService', () => {
         const events = [];
 
         scheduler.actionRunnerService.subscribe((event) => events.push(event));
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.fireSchedule('schedule-1');
 
         expect(events.filter((event) => event.type === 'run').map((event) => event.status)).toEqual(['running', 'completed']);
@@ -366,7 +332,7 @@ describe('ActionSchedulerService', () => {
             agentConfigProvider: () => agentConfig(),
             agentRunnerService: { run: agentRunner },
         });
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.fireSchedule('schedule-1');
 
         expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
@@ -377,7 +343,7 @@ describe('ActionSchedulerService', () => {
         }), expect.any(Function));
         expect(localGitService.histories[0]).toMatchObject({
             entry: { agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high' },
-            request: { actionId: 'implement', context, projectFolder: '' },
+            request: { actionId: 'implement', context, projectFolder: 'design' },
         });
     });
 
@@ -390,7 +356,7 @@ describe('ActionSchedulerService', () => {
             agentRunnerService: { run: agentRunner },
         });
 
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.fireSchedule('schedule-1');
 
         expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({
@@ -415,7 +381,7 @@ describe('ActionSchedulerService', () => {
             agentRunnerService: { run: agentRunner },
         });
 
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.fireSchedule('schedule-1');
 
         expect(agentRunner.mock.calls.map((call) => call[1].command)).toEqual([
@@ -443,7 +409,7 @@ describe('ActionSchedulerService', () => {
             agentRunnerService: { run: agentRunner },
         });
 
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.fireSchedule('schedule-1');
 
         expect(agentRunner).not.toHaveBeenCalled();
@@ -456,7 +422,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([invalidSchedule, validSchedule]);
         const scheduler = createScheduler(localGitService);
 
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.fireSchedule('schedule-1');
         await scheduler.fireSchedule('schedule-2');
 
@@ -485,7 +451,7 @@ describe('ActionSchedulerService', () => {
         };
         const scheduler = createScheduler(localGitService, { actionRunnerService });
 
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         await scheduler.fireSchedule(schedule.id);
 
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: scheduleStatus }]);
@@ -502,7 +468,7 @@ describe('ActionSchedulerService', () => {
             wait: vi.fn(async () => completion.promise),
         };
         const scheduler = createScheduler(localGitService, { actionRunnerService });
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         const firing = scheduler.fireSchedule(schedule.id);
         await vi.waitFor(() => expect(actionRunnerService.wait).toHaveBeenCalledWith('action-1'));
 
@@ -530,7 +496,7 @@ describe('ActionSchedulerService', () => {
         ];
         const localGitService = createLocalGitService([schedule], actionFiles);
         const scheduler = createScheduler(localGitService);
-        await scheduler.startProject(project);
+        await startProject(scheduler, localGitService);
         const events = [];
         scheduler.actionRunnerService.subscribe((event) => events.push(event));
         const request = { actionId: 'main', context, runInput: {} };

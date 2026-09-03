@@ -1,13 +1,6 @@
-const { loadActionDefinitions } = require('../../../../shared/action_definitions.mjs');
+const { normalizeFolderPath } = require('../../../../shared/project_config_defaults.mjs');
 const { appendActionSchedule, findPendingSchedule, updateActionScheduleStatus } = require('../schedule/schedule_store');
 const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = require('../schedule/schedule_timers');
-
-const DEFAULT_ACTIONS_FOLDER = 'actions';
-const DEFAULT_DIAGRAMS_FOLDER = 'diagrams';
-const DEFAULT_DIAGRAM_FOOTER = 'Use the diagram skill as design guidance. Save one version 1 JSON object to {{diagram-file}}; do not create SVG or markup. Use meta { version: 1, type, title, description, and preset for flow }, nodes [{ id, label, role, optional kind, sublabel, tag, drilldown, fields: [{ name, optional type, key }], x, y, width, height }], edges [{ id, from, to, kind, optional label, waypoints: [{ x, y }], fromCardinality, toCardinality }], optional groups [{ id, label, nodeIds }], and optional sequence fragments [{ id, operator: alt|opt|loop, regions: [{ guard, edgeIds }] }]. Set drilldown to false only for non-selectable nodes. Node and edge ids must be unique together. Supported types: architecture, dependency, sequence, flow, entity. Supported roles: focal, backend, store, external, input, optional, boundary. Supported node kinds: component, participant, step, decision, start, end, state, entity; flow nodes require a kind. Supported edge kinds: connection, data, dependency, cycle, call, return, async, success, flow, transition, relationship. Flow preset must be flowchart or state. Entity field keys are primary or foreign; cardinalities are 1, N, 0..1, or 1..*.';
-const DEFAULT_PROJECT_FOLDER = '';
-const DEFAULT_RELEASES_FOLDER = 'releases';
-const DEFAULT_WORKING_FOLDER = 'active';
 
 function createScheduleId() {
     return `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -43,17 +36,6 @@ function requireProject(project) {
     return project;
 }
 
-function normalizeFolderPath(folderPath) {
-    return folderPath.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '');
-}
-
-function resolveProjectFolderPath(projectFolder, folderPath) {
-    const normalizedProjectFolder = normalizeFolderPath(projectFolder);
-    const normalizedFolderPath = normalizeFolderPath(folderPath);
-
-    return normalizedProjectFolder.length > 0 ? `${normalizedProjectFolder}/${normalizedFolderPath}` : normalizedFolderPath;
-}
-
 class ActionSchedulerService {
     constructor(dependencies) {
         this.actionRunnerService = dependencies?.actionRunnerService;
@@ -63,27 +45,17 @@ class ActionSchedulerService {
         this.setTimeout = dependencies?.setTimeout ?? setTimeout;
         this.project = null;
         this.actionsFolder = null;
-        this.projectFolder = null;
         this.runIdsByScheduleId = new Map();
         this.runningScheduleIds = new Set();
         this.timers = new Map();
     }
 
-    async startProject(project) {
+    // The caller resolves the project config and starts the action runner; the scheduler's only
+    // project-derived input is the actions folder holding its own schedules file.
+    async startProject(project, actionsFolder) {
+        if (typeof actionsFolder !== 'string' || actionsFolder.length === 0) throw new Error('Missing scheduler actionsFolder');
         this.project = requireProject(project);
-        const projectPaths = await this.loadProjectPaths();
-        const { actionsFolder, activeCardsFolder, diagramFooter, diagramsFolder, projectFolder, releasesFolder } = projectPaths;
         this.actionsFolder = actionsFolder;
-        this.projectFolder = projectFolder;
-        await this.actionRunnerService.startProject(
-            this.project,
-            this.actionsFolder,
-            this.projectFolder,
-            releasesFolder,
-            activeCardsFolder,
-            diagramsFolder,
-            diagramFooter,
-        );
         await this.reconcile();
     }
 
@@ -93,13 +65,12 @@ class ActionSchedulerService {
         this.runIdsByScheduleId.clear();
         this.project = null;
         this.actionsFolder = null;
-        this.projectFolder = null;
     }
 
     async registerActionSchedule(request) {
         const registration = validateRegistrationRequest(request, this.now());
         const project = this.requireCurrentProject();
-        const actionsFolder = await this.requireActionsFolder();
+        const actionsFolder = this.requireActionsFolder();
         const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder);
         const schedule = {
             actionId: registration.actionId,
@@ -123,24 +94,23 @@ class ActionSchedulerService {
         if (runId) {
             this.actionRunnerService.cancel(runId);
 
-            return this.localGitService.loadActionSchedules(this.requireCurrentProject(), await this.requireActionsFolder());
+            return this.loadSchedules();
         }
 
         cancelScheduleTimer(this.timers, scheduleId, this.clearTimeout);
 
-        const schedules = await this.localGitService.cancelActionSchedule(
-            this.requireCurrentProject(),
-            await this.requireActionsFolder(),
-            scheduleId,
-        );
+        const schedules = await this.localGitService.cancelActionSchedule(this.requireCurrentProject(), this.requireActionsFolder(), scheduleId);
         await this.reconcile();
 
         return schedules;
     }
 
     async handleProjectChange(event) {
-        const actionsFolder = await this.requireActionsFolder();
-        const normalizedActionsFolder = actionsFolder.replace(/\\/gu, '/').replace(/\/$/u, '');
+        // The bridge registers the project watcher independently of activation, so an event can
+        // arrive before startProject; there is nothing to reconcile until then.
+        if (this.actionsFolder === null) return;
+
+        const normalizedActionsFolder = normalizeFolderPath(this.actionsFolder);
         if (!event || event.path !== `${normalizedActionsFolder}/.md2-schedules.json`) return;
 
         await this.reconcile();
@@ -155,7 +125,7 @@ class ActionSchedulerService {
 
     async loadSchedulesForReconcile() {
         try {
-            return await this.localGitService.loadActionSchedules(this.requireCurrentProject(), await this.requireActionsFolder());
+            return await this.loadSchedules();
         } catch {
             return [];
         }
@@ -198,7 +168,7 @@ class ActionSchedulerService {
     }
 
     async findPendingSchedule(scheduleId) {
-        const schedules = await this.localGitService.loadActionSchedules(this.requireCurrentProject(), await this.requireActionsFolder());
+        const schedules = await this.loadSchedules();
 
         return findPendingSchedule(schedules, scheduleId);
     }
@@ -209,7 +179,7 @@ class ActionSchedulerService {
 
     async updateScheduleStatus(scheduleId, status) {
         const project = this.requireCurrentProject();
-        const actionsFolder = await this.requireActionsFolder();
+        const actionsFolder = this.requireActionsFolder();
         const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder);
         const nextSchedules = updateActionScheduleStatus(schedules, scheduleId, status);
         await this.localGitService.saveActionSchedules(project, actionsFolder, nextSchedules);
@@ -224,72 +194,25 @@ class ActionSchedulerService {
     }
 
     async findRunningSchedule(scheduleId) {
-        const schedules = await this.localGitService.loadActionSchedules(this.requireCurrentProject(), await this.requireActionsFolder());
+        const schedules = await this.loadSchedules();
 
         return schedules.find((schedule) => schedule.id === scheduleId && schedule.status === 'running') ?? null;
-    }
-
-    async loadProjectPaths() {
-        const config = await this.localGitService.loadProjectConfig(this.requireCurrentProject());
-        const projectFolder = typeof config?.projectFolder === 'string' ? config.projectFolder : DEFAULT_PROJECT_FOLDER;
-        const configuredReleasesFolder = config?.releasesFolder ?? DEFAULT_RELEASES_FOLDER;
-        if (typeof configuredReleasesFolder !== 'string' || configuredReleasesFolder.length === 0) {
-            throw new Error('Invalid project releasesFolder');
-        }
-        const releasesFolder = resolveProjectFolderPath(projectFolder, configuredReleasesFolder);
-        const configuredDiagramsFolder = config?.diagramsFolder ?? DEFAULT_DIAGRAMS_FOLDER;
-        if (typeof configuredDiagramsFolder !== 'string' || configuredDiagramsFolder.length === 0) {
-            throw new Error('Invalid project diagramsFolder');
-        }
-        const diagramsFolder = resolveProjectFolderPath(projectFolder, configuredDiagramsFolder);
-        const diagramFooter = config?.diagramFooter ?? DEFAULT_DIAGRAM_FOOTER;
-        if (typeof diagramFooter !== 'string' || diagramFooter.length === 0 || !diagramFooter.includes('{{diagram-file}}')) {
-            throw new Error('Invalid project diagramFooter: requires {{diagram-file}} placeholder');
-        }
-        const configuredWorkingFolder = config?.workingFolder ?? DEFAULT_WORKING_FOLDER;
-        if (typeof configuredWorkingFolder !== 'string' || configuredWorkingFolder.length === 0) {
-            throw new Error('Invalid project workingFolder');
-        }
-        const activeCardsFolder = resolveProjectFolderPath(projectFolder, configuredWorkingFolder);
-        if (config?.actionsFolder !== undefined) {
-            if (typeof config.actionsFolder !== 'string' || config.actionsFolder.length === 0) {
-                throw new Error('Invalid project actionsFolder');
-            }
-
-            return {
-                actionsFolder: resolveProjectFolderPath(projectFolder, config.actionsFolder),
-                activeCardsFolder,
-                diagramFooter,
-                diagramsFolder,
-                projectFolder,
-                releasesFolder,
-            };
-        }
-
-        return {
-            actionsFolder: resolveProjectFolderPath(projectFolder, DEFAULT_ACTIONS_FOLDER),
-            activeCardsFolder,
-            diagramFooter,
-            diagramsFolder,
-            projectFolder,
-            releasesFolder,
-        };
     }
 
     requireCurrentProject() {
         return requireProject(this.project);
     }
 
-    async requireActionsFolder() {
-        if (this.actionsFolder) return this.actionsFolder;
-
-        const { actionsFolder, projectFolder } = await this.loadProjectPaths();
-        this.actionsFolder = actionsFolder;
-        this.projectFolder = projectFolder;
+    requireActionsFolder() {
+        if (!this.actionsFolder) throw new Error('Action scheduler has no project');
 
         return this.actionsFolder;
     }
 
+    loadSchedules() {
+        return this.localGitService.loadActionSchedules(this.requireCurrentProject(), this.requireActionsFolder());
+    }
+
 }
 
-module.exports = { ActionSchedulerService, loadActionDefinitions };
+module.exports = { ActionSchedulerService };
