@@ -1,0 +1,30 @@
+---
+author:
+id: F_308
+internalId: 99f79635-4a46-4254-b544-901530ad9294
+title: add end node tool
+status: new
+owner:
+affects:
+agents:
+policy:
+after: ea81e86d-6036-45b6-8608-f4a91a7f59ed
+---
+
+Parent: [F_255](F_255_make_diagrams_editable.md).
+
+## Goal
+
+Add an End button for both flow presets.
+
+## Acceptance criteria
+
+* The tool is available only for flowchart and state diagrams.
+* It applies the existing preset-specific end rendering and default geometry.
+* Created nodes contain required fields and no type-incompatible fields.
+* Placement, selection, details, moving, and resizing use shared workflows.
+* Tests cover both presets.
+
+## Dependencies
+
+[F_302](F_302_add_node_placement_infrastructure.md).

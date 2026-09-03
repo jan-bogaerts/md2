@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useSyncExternalStore, type ReactNode } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
@@ -28,6 +28,7 @@ interface ActionPromptOwnerProps {
     historyStore: ActionHistoryStore
     inputStore: ActionRunInputStore
     resultStore: ActionRunResultStore
+    questionsPanel?: ReactNode
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
     settingsStore: ActionRunSettingsStore
@@ -40,8 +41,8 @@ function selectSessionActive(run: ActionRun | null) {
 /** Owns shared action-input draft binding, agent preparation, and keyboard-run behavior. */
 export function ActionPromptOwner(props: ActionPromptOwnerProps) {
     const {
-        action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore, runValidationError,
-        scheduleStore, settingsStore,
+        action, bindingStore, context, conversationStore, historyStore, inputStore, questionsPanel, resultStore,
+        runValidationError, scheduleStore, settingsStore,
     } = props
     const boundRunId = useBoundRunId(bindingStore)
     const sessionActive = useRunSelector(boundRunId, selectSessionActive)
@@ -137,7 +138,9 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
             convertMessage={inputSnapshot.convertMessage}
             monospace={action.type === 'command'}
             onRunShortcut={handleRunShortcut}
+            plainText={action.type === 'command'}
             promptDraft={promptDraft}
+            questionsPanel={questionsPanel}
             responsePrompts={action.type === 'agent' ? (
                 <ActionPhraseButtonsOwner
                     action={action}

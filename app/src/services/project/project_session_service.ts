@@ -29,10 +29,11 @@ import { projectPersistenceService } from './project_persistence_service'
 import { projectAccessService } from './project_access_service'
 import { createDefaultActionFiles } from '../../project_template/project_template'
 
-/** The five configurable folders, as the setup dialog edits them: sub-folders are relative to `projectFolder`. */
+/** Configurable folders edited by setup; sub-folders are relative to `projectFolder`. */
 export interface ProjectFolderValues {
     actionsFolder: string
     archivedFolder: string
+    diagramsFolder: string
     projectFolder: string
     releasesFolder: string
     workingFolder: string
@@ -128,17 +129,24 @@ export function requireProjectFolderValues(values: ProjectFolderValues): Project
     return {
         actionsFolder: requireSubFolder('Actions folder', values.actionsFolder),
         archivedFolder: requireSubFolder('Archived folder', values.archivedFolder),
+        diagramsFolder: requireSubFolder('Diagrams folder', values.diagramsFolder),
         projectFolder: requireProjectFolder(values.projectFolder),
         releasesFolder: requireSubFolder('Releases folder', values.releasesFolder),
         workingFolder: requireSubFolder('Working folder', values.workingFolder),
     }
 }
 
-/** The four resolved sub-folder paths, in the order the setup dialog lists them. */
+/** Resolved sub-folder paths, in the order the setup dialog lists them. */
 export function resolvedSetupFolders(config: ProjectConfig) {
     const resolvedConfig = resolveProjectConfigPaths(config)
 
-    return [resolvedConfig.workingFolder, resolvedConfig.archivedFolder, resolvedConfig.actionsFolder, resolvedConfig.releasesFolder]
+    return [
+        resolvedConfig.workingFolder,
+        resolvedConfig.archivedFolder,
+        resolvedConfig.actionsFolder,
+        resolvedConfig.releasesFolder,
+        resolvedConfig.diagramsFolder,
+    ]
 }
 
 /** Folder paths represented by repository files. */
@@ -169,6 +177,7 @@ export function folderValuesOf(config: ProjectConfig): ProjectFolderValues {
     return {
         actionsFolder: config.actionsFolder,
         archivedFolder: config.archivedFolder,
+        diagramsFolder: config.diagramsFolder,
         projectFolder: config.projectFolder,
         releasesFolder: config.releasesFolder,
         workingFolder: config.workingFolder,
@@ -553,9 +562,12 @@ export class ProjectSessionService extends EventTarget {
         return this.withLoading('Release preparation failed', () => dataService.releases.getReleaseBranchCandidates())
     }
 
-    async completeRelease(releaseName: string, selectedBranchNames: string[]) {
+    async completeRelease(releaseName: string, selectedBranchNames: string[], includeProjectActivity = false) {
         projectAccessService.requireWritable()
-        await this.withLoading('Release completion failed', () => dataService.releases.completeRelease(releaseName, selectedBranchNames))
+        await this.withLoading(
+            'Release completion failed',
+            () => dataService.releases.completeRelease(releaseName, selectedBranchNames, includeProjectActivity),
+        )
     }
 
     async createCard(draft: CardDraft, initialState: string) {

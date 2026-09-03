@@ -26,6 +26,7 @@ import { mergeConflictService } from './merge_conflict_service'
 import { projectAccessService } from './project_access_service'
 import { createProjectAgentTokenUsageFile, projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
 import { projectStatsService } from '../stats/project_stats_service'
+import { diagramViewService } from '../diagrams/diagram_view_service'
 import { normalizePath } from '../../../../shared/path_utils.mjs'
 import {
     type ExpectedPersistenceOutcome,
@@ -179,6 +180,7 @@ export class ProjectLoading {
         this.dependencies.beginProjectLoad()
         projectAgentTokenUsageService.clear()
         projectStatsService.clear()
+        diagramViewService.clear()
     }
 
     /** Rebind repository watching after storage transport replacement without reloading project data. */
@@ -226,6 +228,7 @@ export class ProjectLoading {
 
             const config = resolveProjectConfigPaths(configService.getProjectConfig())
             projectStatsService.bindProject({ config, project, storage })
+            diagramViewService.bindProject({ config, project, storage })
             if (config.pushMode === 'manual') {
                 await storage.restorePendingCommits?.(project)
                 await this.loadPendingPush(project)
@@ -397,6 +400,7 @@ export class ProjectLoading {
         this.dependencies.resetAgentConversations()
         projectAgentTokenUsageService.clear()
         projectStatsService.clear()
+        diagramViewService.clear()
         this.dependencies.clearLoadedProject()
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath.clear()

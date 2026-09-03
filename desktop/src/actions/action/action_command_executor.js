@@ -103,6 +103,7 @@ function executeCommandAction(input) {
         input.releasesFolder,
         input.activeCardsFolder,
         '',
+        input.diagramFile,
     );
     const onOutput = ({ stderr, stdout }) => input.onOutput({ command, stderr, stdout });
 

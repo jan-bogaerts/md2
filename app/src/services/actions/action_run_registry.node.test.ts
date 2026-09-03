@@ -136,10 +136,15 @@ describe('ActionRunRegistry', () => {
         await started
 
         emit(runEvent('running'))
-        emit({ ...runEvent('completed'), changedPaths: ['app/a.ts', 'desktop/b.js'] })
+        emit({
+            ...runEvent('completed'),
+            changedPaths: ['app/a.ts', 'desktop/b.js'],
+            diagramPath: 'design/diagrams/overview.json',
+        })
 
         await expect(completion).resolves.toEqual({
             changedPaths: ['app/a.ts', 'desktop/b.js'],
+            diagramPath: 'design/diagrams/overview.json',
             logs: [],
             status: 'completed',
         })
@@ -791,7 +796,10 @@ describe('ActionRunRegistry', () => {
         const second = bridgeWithEvents({
             loadActionRunRecoverySnapshot: vi.fn(async () => ({
                 activeRunEvents: [],
-                terminalResults: [{ changedPaths: ['app/recovered.ts'], failure: null, runId: 'run-1', status: 'completed' as const }],
+                terminalResults: [{
+                    changedPaths: ['app/recovered.ts'], diagramPath: 'design/diagrams/recovered.json', failure: null,
+                    runId: 'run-1', status: 'completed' as const,
+                }],
             })),
         })
 
@@ -807,7 +815,7 @@ describe('ActionRunRegistry', () => {
         }))
         expect(store.getSnapshot().logs[0]).toMatchObject({ message: 'build completed', status: 'completed' })
         expect(second.bridge.loadActionRunRecoverySnapshot).toHaveBeenCalledWith(['run-1'])
-        await expect(completion).resolves.toMatchObject({ changedPaths: ['app/recovered.ts'], status: 'completed' })
+        await expect(completion).resolves.toMatchObject({changedPaths: ['app/recovered.ts'], diagramPath: 'design/diagrams/recovered.json', status: 'completed'})
         release()
         service.stop()
     })
@@ -1049,7 +1057,7 @@ describe('ActionRunRegistry prompt drafts', () => {
     it.each(endings)('drops an untouched prepared default after %s', async (_name, endingEvent) => {
         const { emit } = startAgentRun()
         const draft = actionPromptDraftService.getDraft('build', context, 'run-1', { prepare: true })
-        await draft.prepare(async () => 'Prepared default')
+        await draft.prepare(async () => ({ prompt: 'Prepared default' }))
 
         emit(endingEvent)
 

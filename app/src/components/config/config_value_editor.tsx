@@ -46,6 +46,7 @@ const MONOSPACE_INPUT_SLOT_PROPS = { htmlInput: { style: { fontFamily: 'monospac
 const MONOSPACE_CONFIG_KEYS = new Set<ConfigEntry['key']>([
     'project.cardTypes',
     'project.diffCommand',
+    'project.diagramFooter',
     'project.states',
 ])
 
@@ -356,6 +357,8 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
             fullWidth
             helperText={description}
             label={entry.label}
+            minRows={entry.input === 'multiline' ? MULTILINE_CONFIG_FIELD_MIN_ROWS : undefined}
+            multiline={entry.input === 'multiline'}
             onChange={handleStringChange}
             slotProps={usesMonospace ? MONOSPACE_INPUT_SLOT_PROPS : undefined}
             value={stringValue}

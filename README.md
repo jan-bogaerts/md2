@@ -46,7 +46,7 @@ md² starts the CLIs already installed and authenticated on your machine. It doe
 | Agent conversations grouped by chat | Activity grouped by feature |
 | Worktrees identified by folders/windows | Worktrees assigned to cards |
 | Repeated prompts scattered around | Reusable project actions |
-| Token use largely invisible | Cost tracked by action and feature |
+| Token use and subscription value largely invisible | Time, tokens, and estimated cost tracked by agent, action, feature, and release |
 
 ## Docs
 
@@ -90,15 +90,19 @@ Command actions can commit changes, update diagrams, run tests, change card stat
 
 For recurring complex work, an agent can create a script once and md² can reuse it later without spending tokens on the same reasoning every time.
 
-### Token usage tied to actual work
+### Measure AI engineering cost and performance
 
-md² tracks token usage and cost:
+md² connects agent activity to the work that produced it. Compare Claude and Codex by measured time, tokens, tool calls, account usage, and estimated subscription cost:
 
-* per action
-* per feature
-* across the complete project
+* see which features and reusable actions consume the most resources;
+* compare agent and model performance over time;
+* estimate cost per feature, action, or agent;
+* review the current release or a completed release; and
+* export the filtered chart data as CSV.
 
-This makes it easier to understand where agent time and tokens are being spent.
+This makes it easier to find expensive workflows, compare agent configurations, and understand what AI-assisted delivery costs. Cost figures are subscription-based estimates; account usage can also include other projects and direct CLI sessions.
+
+[Learn how project Stats works](https://jan-bogaerts.github.io/md2/guide/stats/).
 
 md² is still an evolving concept — see [design/architecture/initial description](design/architecture/initial%20description) for the original design notes this project is built from.
 

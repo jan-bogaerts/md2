@@ -21,19 +21,9 @@ import { useSentryConnection } from '../hooks/use_sentry_connection'
 import { useSentryImport } from '../hooks/use_sentry_import'
 import { sentryConnectionService, type SentryConnectionSnapshot } from '../../services/sentry/sentry_connection_service'
 import { sentryImportService } from '../../services/sentry/sentry_import_service'
-import type { SentryProjectSettings } from '../../services/sentry/sentry_types'
+import { isSentryConfigurationComplete, type SentryProjectSettings } from '../../services/sentry/sentry_types'
 
 const SENTRY_CONFIG_SECTION_ID = 'sentry'
-
-function settingsComplete(settings: SentryProjectSettings) {
-    return settings.apiBaseUrl.trim().length > 0
-        && settings.apiToken.trim().length > 0
-        && settings.organization.trim().length > 0
-        && settings.project.trim().length > 0
-        && settings.environment.trim().length > 0
-        && settings.cardType.length > 0
-        && settings.cardState.trim().length > 0
-}
 
 interface SentryConfigFormProps {
     connection: SentryConnectionSnapshot
@@ -46,8 +36,11 @@ function SentryConfigForm({ connection }: SentryConfigFormProps) {
     const readOnly = useProjectReadOnly()
     const [draft, setDraft] = useState(connection.settings)
     const controlsDisabled = !project || readOnly || connection.isConnecting
-    const canConnect = !controlsDisabled && settingsComplete(draft)
-    const canImport = !controlsDisabled && connection.isAuthenticated && settingsComplete(connection.settings) && !importState.isPolling
+    const canConnect = !controlsDisabled && isSentryConfigurationComplete(draft)
+    const canImport = !controlsDisabled
+        && connection.isAuthenticated
+        && isSentryConfigurationComplete(connection.settings)
+        && !importState.isPolling
 
     const updateTextField = (field: keyof SentryProjectSettings) => (event: ChangeEvent<HTMLInputElement>) => {
         setDraft((current) => ({ ...current, [field]: event.target.value }))

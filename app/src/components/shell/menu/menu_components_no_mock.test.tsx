@@ -1,0 +1,7 @@
+import './menu.grouped.test'
+import './tab.grouped.test'
+import './section.grouped.test'
+import './menu_select.grouped.test'
+import './mobile_create_menu.grouped.test'
+import './project_name_label.grouped.test'
+import './main_toolbar.grouped.test'

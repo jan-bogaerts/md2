@@ -73,6 +73,47 @@ describe('resolvePlaceholders', () => {
         )).toBe('src/one.js\nsrc/one.js\nsrc/two.js');
     });
 
+    it('resolves diagram-file only for diagram context', () => {
+        const diagramFile = 'C:\\worktrees\\2\\design\\diagrams\\Overview.json';
+
+        expect(resolvePlaceholders(
+            'Save {{diagram-file}}',
+            { kind: 'diagram', type: 'root' },
+            worktreeProject,
+            project,
+            projectFolder,
+            releasesFolder,
+            activeCardsFolder,
+            '',
+            diagramFile,
+        )).toBe(`Save ${diagramFile}`);
+        expect(() => resolvePlaceholders(
+            '{{diagram-file}}',
+            { kind: 'project' },
+            project,
+            project,
+            projectFolder,
+            releasesFolder,
+            activeCardsFolder,
+            '',
+            diagramFile,
+        )).toThrow('outside diagram context');
+    });
+
+    it('resolves parent-node only for child diagram context', () => {
+        const context = { diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Orders', type: 'child' };
+
+        expect(resolvePlaceholders(
+            '{{parent-node}}', context, project, project, projectFolder, releasesFolder, activeCardsFolder, '',
+        )).toBe('Orders');
+        expect(() => resolvePlaceholders(
+            '{{parent-node}}', { kind: 'diagram', type: 'root' }, project, project, projectFolder, releasesFolder, activeCardsFolder, '',
+        )).toThrow('outside child diagram context');
+        expect(() => resolvePlaceholders(
+            '{{parent-node}}', { kind: 'diagram', type: 'child' }, project, project, projectFolder, releasesFolder, activeCardsFolder, '',
+        )).toThrow('without a selected diagram item label');
+    });
+
     it('does not resolve removed placeholder names', () => {
         expect(resolvePlaceholders('{{rootProjectFolder}} {{file}} {{prompt}}', { file: 'design/card.md' }, project, project, projectFolder, releasesFolder, activeCardsFolder, 'focus'))
             .toBe('{{rootProjectFolder}} {{file}} {{prompt}}');
@@ -94,6 +135,24 @@ describe('resolveAgentPrompt', () => {
 
     it('resolves an empty custom prompt', () => {
         expect(resolveAgentPrompt({ prompt: '{{card-prompt}}' }, {}, project, project, projectFolder, releasesFolder, activeCardsFolder, '')).toBe('');
+    });
+
+    it('appends configured diagram footer exactly once before resolution', () => {
+        const context = { kind: 'diagram', type: 'root' };
+        const diagramFile = 'C:\\worktrees\\2\\design\\diagrams\\Overview.json';
+
+        expect(resolveAgentPrompt(
+            { output: { kind: 'diagram' }, prompt: 'Create overview' },
+            context,
+            worktreeProject,
+            project,
+            projectFolder,
+            releasesFolder,
+            activeCardsFolder,
+            '',
+            'Custom footer: save {{diagram-file}}.',
+            diagramFile,
+        )).toBe(`Create overview\n\nCustom footer: save ${diagramFile}.`);
     });
 });
 

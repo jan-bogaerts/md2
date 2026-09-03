@@ -1,0 +1,8 @@
+import './remote_control_connection_info.grouped.test'
+import './remote_control_status_indicator.grouped.test'
+import './remote_control_button.grouped.test'
+import './remote_connect_button.grouped.test'
+import './mobile_main_window.grouped.test'
+import './search/search_card_preview_dialog.grouped.test'
+import './claude_rate_limit_status.grouped.test'
+import './codex_rate_limit_status.grouped.test'

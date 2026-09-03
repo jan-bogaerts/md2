@@ -1,5 +1,5 @@
 title: md² documentation
-description: Local, Git-native workspace for coordinating coding agents.
+description: Coordinate coding agents and track AI-assisted work, usage, and estimated cost by feature.
 theme: jekyll-theme-primer
 plugins:
   - jekyll-relative-links

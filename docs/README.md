@@ -3,6 +3,8 @@
 md² is a local, Git-native workspace for coordinating coding agents, features, worktrees, prompts, commits, and automations. 
 Every card is a Markdown file, every action and log a json file, all in your repository — agents read and write the same files you do.
 
+Know what AI-assisted work costs by agent, action, feature, and release. Stats connects project activity with measured time, tokens, tool calls, account usage, and estimated subscription cost, with filtered CSV export for further analysis.
+
 ![md² board with a card and the action popup open](screenshots/Screenshot%202026-07-23%20180206.jpg)
 
 ## Getting started
@@ -21,6 +23,7 @@ Every card is a Markdown file, every action and log a json file, all in your rep
 | [Project layout](concepts/project-layout.md) | Project, working, actions, releases, archive, activity folders |
 | [Storage modes](concepts/storage-modes.md) | Desktop, remote control, GitHub — and what each can do |
 | [Actions and agents](concepts/actions-and-agents.md) | Why actions exist, one-shot versus streaming, where runs happen |
+| [Usage and cost](concepts/usage-and-cost.md) | How time, tokens, account usage, and subscription-cost estimates are calculated |
 
 ## Using md²
 
@@ -28,6 +31,7 @@ Every card is a Markdown file, every action and log a json file, all in your rep
 | --- | --- |
 | [Board view](guide/board-view.md) | Columns, cards, drag and drop, policies, card popup |
 | [List view](guide/text-view.md) | Tree, tabs, editors, conversation panel |
+| [Stats](guide/stats.md) | Compare activity, agents, models, tokens, account usage, and estimated cost |
 | [Search](guide/search.md) | Text and RegExp search, scopes, results |
 | [Git and commits](guide/git-and-commits.md) | Auto-save, commit, push, pull, per-card commit diffs |
 | [Worktrees](guide/worktrees.md) | Register worktrees, assign to cards, commit and integrate |
@@ -54,4 +58,4 @@ Every card is a Markdown file, every action and log a json file, all in your rep
 
 ## Help
 
-- [Troubleshooting](troubleshooting.md) — disabled run buttons, Git locks, tokens, worktree errors, remote connection problems.
+- [Troubleshooting](troubleshooting.md) — disabled run buttons, Stats data, Git locks, worktree errors, and remote connections.

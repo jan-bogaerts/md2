@@ -1,13 +1,25 @@
 const path = require('node:path');
 const { requireRootPath } = require('../../git/git_commands');
 
-const FOLDER_PLACEHOLDER_NAMES = 'active-cards-folder|worktree-folder|repository-folder|project-folder|releases-folder';
-const CARD_PLACEHOLDER_NAMES = 'card-file|this-card|card-title|card-prompt';
-const CONFLICT_PLACEHOLDER_NAMES = 'conflict-file|conflict-files';
-const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES}|${CONFLICT_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
+const PLACEHOLDER_NAMES = [
+    'active-cards-folder', 'worktree-folder', 'repository-folder', 'project-folder',
+    'releases-folder', 'card-file', 'this-card', 'card-title', 'card-prompt',
+    'conflict-file', 'conflict-files', 'diagram-file', 'parent-node',
+].join('|');
+const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
 
-function resolvePlaceholders(text, context, runProject, primaryProject, projectFolder, releasesFolder, activeCardsFolder, extraPrompt) {
+function resolvePlaceholders(
+    text,
+    context,
+    runProject,
+    primaryProject,
+    projectFolder,
+    releasesFolder,
+    activeCardsFolder,
+    extraPrompt,
+    diagramFile,
+) {
     return text.replace(PLACEHOLDER_PATTERN, (_match, name) => {
         if (name === 'active-cards-folder') {
             if (typeof activeCardsFolder !== 'string' || activeCardsFolder.length === 0) {
@@ -35,6 +47,24 @@ function resolvePlaceholders(text, context, runProject, primaryProject, projectF
             return path.resolve(requireRootPath(primaryProject), releasesFolder);
         }
         if (name === 'card-prompt') return extraPrompt;
+        if (name === 'diagram-file') {
+            if (context.kind !== 'diagram') throw new Error('Cannot resolve diagram-file placeholder outside diagram context');
+            if (typeof diagramFile !== 'string' || diagramFile.length === 0) {
+                throw new Error('Cannot resolve diagram-file placeholder without a diagram output path');
+            }
+
+            return diagramFile;
+        }
+        if (name === 'parent-node') {
+            if (context.kind !== 'diagram' || context.type !== 'child') {
+                throw new Error('Cannot resolve parent-node placeholder outside child diagram context');
+            }
+            if (!context.parentNode) {
+                throw new Error('Cannot resolve parent-node placeholder without a selected diagram item label');
+            }
+
+            return context.parentNode;
+        }
         if (name === 'conflict-file') {
             if (!context.conflictFile) throw new Error('Cannot resolve conflict-file placeholder without a selected conflict file');
 
@@ -56,9 +86,28 @@ function resolvePlaceholders(text, context, runProject, primaryProject, projectF
     });
 }
 
-function resolveAgentPrompt(action, context, runProject, primaryProject, projectFolder, releasesFolder, activeCardsFolder, extraPrompt) {
+function composeAgentPrompt(prompt, output, diagramFooter) {
+    if (output?.kind !== 'diagram') return prompt;
+    if (typeof diagramFooter !== 'string' || diagramFooter.length === 0) throw new Error('Missing diagram footer');
+
+    return `${prompt}\n\n${diagramFooter}`;
+}
+
+function resolveAgentPrompt(
+    action,
+    context,
+    runProject,
+    primaryProject,
+    projectFolder,
+    releasesFolder,
+    activeCardsFolder,
+    extraPrompt,
+    diagramFooter,
+    diagramFile,
+) {
+    const composedPrompt = composeAgentPrompt(action.prompt, action.output, diagramFooter);
     const prompt = resolvePlaceholders(
-        action.prompt,
+        composedPrompt,
         context,
         runProject,
         primaryProject,
@@ -66,6 +115,7 @@ function resolveAgentPrompt(action, context, runProject, primaryProject, project
         releasesFolder,
         activeCardsFolder,
         extraPrompt,
+        diagramFile,
     );
     if (CARD_PROMPT_PLACEHOLDER_PATTERN.test(action.prompt) || extraPrompt.trim().length === 0) return prompt;
 
@@ -73,7 +123,7 @@ function resolveAgentPrompt(action, context, runProject, primaryProject, project
 }
 
 /** Resolves recognized placeholders entered in the editable agent popup prompt. */
-function resolvePopupPrompt(text, context, runProject, primaryProject, projectFolder, releasesFolder, activeCardsFolder) {
+function resolvePopupPrompt(text, context, runProject, primaryProject, projectFolder, releasesFolder, activeCardsFolder, diagramFile) {
     return resolvePlaceholders(
         text,
         context,
@@ -83,7 +133,8 @@ function resolvePopupPrompt(text, context, runProject, primaryProject, projectFo
         releasesFolder,
         activeCardsFolder,
         '',
+        diagramFile,
     );
 }
 
-module.exports = { resolveAgentPrompt, resolvePlaceholders, resolvePopupPrompt };
+module.exports = { composeAgentPrompt, resolveAgentPrompt, resolvePlaceholders, resolvePopupPrompt };

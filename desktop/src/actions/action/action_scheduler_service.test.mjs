@@ -238,6 +238,41 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.runCommand).not.toHaveBeenCalled();
     });
 
+    it('loads configured diagram folder and footer into action runner', async () => {
+        const localGitService = createLocalGitService([], undefined, {
+            diagramFooter: 'Custom diagram instructions. Save to {{diagram-file}}.',
+            diagramsFolder: 'visuals',
+            projectFolder: 'design',
+        });
+        const scheduler = createScheduler(localGitService);
+
+        await scheduler.startProject(project);
+
+        expect(scheduler.actionRunnerService.diagramsFolder).toBe('design/visuals');
+        expect(scheduler.actionRunnerService.diagramFooter).toBe('Custom diagram instructions. Save to {{diagram-file}}.');
+    });
+
+    it('uses versioned JSON contract in default diagram footer', async () => {
+        const scheduler = createScheduler(createLocalGitService([]));
+
+        await scheduler.startProject(project);
+
+        expect(scheduler.actionRunnerService.diagramFooter).toContain('Save one version 1 JSON object');
+        expect(scheduler.actionRunnerService.diagramFooter).toContain('architecture, dependency, sequence, flow, entity');
+        expect(scheduler.actionRunnerService.diagramFooter).toContain('do not create SVG or markup');
+    });
+
+    it.each([
+        [{ diagramsFolder: '' }, 'Invalid project diagramsFolder'],
+        [{ diagramFooter: '' }, 'Invalid project diagramFooter'],
+        [{ diagramFooter: 'Create JSON output.' }, 'requires {{diagram-file}} placeholder'],
+    ])('rejects invalid diagram config %#', async (projectConfig, message) => {
+        const localGitService = createLocalGitService([], undefined, projectConfig);
+        const scheduler = createScheduler(localGitService);
+
+        await expect(scheduler.startProject(project)).rejects.toThrow(message);
+    });
+
     it('fires a due schedule and marks it done', async () => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
         const localGitService = createLocalGitService([schedule]);

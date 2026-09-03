@@ -25,6 +25,7 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
     } = runtime
     const boundRunId = useBoundRunId(bindingStore)
     const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
+    const question = useRunSelector(boundRunId, (run) => run?.question ?? null)
     const visible = action.type === 'agent' || activeActionType === 'agent'
     const displayedUsageValuesService = action.type === 'agent'
         && assignmentContext.kind === 'card'
@@ -54,13 +55,13 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
                     conversationStore={conversationStore}
                     historyStore={historyStore}
                     inputStore={inputStore}
+                    questionsPanel={question ? <ActionAgentQuestionOwner bindingStore={bindingStore} /> : null}
                     settingsStore={settingsStore}
                     resultStore={resultStore}
                     runValidationError={runValidationError}
                     scheduleStore={scheduleStore}
                 />
                 <ActionAgentApprovals bindingStore={bindingStore} />
-                <ActionAgentQuestionOwner bindingStore={bindingStore} />
             </Stack>
         </Stack>
     )

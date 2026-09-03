@@ -1,4 +1,4 @@
-import { Box, MenuItem, Select, Typography } from '@mui/material'
+import { Box, MenuItem, Select } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { StateConfig } from '../../data/data_types'
 import { statusOf } from '../../data/card_ordering'
@@ -40,7 +40,6 @@ export function CardStateSelector(props: CardStateSelectorProps) {
 
     return (
         <Box data-card-state-selector="true" sx={{ display: 'flex', flexDirection: 'column', flexShrink: 0, gap: 0.5 }}>
-            <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 600 }}>State</Typography>
             <Select
                 disabled={disabled}
                 inputProps={{ 'aria-label': 'Card state' }}

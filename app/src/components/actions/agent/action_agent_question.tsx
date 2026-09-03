@@ -11,15 +11,31 @@ interface ActionAgentQuestionProps {
     questions: AgentQuestion[]
 }
 
+/** One question is answered either by picking a provider option or by typing a custom answer. */
+type QuestionAnswer =
+    | { kind: 'option', label: string }
+    | { kind: 'other', text: string }
+
+/** Reserved select value marking the synthetic `Other` entry; never submitted as an answer. */
+const OTHER_OPTION_VALUE = '__md2_other_option__'
+
+const isComplete = (answer: QuestionAnswer | undefined) => {
+    if (!answer) return false
+    return answer.kind === 'option' ? true : answer.text.trim().length > 0
+}
+
+const submittedValue = (answer: QuestionAnswer) => (answer.kind === 'option' ? answer.label : answer.text)
+
 /** Structured provider questions shown while a streaming turn waits for user input. */
 export function ActionAgentQuestion({ onAnswer, onDismiss, questions }: ActionAgentQuestionProps) {
-    const [answers, setAnswers] = useState<Record<string, string>>({})
+    const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>({})
     const [submitting, setSubmitting] = useState(false)
-    const complete = questions.every(({ id }) => (answers[id] ?? '').trim().length > 0)
+    const complete = questions.every(({ id }) => isComplete(answers[id]))
     const handleTextChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         try {
             if (!event.target.name) throw new Error('Missing structured question id')
-            setAnswers((current) => ({ ...current, [event.target.name]: event.target.value }))
+            const { name, value } = event.target
+            setAnswers((current) => ({ ...current, [name]: { kind: 'other', text: value } }))
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Question answer could not be updated' })
         }
@@ -27,7 +43,11 @@ export function ActionAgentQuestion({ onAnswer, onDismiss, questions }: ActionAg
     const handleSelectChange = (event: SelectChangeEvent) => {
         try {
             if (!event.target.name) throw new Error('Missing structured question id')
-            setAnswers((current) => ({ ...current, [event.target.name]: event.target.value }))
+            const { name, value } = event.target
+            const answer: QuestionAnswer = value === OTHER_OPTION_VALUE
+                ? { kind: 'other', text: '' }
+                : { kind: 'option', label: value }
+            setAnswers((current) => ({ ...current, [name]: answer }))
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Question answer could not be updated' })
         }
@@ -35,7 +55,8 @@ export function ActionAgentQuestion({ onAnswer, onDismiss, questions }: ActionAg
     const handleOtherChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         try {
             if (!event.target.name) throw new Error('Missing structured question id')
-            setAnswers((current) => ({ ...current, [event.target.name]: event.target.value }))
+            const { name, value } = event.target
+            setAnswers((current) => ({ ...current, [name]: { kind: 'other', text: value } }))
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Other question answer could not be updated' })
         }
@@ -51,7 +72,9 @@ export function ActionAgentQuestion({ onAnswer, onDismiss, questions }: ActionAg
         }
     }
     const handleSubmit = async () => {
-        const submittedAnswers = Object.fromEntries(Object.entries(answers).map(([id, answer]) => [id, [answer]]))
+        const submittedAnswers = Object.fromEntries(
+            Object.entries(answers).map(([id, answer]) => [id, [submittedValue(answer)]]),
+        )
         await submitAnswers(submittedAnswers)
     }
     const handleOptionClick = async (event: MouseEvent<HTMLButtonElement>) => {
@@ -67,6 +90,15 @@ export function ActionAgentQuestion({ onAnswer, onDismiss, questions }: ActionAg
 
         await submitAnswers({ [singleQuestion.id]: [option] })
     }
+    const handleOtherClick = (event: MouseEvent<HTMLButtonElement>) => {
+        try {
+            const questionId = event.currentTarget.dataset.question
+            if (!questionId) throw new Error('Missing structured question id')
+            setAnswers((current) => ({ ...current, [questionId]: { kind: 'other', text: '' } }))
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Other question answer could not be started' })
+        }
+    }
     const handleDismiss = async () => {
         setSubmitting(true)
         try {
@@ -79,6 +111,7 @@ export function ActionAgentQuestion({ onAnswer, onDismiss, questions }: ActionAg
     }
     const singleQuestion = questions.length === 1 ? questions[0] : null
     if (singleQuestion?.options?.length) {
+        const singleAnswer = answers[singleQuestion.id]
         return (
             <Stack spacing={1.5} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
                 <Typography color="text.secondary" variant="caption">{singleQuestion.header}</Typography>
@@ -96,28 +129,39 @@ export function ActionAgentQuestion({ onAnswer, onDismiss, questions }: ActionAg
                             {option.label}
                         </Button>
                     ))}
-                </Stack>
-                <Stack direction="row" spacing={1}>
-                    <TextField
-                        autoComplete="off"
-                        fullWidth
-                        name={singleQuestion.id}
-                        onChange={handleOtherChange}
-                        placeholder="Other"
-                        size="small"
-                        slotProps={{ htmlInput: { 'aria-label': `Other answer for ${singleQuestion.question}` } }}
-                        type={singleQuestion.isSecret ? 'password' : 'text'}
-                        value={answers[singleQuestion.id] ?? ''}
-                    />
                     <Button
-                        disabled={!complete || submitting}
-                        onClick={handleSubmit}
+                        data-question={singleQuestion.id}
+                        disabled={submitting}
+                        onClick={handleOtherClick}
                         size="small"
-                        variant="contained"
+                        variant="outlined"
                     >
-                        Submit
+                        Other
                     </Button>
                 </Stack>
+                {singleAnswer?.kind === 'other' ? (
+                    <Stack direction="row" spacing={1}>
+                        <TextField
+                            autoComplete="off"
+                            fullWidth
+                            name={singleQuestion.id}
+                            onChange={handleOtherChange}
+                            placeholder="Other"
+                            size="small"
+                            slotProps={{ htmlInput: { 'aria-label': `Other answer for ${singleQuestion.question}` } }}
+                            type={singleQuestion.isSecret ? 'password' : 'text'}
+                            value={singleAnswer.text}
+                        />
+                        <Button
+                            disabled={!complete || submitting}
+                            onClick={handleSubmit}
+                            size="small"
+                            variant="contained"
+                        >
+                            Submit
+                        </Button>
+                    </Stack>
+                ) : null}
                 <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
                     <Button disabled={submitting} onClick={handleDismiss} size="small" variant="outlined">
                         Cancel questions
@@ -129,49 +173,53 @@ export function ActionAgentQuestion({ onAnswer, onDismiss, questions }: ActionAg
 
     return (
         <Stack spacing={1.5} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
-            {questions.map((question) => (
-                <Stack key={question.id} spacing={0.75}>
-                    <Typography color="text.secondary" variant="caption">{question.header}</Typography>
-                    <Typography color="text.primary" variant="body2">{question.question}</Typography>
-                    {question.options?.length ? (
-                        <Select
-                            aria-label={question.question}
-                            name={question.id}
-                            onChange={handleSelectChange}
-                            size="small"
-                            value={question.options.some(({ label }) => label === answers[question.id]) ? answers[question.id] : ''}
-                        >
-                            {question.options.map((option) => (
-                                <MenuItem key={option.label} value={option.label}>
-                                    {option.label}{option.description ? ` — ${option.description}` : ''}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    ) : (
-                        <TextField
-                            autoComplete="off"
-                            name={question.id}
-                            onChange={handleTextChange}
-                            size="small"
-                            slotProps={{ htmlInput: { 'aria-label': question.question } }}
-                            type={question.isSecret ? 'password' : 'text'}
-                            value={answers[question.id] ?? ''}
-                        />
-                    )}
-                    {question.options?.length ? (
-                        <TextField
-                            autoComplete="off"
-                            name={question.id}
-                            onChange={handleOtherChange}
-                            placeholder="Other"
-                            size="small"
-                            slotProps={{ htmlInput: { 'aria-label': `Other answer for ${question.question}` } }}
-                            type={question.isSecret ? 'password' : 'text'}
-                            value={question.options.some(({ label }) => label === answers[question.id]) ? '' : answers[question.id] ?? ''}
-                        />
-                    ) : null}
-                </Stack>
-            ))}
+            {questions.map((question) => {
+                const answer = answers[question.id]
+                return (
+                    <Stack key={question.id} spacing={0.75}>
+                        <Typography color="text.secondary" variant="caption">{question.header}</Typography>
+                        <Typography color="text.primary" variant="body2">{question.question}</Typography>
+                        {question.options?.length ? (
+                            <Select
+                                aria-label={question.question}
+                                name={question.id}
+                                onChange={handleSelectChange}
+                                size="small"
+                                value={answer ? (answer.kind === 'option' ? answer.label : OTHER_OPTION_VALUE) : ''}
+                            >
+                                {question.options.map((option) => (
+                                    <MenuItem key={option.label} value={option.label}>
+                                        {option.label}{option.description ? ` — ${option.description}` : ''}
+                                    </MenuItem>
+                                ))}
+                                <MenuItem value={OTHER_OPTION_VALUE}>Other</MenuItem>
+                            </Select>
+                        ) : (
+                            <TextField
+                                autoComplete="off"
+                                name={question.id}
+                                onChange={handleTextChange}
+                                size="small"
+                                slotProps={{ htmlInput: { 'aria-label': question.question } }}
+                                type={question.isSecret ? 'password' : 'text'}
+                                value={answer?.kind === 'other' ? answer.text : ''}
+                            />
+                        )}
+                        {question.options?.length && answer?.kind === 'other' ? (
+                            <TextField
+                                autoComplete="off"
+                                name={question.id}
+                                onChange={handleOtherChange}
+                                placeholder="Other"
+                                size="small"
+                                slotProps={{ htmlInput: { 'aria-label': `Other answer for ${question.question}` } }}
+                                type={question.isSecret ? 'password' : 'text'}
+                                value={answer.text}
+                            />
+                        ) : null}
+                    </Stack>
+                )
+            })}
             <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
                 <Button disabled={submitting} onClick={handleDismiss} size="small" variant="outlined">
                     Cancel questions

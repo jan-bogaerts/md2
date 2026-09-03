@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
     ACTION_CONTEXT_FILTER_DESCRIPTORS,
+    actionContextIdentity,
     actionMatchesContext,
     actionsForContext,
     cardContext,
+    diagramContext,
     displayActionsForContext,
     fileContext,
     folderContext,
@@ -90,6 +92,8 @@ describe('action context filter descriptors', () => {
         })
         expect(ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => key === 'kind')?.supportedContextKinds)
             .toContain('merge-conflict')
+        expect(ACTION_CONTEXT_FILTER_DESCRIPTORS.find(({ key }) => key === 'type')?.supportedContextKinds)
+            .toContain('diagram')
     })
 
     it('requires a non-empty filter value', () => {
@@ -128,6 +132,19 @@ describe('cardContext / fileContext / folderContext / projectContext', () => {
         expect(projectContext()).toEqual({ kind: 'project' })
     })
 
+    it('builds root and child diagram contexts', () => {
+        expect(diagramContext('root')).toEqual({ kind: 'diagram', type: 'root' })
+        expect(diagramContext('child', 'diagram-1', 'item-1', 'Orders')).toEqual({diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Orders', type: 'child'})
+    })
+
+    it('uses diagram and item IDs in child context identity without changing root identity scope', () => {
+        expect(actionContextIdentity(diagramContext('root'))).toBe('diagram\0root\0\0')
+        expect(actionContextIdentity(diagramContext('child', 'diagram-1', 'item-1', 'Orders')))
+            .toBe('diagram\0child\0diagram-1\0item-1')
+        expect(actionContextIdentity(diagramContext('child', 'diagram-1', 'item-2', 'Orders')))
+            .not.toBe(actionContextIdentity(diagramContext('child', 'diagram-1', 'item-1', 'Orders')))
+    })
+
     it('adds and removes a project-session worktree assignment', () => {
         expect(projectContextWithWorktree(projectContext(), 2)).toEqual({ kind: 'project', worktree: '2' })
         expect(projectContextWithWorktree({ kind: 'project', worktree: '2' }, null)).toEqual({ kind: 'project' })
@@ -158,6 +175,23 @@ describe('actionMatchesContext', () => {
 })
 
 describe('actionsForContext', () => {
+    it('matches diagram actions by root or child type', () => {
+        const actions = [
+            action('root', { kind: 'diagram', type: 'root' }),
+            action('child', { kind: 'diagram', type: 'child' }),
+            action('project', { kind: 'project' }),
+        ]
+
+        expect(actionsForContext(actions, diagramContext('root')).map(({ id }) => id)).toEqual(['action-root'])
+        expect(actionsForContext(actions, diagramContext('child', 'diagram-1', 'item-1', 'Orders')).map(({ id }) => id)).toEqual(['action-child'])
+    })
+
+    it('keeps generic and built-in custom actions out of diagram selectors', () => {
+        const actions = [BUILTIN_CUSTOM_PROMPT, action('generic', null), action('root', { kind: 'diagram', type: 'root' })]
+
+        expect(actionsForContext(actions, diagramContext('root')).map(({ id }) => id)).toEqual(['action-root'])
+    })
+
     it('keeps only matching actions in load order and always includes custom prompt', () => {
         const actions = [
             BUILTIN_CUSTOM_PROMPT,

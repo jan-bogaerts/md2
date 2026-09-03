@@ -29,12 +29,12 @@ export function MobileMainWindow(props: MobileMainWindowProps) {
     const updateDrawerVisibility = useCallback(() => {
         const viewMode = workspaceViewService.getSnapshot().viewMode
         const isTextView = viewMode === 'text'
-        const isStatsView = viewMode === 'stats'
+        const isFullWorkspaceView = viewMode === 'diagrams' || viewMode === 'stats'
         if (navigationElementRef.current) {
-            navigationElementRef.current.style.display = !isStatsView && (isTextView || showNavigationInCards) ? 'flex' : 'none'
+            navigationElementRef.current.style.display = !isFullWorkspaceView && (isTextView || showNavigationInCards) ? 'flex' : 'none'
         }
         if (cardNavigationElementRef.current) {
-            cardNavigationElementRef.current.style.display = !isStatsView && !isTextView && !showNavigationInCards ? 'block' : 'none'
+            cardNavigationElementRef.current.style.display = !isFullWorkspaceView && !isTextView && !showNavigationInCards ? 'block' : 'none'
         }
     }, [showNavigationInCards])
     const handleNavigationElement = useCallback((element: HTMLDivElement | null) => {

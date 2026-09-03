@@ -97,7 +97,7 @@ describe('ActionService', () => {
         service.loadFromFiles([file(definition)])
         const context = { cardInternalId: 'card-1', kind: 'card' as const }
         const cachedDraft = actionPromptDraftService.getDraft(definition.id, context, null, { prepare: true })
-        await cachedDraft.prepare(async () => definition.prompt as string)
+        await cachedDraft.prepare(async () => ({ prompt: definition.prompt as string }))
 
         await service.saveDefinition('actions/action.json', { ...definition, prompt: 'New prompt' })
 

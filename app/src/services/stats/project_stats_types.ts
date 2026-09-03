@@ -55,6 +55,7 @@ export interface StatsControls {
     performanceGrouping: StatsPerformanceGrouping;
     performanceMetric: StatsPerformanceMetric;
     performanceModelIds: string[];
+    releaseIdentity: string;
     startUtc: string | null;
     totalsGrouping: StatsTotalsGrouping;
     totalsMetric: StatsTotalsMetric;
@@ -110,6 +111,10 @@ export interface StatsOption {
     label: string;
 }
 
+export interface StatsReleaseOption extends StatsOption {
+    releaseName: string | null;
+}
+
 export interface StatsAccountSeriesOption {
     identity: string;
     limitId: string;
@@ -123,6 +128,7 @@ export interface StatsOptions {
     actions: StatsOption[];
     agents: StatsOption[];
     models: StatsOption[];
+    releases: StatsReleaseOption[];
 }
 
 export interface ProjectStatsSnapshot {
@@ -143,11 +149,14 @@ export interface LoadedStatsSource {
     accountRows: UsageMetricsAccountRow[];
     agentProfiles: AgentProfile[];
     cards: StatsCardDescriptor[];
-    stats: ReleaseStats;
+    currentStats: ReleaseStats;
+    releaseStats: Record<string, ReleaseStats>;
     tokenRows: UsageMetricsTokenRow[];
     tokenTimeAvailable: boolean;
     warnings: string[];
 }
+
+export type StatsDatasetSource = Omit<LoadedStatsSource, 'currentStats' | 'releaseStats'> & { stats: ReleaseStats };
 
 export interface StatsProjectBinding {
     config: ProjectConfig;
@@ -156,7 +165,8 @@ export interface StatsProjectBinding {
 }
 
 export const TERMINAL_CONVERSATION_STATUSES = new Set(['cancelled', 'completed', 'failed']);
-export const EMPTY_OPTIONS: StatsOptions = { accountSeries: [], actions: [], agents: [], models: [] };
+export const CURRENT_RELEASE_IDENTITY = 'current-release';
+export const EMPTY_OPTIONS: StatsOptions = {accountSeries: [], actions: [], agents: [], models: [], releases: []};
 export const INITIAL_CONTROLS: StatsControls = {
     activityGranularity: 'day',
     activityMetric: 'actions',
@@ -169,6 +179,7 @@ export const INITIAL_CONTROLS: StatsControls = {
     performanceGrouping: 'agent',
     performanceMetric: 'duration',
     performanceModelIds: [],
+    releaseIdentity: CURRENT_RELEASE_IDENTITY,
     startUtc: null,
     totalsGrouping: 'card',
     totalsMetric: 'duration',

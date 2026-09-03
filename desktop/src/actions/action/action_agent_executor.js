@@ -58,15 +58,29 @@ class ActionAgentExecutor {
             ?.find(({ agent }) => agent === resolvedAgent.agent) ?? null;
         const hasPromptOverride = Object.hasOwn(input.runInput, 'prompt');
         const basePrompt = hasPromptOverride
-            ? resolvePopupPrompt(
-                input.runInput.prompt,
-                input.context,
-                input.project,
-                input.primaryProject,
-                input.projectFolder,
-                input.releasesFolder,
-                input.activeCardsFolder,
-            )
+            ? input.action.output?.kind === 'diagram' && !input.runInput.diagramPath
+                ? resolveAgentPrompt(
+                    { output: input.action.output, prompt: input.runInput.prompt },
+                    input.context,
+                    input.project,
+                    input.primaryProject,
+                    input.projectFolder,
+                    input.releasesFolder,
+                    input.activeCardsFolder,
+                    '',
+                    input.diagramFooter,
+                    input.diagramFile,
+                )
+                : resolvePopupPrompt(
+                    input.runInput.prompt,
+                    input.context,
+                    input.project,
+                    input.primaryProject,
+                    input.projectFolder,
+                    input.releasesFolder,
+                    input.activeCardsFolder,
+                    input.diagramFile,
+                )
             : sourceConversation
                 ? input.runInput.extraPrompt.trim().length > 0 ? input.runInput.extraPrompt : CONTINUE_INPUT
                 : resolveAgentPrompt(
@@ -78,6 +92,8 @@ class ActionAgentExecutor {
                     input.releasesFolder,
                     input.activeCardsFolder,
                     input.runInput.extraPrompt,
+                    input.diagramFooter,
+                    input.diagramFile,
                 );
         const prompt = await appendCurrentCardReferences(
             basePrompt,

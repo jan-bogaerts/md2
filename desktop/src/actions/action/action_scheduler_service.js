@@ -3,6 +3,8 @@ const { appendActionSchedule, findPendingSchedule, updateActionScheduleStatus } 
 const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = require('../schedule/schedule_timers');
 
 const DEFAULT_ACTIONS_FOLDER = 'actions';
+const DEFAULT_DIAGRAMS_FOLDER = 'diagrams';
+const DEFAULT_DIAGRAM_FOOTER = 'Use the diagram skill as design guidance. Save one version 1 JSON object to {{diagram-file}}; do not create SVG or markup. Use meta { version: 1, type, title, description, optional legend: [{ label, role }], and preset for flow }, nodes [{ id, label, role, optional kind, sublabel, tag, drilldown, fields: [{ name, optional type, key }], x, y, width, height }], edges [{ id, from, to, kind, optional label, waypoints: [{ x, y }], fromCardinality, toCardinality }], optional groups [{ id, label, nodeIds }], and optional sequence fragments [{ id, operator: alt|opt|loop, regions: [{ guard, edgeIds }] }]. Set drilldown to false only for non-selectable nodes. Node and edge ids must be unique together. Supported types: architecture, dependency, sequence, flow, entity. Supported roles: focal, backend, store, external, input, optional, boundary. Supported node kinds: component, participant, step, decision, start, end, state, entity; flow nodes require a kind. Supported edge kinds: connection, data, dependency, cycle, call, return, async, success, flow, transition, relationship. Flow preset must be flowchart or state. Entity field keys are primary or foreign; cardinalities are 1, N, 0..1, or 1..*.';
 const DEFAULT_PROJECT_FOLDER = '';
 const DEFAULT_RELEASES_FOLDER = 'releases';
 const DEFAULT_WORKING_FOLDER = 'active';
@@ -69,7 +71,8 @@ class ActionSchedulerService {
 
     async startProject(project) {
         this.project = requireProject(project);
-        const { actionsFolder, activeCardsFolder, projectFolder, releasesFolder } = await this.loadProjectPaths();
+        const projectPaths = await this.loadProjectPaths();
+        const { actionsFolder, activeCardsFolder, diagramFooter, diagramsFolder, projectFolder, releasesFolder } = projectPaths;
         this.actionsFolder = actionsFolder;
         this.projectFolder = projectFolder;
         await this.actionRunnerService.startProject(
@@ -78,6 +81,8 @@ class ActionSchedulerService {
             this.projectFolder,
             releasesFolder,
             activeCardsFolder,
+            diagramsFolder,
+            diagramFooter,
         );
         await this.reconcile();
     }
@@ -232,6 +237,15 @@ class ActionSchedulerService {
             throw new Error('Invalid project releasesFolder');
         }
         const releasesFolder = resolveProjectFolderPath(projectFolder, configuredReleasesFolder);
+        const configuredDiagramsFolder = config?.diagramsFolder ?? DEFAULT_DIAGRAMS_FOLDER;
+        if (typeof configuredDiagramsFolder !== 'string' || configuredDiagramsFolder.length === 0) {
+            throw new Error('Invalid project diagramsFolder');
+        }
+        const diagramsFolder = resolveProjectFolderPath(projectFolder, configuredDiagramsFolder);
+        const diagramFooter = config?.diagramFooter ?? DEFAULT_DIAGRAM_FOOTER;
+        if (typeof diagramFooter !== 'string' || diagramFooter.length === 0 || !diagramFooter.includes('{{diagram-file}}')) {
+            throw new Error('Invalid project diagramFooter: requires {{diagram-file}} placeholder');
+        }
         const configuredWorkingFolder = config?.workingFolder ?? DEFAULT_WORKING_FOLDER;
         if (typeof configuredWorkingFolder !== 'string' || configuredWorkingFolder.length === 0) {
             throw new Error('Invalid project workingFolder');
@@ -245,6 +259,8 @@ class ActionSchedulerService {
             return {
                 actionsFolder: resolveProjectFolderPath(projectFolder, config.actionsFolder),
                 activeCardsFolder,
+                diagramFooter,
+                diagramsFolder,
                 projectFolder,
                 releasesFolder,
             };
@@ -253,6 +269,8 @@ class ActionSchedulerService {
         return {
             actionsFolder: resolveProjectFolderPath(projectFolder, DEFAULT_ACTIONS_FOLDER),
             activeCardsFolder,
+            diagramFooter,
+            diagramsFolder,
             projectFolder,
             releasesFolder,
         };

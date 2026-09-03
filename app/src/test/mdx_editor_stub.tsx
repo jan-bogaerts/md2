@@ -30,6 +30,8 @@ import {
 } from 'lexical'
 import { testLexicalEditor } from './lexical_composer_context_stub'
 
+const PLAIN_TEXT_COMPOSER_CHILD = 'MarkdownPlainTextPlugin'
+
 /**
  * Lightweight stand-in for `@mdxeditor/editor` used in jsdom tests. The real
  * editor is Lexical/`contenteditable`-based and does not render meaningfully
@@ -101,6 +103,7 @@ class StubRealm {
                 'MarkdownDocumentHistoryPlugin',
                 'MarkdownLocalTextSearchPlugin',
                 'MarkdownPastePlugin',
+                PLAIN_TEXT_COMPOSER_CHILD,
             ]
             if (supportedComposerChildren.includes(ComposerChild.name)) this.composerChildren.push(ComposerChild)
             return
@@ -165,8 +168,40 @@ function setTestLexicalMarkdownSelection(markdown: string, start: number, end: n
     setTestLexicalSelection(renderedText, renderedStart, renderedEnd)
 }
 
+/**
+ * Mimics the escaping `mdast-util-to-markdown` applies when MDXEditor re-serializes its node tree,
+ * so plain-text mode can be told apart from Markdown mode in tests.
+ */
+function escapeStubMarkdown(text: string) {
+    return text
+        .replace(/[_*[\]`#~]/g, (character) => `\\${character}`)
+        .replace(/^- /gm, '* ')
+}
+
+function setTestLexicalText(text: string) {
+    testLexicalEditor.update(() => {
+        const root = $getRoot()
+        root.clear()
+        root.append($createParagraphNode().append($createTextNode(text)))
+    }, { discrete: true })
+}
+
 function getTestLexicalText() {
     return testLexicalEditor.getEditorState().read(() => $getRoot().getTextContent())
+}
+
+/**
+ * In plain-text mode the visible text lives in the Lexical tree and `onChange` carries the escaped
+ * Markdown serialization, mirroring how the real editor separates the two.
+ */
+function emitStubChange(plainTextMode: boolean, onChange: ((markdown: string) => void) | undefined, text: string) {
+    if (!plainTextMode) {
+        onChange?.(text)
+        return
+    }
+
+    setTestLexicalText(text)
+    onChange?.(escapeStubMarkdown(text))
 }
 
 export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
@@ -197,6 +232,7 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
 
             return editorRealm
         })
+        const plainTextMode = realm.composerChildren.some(({ name }) => name === PLAIN_TEXT_COMPOSER_CHILD)
 
         useImperativeHandle(ref, () => ({
             focus: (callbackFn, opts) => {
@@ -210,7 +246,9 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
                 }
                 callbackFn?.()
             },
-            getMarkdown: () => latestMarkdownRef.current,
+            getMarkdown: () => plainTextMode
+                ? escapeStubMarkdown(latestMarkdownRef.current)
+                : latestMarkdownRef.current,
             getSelectionMarkdown: () => latestMarkdownRef.current.slice(
                 selectionStartRef.current,
                 selectionEndRef.current,
@@ -223,13 +261,13 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
                 selectionStartRef.current += markdownToInsert.length
                 selectionEndRef.current = selectionStartRef.current
                 setRenderedMarkdown(nextMarkdown)
-                onChange?.(nextMarkdown)
+                emitStubChange(plainTextMode, onChange, nextMarkdown)
             },
             setMarkdown: (nextMarkdown: string) => {
                 latestMarkdownRef.current = nextMarkdown
                 setRenderedMarkdown(nextMarkdown)
             },
-        }), [onChange])
+        }), [onChange, plainTextMode])
 
         useEffect(() => {
             for (const plugin of plugins) plugin.definition?.update?.(realm, plugin.params)
@@ -251,6 +289,16 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
             })
         }), [])
 
+        useEffect(() => {
+            if (!plainTextMode) return
+
+            return testLexicalEditor.registerUpdateListener(() => {
+                const text = getTestLexicalText()
+                latestMarkdownRef.current = text
+                setRenderedMarkdown(text)
+            })
+        }, [plainTextMode])
+
         const prepareLexicalSelection = (start: number, end: number) => {
             suppressSelectionMirrorRef.current = true
             setTestLexicalMarkdownSelection(latestMarkdownRef.current, start, end)
@@ -269,7 +317,7 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
         const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
             latestMarkdownRef.current = event.target.value
             setRenderedMarkdown(event.target.value)
-            onChange?.(event.target.value)
+            emitStubChange(plainTextMode, onChange, event.target.value)
         }
 
         const updateSelection = (event: SyntheticEvent<HTMLTextAreaElement>) => {

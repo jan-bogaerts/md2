@@ -43,6 +43,7 @@ At startup md² checks whether these executables are on the PATH and enables or 
   "command": ["my-agent", "--flag"],
   "models": ["fast", "smart"],
   "defaultModel": "smart",
+  "monthlySubscriptionCostUsd": 100,
   "modelArgument": "--model",
   "resumeCommand": ["my-agent", "resume", "{{sessionId}}"]
 }
@@ -54,10 +55,13 @@ At startup md² checks whether these executables are on the PATH and enables or 
 | `command` | yes | Executable and arguments, as an array. |
 | `models` | yes | Non-empty list of model names offered for this profile. |
 | `defaultModel` | no | One of `models`. Defaults to the first entry. |
+| `monthlySubscriptionCostUsd` | no | Monthly subscription price in USD, used for estimated-cost Stats. Must be greater than zero. |
 | `modelArgument` | no | Argument used to pass the model, for example `--model`. |
 | `resumeCommand` | no | Command used to resume a session; may contain `{{sessionId}}`. |
 
 If `command` contains `{{model}}`, the model is substituted there instead of being appended with `modelArgument`.
+
+The monthly subscription cost is optional. It does not affect agent execution or token/time statistics. When configured, md² combines the price with observed account-limit usage to estimate cost per agent, action, and card. These are subscription-cost estimates, not provider invoices or API token prices. See [How usage and cost are calculated](../concepts/usage-and-cost.md).
 
 Invalid profiles are dropped when configuration is read rather than blocking startup; if nothing valid remains, the built-ins are used.
 

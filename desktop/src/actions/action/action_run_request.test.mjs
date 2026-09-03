@@ -5,11 +5,11 @@ const require = createRequire(import.meta.url);
 const { validatePreparePromptRequest, validateStartRequest } = require('./action_run_request');
 
 describe('validateStartRequest', () => {
-    it.each(['card', 'file', 'folder', 'project'])('accepts %s context and defaults extraPrompt', (kind) => {
+    it.each(['card', 'diagram', 'file', 'folder', 'project'])('accepts %s context and defaults extraPrompt', (kind) => {
         expect(validateStartRequest({ actionId: 'main', context: { kind } })).toEqual({
             actionId: 'main',
             context: { kind },
-            runInput: { agent: undefined, command: undefined, continueFrom: undefined, extraPrompt: '', model: undefined, permissionMode: undefined, thinkingLevel: undefined },
+            runInput: { agent: undefined, command: undefined, continueFrom: undefined, diagramPath: undefined, extraPrompt: '', model: undefined, permissionMode: undefined, thinkingLevel: undefined },
         });
     });
 
@@ -28,7 +28,7 @@ describe('validateStartRequest', () => {
     });
 
     it('preserves accepted optional strings', () => {
-        const runInput = { agent: 'codex', command: 'npm test', continueFrom: 'log.json', extraPrompt: 'next', model: 'gpt', permissionMode: 'approve-for-me', prompt: '', thinkingLevel: 'high' };
+        const runInput = { agent: 'codex', command: 'npm test', continueFrom: 'log.json', diagramPath: 'design/diagrams/output.json', extraPrompt: 'next', model: 'gpt', permissionMode: 'approve-for-me', prompt: '', thinkingLevel: 'high' };
 
         expect(validateStartRequest({ actionId: 'main', context: { kind: 'project' }, runInput }).runInput).toEqual(runInput);
     });
@@ -44,7 +44,7 @@ describe('validateStartRequest', () => {
             .toMatchObject({ conversationReservation });
     });
 
-    it.each(['agent', 'command', 'continueFrom', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
+    it.each(['agent', 'command', 'continueFrom', 'diagramPath', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'thinkingLevel'])('rejects non-string %s', (fieldName) => {
         const request = { actionId: 'main', context: { kind: 'project' }, runInput: { [fieldName]: 1 } };
 
         expect(() => validateStartRequest(request)).toThrow(`Invalid action run input ${fieldName}`);

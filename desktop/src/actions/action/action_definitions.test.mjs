@@ -92,8 +92,23 @@ describe('loadActionDefinitions', () => {
             .toMatchObject({ code: 'field-not-allowed', field: 'showCommandWindow' });
     });
 
-    it('normalizes strict autoFinish state triggers', () => {
-        const autoFinish = { state: 'ready' };
+    it('accepts agent and command diagram actions and validates output strictly', () => {
+        const diagramFields = { appliesTo: { kind: 'diagram', type: 'root' }, output: { kind: 'diagram' } };
+
+        expect(() => loadActionDefinitions([
+            file('implement', { ...IMPLEMENT, ...diagramFields }),
+            file('lint', { ...LINT, ...diagramFields }),
+        ])).not.toThrow();
+        expect(validationError([file('implement', { ...IMPLEMENT, output: { kind: 'diagram' } })]))
+            .toMatchObject({ code: 'diagram-applies-to-required', field: 'output' });
+        expect(validationError([file('implement', { ...IMPLEMENT, ...diagramFields, output: { kind: 'image' } })]))
+            .toMatchObject({ code: 'invalid-field', field: 'output', fieldPath: 'output.kind' });
+        expect(validationError([file('implement', { ...IMPLEMENT, ...diagramFields, output: { kind: 'diagram', format: 'json' } })]))
+            .toMatchObject({ code: 'unknownField', field: 'output', fieldPath: 'output.format' });
+    });
+
+    it('normalizes strict autoFinish trigger union', () => {
+        const autoFinish = { state: 'ready', when: 'card-state' };
         const action = loadActionDefinitions(
             [file('implement', { ...IMPLEMENT, autoFinish, streaming: true })],
             { states: ['design', 'ready'] },
@@ -107,13 +122,30 @@ describe('loadActionDefinitions', () => {
         expect(validationError([file('lint', { ...LINT, autoFinish })]))
             .toMatchObject({ code: 'field-not-allowed', field: 'autoFinish' });
         expect(validationError([file('implement', { ...IMPLEMENT, autoFinish: { state: '' }, streaming: true })]))
+            .toMatchObject({ code: 'invalid-field', field: 'autoFinish', fieldPath: 'autoFinish.when' });
+        expect(validationError([file('implement', { ...IMPLEMENT, autoFinish: { state: '', when: 'card-state' }, streaming: true })]))
             .toMatchObject({ code: 'invalid-field', field: 'autoFinish', fieldPath: 'autoFinish.state' });
-        expect(validationError([file('implement', { ...IMPLEMENT, autoFinish: { state: 'ready', type: 'card' }, streaming: true })]))
+        expect(validationError([file('implement', { ...IMPLEMENT, autoFinish: { state: 'ready', type: 'card', when: 'card-state' }, streaming: true })]))
             .toMatchObject({ code: 'unknownField', field: 'autoFinish', fieldPath: 'autoFinish.type' });
         expect(() => loadActionDefinitions(
             [file('implement', { ...IMPLEMENT, autoFinish, streaming: true })],
             { states: ['design'] },
         )).toThrow(/Unknown autoFinish state ready/u);
+        const diagramAction = {
+            ...IMPLEMENT,
+            appliesTo: { kind: 'diagram', type: 'root' },
+            autoFinish: { when: 'diagram-created' },
+            output: { kind: 'diagram' },
+            streaming: true,
+        };
+        expect(loadActionDefinitions([file('diagram', diagramAction)]).find(({ id }) => id === IMPLEMENT.id).autoFinish)
+            .toEqual({ when: 'diagram-created' });
+        expect(validationError([file('implement', {
+            ...IMPLEMENT, autoFinish: { when: 'diagram-created' }, streaming: true,
+        })])).toMatchObject({ code: 'diagram-output-required', field: 'autoFinish' });
+        expect(validationError([file('diagram', {
+            ...diagramAction, autoFinish: { state: 'ready', when: 'diagram-created' },
+        })])).toMatchObject({ code: 'field-not-allowed', fieldPath: 'autoFinish.state' });
     });
 
     it.each([

@@ -74,3 +74,14 @@ export function normalizeSentryBaseUrl(baseUrl: string) {
 export function sentryIdentityKey(baseUrl: string, organization: string, issueId: string) {
     return `${normalizeSentryBaseUrl(baseUrl).toLowerCase()}\n${organization.trim().toLowerCase()}\n${issueId.trim()}`
 }
+
+/** True when every Sentry setting needed to connect and import is filled in. */
+export function isSentryConfigurationComplete(settings: SentryProjectSettings) {
+    return settings.apiBaseUrl.trim().length > 0
+        && settings.apiToken.trim().length > 0
+        && settings.organization.trim().length > 0
+        && settings.project.trim().length > 0
+        && settings.environment.trim().length > 0
+        && settings.cardType.length > 0
+        && settings.cardState.trim().length > 0
+}

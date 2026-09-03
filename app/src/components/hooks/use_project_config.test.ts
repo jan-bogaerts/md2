@@ -10,6 +10,8 @@ const firstConfig: ProjectConfig = {
     backgroundShade: 'blue',
     cardSeparator: '_',
     cardTypes: [{ color: '#111111', idPrefix: 'F', label: 'Feature', type: 'feature' }],
+    diagramFooter: 'Save to {{diagram-file}}.',
+    diagramsFolder: 'diagrams',
     diffCommand: 'git show {{commit}}',
     projectFolder: '',
     pushMode: 'auto',

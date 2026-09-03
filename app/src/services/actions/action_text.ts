@@ -4,11 +4,13 @@ import type { ActionDefinition } from '../../data/action_types'
 const FOLDER_PLACEHOLDER_NAMES = 'active-cards-folder|worktree-folder|repository-folder|project-folder|releases-folder'
 const CARD_PLACEHOLDER_NAMES = 'card-file|card-title|card-prompt'
 const CONFLICT_PLACEHOLDER_NAMES = 'conflict-file|conflict-files'
-const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES}|${CONFLICT_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu')
+const DIAGRAM_PLACEHOLDER_NAMES = 'diagram-file|parent-node'
+const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${FOLDER_PLACEHOLDER_NAMES}|${CARD_PLACEHOLDER_NAMES}|${CONFLICT_PLACEHOLDER_NAMES}|${DIAGRAM_PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu')
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u
 
 export interface ActionFolderPlaceholderValues {
     activeCardsFolder: string
+    diagramFile?: string
     projectFolder: string
     repositoryFolder: string
     releasesFolder: string
@@ -49,6 +51,20 @@ export function resolvePlaceholders(
         }
 
         if (name === 'card-prompt') return extraPrompt
+        if (name === 'diagram-file') {
+            if (context.kind !== 'diagram') throw new Error('Cannot resolve diagram-file placeholder outside diagram context')
+            if (!folders.diagramFile) throw new Error('Cannot resolve diagram-file placeholder without a diagram output path')
+
+            return folders.diagramFile
+        }
+        if (name === 'parent-node') {
+            if (context.kind !== 'diagram' || context.type !== 'child') {
+                throw new Error('Cannot resolve parent-node placeholder outside child diagram context')
+            }
+            if (!context.parentNode) throw new Error('Cannot resolve parent-node placeholder without a selected diagram item label')
+
+            return context.parentNode
+        }
         if (name === 'conflict-file') {
             if (!context.conflictFile) throw new Error('Cannot resolve conflict-file placeholder without a selected conflict file')
 

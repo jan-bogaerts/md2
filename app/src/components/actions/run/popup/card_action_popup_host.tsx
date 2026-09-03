@@ -24,7 +24,7 @@ export function CardActionPopupHost() {
             entry={entry}
             key={entry.id}
             stackPosition={stackPosition}
-            visible={viewMode !== 'stats' && (!isMobile || entry.id === topEntryId)}
+            visible={viewMode !== 'diagrams' && viewMode !== 'stats' && (!isMobile || entry.id === topEntryId)}
         />
     ) : null)
 }

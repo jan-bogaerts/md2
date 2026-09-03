@@ -1,0 +1,30 @@
+---
+author:
+id: F_316
+internalId: c8d8482b-8abb-44a6-8ee1-1ca4e45e035c
+title: add entity relationship edge tool
+status: new
+owner:
+affects:
+agents:
+policy:
+after: bb95c759-589b-43e9-968c-02f83b371438
+---
+
+Parent: [F_255](F_255_make_diagrams_editable.md).
+
+## Goal
+
+Add Relationship for entity diagrams.
+
+## Acceptance criteria
+
+* The button appears only for entity diagrams.
+* Drawing creates a relationship between two entity connection points.
+* Details edit label and both optional cardinalities using the existing allowed values.
+* Cardinality labels follow reconnected or moved endpoints.
+* Invalid cardinalities or non-entity endpoints are rejected before mutation.
+
+## Dependencies
+
+[F_311](F_311_add_edge_drawing_infrastructure.md) and [F_296](F_296_edit_diagram_object_details.md).

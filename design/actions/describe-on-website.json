@@ -1,0 +1,12 @@
+{
+  "id": "08f06be2-ad73-4e24-8d05-f63b5f5c8340",
+  "label": "describe on website",
+  "description": "researches a feature in code and specs and then updates the website",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "* We recently introduced a new feature: `xxxx`&#x20;\n* Read the release notes and design docs about this feature\n* search for the best places on the website to add some relevant, commercial info regarding this new feature.\n* report back and prepare a task list for improving the website about this new feature.",
+  "streaming": true,
+  "appliesTo": {
+    "kind": "project"
+  }
+}

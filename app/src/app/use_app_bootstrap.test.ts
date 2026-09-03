@@ -61,6 +61,7 @@ describe('useAppBootstrap', () => {
             values: {
                 actionsFolder: 'actions',
                 archivedFolder: 'archived',
+                diagramsFolder: 'diagrams',
                 projectFolder: 'design',
                 releasesFolder: 'history',
                 workingFolder: 'active',

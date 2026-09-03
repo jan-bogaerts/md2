@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -173,7 +173,6 @@ describe('NewCardDialog editor render boundary', () => {
         const cleanup = new Promise<void>((resolve) => { resolveCleanup = resolve })
         vi.spyOn(projectSessionService, 'hasNewCardDraftImages').mockReturnValue(true)
         vi.spyOn(projectSessionService, 'discardNewCardDraftImages').mockReturnValue(cleanup)
-        vi.spyOn(window, 'confirm').mockReturnValue(true)
         const onClose = vi.fn()
         render(
             <NewCardDialog
@@ -190,9 +189,10 @@ describe('NewCardDialog editor render boundary', () => {
         )
 
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
         expect(onClose).not.toHaveBeenCalled()
 
-        resolveCleanup()
+        await act(async () => resolveCleanup())
         await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
     })
 
@@ -204,7 +204,6 @@ describe('NewCardDialog editor render boundary', () => {
         const cleanupError = new Error('delete failed')
         vi.spyOn(projectSessionService, 'hasNewCardDraftImages').mockReturnValue(true)
         vi.spyOn(projectSessionService, 'discardNewCardDraftImages').mockRejectedValue(cleanupError)
-        vi.spyOn(window, 'confirm').mockReturnValue(true)
         const reportError = vi.spyOn(dialogService, 'error')
         const onClose = vi.fn()
         render(
@@ -222,6 +221,7 @@ describe('NewCardDialog editor render boundary', () => {
         )
 
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
 
         await waitFor(() => expect(reportError).toHaveBeenCalledWith(
             cleanupError,

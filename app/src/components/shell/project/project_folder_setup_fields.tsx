@@ -31,6 +31,7 @@ const FOLDER_FIELDS: FolderFieldDescriptor[] = [
     { field: 'archivedFolder', helperText: 'Archived cards, inside the project folder.', label: 'Archived folder' },
     { field: 'actionsFolder', helperText: 'Action definitions, inside the project folder.', label: 'Actions folder' },
     { field: 'releasesFolder', helperText: 'Release history, inside the project folder.', label: 'Releases folder' },
+    { field: 'diagramsFolder', helperText: 'Generated JSON diagram data, inside the project folder.', label: 'Diagrams folder' },
 ]
 
 /** Resolved repository path of one field, so the form can show what will be created. */
@@ -38,10 +39,11 @@ function resolvedFolderPath(values: ProjectFolderValues, field: FolderField) {
     const config = { ...DEFAULT_PROJECT_CONFIG, ...values }
     if (field === 'projectFolder') return values.projectFolder.trim()
 
-    const [workingFolder, archivedFolder, actionsFolder, releasesFolder] = resolvedSetupFolders(config)
+    const [workingFolder, archivedFolder, actionsFolder, releasesFolder, diagramsFolder] = resolvedSetupFolders(config)
     if (field === 'workingFolder') return workingFolder
     if (field === 'archivedFolder') return archivedFolder
     if (field === 'actionsFolder') return actionsFolder
+    if (field === 'diagramsFolder') return diagramsFolder
 
     return releasesFolder
 }

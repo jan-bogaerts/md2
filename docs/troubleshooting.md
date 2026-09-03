@@ -58,4 +58,17 @@ Use the IP link rather than the `.local` hostname; mDNS names do not resolve on 
 
 md² keeps the line ending style of the file it edits. If a whole file shows as changed, something else rewrote it — check your editor and `core.autocrlf`.
 
+## Stats data is missing or unavailable
+
+Stats uses saved activity plus the optional timestamped history in `<projectFolder>/usage_metrics.csv`.
+
+- If **Token usage** is unavailable in Activity over time, `usage_metrics.csv` does not exist. New provider turns create timestamped rows; cumulative token totals by card or action may still be available.
+- If duration results report omitted conversations, those conversations do not have a saved measured timer. md² does not substitute wall-clock time because it would include time spent waiting for input.
+- If performance results report excluded samples, read the reason counts above the chart. Running or waiting conversations and conversations with incomplete or ambiguous attribution are intentionally excluded.
+- If estimated cost is unavailable, add **Monthly subscription cost (USD)** to the matching agent profile and select a period with usable positive account-usage observations.
+- If project token activity and account usage differ, remember that account observations can include other projects and direct Claude or Codex CLI sessions.
+- Malformed account-usage observations can be skipped with a warning. Invalid required activity or token history can make Stats unavailable rather than display misleading partial totals. The source files remain unchanged for inspection.
+
+See [Stats](guide/stats.md) and [How usage and cost are calculated](concepts/usage-and-cost.md) for the complete definitions.
+
 Still stuck? Open an issue with what you did, what happened, and which mode you were in (desktop, remote, GitHub).

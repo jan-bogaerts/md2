@@ -48,7 +48,7 @@ describe('AgentChatFab', () => {
         fireEvent.pointerUp(button, { pointerId: 1 })
         fireEvent.click(button)
 
-        expect(button).toHaveStyle({ left: '888px', top: '488px' })
+        expect(screen.getByTestId('movable-fab-position')).toHaveStyle({ left: '888px', top: '488px' })
         expect(screen.queryByRole('dialog', { name: 'Run actions for Project' })).not.toBeInTheDocument()
 
         fireEvent.click(button)
@@ -67,7 +67,7 @@ describe('AgentChatFab', () => {
         fireEvent.pointerMove(window, { clientX: 50, clientY: 40, pointerId: 1 })
         fireEvent.pointerUp(window, { pointerId: 1 })
 
-        expect(button).toHaveStyle({ left: '1128px', top: '728px' })
+        expect(screen.getByTestId('movable-fab-position')).toHaveStyle({ left: '1128px', top: '728px' })
         expect(dialog.style.width).toBe('450px')
         expect(dialog.style.height).toBe('510px')
         expect(dialog).toHaveStyle({ left: '650px', position: 'fixed', top: '140px' })

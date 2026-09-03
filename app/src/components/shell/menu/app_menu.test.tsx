@@ -12,6 +12,9 @@ import { projectAccessService } from '../../../services/project/project_access_s
 import { projectPersistenceService } from '../../../services/project/project_persistence_service'
 import { projectSessionService } from '../../../services/project/project_session_service'
 import { openFilesService } from '../../../services/open_files_service'
+import { sentryConnectionService } from '../../../services/sentry/sentry_connection_service'
+import { sentryImportService } from '../../../services/sentry/sentry_import_service'
+import { createDefaultSentryProjectSettings } from '../../../services/sentry/sentry_types'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { DialogDisplay } from '../../dialog_display'
 import { AppMenu } from './app_menu'
@@ -27,6 +30,8 @@ const auth: UseGithubAuthResult = {
     status: 'idle',
     user: null,
 }
+
+const LOCAL_PROJECT = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
 function createBridge(): ElectronDataBridge {
     const usageSummary = {
@@ -116,14 +121,36 @@ async function openLocalProject() {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Open project' })).toBeNull())
 }
 
+async function activateLocalProject(bridge: ElectronDataBridge) {
+    window.md2Data = bridge
+    await projectSessionService.openProject('local', LOCAL_PROJECT, null)
+}
+
+function completeSentrySettings() {
+    return {
+        ...createDefaultSentryProjectSettings(),
+        apiToken: 'token',
+        cardState: 'to fix',
+        cardType: 'Bug',
+        organization: 'acme',
+        project: 'frontend',
+    }
+}
+
+async function connectSentry() {
+    sentryConnectionService.setProject(LOCAL_PROJECT)
+    await act(async () => {
+        await sentryConnectionService.connect(completeSentrySettings())
+    })
+}
+
 async function renderProjectWithPendingChanges() {
     const bridge = createBridge()
     const files = [{ content: '---\nid: F-1\ninternalId: f-1\ntitle: Root\nstatus: active\n---\n\n# Root', path: 'design/F-1-root.md' }]
     bridge.loadProject = vi.fn(async () => ({ files, workingFolder: 'design' }))
     bridge.loadProjectRoot = vi.fn(async () => ({ files, workingFolder: 'design' }))
-    window.md2Data = bridge
+    await activateLocalProject(bridge)
     const renderResult = renderMenu()
-    await openLocalProject()
 
     act(() => {
         dataService.cards.updateCardBody('design/F-1-root.md', 'Changed body')
@@ -140,6 +167,7 @@ describe('AppMenu', () => {
         openFilesService.init({ actionService, dataService })
         projectPersistenceService.init({ actionService, dataService, openFilesService })
         dataService.init({ storage: createResetStorage() })
+        sentryConnectionService.init({ apiClient: { validateProject: vi.fn(async () => undefined) }, storage: window.localStorage })
         projectAccessService.setReadOnly(false)
         workspaceViewService.setViewMode('cards')
         const { selectedPath } = workspaceViewService.getSnapshot()
@@ -169,6 +197,7 @@ describe('AppMenu', () => {
         expect(screen.getByRole('button', { name: 'Config' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Cards view' })).toHaveTextContent('Board')
         expect(screen.getByRole('button', { name: 'Text view' })).toHaveTextContent('List')
+        expect(screen.getByRole('button', { name: 'Diagrams view' })).toHaveTextContent('Diagrams')
         expect(screen.getByRole('button', { name: 'Stats view' })).toHaveTextContent('Stats')
         expect(screen.getByRole('button', { name: 'New action' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'New card' })).toBeInTheDocument()
@@ -176,6 +205,7 @@ describe('AppMenu', () => {
 
         const settingsSection = screen.getByRole('group', { name: 'Settings' })
         const viewSection = screen.getByRole('group', { name: 'View' })
+        expect(within(viewSection).getAllByRole('button').map((button) => button.textContent)).toEqual(['Board', 'List', 'Diagrams', 'Stats'])
         expect(settingsSection.compareDocumentPosition(viewSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
         expect(screen.queryByRole('button', { name: 'Complete release' })).not.toBeInTheDocument()
@@ -220,13 +250,13 @@ describe('AppMenu', () => {
     it('prevents exact Ctrl+S without committing while Commit is disabled', async () => {
         const commit = vi.spyOn(projectSessionService, 'commit').mockResolvedValue()
         const bridge = createBridge()
-        window.md2Data = bridge
         renderMenu()
         const noProjectEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })
         fireEvent(window, noProjectEvent)
         expect(noProjectEvent.defaultPrevented).toBe(true)
 
-        await openLocalProject()
+        await activateLocalProject(bridge)
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Commit' })).toBeDisabled())
         const noChangesEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ctrlKey: true, key: 's' })
         fireEvent(window, noChangesEvent)
 
@@ -330,17 +360,19 @@ describe('AppMenu', () => {
 
         expect(workspaceViewService.getSnapshot().viewMode).toBe('text')
 
+        fireEvent.click(screen.getByRole('button', { name: 'Diagrams view' }))
+        expect(workspaceViewService.getSnapshot().viewMode).toBe('diagrams')
+
         fireEvent.click(screen.getByRole('button', { name: 'Stats view' }))
         expect(workspaceViewService.getSnapshot().viewMode).toBe('stats')
     })
 
     it('creates a valid action and opens its text-view tab from the Home tab', async () => {
         const bridge = createBridge()
-        window.md2Data = bridge
+        await activateLocalProject(bridge)
         const listener = vi.fn()
         workspaceNavigationService.addEventListener('open', listener)
         renderMenu()
-        await openLocalProject()
 
         fireEvent.click(screen.getByRole('button', { name: 'New action' }))
 
@@ -388,10 +420,9 @@ describe('AppMenu', () => {
                 path: 'design/actions/card-review.json',
             },
         ])
-        window.md2Data = bridge
+        await activateLocalProject(bridge)
 
         renderMenu()
-        await openLocalProject()
         fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
 
         expect(screen.getByRole('button', { name: 'Review project' })).toBeInTheDocument()
@@ -487,10 +518,9 @@ describe('AppMenu', () => {
         }))
         bridge.loadProject = vi.fn(async () => ({ files, workingFolder: 'design' }))
         bridge.loadProjectRoot = vi.fn(async () => ({ files, workingFolder: 'design' }))
-        window.md2Data = bridge
+        await activateLocalProject(bridge)
 
         renderMenu()
-        await openLocalProject()
         const commitButton = screen.getByRole('button', { name: 'Commit' })
         const pushButton = screen.getByRole('button', { name: 'Push' })
         expect(commitButton).toBeDisabled()
@@ -510,6 +540,74 @@ describe('AppMenu', () => {
 
         await waitFor(() => expect(bridge.push).toHaveBeenCalledWith(expect.objectContaining({ id: 'local' })))
         expect(pushButton).toBeDisabled()
+    })
+
+    it('hides the Sentry import button until the project has a complete authenticated connection', async () => {
+        await activateLocalProject(createBridge())
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        expect(screen.queryByRole('button', { name: 'Import Sentry issues' })).not.toBeInTheDocument()
+
+        await connectSentry()
+
+        expect(await screen.findByRole('button', { name: 'Import Sentry issues' })).toBeEnabled()
+    })
+
+    it('keeps the Sentry import button hidden while settings are incomplete', async () => {
+        await activateLocalProject(createBridge())
+        await connectSentry()
+        act(() => {
+            sentryConnectionService.saveSettings({ ...completeSentrySettings(), cardType: '' })
+        })
+
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+
+        expect(screen.queryByRole('button', { name: 'Import Sentry issues' })).not.toBeInTheDocument()
+    })
+
+    it('disables the Sentry import button while an import runs', async () => {
+        await activateLocalProject(createBridge())
+        await connectSentry()
+        vi.spyOn(sentryImportService, 'getSnapshot').mockReturnValue({
+            confirmation: null,
+            isPolling: true,
+            lastImportCount: null,
+            lastSuccessfulPollAt: null,
+            latestError: null,
+        })
+
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+
+        const importButton = screen.getByRole('button', { name: 'Import Sentry issues' })
+        expect(importButton).toBeDisabled()
+        fireEvent.mouseOver(importButton.parentElement as HTMLElement)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Checking Sentry...')
+    })
+
+    it('disables the Sentry import button for a read-only project', async () => {
+        await activateLocalProject(createBridge())
+        await connectSentry()
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        expect(screen.getByRole('button', { name: 'Import Sentry issues' })).toBeEnabled()
+
+        act(() => projectAccessService.setReadOnly(true))
+
+        expect(screen.getByRole('button', { name: 'Import Sentry issues' })).toBeDisabled()
+    })
+
+    it('runs one manual Sentry import per click from the Run menu', async () => {
+        await activateLocalProject(createBridge())
+        await connectSentry()
+        const importNow = vi.spyOn(sentryImportService, 'importNow').mockResolvedValue(0)
+
+        renderMenu()
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Import Sentry issues' }))
+
+        expect(importNow).toHaveBeenCalledTimes(1)
     })
 
     it('pulls only when the primary worktree monitor reports clean incoming commits', async () => {
@@ -532,9 +630,8 @@ describe('AppMenu', () => {
 
             return vi.fn()
         })
-        window.md2Data = bridge
+        await activateLocalProject(bridge)
         renderMenu()
-        await openLocalProject()
         const pullButton = screen.getByRole('button', { name: 'Pull' })
         expect(pullButton).toBeDisabled()
 

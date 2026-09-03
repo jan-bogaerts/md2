@@ -444,31 +444,22 @@ function CardBodyPopoverEntry(props: CardBodyPopoverEntryProps) {
                                     padding: isMobile ? '8px' : '12px 16px',
                                 }}
                             >
-                                {isMobile ? (
-                                    <>
-                                        <Tooltip title="Delete">
-                                            <IconButton aria-label="Delete" color="error" disabled={readOnly} onClick={openDeleteCardDialog}>
-                                                <DeleteOutline />
-                                            </IconButton>
-                                        </Tooltip>
-                                        <Tooltip title="Affects">
-                                            <IconButton aria-label="Affects" disabled={readOnly} onClick={openAffects}>
-                                                <FolderSearchOutline />
-                                            </IconButton>
-                                        </Tooltip>
-                                        <Tooltip title="Open in file mode">
-                                            <IconButton aria-label="Open in file mode" onClick={openInFileMode}>
-                                                <FileDocumentOutline />
-                                            </IconButton>
-                                        </Tooltip>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Button color="error" disabled={readOnly} onClick={openDeleteCardDialog} startIcon={<DeleteOutline />} variant="outlined">Delete</Button>
-                                        <Button disabled={readOnly} onClick={openAffects} startIcon={<FolderSearchOutline />} variant="outlined">Affects</Button>
-                                        <Button onClick={openInFileMode} startIcon={<FileDocumentOutline />} variant="outlined">Open in file mode</Button>
-                                    </>
-                                )}
+                                <Tooltip title="Delete">
+                                    <IconButton aria-label="Delete" color="error" disabled={readOnly} onClick={openDeleteCardDialog}>
+                                        <DeleteOutline />
+                                    </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Affects">
+                                    <IconButton aria-label="Affects" disabled={readOnly} onClick={openAffects}>
+                                        <FolderSearchOutline />
+                                    </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Open in file mode">
+                                    <IconButton aria-label="Open in file mode" onClick={openInFileMode}>
+                                        <FileDocumentOutline />
+                                    </IconButton>
+                                </Tooltip>
+                            
                                 <AgentUsageDisplay usage={cardAgentTokenUsage(activity?.conversations ?? [])} />
                                 <Box data-card-details-footer-spacer="true" sx={{ flex: 1 }} />
                                 <CardStateSelector

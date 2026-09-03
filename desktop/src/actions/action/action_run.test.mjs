@@ -76,6 +76,9 @@ function createRun(rootAction, overrides = {}) {
             ? { kind: 'project' }
             : { cardInternalId: 'card-1', kind: 'card' },
         context: overrides.context ?? context,
+        diagramFooter: overrides.diagramFooter,
+        diagramsFolder: overrides.diagramsFolder,
+        diagramPath: overrides.diagramPath,
         runId: 'run-1',
         project,
         projectFolder: 'design',
@@ -88,6 +91,7 @@ function createRun(rootAction, overrides = {}) {
         agentExecutor,
         agentRunnerService,
         commandRunner,
+        diagramOutputWatcherFactory: overrides.diagramOutputWatcherFactory,
         localGitService,
         publisher: (event) => events.push(event),
     });
@@ -97,6 +101,75 @@ function createRun(rootAction, overrides = {}) {
 }
 
 describe('ActionRun', () => {
+    it('finishes a streaming diagram agent when valid output precedes provider startup', async () => {
+        const close = vi.fn(async () => undefined);
+        const agentRunnerService = { finish: vi.fn(), stop: vi.fn() };
+        const diagramOutputWatcherFactory = vi.fn((input) => ({
+            close,
+            start: vi.fn(async () => input.handleReady()),
+        }));
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                input.onActiveRunChange('provider-run');
+                input.onActiveRunChange(null);
+
+                return {
+                    changedPaths: [], conversationId: 'conversation-1', exitCode: 0,
+                    reference: 'conversation.json', stderr: '', stdout: '',
+                };
+            }),
+        };
+        const rootAction = action('diagram', {
+            agent: 'codex',
+            appliesTo: { kind: 'diagram', type: 'root' },
+            autoFinish: { when: 'diagram-created' },
+            command: null,
+            output: { kind: 'diagram' },
+            prompt: 'Create diagram',
+            streaming: true,
+            type: 'agent',
+        });
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            agentRunnerService,
+            context: { kind: 'diagram', type: 'root' },
+            diagramFooter: 'Save {{diagram-file}}',
+            diagramOutputWatcherFactory,
+            diagramPath: 'design/diagrams/output.json',
+            diagramsFolder: 'design/diagrams',
+        });
+
+        await expect(run.completion).resolves.toMatchObject({
+            diagramPath: 'design/diagrams/output.json', status: 'completed',
+        });
+        expect(agentRunnerService.finish).toHaveBeenCalledWith('provider-run');
+        expect(close).toHaveBeenCalledOnce();
+    });
+
+    it('fails before provider startup when diagram watcher cannot start', async () => {
+        const close = vi.fn(async () => undefined);
+        const agentExecutor = { execute: vi.fn() };
+        const rootAction = action('diagram', {
+            agent: 'codex', appliesTo: { kind: 'diagram', type: 'root' },
+            autoFinish: { when: 'diagram-created' }, command: null,
+            output: { kind: 'diagram' }, prompt: 'Create diagram', streaming: true, type: 'agent',
+        });
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            context: { kind: 'diagram', type: 'root' },
+            diagramFooter: 'Save {{diagram-file}}',
+            diagramOutputWatcherFactory: () => ({
+                close, start: vi.fn(async () => { throw new Error('diagram watch failed'); }),
+            }),
+            diagramPath: 'design/diagrams/output.json',
+            diagramsFolder: 'design/diagrams',
+        });
+
+        await expect(run.completion).resolves.toMatchObject({ failure: 'diagram watch failed', status: 'failed' });
+        expect(agentExecutor.execute).not.toHaveBeenCalled();
+        expect(close).toHaveBeenCalledOnce();
+    });
+
     it.each(['', '   '])('rejects incomplete root command %j before worktree resolution or process start', async (command) => {
         const rootAction = action('main', { command });
         const { actionWorktreeRunService, commandRunner, run } = createRun(rootAction);
@@ -888,7 +961,7 @@ describe('ActionRun', () => {
         const agentExecutor = { execute: vi.fn() };
         const rootAction = action('main', {
             agent: 'codex',
-            autoFinish: { state: 'ready' },
+            autoFinish: { state: 'ready', when: 'card-state' },
             model: 'gpt',
             prompt: 'run',
             streaming: true,
@@ -909,7 +982,7 @@ describe('ActionRun', () => {
         const commandCompletion = deferred();
         const agentCompletion = deferred();
         const agentStarted = deferred();
-        const autoFinishAction = action('stream', {agent: 'codex', autoFinish: { state: 'ready' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const autoFinishAction = action('stream', {agent: 'codex', autoFinish: { state: 'ready', when: 'card-state' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
         const rootAction = action('main', { onAfter: [autoFinishAction] });
         const commandRunner = vi.fn(async (_project, command) => {
             await commandCompletion.promise;
@@ -949,8 +1022,8 @@ describe('ActionRun', () => {
     it('finishes every matching streaming child in one chain', async () => {
         const firstCompletion = deferred();
         const secondCompletion = deferred();
-        const firstAction = action('first', {agent: 'codex', autoFinish: { state: 'ready' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
-        const secondAction = action('second', {agent: 'codex', autoFinish: { state: 'ready' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const firstAction = action('first', {agent: 'codex', autoFinish: { state: 'ready', when: 'card-state' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const secondAction = action('second', {agent: 'codex', autoFinish: { state: 'ready', when: 'card-state' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
         const rootAction = action('main', { onAfter: [secondAction], onBefore: [firstAction] });
         const agentRunnerService = { finish: vi.fn(), stop: vi.fn() };
         const completions = [firstCompletion, secondCompletion];
@@ -998,7 +1071,7 @@ describe('ActionRun', () => {
                 };
             }),
         };
-        const rootAction = action('stream', {agent: 'codex', autoFinish: { state: 'ready' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
+        const rootAction = action('stream', {agent: 'codex', autoFinish: { state: 'ready', when: 'card-state' }, model: 'gpt', prompt: 'run', streaming: true, type: 'agent'});
         const { run } = createRun(rootAction, { agentExecutor, agentRunnerService });
         await executorStarted.promise;
         run.handleCardStateChange('card-1', 'ready');

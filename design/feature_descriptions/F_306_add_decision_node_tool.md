@@ -1,0 +1,30 @@
+---
+author:
+id: F_306
+internalId: a85ce58c-8bc9-42dd-b6ae-799830def5e8
+title: add decision node tool
+status: new
+owner:
+affects:
+agents:
+policy:
+after: a0dbf3d9-3dde-43d0-962a-58d79e747f8d
+---
+
+Parent: [F_255](F_255_make_diagrams_editable.md).
+
+## Goal
+
+Add a Decision button for flowchart diagrams.
+
+## Acceptance criteria
+
+* The tool is offered only for the flowchart preset.
+* Placement creates a valid decision node with decision-specific default geometry.
+* The diamond renders and resizes without corrupting its stored rectangular bounds.
+* Outgoing branches remain subject to required-label validation.
+* The created decision is selected and editable.
+
+## Dependencies
+
+[F_302](F_302_add_node_placement_infrastructure.md) and [F_279](F_279_validate_diagram_edit_operations.md).

@@ -16,6 +16,7 @@ import {
 
 const context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }
 const mergeConflictContext: ActionContext = { conflictSessionId: 'session-1', kind: 'merge-conflict' }
+const diagramContext: ActionContext = { diagramId: 'diagram-1', kind: 'diagram', type: 'root' }
 
 function projectConversation(path: string): AgentConversation {
     return { ...conversation(path), actionId: 'resolve-conflict', cardInternalId: null, cardPath: null }
@@ -189,7 +190,7 @@ describe('ActionConversationStore', () => {
         const waitingConversation = { ...conversation('conversation-waiting.json'), status: 'waitingForInput' as const }
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waitingConversation])
         const draft = actionPromptDraftService.getDraft('implement', context, null, { prepare: true })
-        await draft.prepare(async () => 'Prepared default')
+        await draft.prepare(async () => ({ prompt: 'Prepared default' }))
         const { store } = createConversationStore()
 
         await store.load()
@@ -208,6 +209,40 @@ describe('ActionConversationStore', () => {
         await store.load()
 
         expect(loadingStates).not.toContain(true)
+    })
+
+    it('treats a project-origin conversation as belonging to a diagram context', async () => {
+        const projectOrigin = projectConversation('conversation-diagram.json')
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([projectOrigin])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(projectOrigin)
+        const reportError = vi.spyOn(dialogService, 'error')
+        const { store } = createConversationStore('resolve-conflict', diagramContext)
+
+        await store.load()
+
+        expect(store.conversationOptions([])).toEqual([projectOrigin])
+
+        await store.select(projectOrigin.path)
+
+        expect(store.getSnapshot().selectedConversation).toBe(projectOrigin)
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
+    it('keeps a card context from adopting a conversation of another card', async () => {
+        const otherCard = { ...conversation('conversation-other-card.json'), cardInternalId: 'card-2' }
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([otherCard])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(otherCard)
+        const reportError = vi.spyOn(dialogService, 'error')
+        const { store } = createConversationStore()
+
+        await store.load()
+
+        expect(store.conversationOptions([])).toEqual([])
+
+        await store.select(otherCard.path)
+
+        expect(store.getSnapshot().selectedConversation).toBeNull()
+        expect(reportError).toHaveBeenCalled()
     })
 
     it('treats a project-origin conversation as belonging to a merge-conflict context', async () => {

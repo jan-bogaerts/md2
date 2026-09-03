@@ -120,10 +120,12 @@ async function runWithPrompt(input: ActionPopupOperationInput, prompt: string, p
         const liveConversation = currentActionRun(bindingStore)?.conversation ?? null
         const previousConversation = liveConversation ?? conversationStore.getSnapshot().selectedConversation
         const continuationPath = conversationStore.continuationPath(liveConversation)
+        const diagramPath = currentActionPromptDraft(action, context, bindingStore, false).getDiagramPath()
         const runInput = action.type === 'agent'
             ? {
                 ...(settings.agent ? { agent: settings.agent } : {}),
                 ...(continuationPath ? { continueFrom: continuationPath } : {}),
+                ...(diagramPath ? { diagramPath } : {}),
                 prompt,
                 ...(settings.model ? { model: settings.model } : {}),
                 ...(settings.permissionMode ? { permissionMode: settings.permissionMode } : {}),

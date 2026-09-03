@@ -7,6 +7,7 @@ import { formatDollars } from './stats_tooltip'
 import type { StatsCardDescriptor } from './project_stats_types'
 import { parseProjectStatsFile } from '../../../../shared/project_stats.mjs'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../../data/agent_profiles'
+import { completedReleaseIdentity } from './stats_options'
 
 const project: ProjectReference = { branch: 'main', id: 'project' }
 const config: ProjectConfig = {
@@ -135,7 +136,7 @@ async function openService(
 }
 
 describe('ProjectStatsService source parsing', () => {
-    it('discovers only current and released activity plus project usage metrics', () => {
+    it('discovers current and released card and project activity plus project usage metrics', () => {
         expect(findStatsSourcePaths([
             'design/activity/project.json',
             'design/activity/card__card-1.json',
@@ -148,7 +149,7 @@ describe('ProjectStatsService source parsing', () => {
                 'design/activity/card__card-1.json',
                 'design/activity/project.json',
             ],
-            releaseActivityPaths: { '0_3_0': ['design/history/0_3_0/card__card-2.json'] },
+            releaseActivityPaths: {'0_3_0': ['design/history/0_3_0/card__card-2.json', 'design/history/0_3_0/project.json']},
         })
     })
 
@@ -441,12 +442,14 @@ describe('ProjectStatsService aggregation', () => {
         const service = new ProjectStatsService()
 
         await openService(service, statsStorage)
+        service.setControls({ releaseIdentity: completedReleaseIdentity('v1') })
         expect(service.getSnapshot().rows).toMatchObject([{ value: 1 }])
         expect(statsStorage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Update calculated release stats' }))
         service.close()
         vi.mocked(statsStorage.loadTextFile!).mockClear()
 
         await service.open(cards, BUILTIN_AGENT_PROFILES)
+        service.setControls({ releaseIdentity: completedReleaseIdentity('v1') })
 
         expect(service.getSnapshot().rows).toMatchObject([{ value: 1 }])
         expect(statsStorage.loadTextFile).not.toHaveBeenCalledWith(project, releasePath)
@@ -486,6 +489,106 @@ describe('ProjectStatsService aggregation', () => {
         if (!migrationCommit) throw new Error('Missing stats migration commit')
         const parsed = parseProjectStatsFile(migrationCommit.files[0].content, 'design/project_stats.json')
         expect(Object.keys(parsed.releases)).toEqual(['v2'])
+    })
+
+    it('defaults to current facts and selects one sorted completed release without rereading files', async () => {
+        const statsStorage = storage({
+            'design/activity/card__card-1.json': activityContent({records: [actionRecord('current-run', '2026-08-12T10:00:00.000Z')]}),
+            'design/history/empty/README.md': 'Empty release',
+            'design/history/v1/card__card-1.json': activityContent({records: [actionRecord('v1-run', '2026-08-13T10:00:00.000Z', { rootActionId: 'ship', rootActionLabel: 'Ship' })]}),
+            'design/history/v2/card__card-1.json': activityContent({records: [actionRecord('v2-run', '2026-08-14T10:00:00.000Z', { rootActionId: 'test', rootActionLabel: 'Test' })]}),
+        })
+        const service = new ProjectStatsService()
+        await openService(service, statsStorage)
+
+        expect(service.getSnapshot().controls.releaseIdentity).toBe('current-release')
+        expect(service.getSnapshot().options.releases.map(({ label }) => label)).toEqual([
+            'Current release', 'empty', 'v1', 'v2',
+        ])
+        expect(service.getSnapshot().rows).toMatchObject([{ actionId: 'review', value: 1 }])
+
+        service.setControls({ releaseIdentity: completedReleaseIdentity('v1') })
+        expect(service.getSnapshot().rows).toMatchObject([{ actionId: 'ship', value: 1 }])
+        expect(statsStorage.listRepositoryFiles).toHaveBeenCalledTimes(1)
+
+        service.setControls({ endUtc: '2026-08-12T23:59:59.999Z', startUtc: '2026-08-12T00:00:00.000Z' })
+        expect(service.getSnapshot().rows.every(({ value }) => value === 0)).toBe(true)
+
+        service.setControls({ endUtc: null, releaseIdentity: completedReleaseIdentity('empty'), startUtc: null })
+        expect(service.getSnapshot().rows).toEqual([])
+    })
+
+    it('scopes performance, totals, timer coverage, and activity comparison while preserving telemetry rows', async () => {
+        const currentConversation = conversation({ id: 'current-conversation' })
+        const releaseConversation = conversation({
+            actionId: 'ship',
+            completedAt: '2026-08-12T11:00:00.000Z',
+            id: 'release-conversation',
+            timer: { elapsedMs: 2_500, runningStartedAt: null },
+            usage: { cachedInputTokens: 2, inputTokens: 8, outputTokens: 8, reasoningTokens: 2, totalTokens: 20 },
+        })
+        const missingTimer = conversation({
+            actionId: 'ship',
+            completedAt: '2026-08-12T12:00:00.000Z',
+            id: 'release-missing-timer',
+            timer: undefined,
+        })
+        const metrics = [
+            metricsHeader,
+            metricsRow('2026-08-12T09:00:00.000Z', 100),
+            '2026-08-12T10:00:00.000Z,account_usage,codex,weekly,window-a,10080,2026-08-17T00:00:00.000Z,,,,,,50,5',
+        ].join('\r\n')
+        const statsStorage = storage({
+            'design/activity/card__card-1.json': activityContent({
+                conversations: [currentConversation],
+                records: [agentRecord('current-run', '2026-08-12T10:00:00.000Z', currentConversation.id)],
+            }),
+            'design/history/v1/card__card-1.json': activityContent({
+                conversations: [releaseConversation, missingTimer],
+                records: [agentRecord('release-run', '2026-08-12T11:00:00.000Z', releaseConversation.id, {rootActionId: 'ship', rootActionLabel: 'Ship'})],
+            }),
+            'design/usage_metrics.csv': metrics,
+        })
+        const service = new ProjectStatsService()
+        await openService(service, statsStorage)
+        service.setControls({ dataset: 'usageComparison' })
+        const currentTelemetry = service.getSnapshot().rows.filter(({ chartRole }) => (
+            chartRole === 'accountUsage' || chartRole === 'projectTokensTotal'
+        ))
+
+        service.setControls({ releaseIdentity: completedReleaseIdentity('v1') })
+        const releaseSnapshot = service.getSnapshot()
+        expect(releaseSnapshot.rows.filter(({ chartRole, value }) => chartRole === 'activity' && value > 0))
+            .toEqual([expect.objectContaining({ actionId: 'ship', value: 1 })])
+        expect(releaseSnapshot.rows.filter(({ chartRole }) => (
+            chartRole === 'accountUsage' || chartRole === 'projectTokensTotal'
+        ))).toEqual(currentTelemetry)
+
+        service.setControls({ dataset: 'agentPerformance', performanceMetric: 'duration' })
+        expect(service.getSnapshot().rows).toEqual([expect.objectContaining({ value: 2_500 })])
+
+        service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'duration' })
+        expect(service.getSnapshot().rows).toEqual([expect.objectContaining({ identity: 'card-1', value: 2_500 })])
+        expect(service.getSnapshot().omittedTimerCount).toBe(1)
+    })
+
+    it('falls back to current release after reload removes selected completed release', async () => {
+        const releasePath = 'design/history/v1/card__card-1.json'
+        const files: Record<string, string> = {
+            'design/activity/card__card-1.json': activityContent({records: [actionRecord('current-run', '2026-08-12T10:00:00.000Z')]}),
+            [releasePath]: activityContent({records: [actionRecord('release-run', '2026-08-13T10:00:00.000Z', { rootActionId: 'ship', rootActionLabel: 'Ship' })]}),
+        }
+        const service = new ProjectStatsService()
+        await openService(service, storage(files))
+        service.setControls({ releaseIdentity: completedReleaseIdentity('v1') })
+        expect(service.getSnapshot().rows).toMatchObject([{ actionId: 'ship' }])
+
+        service.close()
+        delete files[releasePath]
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
+
+        expect(service.getSnapshot().controls.releaseIdentity).toBe('current-release')
+        expect(service.getSnapshot().rows).toMatchObject([{ actionId: 'review', value: 1 }])
     })
 
     it('zero-fills day ranges and emits stable stacked action series', async () => {

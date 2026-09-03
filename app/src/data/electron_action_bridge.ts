@@ -18,6 +18,7 @@ import type {
 
 export interface ActionRunRecoveryTerminalResult {
     changedPaths: string[]
+    diagramPath?: string
     failure: string | null
     runId: string
     status: ActionRunTerminalStatus
@@ -145,6 +146,12 @@ export interface OpenInEditorRequest {
     repositoryRoot?: string
 }
 
+/** In-flight action run reported by the desktop runner while a release asks to start. */
+export interface ActiveActionRun {
+    label: string
+    runId: string
+}
+
 export interface ElectronActionBridge {
     acquireReleaseCardLocks?(cardInternalIds: string[]): Promise<string>
     answerActionApproval?(runId: string, requestId: AgentApprovalRequestId, decision: AgentApprovalDecision): Promise<void>
@@ -158,6 +165,7 @@ export interface ElectronActionBridge {
     finishActionRun?(runId: string): Promise<void>
     generateDiff(request: DiffRequest): Promise<DiffResult>
     generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult>
+    listActiveActionRuns?(): Promise<ActiveActionRun[]>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
     loadActionRunRecoverySnapshot?(rendererRunIds: string[]): Promise<ActionRunRecoverySnapshot>
     notifyActionCardStateChange?(cardInternalId: string, state: string): Promise<void>

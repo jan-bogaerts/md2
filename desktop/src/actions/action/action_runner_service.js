@@ -5,6 +5,7 @@ const { ActionDefinitionCache } = require('./action_definition_cache');
 const { resolveActionDefinition } = require('./action_definition_resolver');
 const { ActionRun } = require('./action_run');
 const { appendCurrentCardReferences } = require('./action_card_references');
+const { createDiagramPath, resolveDiagramFile } = require('./action_diagram_output');
 const { resolveAgentPrompt } = require('./action_text');
 const { validatePreparePromptRequest, validateStartRequest } = require('./action_run_request');
 const { assertReleasedCardActionAllowed } = require('../../../../shared/released_card_actions.mjs');
@@ -15,12 +16,9 @@ function createRunId() {
 
 const TERMINAL_RECOVERY_RETENTION_MS = 5 * 60 * 1000;
 
+// Activity ownership follows the presence of cardInternalId, not the context kind.
 function activityOrigin(context) {
-    if (context.kind === 'card' || context.kind === 'file') {
-        if (typeof context.cardInternalId !== 'string' || context.cardInternalId.length === 0) {
-            throw new Error('Card-origin action requires cardInternalId');
-        }
-
+    if (typeof context.cardInternalId === 'string' && context.cardInternalId.length > 0) {
         return { cardInternalId: context.cardInternalId, kind: 'card' };
     }
 
@@ -43,8 +41,10 @@ class ActionRunnerService {
         this.agentRunnerService = dependencies?.agentRunnerService;
         this.commandRunner = dependencies?.commandRunner ?? runCommand;
         this.commandWindowRunner = dependencies?.commandWindowRunner ?? runCommandInWindow;
+        this.diagramOutputWatcherFactory = dependencies?.diagramOutputWatcherFactory;
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
         this.localGitService = dependencies?.localGitService;
+        this.now = dependencies?.now ?? Date.now;
         this.usageMetricsService = dependencies?.usageMetricsService ?? null;
         this.actionDefinitionCache = dependencies?.actionDefinitionCache
             ?? (this.localGitService ? new ActionDefinitionCache({ localGitService: this.localGitService }) : null);
@@ -60,19 +60,28 @@ class ActionRunnerService {
         this.recoveryRunResults = new Map();
         this.conversationReservations = new Map();
         this.configuredStates = [];
+        this.diagramFooter = null;
+        this.diagramsFolder = null;
+        this.latestDiagramTimestampMs = 0;
         this.runEvents = new Map();
         this.runs = new Map();
         this.listeners = new Set();
         this.project = null;
         this.projectFolder = null;
         this.releasesFolder = null;
+        this.diagramFooter = null;
+        this.diagramsFolder = null;
+        this.latestDiagramTimestampMs = 0;
         this.restartingRuns = new Set();
     }
 
-    async startProject(project, actionsFolder, projectFolder, releasesFolder, activeCardsFolder) {
+    async startProject(project, actionsFolder, projectFolder, releasesFolder, activeCardsFolder, diagramsFolder, diagramFooter) {
         if (typeof projectFolder !== 'string') throw new Error('Missing action runner projectFolder');
         if (typeof releasesFolder !== 'string' || releasesFolder.length === 0) throw new Error('Missing action runner releasesFolder');
         if (typeof activeCardsFolder !== 'string' || activeCardsFolder.length === 0) throw new Error('Missing action runner activeCardsFolder');
+        if (typeof diagramsFolder !== 'string' || diagramsFolder.length === 0) throw new Error('Missing action runner diagramsFolder');
+        if (typeof diagramFooter !== 'string' || diagramFooter.length === 0) throw new Error('Missing action runner diagramFooter');
+        if (!diagramFooter.includes('{{diagram-file}}')) throw new Error('Action runner diagramFooter requires {{diagram-file}} placeholder');
         if (this.project) await this.stop();
         this.usageMetricsService?.startProject(project, projectFolder);
         this.project = project;
@@ -80,6 +89,9 @@ class ActionRunnerService {
         this.activeCardsFolder = activeCardsFolder;
         this.projectFolder = projectFolder;
         this.releasesFolder = releasesFolder;
+        this.diagramsFolder = diagramsFolder;
+        this.diagramFooter = diagramFooter;
+        this.latestDiagramTimestampMs = 0;
         this.actionCacheReady = this.actionDefinitionCache && this.localGitService
             ? this.initializeProject(project, actionsFolder)
             : null;
@@ -148,6 +160,7 @@ class ActionRunnerService {
         const project = { ...this.project };
         const actionsFolder = this.actionsFolder;
         const rootAction = await this.loadRootAction(startRequest.actionId);
+        const diagramPath = this.resolveStartDiagramPath(startRequest, rootAction);
         if (options.interactive === false && hasStreamingAction(rootAction)) {
             throw new Error(`Streaming action requires an interactive manual run: ${rootAction.label}`);
         }
@@ -159,6 +172,9 @@ class ActionRunnerService {
             activityOrigin: origin,
             context: startRequest.context,
             conversationReservation,
+            diagramFooter: this.diagramFooter,
+            diagramsFolder: this.diagramsFolder,
+            diagramPath,
             runId,
             project,
             projectFolder: this.projectFolder,
@@ -172,6 +188,7 @@ class ActionRunnerService {
             agentRunnerService: this.agentRunnerService,
             commandRunner: this.commandRunner,
             commandWindowRunner: this.commandWindowRunner,
+            diagramOutputWatcherFactory: this.diagramOutputWatcherFactory,
             localGitService: this.localGitService,
             publisher: this.publish.bind(this),
         });
@@ -225,6 +242,10 @@ class ActionRunnerService {
         const action = await this.loadRootAction(promptRequest.actionId);
         if (action.type !== 'agent') throw new Error('Cannot prepare a prompt for a command action');
         const resolution = await this.actionWorktreeRunService.resolve(project, action, promptRequest.context);
+        const diagramPath = action.output?.kind === 'diagram' ? this.allocateDiagramPath(action.label) : null;
+        const diagramFile = diagramPath === null
+            ? null
+            : resolveDiagramFile(resolution.runProject, this.diagramsFolder, diagramPath);
 
         const prompt = resolveAgentPrompt(
             action,
@@ -235,9 +256,14 @@ class ActionRunnerService {
             this.releasesFolder,
             this.activeCardsFolder,
             '',
+            this.diagramFooter,
+            diagramFile,
         );
 
-        return { prompt: await appendCurrentCardReferences(prompt, promptRequest.context, project, this.localGitService) };
+        return {
+            ...(diagramPath ? { diagramPath } : {}),
+            prompt: await appendCurrentCardReferences(prompt, promptRequest.context, project, this.localGitService),
+        };
     }
 
     async wait(runId) {
@@ -338,6 +364,8 @@ class ActionRunnerService {
 
     requireProjectFolder() {
         if (this.projectFolder === null) throw new Error('Action runner has no projectFolder');
+        if (!this.diagramsFolder) throw new Error('Action runner has no diagramsFolder');
+        if (!this.diagramFooter) throw new Error('Action runner has no diagramFooter');
         if (this.releasesFolder === null) throw new Error('Action runner has no releasesFolder');
 
         return this.projectFolder;
@@ -348,6 +376,27 @@ class ActionRunnerService {
         await this.actionCacheReady;
 
         return resolveActionDefinition(this.actionDefinitionCache, config.agentProfiles, actionId, this.configuredStates);
+    }
+
+    allocateDiagramPath(actionLabel) {
+        const timestampMs = Math.max(this.now(), this.latestDiagramTimestampMs + 1);
+        this.latestDiagramTimestampMs = timestampMs;
+
+        return createDiagramPath(actionLabel, this.diagramsFolder, timestampMs);
+    }
+
+    resolveStartDiagramPath(startRequest, rootAction) {
+        if (rootAction.output?.kind !== 'diagram') {
+            if (startRequest.runInput.diagramPath !== undefined) {
+                throw new Error('Diagram output path requires a diagram action');
+            }
+
+            return null;
+        }
+
+        if (startRequest.context.kind !== 'diagram') throw new Error('Diagram action requires diagram context');
+
+        return startRequest.runInput.diagramPath ?? this.allocateDiagramPath(rootAction.label);
     }
 
     async finalizeRun(run, runCompletion) {
@@ -380,6 +429,11 @@ class ActionRunnerService {
         } catch {
             // Error reporting must not affect action runs.
         }
+    }
+
+    /** Reports every in-flight run so a release can refuse to start while agents are working. */
+    listActiveRuns() {
+        return [...this.runs.values()].map((run) => ({ label: run.rootAction.label, runId: run.runId }));
     }
 
     requireRun(runId) {

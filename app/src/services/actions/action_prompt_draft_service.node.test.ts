@@ -61,13 +61,13 @@ describe('ActionPromptDraftService', () => {
     it('does not replace a newer local edit with superseded preparation', async () => {
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, null, { prepare: true })
-        let resolvePreparation: (value: string) => void = () => undefined
-        const preparation = draft.prepare(() => new Promise((resolve) => {
+        let resolvePreparation: (value: { prompt: string }) => void = () => undefined
+        const preparation = draft.prepare(() => new Promise<{ prompt: string }>((resolve) => {
             resolvePreparation = resolve
         }))
 
         draft.edit('User draft')
-        resolvePreparation('Prepared draft')
+        resolvePreparation({ prompt: 'Prepared draft' })
         await preparation
 
         expect(draft.getSnapshot()).toBe('User draft')
@@ -77,13 +77,13 @@ describe('ActionPromptDraftService', () => {
     it('ignores editor synchronization while prompt preparation is loading', async () => {
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, null, { prepare: true })
-        let resolvePreparation: (value: string) => void = () => undefined
-        const preparation = draft.prepare(() => new Promise((resolve) => {
+        let resolvePreparation: (value: { prompt: string }) => void = () => undefined
+        const preparation = draft.prepare(() => new Promise<{ prompt: string }>((resolve) => {
             resolvePreparation = resolve
         }))
 
         draft.editorDraft.edit('Previous action prompt')
-        resolvePreparation('Prepared draft')
+        resolvePreparation({ prompt: 'Prepared draft' })
         await preparation
 
         expect(draft.getSnapshot()).toBe('Prepared draft')
@@ -99,7 +99,7 @@ describe('ActionPromptDraftService', () => {
         })
         expect(draft.getEditorSnapshot().preparationStatus).toBe('loading')
 
-        await draft.prepare(async () => 'Prepared after reconnect')
+        await draft.prepare(async () => ({ prompt: 'Prepared after reconnect' }))
         expect(draft.getSnapshot()).toBe('Prepared after reconnect')
         expect(draft.getEditorSnapshot().preparationStatus).toBe('ready')
     })
@@ -111,7 +111,7 @@ describe('ActionPromptDraftService', () => {
             throw new RemoteControlConnectionError('connection closed')
         })
         draft.edit('User draft')
-        const prepare = vi.fn(async () => 'Prepared after reconnect')
+        const prepare = vi.fn(async () => ({ prompt: 'Prepared after reconnect' }))
 
         await draft.prepare(prepare)
 
@@ -135,6 +135,18 @@ describe('ActionPromptDraftService', () => {
         draft.edit('Typed')
 
         expect(draft.getRevision()).toBe(initialRevision + 1)
+    })
+
+    it('retains prepared diagram path through local prompt edits and clears it with draft', async () => {
+        const service = new ActionPromptDraftService()
+        const draft = service.getDraft('diagram', { kind: 'diagram', type: 'root' }, null, { prepare: true })
+        await draft.prepare(async () => ({ diagramPath: 'design/diagrams/overview.json', prompt: 'Create overview' }))
+
+        draft.edit('Create detailed overview')
+        expect(draft.getDiagramPath()).toBe('design/diagrams/overview.json')
+
+        draft.clear()
+        expect(draft.getDiagramPath()).toBeNull()
     })
 
     it('empties a cleared draft without replacing the object bound to the editor', () => {
@@ -164,7 +176,7 @@ describe('ActionPromptDraftService', () => {
     it('discards an unedited prepared default and keeps user-edited text', async () => {
         const service = new ActionPromptDraftService()
         const prepared = service.getDraft('review', context, null, { prepare: true })
-        await prepared.prepare(async () => 'Prepared prompt')
+        await prepared.prepare(async () => ({ prompt: 'Prepared prompt' }))
 
         service.discardUneditedDraft('review', context, null)
         expect(prepared.getSnapshot()).toBe('')
@@ -179,10 +191,10 @@ describe('ActionPromptDraftService', () => {
     it('prepares again after an unedited prompt is cleared', async () => {
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, null, { prepare: true })
-        await draft.prepare(async () => 'First prepared prompt')
+        await draft.prepare(async () => ({ prompt: 'First prepared prompt' }))
         service.discardUneditedDraft('review', context, null)
 
-        await draft.prepare(async () => 'Prepared again')
+        await draft.prepare(async () => ({ prompt: 'Prepared again' }))
 
         expect(draft.getSnapshot()).toBe('Prepared again')
         expect(draft.hasLocalEdits()).toBe(false)
@@ -191,10 +203,10 @@ describe('ActionPromptDraftService', () => {
     it('treats exact-empty local input as unedited and prepares it again', async () => {
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, null, { prepare: true })
-        await draft.prepare(async () => 'Prepared prompt')
+        await draft.prepare(async () => ({ prompt: 'Prepared prompt' }))
         draft.edit('')
 
-        await draft.prepare(async () => 'Restored prompt')
+        await draft.prepare(async () => ({ prompt: 'Restored prompt' }))
 
         expect(draft.getSnapshot()).toBe('Restored prompt')
         expect(draft.hasLocalEdits()).toBe(false)
@@ -243,7 +255,7 @@ describe('ActionPromptDraftService', () => {
     it('invalidates prepared defaults without discarding user drafts', async () => {
         const service = new ActionPromptDraftService()
         const prepared = service.getDraft('review', context, null, { prepare: true })
-        await prepared.prepare(async () => 'Prepared prompt')
+        await prepared.prepare(async () => ({ prompt: 'Prepared prompt' }))
         const editedContext = { ...context, cardInternalId: 'card-2' }
         const edited = service.getDraft('review', editedContext, null, { prepare: true })
         edited.edit('User prompt')

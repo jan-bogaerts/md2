@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
 import { DEFAULT_PROJECT_CONFIG, type ProjectConfig, type StorageService } from '../../data/data_types'
 import { projectStatsService } from '../../services/stats/project_stats_service'
+import { completedReleaseIdentity } from '../../services/stats/stats_options'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { DialogDisplay } from '../dialog_display'
 import { StatsContent } from './stats_content'
@@ -37,6 +38,10 @@ function metricsStorage(content: string) {
 
 function renderContent() {
     return render(<AppThemeProvider><DialogDisplay /><StatsContent /></AppThemeProvider>)
+}
+
+function activityWithRecords(records: Record<string, unknown>[]) {
+    return JSON.stringify({actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records, version: 4})
 }
 
 describe('StatsContent', () => {
@@ -123,6 +128,46 @@ describe('StatsContent', () => {
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Totals metric' }))
         fireEvent.click(screen.getByRole('option', { name: 'Estimated cost' }))
         expect(projectStatsService.getSnapshot().controls.totalsMetric).toBe('cost')
+    })
+
+    it('offers sorted releases, selects one release, and shows its empty state', async () => {
+        const origin = { cardInternalId: 'card-1', kind: 'card' }
+        const currentRecord = {
+            commits: [], completedAt: '2026-08-12T10:00:00.000Z', conversationIds: [],
+            details: { command: 'review', output: '', type: 'command' }, origin, rootActionId: 'review',
+            rootActionLabel: 'Review', runId: 'current-run', startedAt: '2026-08-12T09:00:00.000Z', status: 'completed',
+        }
+        const releaseRecord = {
+            ...currentRecord,
+            completedAt: '2026-08-13T10:00:00.000Z',
+            rootActionId: 'ship',
+            rootActionLabel: 'Ship',
+            runId: 'release-run',
+        }
+        projectStatsService.setControls({ activityMetric: 'actions', dataset: 'activityOverTime' })
+        projectStatsService.bindProject({
+            config,
+            project: { branch: 'main', id: 'releases' },
+            storage: storage({
+                'design/activity/card__card-1.json': activityWithRecords([currentRecord]),
+                'design/history/empty/README.md': 'Empty release',
+                'design/history/v1/card__card-1.json': activityWithRecords([releaseRecord]),
+            }),
+        })
+        await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
+        renderContent()
+
+        expect(screen.getByRole('combobox', { name: 'Releases' })).toHaveTextContent('Current release')
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Releases' }))
+        expect(screen.getAllByRole('option').map(({ textContent }) => textContent)).toEqual(['Current release', 'empty', 'v1'])
+        expect(screen.queryByRole('option', { name: 'All releases' })).toBeNull()
+        fireEvent.click(screen.getByRole('option', { name: 'v1' }))
+        expect(projectStatsService.getSnapshot().controls.releaseIdentity).toBe(completedReleaseIdentity('v1'))
+        expect(projectStatsService.getSnapshot().rows).toEqual([expect.objectContaining({ actionId: 'ship', value: 1 })])
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Releases' }))
+        fireEvent.click(screen.getByRole('option', { name: 'empty' }))
+        expect(screen.getByText('No stats data matches current filters.')).toBeInTheDocument()
     })
 
     it('shows all account series and scope warning without account selectors', async () => {

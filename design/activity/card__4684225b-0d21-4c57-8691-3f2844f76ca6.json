@@ -1,0 +1,648 @@
+{
+  "actionSettings": {
+    "md2.custom-prompt": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "4684225b-0d21-4c57-8691-3f2844f76ca6",
+      "cardPath": "design/feature_descriptions/F_257_size_of_usage_metrics_csv.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 84385
+      },
+      "entries": [
+        {
+          "content": "Can you investigate feasibility of design/feature_descriptions/F_257_size_of_usage_metrics_csv.md",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-01T19:27:24.804Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the feature description first.",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-09-01T19:27:27.719Z"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_257_size_of_usage_metrics_csv.md\"",
+          "content": "---\nauthor: \nid: F_257\ninternalId: 4684225b-0d21-4c57-8691-3f2844f76ca6\ntitle: size of usage_metrics.csv\nstatus: new\nowner: \naffects:\nagents:\n  - design/activity/card__4684225b-0d21-4c57-8691-3f2844f76ca6.json\npolicy:\nafter: 9d5878e6-2d20-4574-971d-57dbd82eb389\n---\nthe size of `usage_metrics.csv` can grow fast. we also only need this info per release. so once a release is done, we should move this file into the release folder and use a new, csv for the next release.\n\nthis is a bit tricky though cause some cards that are not yet released might already have run some agents, so some usage-metrics are for cards that are released, others are not.\n\nto solve this, we should probably work with a 'pre-calculated' data set.&#x20;\n\nright now, we load all statistics dynamically when we show the stats view. better would be to save those statistics per card so we don't need to always recalculated them. and then append new data next time.\n\nThis way at release we can find the point in the csv file where all lines can be removed cause all cards in that time period have been released or archived.",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-3",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_257_size_of_usage_metrics_csv.md\"",
+          "providerItemId": "toolu_01YCikHXqDjjZKbU53DBJNVE",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:27:29.336Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGeVHurxQR3NXNchz6W:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:27:31.156Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow let me explore how usage metrics are written, read, and released.",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 5,
+          "timestamp": "2026-09-01T19:27:31.872Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"usage_metrics\" --include=*.ts --include=*.tsx --include=*.js --include=*.md -l . | grep -v node_modules | head -50",
+          "content": "./app/dist/assets/index-CQzTw2A8.js\n./app/src/components/stats_view/stats_content.test.tsx\n./app/src/components/stats_view/stats_content.tsx\n./app/src/services/agents/project_usage_metrics_service.node.test.ts\n./app/src/services/agents/project_usage_metrics_service.ts\n./app/src/services/stats/project_stats_loader.ts\n./app/src/services/stats/project_stats_service.node.test.ts\n./app/src/services/stats/project_stats_service.ts\n./app/src/services/stats/project_stats_types.ts\n./app/src/services/stats/stats_activity_dataset.ts\n./app/src/services/stats/stats_identities.ts\n./app/src/services/stats/stats_options.node.test.ts\n./app/src/services/stats/stats_usage_comparison_dataset.ts\n./design/feature_descriptions/F_257_size_of_usage_metrics_csv.md\n./design/feature_descriptions/F_263_stats_add_releases_filter.md\n./design/releases/0_4_0/B_151_issues_in_stats.md\n./design/releases/0_4_0/F_194_track_token_usage_vs_usage_metrics.md\n./design/releases/0_4_0/F_208_add_view_stats.md\n./design/releases/0_4_0/F_211_stats_view_improvements.md\n./design/releases/0_4_0/J_29_investigate_and_improve_stats_load_speed.md\n./design/releases/0_5_0/F_224_add_subscription_costs.md\n./design/releases/0_5_0/F_227_remove_gpt_5_3_codex_spark_from_account_usage.md\n./desktop/main.js\n./desktop/src/actions/agent/usage_metrics_service.js",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-6",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"usage_metrics\" --include=*.ts --include=*.tsx --include=*.js --include=*.md -l . | grep -v node_modules | head -50",
+          "providerItemId": "toolu_01Rc2CNN3UCx1Fn6p3ExDb2h",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:27:38.983Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat desktop/src/actions/agent/usage_metrics_service.js && echo \"=====APP SERVICE=====\" && cat app/src/services/agents/project_usage_metrics_service.ts",
+          "content": "const fs = require('node:fs/promises');\nconst path = require('node:path');\n\nconst { ensureInsideRoot } = require('../../git/git_commands');\n\nconst CSV_COLUMNS = [\n    'recorded_at',\n    'record_type',\n    'provider',\n    'limit_id',\n    'window_id',\n    'window_duration_minutes',\n    'resets_at',\n    'input_tokens',\n    'cached_input_tokens',\n    'output_tokens',\n    'reasoning_tokens',\n    'total_tokens',\n    'used_percent',\n    'used_percent_delta',\n];\nconst CSV_HEADER = CSV_COLUMNS.join(',');\nconst DEFAULT_LIMIT_ID = 'default';\nconst SUPPORTED_PROVIDERS = new Set(['claude', 'codex']);\nconst UNIX_MILLISECONDS_THRESHOLD = 1_000_000_000_000;\nconst USAGE_METRICS_FILE = 'usage_metrics.csv';\nconst CLAUDE_CALCULATION_WINDOW_ID = 'weekly';\nconst RESET_TIMESTAMP_TOLERANCE_MS = 60_000;\nconst CLAUDE_WINDOW_DURATIONS = new Map([\n    ['five_hour', 300],\n    ['weekly', 10_080],\n]);\n\nfunction csvValue(value) {\n    const text = value === null || value === undefined ? '' : String(value);\n    if (!/[\",\\r\\n]/u.test(text)) return text;\n\n    return `\"${text.replaceAll('\"', '\"\"')}\"`;\n}\n\nfunction csvRow(record) {\n    return CSV_COLUMNS.map((column) => csvValue(record[column])).join(',');\n}\n\nfunction completeCsvRecord(values) {\n    return Object.fromEntries(CSV_COLUMNS.map((column) => [column, values[column] ?? '']));\n}\n\nfunction finishCsvRecord(records, fields, field, valid) {\n    records.push({ fields: [...fields, field], valid });\n}\n\n/** Parses RFC 4180 records while retaining row validity so malformed history can be skipped. */\nfunction parseCsv(content) {\n    const records = [];\n    let fields = [];\n    let field = '';\n    let inQuotes = false;\n    let afterQuote = false;\n    let valid = true;\n    for (let index = 0; index < content.length; index += 1) {\n        const character = content[index];\n        if (inQuotes) {\n            if (character !== '\"') {\n                field += character;\n                continue;\n            }\n            if (content[index + 1] === '\"') {\n                field += '\"';\n                index += 1;\n                continue;\n            }\n            inQuotes = false;\n            afterQuote = true;\n            continue;\n        }\n        if (afterQuote) {\n            if (character === ',') {\n                fields.push(field);\n                field = '';\n                afterQuote = false;\n                continue;\n            }\n            if (character === '\\r' || character === '\\n') {\n                finishCsvRecord(records, fields, field, valid);\n                if (character === '\\r' && content[index + 1] === '\\n') index += 1;\n                fields = [];\n                field = '';\n                afterQuote = false;\n                valid = true;\n                continue;\n            }\n            valid = false;\n            afterQuote = false;\n        }\n        if (character === '\"') {\n            if (field.length === 0) {\n                inQuotes = true;\n                continue;\n            }\n            valid = false;\n            field += character;\n            continue;\n        }\n        if (character === ',') {\n            fields.push(field);\n            field = '';\n            continue;\n        }\n        if (character === '\\r' || character === '\\n') {\n            finishCsvRecord(records, fields, field, valid);\n            if (character === '\\r' && content[index + 1] === '\\n') index += 1;\n            fields = [];\n            field = '';\n            valid = true;\n            continue;\n        }\n        field += character;\n    }\n    if (inQuotes) valid = false;\n    if (fields.length > 0 || field.length > 0 || afterQuote || !valid) finishCsvRecord(records, fields, field, valid);\n\n    return records;\n}\n\nfunction validTimestamp(timestamp) {\n    return typeof timestamp === 'number' && Number.isFinite(timestamp);\n}\n\nfunction isoTimestamp(timestamp) {\n    if (!validTimestamp(timestamp)) return null;\n    try {\n        return new Date(timestamp).toISOString();\n    } catch {\n        return null;\n    }\n}\n\nfunction validIsoTimestamp(value) {\n    if (typeof value !== 'string') return false;\n\n \n[18467 characters omitted]\nordType = fields[1]\n        if (recordType === 'account_usage') {\n            const record = fields.length === METRICS_COLUMNS.length\n                ? Object.fromEntries(METRICS_COLUMNS.map((column, columnIndex) => [column, fields[columnIndex]]))\n                : null\n            if (!record || !isValidAccountUsageRecord(record)) {\n                warnings.push(`Malformed account_usage row ${rowNumber} was skipped.`)\n                continue\n            }\n            const limitId = record.limit_id\n            const provider = record.provider\n            const resetsAt = record.resets_at\n            const usedPercent = Number(record.used_percent)\n            const key = accountUsageKey(provider, limitId, record.window_id)\n            const baseline = accountBaselines.get(key)\n            const persistedDelta = record.used_percent_delta === '' ? null : Number(record.used_percent_delta)\n            const usedPercentDelta = baseline && sameAccountWindow(baseline.resetsAt, resetsAt)\n                ? usedPercent - baseline.usedPercent\n                : persistedDelta\n            accountRows.push({\n                limitId,\n                provider,\n                recordedAt: record.recorded_at,\n                resetsAt,\n                usedPercent,\n                usedPercentDelta,\n                windowDurationMinutes: Number(record.window_duration_minutes),\n                windowId: record.window_id,\n            })\n            accountBaselines.set(key, { resetsAt, usedPercent })\n            continue\n        }\n        if (fields.length !== METRICS_COLUMNS.length) throw new Error(`Invalid usage metrics column count at row ${rowNumber}`)\n        const record = Object.fromEntries(METRICS_COLUMNS.map((column, columnIndex) => [column, fields[columnIndex]]))\n        if (!isValidIsoTimestamp(record.recorded_at)) throw new Error(`Invalid usage metrics recorded_at at row ${rowNumber}`)\n        if (record.record_type !== 'token_usage') throw new Error(`Invalid usage metrics record_type at row ${rowNumber}`)\n        if (!SUPPORTED_PROVIDERS.has(record.provider)) throw new Error(`Invalid usage metrics provider at row ${rowNumber}`)\n        const inputTokens = parseNonNegativeInteger(record.input_tokens, 'input_tokens', rowNumber)\n        const cachedInputTokens = parseNonNegativeInteger(record.cached_input_tokens, 'cached_input_tokens', rowNumber)\n        const outputTokens = parseNonNegativeInteger(record.output_tokens, 'output_tokens', rowNumber)\n        const reasoningTokens = parseNonNegativeInteger(record.reasoning_tokens, 'reasoning_tokens', rowNumber)\n        const totalTokens = parseNonNegativeInteger(record.total_tokens, 'total_tokens', rowNumber)\n        if (inputTokens + cachedInputTokens + outputTokens + reasoningTokens !== totalTokens) {\n            throw new Error(`Inconsistent usage metrics total_tokens at row ${rowNumber}`)\n        }\n        tokenRows.push({ provider: record.provider, recordedAt: record.recorded_at, totalTokens })\n    }\n\n    return { accountRows, tokenRows, warnings }\n}\n\n/** Owns repository usage-metrics discovery, parsing, and warning state. */\nexport class ProjectUsageMetricsService {\n    private snapshot = EMPTY_SNAPSHOT\n\n    getSnapshot() {\n        return this.snapshot\n    }\n\n    clear() {\n        this.snapshot = EMPTY_SNAPSHOT\n    }\n\n    async load(project: ProjectReference, projectFolder: string, storage: StorageService, repositoryFiles: string[]) {\n        const path = joinPath(projectFolder, USAGE_METRICS_FILE)\n        if (!repositoryFiles.map(normalizePath).includes(path)) {\n            this.snapshot = EMPTY_SNAPSHOT\n            return this.snapshot\n        }\n        if (!storage.loadTextFile) throw new Error('Repository text file loading is not available')\n\n        const file = await storage.loadTextFile(project, path)\n        const parsed = parseUsageMetrics(file.content)\n        this.snapshot = { ...parsed, available: true }\n\n        return this.snapshot\n    }\n}\n\nexport const projectUsageMetricsService = register('projectUsageMetricsService', new ProjectUsageMetricsService())",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-7",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat desktop/src/actions/agent/usage_metrics_service.js && echo \"=====APP SERVICE=====\" && cat app/src/services/agents/project_usage_metrics_service.ts",
+          "providerItemId": "toolu_012X6N6xaH8GAgH4uCiqHaDV",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:27:41.278Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGfNNxpCKfqwNmbcdAK:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:27:43.084Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && wc -l app/src/services/stats/*.ts && echo \"---\" && cat app/src/services/stats/project_stats_loader.ts",
+          "content": "   173 app/src/services/stats/project_stats_loader.ts\n   106 app/src/services/stats/project_stats_schema.node.test.ts\n  1015 app/src/services/stats/project_stats_service.node.test.ts\n   126 app/src/services/stats/project_stats_service.ts\n   199 app/src/services/stats/project_stats_types.ts\n    17 app/src/services/stats/project_stats_worker.ts\n    84 app/src/services/stats/project_stats_worker_client.node.test.ts\n   107 app/src/services/stats/project_stats_worker_client.ts\n    98 app/src/services/stats/stats_activity_dataset.ts\n    38 app/src/services/stats/stats_chart_rows.node.test.ts\n    69 app/src/services/stats/stats_chart_rows.ts\n    30 app/src/services/stats/stats_identities.ts\n   191 app/src/services/stats/stats_options.node.test.ts\n    72 app/src/services/stats/stats_options.ts\n   214 app/src/services/stats/stats_performance_dataset.ts\n    68 app/src/services/stats/stats_snapshot_builder.ts\n    12 app/src/services/stats/stats_subscription_cost.node.test.ts\n    12 app/src/services/stats/stats_subscription_cost.ts\n   129 app/src/services/stats/stats_time_buckets.node.test.ts\n   135 app/src/services/stats/stats_time_buckets.ts\n    33 app/src/services/stats/stats_tooltip.node.test.ts\n    56 app/src/services/stats/stats_tooltip.ts\n   299 app/src/services/stats/stats_totals_dataset.ts\n   524 app/src/services/stats/stats_usage_comparison_dataset.ts\n  3807 total\n---\nimport { activityOriginFromPath, projectActivityFolder } from '../../../../shared/activity_paths.mjs';\nimport {\n    parseProjectStatsFile,\n    projectStatsFilePath,\n    serializeProjectStats,\n    type ActivityStatsCalculationResult,\n    type ReleaseStats,\n} from '../../../../shared/project_stats.mjs';\nimport type { ProjectConfig, ProjectReference, StorageService } from '../../data/data_types';\nimport { projectUsageMetricsService } from '../agents/project_usage_metrics_service';\nimport type { LoadedStatsSource, StatsCardDescriptor, StatsProjectBinding } from './project_stats_types';\nimport { calculateActivityStatsOutsideMainThread } from './project_stats_worker_client';\n\nconst RELEASE_STATS_COMMIT_MESSAGE = 'Update calculated release stats';\n\ninterface ReleasedStatsResult {\n    releaseStats: Record<string, ReleaseStats>;\n    warnings: string[];\n}\n\nexport type StatsCalculator = (\n    storage: StorageService,\n    project: ProjectReference,\n    paths: string[],\n    signal: AbortSignal,\n) => Promise<ActivityStatsCalculationResult>;\n\nfunction normalizePath(path: string) {\n    return path.replace(/\\\\/gu, '/').replace(/^\\/+|\\/+$/gu, '');\n}\n\nfunction recognizedCurrentActivityPath(path: string, config: ProjectConfig) {\n    const normalizedPath = normalizePath(path);\n    const activityFolder = normalizePath(projectActivityFolder(config.projectFolder));\n    const activityPrefix = `${activityFolder}/`;\n    if (normalizedPath.startsWith(activityPrefix) && !normalizedPath.slice(activityPrefix.length).includes('/')) {\n        return activityOriginFromPath(normalizedPath) ? normalizedPath : null;\n    }\n\n    return null;\n}\n\n/** Splits repository files into current activity files and per-release activity files. */\nexport function findStatsSourcePaths(repositoryFiles: string[], config: ProjectConfig) {\n    const currentActivityPaths = repositoryFiles\n        .map((path) => recognizedCurrentActivityPath(path, config))\n        .filter((path): path is string => path !== null)\n        .sort((left, right) => left.localeCompare(right));\n    const releaseActivityPaths: Record<string, string[]> = {};\n    const releasesFolder = normalizePath(config.releasesFolder);\n    const releasePrefix = `${releasesFolder}/`;\n    for (const path of repositoryFiles.map(normalizePath)) {\n        if (!path.startsWith(releasePrefix)) continue;\n        const releaseParts = path.slice(releasePrefix.length).split('/');\n        if (releaseParts.length < 2 || releaseParts[0].length === 0) continue;\n        const releaseName = releaseParts[0];\n        releaseActivityPaths[releaseName] ??= [];\n        if (releaseParts.length !== 2 || !activityOriginFromPath(path)) continue;\n        releaseActivityPa\n[1410 characters omitted]\njectBinding,\n        cards: StatsCardDescriptor[],\n        signal: AbortSignal,\n        isCurrent: () => boolean,\n    ): Promise<Omit<LoadedStatsSource, 'agentProfiles'> | null> {\n        const repositoryFiles = await binding.storage.listRepositoryFiles(binding.project);\n        if (!isCurrent()) return null;\n        const { currentActivityPaths, releaseActivityPaths } = findStatsSourcePaths(repositoryFiles, binding.config);\n        const [current, released] = await Promise.all([\n            this.calculateStats(binding.storage, binding.project, currentActivityPaths, signal),\n            this.loadReleasedStats(binding, repositoryFiles, releaseActivityPaths, signal),\n        ]);\n        if (!isCurrent()) return null;\n        const usageMetrics = await projectUsageMetricsService.load(\n            binding.project,\n            binding.config.projectFolder,\n            binding.storage,\n            repositoryFiles,\n        );\n        if (!isCurrent()) return null;\n\n        return {\n            accountRows: usageMetrics.accountRows,\n            cards,\n            currentStats: current.stats,\n            releaseStats: released.releaseStats,\n            tokenRows: usageMetrics.tokenRows,\n            tokenTimeAvailable: usageMetrics.available,\n            warnings: [...current.warnings, ...released.warnings, ...usageMetrics.warnings],\n        };\n    }\n\n    private async loadReleasedStats(\n        binding: StatsProjectBinding,\n        repositoryFiles: string[],\n        releaseActivityPaths: Record<string, string[]>,\n        signal: AbortSignal,\n    ): Promise<ReleasedStatsResult> {\n        const statsPath = projectStatsFilePath(binding.config.projectFolder);\n        const normalizedRepositoryFiles = new Set(repositoryFiles.map(normalizePath));\n        let cachedReleases: Record<string, ReleaseStats> = {};\n        let statsFile: Awaited<ReturnType<NonNullable<StorageService['loadTextFile']>>> | null = null;\n        const warnings: string[] = [];\n        if (normalizedRepositoryFiles.has(normalizePath(statsPath))) {\n            if (!binding.storage.loadTextFile) throw new Error('Repository text file loading is not available');\n            try {\n                statsFile = await binding.storage.loadTextFile(binding.project, statsPath);\n                const parsed = parseProjectStatsFile(statsFile.content, statsPath);\n                cachedReleases = parsed.releases;\n                warnings.push(...parsed.warnings);\n            } catch (error) {\n                const detail = error instanceof Error ? error.message : String(error);\n                warnings.push(`${statsPath}: ${detail}`);\n            }\n        }\n\n        const releaseNames = Object.keys(releaseActivityPaths).sort((left, right) => left.localeCompare(right));\n        const releases: Record<string, ReleaseStats> = {};\n        let changed = Object.keys(cachedReleases).some((releaseName) => !releaseActivityPaths[releaseName]);\n        for (const releaseName of releaseNames) {\n            const cached = cachedReleases[releaseName];\n            if (cached) {\n                releases[releaseName] = cached;\n                continue;\n            }\n            const calculated = await this.calculateStats(binding.storage, binding.project, releaseActivityPaths[releaseName], signal);\n            releases[releaseName] = calculated.stats;\n            warnings.push(...calculated.warnings);\n            changed = true;\n        }\n\n        if (changed && !signal.aborted) {\n            const content = serializeProjectStats(releases);\n            const file = statsFile ? { ...statsFile, content } : { content, path: statsPath };\n            try {\n                await binding.storage.commit({ branch: binding.project.branch, files: [file], message: RELEASE_STATS_COMMIT_MESSAGE });\n            } catch (error) {\n                const detail = error instanceof Error ? error.message : String(error);\n                warnings.push(`${statsPath}: could not persist calculated release stats: ${detail}`);\n            }\n        }\n\n        return { releaseStats: releases, warnings };\n    }\n}",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-9",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && wc -l app/src/services/stats/*.ts && echo \"---\" && cat app/src/services/stats/project_stats_loader.ts",
+          "providerItemId": "toolu_01Xqnw3k8bJ3xjgjF5SRxSWp",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:27:44.330Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-10",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGfbqqV5UGuhGf1Gptg:thinking:0",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:27:47.738Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat shared/project_stats.mjs && echo \"=====\" && ls design/ && echo \"---\" && ls design/releases/0_5_0 | head -20 && ls design/releases/",
+          "content": "import { activityOriginFromPath } from './activity_paths.mjs'\nimport { parseActivityFileForMigration } from './card_activity.mjs'\n\nconst RELEASE_STATS_VERSION = 3\nconst CONVERSATION_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput'])\nconst COMPLETED_ACTION_STATUSES = new Set(['completed', 'okButNotAfter'])\nconst CODEX_TOOL_EVENT_TYPES = new Set([\n    'collabAgentToolCall',\n    'commandExecution',\n    'dynamicToolCall',\n    'fileChange',\n    'imageView',\n    'mcpToolCall',\n    'webSearch',\n])\n\nfunction requiredObject(value, fieldName) {\n    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed project stats: invalid ${fieldName}`)\n\n    return value\n}\n\nfunction requiredString(value, fieldName) {\n    if (typeof value !== 'string' || value.length === 0) throw new Error(`Malformed project stats: invalid ${fieldName}`)\n\n    return value\n}\n\nfunction nullableString(value, fieldName) {\n    if (value === null) return null\n\n    return requiredString(value, fieldName)\n}\n\nfunction requiredTimestamp(value, fieldName) {\n    const timestamp = requiredString(value, fieldName)\n    if (Number.isNaN(Date.parse(timestamp))) throw new Error(`Malformed project stats: invalid ${fieldName}`)\n\n    return timestamp\n}\n\nfunction nullableTimestamp(value, fieldName) {\n    if (value === null) return null\n\n    return requiredTimestamp(value, fieldName)\n}\n\nfunction nullableNonNegativeNumber(value, fieldName) {\n    if (value === null) return null\n    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {\n        throw new Error(`Malformed project stats: invalid ${fieldName}`)\n    }\n\n    return value\n}\n\nfunction nonNegativeNumber(value, fieldName) {\n    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {\n        throw new Error(`Malformed project stats: invalid ${fieldName}`)\n    }\n\n    return value\n}\n\nfunction requiredBoolean(value, fieldName) {\n    if (typeof value !== 'boolean') throw new Error(`Malformed project stats: invalid ${fieldName}`)\n\n    return value\n}\n\nfunction actionType(value, fieldName) {\n    const type = requiredString(value, fieldName)\n    if (type !== 'agent' && type !== 'command') throw new Error(`Malformed project stats: invalid ${fieldName}`)\n\n    return type\n}\n\nfunction parseAction(value, fieldName) {\n    const action = requiredObject(value, fieldName)\n\n    return {\n        actionId: requiredString(action.actionId, `${fieldName}.actionId`),\n        actionLabel: requiredString(action.actionLabel, `${fieldName}.actionLabel`),\n        actionType: actionType(action.actionType, `${fieldName}.actionType`),\n        agent: nullableString(action.agent, `${fieldName}.agent`),\n        cardInternalId: nullableString(action.cardInternalId, `${fieldName}.cardInternalId`),\n        completedAt: requiredTimestamp(action.completedAt, `${fieldName}.completedAt`),\n        identity: requiredString(action.identity, `${fieldName}.identity`),\n    }\n}\n\nfunction parseConversation(value, fieldName) {\n    const conversation = requiredObject(value, fieldName)\n    const status = requiredString(conversation.status, `${fieldName}.status`)\n    if (!CONVERSATION_STATUSES.has(status)) throw new Error(`Malformed project stats: invalid ${fieldName}.status`)\n\n    return {\n        actionId: nullableString(conversation.actionId, `${fieldName}.actionId`),\n        actionLabel: nullableString(conversation.actionLabel, `${fieldName}.actionLabel`),\n        agent: nullableString(conversation.agent, `${fieldName}.agent`),\n        cardInternalId: nullableString(conversation.cardInternalId, `${fieldName}.cardInternalId`),\n        cardPath: nullableString(conversation.cardPath, `${fieldName}.cardPath`),\n        completedAt: nullableTimestamp(conversation.completedAt, `${fieldName}.completedAt`),\n        elapsedMs: nullableNonNegativeNumber(conversation.elapsedMs, `${fieldName}.elapsedMs`),\n        hasMixedAttribution: requiredBoolean(conversation.hasMixedAttribution, `${fieldName}.hasMixedAttribution`),\n        hasNestedAgentConversations: requiredBoolean(\n  \n[5859 characters omitted]\nsource fails. */\nexport function calculateActivityStatsFromSources(sources) {\n    if (!Array.isArray(sources)) throw new Error('Activity sources must be an array')\n    const activityFiles = []\n    const warnings = []\n    for (const source of sources) {\n        const path = typeof source?.path === 'string' ? source.path : 'unknown activity source'\n        try {\n            if (typeof source?.content !== 'string') throw new Error('missing content')\n            const origin = activityOriginFromPath(path)\n            if (!origin) throw new Error('invalid activity path')\n            activityFiles.push(parseActivityFileForMigration(source.content, origin))\n        } catch (error) {\n            const detail = error instanceof Error ? error.message : String(error)\n            warnings.push(`${path}: ${detail}`)\n        }\n    }\n\n    return { stats: calculateActivityStats(activityFiles), warnings }\n}\n\nexport function parseReleaseStats(value, fieldName = 'release') {\n    const release = requiredObject(value, fieldName)\n\n    return {\n        actions: requireUniqueIdentities(parseArray(release.actions, `${fieldName}.actions`, parseAction), `${fieldName}.actions`),\n        conversations: requireUniqueIdentities(\n            parseArray(release.conversations, `${fieldName}.conversations`, parseConversation),\n            `${fieldName}.conversations`,\n        ),\n    }\n}\n\n/** Strictly parse root schema while isolating malformed release entries as warnings. */\nexport function parseProjectStatsFile(content, referencePath) {\n    const parsed = requiredObject(JSON.parse(content), 'root')\n    if (parsed.version !== RELEASE_STATS_VERSION) {\n        throw new Error(`Malformed project stats: unsupported version ${String(parsed.version)}`)\n    }\n    const releasesValue = requiredObject(parsed.releases, 'releases')\n    const releases = {}\n    const warnings = []\n    for (const [releaseName, value] of Object.entries(releasesValue)) {\n        try {\n            releases[requiredString(releaseName, 'release name')] = parseReleaseStats(value, `releases.${releaseName}`)\n        } catch (error) {\n            const detail = error instanceof Error ? error.message : String(error)\n            warnings.push(`${referencePath}: ${releaseName}: ${detail}`)\n        }\n    }\n\n    return { releases, warnings }\n}\n\nexport function serializeProjectStats(releases) {\n    const normalizedReleases = Object.fromEntries(\n        Object.entries(releases)\n            .sort(([left], [right]) => left.localeCompare(right))\n            .map(([releaseName, release]) => [releaseName, parseReleaseStats(release, `releases.${releaseName}`)]),\n    )\n\n    return `${JSON.stringify({ releases: normalizedReleases, version: RELEASE_STATS_VERSION }, null, 2)}\\n`\n}\n\nexport { RELEASE_STATS_VERSION }\n=====\nCODEMAP.md\nImpossible to add card mobile.md\nSTYLE_GUIDE.md\nactions\nactivity\nagent_token_usage.json\narchitecture\ncommunications\nconfig_style_guide.md\nfeature_descriptions\nproject_stats.json\nreleases\nusage_metrics.csv\n---\nB_143_links_in_new_card_popup.md\nB_152_disbabled_input_while_running_agent.md\nB_154_conversation_selector_disabled_while_conversation_is_running.md\nB_162_project_root_files_are_loaded_twice_on_project_open.md\nB_163_remove_generated_internal_id_memo_and_flush_before_snapshot_reload.md\nB_165_card_file_change_drops_body.md\nB_166_input_incorrectly_disabled.md\nB_167_don_t_drop_input_when_agent_is_done.md\nB_169_prompt_editing_broken.md\nB_170_sub_agent_support_claude.md\nB_171_claude_account_usage_issues.md\nB_172_error_cannot_switch_markdown_history_before_editor_is_attached.md\nB_173_stats_crypto_randomuuid_not_supported_in_browser.md\nB_174_queued_prompt_not_working.md\nB_175_add_file_reference_popup_keeps_jumping.md\nB_181_error_primary_worktree_cannot_be_added_as_a_linked_worktree.md\nB_184_error_error_invoking_remote_method_md2_local_bridge_invoke_error_working_folder_is_missing_design_feature_descriptions.md\nB_189_cancel_new_card_breaks_input.md\nB_199_empty_command_action_gives_error.md\nB_200_cant_save_command_action.md\n0_0_2\n0_0_3\n0_0_4\n0_0_5\n0_1_0\n0_2_0\n0_3_0\n0_4_0\n0_5_0",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-11",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat shared/project_stats.mjs && echo \"=====\" && ls design/ && echo \"---\" && ls design/releases/0_5_0 | head -20 && ls design/releases/",
+          "providerItemId": "toolu_01VWwiQqEVqJGxuNCVXceT6U",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:27:49.335Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGfxz59VVqAjPYAc4rP:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:27:55.389Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls -la design/usage_metrics.csv design/project_stats.json && wc -l design/usage_metrics.csv && head -3 design/usage_metrics.csv && grep -c \"token_usage\" design/usage_metrics.csv; grep -c \"account_usage\" design/usage_metrics.csv",
+          "content": "-rw-r--r-- 1 janbo 197609 522830 Aug 31 18:05 design/project_stats.json\n-rw-r--r-- 1 janbo 197609 277278 Sep  1 21:22 design/usage_metrics.csv\n2821 design/usage_metrics.csv\nrecorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,resets_at,input_tokens,cached_input_tokens,output_tokens,reasoning_tokens,total_tokens,used_percent,used_percent_delta\r\n2026-08-17T12:09:24.958Z,account_usage,codex,codex_bengalfox,primary,10080,2026-08-24T12:09:26.000Z,,,,,,0,\r\n2026-08-17T12:09:24.958Z,account_usage,codex,codex,primary,10080,2026-08-20T11:32:00.000Z,,,,,,45,\r\n532\n2288",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-13",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls -la design/usage_metrics.csv design/project_stats.json && wc -l design/usage_metrics.csv && head -3 design/usage_metrics.csv && grep -c \"token_usage\" design/usage_metrics.csv; grep -c \"account_usage\" design/usage_metrics.csv",
+          "providerItemId": "toolu_01L1wPfroh6ojYjmLu5GDohc",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:27:57.122Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-14",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGgYD6A9FQ6fJt3bLi2:thinking:0",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:28:01.820Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"tokenRows\\|accountRows\\|tokenTimeAvailable\" -r app/src --include=*.ts --include=*.tsx | grep -v \".test.\" ",
+          "content": "app/src/components/stats_view/stats_content.tsx:53:        && !snapshot.tokenTimeAvailable;\napp/src/components/stats_view/stats_controls.tsx:137:                            <MenuItem disabled={!snapshot.tokenTimeAvailable} value=\"tokens\">Token usage</MenuItem>\napp/src/services/agents/project_usage_metrics_service.ts:22:    accountRows: UsageMetricsAccountRow[]\napp/src/services/agents/project_usage_metrics_service.ts:24:    tokenRows: UsageMetricsTokenRow[]\napp/src/services/agents/project_usage_metrics_service.ts:48:const EMPTY_SNAPSHOT: ProjectUsageMetricsSnapshot = { accountRows: [], available: false, tokenRows: [], warnings: [] }\napp/src/services/agents/project_usage_metrics_service.ts:169:    const tokenRows: UsageMetricsTokenRow[] = []\napp/src/services/agents/project_usage_metrics_service.ts:170:    const accountRows: UsageMetricsAccountRow[] = []\napp/src/services/agents/project_usage_metrics_service.ts:194:            accountRows.push({\napp/src/services/agents/project_usage_metrics_service.ts:220:        tokenRows.push({ provider: record.provider, recordedAt: record.recorded_at, totalTokens })\napp/src/services/agents/project_usage_metrics_service.ts:223:    return { accountRows, tokenRows, warnings }\napp/src/services/stats/project_stats_loader.ts:111:            accountRows: usageMetrics.accountRows,\napp/src/services/stats/project_stats_loader.ts:115:            tokenRows: usageMetrics.tokenRows,\napp/src/services/stats/project_stats_loader.ts:116:            tokenTimeAvailable: usageMetrics.available,\napp/src/services/stats/project_stats_types.ts:143:    tokenTimeAvailable: boolean;\napp/src/services/stats/project_stats_types.ts:149:    accountRows: UsageMetricsAccountRow[];\napp/src/services/stats/project_stats_types.ts:154:    tokenRows: UsageMetricsTokenRow[];\napp/src/services/stats/project_stats_types.ts:155:    tokenTimeAvailable: boolean;\napp/src/services/stats/project_stats_types.ts:197:    tokenTimeAvailable: false,\napp/src/services/stats/stats_activity_dataset.ts:82:    const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));\napp/src/services/stats/stats_activity_dataset.ts:84:        ? tokenRows.map(({ recordedAt }) => recordedAt)\napp/src/services/stats/stats_activity_dataset.ts:88:        const tokensByBucket = indexByBucket(tokenRows, granularity, ({ recordedAt }) => recordedAt);\napp/src/services/stats/stats_options.ts:41:    const accountSeries = [...new Map(source.accountRows.map((row) => [accountSeriesIdentity(row), {\napp/src/services/stats/stats_snapshot_builder.ts:65:        tokenTimeAvailable: source.tokenTimeAvailable,\napp/src/services/stats/stats_totals_dataset.ts:167:    for (const row of source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls))) {\napp/src/services/stats/stats_totals_dataset.ts:183:    const accountRows = source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls));\napp/src/services/stats/stats_totals_dataset.ts:184:    const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));\napp/src/services/stats/stats_totals_dataset.ts:186:    for (const row of accountRows) {\napp/src/services/stats/stats_totals_dataset.ts:196:        const numerator = tokenRows\napp/src/services/stats/stats_usage_comparison_dataset.ts:93:function visibleAccountSeries(accountRows: UsageMetricsAccountRow[], options: StatsOptions) {\napp/src/services/stats/stats_usage_comparison_dataset.ts:95:    for (const row of accountRows.filter(hasPositiveDelta)) {\napp/src/services/stats/stats_usage_comparison_dataset.ts:166:    tokenTimeAvailable: boolean,\napp/src/services/stats/stats_usage_comparison_dataset.ts:171:            return tokenTimeAvailable\napp/src/services/stats/stats_usage_comparison_dataset.ts:466:    accountRows: UsageMetricsAccountRow[],\napp/src/services/stats/stats_usage_comparison_dataset.ts:468:    tokenRows: UsageMetricsTokenRow[],\napp/src/services/stats/stats_usage_comparison_dataset.ts:476:        accountByBucketSeries: indexByBucketAndIdentity(accountRows.filter(hasUsableDelta), granularity, recordedAt, accountSeriesIdentity),\napp/src/services/stats/stats_usage_comparison_dataset.ts:486:            accountRows.filter(hasPositiveDelta),\napp/src/services/stats/stats_usage_comparison_dataset.ts:491:        providers: [...new Set(tokenRows.map(({ provider }) => provider))].sort(),\napp/src/services/stats/stats_usage_comparison_dataset.ts:492:        tokensByBucketProvider: indexByBucketAndIdentity(tokenRows, granularity, recordedAt, ({ provider }) => provider),\napp/src/services/stats/stats_usage_comparison_dataset.ts:499:    const accountRows = source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls));\napp/src/services/stats/stats_usage_comparison_dataset.ts:500:    const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));\napp/src/services/stats/stats_usage_comparison_dataset.ts:502:    const seriesOptions = visibleAccountSeries(accountRows, options);\napp/src/services/stats/stats_usage_comparison_dataset.ts:506:        ...tokenRows.map(({ recordedAt }) => recordedAt),\napp/src/services/stats/stats_usage_comparison_dataset.ts:507:        ...accountRows.flatMap((row) => (\napp/src/services/stats/stats_usage_comparison_dataset.ts:512:    const indexes = buildComparisonIndexes(accountRows, source.agentProfiles, tokenRows, actions, granularity);\napp/src/services/stats/stats_usage_comparison_dataset.ts:516:        ...projectTokenRows(contexts, granularity, source.tokenTimeAvailable, indexes),",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-15",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"tokenRows\\|accountRows\\|tokenTimeAvailable\" -r app/src --include=*.ts --include=*.tsx | grep -v \".test.\" ",
+          "providerItemId": "toolu_01LmNovwjMCuxmCiytXVWo7y",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:28:02.505Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGgwAiF3XbhBtm63FjN:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:28:06.964Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rln \"releasesFolder\" desktop/src app/src shared 2>/dev/null | head -20",
+          "content": "desktop/src/actions/action/action_agent_executor.js\ndesktop/src/actions/action/action_agent_executor.test.mjs\ndesktop/src/actions/action/action_command_executor.js\ndesktop/src/actions/action/action_command_executor.test.mjs\ndesktop/src/actions/action/action_run.js\ndesktop/src/actions/action/action_run.test.mjs\ndesktop/src/actions/action/action_runner_service.js\ndesktop/src/actions/action/action_scheduler_service.js\ndesktop/src/actions/action/action_scheduler_service.test.mjs\ndesktop/src/actions/action/action_text.js\ndesktop/src/actions/action/action_text.test.mjs\ndesktop/src/actions/agent/project_agent_token_usage.js\ndesktop/src/actions/agent/project_agent_token_usage.test.mjs\ndesktop/src/git/diff_service.js\ndesktop/src/git/diff_service.test.mjs\ndesktop/src/shell/local_bridge_dispatch.js\napp/src/app/use_app_bootstrap.test.ts\napp/src/App.test.tsx\napp/src/components/actions/conversation/action_conversation_link_navigation.node.test.ts\napp/src/components/actions/run/popup/action_popup.test.tsx",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-17",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rln \"releasesFolder\" desktop/src app/src shared 2>/dev/null | head -20",
+          "providerItemId": "toolu_01AAdxWFuJNtcHXy2mVA2is5",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:28:07.933Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rln \"release\" app/src/services --include=*.ts | grep -iv test | head -20 && echo \"---\" && grep -rn \"releasesFolder\" app/src/services/*/*.ts | grep -v test | head -20",
+          "content": "app/src/services/actions/action_prompt_draft_service.ts\napp/src/services/actions/action_run_registry.ts\napp/src/services/actions/action_text.ts\napp/src/services/agents/agent_usage.ts\napp/src/services/agents/project_agent_token_usage_service.ts\napp/src/services/config/config_entries.ts\napp/src/services/config/config_service.ts\napp/src/services/data/card_archive_operations.ts\napp/src/services/data/card_internal_id_operations.ts\napp/src/services/data/data_service.ts\napp/src/services/data/diff_service.ts\napp/src/services/data/markdown_parsing_service.ts\napp/src/services/data/remote_control_storage_service.ts\napp/src/services/open_files_service.ts\napp/src/services/project/project_session_service.ts\napp/src/services/release_operations.ts\napp/src/services/sentry/sentry_api_client.ts\napp/src/services/sentry/sentry_issue_markdown.ts\napp/src/services/sentry/sentry_types.ts\napp/src/services/stats/project_stats_loader.ts\n---\napp/src/services/actions/action_text.ts:16:    releasesFolder: string\napp/src/services/actions/action_text.ts:48:            if (!folders.releasesFolder) throw new Error('Cannot resolve releases-folder without a configured releases folder')\napp/src/services/actions/action_text.ts:50:            return folders.releasesFolder\napp/src/services/agents/project_agent_token_usage_service.ts:24:function releaseNameForActivity(activityPath: string, releasesFolder: string) {\napp/src/services/agents/project_agent_token_usage_service.ts:26:    const normalizedReleasesFolder = releasesFolder.replace(/\\\\/gu, '/').replace(/^\\/+|\\/+$/gu, '')\napp/src/services/agents/project_agent_token_usage_service.ts:69:        const releaseName = releaseNameForActivity(activityPath, config.releasesFolder)\napp/src/services/config/config_entries.ts:44:    'project.releasesFolder': string\napp/src/services/config/config_entries.ts:194:        key: 'project.releasesFolder',\napp/src/services/config/config_entries.ts:379:    'project.releasesFolder',\napp/src/services/config/config_service.ts:85:    'project.releasesFolder',\napp/src/services/config/config_service.ts:182:        || key === 'project.releasesFolder'\napp/src/services/config/config_service.ts:230:        releasesFolder: values['project.releasesFolder'],\napp/src/services/config/config_service.ts:388:        if (projectConfig?.releasesFolder !== undefined) {\napp/src/services/config/config_service.ts:389:            nextValues = mergeValue(nextValues, 'project.releasesFolder', projectConfig.releasesFolder)\napp/src/services/data/card_internal_id_operations.ts:13:function requiresInternalId(card: Card, workingFolder: string, releasesFolder: string, archivedFolder: string) {\napp/src/services/data/card_internal_id_operations.ts:15:        || isInsideFolder(card.path, releasesFolder)\napp/src/services/data/card_internal_id_operations.ts:37:            requiresInternalId(card, config.workingFolder, config.releasesFolder, config.archivedFolder)\napp/src/services/data/diff_service.ts:17:    const { projectFolder, releasesFolder, workingFolder } = resolveProjectConfigPaths(configService.getProjectConfig())\napp/src/services/data/diff_service.ts:19:    return bridge.generateDiff({ branch, commit, filePath: filePaths[0] ?? '', projectFolder, releasesFolder, template, workingFolder })\napp/src/services/project/project_session_service.ts:38:    releasesFolder: string",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-18",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rln \"release\" app/src/services --include=*.ts | grep -iv test | head -20 && echo \"---\" && grep -rn \"releasesFolder\" app/src/services/*/*.ts | grep -v test | head -20",
+          "providerItemId": "toolu_01JyQ6GkFnXw1rTWpzNpuusW",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:28:10.549Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/services/release_operations.ts",
+          "content": "import {\n    buildReleaseMoves,\n    findArchiveAssetPaths,\n    findReleaseActivityPaths,\n    splitProjectActivity,\n    validateReleaseName,\n} from '../data/release_archiving'\nimport { statusOf } from '../data/card_ordering'\nimport { projectAccessService } from './project/project_access_service'\nimport type { MarkdownFile, MoveFile, ProjectAsset, ProjectReference, ProjectSnapshot, ReleaseBranchCandidate } from '../data/data_types'\nimport { type RequiredDataServiceDependencies } from './data/data_service_context'\nimport { markdownParsingService } from './data/markdown_parsing_service'\nimport { telemetryService } from './telemetry/telemetry_service'\nimport { projectAgentTokenUsageService } from './agents/project_agent_token_usage_service'\nimport { getElectronActionBridge, type ElectronActionBridge } from '../data/electron_action_bridge'\nimport { parseActivityFileForMigration } from '../../../shared/card_activity.mjs'\nimport {\n    addSummaryUsage,\n    agentTokenUsageFilePath,\n    legacySummaryUsage,\n    parseAgentTokenUsageSummary,\n    parseSummaryUsage,\n    serializeAgentTokenUsageSummary,\n    type AgentSummaryUsage,\n} from '../../../shared/agent_token_usage_summary.mjs'\nimport {\n    calculateActivityStatsFromSources,\n    parseProjectStatsFile,\n    projectStatsFilePath,\n    serializeProjectStats,\n} from '../../../shared/project_stats.mjs'\nimport { activityFilePath, projectActivityFileName } from '../../../shared/activity_paths.mjs'\nimport { normalizePath } from '../../../shared/path_utils.mjs'\nimport { mergeStats } from './stats/project_stats_loader'\nimport { calculateActivityStatsOutsideMainThread } from './stats/project_stats_worker_client'\n\nexport interface ReleaseOperationsDeps {\n    applyMoves(moves: MoveFile[], workingFolder: string): void\n    dispatchChanged(): void\n    resetAgentConversations(): void\n    files(): MarkdownFile[]\n    project(): ProjectReference | null\n    requireDependencies(): RequiredDataServiceDependencies\n    snapshot(): ProjectSnapshot | null\n}\n\nfunction requireNoAssignedWorktrees(releaseCards: ProjectSnapshot['activeCards']) {\n    const assignedCardIds = releaseCards\n        .filter((card) => card.header.worktree !== null && card.header.worktree !== undefined)\n        .map((card) => card.header.id)\n    if (assignedCardIds.length > 0) {\n        throw new Error(`Cannot complete release. Unassign worktrees from cards: ${assignedCardIds.join(', ')}.`)\n    }\n}\n\n/** Refuses a release while any agent run is in flight, whatever card or project it belongs to. */\nasync function requireNoRunningActions() {\n    const bridge = getElectronActionBridge()\n    if (!bridge?.listActiveActionRuns) return\n\n    const activeRuns = await bridge.listActiveActionRuns()\n    if (activeRuns.length === 0) return\n\n    const labels = activeRuns.map(({ label }) => label).join(', ')\n    throw new Error(`Cannot complete release while agent actions are running: ${labels}`)\n}\n\ninterface ReleaseCardLock {\n    bridge: ElectronActionBridge\n    leaseId: string\n}\n\nasync function acquireReleaseCardLock(\n    releaseCards: ProjectSnapshot['activeCards'],\n    project: ProjectReference,\n): Promise<ReleaseCardLock | null> {\n    if (!project.rootPath) return null\n    const bridge = getElectronActionBridge()\n    if (!bridge) return null\n    if (!bridge.acquireReleaseCardLocks || !bridge.releaseReleaseCardLocks) {\n        throw new Error('Release card locking is not available')\n    }\n    const cardInternalIds = releaseCards.map((card) => {\n        if (!card.header.internalId) throw new Error(`Release card internal ID is missing: ${card.header.id}`)\n\n        return card.header.internalId\n    })\n    const leaseId = await bridge.acquireReleaseCardLocks(cardInternalIds)\n\n    return { bridge, leaseId }\n}\n\nasync function releaseCardLock(lock: ReleaseCardLock | null) {\n    if (!lock?.bridge.releaseReleaseCardLocks) return\n    await lock.bridge.releaseReleaseCardLocks(lock.leaseId)\n}\n\n/** Matches the on-disk activity file layout written by the desktop activity writer. */\nfunction serializeActivity(activity: ReturnType<typeof parseActivityF\n[11051 characters omitted]\n clearedFile ? { ...move, content: clearedFile.content, sha: clearedFile.sha } : move\n            })\n            this.dependencies.applyMoves(appliedMoves, config.workingFolder)\n            this.dependencies.dispatchChanged()\n            telemetryService.trackEvent('complete_release')\n\n            if (cleanupFailures.length > 0) {\n                throw new Error(`Release completed, but branch cleanup failed: ${cleanupFailures.join('; ')}`)\n            }\n\n            return this.dependencies.snapshot()\n        } finally {\n            await releaseCardLock(releaseLock)\n        }\n    }\n\n    private async loadReleaseAssets(assetPaths: string[]) {\n        if (assetPaths.length === 0) return []\n\n        const { storage } = this.dependencies.requireDependencies()\n        const currentProject = this.dependencies.project()\n        if (!currentProject) throw new Error('Cannot load release assets before a project is open')\n        if (!storage.loadProjectAsset) throw new Error('Project asset loading is not available')\n\n        const assets: ProjectAsset[] = []\n        for (const assetPath of assetPaths) {\n            assets.push(await storage.loadProjectAsset(currentProject, assetPath))\n        }\n\n        return assets.map((asset): MarkdownFile => ({\n            content: asset.content,\n            encoding: asset.encoding,\n            path: asset.path,\n        }))\n    }\n\n    /**\n     * Splits `activity/project.json` into the part the release archives and the part that stays,\n     * and returns null when the file is absent or holds nothing archivable.\n     */\n    private async loadArchivedProjectActivity(\n        projectFolder: string,\n        releasesFolder: string,\n        safeReleaseName: string,\n        repositoryFiles: string[],\n    ) {\n        const { storage } = this.dependencies.requireDependencies()\n        const currentProject = this.dependencies.project()\n        if (!currentProject) throw new Error('Cannot archive project activity before a project is open')\n        if (!storage.loadTextFile) throw new Error('Repository text file loading is not available')\n\n        const projectActivityPath = activityFilePath(projectFolder, { kind: 'project' })\n        const exists = repositoryFiles.some((path) => normalizePath(path) === normalizePath(projectActivityPath))\n        if (!exists) return null\n\n        const projectActivityFile = await storage.loadTextFile(currentProject, projectActivityPath)\n        const { archived, hasArchivableActivity, kept } = splitProjectActivity(\n            parseActivityFileForMigration(projectActivityFile.content),\n        )\n        if (!hasArchivableActivity) return null\n\n        const releaseFolder = normalizePath(releasesFolder).replace(/\\/+$/u, '')\n        const archivedPath = `${releaseFolder}/${safeReleaseName}/${projectActivityFileName()}`\n        const archivedContent = serializeActivity(archived)\n        const calculated = calculateActivityStatsFromSources([{ content: archivedContent, path: archivedPath }])\n        if (calculated.warnings.length > 0) {\n            throw new Error(`Cannot calculate archived project activity stats: ${calculated.warnings.join('; ')}`)\n        }\n\n        return {\n            archivedFile: { content: archivedContent, path: archivedPath },\n            keptFile: { ...projectActivityFile, content: serializeActivity(kept) },\n            stats: calculated.stats,\n        }\n    }\n\n    private async loadReleaseActivityFiles(activityPaths: string[]) {\n        if (activityPaths.length === 0) return []\n\n        const { storage } = this.dependencies.requireDependencies()\n        const currentProject = this.dependencies.project()\n        if (!currentProject) throw new Error('Cannot load release activity before a project is open')\n        if (!storage.loadTextFile) throw new Error('Repository text file loading is not available')\n\n        const activityFiles: MarkdownFile[] = []\n        for (const activityPath of activityPaths) {\n            activityFiles.push(await storage.loadTextFile(currentProject, activityPath))\n        }\n\n        return activityFiles\n    }\n}",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-19",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/services/release_operations.ts",
+          "providerItemId": "toolu_01S87AceDeYFsXj3H9WNMjZx",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:28:12.800Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGhhRFpNVz278TG8Eqg:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:28:20.304Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/services/stats/stats_options.ts && sed -n 440,524p app/src/services/stats/stats_usage_comparison_dataset.ts",
+          "content": "import {\n    CURRENT_RELEASE_IDENTITY,\n    type LoadedStatsSource,\n    type StatsControls,\n    type StatsDatasetSource,\n    type StatsOptions,\n    type StatsReleaseOption,\n} from './project_stats_types';\nimport { accountSeriesIdentity, modelIdentity } from './stats_identities';\n\nfunction optionList(entries: Array<[string, string]>) {\n    return [...new Map(entries).entries()]\n        .map(([identity, label]) => ({ identity, label }))\n        .sort((left, right) => left.label.localeCompare(right.label) || left.identity.localeCompare(right.identity));\n}\n\nexport function completedReleaseIdentity(releaseName: string) {\n    return `completed-release:${releaseName}`;\n}\n\n/** Builds stable release choices without treating persistence paths as release identity. */\nexport function buildReleaseOptions(source: LoadedStatsSource): StatsReleaseOption[] {\n    const completedReleases = Object.keys(source.releaseStats)\n        .sort((left, right) => left.localeCompare(right))\n        .map((releaseName) => ({ identity: completedReleaseIdentity(releaseName), label: releaseName, releaseName }));\n\n    return [{ identity: CURRENT_RELEASE_IDENTITY, label: 'Current release', releaseName: null }, ...completedReleases];\n}\n\n/** Derives entity and account-series catalogs from selected release plus release choices. */\nexport function buildOptions(source: StatsDatasetSource, releases: StatsReleaseOption[]): StatsOptions {\n    const attributed = source.stats.conversations.filter(({ agent, isRootConversation, model }) => isRootConversation && agent && model);\n    const actions = optionList([\n        ...source.stats.actions.map(({ actionId, actionLabel }) => [actionId, actionLabel] as [string, string]),\n        ...source.stats.conversations.flatMap(({ actionId, actionLabel }) => (\n            actionId ? [[actionId, actionLabel ?? actionId] as [string, string]] : []\n        )),\n    ]);\n    const agents = optionList(attributed.map(({ agent }) => [agent!, agent!]));\n    const models = optionList(attributed.map(({ agent, model }) => [modelIdentity(agent!, model!), `${agent} - ${model}`]));\n    const accountSeries = [...new Map(source.accountRows.map((row) => [accountSeriesIdentity(row), {\n        identity: accountSeriesIdentity(row),\n        limitId: row.limitId,\n        provider: row.provider,\n        windowDurationMinutes: row.windowDurationMinutes,\n        windowId: row.windowId,\n    }])).values()].sort((left, right) => left.identity.localeCompare(right.identity));\n\n    return { accountSeries, actions, agents, models, releases };\n}\n\nfunction retainValidSelections(selected: string[], available: Set<string>) {\n    return selected.filter((identity) => available.has(identity));\n}\n\n/** Drops entity selections that the freshly loaded source no longer offers. */\nexport function reconcileControls(controls: StatsControls, options: StatsOptions): StatsControls {\n    const releaseIdentity = options.releases.some(({ identity }) => identity === controls.releaseIdentity)\n        ? controls.releaseIdentity\n        : CURRENT_RELEASE_IDENTITY;\n\n    return {\n        ...controls,\n        performanceActionIds: retainValidSelections(\n            controls.performanceActionIds,\n            new Set(options.actions.map(({ identity }) => identity)),\n        ),\n        performanceAgentIds: retainValidSelections(controls.performanceAgentIds, new Set(options.agents.map(({ identity }) => identity))),\n        performanceModelIds: retainValidSelections(controls.performanceModelIds, new Set(options.models.map(({ identity }) => identity))),\n        releaseIdentity,\n    };\n}\n    return [...counts.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([identity, count]) => {\n        const tooltip = statsTooltip([\n            { label: null, value: formatBucketRange(context) },\n            { label: 'Group', value: count.stackLabel },\n            { label: 'Action', value: count.label },\n            { label: 'Completed actions', value: formatCount(count.value) },\n        ]);\n\n        return {\n            ...emptyTimeRow(context, granularity, chartRole, 'actions', 'actions'),\n            actionId: count.actionId,\n            actionType: count.actionType,\n            accessibleLabel: accessibleStatsTooltip(tooltip),\n            agent: count.agent,\n            identity,\n            seriesIdentity: count.actionId,\n            seriesLabel: count.label,\n            stackIdentity: count.stackIdentity,\n            stackLabel: count.stackLabel,\n            tooltip,\n            value: count.value,\n        };\n    });\n}\n\nfunction buildComparisonIndexes(\n    accountRows: UsageMetricsAccountRow[],\n    agentProfiles: AgentProfile[],\n    tokenRows: UsageMetricsTokenRow[],\n    actions: StatsActionFact[],\n    granularity: StatsShortGranularity,\n): ComparisonIndexes {\n    const recordedAt = (row: UsageMetricsAccountRow | UsageMetricsTokenRow) => row.recordedAt;\n    const completedAt = (action: StatsActionFact) => action.completedAt;\n\n    return {\n        accountByBucketSeries: indexByBucketAndIdentity(accountRows.filter(hasUsableDelta), granularity, recordedAt, accountSeriesIdentity),\n        actionsByBucket: indexByBucket(actions, granularity, completedAt),\n        agentProfiles,\n        agentActionsByBucketProvider: indexByBucketAndIdentity(\n            actions.filter(({ actionType }) => actionType === 'agent'),\n            granularity,\n            completedAt,\n            ({ agent }) => agent,\n        ),\n        positiveAccountByBucketSeries: indexByBucketAndIdentity(\n            accountRows.filter(hasPositiveDelta),\n            granularity,\n            recordedAt,\n            accountSeriesIdentity,\n        ),\n        providers: [...new Set(tokenRows.map(({ provider }) => provider))].sort(),\n        tokensByBucketProvider: indexByBucketAndIdentity(tokenRows, granularity, recordedAt, ({ provider }) => provider),\n    };\n}\n\n/** Project work against account-wide consumption, aligned on one shared UTC bucket domain. */\nexport function usageComparisonRows(source: StatsDatasetSource, controls: StatsControls, options: StatsOptions): StatsChartRow[] {\n    const granularity = controls.usageGranularity;\n    const accountRows = source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls));\n    const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));\n    const actions = source.stats.actions.filter(({ completedAt }) => inRange(completedAt, controls));\n    const seriesOptions = visibleAccountSeries(accountRows, options);\n    const visibleSeriesIdentities = new Set(seriesOptions.map(({ identity }) => identity));\n    const timestamps = [\n        ...actions.map(({ completedAt }) => completedAt),\n        ...tokenRows.map(({ recordedAt }) => recordedAt),\n        ...accountRows.flatMap((row) => (\n            visibleSeriesIdentities.has(accountSeriesIdentity(row)) && hasUsableDelta(row) ? [row.recordedAt] : []\n        )),\n    ];\n    const contexts = bucketContexts(bucketDomain(timestamps, granularity, controls), granularity);\n    const indexes = buildComparisonIndexes(accountRows, source.agentProfiles, tokenRows, actions, granularity);\n\n    return [\n        ...comparisonAccountRows(contexts, granularity, seriesOptions, indexes),\n        ...projectTokenRows(contexts, granularity, source.tokenTimeAvailable, indexes),\n        ...ratioRows(contexts, granularity, 'tokensPerAccountUsage', seriesOptions, indexes),\n        ...ratioRows(contexts, granularity, 'tokensPerDollar', seriesOptions, indexes),\n        ...costRows(contexts, granularity, 'costPerAgent', seriesOptions, indexes),\n        ...costRows(contexts, granularity, 'costPerActionAverage', seriesOptions, indexes),\n        ...ratioRows(contexts, granularity, 'actionsPerAccountUsage', seriesOptions, indexes),\n        ...contexts.flatMap((context) => activityCountRows(context, granularity, indexes.actionsByBucket.get(context.start) ?? [])),\n    ];\n}",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-21",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/services/stats/stats_options.ts && sed -n 440,524p app/src/services/stats/stats_usage_comparison_dataset.ts",
+          "providerItemId": "toolu_01X5KSyTxMtHawJ8xMcMsfp9",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:28:21.664Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-22",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGiM7Q7GPbmmHVyt3uc:thinking:0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:28:24.722Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/services/stats/stats_snapshot_builder.ts && sed -n 120,199p app/src/services/stats/project_stats_types.ts",
+          "content": "import {\n    TERMINAL_CONVERSATION_STATUSES,\n    type LoadedStatsSource,\n    type ProjectStatsSnapshot,\n    type StatsChartRow,\n    type StatsControls,\n    type StatsDatasetSource,\n    type StatsOptions,\n} from './project_stats_types';\nimport { activityRows } from './stats_activity_dataset';\nimport { buildOptions, buildReleaseOptions, reconcileControls } from './stats_options';\nimport { eligibleSamples, performanceRows, type EligibleSample } from './stats_performance_dataset';\nimport { inRange } from './stats_time_buckets';\nimport { totalsRows } from './stats_totals_dataset';\nimport { usageComparisonRows } from './stats_usage_comparison_dataset';\n\nfunction datasetRows(\n    source: StatsDatasetSource,\n    controls: StatsControls,\n    options: StatsOptions,\n    samples: EligibleSample[],\n): StatsChartRow[] {\n    if (controls.dataset === 'activityOverTime') return activityRows(source, controls, controls.activityGranularity);\n    if (controls.dataset === 'agentPerformance') return performanceRows(controls, samples);\n    if (controls.dataset === 'usageComparison') return usageComparisonRows(source, controls, options);\n\n    return totalsRows(source, controls);\n}\n\nfunction omittedTimerCount(source: StatsDatasetSource, controls: StatsControls) {\n    return source.stats.conversations.filter((conversation) => (\n        TERMINAL_CONVERSATION_STATUSES.has(conversation.status)\n        && conversation.completedAt !== null\n        && inRange(conversation.completedAt, controls)\n        && conversation.elapsedMs === null\n    )).length;\n}\n\n/** Reconciles controls against the loaded source, then aggregates the selected dataset once. */\nexport function buildSnapshot(source: LoadedStatsSource, requestedControls: StatsControls): ProjectStatsSnapshot {\n    const releases = buildReleaseOptions(source);\n    const releaseIdentity = releases.some(({ identity }) => identity === requestedControls.releaseIdentity)\n        ? requestedControls.releaseIdentity\n        : releases[0].identity;\n    const selectedRelease = releases.find(({ identity }) => identity === releaseIdentity);\n    if (!selectedRelease) throw new Error('Selected stats release is unavailable');\n    const stats = selectedRelease.releaseName === null ? source.currentStats : source.releaseStats[selectedRelease.releaseName];\n    if (!stats) throw new Error(`Missing stats for release ${selectedRelease.releaseName}`);\n    const datasetSource: StatsDatasetSource = { ...source, stats };\n    const options = buildOptions(datasetSource, releases);\n    const controls = reconcileControls({ ...requestedControls, releaseIdentity }, options);\n    const performance = eligibleSamples(datasetSource, controls);\n    const rows = datasetRows(datasetSource, controls, options, performance.samples);\n    const excludedSampleCount = Object.values(performance.exclusionCounts).reduce((total, count) => total + count, 0);\n\n    return {\n        controls,\n        error: null,\n        excludedSampleCount,\n        exclusionCounts: performance.exclusionCounts,\n        omittedTimerCount: omittedTimerCount(datasetSource, controls),\n        options,\n        rows,\n        status: 'ready',\n        tokenTimeAvailable: source.tokenTimeAvailable,\n        warnings: source.warnings,\n    };\n}\n    limitId: string;\n    provider: string;\n    windowDurationMinutes: number;\n    windowId: string;\n}\n\nexport interface StatsOptions {\n    accountSeries: StatsAccountSeriesOption[];\n    actions: StatsOption[];\n    agents: StatsOption[];\n    models: StatsOption[];\n    releases: StatsReleaseOption[];\n}\n\nexport interface ProjectStatsSnapshot {\n    controls: StatsControls;\n    error: Error | null;\n    excludedSampleCount: number;\n    exclusionCounts: Partial<Record<StatsExclusionReason, number>>;\n    omittedTimerCount: number;\n    options: StatsOptions;\n    rows: StatsChartRow[];\n    status: StatsStatus;\n    tokenTimeAvailable: boolean;\n    warnings: string[];\n}\n\n/** Fully loaded, immutable input every dataset aggregator reads. */\nexport interface LoadedStatsSource {\n    accountRows: UsageMetricsAccountRow[];\n    agentProfiles: AgentProfile[];\n    cards: StatsCardDescriptor[];\n    currentStats: ReleaseStats;\n    releaseStats: Record<string, ReleaseStats>;\n    tokenRows: UsageMetricsTokenRow[];\n    tokenTimeAvailable: boolean;\n    warnings: string[];\n}\n\nexport type StatsDatasetSource = Omit<LoadedStatsSource, 'currentStats' | 'releaseStats'> & { stats: ReleaseStats };\n\nexport interface StatsProjectBinding {\n    config: ProjectConfig;\n    project: ProjectReference;\n    storage: StorageService;\n}\n\nexport const TERMINAL_CONVERSATION_STATUSES = new Set(['cancelled', 'completed', 'failed']);\nexport const CURRENT_RELEASE_IDENTITY = 'current-release';\nexport const EMPTY_OPTIONS: StatsOptions = {accountSeries: [], actions: [], agents: [], models: [], releases: []};\nexport const INITIAL_CONTROLS: StatsControls = {\n    activityGranularity: 'day',\n    activityMetric: 'actions',\n    dataset: 'activityOverTime',\n    endUtc: null,\n    performanceActionIds: [],\n    performanceAggregation: 'average',\n    performanceAgentIds: [],\n    performanceGranularity: 'day',\n    performanceGrouping: 'agent',\n    performanceMetric: 'duration',\n    performanceModelIds: [],\n    releaseIdentity: CURRENT_RELEASE_IDENTITY,\n    startUtc: null,\n    totalsGrouping: 'card',\n    totalsMetric: 'duration',\n    usageGranularity: 'day',\n};\nexport const INITIAL_SNAPSHOT: ProjectStatsSnapshot = {\n    controls: INITIAL_CONTROLS,\n    error: null,\n    excludedSampleCount: 0,\n    exclusionCounts: {},\n    omittedTimerCount: 0,\n    options: EMPTY_OPTIONS,\n    rows: [],\n    status: 'idle',\n    tokenTimeAvailable: false,\n    warnings: [],\n};",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-23",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/services/stats/stats_snapshot_builder.ts && sed -n 120,199p app/src/services/stats/project_stats_types.ts",
+          "providerItemId": "toolu_01DxhNAUYxwdNNgDrFb6jx4n",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:28:26.513Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-24",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGii117xGSX3Xq3Hd1u:thinking:0",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:28:30.940Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"recordTokenUsage\\|recordAccountUsage\\|usageMetricsService\" desktop/src desktop/main.js | grep -v test | head -30 && echo \"=====F263=====\" && cat design/feature_descriptions/F_263_stats_add_releases_filter.md",
+          "content": "desktop/src/actions/action/action_runner_service.js:50:        this.usageMetricsService = dependencies?.usageMetricsService ?? null;\ndesktop/src/actions/action/action_runner_service.js:88:        this.usageMetricsService?.startProject(project, projectFolder);\ndesktop/src/actions/agent/agent_runner_service.js:59:        this.usageMetricsService = dependencies.usageMetricsService ?? null;\ndesktop/src/actions/agent/agent_runner_service.js:405:        if (!accepted || !this.usageMetricsService) return;\ndesktop/src/actions/agent/agent_runner_service.js:406:        await this.usageMetricsService.recordAccountUsage('codex', this.codexRuntimeService.getSnapshot());\ndesktop/src/actions/agent/agent_runner_service.js:416:        if (!accepted || !this.usageMetricsService) return;\ndesktop/src/actions/agent/agent_runner_service.js:418:        await this.usageMetricsService.recordAccountUsage('claude', snapshot);\ndesktop/src/actions/agent/agent_runner_service.js:452:    recordTokenUsage(run, usage, recordedAt) {\ndesktop/src/actions/agent/agent_runner_service.js:453:        if (!this.usageMetricsService) return false;\ndesktop/src/actions/agent/agent_runner_service.js:455:        return this.usageMetricsService.recordTokenUsage(\ndesktop/src/actions/agent/agent_runner_service.js:725:                if (!run.streaming && run.turnUsage) await this.recordTokenUsage(run, run.turnUsage, completedAt);\ndesktop/src/actions/agent/agent_streaming_event_handlers.js:174:        await service.recordTokenUsage(run, event.usage, timestamp);\ndesktop/src/actions/agent/usage_metrics_service.js:349:    async recordTokenUsage(provider, usageValue, recordedAtValue) {\ndesktop/src/actions/agent/usage_metrics_service.js:363:    async recordAccountUsage(provider, snapshotValue) {\ndesktop/main.js:87:const usageMetricsService = new UsageMetricsService({ errorReporter: captureError });\ndesktop/main.js:92:    usageMetricsService,\ndesktop/main.js:113:    usageMetricsService,\n=====F263=====\n---\nauthor: \nid: F_263\ninternalId: 29a27cb6-cc51-4457-9270-eab33d4550b1\ntitle: stats add releases filter\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__29a27cb6-cc51-4457-9270-eab33d4550b1.json\npolicy:\nafter: 72313751-3701-45e2-8c8c-59b095a770e2\nchangedFiles:\n  - app/src/components/stats_view/stats_content.test.tsx\n  - app/src/components/stats_view/stats_controls.tsx\n  - app/src/services/stats/project_stats_loader.ts\n  - app/src/services/stats/project_stats_service.node.test.ts\n  - app/src/services/stats/project_stats_types.ts\n  - app/src/services/stats/stats_activity_dataset.ts\n  - app/src/services/stats/stats_options.node.test.ts\n  - app/src/services/stats/stats_options.ts\n  - app/src/services/stats/stats_performance_dataset.ts\n  - app/src/services/stats/stats_snapshot_builder.ts\n  - app/src/services/stats/stats_totals_dataset.ts\n  - app/src/services/stats/stats_usage_comparison_dataset.ts\n---\n\nwe already have a date from and to filter, we should add a 'releases' filter which only includes cards in the results that belong to the selected release or the current release.\n\n## Current state\n\nStats loads activity from the configured current activity folder and every immediate release folder. `ProjectStatsLoader` merges those sources into one `ReleaseStats`, so release membership is lost before datasets are built. `StatsControls` offers one shared local-time date range, but no release control.\n\nCurrent activity means activity still stored in the project's configured activity folder. A completed release means one immediate subfolder of the configured releases folder. Release membership comes from source location; card and conversation identity remain `cardInternalId` and conversation ID.\n\n`usage_metrics.csv` rows have timestamps and provider usage, but no card or release identity. They cannot be assigned to a release.\n\n## implementation details\n\n* Add one service-owned release control. Default it to `Current release`; offer `Current release` plus every discovered completed release, sorted by release name. Do not add an `All releases` option.\n* Preserve current and completed-release `ReleaseStats` separately in `LoadedStatsSource` instead of merging them before snapshot construction. Keep released-stat cache loading and persistence unchanged.\n* Build activity, performance, totals, omitted-timer counts, and activity-derived usage-comparison rows from only selected release's action and conversation facts. Use canonical fact identities when filtering and deduplicating; do not use paths as card identity.\n* Keep `usage_metrics.csv` token and account rows governed only by date range. Release selection must not imply release attribution for those rows. In usage comparison, activity-derived rows change with release selection while telemetry-only rows do not.\n* Render `Releases` as single-select control beside shared date controls. Store selection in `ProjectStatsService`, reconcile it after reload, and fall back to `Current release` if selected completed release no longer exists.\n* Update focused loader, service, options, controls, and component tests. Cover separate source partitions, default selection, completed-release selection, stale selection reconciliation, and unaffected usage telemetry.\n\n## acceptance criteria\n\n* Opening Stats selects `Current release` by default and includes only facts loaded from current activity folder.\n* Releases control lists `Current release` and each discovered immediate completed-release folder exactly once, in stable name order.\n* Selecting completed release excludes current and other releases from activity, performance, totals, timer-coverage counts, and activity-derived comparison results.\n* Date range applies after release selection, so result must satisfy both selected release and selected time range.\n* Changing release recomputes existing snapshot without rereading repository files.\n* Missing activity for selected release produces existing empty state, not data from another release.\n* After reload removes selected completed release, selection becomes `Current release` and results use current activity.\n* Token and account rows from `usage_metrics.csv` remain date-filtered and unchanged by release selection because they contain no card or release identity.\n* Focused app tests, typecheck, and lint pass.",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-25",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"recordTokenUsage\\|recordAccountUsage\\|usageMetricsService\" desktop/src desktop/main.js | grep -v test | head -30 && echo \"=====F263=====\" && cat design/feature_descriptions/F_263_stats_add_releases_filter.md",
+          "providerItemId": "toolu_015QtuCjcmqb5jv4ctjoT52M",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:28:32.985Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGjBSGGYpFEBeWnapJb:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:28:37.579Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && git log --oneline -- design/usage_metrics.csv | wc -l && git log --format=%ad --date=short -- design/usage_metrics.csv | tail -1 && echo \"--- blob sizes in history ---\" && git rev-list --all --objects -- design/usage_metrics.csv | awk '{print $1}' | git cat-file --batch-check='%(objecttype) %(objectsize)' 2>/dev/null | grep '^blob' | awk '{s+=$2; n++} END {print n\" blobs, total \"s\" bytes\"}'",
+          "content": "146\n2026-08-17\n--- blob sizes in history ---\n150 blobs, total 15062145 bytes",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-27",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && git log --oneline -- design/usage_metrics.csv | wc -l && git log --format=%ad --date=short -- design/usage_metrics.csv | tail -1 && echo \"--- blob sizes in history ---\" && git rev-list --all --objects -- design/usage_metrics.csv | awk '{print $1}' | git cat-file --batch-check='%(objecttype) %(objectsize)' 2>/dev/null | grep '^blob' | awk '{s+=$2; n++} END {print n\" blobs, total \"s\" bytes\"}'",
+          "providerItemId": "toolu_01X44bcnkEyKFWsJ8PGQTND5",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:28:42.406Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-28",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGjsrsKDTX7ADscqwAs:thinking:0",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:28:47.801Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && git rev-list --all --objects -- design/usage_metrics.csv | awk '{print $1}' | git cat-file --batch-check='%(objecttype) %(objectsize) %(objectsize:disk)' 2>/dev/null | grep '^blob' | awk '{s+=$3; n++} END {print n\" blobs, on-disk \"s\" bytes\"}'; echo \"--- repo pack size ---\"; du -sh .git 2>/dev/null; echo \"--- project_stats.json history ---\"; git rev-list --all --objects -- design/project_stats.json | awk '{print $1}' | git cat-file --batch-check='%(objecttype) %(objectsize) %(objectsize:disk)' 2>/dev/null | grep '^blob' | awk '{s+=$2; d+=$3; n++} END {print n\" blobs, raw \"s\", on-disk \"d}'",
+          "content": "150 blobs, on-disk 1097247 bytes\n--- repo pack size ---\n203M\t.git\n--- project_stats.json history ---\n6 blobs, raw 1974314, on-disk 181879",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-29",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && git rev-list --all --objects -- design/usage_metrics.csv | awk '{print $1}' | git cat-file --batch-check='%(objecttype) %(objectsize) %(objectsize:disk)' 2>/dev/null | grep '^blob' | awk '{s+=$3; n++} END {print n\" blobs, on-disk \"s\" bytes\"}'; echo \"--- repo pack size ---\"; du -sh .git 2>/dev/null; echo \"--- project_stats.json history ---\"; git rev-list --all --objects -- design/project_stats.json | awk '{print $1}' | git cat-file --batch-check='%(objecttype) %(objectsize) %(objectsize:disk)' 2>/dev/null | grep '^blob' | awk '{s+=$2; d+=$3; n++} END {print n\" blobs, raw \"s\", on-disk \"d}'",
+          "providerItemId": "toolu_01L4QPxojGRH76P7Y2sPdPM5",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:28:52.895Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-30",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGkee9uHsqdQjrdDeky:thinking:0",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:28:55.869Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && du -sh design/activity design/releases 2>/dev/null && ls design/activity | wc -l && du -sh design/activity/*.json 2>/dev/null | sort -h | tail -5",
+          "content": "50M\tdesign/activity\n563M\tdesign/releases\n30\n3.6M\tdesign/activity/card__fb78171f-6c8d-4760-8e63-7ac2eff93256.json\n4.5M\tdesign/activity/card__0f5a1edf-4b4e-4dea-8c7a-05df83ae1288.json\n5.4M\tdesign/activity/card__b692b422-3e30-4518-91c1-bcee5451b046.json\n6.1M\tdesign/activity/card__1b39ee56-e06e-4705-840f-7541b2a57d3d.json\n8.8M\tdesign/activity/card__56dd54b0-9554-4545-85d4-bb45efef4d6e.json",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-31",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && du -sh design/activity design/releases 2>/dev/null && ls design/activity | wc -l && du -sh design/activity/*.json 2>/dev/null | sort -h | tail -5",
+          "providerItemId": "toolu_01C5b6NH5mqy65jL7WVecnJA",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:28:57.156Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-32",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGkxwypc5aZysDd2qm7:thinking:0",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:29:01.729Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && head -60 design/releases/0_4_0/J_29_investigate_and_improve_stats_load_speed.md",
+          "content": "---\nauthor: \nid: J_29\ninternalId: 3ebc6426-47fe-41b8-bb66-da98818be9d9\ntitle: investigate and improve stats load speed\nstatus: ready\nowner: \naffects:\nagents:\n  - design/releases/0_4_0/card__3ebc6426-47fe-41b8-bb66-da98818be9d9.json\npolicy:\nafter: b0e7104c-8f81-425e-8473-66b569a63d81\n---\n\nThis file: [Trace-20260818T181428.json](file:///C:/Users/janbo/Documents/dev/Trace-20260818T181428.json) is a trace taken when loading the stats data for the stats view.\n\nanalyze and see what can be improved. why is it taking so long?\n\n## Current process\n\n1. Opening Stats calls `ProjectStatsService.open()`.\n2. The service lists all repository files and finds current and released activity files.\n3. Every matching activity file is loaded separately through `StorageService` and Electron IPC for a local project.\n4. Every complete activity file, including conversation transcripts, is parsed and validated in the renderer.\n5. Usage metrics are loaded, chart rows are calculated, and the chart is rendered.\n\nThe trace shows a load of about 4.6 seconds. About 4.2 seconds are spent loading, transferring, and parsing activity. Stats aggregation takes about 9 ms and is not the bottleneck. The current repository has 134 matching activity files containing about 570 MB of JSON.\n\n## Problems\n\n### Conversations are serialized and parsed twice\n\n`parseActivityFileForMigration()` first parses the complete activity JSON. `parseConversation()` then calls:\n\n```javascript\nparseAgentConversation(JSON.stringify(value), '')\n```\n\nEach already-parsed conversation is converted back to JSON and parsed again. The repair path repeats the same pattern for individual entries. This duplicate serialization and parsing operates on the largest part of the activity data and accounts for a substantial part of the load time.\n\nAdd a value-based conversation parser. Keep the existing string-based `parseAgentConversation(content, referencePath)` API for its current callers, but have it parse the string once and delegate to the value-based parser. Activity parsing and repair must pass values directly without `JSON.stringify()`.\n\n### Stats reload unnecessarily\n\nThe stats service currently continues behaving as active after Stats is hidden:\n\n- `isOpen` remains true until the project is cleared.\n- Every relevant repository watcher event starts a complete reload.\n- A superseded load is only ignored after its reads and parsing finish; it is not cancelled.\n- Card snapshot changes while Stats is visible can call `open()` again.\n- Reopening Stats reloads without first having released the previous loaded source.\n\nStats do not need live monitoring. Treat each visit to Stats as one fixed viewing session:\n\n- Load stats once when the view opens.\n- Do not subscribe or react to activity, usage-metrics, repository, or card changes while the view is open.\n- Re-renders and card snapshot changes must not start another load.\n- When the user leaves Stats, close the stats session and unload all loaded activity, calculated rows, warnings, and errors.\n- Opening Stats again starts one new load from current repository data.\n- Remove stats handling from the repository-change dispatch path.",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-33",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && head -60 design/releases/0_4_0/J_29_investigate_and_improve_stats_load_speed.md",
+          "providerItemId": "toolu_017EfkmHwQP9R8Bz3xpVkEJZ",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:29:02.666Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-34",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGmNeWa6GJq3KcdSqG3:thinking:0",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:29:28.522Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"Granularity\" app/src/services/stats/project_stats_types.ts | head -20 && grep -n \"hour\\|minute\" app/src/services/stats/stats_time_buckets.ts | head -20",
+          "content": "7:export type StatsGranularity = 'day' | 'week' | 'month';\n8:export type StatsShortGranularity = Exclude<StatsGranularity, 'month'>;\n47:    activityGranularity: StatsGranularity;\n54:    performanceGranularity: StatsShortGranularity;\n62:    usageGranularity: StatsShortGranularity;\n171:    activityGranularity: 'day',\n178:    performanceGranularity: 'day',\n186:    usageGranularity: 'day',",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-35",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"Granularity\" app/src/services/stats/project_stats_types.ts | head -20 && grep -n \"hour\\|minute\" app/src/services/stats/stats_time_buckets.ts | head -20",
+          "providerItemId": "toolu_01SmjD7nYWj6ZnzDDKdtEwoz",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:29:30.081Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-36",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGoPiokcPaiftgrSCx2:thinking:0",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:29:34.997Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n 1,200p app/src/services/stats/stats_usage_comparison_dataset.ts",
+          "content": "import type { StatsActionFact } from '../../../../shared/project_stats.mjs';\nimport { findAgentProfile, type AgentProfile } from '../../data/agent_profiles';\nimport type { UsageMetricsAccountRow, UsageMetricsTokenRow } from '../agents/project_usage_metrics_service';\nimport type {\n    StatsAccountSeriesOption,\n    StatsChartRole,\n    StatsChartRow,\n    StatsControls,\n    StatsDatasetSource,\n    StatsOptions,\n    StatsShortGranularity,\n    StatsUnit,\n} from './project_stats_types';\nimport { emptyTimeRow, unavailableTimeRow } from './stats_chart_rows';\nimport { accountSeriesIdentity, accountSeriesLabel, actionLabel, IDENTITY_SEPARATOR } from './stats_identities';\nimport {\n    bucketContexts,\n    bucketDomain,\n    bucketIdentityKey,\n    inRange,\n    indexByBucket,\n    indexByBucketAndIdentity,\n    type StatsBucketContext,\n} from './stats_time_buckets';\nimport {\n    accessibleStatsTooltip,\n    formatBucketRange,\n    formatCount,\n    formatDollars,\n    formatTimestamp,\n    formatWindow,\n    statsTooltip,\n    type StatsTooltipLine,\n} from './stats_tooltip';\nimport { subscriptionCostPerPercentagePoint } from './stats_subscription_cost';\n\ntype RatioRole = 'tokensPerAccountUsage' | 'tokensPerDollar' | 'actionsPerAccountUsage';\ntype CostRole = 'costPerAgent' | 'costPerActionAverage';\n\ninterface TokenChartVariant {\n    aggregation: 'average' | 'total';\n    role: 'projectTokensAverage' | 'projectTokensTotal';\n    valueLabel: string;\n}\n\n/** Both project-token charts read the same bucket totals, so no control has to choose between them. */\nconst TOKEN_VARIANTS: TokenChartVariant[] = [\n    { aggregation: 'total', role: 'projectTokensTotal', valueLabel: 'Total project tokens' },\n    { aggregation: 'average', role: 'projectTokensAverage', valueLabel: 'Average project tokens per action' },\n];\n\nconst SUBSCRIPTION_SHARE_NOTE = 'Estimated from the limit window\\'s share of a fixed 28-day subscription month, not a metered per-token price';\n\ninterface ComparisonIndexes {\n    /** Account rows whose delta is absent or non-negative, keyed by bucket and series identity. */\n    accountByBucketSeries: Map<string, UsageMetricsAccountRow[]>;\n    actionsByBucket: Map<string, StatsActionFact[]>;\n    agentProfiles: AgentProfile[];\n    agentActionsByBucketProvider: Map<string, StatsActionFact[]>;\n    /** Account rows carrying a non-negative delta, keyed by bucket and series identity. */\n    positiveAccountByBucketSeries: Map<string, UsageMetricsAccountRow[]>;\n    providers: string[];\n    tokensByBucketProvider: Map<string, UsageMetricsTokenRow[]>;\n}\n\ninterface ActivityCount {\n    actionId: string;\n    actionType: 'agent' | 'command';\n    agent: string | null;\n    label: string;\n    stackIdentity: string;\n    stackLabel: string;\n    value: number;\n}\n\nfunction hasUsableDelta(row: UsageMetricsAccountRow) {\n    return row.usedPercentDelta === null || row.usedPercentDelta >= 0;\n}\n\nfunction hasPositiveDelta(row: UsageMetricsAccountRow) {\n    return row.usedPercentDelta !== null && row.usedPercentDelta >= 0;\n}\n\nfunction accountSeriesDescription(series: StatsAccountSeriesOption) {\n    return `${series.provider} · Limit: ${series.limitId} · Window: ${series.windowId}`;\n}\n\nfunction accountSeriesWindowDescription(series: StatsAccountSeriesOption) {\n    return `${accountSeriesDescription(series)} (${formatWindow(series.windowDurationMinutes)})`;\n}\n\n/** Series whose in-range non-negative deltas sum above zero; summed once instead of per series. */\nfunction visibleAccountSeries(accountRows: UsageMetricsAccountRow[], options: StatsOptions) {\n    const totalsByIdentity = new Map<string, number>();\n    for (const row of accountRows.filter(hasPositiveDelta)) {\n        const identity = accountSeriesIdentity(row);\n        totalsByIdentity.set(identity, (totalsByIdentity.get(identity) ?? 0) + row.usedPercentDelta!);\n    }\n\n    return options.accountSeries.filter(({ identity }) => (totalsByIdentity.get(identity) ?? 0) > 0);\n}\n\nfunction accountSeriesRow(\n    context: StatsBucketContext,\n    granularity: StatsShortGranularity,\n    series: StatsAccountSeriesOption,\n    rows: UsageMetricsAccountRow[],\n): StatsChartRow {\n    const available = rows.some(({ usedPercentDelta }) => usedPercentDelta !== null);\n    const value = rows.reduce((total, row) => total + (row.usedPercentDelta ?? 0), 0);\n    const resetTimes = [...new Set(rows.map(({ resetsAt }) => resetsAt))].sort();\n    const seriesLabel = accountSeriesLabel(series);\n    const tooltipLines: StatsTooltipLine[] = [\n        { label: null, value: formatBucketRange(context) },\n        { label: 'Provider', value: accountSeriesWindowDescription(series) },\n        {\n            label: 'Used this period',\n            value: available ? `${formatCount(value)}% of ${series.windowId} limit` : 'account usage unavailable',\n        },\n    ];\n    if (resetTimes.length > 0) {\n        const additionalResetCount = resetTimes.length - 1;\n        const additionalResets = additionalResetCount > 0 ? ` (+${additionalResetCount} more)` : '';\n        tooltipLines.push({ label: 'Limit resets', value: `${formatTimestamp(resetTimes[0])}${additionalResets}` });\n    }\n    const tooltip = statsTooltip(tooltipLines);\n\n    return {\n        ...emptyTimeRow(context, granularity, 'accountUsage', 'accountUsage', 'percent'),\n        accessibleLabel: accessibleStatsTooltip(tooltip),\n        available,\n        identity: series.identity,\n        limitId: series.limitId,\n        provider: series.provider,\n        seriesIdentity: series.identity,\n        seriesLabel,\n        tooltip,\n        value,\n        windowId: series.windowId,\n    };\n}\n\nfunction comparisonAccountRows(\n    contexts: StatsBucketContext[],\n    granularity: StatsShortGranularity,\n    seriesOptions: StatsAccountSeriesOption[],\n    indexes: ComparisonIndexes,\n): StatsChartRow[] {\n    return contexts.flatMap((context) => {\n        if (seriesOptions.length === 0) {\n            return [unavailableTimeRow(context, granularity, 'accountUsage', 'accountUsage', 'percent', 'positive account usage')];\n        }\n\n        return seriesOptions.map((series) => accountSeriesRow(\n            context,\n            granularity,\n            series,\n            indexes.accountByBucketSeries.get(bucketIdentityKey(context.start, series.identity)) ?? [],\n        ));\n    });\n}\n\nfunction projectTokenRows(\n    contexts: StatsBucketContext[],\n    granularity: StatsShortGranularity,\n    tokenTimeAvailable: boolean,\n    indexes: ComparisonIndexes,\n): StatsChartRow[] {\n    return TOKEN_VARIANTS.flatMap(({ aggregation, role, valueLabel }) => contexts.flatMap((context) => {\n        if (indexes.providers.length === 0) {\n            return tokenTimeAvailable\n                ? [emptyTimeRow(context, granularity, role, 'tokens', 'tokens')]\n                : [unavailableTimeRow(context, granularity, role, 'tokens', 'tokens', 'project token usage')];\n        }\n\n        return indexes.providers.map((provider) => {\n            const providerKey = bucketIdentityKey(context.start, provider);\n            const rows = indexes.tokensByBucketProvider.get(providerKey) ?? [];\n            const tokenTotal = rows.reduce((total, row) => total + row.totalTokens, 0);\n            const actionCount = (indexes.agentActionsByBucketProvider.get(providerKey) ?? []).length;\n            const value = aggregation === 'total' ? tokenTotal : actionCount === 0 ? 0 : tokenTotal / actionCount;\n            const tooltip = statsTooltip([\n                { label: null, value: formatBucketRange(context) },\n                { label: 'Provider', value: provider },\n                { label: valueLabel, value: formatCount(value) },\n            ]);\n\n            return {\n                ...emptyTimeRow(context, granularity, role, 'tokens', 'tokens'),\n                accessibleLabel: accessibleStatsTooltip(tooltip),\n                aggregation,\n                denominator: aggregation === 'average' ? actionCount : null,\n                identity: provider,\n                numerator: aggregation === 'average' ? tokenTotal : null,\n                provider,\n                seriesIdentity: provider,\n                seriesLabel: provider,\n                tooltip,\n                value,\n            };",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-37",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n 1,200p app/src/services/stats/stats_usage_comparison_dataset.ts",
+          "providerItemId": "toolu_01EbaQfS2Sbpc497DTKiAgwV",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:29:35.876Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGopXoUMDrvLm5QPqeL:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:29:41.979Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/services/stats/stats_time_buckets.ts && sed -n 155,215p app/src/services/stats/stats_totals_dataset.ts",
+          "content": "import type { StatsControls, StatsGranularity } from './project_stats_types';\n\nconst MILLISECONDS_PER_WEEK = 604_800_000;\nconst DAYS_PER_WEEK = 7;\nconst BUCKET_KEY_SEPARATOR = '|';\n\n/** Presentation metadata shared by every row of one UTC bucket. */\nexport interface StatsBucketContext {\n    displayLabel: string;\n    end: string;\n    interval: string;\n    localLabel: string;\n    start: string;\n}\n\nexport function utcBucketStart(timestamp: string, granularity: StatsGranularity) {\n    const date = new Date(timestamp);\n    date.setUTCHours(0, 0, 0, 0);\n    if (granularity === 'week') date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % DAYS_PER_WEEK));\n    if (granularity === 'month') date.setUTCDate(1);\n\n    return date.toISOString();\n}\n\nexport function nextUtcBucket(timestamp: string, granularity: StatsGranularity) {\n    const date = new Date(timestamp);\n    if (granularity === 'day') date.setUTCDate(date.getUTCDate() + 1);\n    if (granularity === 'week') date.setUTCDate(date.getUTCDate() + DAYS_PER_WEEK);\n    if (granularity === 'month') date.setUTCMonth(date.getUTCMonth() + 1);\n\n    return date.toISOString();\n}\n\nfunction isoWeekNumber(timestamp: string) {\n    const date = new Date(timestamp);\n    date.setUTCDate(date.getUTCDate() + 3 - ((date.getUTCDay() + 6) % DAYS_PER_WEEK));\n    const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));\n\n    return 1 + Math.round((date.getTime() - firstThursday.getTime()) / MILLISECONDS_PER_WEEK);\n}\n\nfunction shortBucketLabel(timestamp: string, granularity: StatsGranularity) {\n    const date = new Date(timestamp);\n    const dayMonth = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(date);\n    if (granularity === 'day') return dayMonth;\n    if (granularity === 'week') return `W${isoWeekNumber(timestamp)} - ${dayMonth}`;\n\n    return new Intl.DateTimeFormat(undefined, { month: 'short', timeZone: 'UTC', year: 'numeric' }).format(date);\n}\n\nfunction localBucketLabel(start: string, end: string) {\n    const formatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });\n\n    return `${formatter.format(new Date(start))} – ${formatter.format(new Date(end))}`;\n}\n\nexport function inRange(timestamp: string, controls: StatsControls) {\n    const milliseconds = Date.parse(timestamp);\n    if (controls.startUtc && milliseconds < Date.parse(controls.startUtc)) return false;\n    if (controls.endUtc && milliseconds > Date.parse(controls.endUtc)) return false;\n\n    return true;\n}\n\nexport function bucketDomain(timestamps: string[], granularity: StatsGranularity, controls: StatsControls) {\n    const matchingTimestamps = timestamps.filter((timestamp) => inRange(timestamp, controls)).sort();\n    const startSource = controls.startUtc ?? matchingTimestamps[0];\n    const endSource = controls.endUtc ?? matchingTimestamps.at(-1);\n    if (!startSource || !endSource) return [];\n    const start = utcBucketStart(startSource, granularity);\n    const end = utcBucketStart(endSource, granularity);\n    if (start > end) return [];\n    const buckets: string[] = [];\n    for (let bucket = start; bucket <= end; bucket = nextUtcBucket(bucket, granularity)) buckets.push(bucket);\n\n    return buckets;\n}\n\nexport function bucketContext(bucket: string, granularity: StatsGranularity): StatsBucketContext {\n    const end = nextUtcBucket(bucket, granularity);\n\n    return {\n        displayLabel: shortBucketLabel(bucket, granularity),\n        end,\n        interval: `${bucket} to ${end}`,\n        localLabel: localBucketLabel(bucket, end),\n        start: bucket,\n    };\n}\n\n/** Formats each bucket label once per snapshot instead of once per emitted row. */\nexport function bucketContexts(buckets: string[], granularity: StatsGranularity) {\n    return buckets.map((bucket) => bucketContext(bucket, granularity));\n}\n\n/** Composite index key; the fixed-format UTC bucket prefix keeps identities unambiguous. */\nexport function bucketIdentityKey(bucket: string, identity: string) {\n    return `${bucket}${BUCKET_KEY_SEPARATOR}${identity}`;\n}\n\n/**\n * \n[469 characters omitted]\nnst bucketItems = index.get(bucket);\n        if (bucketItems) bucketItems.push(item);\n        else index.set(bucket, [item]);\n    }\n\n    return index;\n}\n\n/** Same as {@link indexByBucket} but keyed by bucket and a stable series identity; null identities are skipped. */\nexport function indexByBucketAndIdentity<T>(\n    items: T[],\n    granularity: StatsGranularity,\n    timestampOf: (item: T) => string,\n    identityOf: (item: T) => string | null,\n) {\n    const index = new Map<string, T[]>();\n    for (const item of items) {\n        const identity = identityOf(item);\n        if (identity === null) continue;\n        const key = bucketIdentityKey(utcBucketStart(timestampOf(item), granularity), identity);\n        const keyItems = index.get(key);\n        if (keyItems) keyItems.push(item);\n        else index.set(key, [item]);\n    }\n\n    return index;\n}\n        if (!identity) continue;\n        const display = displayFor(controls, conversation, identity, cardsById);\n        const group = groups.get(identity) ?? { conversations: [], label: display.label, title: display.title };\n        group.conversations.push(conversation);\n        groups.set(identity, group);\n    }\n\n    return groups;\n}\n\nfunction accountSeries(source: StatsDatasetSource, controls: StatsControls) {\n    const seriesByIdentity = new Map<string, StatsAccountSeriesOption>();\n    for (const row of source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls))) {\n        const identity = accountSeriesIdentity(row);\n        seriesByIdentity.set(identity, {\n            identity,\n            limitId: row.limitId,\n            provider: row.provider,\n            windowDurationMinutes: row.windowDurationMinutes,\n            windowId: row.windowId,\n        });\n    }\n\n    return [...seriesByIdentity.values()].sort((left, right) => left.identity.localeCompare(right.identity));\n}\n\n/** One subscription rate per agent, taken from that agent's longest reported limit window. */\nfunction providerRates(source: StatsDatasetSource, controls: StatsControls) {\n    const accountRows = source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls));\n    const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));\n    const denominatorsBySeries = new Map<string, number>();\n    for (const row of accountRows) {\n        if (row.usedPercentDelta === null || row.usedPercentDelta <= 0) continue;\n        const identity = accountSeriesIdentity(row);\n        denominatorsBySeries.set(identity, (denominatorsBySeries.get(identity) ?? 0) + row.usedPercentDelta);\n    }\n    const activeSeries = accountSeries(source, controls)\n        .filter(({ identity }) => (denominatorsBySeries.get(identity) ?? 0) > 0);\n    const rates = new Map<string, ProviderRate>();\n    for (const [provider, series] of longestWindowSeriesByProvider(activeSeries)) {\n        const denominator = denominatorsBySeries.get(series.identity)!;\n        const numerator = tokenRows\n            .filter((row) => row.provider === provider)\n            .reduce((total, row) => total + row.totalTokens, 0);\n        const profile = findAgentProfile(source.agentProfiles, provider);\n        const monthlySubscriptionCostUsd = profile?.monthlySubscriptionCostUsd;\n        let reason: string | null = null;\n        if (denominator <= 0) reason = 'positive account usage denominator is unavailable';\n        else if (!profile) reason = 'matching agent profile is unavailable';\n        else if (monthlySubscriptionCostUsd === undefined) reason = 'monthly subscription cost is not configured';\n        else if (numerator <= 0) reason = 'positive provider token total is unavailable';\n        const costPerPercentagePoint = reason\n            ? 0\n            : subscriptionCostPerPercentagePoint(monthlySubscriptionCostUsd!, series.windowDurationMinutes);\n        const tokensPerDollar = reason ? 0 : (numerator / denominator) / costPerPercentagePoint;\n\n        rates.set(provider, {\n            available: reason === null,\n            denominator,\n            limitId: series.limitId,\n            numerator,",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-39",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/services/stats/stats_time_buckets.ts && sed -n 155,215p app/src/services/stats/stats_totals_dataset.ts",
+          "providerItemId": "toolu_01RtKWpmsm3vpguPWqeDkgfF",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:29:43.299Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-40",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGpN9KqRoyWrNvjkUr3:thinking:0",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:29:47.101Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"startUtc\" app/src/components/stats_view/*.tsx app/src/services/stats/project_stats_service.ts | head -20",
+          "content": "app/src/components/stats_view/stats_content.test.tsx:55:        projectStatsService.setControls({activityGranularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime', endUtc: null, startUtc: null})\napp/src/components/stats_view/stats_controls.tsx:99:    setStatsControls({ startUtc: isoTimestampFromInput(event.target.value) });\napp/src/components/stats_view/stats_controls.tsx:249:                <TextField onChange={handleStartChange} size=\"small\" slotProps={{ htmlInput: { 'aria-label': 'Range start local time' } }} type=\"datetime-local\" value={localDateTimeValue(controls.startUtc)} />\napp/src/services/stats/project_stats_service.ts:86:        validateRangeTimestamp(controls.startUtc, 'startUtc');\napp/src/services/stats/project_stats_service.ts:88:        if (controls.startUtc && controls.endUtc && Date.parse(controls.startUtc) > Date.parse(controls.endUtc)) {",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-41",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"startUtc\" app/src/components/stats_view/*.tsx app/src/services/stats/project_stats_service.ts | head -20",
+          "providerItemId": "toolu_014G76NgdKq5CcP6hBjgKtu8",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-09-01T19:29:48.404Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-event-42",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CedGpkH6bRf7DSJaHEYsQ:thinking:0",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-01T19:30:02.203Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\n## Findings — F_257 (move `usage_metrics.csv` per release)\n\n### 1. The size premise is weaker than the card assumes\n\nMeasured on this repo (data since 2026-08-17, ~15 days):\n\n| | working tree | git history (packed) |\n|---|---|---|\n| `design/usage_metrics.csv` | 277 KB, 2 821 rows | 150 blobs → **1.1 MB on disk** |\n| `design/activity/` (current) | 50 MB | — |\n| `design/releases/` | 563 MB | — |\n| whole `.git` | — | 203 MB |\n\nThe CSV is roughly 0.05 % of the design data and 0.5 % of the packed repository. Extrapolated growth is about 18 KB/day of raw text, ~6.5 MB/year, and git delta-compresses an append-only file very well (15 MB of raw blob versions pack into 1.1 MB). It is also not a load-time problem: `design/releases/0_4_0/J_29_investigate_and_improve_stats_load_speed.md` measured 4.2 s of the 4.6 s stats load in activity JSON loading and parsing, with aggregation at ~9 ms. Parsing 277 KB of CSV is negligible next to that.\n\n### 2. The blocking obstacle: these rows have no card or release identity\n\n`desktop/src/actions/agent/usage_metrics_service.js` writes two record types, and neither carries a card:\n\n- `recordTokenUsage(provider, usage, recordedAt)` — provider, timestamp, token counts. No card ID, no run ID.\n- `recordAccountUsage(provider, snapshot)` — account-wide limit-window consumption percentages. Attributing an account-wide percentage to one card is not meaningful even in principle. These are 2 288 of the 2 821 rows (81 %).\n\n`design/feature_descriptions/F_263_stats_add_releases_filter.md` already settled this as a design decision, and its acceptance criteria depend on it: *\"Token and account rows from `usage_metrics.csv` remain date-filtered and unchanged by release selection because they contain no card or release identity.\"* `app/src/services/stats/stats_snapshot_builder.ts` implements exactly that — selecting a release swaps `stats`, while `accountRows` and `tokenRows` stay full-history.\n\nSo the card's core mechanism — \"save statistics per card … then find the point in the CSV where all lines can be removed because all cards in that period have been released\" — is not implementable as written. Per-card token totals already exist elsewhere and do not need the CSV: `conversation.usage.totalTokens` in activity files, precomputed per release into `design/project_stats.json` by `shared/project_stats.mjs`, plus the per-release rollup in `design/agent_token_usage.json`.\n\n### 3. What a naive file-move at release time would break\n\nEven setting attribution aside, four concrete problems:\n\n- **Delta continuity.** `usedPercentDelta` is computed against the previous row for the same provider/limit/window key. The writer rebuilds baselines by reading the whole file (`restoreBaselines`), and the reader recomputes deltas the same way in `parseUsageMetrics` (`app/src/services/agents/project_usage_metrics_service.ts:180`). Truncating the file destroys the baseline at the cut, so the first samples after a release get a wrong delta — and delta is what every account-usage chart sums.\n- **The reader only knows one path.** `ProjectStatsLoader.loadSource` reads exactly `<projectFolder>/usage_metrics.csv`. Archived copies under a release folder would be invisible, so any date range reaching before the last release would silently lose account and token data — and the ratio charts (`tokensPerAccountUsage`, `tokensPerDollar`, `costPerAgent`) would go blank or wrong for those buckets while the action counts beside them stay populated.\n- **Live writer state.** `UsageMetricsService` caches `filePath` and per-file state (`baselines`, `hasContent`) from `startProject`. Moving the file out from under the running desktop process needs a new IPC reset from the renderer release flow, similar to the existing `resetAgentConversations()`.\n- **No win if you fix it properly.** Making the loader read every archived CSV restores correctness but reads the same total volume, so nothing is saved.\n\n### 4. What is feasible, in increasing order of effort\n\n**Option A — do nothing (recommended).** The file is 0.5 % of repo weight and ~0.2 % of stats load time. Revisit if it reaches tens of MB.\n\n**Option B — write fewer rows.** Account samples are 81 % of the file and are written on every observed percentage change during a run. Charts bucket by day or week at finest, so most of that resolution is discarded anyway. Deduplicating to at most one sample per key per minute is a small, local change in `usage_metrics_service.js`, needs no schema change, no migration, and no reader change. Expect a large fraction of the rows to disappear.\n\n**Option C — release-time daily rollup.** This is the one version of the card's idea that actually works, because every consumer of these rows is a sum over a UTC bucket: account rows sum `usedPercentDelta` per series (`stats_usage_comparison_dataset.ts:110`), token rows sum `totalTokens` per provider (`stats_usage_comparison_dataset.ts:180`), and `StatsShortGranularity` is `day | week` only. So at release you replace the old rows with one synthetic row per day per series, keeping the summed delta and token totals, and the charts stay numerically identical at day and week granularity.\n\nCosts of Option C: a schema change (a rollup record type plus a baseline-carrying row so the delta chain survives the cut), a migration for existing files, tooltip detail loss (individual reset timestamps and exact percentage samples), and coarser behaviour for the free-form `datetime-local` range picker, which currently accepts minute precision — sub-day ranges over rolled-up history become approximate.\n\n### Recommendation\n\nOption B now if you want a real reduction cheaply; Option A otherwise. Option C only if the file genuinely becomes large, and it should be written as \"compact old rows in place\", not \"move the file into the release folder\", since the move is what breaks the readers.\n\nI have not modified any file. Want me to write these findings into the feature description as a *Current state / Problems* section, matching the style of F_263 and J_29?\n\nSeparately: the caveman plugin's statusline badge is not configured. I can add the `statusLine` entry to `~/.claude/settings.json` if you want it.",
+          "id": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 43,
+          "timestamp": "2026-09-02T07:40:23.885Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-878206d1-5138-4a1e-934b-aa61e38dd645",
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "53bb76da-4240-4953-b420-9f13ee423cf2",
+          "createdAt": "2026-09-01T19:30:33.202Z",
+          "lastUsedAt": "2026-09-01T19:30:33.202Z",
+          "synchronizedThroughMessageId": "agent-turn-fe0a994a-67cd-4587-81ed-26d39c285795-turn-1-assistant-3"
+        }
+      ],
+      "startedAt": "2026-09-01T19:27:24.804Z",
+      "status": "waitingForInput",
+      "timer": {
+        "elapsedMs": 188398,
+        "runningStartedAt": null
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 1308002,
+        "inputTokens": 44,
+        "outputTokens": 11072,
+        "reasoningTokens": 0,
+        "totalTokens": 1319118,
+        "costUsd": 1.592259
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "4684225b-0d21-4c57-8691-3f2844f76ca6",
+    "kind": "card"
+  },
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-09-02T07:40:25.244Z",
+      "conversationIds": [
+        "agent-878206d1-5138-4a1e-934b-aa61e38dd645"
+      ],
+      "details": {
+        "type": "agent",
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium"
+      },
+      "runId": "action-690ba0e3-1c62-4571-966b-06cb7e563dbf",
+      "origin": {
+        "cardInternalId": "4684225b-0d21-4c57-8691-3f2844f76ca6",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "startedAt": "2026-09-01T19:27:24.799Z",
+      "status": "cancelled",
+      "rootConversationId": "agent-878206d1-5138-4a1e-934b-aa61e38dd645"
+    }
+  ],
+  "version": 5
+}

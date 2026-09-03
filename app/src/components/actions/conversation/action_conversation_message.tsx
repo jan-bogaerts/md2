@@ -34,6 +34,18 @@ export const ActionConversationMessage = memo(function ActionConversationMessage
                 px: 1.25,
                 py: 1,
                 ...markdownContentSx,
+                '&& .mdxeditor-content pre': {
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    boxSizing: 'border-box',
+                    maxWidth: '100%',
+                    overflowWrap: 'anywhere',
+                    p: 1,
+                    whiteSpace: 'pre-wrap',
+                    width: '100%',
+                },
             }}
         >
             <ActionConversationLinkContext value={cardInternalId}>

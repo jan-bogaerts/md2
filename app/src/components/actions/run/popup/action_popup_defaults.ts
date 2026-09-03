@@ -7,6 +7,7 @@ import type {
     AgentApprovalDecision,
     AgentApprovalRequestId,
 } from '../../../../data/action_run_types'
+import type { PreparedActionPrompt } from '../../../../data/action_run_types'
 import type { AgentConversation } from '../../../../data/data_types'
 import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
 import { defaultActionHistoryLoader, loadActionHistory } from '../../../../services/actions/action_history'
@@ -46,7 +47,7 @@ export type ConvertPromptToAction = (input: ConvertPromptToActionInput) => Promi
 export type LoadHistory = (action: ActionDefinition, context: ActionContext) => Promise<ActionRunHistoryEntry[]>
 export type LoadConversation = (path: string) => Promise<AgentConversation>
 export type LoadConversations = (context: ActionContext) => Promise<AgentConversation[]>
-export type PreparePrompt = (action: ActionDefinition, context: ActionContext) => Promise<string>
+export type PreparePrompt = (action: ActionDefinition, context: ActionContext) => Promise<PreparedActionPrompt>
 export type RunAction = (
     action: ActionDefinition,
     context: ActionContext,
@@ -103,7 +104,7 @@ export async function defaultPreparePrompt(action: ActionDefinition, context: Ac
     await projectPersistenceService.flushPendingChanges()
     const result = await bridge.prepareActionPrompt({ actionId: action.id, context })
 
-    return result.prompt
+    return result
 }
 
 export async function defaultConvertPromptToAction(input: ConvertPromptToActionInput) {

@@ -19,10 +19,9 @@ interface ConversationIdentity {
 
 type Listener = () => void
 
+/** A context without a card identity owns the project-origin conversations, whatever its kind. */
 function belongsToContext(conversation: ConversationPickerConversation, context: ActionContext) {
-    return context.kind === 'project' || context.kind === 'merge-conflict'
-        ? conversation.cardInternalId === null
-        : conversation.cardInternalId === context.cardInternalId
+    return conversation.cardInternalId === (context.cardInternalId ?? null)
 }
 
 function conversationTimestamp(conversation: ConversationPickerConversation) {

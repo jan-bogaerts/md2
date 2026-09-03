@@ -5,6 +5,7 @@ import {
     activityFilePath,
     cardActivityFileName,
 } from '../../../shared/activity_paths.mjs'
+import type { parseActivityFileForMigration } from '../../../shared/card_activity.mjs'
 import { normalizePath } from '../../../shared/path_utils.mjs'
 
 const RELEASE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/u
@@ -283,4 +284,49 @@ export function buildCardArchiveMoves(
     }
 
     return moves
+}
+
+type ProjectActivity = ReturnType<typeof parseActivityFileForMigration>
+
+/** Conversation statuses that can never produce more activity, so the release may take them away. */
+const ARCHIVABLE_CONVERSATION_STATUSES = new Set(['cancelled', 'completed'])
+
+/** System records reference no conversation, so a release always takes them along. */
+function recordConversationIds(record: ProjectActivity['records'][number]) {
+    if (record.type === 'system') return []
+    const referenced = [...record.conversationIds]
+    if (record.rootConversationId) referenced.push(record.rootConversationId)
+
+    return referenced
+}
+
+/**
+ * Splits project activity into the part a release archives and the part that stays behind.
+ * A record travels only when every conversation it references travels, so a record straddling
+ * both sides remains readable in `activity/project.json`.
+ */
+export function splitProjectActivity(activity: ProjectActivity) {
+    const archivedConversationIds = new Set(activity.conversations
+        .filter(({ status }) => ARCHIVABLE_CONVERSATION_STATUSES.has(status))
+        .map(({ id }) => id))
+    const archivedRecords = activity.records.filter((record) => (
+        recordConversationIds(record).every((conversationId) => archivedConversationIds.has(conversationId))
+    ))
+    const archivedRecordSet = new Set(archivedRecords)
+    const archived = {
+        ...activity,
+        conversations: activity.conversations.filter(({ id }) => archivedConversationIds.has(id)),
+        records: archivedRecords,
+    }
+    const kept = {
+        ...activity,
+        conversations: activity.conversations.filter(({ id }) => !archivedConversationIds.has(id)),
+        records: activity.records.filter((record) => !archivedRecordSet.has(record)),
+    }
+
+    return {
+        archived,
+        hasArchivableActivity: archived.conversations.length > 0 || archived.records.length > 0,
+        kept,
+    }
 }

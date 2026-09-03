@@ -403,6 +403,43 @@ describe('ActionPopup', () => {
         expect(startAction).toHaveBeenCalledOnce()
     })
 
+    it('submits a command containing markdown characters without escaping them', async () => {
+        const startAction = vi.fn(async () => 'run-1')
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        const command = 'powershell.exe -File "C:\\dev\\tools\\release_electron.ps1" *all*'
+
+        fireEvent.change(prompt, { target: { value: command } })
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: 'first',
+            runInput: { command },
+        })))
+    })
+
+    it('submits a command starting with a dash unchanged', async () => {
+        const startAction = vi.fn(async () => 'run-1')
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        renderPopup()
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+
+        fireEvent.change(prompt, { target: { value: '- npm run build' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: 'first',
+            runInput: { command: '- npm run build' },
+        })))
+    })
+
     it('retains command input and reports a start failure before Electron acceptance', async () => {
         const failure = new Error('Start rejected')
         const reportError = vi.spyOn(dialogService, 'error')
@@ -908,6 +945,35 @@ describe('ActionPopup', () => {
             }),
         })))
         expect(saveProjectFile).not.toHaveBeenCalled()
+    })
+
+    it('starts a prepared diagram prompt with its generated repository-relative path', async () => {
+        const startAction = vi.fn(async () => 'diagram-run')
+        const diagramPath = 'design/diagrams/Overview-20260831T142530123Z.json'
+        mockCodexAvailable()
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ diagramPath, prompt: 'Prepared diagram prompt' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        actionService.loadFromFiles([file(agentDefinition('overview', {
+            appliesTo: { kind: 'diagram', type: 'root' },
+            output: { kind: 'diagram' },
+            label: 'Overview',
+        }))])
+
+        renderPopup({ kind: 'diagram', type: 'root' })
+        const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
+        fireEvent.click(dialog.getByRole('button', { name: 'Overview' }))
+        const prompt = within(await dialog.findByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).toHaveValue('Prepared diagram prompt'))
+        fireEvent.click(dialog.getByRole('button', { name: 'Send' }))
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith(expect.objectContaining({
+            actionId: 'overview',
+            context: { kind: 'diagram', type: 'root' },
+            runInput: expect.objectContaining({ diagramPath, prompt: 'Prepared diagram prompt' }),
+        })))
     })
 
     it('omits retained shared permission mode when custom agent runs', async () => {

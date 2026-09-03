@@ -8,7 +8,7 @@ import type {
     AgentTokenUsage,
 } from './data_types'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
-import type { ActionAutoFinish, ActionType } from './action_types'
+import type { ActionAutoFinish, ActionOutput, ActionType } from './action_types'
 
 export type ActionRunTerminalStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
 export type ActionRunStatus = ActionRunTerminalStatus | 'queued' | 'running' | 'waitingForInput'
@@ -18,6 +18,7 @@ export interface ActionRunInput {
     agent?: string
     command?: string
     continueFrom?: string
+    diagramPath?: string
     extraPrompt?: string
     model?: string
     permissionMode?: PermissionMode
@@ -31,6 +32,7 @@ export interface ActionPromptRequest {
 }
 
 export interface PreparedActionPrompt {
+    diagramPath?: string
     prompt: string
 }
 
@@ -131,8 +133,10 @@ interface ActionRunEventBase {
     autoFinish?: ActionAutoFinish | null
     changedPaths?: string[]
     context: ActionContext
+    diagramPath?: string
     runId: string
     interactionReady?: boolean
+    output?: ActionOutput | null
     phase: ActionRunPhase
     rootActionId: string
     sequence?: number
@@ -252,6 +256,7 @@ export interface ActionRunLogEntry {
 
 export interface ActionRunResult {
     changedPaths: string[]
+    diagramPath?: string
     logs: ActionRunLogEntry[]
     status: ActionRunStatus
 }

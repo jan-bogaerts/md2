@@ -1,0 +1,20 @@
+---
+author: 
+id: B_218
+internalId: a2bfbcc3-8aee-4bd2-8575-ce658dc88a56
+title: diagram boxes disabled prevents scrolling
+status: ready
+owner: 
+affects:
+agents:
+  - design/activity/card__a2bfbcc3-8aee-4bd2-8575-ce658dc88a56.json
+policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_node.test.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_renderer.test.tsx
+---
+
+Some diagram buttons seem to be disabled, this prevents us from scrolling so we can't read the full sub labels.
+
+this needs to be fixed so that the scrollbar works

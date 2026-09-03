@@ -12,9 +12,10 @@ const BLOCK_SOURCE_MAP_DIRECTIVE_PATTERN = /\/\*[#@]\s*sourceMappingURL=.*?\*\//
 const JSON_CONTENT_TYPE = 'application/json'
 const LOCAL_URL_BASE = 'http://localhost'
 const NODE_TEST_GROUP_ORDER = 0
-const UI_TEST_GROUP_ORDER = 1
-const REAL_EDITOR_TEST_GROUP_ORDER = 2
-const TEST_WORKERS = 1
+const SERVICE_TEST_GROUP_ORDER = 1
+const UI_TEST_GROUP_ORDER = 2
+const REAL_EDITOR_TEST_GROUP_ORDER = 3
+const TEST_WORKERS = 2
 
 type NextFunction = (error?: Error) => void
 
@@ -138,9 +139,22 @@ export default defineConfig({
             {
                 extends: true,
                 test: {
+                    environment: 'node',
+                    fileParallelism: true,
+                    include: ['src/**/*.service.test.ts'],
+                    isolate: true,
+                    maxWorkers: TEST_WORKERS,
+                    name: 'service',
+                    sequence: { groupOrder: SERVICE_TEST_GROUP_ORDER },
+                    setupFiles: './src/test/service_setup.ts',
+                },
+            },
+            {
+                extends: true,
+                test: {
                     environment: 'jsdom',
-                    exclude: ['src/**/*.node.test.ts', 'src/**/*.real.test.tsx'],
-                    fileParallelism: false,
+                    exclude: ['src/**/*.grouped.test.tsx', 'src/**/*.node.test.ts', 'src/**/*.real.test.tsx', 'src/**/*.service.test.ts'],
+                    fileParallelism: true,
                     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
                     isolate: true,
                     maxWorkers: TEST_WORKERS,

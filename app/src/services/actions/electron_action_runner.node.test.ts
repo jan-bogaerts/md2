@@ -24,6 +24,7 @@ const action: ActionDefinition = {
     onAfter: [],
     onBefore: [],
     onState: null,
+    output: null,
     phrases: [],
     prompt: null,
     showCommandWindow: false,

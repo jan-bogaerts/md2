@@ -2,7 +2,7 @@
 
 ![Board view with a card popup and the action popup](../screenshots/Screenshot%202026-07-23%20180206.jpg)
 
-Switch between **Board** and **List** with the toggle in the application menu.
+Switch between **Board**, **List**, and **Stats** with the toggle in the application menu. Stats replaces the workspace with project activity, performance, usage, and cost charts; see [Stats](stats.md).
 
 ## Columns
 
@@ -45,4 +45,4 @@ On a phone the board scrolls horizontally through the columns, the menu collapse
 
 Along the bottom: card counts, save state (`Saved locally`), sync state (`Synced` or `Changes ready to push`), accumulated token usage, and the number of running agents.
 
-See also: [Cards and files](../concepts/cards-and-files.md), [Text view](text-view.md), [Running actions](../actions/running-actions.md).
+See also: [Cards and files](../concepts/cards-and-files.md), [Text view](text-view.md), [Stats](stats.md), [Running actions](../actions/running-actions.md).

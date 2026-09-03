@@ -11,8 +11,12 @@ import { projectUsageMetricsService } from '../agents/project_usage_metrics_serv
 import type { LoadedStatsSource, StatsCardDescriptor, StatsProjectBinding } from './project_stats_types';
 import { calculateActivityStatsOutsideMainThread } from './project_stats_worker_client';
 
-const RELEASE_CARD_FILE_PATTERN = /^card__[^/]+\.json$/u;
 const RELEASE_STATS_COMMIT_MESSAGE = 'Update calculated release stats';
+
+interface ReleasedStatsResult {
+    releaseStats: Record<string, ReleaseStats>;
+    warnings: string[];
+}
 
 export type StatsCalculator = (
     storage: StorageService,
@@ -51,7 +55,7 @@ export function findStatsSourcePaths(repositoryFiles: string[], config: ProjectC
         if (releaseParts.length < 2 || releaseParts[0].length === 0) continue;
         const releaseName = releaseParts[0];
         releaseActivityPaths[releaseName] ??= [];
-        if (releaseParts.length !== 2 || !RELEASE_CARD_FILE_PATTERN.test(releaseParts[1]) || !activityOriginFromPath(path)) continue;
+        if (releaseParts.length !== 2 || !activityOriginFromPath(path)) continue;
         releaseActivityPaths[releaseName] = [...(releaseActivityPaths[releaseName] ?? []), path];
     }
     for (const paths of Object.values(releaseActivityPaths)) paths.sort((left, right) => left.localeCompare(right));
@@ -106,7 +110,8 @@ export class ProjectStatsLoader {
         return {
             accountRows: usageMetrics.accountRows,
             cards,
-            stats: mergeStats([current.stats, released.stats]),
+            currentStats: current.stats,
+            releaseStats: released.releaseStats,
             tokenRows: usageMetrics.tokenRows,
             tokenTimeAvailable: usageMetrics.available,
             warnings: [...current.warnings, ...released.warnings, ...usageMetrics.warnings],
@@ -118,7 +123,7 @@ export class ProjectStatsLoader {
         repositoryFiles: string[],
         releaseActivityPaths: Record<string, string[]>,
         signal: AbortSignal,
-    ): Promise<ActivityStatsCalculationResult> {
+    ): Promise<ReleasedStatsResult> {
         const statsPath = projectStatsFilePath(binding.config.projectFolder);
         const normalizedRepositoryFiles = new Set(repositoryFiles.map(normalizePath));
         let cachedReleases: Record<string, ReleaseStats> = {};
@@ -163,6 +168,6 @@ export class ProjectStatsLoader {
             }
         }
 
-        return { stats: mergeStats(Object.values(releases)), warnings };
+        return { releaseStats: releases, warnings };
     }
 }

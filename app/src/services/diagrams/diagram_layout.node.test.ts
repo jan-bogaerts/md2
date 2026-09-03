@@ -1,0 +1,200 @@
+import { describe, expect, it } from 'vitest'
+import type { DiagramData } from './diagram_data'
+import { layout } from './diagram_layout'
+
+function diagram(type: DiagramData['meta']['type'] = 'architecture'): DiagramData {
+    return {
+        edges: [
+            { from: 'one', id: 'one-two', kind: type === 'sequence' ? 'call' : 'connection', to: 'two' },
+            { from: 'one', id: 'one-three', kind: type === 'sequence' ? 'return' : 'connection', to: 'three' },
+        ],
+        groups: [{ id: 'system', label: 'System', nodeIds: ['one', 'two'] }],
+        meta: { description: 'Layout test', title: 'Test', type, version: 1 },
+        nodes: [
+            { id: 'one', label: 'One', role: 'focal' },
+            { id: 'two', label: 'Two', role: 'backend' },
+            { height: 88, id: 'three', label: 'Three', role: 'store', width: 200, x: 400, y: 300 },
+        ],
+    }
+}
+
+describe('diagram layout', () => {
+    it('places layered nodes on grid and routes orthogonal fanned edges', () => {
+        const positioned = layout(diagram())
+        const firstPoints = positioned.edges[0].points
+        const secondPoints = positioned.edges[1].points
+
+        expect(positioned.nodes.every(({ height, width, x, y }) => [height, width, x, y].every((value) => value % 4 === 0))).toBe(true)
+        expect(firstPoints).toHaveLength(4)
+        expect(firstPoints[0].x).not.toBe(secondPoints[0].x)
+        expect(firstPoints[0].x).toBe(firstPoints[1].x)
+        expect(firstPoints[1].y).toBe(firstPoints[2].y)
+    })
+
+    it('preserves supplied node geometry and waypoints in mixed data', () => {
+        const data = diagram()
+        data.edges[0].waypoints = [{ x: 120, y: 112 }, { x: 120, y: 208 }]
+        const positioned = layout(data)
+
+        expect(positioned.nodes.find(({ id }) => id === 'three')).toMatchObject({ height: 88, width: 200, x: 400, y: 300 })
+        expect(positioned.edges[0].points).toEqual(data.edges[0].waypoints)
+        expect(positioned.nodes.find(({ id }) => id === 'two')?.x).toBeDefined()
+    })
+
+    it('places sequence participants in columns and messages in deterministic rows', () => {
+        const positioned = layout(diagram('sequence'))
+
+        expect(positioned.nodes[0].y).toBe(positioned.nodes[1].y)
+        expect(positioned.edges[0].points[0].y).toBeLessThan(positioned.edges[1].points[0].y)
+        expect(positioned.edges[0].points[0].y % 4).toBe(0)
+    })
+
+    it('adds a hop to the later connector when generated routes cross', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = [
+            { id: 'one', label: 'One', role: 'focal', x: 0, y: 100 },
+            { id: 'two', label: 'Two', role: 'backend', x: 400, y: 100 },
+            { id: 'three', label: 'Three', role: 'backend', x: 240, y: 0 },
+            { id: 'four', label: 'Four', role: 'backend', x: 240, y: 300 },
+        ]
+        data.edges = [
+            { from: 'one', id: 'horizontal', kind: 'connection', to: 'two' },
+            { from: 'three', id: 'vertical', kind: 'connection', to: 'four' },
+        ]
+
+        expect(layout(data).edges[1].points.length).toBeGreaterThan(4)
+    })
+
+    it('keeps cyclic graph nodes in a bounded rank', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = data.nodes.slice(0, 2)
+        data.edges = [
+            { from: 'one', id: 'forward', kind: 'connection', to: 'two' },
+            { from: 'two', id: 'back', kind: 'connection', to: 'one' },
+        ]
+
+        const positioned = layout(data)
+
+        expect(positioned.nodes[0].y).toBe(positioned.nodes[1].y)
+    })
+
+    it('routes around a non-endpoint node', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = [
+            { id: 'one', label: 'One', role: 'focal', x: 0, y: 80 },
+            { id: 'obstacle', label: 'Obstacle', role: 'backend', x: 240, y: 80 },
+            { id: 'two', label: 'Two', role: 'backend', x: 480, y: 80 },
+        ]
+        data.edges = [{ from: 'one', id: 'around', kind: 'connection', to: 'two' }]
+
+        const points = layout(data).edges[0].points
+
+        expect(points.some(({ y }) => y < 80 || y > 152)).toBe(true)
+    })
+
+    it('positions sequence fragments and nested activation intervals', () => {
+        const data = diagram('sequence')
+        data.groups = []
+        data.nodes = data.nodes.slice(0, 3)
+        data.edges = [
+            { from: 'one', id: 'outer-call', kind: 'call', to: 'two' },
+            { from: 'three', id: 'inner-call', kind: 'call', to: 'two' },
+            { from: 'two', id: 'inner-return', kind: 'return', to: 'three' },
+            { from: 'two', id: 'outer-return', kind: 'return', to: 'one' },
+        ]
+        data.fragments = [{ id: 'loop', operator: 'loop', regions: [{ edgeIds: ['inner-call', 'inner-return'], guard: 'retry' }] }]
+
+        const positioned = layout(data)
+
+        expect(positioned.activations).toHaveLength(2)
+        expect(positioned.activations[0].height).toBeGreaterThan(positioned.activations[1].height)
+        expect(positioned.fragments[0]).toMatchObject({ id: 'loop', operator: 'loop' })
+    })
+
+    it('routes every edge of a dense graph even when clean lanes run out', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = Array.from({ length: 12 }, (_unused, index) => ({
+            id: `node-${index}`, label: `Node ${index}`, role: 'backend' as const,
+            x: (index % 4) * 160, y: Math.floor(index / 4) * 72,
+        }))
+        data.edges = Array.from({ length: 24 }, (_unused, index) => ({
+            from: `node-${index % 12}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index + 5) % 12}`,
+        }))
+
+        const positioned = layout(data)
+
+        const obstructed = positioned.edges.some((edge) => edge.points.slice(1).some((end, index) => {
+            const start = edge.points[index]
+
+            return positioned.nodes.filter(({ id }) => id !== edge.from && id !== edge.to).some((node) => {
+                const insideRow = start.y === end.y && start.y > node.y && start.y < node.y + node.height
+                    && Math.max(start.x, end.x) > node.x && Math.min(start.x, end.x) < node.x + node.width
+                const insideColumn = start.x === end.x && start.x > node.x && start.x < node.x + node.width
+                    && Math.max(start.y, end.y) > node.y && Math.min(start.y, end.y) < node.y + node.height
+
+                return insideRow || insideColumn
+            })
+        }))
+
+        expect(positioned.edges.map(({ id }) => id)).toEqual(data.edges.map(({ id }) => id))
+        expect(positioned.edges.every(({ points }) => points.length >= 2)).toBe(true)
+        expect(obstructed).toBe(true)
+    })
+
+    it('clamps connector ports on a node too narrow to keep them apart', () => {
+        const data: DiagramData = {
+            edges: Array.from({ length: 6 }, (_unused, index) => ({
+                from: `state-${index}`, id: `transition-${index}`, kind: 'transition', label: `t${index}`, to: 'done',
+            })),
+            groups: [],
+            meta: { description: 'Narrow terminator', preset: 'state', title: 'States', type: 'flow', version: 1 },
+            nodes: [
+                ...Array.from({ length: 6 }, (_unused, index) => ({
+                    id: `state-${index}`, kind: 'state' as const, label: `State ${index}`, role: 'backend' as const,
+                })),
+                { id: 'done', kind: 'end', label: 'Done', role: 'backend' },
+            ],
+        }
+
+        const positioned = layout(data)
+        const terminator = positioned.nodes.find(({ id }) => id === 'done')
+
+        expect(terminator).toMatchObject({ height: 24, width: 24 })
+        expect(positioned.edges).toHaveLength(6)
+    })
+
+    it('lays out a dependency graph deeper than four ranks', () => {
+        const ids = ['a', 'b', 'c', 'd', 'e', 'f']
+        const data: DiagramData = {
+            edges: ids.slice(1).map((id, index) => ({ from: ids[index], id: `${ids[index]}-${id}`, kind: 'dependency', to: id })),
+            groups: [],
+            meta: { description: 'Deep chain', title: 'Deps', type: 'dependency', version: 1 },
+            nodes: ids.map((id) => ({ id, label: id.toUpperCase(), role: 'backend' as const })),
+        }
+
+        const positioned = layout(data)
+
+        expect(new Set(positioned.nodes.map(({ y }) => y)).size).toBe(6)
+    })
+
+    it('lays out a hundred nodes and a hundred and fifty edges quickly', () => {
+        const data = diagram()
+        data.groups = []
+        data.nodes = Array.from({ length: 100 }, (_unused, index) => ({
+            id: `node-${index}`, label: `Node ${index}`, role: 'backend' as const,
+        }))
+        data.edges = Array.from({ length: 150 }, (_unused, index) => ({
+            from: `node-${index % 100}`, id: `edge-${index}`, kind: 'connection' as const, to: `node-${(index * 7 + 3) % 100}`,
+        }))
+
+        const started = Date.now()
+        const positioned = layout(data)
+
+        expect(positioned.edges).toHaveLength(150)
+        expect(Date.now() - started).toBeLessThan(1000)
+    })
+})

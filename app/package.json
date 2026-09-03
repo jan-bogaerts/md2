@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:full": "vitest run",
     "test:related": "vitest related --run",
+    "test:service": "vitest run --project service",
     "test:ui": "vitest run --project ui",
     "test:unit": "vitest run --project unit",
     "test:watch": "vitest"
