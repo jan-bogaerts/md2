@@ -3,12 +3,12 @@ author:
 id: F_276
 internalId: 5347a970-419c-495a-9b4e-c9aafcce6741
 title: add diagram mutation operations
-status: new
+status: design
 owner:
 affects:
 agents:
 policy:
-after: 056265ee-3d0f-4922-8e2d-282f91bad667
+after: 9d5878e6-2d20-4574-971d-57dbd82eb389
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
