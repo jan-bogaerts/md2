@@ -10,8 +10,6 @@ agents:
   - design/activity/card__6ea2e797-b87b-4246-974a-d45ddc3fefc1.json
 policy:
 after: 7037a625-d650-4574-b1d5-874d90ba82a4
-branch: f_271_diagrams_add_legend
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/diagram.tsx
   - app/src/components/diagram_view/diagram_edge.tsx
