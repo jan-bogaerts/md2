@@ -10,8 +10,7 @@ agents:
 policy:
 after: 056265ee-3d0f-4922-8e2d-282f91bad667
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ Add operations to create, update, move, resize, and remove nodes, edges, groups,
 
 ## Dependencies
 
-[F_273](F_273_define_editable_diagram_contract.md) and [F_275](F_275_add_diagram_edit_session_service.md).
+[F\_273](F_273_define_editable_diagram_contract.md) and [F\_275](F_275_add_diagram_edit_session_service.md).
