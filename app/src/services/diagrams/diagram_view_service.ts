@@ -16,7 +16,7 @@ import {
     type DiagramIndex,
     type DiagramRecord,
 } from './diagram_index'
-import { isDiagramDataPath, parseDiagramData } from './diagram_data'
+import { isDiagramDataPath, parseDiagramData, type DiagramData } from './diagram_data'
 import { layout, type PositionedDiagramData } from './diagram_layout'
 
 const DIAGRAM_INDEX_COMMIT_MESSAGE = 'Update diagram view'
@@ -55,6 +55,11 @@ export interface DiagramViewSnapshot {
     menu: DiagramMenuState | null
     popup: DiagramPopupState | null
     status: 'idle' | 'loading' | 'ready' | 'error'
+}
+
+export interface DiagramViewSourceSnapshot {
+    diagram: DiagramData
+    record: DiagramRecord
 }
 
 interface DiagramProjectBinding {
@@ -114,17 +119,25 @@ function validateDiagramPaths(index: DiagramIndex, diagramsFolder: string) {
 async function loadDiagram(binding: DiagramProjectBinding, path: string) {
     if (!binding.storage.loadTextFile) throw new Error('Repository text file loading is not available')
     const file = await binding.storage.loadTextFile(binding.project, path)
+    const diagram = parseDiagramData(file.content)
 
-    return layout(parseDiagramData(file.content))
+    return { diagram, positionedDiagram: layout(diagram) }
 }
 
 async function loadActiveDiagram(binding: DiagramProjectBinding, index: DiagramIndex) {
     const diagramId = index.activePath.at(-1)
-    if (!diagramId) return { currentDiagram: null, currentDiagramError: null }
+    if (!diagramId) return { currentDiagram: null, currentDiagramError: null, sourceSnapshot: null }
     try {
-        return { currentDiagram: await loadDiagram(binding, index.diagrams[diagramId].path), currentDiagramError: null }
+        const record = index.diagrams[diagramId]
+        const { diagram, positionedDiagram } = await loadDiagram(binding, record.path)
+
+        return {
+            currentDiagram: positionedDiagram,
+            currentDiagramError: null,
+            sourceSnapshot: { diagram, record },
+        }
     } catch (error) {
-        return { currentDiagram: null, currentDiagramError: errorMessage(error) }
+        return { currentDiagram: null, currentDiagramError: errorMessage(error), sourceSnapshot: null }
     }
 }
 
@@ -192,6 +205,7 @@ export class DiagramViewService extends EventTarget {
     private processedRunIds = new Set<string>()
     private projectKey: string | null = null
     private snapshot = INITIAL_SNAPSHOT
+    private sourceSnapshot: DiagramViewSourceSnapshot | null = null
     private unsubscribeRunEvents: (() => void) | null = null
 
     constructor(dependencies: Partial<DiagramViewDependencies> = {}) {
@@ -201,10 +215,18 @@ export class DiagramViewService extends EventTarget {
 
     getSnapshot = () => this.snapshot
 
+    getSourceSnapshot = () => this.sourceSnapshot
+
     subscribe = (listener: () => void) => {
         this.addEventListener('changed', listener)
 
         return () => this.removeEventListener('changed', listener)
+    }
+
+    subscribeSource = (listener: () => void) => {
+        this.addEventListener('sourceChanged', listener)
+
+        return () => this.removeEventListener('sourceChanged', listener)
     }
 
     bindProject(binding: DiagramProjectBinding) {
@@ -222,7 +244,7 @@ export class DiagramViewService extends EventTarget {
         this.projectKey = null
         this.unsubscribeRunEvents?.()
         this.unsubscribeRunEvents = null
-        this.publish(INITIAL_SNAPSHOT)
+        this.publish(INITIAL_SNAPSHOT, null)
     }
 
     /** Loads the index on first activation; a failed load is retried by the next call. */
@@ -340,8 +362,11 @@ export class DiagramViewService extends EventTarget {
         try {
             const index = await loadDiagramIndex(binding)
             validateDiagramPaths(index, binding.config.diagramsFolder)
-            const activeDiagram = await loadActiveDiagram(binding, index)
-            this.publish({ ...activeDiagram, error: null, index, legend: this.snapshot.legend, menu: null, popup: null, status: 'ready' })
+            const { sourceSnapshot, ...activeDiagram } = await loadActiveDiagram(binding, index)
+            this.publish(
+                { ...activeDiagram, error: null, index, legend: this.snapshot.legend, menu: null, popup: null, status: 'ready' },
+                sourceSnapshot,
+            )
         } catch (error) {
             this.loadPromise = null
             this.publish({ ...INITIAL_SNAPSHOT, error: errorMessage(error), legend: this.snapshot.legend, status: 'error' })
@@ -357,7 +382,7 @@ export class DiagramViewService extends EventTarget {
             throw new Error(`Diagram output path must stay inside configured diagrams folder: ${diagramPath}`)
         }
         if (!isDiagramDataPath(diagramPath)) throw new Error(`Diagram output path must identify a JSON file: ${diagramPath}`)
-        const currentDiagram = await loadDiagram(binding, diagramPath)
+        const { diagram, positionedDiagram } = await loadDiagram(binding, diagramPath)
         const action = this.dependencies.loadActions().find(({ id }) => id === event.rootActionId)
         if (!action) throw new Error(`Diagram action no longer exists: ${event.rootActionId}`)
         const { context } = event
@@ -382,7 +407,11 @@ export class DiagramViewService extends EventTarget {
         const index = addRecord(this.snapshot.index, record)
         await this.persistIndex(index)
         this.navigationToken += 1
-        this.publish({ ...this.snapshot, currentDiagram, currentDiagramError: null, index, menu: null, popup: null })
+        const sourceSnapshot = { diagram, record }
+        this.publish(
+            { ...this.snapshot, currentDiagram: positionedDiagram, currentDiagramError: null, index, menu: null, popup: null },
+            sourceSnapshot,
+        )
     }
 
     /** Shows the requested path once its JSON resolves, discarding results of superseded navigations. */
@@ -391,10 +420,10 @@ export class DiagramViewService extends EventTarget {
         const index = { ...this.snapshot.index, activePath }
         this.navigationToken += 1
         const token = this.navigationToken
-        const activeDiagram = await loadActiveDiagram(binding, index)
+        const { sourceSnapshot, ...activeDiagram } = await loadActiveDiagram(binding, index)
         if (token !== this.navigationToken) return
 
-        this.publish({ ...this.snapshot, ...activeDiagram, index, menu: null })
+        this.publish({ ...this.snapshot, ...activeDiagram, index, menu: null }, sourceSnapshot)
         this.scheduleIndexCommit(index)
     }
 
@@ -420,8 +449,11 @@ export class DiagramViewService extends EventTarget {
         if (this.snapshot.status !== 'ready') throw new Error('Diagram view is not ready')
     }
 
-    private publish(snapshot: DiagramViewSnapshot) {
+    private publish(snapshot: DiagramViewSnapshot, sourceSnapshot: DiagramViewSourceSnapshot | null = this.sourceSnapshot) {
+        const sourceChanged = sourceSnapshot !== this.sourceSnapshot
         this.snapshot = snapshot
+        this.sourceSnapshot = sourceSnapshot
+        if (sourceChanged) this.dispatchEvent(new Event('sourceChanged'))
         this.dispatchEvent(new Event('changed'))
     }
 }

@@ -163,6 +163,32 @@ describe('DiagramViewService', () => {
         expect(storage.loadTextFile).toHaveBeenCalledWith(project, 'design/diagrams/child.json')
         expect(service.getSnapshot().currentDiagram?.nodes[0]).toMatchObject({ id: 'orders', label: 'Orders' })
         expect(service.getSnapshot().currentDiagram?.width).toBeGreaterThan(0)
+        expect(service.getSourceSnapshot()?.record.id).toBe('child-1')
+        expect(service.getSourceSnapshot()?.diagram.nodes[0]).toEqual({ id: 'orders', label: 'Orders', role: 'focal' })
+        expect(service.getSourceSnapshot()?.diagram).not.toHaveProperty('width')
+    })
+
+    it('notifies source subscribers only when active source changes', async () => {
+        const { run, service } = createHarness()
+        const sourceListener = vi.fn()
+        const unsubscribe = service.subscribeSource(sourceListener)
+        await service.open()
+
+        service.openRootPopup(document.createElement('button'))
+        service.collapseLegend()
+        expect(sourceListener).not.toHaveBeenCalled()
+
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+        expect(sourceListener).toHaveBeenCalledOnce()
+
+        service.closePopup()
+        service.expandLegend()
+        expect(sourceListener).toHaveBeenCalledOnce()
+
+        unsubscribe()
+        service.clear()
+        expect(sourceListener).toHaveBeenCalledOnce()
     })
 
     it('reports malformed index without replacing it and retries on the next open', async () => {
