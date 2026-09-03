@@ -575,7 +575,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 42,
-          "timestamp": "2026-09-02T18:42:17.538Z"
+          "timestamp": "2026-09-03T07:51:35.228Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -585,15 +585,15 @@
           "agent": "codex",
           "conversationId": "01a06360-3adf-77a2-98eb-21b7565d0880",
           "createdAt": "2026-09-02T18:29:17.724Z",
-          "lastUsedAt": "2026-09-02T18:29:17.724Z",
-          "synchronizedThroughMessageId": "agent-turn-2a8f70b8-0eb8-4a9e-b1c1-e74cade1e20a-turn-1-assistant-3"
+          "lastUsedAt": "2026-09-02T18:42:17.538Z",
+          "synchronizedThroughMessageId": "agent-turn-2a8f70b8-0eb8-4a9e-b1c1-e74cade1e20a-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-09-02T18:27:25.398Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 112326,
-        "runningStartedAt": "2026-09-02T18:40:36.609Z"
+        "elapsedMs": 213255,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
