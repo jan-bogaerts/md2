@@ -3,7 +3,7 @@ author:
 id: F_274
 internalId: cfe002ea-7a48-4c32-bed1-078fae7b5d5c
 title: add editable connection points
-status: design
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,16 @@ agents:
 policy:
 branch: f_274_add_editable_connection_points
 worktree: 2
+changedFiles:
+  - app/src/data/data_types.ts
+  - app/src/services/config/config_service.service.test.ts
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_layout.node.test.ts
+  - app/src/services/diagrams/diagram_layout.ts
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - shared/diagram_data.d.mts
+  - shared/diagram_data.mjs
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
