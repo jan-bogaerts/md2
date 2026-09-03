@@ -3,12 +3,16 @@ author:
 id: F_276
 internalId: 5347a970-419c-495a-9b4e-c9aafcce6741
 title: add diagram mutation operations
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__5347a970-419c-495a-9b4e-c9aafcce6741.json
 policy:
+changedFiles:
+  - patch276.py
+  - patch276b.py
+  - patch276c.py
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
