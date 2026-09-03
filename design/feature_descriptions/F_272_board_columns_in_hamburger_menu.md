@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 906cff2c-d23c-4647-bc78-2cb5580125e2
+after: 3a81bbba-94cd-4b06-9c53-198d765510b9
 ---
 
 Add count of cards aligned to the right. Just the number
