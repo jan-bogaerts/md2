@@ -3,11 +3,12 @@ author:
 id: F_286
 internalId: f46ab1c9-a250-4dae-afd7-72b1afcaf3c5
 title: manage active diagram tool
-status: design
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
+after: 2023c646-c9c0-43ae-92f7-5619042cb465
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

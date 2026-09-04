@@ -3,12 +3,13 @@ author:
 id: F_284
 internalId: 2023c646-c9c0-43ae-92f7-5619042cb465
 title: add diagram comparison layout selector
-status: design
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: f46ab1c9-a250-4dae-afd7-72b1afcaf3c5
+branch: f_284_add_diagram_comparison_layout_selector
+worktree: 1
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
