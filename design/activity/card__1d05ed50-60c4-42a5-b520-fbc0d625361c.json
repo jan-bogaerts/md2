@@ -2972,6 +2972,37 @@
       "startedAt": "2026-09-04T16:53:29.214Z",
       "status": "completed",
       "rootConversationId": "agent-8128251c-1cfe-4382-8ecd-4f394309d88f"
+    },
+    {
+      "commits": [
+        {
+          "commit": "27cbd29a87617fc9ed2693cb8fd74457129a95be",
+          "committedAt": "2026-09-04T19:05:33+02:00",
+          "deletions": 35,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/agents/agent_chat_fab.test.tsx",
+            "app/src/components/agents/agent_chat_fab.tsx",
+            "app/src/components/hooks/use_agent_acknowledgements.ts",
+            "app/src/components/movable_fab.test.tsx",
+            "app/src/components/movable_fab.tsx",
+            "app/src/services/agents/agent_acknowledgement_service.node.test.ts",
+            "app/src/services/agents/agent_acknowledgement_service.ts",
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/agent_integration.ts"
+          ],
+          "filesChanged": 10,
+          "insertions": 383,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-04T19:05:33+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1d05ed50-60c4-42a5-b520-fbc0d625361c",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
