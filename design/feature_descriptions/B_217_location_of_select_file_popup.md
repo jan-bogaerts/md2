@@ -10,8 +10,6 @@ agents:
   - design/activity/card__3a81bbba-94cd-4b06-9c53-198d765510b9.json
 policy:
 after: 9d5878e6-2d20-4574-971d-57dbd82eb389
-branch: b_217_location_of_select_file_popup
-worktree: 3
 changedFiles:
   - patch_tests.py
 ---

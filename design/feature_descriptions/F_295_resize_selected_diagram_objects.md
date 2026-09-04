@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: 21b2c59c-1c07-42c2-9bc4-4e7219a645be
+branch: f_295_resize_selected_diagram_objects
+worktree: 1
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
