@@ -11,7 +11,6 @@ agents:
 policy:
 after: 14f288d9-b541-4263-a2b5-74f1d1b95c68
 branch: f_277_track_diagram_changes
-worktree: 3
 changedFiles:
   - app/src/components/diagram_view/use_editable_diagram.test.tsx
   - app/src/components/diagram_view/use_editable_diagram.ts
