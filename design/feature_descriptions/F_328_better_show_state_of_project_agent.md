@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__1d05ed50-60c4-42a5-b520-fbc0d625361c.json
 policy:
 branch: f_328_better_show_state_of_project_agent
 worktree: 2
