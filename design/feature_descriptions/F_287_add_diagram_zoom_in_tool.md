@@ -3,12 +3,11 @@ author:
 id: F_287
 internalId: 47be0198-e3ae-4ef7-9d06-3fcf5c7fd6b9
 title: add diagram zoom in tool
-status: new
+status: design
 owner:
 affects:
 agents:
 policy:
-after: 056265ee-3d0f-4922-8e2d-282f91bad667
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
