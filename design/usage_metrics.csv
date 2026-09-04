@@ -3328,3 +3328,10 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-04T18:02:47.679Z,token_usage,codex,,,,,53976,305024,1449,1378,361827,,
 2026-09-04T18:08:05.437Z,token_usage,codex,,,,,95346,1287040,2744,3920,1389050,,
 2026-09-04T18:08:23.763Z,token_usage,codex,,,,,19882,1196288,5829,3124,1225123,,
+2026-09-04T18:11:24.491Z,account_usage,codex,codex,primary,10080,2026-09-07T07:50:37.000Z,,,,,,45,0
+2026-09-04T18:11:26.993Z,account_usage,codex,codex,primary,10080,2026-09-07T07:50:34.000Z,,,,,,45,0
+2026-09-04T18:12:05.934Z,account_usage,codex,codex,primary,10080,2026-09-07T07:50:38.000Z,,,,,,45,0
+2026-09-04T18:12:06.574Z,account_usage,codex,codex,primary,10080,2026-09-07T07:50:34.000Z,,,,,,45,0
+2026-09-04T18:12:30.604Z,account_usage,codex,codex,primary,10080,2026-09-07T07:50:34.000Z,,,,,,46,1
+2026-09-04T18:14:01.072Z,token_usage,codex,,,,,81418,445952,3140,3688,534198,,
+2026-09-04T18:15:13.961Z,token_usage,claude,,,,,46,905588,9644,0,915278,,
