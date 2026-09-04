@@ -3,7 +3,7 @@ author:
 id: B_220
 internalId: 43b22d3f-d24d-4e09-b222-bafec56806ae
 title: git worktrees broken
-status: new
+status: design
 owner: 
 affects:
 agents:
