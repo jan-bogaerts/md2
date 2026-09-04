@@ -3,13 +3,18 @@ author:
 id: F_282
 internalId: b39d6ecb-a2eb-40da-8de1-1dca68881d26
 title: add horizontal diagram comparison
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__b39d6ecb-a2eb-40da-8de1-1dca68881d26.json
 policy:
 after: acc5894b-b0b6-4024-88fe-be8f89ccfa36
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.test.tsx
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_comparison_layout_service.test.ts
+  - app/src/components/diagram_view/diagram_comparison_layout_service.ts
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
