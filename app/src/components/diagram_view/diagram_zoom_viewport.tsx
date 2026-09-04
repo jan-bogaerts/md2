@@ -4,16 +4,17 @@ import {
     diagramEditSessionService, type DiagramEditSessionService,
 } from '../../services/diagrams/diagram_edit_session_service'
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
+import {
+    diagramSelectionService, type DiagramSelectionService,
+} from '../../services/diagrams/diagram_selection_service'
 import { EditableDiagram } from './editable_diagram'
-import type { DiagramSelectHandler } from './diagram_selection'
 
 interface DiagramZoomViewportProps {
     geometry?: DiagramGeometryService
-    onSelect?: DiagramSelectHandler
+    selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
 
-const ignoreSelection: DiagramSelectHandler = () => undefined
 const NewDiagram = memo(EditableDiagram)
 
 function scaledCenterOffset(offset: number, viewportSize: number, previousScale: number, scale: number) {
@@ -23,7 +24,7 @@ function scaledCenterOffset(offset: number, viewportSize: number, previousScale:
 /** Scrollable New viewport whose visual scale leaves canonical diagram coordinates untouched. */
 export function DiagramZoomViewport({
     geometry = diagramGeometryService,
-    onSelect = ignoreSelection,
+    selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: DiagramZoomViewportProps) {
     const scrollerRef = useRef<HTMLDivElement>(null)
@@ -53,7 +54,7 @@ export function DiagramZoomViewport({
             sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2, pb: 2, pt: 1 }}
         >
             <Box data-testid="new-diagram-zoom-surface" sx={{ transformOrigin: 'top left', zoom: scale }}>
-                <NewDiagram geometry={geometry} onSelect={onSelect} session={session} />
+                <NewDiagram geometry={geometry} selection={selection} session={session} />
             </Box>
         </Box>
     )

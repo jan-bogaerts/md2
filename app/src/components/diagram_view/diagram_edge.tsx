@@ -11,6 +11,7 @@ interface DiagramEdgeProps {
     /** Endpoint labels only, so a subscribing caller can supply them without owning positioned node objects. */
     nodeLabels: ReadonlyMap<string, string>
     onSelect: DiagramSelectHandler
+    selected: boolean
 }
 
 function edgeLabel(edge: PositionedDiagramEdge, nodeLabels: ReadonlyMap<string, string>) {
@@ -21,12 +22,12 @@ function edgeLabel(edge: PositionedDiagramEdge, nodeLabels: ReadonlyMap<string, 
 }
 
 /** Themed selectable connection rendered from validated geometry. */
-export function DiagramEdge({ edge, nodeLabels, onSelect }: DiagramEdgeProps) {
+export function DiagramEdge({ edge, nodeLabels, onSelect, selected }: DiagramEdgeProps) {
     const theme = useTheme()
     const [focused, setFocused] = useState(false)
     const label = edgeLabel(edge, nodeLabels)
     const path = roundedDiagramPath(edge.points)
-    const { arrowhead, color, strokeDasharray, strokeWidth } = diagramEdgeStyle(edge.kind, theme, focused)
+    const { arrowhead, color, strokeDasharray, strokeWidth } = diagramEdgeStyle(edge.kind, theme, focused || selected)
     const visibleLabel = edge.label ?? (edge.kind === 'cycle' ? 'CYCLE' : null)
     const markerId = `diagram-arrow-${useId().replace(/:/gu, '')}`
     const handleSelect = (left: number, top: number) => onSelect({ id: edge.id, label, left, top })
@@ -44,13 +45,14 @@ export function DiagramEdge({ edge, nodeLabels, onSelect }: DiagramEdgeProps) {
     return (
         <g
             aria-label={label}
+            aria-pressed={selected}
             data-diagram-id={edge.id}
             onBlur={handleBlur}
             onClick={handleClick}
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             role="button"
-            style={{ color, cursor: 'pointer', outline: 'none' }}
+            style={{ color, cursor: 'pointer', outline: 'none', pointerEvents: 'auto' }}
             tabIndex={0}
         >
             <defs>

@@ -5,15 +5,18 @@ import {
 } from '../../services/diagrams/diagram_edit_session_service'
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { PositionedDiagramNode } from '../../services/diagrams/diagram_layout'
+import {
+    diagramSelectionService, type DiagramSelectionService,
+} from '../../services/diagrams/diagram_selection_service'
 import { DiagramNode } from './diagram_node'
-import type { DiagramSelectHandler } from './diagram_selection'
 import { useDiagramNodeGeometryField } from './use_diagram_geometry'
+import { useIsDiagramObjectSelected } from './use_diagram_selection'
 import { useEditableDiagramMetadataField, useEditableDiagramNodeField } from './use_editable_diagram'
 
 interface EditableDiagramNodeProps {
     geometry?: DiagramGeometryService
     nodeId: string
-    onSelect: DiagramSelectHandler
+    selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
 
@@ -24,12 +27,11 @@ interface EditableDiagramNodeProps {
 function EditableDiagramNodeLeaf({
     geometry = diagramGeometryService,
     nodeId,
-    onSelect,
+    selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: EditableDiagramNodeProps) {
     const diagramType = useEditableDiagramMetadataField('type', session)
     const preset = useEditableDiagramMetadataField('preset', session)
-    const drilldown = useEditableDiagramNodeField(nodeId, 'drilldown', session)
     const fields = useEditableDiagramNodeField(nodeId, 'fields', session)
     const kind = useEditableDiagramNodeField(nodeId, 'kind', session)
     const label = useEditableDiagramNodeField(nodeId, 'label', session)
@@ -41,7 +43,14 @@ function EditableDiagramNodeLeaf({
     const width = useDiagramNodeGeometryField(nodeId, 'width', geometry)
     const x = useDiagramNodeGeometryField(nodeId, 'x', geometry)
     const y = useDiagramNodeGeometryField(nodeId, 'y', geometry)
+    const selected = useIsDiagramObjectSelected(nodeId, 'node', selection)
     if (!diagramType || label === null || role === null || width === null || height === null) return null
+
+    const handleSelect = () => {
+        if (session.getActiveToolSnapshot() !== 'select') return
+
+        selection.replace([{ objectId: nodeId, objectKind: 'node' }])
+    }
 
     const node: PositionedDiagramNode = {
         fanIn: fanIn ?? 0,
@@ -52,7 +61,6 @@ function EditableDiagramNodeLeaf({
         width,
         x: x ?? 0,
         y: y ?? 0,
-        ...(drilldown === undefined || drilldown === null ? {} : { drilldown }),
         ...(fields ? { fields: fields as DiagramEntityField[] } : {}),
         ...(kind ? { kind } : {}),
         ...(sublabel ? { sublabel } : {}),
@@ -64,7 +72,8 @@ function EditableDiagramNodeLeaf({
             diagramType={diagramType}
             flowPreset={preset ?? undefined}
             node={node}
-            onSelect={onSelect}
+            onSelect={handleSelect}
+            selected={selected}
         />
     )
 }

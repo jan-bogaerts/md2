@@ -12,6 +12,9 @@ import {
 } from '../../services/diagrams/diagram_edit_session_service'
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
+import {
+    diagramSelectionService, type DiagramSelectionService,
+} from '../../services/diagrams/diagram_selection_service'
 import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
 import { useActions } from '../hooks/use_actions'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
@@ -38,6 +41,7 @@ interface DiagramViewProps {
     editSession?: DiagramEditSessionService
     geometry?: DiagramGeometryService
     layoutService?: DiagramComparisonLayoutService
+    selection?: DiagramSelectionService
     service?: DiagramViewService
 }
 
@@ -46,6 +50,7 @@ export function DiagramView({
     editSession = diagramEditSessionService,
     geometry = diagramGeometryService,
     layoutService = diagramComparisonLayoutService,
+    selection = diagramSelectionService,
     service = diagramViewService,
 }: DiagramViewProps) {
     const { viewMode } = useWorkspaceView()
@@ -160,6 +165,7 @@ export function DiagramView({
                                     geometry={geometry}
                                     layoutService={layoutService}
                                     onCurrentSelect={handleDiagramSelect}
+                                    selection={selection}
                                     session={editSession}
                                 />
                             )}
@@ -170,6 +176,7 @@ export function DiagramView({
                                     geometry={geometry}
                                     layoutService={layoutService}
                                     onCurrentSelect={handleDiagramSelect}
+                                    selection={selection}
                                     session={editSession}
                                 />
                             )}
@@ -179,6 +186,7 @@ export function DiagramView({
                                     geometry={geometry}
                                     layoutService={layoutService}
                                     onCurrentSelect={handleDiagramSelect}
+                                    selection={selection}
                                     session={editSession}
                                 />
                             )}

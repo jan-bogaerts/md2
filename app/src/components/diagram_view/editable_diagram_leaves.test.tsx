@@ -1,10 +1,11 @@
 import { Profiler, type ReactNode } from 'react'
 import { act, cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
+import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { EditableDiagramEdge } from './editable_diagram_edge'
 import { EditableDiagramGroup } from './editable_diagram_group'
@@ -40,7 +41,7 @@ function createHarness() {
     session.start()
     const geometry = new DiagramGeometryService(session)
 
-    return { geometry, session }
+    return { geometry, selection: new DiagramSelectionService(session), session }
 }
 
 type RenderCounts = Map<string, number>
@@ -52,39 +53,38 @@ function CountedLeaf({ children, counts, id }: { children: ReactNode, counts: Re
     return <Profiler id={id} onRender={handleRender}>{children}</Profiler>
 }
 
-const ignoreSelection = vi.fn()
-
-function LeafTree({ counts, geometry, session }: {
+function LeafTree({ counts, geometry, selection, session }: {
     counts: RenderCounts,
     geometry: DiagramGeometryService,
+    selection: DiagramSelectionService,
     session: DiagramEditSessionService,
 }) {
     return (
         <>
             <CountedLeaf counts={counts} id="orders">
-                <EditableDiagramNode geometry={geometry} nodeId="orders" onSelect={ignoreSelection} session={session} />
+                <EditableDiagramNode geometry={geometry} nodeId="orders" selection={selection} session={session} />
             </CountedLeaf>
             <CountedLeaf counts={counts} id="store">
-                <EditableDiagramNode geometry={geometry} nodeId="store" onSelect={ignoreSelection} session={session} />
+                <EditableDiagramNode geometry={geometry} nodeId="store" selection={selection} session={session} />
             </CountedLeaf>
             <svg>
                 <CountedLeaf counts={counts} id="edge">
-                    <EditableDiagramEdge edgeId="orders-store" geometry={geometry} onSelect={ignoreSelection} session={session} />
+                    <EditableDiagramEdge edgeId="orders-store" geometry={geometry} selection={selection} session={session} />
                 </CountedLeaf>
             </svg>
             <CountedLeaf counts={counts} id="group">
-                <EditableDiagramGroup geometry={geometry} groupId="backend" session={session} />
+                <EditableDiagramGroup geometry={geometry} groupId="backend" selection={selection} session={session} />
             </CountedLeaf>
         </>
     )
 }
 
 function renderTree() {
-    const { geometry, session } = createHarness()
+    const { geometry, selection, session } = createHarness()
     const counts: RenderCounts = new Map()
-    render(<LeafTree counts={counts} geometry={geometry} session={session} />)
+    render(<LeafTree counts={counts} geometry={geometry} selection={selection} session={session} />)
 
-    return { counts, session }
+    return { counts, selection, session }
 }
 
 afterEach(cleanup)
@@ -96,7 +96,7 @@ describe('editable diagram leaves', () => {
         expect(screen.getByRole('button', { name: 'Orders' })).toBeTruthy()
         expect(screen.getByRole('button', { name: 'Store' })).toBeTruthy()
         expect(screen.getByRole('button', { name: 'writes' })).toBeTruthy()
-        expect(screen.getByRole('group', { name: 'Backend' })).toBeTruthy()
+        expect(screen.getByRole('button', { name: 'Backend' })).toBeTruthy()
     })
 
     it('rerenders only the edited node leaf when one node label changes', () => {
@@ -133,6 +133,18 @@ describe('editable diagram leaves', () => {
         expect(counts.get('group')).toBeGreaterThan(before.get('group') ?? 0)
         expect(counts.get('orders')).toBe(before.get('orders'))
         expect(counts.get('edge')).toBe(before.get('edge'))
-        expect(screen.getByRole('group', { name: 'Services' })).toBeTruthy()
+        expect(screen.getByRole('button', { name: 'Services' })).toBeTruthy()
+    })
+
+    it('rerenders only leaves whose selected boolean changes', () => {
+        const { counts, selection } = renderTree()
+        const before = new Map(counts)
+
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+
+        expect(counts.get('orders')).toBeGreaterThan(before.get('orders') ?? 0)
+        expect(counts.get('store')).toBe(before.get('store'))
+        expect(counts.get('edge')).toBe(before.get('edge'))
+        expect(counts.get('group')).toBe(before.get('group'))
     })
 })

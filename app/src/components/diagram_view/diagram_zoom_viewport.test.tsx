@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
 import {
     DEFAULT_DIAGRAM_ZOOM,
@@ -8,6 +8,7 @@ import {
 } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
+import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { DiagramZoomViewport } from './diagram_zoom_viewport'
 
@@ -37,7 +38,7 @@ function createHarness() {
     session.bindProject(project)
     session.start()
 
-    return { geometry: new DiagramGeometryService(session), session }
+    return { geometry: new DiagramGeometryService(session), selection: new DiagramSelectionService(session), session }
 }
 
 afterEach(cleanup)
@@ -88,14 +89,13 @@ describe('DiagramZoomViewport', () => {
         expect(session.getEditableDiagram()?.nodes[0]).toMatchObject({ x: 240, y: 120 })
     })
 
-    it('keeps pointer selection on transformed diagram nodes accurate', () => {
-        const { geometry, session } = createHarness()
-        const onSelect = vi.fn()
-        render(<DiagramZoomViewport geometry={geometry} onSelect={onSelect} session={session} />)
+    it('keeps direct node selection working on transformed New content', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
 
         act(() => { session.zoomOut() })
         fireEvent.click(screen.getByRole('button', { name: 'Orders' }), { clientX: 190, clientY: 120 })
 
-        expect(onSelect).toHaveBeenCalledWith({ id: 'orders', label: 'Orders', left: 190, top: 120 })
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
     })
 })

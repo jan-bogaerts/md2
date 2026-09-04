@@ -10,6 +10,7 @@ interface DiagramNodeProps {
     flowPreset?: DiagramFlowPreset
     node: PositionedDiagramNode
     onSelect: DiagramSelectHandler
+    selected: boolean
 }
 
 function kindStyles(node: PositionedDiagramNode, flowPreset: DiagramFlowPreset | undefined) {
@@ -39,7 +40,7 @@ function fieldPrefix(key: 'primary' | 'foreign' | undefined) {
 }
 
 /** Positioned, themed, keyboard-operable diagram item. */
-export function DiagramNode({ diagramType, flowPreset, node, onSelect }: DiagramNodeProps) {
+export function DiagramNode({ diagramType, flowPreset, node, onSelect, selected }: DiagramNodeProps) {
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
     const interactive = node.drilldown !== false
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -62,6 +63,7 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect }: Diagram
         <ButtonBase
             aria-label={node.label}
             aria-disabled={interactive ? undefined : true}
+            aria-pressed={interactive ? selected : undefined}
             data-diagram-id={node.id}
             onClick={interactive ? handleClick : undefined}
             onKeyDown={interactive ? handleKeyDown : undefined}
@@ -73,6 +75,7 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect }: Diagram
                 top: node.y, width: node.width, zIndex: 2,
                 ...diagramRoleStyle(node.role),
                 ...kindStyles(node, flowPreset),
+                ...(selected ? { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 } : {}),
                 '&:focus-visible': { borderColor: 'primary.main', outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
             tabIndex={interactive ? undefined : -1}

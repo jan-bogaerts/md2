@@ -10,6 +10,9 @@ import {
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'
 import {
+    diagramSelectionService, type DiagramSelectionService,
+} from '../../services/diagrams/diagram_selection_service'
+import {
     diagramComparisonLayoutService, type DiagramComparisonLayoutService,
 } from './diagram_comparison_layout_service'
 import { DiagramRenderer } from './diagram_renderer'
@@ -27,6 +30,7 @@ interface DiagramComparisonProps {
     geometry?: DiagramGeometryService
     layoutService?: DiagramComparisonLayoutService
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
+    selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
 
@@ -54,6 +58,7 @@ export function DiagramComparison({
     geometry = diagramGeometryService,
     layoutService = diagramComparisonLayoutService,
     onCurrentSelect,
+    selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: DiagramComparisonProps) {
     const containerRef = useRef<HTMLDivElement>(null)
@@ -163,7 +168,7 @@ export function DiagramComparison({
                 sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'relative' }}
             >
                 <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
-                <DiagramZoomViewport geometry={geometry} session={session} />
+                <DiagramZoomViewport geometry={geometry} selection={selection} session={session} />
                 <DiagramToolbox boundaryElement={newViewportElement} session={session} />
             </Paper>
         </Box>

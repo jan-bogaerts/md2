@@ -16,7 +16,7 @@ function renderNode(node: PositionedDiagramNode, diagramType: DiagramType = 'arc
     const onSelect = vi.fn()
     render(
         <ThemeProvider theme={createAppTheme('dark')}>
-            <DiagramNode diagramType={diagramType} flowPreset={flowPreset} node={node} onSelect={onSelect} />
+            <DiagramNode diagramType={diagramType} flowPreset={flowPreset} node={node} onSelect={onSelect} selected={false} />
         </ThemeProvider>,
     )
 

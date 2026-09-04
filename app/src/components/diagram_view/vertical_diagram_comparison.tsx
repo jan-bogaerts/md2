@@ -10,6 +10,9 @@ import {
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'
 import {
+    diagramSelectionService, type DiagramSelectionService,
+} from '../../services/diagrams/diagram_selection_service'
+import {
     diagramComparisonLayoutService, type DiagramComparisonLayoutService,
 } from './diagram_comparison_layout_service'
 import { DiagramRenderer } from './diagram_renderer'
@@ -26,6 +29,7 @@ interface VerticalDiagramComparisonProps {
     geometry?: DiagramGeometryService
     layoutService?: DiagramComparisonLayoutService
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
+    selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
 
@@ -36,6 +40,7 @@ interface CurrentDiagramPaneProps {
 
 interface NewDiagramPaneProps {
     geometry: DiagramGeometryService
+    selection: DiagramSelectionService
     session: DiagramEditSessionService
 }
 
@@ -53,7 +58,7 @@ const CurrentDiagramPane = memo(function CurrentDiagramPane({ currentDiagram, on
     )
 })
 
-const NewDiagramPane = memo(function NewDiagramPane({ geometry, session }: NewDiagramPaneProps) {
+const NewDiagramPane = memo(function NewDiagramPane({ geometry, selection, session }: NewDiagramPaneProps) {
     return (
         <Paper
             aria-label="New"
@@ -62,7 +67,7 @@ const NewDiagramPane = memo(function NewDiagramPane({ geometry, session }: NewDi
             sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}
         >
             <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
-            <DiagramZoomViewport geometry={geometry} session={session} />
+            <DiagramZoomViewport geometry={geometry} selection={selection} session={session} />
         </Paper>
     )
 })
@@ -89,6 +94,7 @@ export function VerticalDiagramComparison({
     geometry = diagramGeometryService,
     layoutService = diagramComparisonLayoutService,
     onCurrentSelect,
+    selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: VerticalDiagramComparisonProps) {
     const containerRef = useRef<HTMLDivElement>(null)
@@ -182,7 +188,7 @@ export function VerticalDiagramComparison({
                 }}
                 tabIndex={0}
             />
-            <NewDiagramPane geometry={geometry} session={session} />
+            <NewDiagramPane geometry={geometry} selection={selection} session={session} />
         </Box>
     )
 }

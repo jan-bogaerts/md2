@@ -5,6 +5,7 @@ import type { DiagramData } from '../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
+import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { EditableDiagram, EditableDiagramSurface } from './editable_diagram'
 import { EditableDiagramNodes } from './editable_diagram_collections'
@@ -48,20 +49,21 @@ function createHarness() {
     session.start()
     const geometry = new DiagramGeometryService(session)
 
-    return { geometry, session }
+    return { geometry, selection: new DiagramSelectionService(session), session }
 }
 
 /** Counts commits of one node leaf; the surrounding host is measured through its identifier snapshot instead. */
-function MeasuredNodes({ counts, geometry, session }: {
+function MeasuredNodes({ counts, geometry, selection, session }: {
     counts: RenderCounts,
     geometry: DiagramGeometryService,
+    selection: DiagramSelectionService,
     session: DiagramEditSessionService,
 }) {
     return (
         <>
-            <EditableDiagramNodes geometry={geometry} onSelect={() => undefined} session={session} />
+            <EditableDiagramNodes geometry={geometry} selection={selection} session={session} />
             <Counted counts={counts} id="orders">
-                <EditableDiagramNode geometry={geometry} nodeId="orders" onSelect={() => undefined} session={session} />
+                <EditableDiagramNode geometry={geometry} nodeId="orders" selection={selection} session={session} />
             </Counted>
         </>
     )
@@ -71,8 +73,8 @@ afterEach(cleanup)
 
 describe('editable diagram', () => {
     it('renders metadata, surface, and every collection from service data alone', () => {
-        const { geometry, session } = createHarness()
-        render(<EditableDiagram geometry={geometry} session={session} />)
+        const { geometry, selection, session } = createHarness()
+        render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
 
         expect(screen.getByText('Overview')).toBeTruthy()
         expect(screen.getByText('Orders architecture')).toBeTruthy()
@@ -80,12 +82,12 @@ describe('editable diagram', () => {
         expect(screen.getByRole('button', { name: 'Orders' })).toBeTruthy()
         expect(screen.getByRole('button', { name: 'Store' })).toBeTruthy()
         expect(screen.getByRole('button', { name: 'writes' })).toBeTruthy()
-        expect(screen.getByRole('group', { name: 'Backend' })).toBeTruthy()
+        expect(screen.getByRole('button', { name: 'Backend' })).toBeTruthy()
     })
 
     it('shows an accepted edit in the New diagram immediately', () => {
-        const { geometry, session } = createHarness()
-        render(<EditableDiagram geometry={geometry} session={session} />)
+        const { geometry, selection, session } = createHarness()
+        render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
 
         act(() => { session.setNodeField('store', 'label', 'Order store') })
 
@@ -94,9 +96,9 @@ describe('editable diagram', () => {
     })
 
     it('leaves the node collection host untouched when one node field changes', () => {
-        const { geometry, session } = createHarness()
+        const { geometry, selection, session } = createHarness()
         const counts: RenderCounts = new Map()
-        render(<MeasuredNodes counts={counts} geometry={geometry} session={session} />)
+        render(<MeasuredNodes counts={counts} geometry={geometry} selection={selection} session={session} />)
         const before = new Map(counts)
         const nodeIds = session.getNodeIdsSnapshot()
 
@@ -108,9 +110,9 @@ describe('editable diagram', () => {
     })
 
     it('rerenders the node collection host and adds one leaf when a node is added', () => {
-        const { geometry, session } = createHarness()
+        const { geometry, selection, session } = createHarness()
         const counts: RenderCounts = new Map()
-        render(<MeasuredNodes counts={counts} geometry={geometry} session={session} />)
+        render(<MeasuredNodes counts={counts} geometry={geometry} selection={selection} session={session} />)
         const before = new Map(counts)
         const nodeIds = session.getNodeIdsSnapshot()
 
@@ -123,10 +125,10 @@ describe('editable diagram', () => {
     })
 
     it('resizes the surface without rerendering the collection hosts inside it', () => {
-        const { geometry, session } = createHarness()
+        const { geometry, selection, session } = createHarness()
         const counts: RenderCounts = new Map()
         render(
-            <EditableDiagramSurface geometry={geometry}>
+            <EditableDiagramSurface geometry={geometry} selection={selection} session={session}>
                 <Counted counts={counts} id="host"><div data-testid="surface-child" /></Counted>
             </EditableDiagramSurface>,
         )

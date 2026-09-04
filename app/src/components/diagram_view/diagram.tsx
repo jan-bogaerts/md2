@@ -42,7 +42,9 @@ export function Diagram({ data, onSelect }: DiagramProps) {
                 )) : null}
                 {data.activations.map((activation) => <SequenceActivation activation={activation} key={activation.id} />)}
                 <svg aria-label="Diagram connections" height={data.height} style={{ left: 0, overflow: 'visible', position: 'absolute', top: 0, zIndex: 1 }} width={data.width}>
-                    {data.edges.map((edge) => <DiagramEdge edge={edge} key={edge.id} nodeLabels={nodeLabels} onSelect={handleSelect} />)}
+                    {data.edges.map((edge) => (
+                        <DiagramEdge edge={edge} key={edge.id} nodeLabels={nodeLabels} onSelect={handleSelect} selected={false} />
+                    ))}
                 </svg>
                 {data.nodes.map((node) => (
                     <DiagramNode
@@ -51,6 +53,7 @@ export function Diagram({ data, onSelect }: DiagramProps) {
                         key={node.id}
                         node={node}
                         onSelect={handleSelect}
+                        selected={false}
                     />
                 ))}
             </Box>
