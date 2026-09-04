@@ -11,6 +11,7 @@ agents:
 policy:
 branch: f_328_better_show_state_of_project_agent
 worktree: 2
+after: cd8c317c-a566-4ec1-bc4b-e598c892ea89
 ---
 currently, we have a FAB that shows, hides the project agent's action popup.
 
