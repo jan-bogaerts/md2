@@ -3,7 +3,7 @@ author:
 id: B_221
 internalId: 9081512a-9bc9-4f11-a43c-1edda64ab53f
 title: auto fill input action popup failing
-status: new
+status: design
 owner: 
 affects:
 agents:

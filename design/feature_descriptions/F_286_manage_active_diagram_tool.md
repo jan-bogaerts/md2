@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: 2023c646-c9c0-43ae-92f7-5619042cb465
+branch: f_286_manage_active_diagram_tool
+worktree: 2
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
