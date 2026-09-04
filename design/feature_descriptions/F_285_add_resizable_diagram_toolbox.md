@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__2e295c0c-a5eb-4b2f-a36a-6c6f202a750a.json
 policy:
 after: 2a79aab5-7f0a-4c3e-9259-2ffdc6878f3b
 branch: f_285_add_resizable_diagram_toolbox
