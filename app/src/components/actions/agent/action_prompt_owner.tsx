@@ -61,14 +61,14 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
         remoteConnectionService.getSnapshot,
     )
     const settings = useActionRunSettings(action, settingsStore)
-    const prepare = action.type === 'agent'
+    const newConversationDraft = action.type === 'agent'
         && boundRunId === null
-        && !conversationSnapshot.loading
         && !sessionActive
         && runStatus !== 'completed'
         && conversationSnapshot.selectedConversation === null
+    const prepare = newConversationDraft && !conversationSnapshot.loading
     const commandInitialValue = sessionActive && activeActionType === 'agent' ? '' : undefined
-    const promptDraft = currentActionPromptDraft(action, context, bindingStore, prepare, commandInitialValue)
+    const promptDraft = currentActionPromptDraft(action, context, bindingStore, newConversationDraft, commandInitialValue)
     const handleAttachments = useCallback(async (files: File[], insertMarkdown: (markdown: string) => void) => {
         const attachmentWorkflow = await import('../../../services/attachments/attachment_workflow')
         if (context.file) {
