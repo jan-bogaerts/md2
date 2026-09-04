@@ -3,13 +3,17 @@ author:
 id: F_280
 internalId: acc5894b-b0b6-4024-88fe-be8f89ccfa36
 title: add current and new diagram comparison
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__acc5894b-b0b6-4024-88fe-be8f89ccfa36.json
 policy:
 changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.test.tsx
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
   - app/src/components/diagram_view/editable_diagram.test.tsx
   - app/src/components/diagram_view/editable_diagram.tsx
   - app/src/components/diagram_view/editable_diagram_activation.tsx
