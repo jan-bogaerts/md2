@@ -10,8 +10,7 @@ agents:
 policy:
 after: f46ab1c9-a250-4dae-afd7-72b1afcaf3c5
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -30,4 +29,4 @@ The layout owner subscribes only to the comparison-mode primitive. It receives s
 
 ## Dependencies
 
-[F_281](F_281_add_vertical_diagram_comparison.md), [F_282](F_282_add_horizontal_diagram_comparison.md), and [F_283](F_283_add_tabbed_diagram_comparison.md).
+[F\_281](F_281_add_vertical_diagram_comparison.md), [F\_282](F_282_add_horizontal_diagram_comparison.md), and [F\_283](F_283_add_tabbed_diagram_comparison.md).
