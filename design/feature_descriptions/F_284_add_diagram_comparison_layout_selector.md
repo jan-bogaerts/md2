@@ -3,7 +3,7 @@ author:
 id: F_284
 internalId: 2023c646-c9c0-43ae-92f7-5619042cb465
 title: add diagram comparison layout selector
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,13 @@ agents:
 policy:
 branch: f_284_add_diagram_comparison_layout_selector
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison_layout.test.tsx
+  - app/src/components/diagram_view/diagram_comparison_layout.tsx
+  - app/src/components/diagram_view/diagram_comparison_layout_service.test.ts
+  - app/src/components/diagram_view/diagram_comparison_layout_service.ts
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
