@@ -3,7 +3,7 @@ author:
 id: F_299
 internalId: 280027c6-d553-4c20-9fb4-af9010ce2c39
 title: add diagram cut tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,15 @@ policy:
 after: 531e8784-9f9b-42d0-9eba-1f62646227f4
 branch: f_299_add_diagram_cut_tool
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_cut_button.test.tsx
+  - app/src/components/diagram_view/diagram_cut_button.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_cut.test.ts
+  - app/src/services/diagrams/diagram_cut.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.test.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
