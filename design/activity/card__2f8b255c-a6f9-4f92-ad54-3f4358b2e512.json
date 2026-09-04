@@ -1417,6 +1417,43 @@
     "cardInternalId": "2f8b255c-a6f9-4f92-ad54-3f4358b2e512",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "f_291_add_direct_diagram_selection",
+          "commit": "870717b2804fc859d2c82eaf792abb898abaeb6b",
+          "committedAt": "2026-09-04T19:30:14+02:00",
+          "deletions": 6,
+          "filePaths": [
+            "design/feature_descriptions/F_291_add_direct_diagram_selection.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 28
+        }
+      ],
+      "completedAt": "2026-09-04T17:30:15.072Z",
+      "conversationIds": [
+        "agent-1183b301-bf35-4c70-ae3d-e90e8b5ae258"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-54b40ccc-5f36-49fa-bf76-1d7582fd1111",
+      "origin": {
+        "cardInternalId": "2f8b255c-a6f9-4f92-ad54-3f4358b2e512",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-1183b301-bf35-4c70-ae3d-e90e8b5ae258",
+      "startedAt": "2026-09-04T17:21:59.873Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
