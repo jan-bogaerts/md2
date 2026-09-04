@@ -3,7 +3,7 @@ author:
 id: F_290
 internalId: 6e041d8b-7aca-4ab1-9be5-56d7e31d189c
 title: add diagram selection service
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,10 @@ agents:
 policy:
 branch: f_290_add_diagram_selection_service
 worktree: 1
+changedFiles:
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_selection_service.test.ts
+  - app/src/services/diagrams/diagram_selection_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
