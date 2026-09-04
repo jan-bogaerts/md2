@@ -3,7 +3,7 @@ author:
 id: F_283
 internalId: 2a79aab5-7f0a-4c3e-9259-2ffdc6878f3b
 title: add tabbed diagram comparison
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
