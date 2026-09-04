@@ -24,6 +24,8 @@ import {
     type DiagramGroup,
     type DiagramMeta,
     type DiagramNode,
+    type DiagramNodeKind,
+    type DiagramEdgeKind,
     type DiagramSequenceFragment,
     type DiagramSequenceFragmentRegion,
     type DiagramSequenceOperator,
@@ -36,6 +38,8 @@ const CHANGE_IDS_CHANGED_EVENT = 'changeIdsChanged'
 const ORIGINAL_DIAGRAM_CHANGED_EVENT = 'originalDiagramChanged'
 const SESSION_CHANGED_EVENT = 'sessionChanged'
 const TOOLBOX_SECTION_CHANGED_EVENT = 'toolboxSectionChanged'
+const ACTIVE_TOOL_CHANGED_EVENT = 'activeToolChanged'
+const TRANSIENT_GESTURE_CHANGED_EVENT = 'transientGestureChanged'
 const EMPTY_IDS: readonly string[] = Object.freeze([])
 const MAX_ID_GENERATION_ATTEMPTS = 100
 
@@ -43,6 +47,8 @@ export type DiagramCollectionKind = 'edge' | 'fragment' | 'group' | 'node'
 export type DiagramObjectKind = DiagramCollectionKind | 'connectionPoint' | 'entityField' | 'meta'
 export type DiagramConnectionEndpoint = 'sourceAttachment' | 'targetAttachment'
 export type DiagramToolboxSection = 'edit' | 'nodes' | 'edges' | 'groups' | 'others'
+export type DiagramPersistentTool = 'select' | 'group' | `node:${DiagramNodeKind}` | `edge:${DiagramEdgeKind}`
+export type DiagramTransientGesture = 'placement' | 'edge'
 export type MutableDiagramMetaField = 'description' | 'title'
 export type MutableDiagramNodeField = Exclude<keyof DiagramNode, 'fields' | 'id'>
 export type MutableDiagramEdgeField = Exclude<keyof DiagramEdge, 'id' | 'sourceAttachment' | 'targetAttachment' | 'waypoints'>
@@ -271,6 +277,7 @@ function requireFragmentRegion(fragment: DiagramSequenceFragment, regionIndex: n
 
 /** Owns original and editable model data for one project's active diagram edit session. */
 export class DiagramEditSessionService extends EventTarget {
+    private activeTool: DiagramPersistentTool = 'select'
     private activeToolboxSection: DiagramToolboxSection = 'edit'
     private changeIds: readonly string[] = EMPTY_IDS
     private readonly changeIdsByOwner = new Map<string, Set<string>>()
@@ -300,6 +307,7 @@ export class DiagramEditSessionService extends EventTarget {
     private readonly reportValidationError: DiagramEditErrorReporter
     private session: DiagramEditSessionSnapshot | null = null
     private readonly sourceService: DiagramSourceService
+    private transientGesture: DiagramTransientGesture | null = null
     private unsubscribeSource: (() => void) | null = null
 
     constructor(
@@ -315,7 +323,11 @@ export class DiagramEditSessionService extends EventTarget {
 
     getDirtySnapshot = () => this.dirty
 
+    getActiveToolSnapshot = () => this.activeTool
+
     getActiveToolboxSectionSnapshot = () => this.activeToolboxSection
+
+    getTransientGestureSnapshot = () => this.transientGesture
 
     getChangeIdsSnapshot = () => this.changeIds
 
@@ -426,7 +438,11 @@ export class DiagramEditSessionService extends EventTarget {
 
     subscribeDirty = (listener: () => void) => this.subscribe(DIRTY_CHANGED_EVENT, listener)
 
+    subscribeActiveTool = (listener: () => void) => this.subscribe(ACTIVE_TOOL_CHANGED_EVENT, listener)
+
     subscribeActiveToolboxSection = (listener: () => void) => this.subscribe(TOOLBOX_SECTION_CHANGED_EVENT, listener)
+
+    subscribeTransientGesture = (listener: () => void) => this.subscribe(TRANSIENT_GESTURE_CHANGED_EVENT, listener)
 
     subscribeChangeIds = (listener: () => void) => this.subscribe(CHANGE_IDS_CHANGED_EVENT, listener)
 
@@ -512,6 +528,7 @@ export class DiagramEditSessionService extends EventTarget {
         const session = { sourceDiagramId: source.record.id }
         this.clearChangeRegistry()
         this.resetActiveToolboxSection()
+        this.resetActiveInteraction()
         this.edgesById = indexById(editableDiagram.edges)
         this.fragmentsById = indexById(editableDiagram.fragments ?? [])
         this.groupsById = indexById(editableDiagram.groups)
@@ -538,6 +555,7 @@ export class DiagramEditSessionService extends EventTarget {
     discard() {
         this.clearChangeRegistry()
         this.resetActiveToolboxSection()
+        this.resetActiveInteraction()
         this.edgesById.clear()
         this.fragmentsById.clear()
         this.groupsById.clear()
@@ -562,6 +580,39 @@ export class DiagramEditSessionService extends EventTarget {
 
         this.activeToolboxSection = section
         this.dispatchEvent(new Event(TOOLBOX_SECTION_CHANGED_EVENT))
+    }
+
+    setActiveTool(tool: DiagramPersistentTool) {
+        if (!this.session) throw new Error('Cannot select a diagram tool without an active edit session')
+        const gestureChanged = this.transientGesture !== null
+        const toolChanged = tool !== this.activeTool
+        if (!gestureChanged && !toolChanged) return
+
+        this.activeTool = tool
+        this.transientGesture = null
+        if (gestureChanged) this.dispatchEvent(new Event(TRANSIENT_GESTURE_CHANGED_EVENT))
+        if (toolChanged) this.dispatchEvent(new Event(ACTIVE_TOOL_CHANGED_EVENT))
+    }
+
+    beginTransientGesture(gesture: DiagramTransientGesture) {
+        if (!this.session) throw new Error('Cannot begin a diagram gesture without an active edit session')
+        if (gesture === this.transientGesture) return
+
+        this.transientGesture = gesture
+        this.dispatchEvent(new Event(TRANSIENT_GESTURE_CHANGED_EVENT))
+    }
+
+    completeTransientGesture() {
+        if (!this.transientGesture) return
+
+        this.transientGesture = null
+        this.dispatchEvent(new Event(TRANSIENT_GESTURE_CHANGED_EVENT))
+    }
+
+    cancelActiveInteraction() {
+        if (!this.session) return false
+
+        return this.resetActiveInteraction()
     }
 
     setMetadataField<Field extends MutableDiagramMetaField>(field: Field, value: DiagramMeta[Field]) {
@@ -1467,6 +1518,17 @@ export class DiagramEditSessionService extends EventTarget {
 
         this.activeToolboxSection = 'edit'
         this.dispatchEvent(new Event(TOOLBOX_SECTION_CHANGED_EVENT))
+    }
+
+    private resetActiveInteraction() {
+        const gestureChanged = this.transientGesture !== null
+        const toolChanged = this.activeTool !== 'select'
+        this.activeTool = 'select'
+        this.transientGesture = null
+        if (gestureChanged) this.dispatchEvent(new Event(TRANSIENT_GESTURE_CHANGED_EVENT))
+        if (toolChanged) this.dispatchEvent(new Event(ACTIVE_TOOL_CHANGED_EVENT))
+
+        return gestureChanged || toolChanged
     }
 
     private subscribe(eventType: string, listener: () => void) {

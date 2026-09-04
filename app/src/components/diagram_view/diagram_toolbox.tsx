@@ -5,9 +5,12 @@ import {
 } from 'react';
 import {
     diagramEditSessionService,
+    type DiagramPersistentTool,
     type DiagramToolboxSection,
 } from '../../services/diagrams/diagram_edit_session_service';
 import { ResizablePopper } from '../resizable_popper';
+import { DiagramToolboxToolButton } from './diagram_toolbox_tool_button';
+import { useCancelDiagramInteractionOnEscape } from './use_diagram_tool';
 
 const DIAGRAM_TOOLBOX_SIZE_STORAGE_KEY = 'md2.diagramToolboxSize';
 const TOOLBOX_SECTIONS: readonly { id: DiagramToolboxSection, label: string }[] = [
@@ -24,7 +27,11 @@ interface DiagramToolboxProps {
     boundaryElement: HTMLElement | null;
     session?: {
         getActiveToolboxSectionSnapshot: () => DiagramToolboxSection;
+        getActiveToolSnapshot: () => DiagramPersistentTool;
+        cancelActiveInteraction: () => boolean;
+        setActiveTool: (tool: DiagramPersistentTool) => void;
         setActiveToolboxSection: (section: DiagramToolboxSection) => void;
+        subscribeActiveTool: (listener: () => void) => () => void;
         subscribeActiveToolboxSection: (listener: () => void) => () => void;
     };
 }
@@ -36,6 +43,7 @@ export function DiagramToolbox({
 }: DiagramToolboxProps) {
     const [anchorElement, setAnchorElement] = useState<HTMLDivElement | null>(null);
     const titleId = useId();
+    useCancelDiagramInteractionOnEscape(session);
     const activeSection = useSyncExternalStore(
         session.subscribeActiveToolboxSection,
         session.getActiveToolboxSectionSnapshot,
@@ -99,7 +107,16 @@ export function DiagramToolbox({
                     id={`${titleId}-${activeSection}-panel`}
                     role="tabpanel"
                     sx={{ alignContent: 'flex-start', display: 'flex', flex: 1, flexWrap: 'wrap', gap: 1, overflow: 'auto', p: 1.5 }}
-                />
+                >
+                    {activeSection === 'edit' && (
+                        <DiagramToolboxToolButton
+                            label="Select"
+                            session={session}
+                            tool="select"
+                            tooltip="Select diagram objects"
+                        />
+                    )}
+                </Box>
             </ResizablePopper>
         </>
     );

@@ -105,6 +105,108 @@ function membershipDetail(listener: ReturnType<typeof vi.fn>, callIndex = 0) {
 }
 
 describe('DiagramEditSessionService', () => {
+    it('publishes active tool and transient gesture independently', () => {
+        const { service } = createHarness()
+        const toolChanged = vi.fn()
+        const gestureChanged = vi.fn()
+        const sectionChanged = vi.fn()
+        const sessionChanged = vi.fn()
+        service.subscribeActiveTool(toolChanged)
+        service.subscribeTransientGesture(gestureChanged)
+        service.subscribeActiveToolboxSection(sectionChanged)
+        service.subscribeSession(sessionChanged)
+        service.start()
+        sessionChanged.mockClear()
+
+        service.setActiveTool('node:component')
+        expect(service.getActiveToolSnapshot()).toBe('node:component')
+        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(toolChanged).toHaveBeenCalledOnce()
+        expect(gestureChanged).not.toHaveBeenCalled()
+
+        service.beginTransientGesture('placement')
+        expect(service.getTransientGestureSnapshot()).toBe('placement')
+        expect(gestureChanged).toHaveBeenCalledOnce()
+        expect(toolChanged).toHaveBeenCalledOnce()
+        expect(sectionChanged).not.toHaveBeenCalled()
+        expect(sessionChanged).not.toHaveBeenCalled()
+    })
+
+    it('keeps exactly one persistent tool and cancels an old tool gesture on replacement', () => {
+        const { service } = createHarness()
+        const toolChanged = vi.fn()
+        const gestureChanged = vi.fn()
+        service.subscribeActiveTool(toolChanged)
+        service.subscribeTransientGesture(gestureChanged)
+        service.start()
+        service.setActiveTool('node:component')
+        service.beginTransientGesture('placement')
+
+        service.setActiveTool('edge:connection')
+
+        expect(service.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(toolChanged).toHaveBeenCalledTimes(2)
+        expect(gestureChanged).toHaveBeenCalledTimes(2)
+        service.setActiveTool('edge:connection')
+        expect(toolChanged).toHaveBeenCalledTimes(2)
+    })
+
+    it('cancels active interaction and returns to Select', () => {
+        const { service } = createHarness()
+        service.start()
+        service.setActiveTool('edge:connection')
+        service.beginTransientGesture('edge')
+
+        expect(service.cancelActiveInteraction()).toBe(true)
+        expect(service.getActiveToolSnapshot()).toBe('select')
+        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(service.cancelActiveInteraction()).toBe(false)
+    })
+
+    it('resets active interaction on fresh session, discard, source change, and project change', () => {
+        const { service, sourceService } = createHarness()
+        service.start()
+        service.setActiveTool('node:component')
+        service.beginTransientGesture('placement')
+        service.start()
+        expect(service.getActiveToolSnapshot()).toBe('select')
+        expect(service.getTransientGestureSnapshot()).toBeNull()
+
+        service.setActiveTool('group')
+        service.beginTransientGesture('placement')
+        service.discard()
+        expect(service.getActiveToolSnapshot()).toBe('select')
+        expect(service.getTransientGestureSnapshot()).toBeNull()
+
+        service.start()
+        service.setActiveTool('edge:connection')
+        service.beginTransientGesture('edge')
+        const nextRecord = { ...firstRecord, id: 'diagram-2', path: 'design/diagrams/detail.json' }
+        sourceService.setSource({ diagram: structuredClone(diagram), record: nextRecord })
+        expect(service.getActiveToolSnapshot()).toBe('select')
+        expect(service.getTransientGestureSnapshot()).toBeNull()
+
+        service.start()
+        service.setActiveTool('node:component')
+        service.beginTransientGesture('placement')
+        service.bindProject({ ...project, branch: 'feature' })
+        expect(service.getActiveToolSnapshot()).toBe('select')
+        expect(service.getTransientGestureSnapshot()).toBeNull()
+    })
+
+    it('rejects tool and gesture changes without an active edit session', () => {
+        const { service } = createHarness()
+
+        expect(() => service.setActiveTool('group')).toThrow(
+            'Cannot select a diagram tool without an active edit session',
+        )
+        expect(() => service.beginTransientGesture('placement')).toThrow(
+            'Cannot begin a diagram gesture without an active edit session',
+        )
+        expect(service.cancelActiveInteraction()).toBe(false)
+    })
+
     it('publishes active toolbox section independently and resets it with the session', () => {
         const { service } = createHarness()
         const sectionChanged = vi.fn()

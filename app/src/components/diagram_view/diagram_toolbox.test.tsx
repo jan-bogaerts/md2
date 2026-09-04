@@ -1,19 +1,64 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { DiagramToolboxSection } from '../../services/diagrams/diagram_edit_session_service';
+import type {
+    DiagramPersistentTool,
+    DiagramTransientGesture,
+    DiagramToolboxSection,
+} from '../../services/diagrams/diagram_edit_session_service';
 import { DiagramToolbox } from './diagram_toolbox';
+import { DiagramToolboxActionButton } from './diagram_toolbox_action_button';
 import { DiagramToolboxButton } from './diagram_toolbox_button';
 
 class ToolboxSessionStub extends EventTarget {
     private activeSection: DiagramToolboxSection = 'edit';
+    private activeTool: DiagramPersistentTool = 'select';
+    private transientGesture: DiagramTransientGesture | null = null;
 
     readonly getActiveToolboxSectionSnapshot = () => this.activeSection;
+    readonly getActiveToolSnapshot = () => this.activeTool;
+    readonly getTransientGestureSnapshot = () => this.transientGesture;
+
+    readonly subscribeActiveTool = (listener: () => void) => {
+        this.addEventListener('toolChanged', listener);
+
+        return () => this.removeEventListener('toolChanged', listener);
+    };
 
     readonly subscribeActiveToolboxSection = (listener: () => void) => {
         this.addEventListener('sectionChanged', listener);
 
         return () => this.removeEventListener('sectionChanged', listener);
     };
+
+    readonly subscribeTransientGesture = (listener: () => void) => {
+        this.addEventListener('gestureChanged', listener);
+
+        return () => this.removeEventListener('gestureChanged', listener);
+    };
+
+    setActiveTool(tool: DiagramPersistentTool) {
+        this.activeTool = tool;
+        this.transientGesture = null;
+        this.dispatchEvent(new Event('toolChanged'));
+        this.dispatchEvent(new Event('gestureChanged'));
+    }
+
+    beginTransientGesture(gesture: DiagramTransientGesture) {
+        this.transientGesture = gesture;
+        this.dispatchEvent(new Event('gestureChanged'));
+    }
+
+    cancelActiveInteraction() {
+        const changed = this.activeTool !== 'select' || this.transientGesture !== null;
+        this.activeTool = 'select';
+        this.transientGesture = null;
+        if (changed) {
+            this.dispatchEvent(new Event('toolChanged'));
+            this.dispatchEvent(new Event('gestureChanged'));
+        }
+
+        return changed;
+    }
 
     setActiveToolboxSection(section: DiagramToolboxSection) {
         this.activeSection = section;
@@ -54,6 +99,7 @@ describe('DiagramToolbox', () => {
             'Edit', 'Nodes', 'Edges', 'Groups', 'Others',
         ]);
         expect(screen.getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('button', { name: 'Select' })).toHaveAttribute('aria-pressed', 'true');
 
         fireEvent.mouseOver(screen.getByRole('tab', { name: 'Nodes' }));
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Nodes');
@@ -62,6 +108,20 @@ describe('DiagramToolbox', () => {
         expect(session.getActiveToolboxSectionSnapshot()).toBe('nodes');
         expect(screen.getByRole('tab', { name: 'Nodes' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tabpanel')).toHaveStyle({ display: 'flex', flexWrap: 'wrap' });
+        expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
+    });
+
+    it('returns to Select when Escape cancels an active gesture', () => {
+        const session = new ToolboxSessionStub();
+        session.setActiveTool('node:component');
+        session.beginTransientGesture('placement');
+        render(<DiagramToolbox boundaryElement={createBoundary()} session={session} />);
+
+        fireEvent.keyDown(window, { key: 'Escape' });
+
+        expect(session.getActiveToolSnapshot()).toBe('select');
+        expect(session.getTransientGestureSnapshot()).toBeNull();
+        expect(screen.getByRole('button', { name: 'Select' })).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('exposes accessible resize handles on every side and corner', () => {
@@ -98,5 +158,25 @@ describe('DiagramToolboxButton', () => {
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Select diagram objects');
         fireEvent.click(button);
         expect(onActivate).toHaveBeenCalledOnce();
+    });
+
+    it('executes one-shot action without exposing persistent mode state', () => {
+        const session = new ToolboxSessionStub();
+        session.setActiveTool('node:component');
+        const onActivate = vi.fn();
+        render(
+            <DiagramToolboxActionButton
+                label="Zoom in"
+                onActivate={onActivate}
+                tooltip="Zoom in"
+            />,
+        );
+        const button = screen.getByRole('button', { name: 'Zoom in' });
+
+        expect(button).not.toHaveAttribute('aria-pressed');
+        fireEvent.click(button);
+        expect(onActivate).toHaveBeenCalledOnce();
+        expect(session.getActiveToolSnapshot()).toBe('node:component');
+        expect(button).not.toHaveAttribute('aria-pressed');
     });
 });

@@ -10,7 +10,7 @@ interface DiagramToolboxButtonProps {
 
 /** Accessible toolbox action whose visible label and tooltip describe its operation. */
 export function DiagramToolboxButton({
-    active = false,
+    active,
     disabled = false,
     label,
     onActivate,
