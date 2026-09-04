@@ -138,10 +138,11 @@ The repo has three parts: [app/](app/) (the React/Vite web UI), [desktop/](deskt
 ### Install
 
 ```powershell
+npm install
 npm run install:all
 ```
 
-This installs dependencies for both `app` and `desktop`.
+This first installs the root development dependencies used by the shared workflows, then installs dependencies for both `app` and `desktop`.
 
 ### Run
 

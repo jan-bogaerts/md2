@@ -457,12 +457,21 @@ describe('createLocalBridgeDispatch', () => {
         expect(worktreeService.add).toHaveBeenCalledWith(project, 'C:/feature');
     });
 
-    it('delegates linked worktree removal', async () => {
+    it('delegates linked worktree removal with its folder disposition', async () => {
         const { dispatch, worktreeService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
 
-        await expect(dispatch.dataBridge.removeWorktree(project, 'C:/feature')).resolves.toBeUndefined();
-        expect(worktreeService.remove).toHaveBeenCalledWith(project, 'C:/feature');
+        await expect(dispatch.dataBridge.removeWorktree(project, 'C:/feature', 'unregister')).resolves.toBeUndefined();
+        expect(worktreeService.remove).toHaveBeenCalledWith(project, 'C:/feature', 'unregister');
+    });
+
+    it('rejects an unknown worktree removal mode without calling the worktree service', () => {
+        const { dispatch, worktreeService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+
+        expect(() => dispatch.dataBridge.removeWorktree(project, 'C:/feature', 'burn'))
+            .toThrow('Unknown worktree removal mode: burn');
+        expect(worktreeService.remove).not.toHaveBeenCalled();
     });
 
     it('delegates local branch deletion', async () => {

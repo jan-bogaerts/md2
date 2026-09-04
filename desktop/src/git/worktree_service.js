@@ -4,6 +4,7 @@ const path = require('node:path');
 const { withGitIndexMutations } = require('./git_index_coordinator');
 
 const PARKING_BRANCH_PREFIX = 'md2/parking/';
+const REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);
 const REFRESH_INTERVAL_MS = 5000;
 const INTEGRATION_COMMIT_MESSAGE = 'Integrate into project';
 const PRIMARY_CHECKPOINT_MESSAGE = 'Save project changes before worktree synchronization';
@@ -20,6 +21,39 @@ function worktreeError(worktree) {
     if (worktree.detached || !worktree.branch) return 'Worktree has detached HEAD; a named branch is required';
 
     return null;
+}
+
+async function folderExists(folderPath) {
+    try {
+        return (await fs.promises.stat(folderPath)).isDirectory();
+    } catch {
+        return false;
+    }
+}
+
+/** A folder that already holds files, another repository worktree included, cannot become a linked worktree. */
+async function requireEmptyWorktreeFolder(resolvedFolder) {
+    let entries;
+    try {
+        entries = await fs.promises.readdir(resolvedFolder);
+    } catch (error) {
+        if (error && typeof error === 'object' && (error.code === 'ENOENT' || error.code === 'ENOTDIR')) return;
+        throw error;
+    }
+    if (entries.length === 0) return;
+
+    throw new Error(`Linked worktree folder is not empty: ${resolvedFolder}. Choose an empty or new folder.`);
+}
+
+function invalidRecord(branch, error, resolvedPath) {
+    return {
+        branch,
+        error,
+        parkingBranch: null,
+        path: resolvedPath,
+        status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
+        valid: false,
+    };
 }
 
 async function canonicalPath(folderPath) {
@@ -163,23 +197,60 @@ class WorktreeService {
             if (pathKey(path.resolve(folderPath)) === pathKey(activeProject.rootPath)) throw new Error('Primary worktree cannot be added as a linked worktree');
 
             const resolvedFolder = path.resolve(folderPath);
+            await requireEmptyWorktreeFolder(resolvedFolder);
             await this.runGit(activeProject.rootPath, ['worktree', 'add', resolvedFolder]);
             await this.parkPath(activeProject, resolvedFolder);
             await this.refreshAfterMutation();
         });
     }
 
-    remove(project, folderPath) {
+    /**
+     * Removal mode is the disposition of the checkout folder: `folder` deletes it, `files` empties it but keeps it,
+     * `unregister` leaves folder and files untouched. All three unregister the worktree from Git and keep the branch.
+     */
+    remove(project, folderPath, mode = 'folder') {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
             if (typeof folderPath !== 'string' || folderPath.length === 0) throw new Error('Missing linked worktree folder');
+            if (!REMOVAL_MODES.has(mode)) throw new Error(`Unknown worktree removal mode: ${String(mode)}`);
             const resolvedFolder = path.resolve(folderPath);
             if (pathKey(resolvedFolder) === pathKey(activeProject.rootPath)) throw new Error('Primary worktree cannot be removed');
             if (!this.records.some((worktree) => pathKey(worktree.path) === pathKey(resolvedFolder))) throw new Error('Folder is not a linked worktree');
 
-            await this.runGit(activeProject.rootPath, ['worktree', 'remove', resolvedFolder]);
+            await this.removeWorktreeCheckout(activeProject, resolvedFolder, mode);
             await this.refreshAfterMutation();
         });
+    }
+
+    /** A registration whose folder is gone has nothing left to preserve, so every mode collapses to a prune. */
+    async removeWorktreeCheckout(project, resolvedFolder, mode) {
+        const worktrees = parseWorktreeList(await this.runGit(project.rootPath, ['worktree', 'list', '--porcelain']));
+        const entry = worktrees.find((worktree) => pathKey(path.resolve(worktree.path)) === pathKey(resolvedFolder));
+        if (entry?.prunable || !await folderExists(resolvedFolder)) {
+            await this.runGit(project.rootPath, ['worktree', 'prune']);
+
+            return;
+        }
+        if (mode === 'unregister') {
+            await this.unregisterWorktree(project, resolvedFolder);
+
+            return;
+        }
+        // The doubled --force is what Git needs for a locked worktree; a single one only covers modified and untracked files.
+        await this.runGit(project.rootPath, ['worktree', 'remove', '--force', '--force', resolvedFolder]);
+        if (mode === 'files') await fs.promises.mkdir(resolvedFolder, { recursive: true });
+    }
+
+    /**
+     * Delete the administrative directory of the worktree and the `.git` link file pointing at it, then prune the
+     * primary repository. The link file has to go: left behind it names a registration that no longer exists, which
+     * both Git and md2 reject. Nothing else inside the folder is touched.
+     */
+    async unregisterWorktree(project, resolvedFolder) {
+        const gitDirectory = path.resolve(resolvedFolder, await this.runGit(resolvedFolder, ['rev-parse', '--git-dir']));
+        await fs.promises.rm(gitDirectory, { force: true, recursive: true });
+        await fs.promises.rm(path.join(resolvedFolder, '.git'), { force: true, recursive: true });
+        await this.runGit(project.rootPath, ['worktree', 'prune']);
     }
 
     deleteBranch(project, branchName) {
@@ -766,16 +837,26 @@ class WorktreeService {
         const worktrees = parseWorktreeList(await this.runGit(primaryRoot, ['worktree', 'list', '--porcelain']));
         const linkedWorktrees = worktrees.filter((worktree) => pathKey(path.resolve(worktree.path)) !== pathKey(primaryRoot));
 
-        return Promise.all(linkedWorktrees.map(async (worktree) => {
-            const error = worktreeError(worktree);
-            const resolvedPath = path.resolve(worktree.path);
-            const parkingBranch = await this.parkingBranch(resolvedPath);
-            const status = error === null
-                ? await this.status(resolvedPath, worktree.branch, requireProjectBranch(project))
-                : { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false };
+        return Promise.all(linkedWorktrees.map((worktree) => this.readWorktreeRecord(project, worktree)));
+    }
 
-            return { branch: worktree.branch, error, parkingBranch, path: resolvedPath, status, valid: error === null };
-        }));
+    /**
+     * A worktree Git already reports as locked, prunable or detached gets no Git command run inside it, and any
+     * per-record failure becomes an invalid record, so one broken worktree cannot discard the records of the others.
+     */
+    async readWorktreeRecord(project, worktree) {
+        const resolvedPath = path.resolve(worktree.path);
+        const error = worktreeError(worktree);
+        if (error !== null) return invalidRecord(worktree.branch, error, resolvedPath);
+
+        try {
+            const parkingBranch = await this.parkingBranch(resolvedPath);
+            const status = await this.status(resolvedPath, worktree.branch, requireProjectBranch(project));
+
+            return { branch: worktree.branch, error: null, parkingBranch, path: resolvedPath, status, valid: true };
+        } catch (failure) {
+            return invalidRecord(worktree.branch, failure instanceof Error ? failure.message : String(failure), resolvedPath);
+        }
     }
 
     primaryRepositoryStatus(project) {

@@ -139,10 +139,14 @@ export interface ProjectReference {
     rootPath?: string
 }
 
+/** The disposition of the checkout folder when a linked worktree is removed from Git. */
+export type WorktreeRemovalMode = 'files' | 'folder' | 'unregister'
+
 export interface WorktreeRecord {
     branch: string | null
     error: string | null
-    parkingBranch: string
+    /** Null on an invalid record: no Git command is run inside a worktree Git already reports as broken. */
+    parkingBranch: string | null
     path: string
     status: WorktreeStatus
     valid: boolean
@@ -466,7 +470,7 @@ export interface StorageService {
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     selectWorktreeFolder?(): Promise<string | null>
-    removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
+    removeWorktree?(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>
     watchProject?(
         project: ProjectReference,

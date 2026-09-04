@@ -400,7 +400,7 @@ describe('RemoteControlStorageService', () => {
         const pull = service.pullWorktree(operationRequest)
         const push = service.pushWorktree(operationRequest)
         const refresh = service.refreshWorktrees(project)
-        const removal = service.removeWorktree(project, 'C:/feature')
+        const removal = service.removeWorktree(project, 'C:/feature', 'files')
         const deletion = service.deleteLocalBranch(project, 'feature')
         const socket = lastSocket()
 
@@ -428,7 +428,7 @@ describe('RemoteControlStorageService', () => {
         expect(pullRequest).toMatchObject({ method: 'pullWorktree', params: [operationRequest] })
         expect(pushRequest).toMatchObject({ method: 'pushWorktree', params: [operationRequest] })
         expect(refreshRequest).toMatchObject({ method: 'refreshWorktrees', params: [project] })
-        expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature'] })
+        expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature', 'files'] })
         expect(deleteRequest).toMatchObject({ method: 'deleteLocalBranch', params: [project, 'feature'] })
         for (const request of [
             selectionRequest, addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,

@@ -59,6 +59,7 @@ import type {
     StorageService,
     TopLevelFolderReference,
     WorktreeOperationRequest,
+    WorktreeRemovalMode,
     WorktreeState,
 } from '../../data/data_types'
 import { MissingWorkingFolderError } from '../../data/data_types'
@@ -410,8 +411,8 @@ export class RemoteControlStorageService implements
         return this.request<TopLevelFolderReference[]>('listTopLevelFolders', [project])
     }
 
-    async removeWorktree(project: ProjectReference, folderPath: string): Promise<void> {
-        await this.request('removeWorktree', [project, folderPath])
+    async removeWorktree(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void> {
+        await this.request('removeWorktree', [project, folderPath, mode])
     }
 
     async selectWorktreeFolder(): Promise<string | null> {

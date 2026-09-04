@@ -2,6 +2,7 @@ const { resolveAgentCommand } = require('../actions/agent/agent_profiles.mjs');
 const { resolveProjectPaths } = require('../project/project_paths');
 
 const INTEGRATION_ACTIVITY_LABEL = 'Integrate into project';
+const WORKTREE_REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);
 const SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\n\n';
 
 function watchErrorMessage(error) {
@@ -304,7 +305,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return openWorktreeFolder();
         },
-        removeWorktree: (project, folderPath) => worktreeService.remove(project, folderPath),
+        removeWorktree: (project, folderPath, mode) => {
+            if (!WORKTREE_REMOVAL_MODES.has(mode)) throw new Error(`Unknown worktree removal mode: ${String(mode)}`);
+
+            return worktreeService.remove(project, folderPath, mode);
+        },
         stopAgent: (runId) => agentRunnerService.stop(runId),
         watchProject: (project, callback) => localGitService.watchProject(
             project,

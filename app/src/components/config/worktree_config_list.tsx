@@ -1,7 +1,7 @@
 import { Box, CircularProgress, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import Plus from 'mdi-material-ui/Plus'
 import { useState } from 'react'
-import type { WorktreeRecord } from '../../data/data_types'
+import type { WorktreeRecord, WorktreeRemovalMode } from '../../data/data_types'
 import { useWorktreeAdding, useWorktreeDraft } from '../hooks/use_worktrees'
 import { dialogService } from '../../services/dialog_service'
 import { PrimaryWorktreeSelectionError } from '../../services/project/worktree_errors'
@@ -47,10 +47,10 @@ export function WorktreeConfigList() {
         setRemoveRecord(null)
     }
 
-    const handleRemoveConfirm = () => {
+    const handleRemoveConfirm = (mode: WorktreeRemovalMode) => {
         try {
             if (!removeRecord) throw new Error('Missing worktree removal target')
-            worktreeService.stageDraftRemoval(removeRecord.path)
+            worktreeService.stageDraftRemoval(removeRecord.path, mode)
             setRemoveRecord(null)
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Worktree removal failed' })
@@ -71,7 +71,7 @@ export function WorktreeConfigList() {
                     index={index}
                     key={`${index}-${record.path}`}
                     onRemove={handleRemove}
-                    pendingRemoval={draft?.removals.includes(record.path)}
+                    pendingRemoval={draft?.removals.some((removal) => removal.path === record.path)}
                     record={record}
                 />
             ))}

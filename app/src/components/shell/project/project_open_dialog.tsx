@@ -187,6 +187,12 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
     const repositorySelectValue = selectValueExists(filteredRepositoryIds, selectedRepositoryId) ? selectedRepositoryId : ''
     const selectedProjectKind = projectKind(source)
     const isLocalRootPathEmpty = localRootPath.trim().length === 0
+    const isGithubOpenDisabled = (source === 'personal' || source === 'public')
+        && (!isGithubAuthenticated || githubOwner.length === 0 || githubRepository.length === 0)
+    const isRemoteOpenDisabled = source === 'remote' && !isRemoteComplete
+    const isLocalOpenDisabled = source === 'local' && isLocalRootPathEmpty
+    const isOpenDisabled = isLoading || folderValuesMessage !== null
+        || (!projectFolderSetup && (isGithubOpenDisabled || isRemoteOpenDisabled || isLocalOpenDisabled))
 
     const handleProjectKindChange = (_event: MouseEvent<HTMLElement>, nextProjectKind: ProjectKind | null) => {
         if (!nextProjectKind) return
@@ -269,16 +275,8 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         onBranchChange(branch)
     }
 
-    const handleOpenGithubClick = () => {
-        void onOpenGithub(githubOwner, githubRepository, selectedBranch, source === 'public')
-    }
-
     const handleChooseLocalFolderClick = () => {
         void onChooseLocalFolder()
-    }
-
-    const handleOpenLocalClick = () => {
-        void onOpenLocal(localRootPath)
     }
 
     const handleRecentLocalRepositoryClick = (event: MouseEvent<HTMLDivElement>) => {
@@ -286,14 +284,6 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         if (!rootPath) throw new Error('Recent local repository path is missing')
 
         setLocalRootPath(rootPath)
-    }
-
-    const handleOpenRemoteClick = () => {
-        if (remoteEndpoint.length === 0 || remoteRootPath.length === 0) return
-
-        const project = onCreateRemoteProject(remoteRootPath, selectedBranch || 'main')
-        if (!project) return
-        void onOpenRemote(remoteEndpoint, project)
     }
 
     const handleFolderValuesChange = (values: ProjectFolderValues) => {
@@ -313,8 +303,28 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         })
     }
 
-    const handleConfirmProjectFolderSetupClick = () => {
-        onConfirmProjectFolderSetup(folderValues)
+    const handleOpenClick = () => {
+        if (projectFolderSetup) {
+            onConfirmProjectFolderSetup(folderValues)
+
+            return
+        }
+        if (source === 'personal' || source === 'public') {
+            void onOpenGithub(githubOwner, githubRepository, selectedBranch, source === 'public')
+
+            return
+        }
+        if (source === 'local') {
+            void onOpenLocal(localRootPath)
+
+            return
+        }
+        if (!isRemoteComplete) return
+
+        const project = onCreateRemoteProject(remoteRootPath, selectedBranch || 'main')
+        if (!project) return
+
+        void onOpenRemote(remoteEndpoint, project)
     }
 
     const handleClose = () => {
@@ -496,25 +506,9 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose}>Cancel</Button>
-                {projectFolderSetup ? (
-                    <Button disabled={folderValuesMessage !== null || isLoading} onClick={handleConfirmProjectFolderSetupClick} variant="contained">
-                        {projectFolderSetup.hasProjectConfig ? 'Save and open' : 'Create'}
-                    </Button>
-                ) : !projectOpenResolution && (source === 'personal' || source === 'public') ? (
-                    <Button disabled={!isGithubAuthenticated || githubOwner.length === 0 || githubRepository.length === 0 || isLoading} onClick={handleOpenGithubClick} variant="contained">
-                        {source === 'public' ? 'Open Public' : 'Open Personal'}
-                    </Button>
-                ) : !projectOpenResolution && source === 'remote' ? (
-                    <Button
-                        disabled={!isRemoteComplete || isLoading}
-                        onClick={handleOpenRemoteClick}
-                        variant="contained"
-                    >
-                        Open Remote
-                    </Button>
-                ) : !projectOpenResolution && source === 'local' ? (
-                    <Button disabled={localRootPath.trim().length === 0 || isLoading} onClick={handleOpenLocalClick} variant="contained">
-                        Open Local
+                {projectFolderSetup || !projectOpenResolution ? (
+                    <Button disabled={isOpenDisabled} onClick={handleOpenClick} variant="contained">
+                        Open
                     </Button>
                 ) : null}
             </DialogActions>

@@ -114,7 +114,7 @@ describe('LocalGitStorageService binary write path', () => {
         await expect(service.pullWorktree(operationRequest)).resolves.toBeUndefined()
         await expect(service.pushWorktree(operationRequest)).resolves.toBeUndefined()
         await expect(service.refreshWorktrees(project)).resolves.toBeUndefined()
-        await expect(service.removeWorktree(project, worktree.path)).resolves.toBeUndefined()
+        await expect(service.removeWorktree(project, worktree.path, 'unregister')).resolves.toBeUndefined()
         expect(selectWorktreeFolder).toHaveBeenCalledOnce()
         expect(addWorktree).toHaveBeenCalledWith(project, worktree.path)
         expect(commitWorktree).toHaveBeenCalledWith(commitRequest)
@@ -127,7 +127,7 @@ describe('LocalGitStorageService binary write path', () => {
         expect(pullWorktree).toHaveBeenCalledWith(operationRequest)
         expect(pushWorktree).toHaveBeenCalledWith(operationRequest)
         expect(refreshWorktrees).toHaveBeenCalledWith(project)
-        expect(removeWorktree).toHaveBeenCalledWith(project, worktree.path)
+        expect(removeWorktree).toHaveBeenCalledWith(project, worktree.path, 'unregister')
     })
 
     it('forwards merge conflict lifecycle and subscription to the bridge', async () => {

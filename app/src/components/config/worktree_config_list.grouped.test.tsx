@@ -61,7 +61,11 @@ describe('WorktreeConfigList', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Remove worktree 1' }))
         const removeDialog = screen.getByRole('dialog', { name: 'Remove linked worktree?' })
         expect(within(removeDialog).getByText(/after Save/u)).toBeInTheDocument()
+        expect(within(removeDialog).getByRole('radio', { name: 'Delete the folder and everything in it' })).toBeChecked()
+        fireEvent.click(within(removeDialog).getByRole('radio', { name: 'Keep the folder and everything in it' }))
         fireEvent.click(within(removeDialog).getByRole('button', { name: 'Remove' }))
+
+        expect(worktreeService.getDraft()).toMatchObject({ removals: [{ mode: 'unregister', path: first.path }] })
 
         expect(screen.getByText('Pending removal')).toBeInTheDocument()
         expect(storage.removeWorktree).not.toHaveBeenCalled()
@@ -115,5 +119,50 @@ describe('WorktreeConfigList', () => {
         ))
         expect(reportError).not.toHaveBeenCalled()
         expect(screen.queryByText('c:/PRIMARY/')).not.toBeInTheDocument()
+    })
+})
+
+describe('WorktreeConfigList removal of a broken worktree', () => {
+    afterEach(() => {
+        cleanup()
+        worktreeService.clear()
+        vi.restoreAllMocks()
+    })
+
+    it('offers no folder disposition for an invalid record and stages its registration removal', async () => {
+        const broken: WorktreeRecord = {
+            branch: null,
+            error: 'Worktree is prunable: gitdir file points to non-existent location',
+            parkingBranch: null,
+            path: 'C:\\gone',
+            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
+            valid: false,
+        }
+        const storage = {
+            onWorktreesChanged: vi.fn((listener) => {
+                listener({ error: null, primaryStatus: null, project, records: [broken, first] })
+                return vi.fn()
+            }),
+            removeWorktree: vi.fn(async () => undefined),
+        } as unknown as StorageService
+        initWorktreeService(storage)
+        worktreeService.startDraft()
+
+        render(<AppThemeProvider><WorktreeConfigList /></AppThemeProvider>)
+        expect(screen.getByText('C:\\gone')).toBeInTheDocument()
+        expect(screen.getByText('C:\\one')).toBeInTheDocument()
+
+        const removeButton = screen.getByRole('button', { name: 'Remove worktree 1' })
+        expect(removeButton).toBeEnabled()
+        fireEvent.click(removeButton)
+
+        const removeDialog = screen.getByRole('dialog', { name: 'Remove linked worktree?' })
+        expect(within(removeDialog).getByText(/stale Git registration only/u)).toBeInTheDocument()
+        expect(within(removeDialog).queryByRole('radiogroup')).not.toBeInTheDocument()
+        fireEvent.click(within(removeDialog).getByRole('button', { name: 'Remove' }))
+
+        expect(worktreeService.getDraft()).toMatchObject({ removals: [{ mode: 'folder', path: broken.path }] })
+        expect(screen.getByText('Pending removal')).toBeInTheDocument()
+        expect(storage.removeWorktree).not.toHaveBeenCalled()
     })
 })

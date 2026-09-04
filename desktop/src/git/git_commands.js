@@ -6,7 +6,7 @@ const { promisify } = require('node:util');
 const execAsync = promisify(exec);
 const { describeGitIndexLock } = require('./git_lock_diagnostics');
 const { withGitIndexMutation } = require('./git_index_coordinator');
-const { GitProcess, gitTimeoutPolicy } = require('./git_process');
+const { GitProcess, formatGitCommand, gitTimeoutPolicy } = require('./git_process');
 const DETACHED_HEAD_BRANCH = 'HEAD (detached)';
 const LITERAL_PATHSPEC_ARGUMENT = '--literal-pathspecs';
 const FULL_COMMIT_PATTERN = /^[0-9a-f]{40}$/iu;
@@ -73,7 +73,35 @@ function delay(milliseconds) {
     });
 }
 
+function isSpawnEnoentError(error) {
+    return !!error && typeof error === 'object' && error.code === 'ENOENT' && error.syscall !== undefined
+        && String(error.syscall).includes('spawn');
+}
+
+/**
+ * Node rejects with `spawn git ENOENT` both when Git is absent and when the working directory it was handed does
+ * not exist. The second case is the common one for a worktree folder that was deleted outside md2, so name it.
+ */
+async function describeSpawnEnoent(rootPath, args, error) {
+    if (await pathExists(rootPath)) return error;
+
+    return new Error(
+        `Git working directory does not exist: ${rootPath} (command: ${formatGitCommand(args)})`,
+        { cause: error },
+    );
+}
+
 async function runGit(rootPath, args) {
+    try {
+        return await runGitWithIndexLockRetries(rootPath, args);
+    } catch (error) {
+        if (!isSpawnEnoentError(error)) throw error;
+
+        throw await describeSpawnEnoent(rootPath, args, error);
+    }
+}
+
+async function runGitWithIndexLockRetries(rootPath, args) {
     for (const [retryIndex, retryDelay] of GIT_INDEX_LOCK_RETRY_DELAYS_MS.entries()) {
         try {
             const { stdout } = await executeGit(rootPath, args);
