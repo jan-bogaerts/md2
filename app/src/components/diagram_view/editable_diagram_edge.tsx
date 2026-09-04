@@ -9,6 +9,9 @@ import {
     diagramSelectionService, type DiagramSelectionService,
 } from '../../services/diagrams/diagram_selection_service'
 import { DiagramEdge } from './diagram_edge'
+import {
+    diagramObjectDetailsService, type DiagramObjectDetailsService,
+} from './diagram_object_details_service'
 import { useDiagramEdgeLabelPlacement, useDiagramEdgeRoute } from './use_diagram_geometry'
 import { useIsDiagramObjectSelected } from './use_diagram_selection'
 import { useEditableDiagramEdgeField } from './use_editable_diagram'
@@ -16,6 +19,7 @@ import { useEditableDiagramEdgeField } from './use_editable_diagram'
 const EMPTY_NODE_LABELS: ReadonlyMap<string, string> = new Map()
 
 interface EditableDiagramEdgeProps {
+    details?: DiagramObjectDetailsService
     edgeId: string
     geometry?: DiagramGeometryService
     selection?: DiagramSelectionService
@@ -26,6 +30,7 @@ interface EditableDiagramEdgeProps {
  * One connection of the New diagram. It observes its own model fields and its own derived route.
  */
 function EditableDiagramEdgeLeaf({
+    details = diagramObjectDetailsService,
     edgeId,
     geometry = diagramGeometryService,
     selection = diagramSelectionService,
@@ -52,6 +57,7 @@ function EditableDiagramEdgeLeaf({
         }
         selection.replace([identity])
     }
+    const handleOpenDetails = () => details.open({ objectId: edgeId, objectKind: 'edge' })
 
     const edge: PositionedDiagramEdge = {
         from,
@@ -65,7 +71,15 @@ function EditableDiagramEdgeLeaf({
         ...(toCardinality ? { toCardinality } : {}),
     }
 
-    return <DiagramEdge edge={edge} nodeLabels={EMPTY_NODE_LABELS} onSelect={handleSelect} selected={selected} />
+    return (
+        <DiagramEdge
+            edge={edge}
+            nodeLabels={EMPTY_NODE_LABELS}
+            onOpenDetails={handleOpenDetails}
+            onSelect={handleSelect}
+            selected={selected}
+        />
+    )
 }
 
 /** Memoised so a collection host rerender caused by another member cannot rerender this leaf. */

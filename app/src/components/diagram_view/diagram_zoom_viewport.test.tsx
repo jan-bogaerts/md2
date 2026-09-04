@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
 import {
@@ -13,6 +14,7 @@ import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { DiagramZoomViewport } from './diagram_zoom_viewport'
+import { DiagramObjectDetailsService } from './diagram_object_details_service'
 
 const diagram: DiagramData = {
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
@@ -57,6 +59,31 @@ function createHarness() {
 afterEach(cleanup)
 
 describe('DiagramZoomViewport', () => {
+    it('opens node details on double-click without moving diagram data', async () => {
+        const { geometry, movement, selection, session } = createHarness()
+        const details = new DiagramObjectDetailsService()
+        const user = userEvent.setup()
+        render(
+            <DiagramZoomViewport
+                details={details}
+                geometry={geometry}
+                movement={movement}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const x = session.getNodeFieldSnapshot('orders', 'x')
+        const y = session.getNodeFieldSnapshot('orders', 'y')
+
+        await user.dblClick(screen.getByRole('button', { name: 'Orders' }))
+
+        expect(details.getTargetSnapshot()).toEqual({ objectId: 'orders', objectKind: 'node' })
+        expect(session.getNodeFieldSnapshot('orders', 'x')).toBe(x)
+        expect(session.getNodeFieldSnapshot('orders', 'y')).toBe(y)
+        expect(session.getChangeIdsSnapshot()).toEqual([])
+        expect(movement.getMoveActiveSnapshot()).toBe(false)
+    })
+
     it('scales only rendered New content and preserves visible center', () => {
         const { geometry, session } = createHarness()
         render(<DiagramZoomViewport geometry={geometry} session={session} />)

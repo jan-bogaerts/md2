@@ -9,6 +9,7 @@ interface DiagramNodeProps {
     diagramType: DiagramType
     flowPreset?: DiagramFlowPreset
     node: PositionedDiagramNode
+    onOpenDetails?: () => void
     onSelect: DiagramSelectHandler
     selected: boolean
 }
@@ -40,9 +41,9 @@ function fieldPrefix(key: 'primary' | 'foreign' | undefined) {
 }
 
 /** Positioned, themed, keyboard-operable diagram item. */
-export function DiagramNode({ diagramType, flowPreset, node, onSelect, selected }: DiagramNodeProps) {
+export function DiagramNode({ diagramType, flowPreset, node, onOpenDetails, onSelect, selected }: DiagramNodeProps) {
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
-    const interactive = node.drilldown !== false
+    const interactive = node.drilldown !== false || !!onOpenDetails
     const scrollRef = useRef<HTMLDivElement>(null)
     const pressScrollTop = useRef(0)
     const handleSelect = (left: number, top: number, ctrlKey: boolean) => (
@@ -60,6 +61,13 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect, selected 
         const bounds = event.currentTarget.getBoundingClientRect()
         handleSelect(bounds.left, bounds.bottom, false)
     }
+    const handleDoubleClick = (event: MouseEvent<HTMLButtonElement>) => {
+        if (!onOpenDetails) return
+
+        event.preventDefault()
+        event.stopPropagation()
+        onOpenDetails()
+    }
 
     return (
         <ButtonBase
@@ -69,6 +77,7 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect, selected 
             data-diagram-id={node.id}
             data-diagram-kind="node"
             onClick={interactive ? handleClick : undefined}
+            onDoubleClick={onOpenDetails ? handleDoubleClick : undefined}
             onKeyDown={interactive ? handleKeyDown : undefined}
             onMouseDown={interactive ? handleMouseDown : undefined}
             role="button"

@@ -9,11 +9,15 @@ import {
     diagramSelectionService, type DiagramSelectionService,
 } from '../../services/diagrams/diagram_selection_service'
 import { DiagramNode } from './diagram_node'
+import {
+    diagramObjectDetailsService, type DiagramObjectDetailsService,
+} from './diagram_object_details_service'
 import { useDiagramNodeGeometryField } from './use_diagram_geometry'
 import { useIsDiagramObjectSelected } from './use_diagram_selection'
 import { useEditableDiagramMetadataField, useEditableDiagramNodeField } from './use_editable_diagram'
 
 interface EditableDiagramNodeProps {
+    details?: DiagramObjectDetailsService
     geometry?: DiagramGeometryService
     nodeId: string
     selection?: DiagramSelectionService
@@ -25,6 +29,7 @@ interface EditableDiagramNodeProps {
  * sibling node, an edge, a group, or the metadata cannot rerender this leaf.
  */
 function EditableDiagramNodeLeaf({
+    details = diagramObjectDetailsService,
     geometry = diagramGeometryService,
     nodeId,
     selection = diagramSelectionService,
@@ -56,6 +61,7 @@ function EditableDiagramNodeLeaf({
         }
         selection.replace([identity])
     }
+    const handleOpenDetails = () => details.open({ objectId: nodeId, objectKind: 'node' })
 
     const node: PositionedDiagramNode = {
         fanIn: fanIn ?? 0,
@@ -77,6 +83,7 @@ function EditableDiagramNodeLeaf({
             diagramType={diagramType}
             flowPreset={preset ?? undefined}
             node={node}
+            onOpenDetails={handleOpenDetails}
             onSelect={handleSelect}
             selected={selected}
         />

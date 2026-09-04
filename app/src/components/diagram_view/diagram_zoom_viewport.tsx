@@ -20,8 +20,12 @@ import {
 } from '../../services/diagrams/diagram_selection_service'
 import { convertClientToDiagramCoordinates } from './diagram_coordinate_conversion'
 import { EditableDiagram } from './editable_diagram'
+import {
+    diagramObjectDetailsService, type DiagramObjectDetailsService,
+} from './diagram_object_details_service'
 
 interface DiagramZoomViewportProps {
+    details?: DiagramObjectDetailsService
     geometry?: DiagramGeometryService
     movement?: DiagramMoveService
     resize?: DiagramResizeService
@@ -70,6 +74,7 @@ function diagramResizeTargetFromTarget(target: EventTarget | null): DiagramResiz
 
 /** Scrollable New viewport whose visual scale leaves canonical diagram coordinates untouched. */
 export function DiagramZoomViewport({
+    details = diagramObjectDetailsService,
     geometry = diagramGeometryService,
     movement = diagramMoveService,
     resize = diagramResizeService,
@@ -257,7 +262,7 @@ export function DiagramZoomViewport({
             sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2, pb: 2, pt: 1 }}
         >
             <Box data-testid="new-diagram-zoom-surface" sx={{ transformOrigin: 'top left', zoom: scale }}>
-                <NewDiagram geometry={geometry} selection={selection} session={session} />
+                <NewDiagram details={details} geometry={geometry} selection={selection} session={session} />
             </Box>
         </Box>
     )

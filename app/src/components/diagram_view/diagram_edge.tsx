@@ -10,6 +10,7 @@ interface DiagramEdgeProps {
     edge: PositionedDiagramEdge
     /** Endpoint labels only, so a subscribing caller can supply them without owning positioned node objects. */
     nodeLabels: ReadonlyMap<string, string>
+    onOpenDetails?: () => void
     onSelect: DiagramSelectHandler
     selected: boolean
 }
@@ -22,7 +23,7 @@ function edgeLabel(edge: PositionedDiagramEdge, nodeLabels: ReadonlyMap<string, 
 }
 
 /** Themed selectable connection rendered from validated geometry. */
-export function DiagramEdge({ edge, nodeLabels, onSelect, selected }: DiagramEdgeProps) {
+export function DiagramEdge({ edge, nodeLabels, onOpenDetails, onSelect, selected }: DiagramEdgeProps) {
     const theme = useTheme()
     const [focused, setFocused] = useState(false)
     const label = edgeLabel(edge, nodeLabels)
@@ -34,6 +35,13 @@ export function DiagramEdge({ edge, nodeLabels, onSelect, selected }: DiagramEdg
         onSelect({ id: edge.id, label, left, top }, ctrlKey)
     )
     const handleClick = (event: MouseEvent<SVGGElement>) => handleSelect(event.clientX, event.clientY, event.ctrlKey)
+    const handleDoubleClick = (event: MouseEvent<SVGGElement>) => {
+        if (!onOpenDetails) return
+
+        event.preventDefault()
+        event.stopPropagation()
+        onOpenDetails()
+    }
     const handleKeyDown = (event: KeyboardEvent<SVGGElement>) => {
         if (event.key !== 'Enter' && event.key !== ' ') return
         event.preventDefault()
@@ -52,6 +60,7 @@ export function DiagramEdge({ edge, nodeLabels, onSelect, selected }: DiagramEdg
             data-diagram-kind="edge"
             onBlur={handleBlur}
             onClick={handleClick}
+            onDoubleClick={onOpenDetails ? handleDoubleClick : undefined}
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             role="button"

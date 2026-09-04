@@ -18,10 +18,15 @@ import {
 import { convertClientToDiagramCoordinates } from './diagram_coordinate_conversion'
 import { DiagramSelectionRectangle } from './diagram_selection_rectangle'
 import { DiagramResizeHandles } from './diagram_resize_handles'
+import { DiagramObjectDetailsDialog } from './diagram_object_details_dialog'
+import {
+    diagramObjectDetailsService, type DiagramObjectDetailsService,
+} from './diagram_object_details_service'
 import { useDiagramSurfaceField } from './use_diagram_geometry'
 import { useEditableDiagramMetadataField } from './use_editable_diagram'
 
 interface EditableDiagramProps {
+    details?: DiagramObjectDetailsService
     geometry?: DiagramGeometryService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
@@ -136,6 +141,7 @@ export function EditableDiagramSurface({
  * edit inside the diagram can rerender it.
  */
 export function EditableDiagram({
+    details = diagramObjectDetailsService,
     geometry = diagramGeometryService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -147,15 +153,16 @@ export function EditableDiagram({
                 <EditableDiagramDescription session={session} />
             </Box>
             <EditableDiagramSurface geometry={geometry} selection={selection} session={session}>
-                <EditableDiagramGroups geometry={geometry} selection={selection} session={session} />
+                <EditableDiagramGroups details={details} geometry={geometry} selection={selection} session={session} />
                 <EditableDiagramFragments geometry={geometry} session={session} />
                 <EditableDiagramLifelines geometry={geometry} session={session} />
                 <EditableDiagramActivations geometry={geometry} session={session} />
-                <EditableDiagramEdges geometry={geometry} selection={selection} session={session} />
-                <EditableDiagramNodes geometry={geometry} selection={selection} session={session} />
+                <EditableDiagramEdges details={details} geometry={geometry} selection={selection} session={session} />
+                <EditableDiagramNodes details={details} geometry={geometry} selection={selection} session={session} />
                 <DiagramResizeHandles geometry={geometry} selection={selection} session={session} />
                 <DiagramSelectionRectangle selection={selection} />
             </EditableDiagramSurface>
+            <DiagramObjectDetailsDialog details={details} session={session} />
         </Box>
     )
 }

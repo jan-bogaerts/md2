@@ -11,6 +11,9 @@ import { EditableDiagramFragment } from './editable_diagram_fragment'
 import { EditableDiagramGroup } from './editable_diagram_group'
 import { EditableDiagramLifeline } from './editable_diagram_lifeline'
 import { EditableDiagramNode } from './editable_diagram_node'
+import {
+    diagramObjectDetailsService, type DiagramObjectDetailsService,
+} from './diagram_object_details_service'
 import { useDiagramActivationIds, useDiagramFragmentIds } from './use_diagram_geometry'
 import {
     useEditableDiagramEdgeIds, useEditableDiagramGroupIds, useEditableDiagramNodeIds,
@@ -22,6 +25,7 @@ interface CollectionHostProps {
 }
 
 interface SelectableCollectionHostProps extends CollectionHostProps {
+    details?: DiagramObjectDetailsService
     selection?: DiagramSelectionService
 }
 
@@ -30,6 +34,7 @@ interface SelectableCollectionHostProps extends CollectionHostProps {
  * identifier list, so the host is skipped and only the member leaf rerenders.
  */
 export function EditableDiagramNodes({
+    details = diagramObjectDetailsService,
     geometry = diagramGeometryService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -37,7 +42,7 @@ export function EditableDiagramNodes({
     const nodeIds = useEditableDiagramNodeIds(session)
 
     return nodeIds.map((nodeId) => (
-        <EditableDiagramNode geometry={geometry} key={nodeId} nodeId={nodeId} selection={selection} session={session} />
+        <EditableDiagramNode details={details} geometry={geometry} key={nodeId} nodeId={nodeId} selection={selection} session={session} />
     ))
 }
 
@@ -53,6 +58,7 @@ export function EditableDiagramLifelines({
 }
 
 export function EditableDiagramEdges({
+    details = diagramObjectDetailsService,
     geometry = diagramGeometryService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -67,13 +73,21 @@ export function EditableDiagramEdges({
             width="100%"
         >
             {edgeIds.map((edgeId) => (
-                <EditableDiagramEdge edgeId={edgeId} geometry={geometry} key={edgeId} selection={selection} session={session} />
+                <EditableDiagramEdge
+                    details={details}
+                    edgeId={edgeId}
+                    geometry={geometry}
+                    key={edgeId}
+                    selection={selection}
+                    session={session}
+                />
             ))}
         </svg>
     )
 }
 
 export function EditableDiagramGroups({
+    details = diagramObjectDetailsService,
     geometry = diagramGeometryService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -81,7 +95,14 @@ export function EditableDiagramGroups({
     const groupIds = useEditableDiagramGroupIds(session)
 
     return groupIds.map((groupId) => (
-        <EditableDiagramGroup geometry={geometry} groupId={groupId} key={groupId} selection={selection} session={session} />
+        <EditableDiagramGroup
+            details={details}
+            geometry={geometry}
+            groupId={groupId}
+            key={groupId}
+            selection={selection}
+            session={session}
+        />
     ))
 }
 

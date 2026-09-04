@@ -4,18 +4,26 @@ import type { PositionedDiagramGroup } from '../../services/diagrams/diagram_lay
 
 interface DiagramGroupProps {
     group: PositionedDiagramGroup
+    onOpenDetails?: () => void
     onSelect?: (ctrlKey: boolean) => void
     selected?: boolean
 }
 
 /** Containment or trust-zone box; interactive only on the New diagram. */
-export function DiagramGroup({ group, onSelect, selected = false }: DiagramGroupProps) {
+export function DiagramGroup({ group, onOpenDetails, onSelect, selected = false }: DiagramGroupProps) {
     const interactive = !!onSelect
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => onSelect?.(event.ctrlKey)
     const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
         if (event.key !== 'Enter' && event.key !== ' ') return
         event.preventDefault()
         onSelect?.(false)
+    }
+    const handleDoubleClick = (event: MouseEvent<HTMLButtonElement>) => {
+        if (!onOpenDetails) return
+
+        event.preventDefault()
+        event.stopPropagation()
+        onOpenDetails()
     }
 
     return (
@@ -26,6 +34,7 @@ export function DiagramGroup({ group, onSelect, selected = false }: DiagramGroup
             data-diagram-id={interactive ? group.id : undefined}
             data-diagram-kind={interactive ? 'group' : undefined}
             onClick={interactive ? handleClick : undefined}
+            onDoubleClick={onOpenDetails ? handleDoubleClick : undefined}
             onKeyDown={interactive ? handleKeyDown : undefined}
             role={interactive ? 'button' : 'group'}
             sx={{
