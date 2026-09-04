@@ -15,6 +15,61 @@ const KEYBOARD_OPTIONS = [
     new MarkdownFileSearchOption('desktop/readme.md'),
 ]
 
+interface OffsetParentStub {
+    borderWidth: number
+    scrollLeft: number
+    scrollTop: number
+    viewportLeft: number
+    viewportTop: number
+}
+
+/**
+ * Makes `container` behave like the positioned, scrolled popup Paper the frozen anchor resolves
+ * against. jsdom performs no layout, so `offsetParent`, the bounding rect and the scroll/border
+ * metrics all have to be stubbed. Returns a restore function.
+ */
+function stubOffsetParent(container: HTMLElement, stub: OffsetParentStub) {
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetParent')
+    Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
+        configurable: true,
+        get(this: HTMLElement) {
+            return this.parentElement === container ? container : null
+        },
+    })
+    Object.defineProperty(container, 'scrollLeft', { configurable: true, value: stub.scrollLeft })
+    Object.defineProperty(container, 'scrollTop', { configurable: true, value: stub.scrollTop })
+    Object.defineProperty(container, 'clientLeft', { configurable: true, value: stub.borderWidth })
+    Object.defineProperty(container, 'clientTop', { configurable: true, value: stub.borderWidth })
+    container.getBoundingClientRect = () => ({
+        bottom: stub.viewportTop,
+        height: 0,
+        left: stub.viewportLeft,
+        right: stub.viewportLeft,
+        toJSON: () => ({}),
+        top: stub.viewportTop,
+        width: 0,
+        x: stub.viewportLeft,
+        y: stub.viewportTop,
+    }) as DOMRect
+
+    return () => {
+        if (original) Object.defineProperty(HTMLElement.prototype, 'offsetParent', original)
+    }
+}
+
+/** Pretends the page is scrolled, so the page -> viewport conversion has something to subtract. */
+function stubWindowScroll(scrollX: number, scrollY: number) {
+    const originalX = Object.getOwnPropertyDescriptor(window, 'scrollX')
+    const originalY = Object.getOwnPropertyDescriptor(window, 'scrollY')
+    Object.defineProperty(window, 'scrollX', { configurable: true, value: scrollX })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: scrollY })
+
+    return () => {
+        if (originalX) Object.defineProperty(window, 'scrollX', originalX)
+        if (originalY) Object.defineProperty(window, 'scrollY', originalY)
+    }
+}
+
 /** Flushes the animation frame the menu waits for before it freezes its anchor. */
 async function flushFrozenAnchor() {
     await act(async () => {
@@ -275,6 +330,7 @@ describe('MarkdownFileSearchMenu', () => {
         const frozenAnchor = overlayContainer.querySelector<HTMLElement>('[data-markdown-file-search-anchor]')
         if (!frozenAnchor) throw new Error('Missing frozen file-search anchor')
 
+        // Without an offset parent the page coordinates already match the containing block.
         expect(frozenAnchor.style.left).toBe('120px')
         expect(frozenAnchor.style.top).toBe('240px')
         expect(frozenAnchor.style.height).toBe('18px')
@@ -287,6 +343,81 @@ describe('MarkdownFileSearchMenu', () => {
         expect(frozenAnchor.style.left).toBe('120px')
         expect(frozenAnchor.style.top).toBe('240px')
         expect(frozenAnchor.style.height).toBe('18px')
+        overlayContainer.remove()
+    })
+
+    it('converts the anchor out of page space when it sits inside a positioned container', async () => {
+        const overlayContainer = document.createElement('div')
+        const lexicalAnchor = document.createElement('div')
+        lexicalAnchor.style.position = 'absolute'
+        lexicalAnchor.style.left = '120px'
+        lexicalAnchor.style.top = '240px'
+        lexicalAnchor.style.height = '18px'
+        overlayContainer.append(lexicalAnchor)
+        document.body.append(overlayContainer)
+        // Stand in for the card popup Paper: viewport position (50, 90), scrolled (5, 10), 2px border.
+        const restoreOffsetParent = stubOffsetParent(overlayContainer, {
+            borderWidth: 2,
+            scrollLeft: 5,
+            scrollTop: 10,
+            viewportLeft: 50,
+            viewportTop: 90,
+        })
+        const restoreScroll = stubWindowScroll(30, 60)
+
+        render(
+            <AppThemeProvider>
+                <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
+                    <MarkdownFileSearchMenu
+                        anchorElement={lexicalAnchor}
+                        onHighlight={vi.fn()}
+                        onSelect={vi.fn()}
+                        options={[new MarkdownFileSearchOption('app/readme.md')]}
+                        selectedIndex={0}
+                    />
+                </VirtuosoMockContext.Provider>
+            </AppThemeProvider>,
+        )
+        await flushFrozenAnchor()
+        const frozenAnchor = overlayContainer.querySelector<HTMLElement>('[data-markdown-file-search-anchor]')
+        if (!frozenAnchor) throw new Error('Missing frozen file-search anchor')
+
+        // 120 - 30 page scroll - 50 container left + 5 container scroll - 2 border = 43
+        expect(frozenAnchor.style.left).toBe('43px')
+        // 240 - 60 page scroll - 90 container top + 10 container scroll - 2 border = 98
+        expect(frozenAnchor.style.top).toBe('98px')
+        expect(frozenAnchor.style.height).toBe('18px')
+        restoreOffsetParent()
+        restoreScroll()
+        overlayContainer.remove()
+    })
+
+    it('leaves the frozen anchor unpositioned while lexical has not placed its own anchor', async () => {
+        const overlayContainer = document.createElement('div')
+        const lexicalAnchor = document.createElement('div')
+        lexicalAnchor.style.position = 'absolute'
+        overlayContainer.append(lexicalAnchor)
+        document.body.append(overlayContainer)
+
+        render(
+            <AppThemeProvider>
+                <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
+                    <MarkdownFileSearchMenu
+                        anchorElement={lexicalAnchor}
+                        onHighlight={vi.fn()}
+                        onSelect={vi.fn()}
+                        options={[new MarkdownFileSearchOption('app/readme.md')]}
+                        selectedIndex={0}
+                    />
+                </VirtuosoMockContext.Provider>
+            </AppThemeProvider>,
+        )
+        await flushFrozenAnchor()
+        const frozenAnchor = overlayContainer.querySelector<HTMLElement>('[data-markdown-file-search-anchor]')
+        if (!frozenAnchor) throw new Error('Missing frozen file-search anchor')
+
+        expect(frozenAnchor.style.left).toBe('')
+        expect(frozenAnchor.style.top).toBe('')
         overlayContainer.remove()
     })
 
