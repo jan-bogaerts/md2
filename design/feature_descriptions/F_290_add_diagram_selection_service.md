@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__6e041d8b-7aca-4ab1-9be5-56d7e31d189c.json
 policy:
 branch: f_290_add_diagram_selection_service
 worktree: 1
