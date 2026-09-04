@@ -19,4 +19,12 @@ We should improve this by adding different types of triggers:
 
 Next we need to add commands related to scheduling to the ´run´ menu bar:
 
-* View active schedules: opens popup with list of currently active schedules
+* View active schedules: opens popup with list of currently active schedules. User can
+  * Select a schedule
+  * Expand to show details
+  * Open (also by double click) shows card (scroll into view, select and open, or when in listview, open tab)
+  * Delete
+* Add sequence: opens a popup:
+  * where the user can drop cards. These are shown in a column
+  * select the action to run, from the top, with buttons like a regular action popup
+  *
