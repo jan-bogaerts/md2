@@ -1,5 +1,5 @@
 import { Box, Typography } from '@mui/material'
-import type { MouseEvent, ReactNode } from 'react'
+import { useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 import {
     diagramEditSessionService, type DiagramEditSessionService,
 } from '../../services/diagrams/diagram_edit_session_service'
@@ -15,6 +15,8 @@ import {
     EditableDiagramLifelines,
     EditableDiagramNodes,
 } from './editable_diagram_collections'
+import { convertClientToDiagramCoordinates } from './diagram_coordinate_conversion'
+import { DiagramSelectionRectangle } from './diagram_selection_rectangle'
 import { useDiagramSurfaceField } from './use_diagram_geometry'
 import { useEditableDiagramMetadataField } from './use_editable_diagram'
 
@@ -59,7 +61,54 @@ export function EditableDiagramSurface({
 }) {
     const height = useDiagramSurfaceField('height', geometry)
     const width = useDiagramSurfaceField('width', geometry)
+    const activePointerIdRef = useRef<number | null>(null)
+    const suppressNextClickRef = useRef(false)
+    const diagramPointFromPointer = (event: PointerEvent<HTMLDivElement>) => {
+        const bounds = event.currentTarget.getBoundingClientRect()
+        const viewportMetrics = { bounds: { left: bounds.left, top: bounds.top }, scrollLeft: 0, scrollTop: 0 }
+
+        return convertClientToDiagramCoordinates(event, viewportMetrics, session.getViewportScaleSnapshot()).diagramPoint
+    }
+    const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+        if (event.button !== 0 || session.getActiveToolSnapshot() !== 'select') return
+        if ((event.target as Element).closest('[data-diagram-id]')) return
+
+        event.preventDefault()
+        activePointerIdRef.current = event.pointerId
+        suppressNextClickRef.current = false
+        selection.beginRectangleSelection(diagramPointFromPointer(event))
+        event.currentTarget.setPointerCapture?.(event.pointerId)
+    }
+    const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+        if (activePointerIdRef.current !== event.pointerId) return
+
+        selection.updateRectangleSelection(diagramPointFromPointer(event))
+    }
+    const releasePointer = (event: PointerEvent<HTMLDivElement>) => {
+        if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+            event.currentTarget.releasePointerCapture?.(event.pointerId)
+        }
+        activePointerIdRef.current = null
+    }
+    const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+        if (activePointerIdRef.current !== event.pointerId) return
+
+        selection.completeRectangleSelection(diagramPointFromPointer(event))
+        suppressNextClickRef.current = true
+        releasePointer(event)
+    }
+    const handlePointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+        if (activePointerIdRef.current !== event.pointerId) return
+
+        selection.cancelRectangleSelection()
+        releasePointer(event)
+    }
     const handleClick = (event: MouseEvent<HTMLDivElement>) => {
+        if (suppressNextClickRef.current) {
+            suppressNextClickRef.current = false
+
+            return
+        }
         if (session.getActiveToolSnapshot() !== 'select') return
         if ((event.target as Element).closest('[data-diagram-id]')) return
 
@@ -67,7 +116,17 @@ export function EditableDiagramSurface({
     }
 
     return (
-        <Box aria-label="New diagram" onClick={handleClick} sx={{ height, position: 'relative', width }}>{children}</Box>
+        <Box
+            aria-label="New diagram"
+            onClick={handleClick}
+            onPointerCancel={handlePointerCancel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            sx={{ height, position: 'relative', touchAction: 'none', width }}
+        >
+            {children}
+        </Box>
     )
 }
 
@@ -93,6 +152,7 @@ export function EditableDiagram({
                 <EditableDiagramActivations geometry={geometry} session={session} />
                 <EditableDiagramEdges geometry={geometry} selection={selection} session={session} />
                 <EditableDiagramNodes geometry={geometry} selection={selection} session={session} />
+                <DiagramSelectionRectangle selection={selection} />
             </EditableDiagramSurface>
         </Box>
     )

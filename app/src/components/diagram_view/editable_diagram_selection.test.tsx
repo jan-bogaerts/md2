@@ -38,7 +38,7 @@ function renderHarness() {
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
-    const selection = new DiagramSelectionService(session)
+    const selection = new DiagramSelectionService(session, geometry)
     render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
 
     return { geometry, selection, session }
@@ -166,5 +166,77 @@ describe('EditableDiagram direct selection', () => {
         fireEvent.click(screen.getByLabelText('New diagram'))
 
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'backend', objectKind: 'group' }])
+    })
+
+    it('selects every node, edge, and group intersecting a rectangle dragged from empty surface', () => {
+        const { geometry, selection } = renderHarness()
+        const surface = screen.getByLabelText('New diagram')
+        const width = geometry.getSurfaceFieldSnapshot('width')
+        const height = geometry.getSurfaceFieldSnapshot('height')
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 1 })
+        fireEvent.pointerMove(surface, { clientX: width + 10, clientY: height + 10, pointerId: 1 })
+
+        expect(screen.getByTestId('diagram-selection-rectangle')).toHaveStyle({
+            height: `${height + 10}px`,
+            width: `${width + 10}px`,
+        })
+
+        fireEvent.pointerUp(surface, { clientX: width + 10, clientY: height + 10, pointerId: 1 })
+        fireEvent.click(surface)
+
+        expect(screen.queryByTestId('diagram-selection-rectangle')).toBeNull()
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'store', objectKind: 'node' },
+            { objectId: 'orders-store', objectKind: 'edge' },
+            { objectId: 'backend', objectKind: 'group' },
+        ])
+    })
+
+    it('does not begin rectangle selection from a selectable object or with another tool active', () => {
+        const { selection, session } = renderHarness()
+        const surface = screen.getByLabelText('New diagram')
+        const orders = screen.getByRole('button', { name: 'Orders' })
+        act(() => { selection.replace([{ objectId: 'backend', objectKind: 'group' }]) })
+
+        fireEvent.pointerDown(orders, { button: 0, clientX: 20, clientY: 20, pointerId: 1 })
+        fireEvent.pointerMove(surface, { clientX: 80, clientY: 80, pointerId: 1 })
+        fireEvent.pointerUp(surface, { clientX: 80, clientY: 80, pointerId: 1 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+
+        act(() => { session.setActiveTool('node:component') })
+        fireEvent.pointerDown(surface, { button: 0, clientX: 20, clientY: 20, pointerId: 2 })
+        fireEvent.pointerMove(surface, { clientX: 80, clientY: 80, pointerId: 2 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'backend', objectKind: 'group' }])
+    })
+
+    it('clears selection for a zero-distance surface click', () => {
+        const { selection } = renderHarness()
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 30, clientY: 40, pointerId: 1 })
+        fireEvent.pointerUp(surface, { clientX: 30, clientY: 40, pointerId: 1 })
+        fireEvent.click(surface)
+
+        expect(selection.getSelectionSnapshot()).toEqual([])
+        expect(selection.getRectangleSnapshot()).toBeNull()
+    })
+
+    it('removes a cancelled rectangle without changing selection', () => {
+        const { selection } = renderHarness()
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { selection.replace([{ objectId: 'store', objectKind: 'node' }]) })
+        const selectionSnapshot = selection.getSelectionSnapshot()
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 10, clientY: 20, pointerId: 1 })
+        fireEvent.pointerMove(surface, { clientX: 80, clientY: 90, pointerId: 1 })
+        expect(screen.getByTestId('diagram-selection-rectangle')).toBeInTheDocument()
+        fireEvent.pointerCancel(surface, { pointerId: 1 })
+
+        expect(screen.queryByTestId('diagram-selection-rectangle')).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
     })
 })

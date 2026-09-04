@@ -37,8 +37,9 @@ function createHarness() {
     const session = new DiagramEditSessionService(new DiagramSourceStub())
     session.bindProject(project)
     session.start()
+    const geometry = new DiagramGeometryService(session)
 
-    return { geometry: new DiagramGeometryService(session), selection: new DiagramSelectionService(session), session }
+    return { geometry, selection: new DiagramSelectionService(session, geometry), session }
 }
 
 afterEach(cleanup)
@@ -97,5 +98,38 @@ describe('DiagramZoomViewport', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Orders' }), { clientX: 190, clientY: 120 })
 
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
+    })
+
+    it('keeps rectangle diagram coordinates stable through viewport scroll and zoom', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const surface = screen.getByLabelText('New diagram')
+        Object.defineProperty(surface, 'getBoundingClientRect', {
+            configurable: true,
+            value: () => ({ bottom: 230, height: 200, left: 20, right: 420, top: 30, width: 400, x: 20, y: 30 }),
+        })
+        scroller.scrollLeft = 40
+        scroller.scrollTop = 20
+        act(() => { session.zoomOut() })
+        const scale = session.getViewportScaleSnapshot()
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 95, clientY: 67.5, pointerId: 1 })
+        fireEvent.pointerMove(surface, { clientX: 245, clientY: 142.5, pointerId: 1 })
+
+        expect(screen.getByTestId('diagram-selection-rectangle')).toHaveStyle({
+            height: '100px',
+            left: '100px',
+            top: '50px',
+            width: '200px',
+        })
+        expect(screen.getByTestId('new-diagram-zoom-surface')).toHaveStyle({ zoom: scale })
+
+        scroller.scrollLeft = 80
+        scroller.scrollTop = 60
+        expect(screen.getByTestId('diagram-selection-rectangle')).toHaveStyle({
+            left: '100px',
+            top: '50px',
+        })
     })
 })

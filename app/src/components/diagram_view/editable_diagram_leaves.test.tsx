@@ -41,7 +41,7 @@ function createHarness() {
     session.start()
     const geometry = new DiagramGeometryService(session)
 
-    return { geometry, selection: new DiagramSelectionService(session), session }
+    return { geometry, selection: new DiagramSelectionService(session, geometry), session }
 }
 
 type RenderCounts = Map<string, number>
@@ -165,5 +165,18 @@ describe('editable diagram leaves', () => {
         expect(counts.get('store')).toBe(beforeRemove.get('store'))
         expect(counts.get('group')).toBe(beforeRemove.get('group'))
         expect(counts.get('edge')).toBeGreaterThan(beforeRemove.get('edge') ?? 0)
+    })
+
+    it('does not rerender selectable leaves while transient rectangle state changes', () => {
+        const { counts, selection } = renderTree()
+        const before = new Map(counts)
+
+        act(() => {
+            selection.beginRectangleSelection({ x: 10, y: 10 })
+            selection.updateRectangleSelection({ x: 80, y: 90 })
+            selection.cancelRectangleSelection()
+        })
+
+        expect(counts).toEqual(before)
     })
 })

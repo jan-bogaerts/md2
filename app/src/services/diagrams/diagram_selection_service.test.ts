@@ -42,6 +42,32 @@ function createHarness() {
     return { selection, session }
 }
 
+function createRectangleHarness() {
+    const session = new DiagramEditSessionService(new DiagramSourceStub())
+    const nodeBoxes = {
+        orders: { fanIn: 0, height: 20, width: 20, x: 10, y: 10 },
+        store: { fanIn: 0, height: 20, width: 20, x: 100, y: 100 },
+    }
+    const groupBoxes = { backend: { height: 20, width: 20, x: 50, y: 50 } }
+    const geometry = {
+        getEdgeRouteSnapshot: (edgeId: string) => (
+            edgeId === 'orders-store' ? [{ x: 0, y: 40 }, { x: 80, y: 40 }] : []
+        ),
+        getGroupGeometryFieldSnapshot: (groupId: string, field: 'height' | 'width' | 'x' | 'y') => (
+            groupBoxes[groupId as keyof typeof groupBoxes]?.[field] ?? null
+        ),
+        getNodeGeometryFieldSnapshot: (
+            nodeId: string,
+            field: 'fanIn' | 'height' | 'width' | 'x' | 'y',
+        ) => nodeBoxes[nodeId as keyof typeof nodeBoxes]?.[field] ?? null,
+    }
+    const selection = new DiagramSelectionService(session, geometry)
+    session.bindProject(project)
+    session.start()
+
+    return { selection, session }
+}
+
 describe('DiagramSelectionService', () => {
     it('replaces, adds, removes, toggles, clears, and queries mixed object identities', () => {
         const { selection, session } = createHarness()
@@ -150,5 +176,83 @@ describe('DiagramSelectionService', () => {
         expect(session.removeGroup('backend')).toBe(true)
         expect(selectionDuringGroupPublication).toEqual([[]])
         expect(selection.getSelectionSnapshot()).toEqual([])
+    })
+
+    it('owns rectangle state and replaces selection with every intersecting selectable object', () => {
+        const { selection, session } = createRectangleHarness()
+        selection.replace([store, edge])
+        const editableDiagram = session.getEditableDiagram()
+        const ordersNode = session.getNodeSnapshot('orders')
+        const transientGesture = session.getTransientGestureSnapshot()
+        const viewportScale = session.getViewportScaleSnapshot()
+        const rectangleChanged = vi.fn()
+        const ordersChanged = vi.fn()
+        const storeChanged = vi.fn()
+        const edgeChanged = vi.fn()
+        const groupChanged = vi.fn()
+        selection.subscribeRectangle(rectangleChanged)
+        selection.subscribeSelected(orders, ordersChanged)
+        selection.subscribeSelected(store, storeChanged)
+        selection.subscribeSelected(edge, edgeChanged)
+        selection.subscribeSelected(group, groupChanged)
+
+        selection.beginRectangleSelection({ x: 55, y: 55 })
+        const initialRectangle = selection.getRectangleSnapshot()
+        expect(initialRectangle).toEqual({ height: 0, width: 0, x: 55, y: 55 })
+        expect(selection.updateRectangleSelection({ x: 5, y: 5 })).toBe(true)
+        expect(selection.updateRectangleSelection({ x: 5, y: 5 })).toBe(false)
+        expect(selection.completeRectangleSelection({ x: 5, y: 5 })).toBe(true)
+
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toEqual([orders, edge, group])
+        expect(rectangleChanged).toHaveBeenCalledTimes(3)
+        expect(ordersChanged).toHaveBeenCalledOnce()
+        expect(storeChanged).toHaveBeenCalledOnce()
+        expect(edgeChanged).not.toHaveBeenCalled()
+        expect(groupChanged).toHaveBeenCalledOnce()
+        expect(session.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.getNodeSnapshot('orders')).toBe(ordersNode)
+        expect(session.getTransientGestureSnapshot()).toBe(transientGesture)
+        expect(session.getViewportScaleSnapshot()).toBe(viewportScale)
+        expect(session.getChangeIdsSnapshot()).toEqual([])
+        expect(session.getDirtySnapshot()).toBe(false)
+    })
+
+    it('clears selection for a zero-distance rectangle completion', () => {
+        const { selection } = createRectangleHarness()
+        selection.replace([orders])
+
+        selection.beginRectangleSelection({ x: 20, y: 20 })
+        selection.completeRectangleSelection({ x: 20, y: 20 })
+
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toEqual([])
+    })
+
+    it('cancels rectangle state without changing selection', () => {
+        const { selection, session } = createRectangleHarness()
+        selection.replace([store])
+        const selectionSnapshot = selection.getSelectionSnapshot()
+
+        selection.beginRectangleSelection({ x: 10, y: 10 })
+        selection.updateRectangleSelection({ x: 30, y: 40 })
+        expect(selection.cancelRectangleSelection()).toBe(true)
+
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+
+        selection.beginRectangleSelection({ x: 10, y: 10 })
+        session.setActiveTool('node:component')
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+    })
+
+    it('rejects non-finite rectangle coordinates and ignores completion without a start', () => {
+        const { selection } = createRectangleHarness()
+
+        expect(() => selection.beginRectangleSelection({ x: Number.NaN, y: 0 })).toThrow(
+            'Diagram selection point coordinates must be finite',
+        )
+        expect(selection.completeRectangleSelection({ x: 10, y: 10 })).toBe(false)
     })
 })
