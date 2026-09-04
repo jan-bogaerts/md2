@@ -51,6 +51,7 @@ export const MAXIMUM_DIAGRAM_ZOOM = 2
 
 export type DiagramCollectionKind = 'edge' | 'fragment' | 'group' | 'node'
 export type DiagramObjectKind = DiagramCollectionKind | 'connectionPoint' | 'entityField' | 'meta'
+export type DiagramRemovableObjectKind = Extract<DiagramCollectionKind, 'edge' | 'group' | 'node'>
 export type DiagramConnectionEndpoint = 'sourceAttachment' | 'targetAttachment'
 export type DiagramToolboxSection = 'edit' | 'nodes' | 'edges' | 'groups' | 'others'
 export type DiagramPersistentTool = 'select' | 'group' | `node:${DiagramNodeKind}` | `edge:${DiagramEdgeKind}`
@@ -92,6 +93,11 @@ export interface DiagramMembershipChangeDetail {
     ownerId: string | null
     regionIndex: number | null
     removedIds: readonly string[]
+}
+
+export interface DiagramRemovalIdentity {
+    objectId: string
+    objectKind: DiagramRemovableObjectKind
 }
 
 export interface DiagramFieldChangeDetail {
@@ -967,6 +973,77 @@ export class DiagramEditSessionService extends EventTarget {
         return true
     }
 
+    /** Deletes selected objects and every invalidated reference host through one mutation transaction. */
+    removeObjects(identities: readonly DiagramRemovalIdentity[]): boolean {
+        const diagram = this.requireEditableDiagram()
+        const nodeIds = new Set<string>()
+        const edgeIds = new Set<string>()
+        const groupIds = new Set<string>()
+        for (const { objectId, objectKind } of identities) {
+            if (objectKind === 'node' && this.nodesById.has(objectId)) nodeIds.add(objectId)
+            if (objectKind === 'edge' && this.edgesById.has(objectId)) edgeIds.add(objectId)
+            if (objectKind === 'group' && this.groupsById.has(objectId)) groupIds.add(objectId)
+        }
+        if (nodeIds.size === 0 && edgeIds.size === 0 && groupIds.size === 0) return false
+        if (!this.validateOperation('Delete selection', () => {
+            if (nodeIds.size === diagram.nodes.length) invalidDiagramField('nodes', 'empty array after deleting selection')
+        })) return false
+
+        for (const edge of diagram.edges) {
+            if (nodeIds.has(edge.from) || nodeIds.has(edge.to)) edgeIds.add(edge.id)
+        }
+        for (const group of diagram.groups) {
+            if (group.nodeIds.every((nodeId) => nodeIds.has(nodeId))) groupIds.add(group.id)
+        }
+        const fragmentIds = new Set(
+            (diagram.fragments ?? [])
+                .filter(({ regions }) => regions.some(({ edgeIds: regionEdgeIds }) => (
+                    regionEdgeIds.every((edgeId) => edgeIds.has(edgeId))
+                )))
+                .map(({ id }) => id),
+        )
+        const removedNodeIds = diagram.nodes.filter(({ id }) => nodeIds.has(id)).map(({ id }) => id)
+        const removedEdgeIds = diagram.edges.filter(({ id }) => edgeIds.has(id)).map(({ id }) => id)
+        const removedGroupIds = diagram.groups.filter(({ id }) => groupIds.has(id)).map(({ id }) => id)
+        const removedFragmentIds = (diagram.fragments ?? []).filter(({ id }) => fragmentIds.has(id)).map(({ id }) => id)
+        const events: PendingMembershipEvent[] = []
+        for (const group of diagram.groups) {
+            if (groupIds.has(group.id)) continue
+
+            this.detachGroupMembers(group, nodeIds, events)
+        }
+        for (const fragment of diagram.fragments ?? []) {
+            if (fragmentIds.has(fragment.id)) continue
+
+            for (let index = 0; index < fragment.regions.length; index += 1) {
+                this.detachFragmentRegionEdges(fragment, index, edgeIds, events)
+            }
+        }
+        this.removeFragments(fragmentIds)
+        this.removeGroups(groupIds)
+        this.removeEdges(edgeIds)
+        this.removeNodes(nodeIds)
+        if (nodeIds.size > 0) {
+            this.nodeIds = frozenIds(diagram.nodes)
+            events.unshift(collectionMembershipEvent('node', [], removedNodeIds))
+        }
+        if (edgeIds.size > 0) {
+            this.edgeIds = frozenIds(diagram.edges)
+            events.unshift(collectionMembershipEvent('edge', [], removedEdgeIds))
+        }
+        if (groupIds.size > 0) {
+            this.groupIds = frozenIds(diagram.groups)
+            events.unshift(collectionMembershipEvent('group', [], removedGroupIds))
+        }
+        if (fragmentIds.size > 0) {
+            this.fragmentIds = frozenIds(diagram.fragments ?? [])
+            events.unshift(collectionMembershipEvent('fragment', [], removedFragmentIds))
+        }
+        this.commitTransaction(events)
+
+        return true
+    }
+
     /** Adds one node to one group; the node object and every other collection keep their references. */
     addGroupMember(groupId: string, nodeId: string): boolean {
         const group = this.requireGroup(groupId)
@@ -1350,6 +1427,98 @@ export class DiagramEditSessionService extends EventTarget {
         events.push(fragmentRegionMembershipEvent(fragment.id, regionIndex, [], [edgeId]))
 
         return true
+    }
+
+    private detachGroupMembers(group: DiagramGroup, nodeIds: ReadonlySet<string>, events: PendingMembershipEvent[]) {
+        const removedIds = group.nodeIds.filter((nodeId) => nodeIds.has(nodeId))
+        if (removedIds.length === 0) return
+
+        for (let index = group.nodeIds.length - 1; index >= 0; index -= 1) {
+            if (nodeIds.has(group.nodeIds[index])) group.nodeIds.splice(index, 1)
+        }
+        this.groupNodeIdsById.set(group.id, Object.freeze([...group.nodeIds]))
+        for (const nodeId of removedIds) this.markGroupMembership(group.id, nodeId, false)
+        events.push(groupMembershipEvent(group.id, [], removedIds))
+    }
+
+    private detachFragmentRegionEdges(
+        fragment: DiagramSequenceFragment,
+        regionIndex: number,
+        edgeIds: ReadonlySet<string>,
+        events: PendingMembershipEvent[],
+    ) {
+        const region = fragment.regions[regionIndex]
+        const removedIds = region.edgeIds.filter((edgeId) => edgeIds.has(edgeId))
+        if (removedIds.length === 0) return
+
+        for (let index = region.edgeIds.length - 1; index >= 0; index -= 1) {
+            if (edgeIds.has(region.edgeIds[index])) region.edgeIds.splice(index, 1)
+        }
+        this.fragmentRegionEdgeIdsByKey.set(
+            fragmentRegionKey(fragment.id, regionIndex),
+            Object.freeze([...region.edgeIds]),
+        )
+        for (const edgeId of removedIds) this.markFragmentRegionMembership(fragment.id, regionIndex, edgeId, false)
+        events.push(fragmentRegionMembershipEvent(fragment.id, regionIndex, [], removedIds))
+    }
+
+    private removeFragments(fragmentIds: ReadonlySet<string>) {
+        const diagram = this.requireEditableDiagram()
+        const fragments = diagram.fragments
+        if (!fragments) return
+
+        const removedFragments = fragments.filter(({ id }) => fragmentIds.has(id))
+        for (const fragment of removedFragments) {
+            const index = fragments.indexOf(fragment)
+
+            fragments.splice(index, 1)
+            this.fragmentsById.delete(fragment.id)
+            for (let regionIndex = 0; regionIndex < fragment.regions.length; regionIndex += 1) {
+                this.fragmentRegionEdgeIdsByKey.delete(fragmentRegionKey(fragment.id, regionIndex))
+            }
+            this.purgeChangesOwnedBy(`fragment:${fragment.id}`)
+            this.markCollectionMembership('fragment', fragment.id, false)
+        }
+    }
+
+    private removeGroups(groupIds: ReadonlySet<string>) {
+        const diagram = this.requireEditableDiagram()
+        const removedGroups = diagram.groups.filter(({ id }) => groupIds.has(id))
+        for (const group of removedGroups) {
+            const index = diagram.groups.indexOf(group)
+
+            diagram.groups.splice(index, 1)
+            this.groupsById.delete(group.id)
+            this.groupNodeIdsById.delete(group.id)
+            this.purgeChangesOwnedBy(`group:${group.id}`)
+            this.markCollectionMembership('group', group.id, false)
+        }
+    }
+
+    private removeEdges(edgeIds: ReadonlySet<string>) {
+        const diagram = this.requireEditableDiagram()
+        const removedEdges = diagram.edges.filter(({ id }) => edgeIds.has(id))
+        for (const edge of removedEdges) {
+            const index = diagram.edges.indexOf(edge)
+
+            diagram.edges.splice(index, 1)
+            this.edgesById.delete(edge.id)
+            this.purgeChangesOwnedBy(`edge:${edge.id}`)
+            this.markCollectionMembership('edge', edge.id, false)
+        }
+    }
+
+    private removeNodes(nodeIds: ReadonlySet<string>) {
+        const diagram = this.requireEditableDiagram()
+        const removedNodes = diagram.nodes.filter(({ id }) => nodeIds.has(id))
+        for (const node of removedNodes) {
+            const index = diagram.nodes.indexOf(node)
+
+            diagram.nodes.splice(index, 1)
+            this.nodesById.delete(node.id)
+            this.purgeChangesOwnedBy(`node:${node.id}`)
+            this.markCollectionMembership('node', node.id, false)
+        }
     }
 
     private originalCollectionObjects(objectKind: DiagramCollectionKind) {

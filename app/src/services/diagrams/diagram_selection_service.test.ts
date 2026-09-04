@@ -94,6 +94,37 @@ describe('DiagramSelectionService', () => {
         expect(session.getNodeSnapshot('orders')).toBe(ordersNode)
     })
 
+    it('deletes complete selection through one edit-session mutation batch', () => {
+        const { selection, session } = createHarness()
+        const changeIdsChanged = vi.fn()
+        const selectionDuringNodePublication: DiagramSelectionIdentity[][] = []
+        const selectionDuringEdgePublication: DiagramSelectionIdentity[][] = []
+        const selectionDuringGroupPublication: DiagramSelectionIdentity[][] = []
+        selection.replace([orders, edge, group])
+        session.subscribeChangeIds(changeIdsChanged)
+        session.subscribeCollectionMembership('node', () => {
+            selectionDuringNodePublication.push([...selection.getSelectionSnapshot()])
+        })
+        session.subscribeCollectionMembership('edge', () => {
+            selectionDuringEdgePublication.push([...selection.getSelectionSnapshot()])
+        })
+        session.subscribeCollectionMembership('group', () => {
+            selectionDuringGroupPublication.push([...selection.getSelectionSnapshot()])
+        })
+
+        expect(selection.deleteSelection()).toBe(true)
+
+        expect(selection.getSelectionSnapshot()).toEqual([])
+        expect(session.getNodeIdsSnapshot()).toEqual(['store'])
+        expect(session.getEdgeIdsSnapshot()).toEqual([])
+        expect(session.getGroupIdsSnapshot()).toEqual([])
+        expect(selectionDuringNodePublication).toEqual([[]])
+        expect(selectionDuringEdgePublication).toEqual([[]])
+        expect(selectionDuringGroupPublication).toEqual([[]])
+        expect(changeIdsChanged).toHaveBeenCalledOnce()
+        expect(selection.deleteSelection()).toBe(false)
+    })
+
     it('keeps snapshots stable for no-ops and publishes only changed identity scopes', () => {
         const { selection } = createHarness()
         selection.replace([orders, edge])

@@ -9,6 +9,7 @@ import {
     type DiagramToolboxSection,
 } from '../../services/diagrams/diagram_edit_session_service';
 import { ResizablePopper } from '../resizable_popper';
+import { DiagramDeleteButton } from './diagram_delete_button';
 import { DiagramToolboxToolButton } from './diagram_toolbox_tool_button';
 import { DiagramZoomInButton } from './diagram_zoom_in_button';
 import { DiagramZoomOutButton } from './diagram_zoom_out_button';
@@ -124,6 +125,7 @@ export function DiagramToolbox({
                             />
                             <DiagramZoomInButton session={session} />
                             <DiagramZoomOutButton session={session} />
+                            <DiagramDeleteButton />
                         </>
                     )}
                 </Box>

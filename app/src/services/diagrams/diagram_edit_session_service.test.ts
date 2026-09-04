@@ -633,6 +633,124 @@ describe('DiagramEditSessionService', () => {
         expect(service.removeNode('orders')).toBe(false)
     })
 
+    it('deletes one selection with cascading invalid groups and fragments in one publication', () => {
+        const source = structuredClone(sequenceDiagram)
+        source.groups.push({ id: 'actors', label: 'Actors', nodeIds: ['user'] })
+        const sourceBeforeDelete = structuredClone(source)
+        const { service } = createHarness({ source })
+        service.start()
+        const editable = service.getEditableDiagram()
+        const nodes = editable?.nodes
+        const edges = editable?.edges
+        const groups = editable?.groups
+        const fragments = editable?.fragments
+        const user = service.getNodeSnapshot('user')
+        const actors = service.getGroupSnapshot('actors')
+        const actorsNodeIds = service.getGroupNodeIdsSnapshot('actors')
+        const nodeMembershipChanged = vi.fn()
+        const edgeMembershipChanged = vi.fn()
+        const groupMembershipChanged = vi.fn()
+        const fragmentMembershipChanged = vi.fn()
+        const dirtyChanged = vi.fn()
+        const changeIdsChanged = vi.fn()
+        service.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
+        service.subscribeCollectionMembership('group', groupMembershipChanged)
+        service.subscribeCollectionMembership('fragment', fragmentMembershipChanged)
+        service.subscribeDirty(dirtyChanged)
+        service.subscribeChangeIds(changeIdsChanged)
+
+        expect(service.removeObjects([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'orders-user', objectKind: 'edge' },
+        ])).toBe(true)
+
+        expect(service.getEditableDiagram()).toBe(editable)
+        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.getEditableDiagram()?.edges).toBe(edges)
+        expect(service.getEditableDiagram()?.groups).toBe(groups)
+        expect(service.getEditableDiagram()?.fragments).toBe(fragments)
+        expect(service.getNodeSnapshot('user')).toBe(user)
+        expect(service.getGroupSnapshot('actors')).toBe(actors)
+        expect(service.getGroupNodeIdsSnapshot('actors')).toBe(actorsNodeIds)
+        expect(service.getNodeIdsSnapshot()).toEqual(['user'])
+        expect(service.getEdgeIdsSnapshot()).toEqual([])
+        expect(service.getGroupIdsSnapshot()).toEqual(['actors'])
+        expect(service.getFragmentIdsSnapshot()).toEqual([])
+        expect(membershipDetail(nodeMembershipChanged).removedIds).toEqual(['orders'])
+        expect(membershipDetail(edgeMembershipChanged).removedIds).toEqual(['user-orders', 'orders-user'])
+        expect(membershipDetail(groupMembershipChanged).removedIds).toEqual(['backend'])
+        expect(membershipDetail(fragmentMembershipChanged).removedIds).toEqual(['transaction'])
+        expect(nodeMembershipChanged).toHaveBeenCalledOnce()
+        expect(edgeMembershipChanged).toHaveBeenCalledOnce()
+        expect(groupMembershipChanged).toHaveBeenCalledOnce()
+        expect(fragmentMembershipChanged).toHaveBeenCalledOnce()
+        expect(dirtyChanged).toHaveBeenCalledOnce()
+        expect(changeIdsChanged).toHaveBeenCalledOnce()
+        expect(service.getChangeIdsSnapshot()).toHaveLength(5)
+        expect(service.getChangeIdsSnapshot().map((changeId) => service.getChange(changeId))).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ category: 'collection', objectId: 'orders', objectKind: 'node', value: null }),
+                expect.objectContaining({ category: 'collection', objectId: 'user-orders', objectKind: 'edge', value: null }),
+                expect.objectContaining({ category: 'collection', objectId: 'orders-user', objectKind: 'edge', value: null }),
+                expect.objectContaining({ category: 'collection', objectId: 'backend', objectKind: 'group', value: null }),
+                expect.objectContaining({ category: 'collection', objectId: 'transaction', objectKind: 'fragment', value: null }),
+            ]),
+        )
+        expect(source).toEqual(sourceBeforeDelete)
+        expect(service.getOriginalDiagramSnapshot()?.diagram).toEqual(sourceBeforeDelete)
+    })
+
+    it('keeps valid hosts and republishes only references changed by batch deletion', () => {
+        const service = sequenceHarness()
+        const fragment = service.getFragmentSnapshot('transaction')
+        const group = service.getGroupSnapshot('backend')
+        const groupNodeIds = service.getGroupNodeIdsSnapshot('backend')
+        const fragmentRegionChanged = vi.fn()
+        const groupMembershipChanged = vi.fn()
+        service.subscribeFragmentRegionMembership('transaction', 0, fragmentRegionChanged)
+        service.subscribeGroupMembership('backend', groupMembershipChanged)
+
+        expect(service.removeObjects([{ objectId: 'user-orders', objectKind: 'edge' }])).toBe(true)
+
+        expect(service.getFragmentSnapshot('transaction')).toBe(fragment)
+        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual(['orders-user'])
+        expect(service.getGroupSnapshot('backend')).toBe(group)
+        expect(service.getGroupNodeIdsSnapshot('backend')).toBe(groupNodeIds)
+        expect(fragmentRegionChanged).toHaveBeenCalledOnce()
+        expect(groupMembershipChanged).not.toHaveBeenCalled()
+        expect(service.getChangeIdsSnapshot().map((changeId) => service.getChange(changeId))).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ category: 'collection', objectId: 'user-orders', objectKind: 'edge' }),
+                expect.objectContaining({ category: 'membership', objectId: 'user-orders', ownerId: 'transaction' }),
+            ]),
+        )
+    })
+
+    it('rejects a batch that would remove every node without partial mutation', () => {
+        const source: DiagramData = {
+            edges: [],
+            groups: [],
+            meta: { description: 'Single node', title: 'Single', type: 'architecture', version: 1 },
+            nodes: [{ id: 'only', label: 'Only', role: 'focal' }],
+        }
+        const reportValidationError = vi.fn()
+        const { service } = createHarness({ reportValidationError, source })
+        service.start()
+        const editable = service.getEditableDiagram()
+        const nodeIds = service.getNodeIdsSnapshot()
+
+        expect(service.removeObjects([{ objectId: 'only', objectKind: 'node' }])).toBe(false)
+
+        expect(service.getEditableDiagram()).toBe(editable)
+        expect(service.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(service.getNodeSnapshot('only')).not.toBeNull()
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(reportValidationError).toHaveBeenCalledWith(
+            'Delete selection rejected: nodes has empty array after deleting selection',
+        )
+    })
+
     it('creates an edge between existing nodes and drops fragment references when it is removed', () => {
         const service = sequenceHarness(vi.fn().mockReturnValue('edge-1'))
         const nodes = service.getEditableDiagram()?.nodes

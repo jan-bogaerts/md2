@@ -35,6 +35,7 @@ type DiagramSelectionSession = Pick<
     | 'getNodeIdsSnapshot'
     | 'getSessionSnapshot'
     | 'getActiveToolSnapshot'
+    | 'removeObjects'
     | 'subscribeActiveTool'
     | 'subscribeCollectionMembershipWillChange'
     | 'subscribeSession'
@@ -167,6 +168,13 @@ export class DiagramSelectionService extends EventTarget {
         this.publish(removed)
 
         return true
+    }
+
+    /** Deletes complete current selection through one edit-session mutation batch. */
+    deleteSelection() {
+        if (this.selection.length === 0) return false
+
+        return this.session.removeObjects(this.selection)
     }
 
     beginRectangleSelection(point: DiagramPoint) {
