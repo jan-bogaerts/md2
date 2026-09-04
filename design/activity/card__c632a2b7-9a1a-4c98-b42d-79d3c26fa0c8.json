@@ -2564,6 +2564,42 @@
       "startedAt": "2026-09-04T17:42:43.636Z",
       "status": "completed",
       "rootConversationId": "agent-e019c1bd-0c42-4711-b694-58d5e6e46315"
+    },
+    {
+      "commits": [
+        {
+          "commit": "436035b722cbd4cfd17329fd5f28028f394d6ce7",
+          "committedAt": "2026-09-04T20:01:00+02:00",
+          "deletions": 14,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_usage_summary.tsx",
+            "app/src/components/agents/agent_usage_display.test.tsx",
+            "app/src/components/agents/agent_usage_display.tsx",
+            "app/src/components/agents/token_count.test.tsx",
+            "app/src/components/agents/token_count.tsx",
+            "app/src/components/shell/project_agent_usage_summary.tsx",
+            "app/src/components/stats_view/stats_bar_chart.test.tsx",
+            "app/src/components/stats_view/stats_bar_chart.tsx",
+            "app/src/components/stats_view/stats_content.test.tsx",
+            "app/src/components/stats_view/stats_content.tsx",
+            "app/src/components/stats_view/stats_controls.tsx",
+            "app/src/components/stats_view/stats_usage_comparison_charts.tsx",
+            "app/src/services/stats/project_stats_service.node.test.ts",
+            "app/src/services/stats/project_stats_service.ts",
+            "app/src/services/stats/project_stats_types.ts"
+          ],
+          "filesChanged": 15,
+          "insertions": 241,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-04T20:01:00+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "c632a2b7-9a1a-4c98-b42d-79d3c26fa0c8",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
