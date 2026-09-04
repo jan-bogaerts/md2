@@ -1,6 +1,7 @@
 import { Box, ButtonBase, Stack, Tooltip, Typography, type SxProps, type Theme } from '@mui/material'
 import type { ReactNode } from 'react'
 import type { AgentTokenUsage } from '../../../../data/data_types'
+import { TokenCount } from '../../../agents/token_count'
 import type { CommitReference } from '../../../../data/electron_action_bridge'
 import type { AgentFileChangeUsage } from '../../../../services/agents/agent_usage'
 import type { ActionUsageScope } from './action_usage_scope_store'
@@ -144,7 +145,7 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                     >
                         tokens:{' '}
                     </Box>
-                    {NUMBER_FORMAT.format(activeUsage.tokens.totalTokens)}
+                    <TokenCount value={activeUsage.tokens.totalTokens} />
                 </ButtonBase>
             </Tooltip>
             {activeChanges ? (

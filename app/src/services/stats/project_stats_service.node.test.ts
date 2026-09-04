@@ -190,6 +190,22 @@ describe('ProjectStatsService aggregation', () => {
         expect(service.getSnapshot().rows).toMatchObject([{ value: 1 }])
     })
 
+    it('defaults token numbers to the shortened format', () => {
+        expect(new ProjectStatsService().getSnapshot().controls.shortTokenCounts).toBe(true)
+    })
+
+    it('switches the token number format without rebuilding the snapshot rows', async () => {
+        const service = new ProjectStatsService()
+        await openService(service, storage({'design/activity/card__card-1.json': activityContent({ conversations: [conversation()] })}))
+        const rowsBefore = service.getSnapshot().rows
+
+        service.setControls({ shortTokenCounts: false })
+
+        // A display-only control keeps the very same rows array, proving no rebuild ran.
+        expect(service.getSnapshot().controls.shortTokenCounts).toBe(false)
+        expect(service.getSnapshot().rows).toBe(rowsBefore)
+    })
+
     it('sums terminal stored timers and tokens once while reporting missing timer coverage', async () => {
         const service = new ProjectStatsService()
         await openService(service, storage({

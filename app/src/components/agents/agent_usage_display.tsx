@@ -1,5 +1,6 @@
 import { Tooltip, Typography } from '@mui/material'
 import type { AgentTokenUsage } from '../../data/data_types'
+import { formatTokenCount } from './token_count'
 
 const TOKEN_NUMBER_FORMAT = new Intl.NumberFormat('en-US')
 const COST_NUMBER_FORMAT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 6, minimumFractionDigits: 2 })
@@ -27,7 +28,7 @@ export function AgentUsageDisplay(props: AgentUsageDisplayProps) {
     return (
         <Tooltip describeChild title={tooltipLabel}>
             <Typography component="span" sx={{ color: 'text.secondary', cursor: 'help' }} tabIndex={0} variant="caption">
-                tokens: {tokenCount(usage.totalTokens)}
+                tokens: {formatTokenCount(usage.totalTokens)}
             </Typography>
         </Tooltip>
     )

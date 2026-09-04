@@ -101,8 +101,8 @@ export function StatsContent() {
                 ) : (
                     <Box data-testid="stats-chart-viewport" sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                         {controls.dataset === 'usageComparison'
-                            ? <StatsUsageComparisonCharts rows={snapshot.rows} />
-                            : <StatsBarChart mode={chartMode} rows={snapshot.rows} />}
+                            ? <StatsUsageComparisonCharts rows={snapshot.rows} shortTokenCounts={snapshot.controls.shortTokenCounts} />
+                            : <StatsBarChart mode={chartMode} rows={snapshot.rows} shortTokenCounts={snapshot.controls.shortTokenCounts} />}
                     </Box>
                 )}
             </Paper>
