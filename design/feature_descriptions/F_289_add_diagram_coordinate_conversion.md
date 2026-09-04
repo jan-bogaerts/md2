@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: cd8c317c-a566-4ec1-bc4b-e598c892ea89
+branch: f_289_add_diagram_coordinate_conversion
+worktree: 3
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
