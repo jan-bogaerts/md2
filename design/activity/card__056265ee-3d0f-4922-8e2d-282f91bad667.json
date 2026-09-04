@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "056265ee-3d0f-4922-8e2d-282f91bad667",
       "cardPath": "design/feature_descriptions/F_272_board_columns_in_hamburger_menu.md",
-      "completedAt": null,
+      "completedAt": "2026-09-04T17:27:59.899Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 65593
@@ -354,17 +354,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 26,
-          "timestamp": "2026-09-04T17:27:59.546Z"
+          "timestamp": "2026-09-04T17:27:59.899Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-1499d6c8-2014-4a88-8bbb-c1594215c3f2",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a06d75-28de-79d2-ac76-9a485101ef9e",
+          "createdAt": "2026-09-04T17:27:59.899Z",
+          "lastUsedAt": "2026-09-04T17:27:59.899Z",
+          "synchronizedThroughMessageId": "agent-turn-212b1b3c-735c-42cc-8441-4b180385c332-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-09-04T17:26:29.646Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-04T17:26:29.646Z"
+        "elapsedMs": 90253,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
