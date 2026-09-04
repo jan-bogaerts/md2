@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__71998afb-3b7f-4da7-87e4-95e5c931a702.json
 policy:
 after: cd8c317c-a566-4ec1-bc4b-e598c892ea89
 branch: f_289_add_diagram_coordinate_conversion
