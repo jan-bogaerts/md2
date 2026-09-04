@@ -62,6 +62,8 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
     )
     const settings = useActionRunSettings(action, settingsStore)
     const prepare = action.type === 'agent'
+        && boundRunId === null
+        && !conversationSnapshot.loading
         && !sessionActive
         && runStatus !== 'completed'
         && conversationSnapshot.selectedConversation === null

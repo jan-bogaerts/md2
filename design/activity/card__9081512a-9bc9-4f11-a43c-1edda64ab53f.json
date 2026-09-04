@@ -534,16 +534,32 @@
           "role": "assistant",
           "sequence": 39,
           "timestamp": "2026-09-04T15:22:59.878Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-6f43cf62-107c-4448-b490-bfa745a98164-user-39",
+          "kind": "message",
+          "role": "user",
+          "sequence": 40,
+          "timestamp": "2026-09-04T15:27:55.242Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-8b0e381d-92a1-49a6-b993-aaff02f8e08a",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a06d02-83dc-7a11-b51d-90bac4aa392e",
+          "createdAt": "2026-09-04T15:22:59.878Z",
+          "lastUsedAt": "2026-09-04T15:22:59.878Z",
+          "synchronizedThroughMessageId": "agent-turn-6f43cf62-107c-4448-b490-bfa745a98164-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-09-04T15:21:15.946Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-04T15:21:15.946Z"
+        "elapsedMs": 103932,
+        "runningStartedAt": "2026-09-04T15:27:55.242Z"
       },
       "title": "fix bug",
       "usage": {

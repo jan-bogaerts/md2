@@ -1432,11 +1432,11 @@
         "agent-2acfc82f-f4f5-4d68-9473-eb86dec479ff"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-3e671da5-677b-4935-9702-d873decb02f0",
       "origin": {
@@ -1445,9 +1445,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-2acfc82f-f4f5-4d68-9473-eb86dec479ff",
       "startedAt": "2026-09-04T15:15:58.527Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-2acfc82f-f4f5-4d68-9473-eb86dec479ff"
     }
   ],
   "version": 5
