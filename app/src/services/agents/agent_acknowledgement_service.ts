@@ -6,8 +6,10 @@ import { dialogService } from '../dialog_service'
 import { register } from '../service_injector'
 
 const UNSEEN_STATUSES = new Set<ActionRunStatus>(['completed', 'failed', 'waitingForInput'])
+const PROJECT_SCOPE_KEY = 'project'
 
 type ResolveStoredConversation = (conversation: AgentConversation) => AgentConversation | null
+export type AgentConversationScope = string | null
 
 /** Event type dispatched for aggregate acknowledgement changes on one card. */
 export function cardAcknowledgementEvent(cardInternalId: string) {
@@ -19,8 +21,11 @@ export function actionAcknowledgementEvent(cardInternalId: string, actionId: str
     return `action-${cardInternalId}-${actionId}`
 }
 
-function conversationKey(cardInternalId: string, actionId: string, conversationId: string) {
-    return `${cardInternalId}-${actionId}-${conversationId}`
+/** Event type dispatched for project-origin conversation changes. */
+export const PROJECT_ACKNOWLEDGEMENT_EVENT = 'project-conversations'
+
+function conversationKey(scope: AgentConversationScope, actionId: string, conversationId: string) {
+    return `${scope ?? PROJECT_SCOPE_KEY}-${actionId}-${conversationId}`
 }
 
 async function persistConversationViewed(reference: string, viewed: boolean) {
@@ -52,21 +57,26 @@ export class AgentAcknowledgementService extends EventTarget {
     }
 
     /** Announce acknowledgement-relevant conversation changes to the scoped card and card-action subscribers. */
-    announceConversationsChanged(cardInternalId: string, actionIds: string[]) {
-        for (const actionId of new Set(actionIds)) {
-            this.dispatchEvent(new Event(actionAcknowledgementEvent(cardInternalId, actionId)))
+    announceConversationsChanged(scope: AgentConversationScope, actionIds: string[]) {
+        if (scope === null) {
+            this.dispatchEvent(new Event(PROJECT_ACKNOWLEDGEMENT_EVENT))
+            return
         }
-        this.dispatchEvent(new Event(cardAcknowledgementEvent(cardInternalId)))
+
+        for (const actionId of new Set(actionIds)) {
+            this.dispatchEvent(new Event(actionAcknowledgementEvent(scope, actionId)))
+        }
+        this.dispatchEvent(new Event(cardAcknowledgementEvent(scope)))
     }
 
     setConversationVisible(
         entryId: string,
-        cardInternalId: string,
+        scope: AgentConversationScope,
         actionId: string,
         conversation: AgentConversation,
         visible: boolean,
     ) {
-        const key = conversationKey(cardInternalId, actionId, conversation.id)
+        const key = conversationKey(scope, actionId, conversation.id)
         const entries = this.visibleEntries.get(key) ?? new Set<string>()
         if (visible) entries.add(entryId)
         else entries.delete(entryId)
@@ -74,23 +84,26 @@ export class AgentAcknowledgementService extends EventTarget {
         else this.visibleEntries.delete(key)
         const current = this.resolveStoredConversation?.(conversation) ?? conversation
         if (visible && !current.viewed) {
-            void this.setViewed(cardInternalId, actionId, conversation, true).catch(() => undefined)
+            void this.setViewed(scope, actionId, conversation, true).catch(() => undefined)
         }
     }
 
-    async setViewed(cardInternalId: string, actionId: string, conversation: AgentConversation, viewed: boolean) {
+    async setViewed(scope: AgentConversationScope, actionId: string, conversation: AgentConversation, viewed: boolean) {
         const current = this.resolveStoredConversation?.(conversation) ?? conversation
         if (current.viewed === viewed) return current
 
         try {
             await persistConversationViewed(conversation.path, viewed)
         } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Card conversation view state could not be saved' })
+            const fallbackMessage = scope === null
+                ? 'Project conversation view state could not be saved'
+                : 'Card conversation view state could not be saved'
+            dialogService.error(error, { fallbackMessage })
             throw error
         }
         current.viewed = viewed
         conversation.viewed = viewed
-        this.announceConversationsChanged(cardInternalId, [actionId])
+        this.announceConversationsChanged(scope, [actionId])
 
         return current
     }
@@ -107,12 +120,12 @@ export class AgentAcknowledgementService extends EventTarget {
         if (previousStatus === event.status || !UNSEEN_STATUSES.has(event.status)) return
 
         const conversation = actionRunRegistry.getRunStore(event.runId)?.getSnapshot().conversation ?? null
-        const cardInternalId = event.context.cardInternalId
+        const scope = event.context.cardInternalId ?? null
         const actionId = conversation?.actionId
-        if (!cardInternalId || !conversation || !actionId) return
-        if ((this.visibleEntries.get(conversationKey(cardInternalId, actionId, conversation.id))?.size ?? 0) > 0) return
+        if (!conversation || !actionId) return
+        if ((this.visibleEntries.get(conversationKey(scope, actionId, conversation.id))?.size ?? 0) > 0) return
 
-        void this.setViewed(cardInternalId, actionId, conversation, false).catch(() => undefined)
+        void this.setViewed(scope, actionId, conversation, false).catch(() => undefined)
     }
 
 }

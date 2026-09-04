@@ -1,5 +1,6 @@
 import { Box, Fab, Tooltip } from '@mui/material';
-import { useRef, useState } from 'react';
+import type { SxProps, Theme } from '@mui/material';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MouseEvent, ReactNode, PointerEvent as ReactPointerEvent } from 'react';
 
 const FAB_MARGIN = 16;
@@ -22,29 +23,47 @@ interface MovableFabProps {
     ariaLabel: string;
     children: ReactNode;
     disabled?: boolean;
+    fabSx?: SxProps<Theme>;
     onActivate: (anchorElement: HTMLElement) => void;
     onDragStart?: () => void;
     tooltip: string;
 }
 
 function initialPosition(): FabPosition {
-    return {
-        left: Math.max(FAB_MARGIN, window.innerWidth - FAB_SIZE - FAB_MARGIN),
-        top: Math.max(FAB_MARGIN, window.innerHeight - FAB_SIZE - FAB_MARGIN),
-    };
+    return clampPosition(window.innerWidth - FAB_SIZE - FAB_MARGIN, window.innerHeight - FAB_SIZE - FAB_MARGIN);
+}
+
+function clampAxisPosition(position: number, viewportSize: number) {
+    const availableSpace = Math.max(0, viewportSize - FAB_SIZE);
+    const margin = Math.min(FAB_MARGIN, availableSpace / 2);
+
+    return Math.min(Math.max(position, margin), availableSpace - margin);
 }
 
 function clampPosition(left: number, top: number): FabPosition {
     return {
-        left: Math.min(Math.max(left, FAB_MARGIN), Math.max(FAB_MARGIN, window.innerWidth - FAB_SIZE - FAB_MARGIN)),
-        top: Math.min(Math.max(top, FAB_MARGIN), Math.max(FAB_MARGIN, window.innerHeight - FAB_SIZE - FAB_MARGIN)),
+        left: clampAxisPosition(left, window.innerWidth),
+        top: clampAxisPosition(top, window.innerHeight),
     };
 }
 
 /** Primary floating launcher with viewport-bounded pointer dragging and click-after-drag suppression. */
-export function MovableFab({ ariaLabel, children, disabled = false, onActivate, onDragStart, tooltip }: MovableFabProps) {
+export function MovableFab({ ariaLabel, children, disabled = false, fabSx, onActivate, onDragStart, tooltip }: MovableFabProps) {
     const [position, setPosition] = useState(initialPosition);
     const dragRef = useRef<DragState | null>(null);
+    const handleResize = useCallback(() => {
+        setPosition((current) => {
+            const clamped = clampPosition(current.left, current.top);
+
+            return clamped.left === current.left && clamped.top === current.top ? current : clamped;
+        });
+    }, []);
+
+    useEffect(() => {
+        window.addEventListener('resize', handleResize);
+
+        return () => window.removeEventListener('resize', handleResize);
+    }, [handleResize]);
 
     const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
         dragRef.current = {
@@ -102,6 +121,7 @@ export function MovableFab({ ariaLabel, children, disabled = false, onActivate, 
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerUp}
+                    sx={fabSx}
                 >
                     {children}
                 </Fab>

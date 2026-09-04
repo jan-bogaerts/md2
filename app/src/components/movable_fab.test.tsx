@@ -44,4 +44,43 @@ describe('MovableFab', () => {
         fireEvent.click(button);
         expect(onActivate).toHaveBeenCalledWith(button);
     });
+
+    it('re-clamps both axes after viewport resize and leaves in-bounds coordinates unchanged', () => {
+        render(<MovableFab ariaLabel="Launcher" onActivate={vi.fn()} tooltip="Launcher">Open</MovableFab>, {wrapper: AppThemeProvider});
+        const position = screen.getByTestId('movable-fab-position');
+
+        expect(position).toHaveStyle({ left: '1128px', top: '728px' });
+        fireEvent.resize(window);
+        expect(position).toHaveStyle({ left: '1128px', top: '728px' });
+
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 700 });
+        fireEvent.resize(window);
+
+        expect(position).toHaveStyle({ left: '628px', top: '428px' });
+    });
+
+    it('reduces margins when viewport cannot fit normal margins', () => {
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 66 });
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 76 });
+
+        render(<MovableFab ariaLabel="Launcher" onActivate={vi.fn()} tooltip="Launcher">Open</MovableFab>, {wrapper: AppThemeProvider});
+
+        expect(screen.getByTestId('movable-fab-position')).toHaveStyle({ left: '10px', top: '5px' });
+    });
+
+    it('removes resize listener on unmount', () => {
+        const addEventListener = vi.spyOn(window, 'addEventListener');
+        const removeEventListener = vi.spyOn(window, 'removeEventListener');
+        const { unmount } = render(
+            <MovableFab ariaLabel="Launcher" onActivate={vi.fn()} tooltip="Launcher">Open</MovableFab>,
+            {wrapper: AppThemeProvider},
+        );
+        const resizeListener = addEventListener.mock.calls.find(([eventType]) => String(eventType) === 'resize')?.[1];
+        if (!resizeListener) throw new Error('Missing resize listener');
+
+        unmount();
+
+        expect(removeEventListener).toHaveBeenCalledWith('resize', resizeListener);
+    });
 });

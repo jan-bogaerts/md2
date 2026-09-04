@@ -3,6 +3,7 @@ import {
     actionAcknowledgementEvent,
     agentAcknowledgementService,
     cardAcknowledgementEvent,
+    PROJECT_ACKNOWLEDGEMENT_EVENT,
 } from '../../services/agents/agent_acknowledgement_service'
 import { cardAgentState, latestUnseenConversation } from '../../services/agents/card_agent_state'
 import { dataService } from '../../services/data/data_service'
@@ -32,6 +33,18 @@ export function useCardAgentState(cardInternalId: string | null | undefined) {
             : () => undefined
     ), [cardInternalId])
     const getSnapshot = useCallback(() => cardAgentState(cardConversations(cardInternalId)), [cardInternalId])
+
+    return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
+/** Project agent state backed by project-origin conversations in AgentIntegration. */
+export function useProjectAgentState() {
+    const subscribe = useCallback((onStoreChange: () => void) => (
+        subscribeToAcknowledgements([PROJECT_ACKNOWLEDGEMENT_EVENT], onStoreChange)
+    ), [])
+    const getSnapshot = useCallback(() => (
+        cardAgentState(dataService.agents.getProjectAgentConversationsSnapshot())
+    ), [])
 
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }

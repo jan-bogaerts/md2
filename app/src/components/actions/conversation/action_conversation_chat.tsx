@@ -38,18 +38,19 @@ export function ActionConversationChat(
         () => cardPopupService.getSnapshot(),
     )
     const conversation = resolveDisplayedConversation(liveConversation, selectedConversation)
-    const cardInternalId = context.cardInternalId
-    const visible = !!popupEntryId && popupEntries.at(-1)?.id === popupEntryId && !!cardInternalId && !!conversation
+    const scope = context.cardInternalId ?? null
+    const popupVisible = context.kind === 'project' || popupEntries.at(-1)?.id === popupEntryId
+    const visible = !!popupEntryId && popupVisible && !!conversation
 
     useEffect(() => {
-        if (!popupEntryId || !cardInternalId || !conversation) return undefined
+        if (!popupEntryId || !conversation) return undefined
 
-        agentAcknowledgementService.setConversationVisible(popupEntryId, cardInternalId, actionId, conversation, visible)
+        agentAcknowledgementService.setConversationVisible(popupEntryId, scope, actionId, conversation, visible)
 
         return () => agentAcknowledgementService.setConversationVisible(
-            popupEntryId, cardInternalId, actionId, conversation, false,
+            popupEntryId, scope, actionId, conversation, false,
         )
-    }, [actionId, cardInternalId, conversation, popupEntryId, visible])
+    }, [actionId, conversation, popupEntryId, scope, visible])
 
     return (
         <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>

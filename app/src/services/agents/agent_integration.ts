@@ -117,6 +117,7 @@ export class AgentIntegration {
         this.projectLoadCompleted = false
         this.reportedLoadErrorKeys.clear()
         agentAcknowledgementService.reset()
+        agentAcknowledgementService.announceConversationsChanged(null, [])
     }
 
     /** Resolves the loaded record matching a conversation, so view changes update the canonical instance. */
@@ -187,6 +188,11 @@ export class AgentIntegration {
         return this.projectConversations
     }
 
+    /** Stable project-origin conversation array replaced only when project conversation data changes. */
+    getProjectAgentConversationsSnapshot() {
+        return this.projectConversations
+    }
+
     prepareProjectConversationLoad(projectLoadToken: number) {
         if (this.currentProjectLoadToken === projectLoadToken) return
 
@@ -227,7 +233,9 @@ export class AgentIntegration {
         ))
         if (!this.canApplyLoad(generation, project, projectLoadToken)) return
 
-        this.projectConversations = conversations.filter(({ cardInternalId }) => cardInternalId === null)
+        const loadedProjectConversations = conversations.filter(({ cardInternalId }) => cardInternalId === null)
+        this.projectConversations = preferExistingConversations(this.projectConversations, loadedProjectConversations)
+        agentAcknowledgementService.announceConversationsChanged(null, [])
     }
 
     private loadCardConversations(cardInternalId: string, project: ProjectReference, projectLoadToken: number) {
@@ -385,6 +393,15 @@ export class AgentIntegration {
         if (
             event.type === 'update'
             && (event.update.kind === 'agentStarted' || event.update.kind === 'agentClosed')
+            && !event.context.cardInternalId
+        ) {
+            this.upsertProjectConversation(event.update.conversation)
+            return
+        }
+
+        if (
+            event.type === 'update'
+            && (event.update.kind === 'agentStarted' || event.update.kind === 'agentClosed')
             && event.context.kind === 'card'
             && event.context.file
         ) {
@@ -402,6 +419,14 @@ export class AgentIntegration {
         this.projectConversations = this.projectConversations.map((current) => (
             current.id === conversation.id ? conversation : current
         ))
+        agentAcknowledgementService.announceConversationsChanged(null, [])
+    }
+
+    private upsertProjectConversation(conversation: AgentConversation) {
+        this.projectConversations = this.projectConversations.some(({ id }) => id === conversation.id)
+            ? this.projectConversations.map((current) => current.id === conversation.id ? conversation : current)
+            : [...this.projectConversations, conversation]
+        agentAcknowledgementService.announceConversationsChanged(null, [])
     }
 
     private upsertAgentConversation(cardInternalId: string, conversation: AgentConversation) {
