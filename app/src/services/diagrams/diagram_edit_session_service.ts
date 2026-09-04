@@ -40,8 +40,13 @@ const SESSION_CHANGED_EVENT = 'sessionChanged'
 const TOOLBOX_SECTION_CHANGED_EVENT = 'toolboxSectionChanged'
 const ACTIVE_TOOL_CHANGED_EVENT = 'activeToolChanged'
 const TRANSIENT_GESTURE_CHANGED_EVENT = 'transientGestureChanged'
+const VIEWPORT_SCALE_CHANGED_EVENT = 'viewportScaleChanged'
 const EMPTY_IDS: readonly string[] = Object.freeze([])
 const MAX_ID_GENERATION_ATTEMPTS = 100
+
+export const DEFAULT_DIAGRAM_ZOOM = 1
+export const DIAGRAM_ZOOM_STEP = 0.25
+export const MAXIMUM_DIAGRAM_ZOOM = 2
 
 export type DiagramCollectionKind = 'edge' | 'fragment' | 'group' | 'node'
 export type DiagramObjectKind = DiagramCollectionKind | 'connectionPoint' | 'entityField' | 'meta'
@@ -309,6 +314,7 @@ export class DiagramEditSessionService extends EventTarget {
     private readonly sourceService: DiagramSourceService
     private transientGesture: DiagramTransientGesture | null = null
     private unsubscribeSource: (() => void) | null = null
+    private viewportScale = DEFAULT_DIAGRAM_ZOOM
 
     constructor(
         sourceService: DiagramSourceService = diagramViewService,
@@ -328,6 +334,8 @@ export class DiagramEditSessionService extends EventTarget {
     getActiveToolboxSectionSnapshot = () => this.activeToolboxSection
 
     getTransientGestureSnapshot = () => this.transientGesture
+
+    getViewportScaleSnapshot = () => this.viewportScale
 
     getChangeIdsSnapshot = () => this.changeIds
 
@@ -444,6 +452,8 @@ export class DiagramEditSessionService extends EventTarget {
 
     subscribeTransientGesture = (listener: () => void) => this.subscribe(TRANSIENT_GESTURE_CHANGED_EVENT, listener)
 
+    subscribeViewportScale = (listener: () => void) => this.subscribe(VIEWPORT_SCALE_CHANGED_EVENT, listener)
+
     subscribeChangeIds = (listener: () => void) => this.subscribe(CHANGE_IDS_CHANGED_EVENT, listener)
 
     subscribeChangeField = (changeId: string, field: DiagramChangeField, listener: () => void) => (
@@ -529,6 +539,7 @@ export class DiagramEditSessionService extends EventTarget {
         this.clearChangeRegistry()
         this.resetActiveToolboxSection()
         this.resetActiveInteraction()
+        this.resetViewportScale()
         this.edgesById = indexById(editableDiagram.edges)
         this.fragmentsById = indexById(editableDiagram.fragments ?? [])
         this.groupsById = indexById(editableDiagram.groups)
@@ -556,6 +567,7 @@ export class DiagramEditSessionService extends EventTarget {
         this.clearChangeRegistry()
         this.resetActiveToolboxSection()
         this.resetActiveInteraction()
+        this.resetViewportScale()
         this.edgesById.clear()
         this.fragmentsById.clear()
         this.groupsById.clear()
@@ -613,6 +625,17 @@ export class DiagramEditSessionService extends EventTarget {
         if (!this.session) return false
 
         return this.resetActiveInteraction()
+    }
+
+    zoomIn() {
+        if (!this.session) throw new Error('Cannot zoom diagram without an active edit session')
+        const scale = Math.min(this.viewportScale + DIAGRAM_ZOOM_STEP, MAXIMUM_DIAGRAM_ZOOM)
+        if (scale === this.viewportScale) return false
+
+        this.viewportScale = scale
+        this.dispatchEvent(new Event(VIEWPORT_SCALE_CHANGED_EVENT))
+
+        return true
     }
 
     setMetadataField<Field extends MutableDiagramMetaField>(field: Field, value: DiagramMeta[Field]) {
@@ -1529,6 +1552,13 @@ export class DiagramEditSessionService extends EventTarget {
         if (toolChanged) this.dispatchEvent(new Event(ACTIVE_TOOL_CHANGED_EVENT))
 
         return gestureChanged || toolChanged
+    }
+
+    private resetViewportScale() {
+        if (this.viewportScale === DEFAULT_DIAGRAM_ZOOM) return
+
+        this.viewportScale = DEFAULT_DIAGRAM_ZOOM
+        this.dispatchEvent(new Event(VIEWPORT_SCALE_CHANGED_EVENT))
     }
 
     private subscribe(eventType: string, listener: () => void) {

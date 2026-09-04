@@ -5,6 +5,11 @@ import type {
     DiagramTransientGesture,
     DiagramToolboxSection,
 } from '../../services/diagrams/diagram_edit_session_service';
+import {
+    DEFAULT_DIAGRAM_ZOOM,
+    DIAGRAM_ZOOM_STEP,
+    MAXIMUM_DIAGRAM_ZOOM,
+} from '../../services/diagrams/diagram_edit_session_service';
 import { DiagramToolbox } from './diagram_toolbox';
 import { DiagramToolboxActionButton } from './diagram_toolbox_action_button';
 import { DiagramToolboxButton } from './diagram_toolbox_button';
@@ -13,10 +18,12 @@ class ToolboxSessionStub extends EventTarget {
     private activeSection: DiagramToolboxSection = 'edit';
     private activeTool: DiagramPersistentTool = 'select';
     private transientGesture: DiagramTransientGesture | null = null;
+    private viewportScale = DEFAULT_DIAGRAM_ZOOM;
 
     readonly getActiveToolboxSectionSnapshot = () => this.activeSection;
     readonly getActiveToolSnapshot = () => this.activeTool;
     readonly getTransientGestureSnapshot = () => this.transientGesture;
+    readonly getViewportScaleSnapshot = () => this.viewportScale;
 
     readonly subscribeActiveTool = (listener: () => void) => {
         this.addEventListener('toolChanged', listener);
@@ -34,6 +41,12 @@ class ToolboxSessionStub extends EventTarget {
         this.addEventListener('gestureChanged', listener);
 
         return () => this.removeEventListener('gestureChanged', listener);
+    };
+
+    readonly subscribeViewportScale = (listener: () => void) => {
+        this.addEventListener('viewportScaleChanged', listener);
+
+        return () => this.removeEventListener('viewportScaleChanged', listener);
     };
 
     setActiveTool(tool: DiagramPersistentTool) {
@@ -63,6 +76,16 @@ class ToolboxSessionStub extends EventTarget {
     setActiveToolboxSection(section: DiagramToolboxSection) {
         this.activeSection = section;
         this.dispatchEvent(new Event('sectionChanged'));
+    }
+
+    zoomIn() {
+        const viewportScale = Math.min(this.viewportScale + DIAGRAM_ZOOM_STEP, MAXIMUM_DIAGRAM_ZOOM);
+        if (viewportScale === this.viewportScale) return false;
+
+        this.viewportScale = viewportScale;
+        this.dispatchEvent(new Event('viewportScaleChanged'));
+
+        return true;
     }
 }
 
@@ -100,6 +123,7 @@ describe('DiagramToolbox', () => {
         ]);
         expect(screen.getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('button', { name: 'Select' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'Zoom in' })).not.toHaveAttribute('aria-pressed');
 
         fireEvent.mouseOver(screen.getByRole('tab', { name: 'Nodes' }));
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Nodes');
@@ -109,6 +133,24 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('tab', { name: 'Nodes' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tabpanel')).toHaveStyle({ display: 'flex', flexWrap: 'wrap' });
         expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
+    });
+
+    it('zooms by one step without changing persistent tool and disables at maximum', async () => {
+        const session = new ToolboxSessionStub();
+        session.setActiveTool('node:component');
+        render(<DiagramToolbox boundaryElement={createBoundary()} session={session} />);
+        const button = screen.getByRole('button', { name: 'Zoom in' });
+
+        fireEvent.mouseOver(button);
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Zoom in');
+        fireEvent.click(button);
+        expect(session.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM + DIAGRAM_ZOOM_STEP);
+        expect(session.getActiveToolSnapshot()).toBe('node:component');
+
+        const remainingSteps = (MAXIMUM_DIAGRAM_ZOOM - session.getViewportScaleSnapshot()) / DIAGRAM_ZOOM_STEP;
+        Array.from({ length: remainingSteps }).forEach(() => fireEvent.click(button));
+        expect(session.getViewportScaleSnapshot()).toBe(MAXIMUM_DIAGRAM_ZOOM);
+        expect(button).toBeDisabled();
     });
 
     it('returns to Select when Escape cancels an active gesture', () => {

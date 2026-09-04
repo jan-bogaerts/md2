@@ -106,13 +106,14 @@ describe('TabbedDiagramComparison', () => {
         const [currentTab, newTab] = screen.getAllByRole('tab')
         const currentPanel = panelForTab(currentTab)
         const newPanel = panelForTab(newTab)
+        const newScroller = within(newPanel).getByLabelText('New diagram scroller')
         const currentNode = within(currentPanel).getByRole('button', { name: 'Orders' })
         currentPanel.scrollTop = 31
         await user.click(currentNode)
 
         await user.click(newTab)
         const newNode = within(newPanel).getByRole('button', { name: 'Orders' })
-        newPanel.scrollTop = 47
+        newScroller.scrollTop = 47
         act(() => {
             session.setActiveToolboxSection('nodes')
             session.setNodeField('orders', 'label', 'Order intake')
@@ -126,7 +127,7 @@ describe('TabbedDiagramComparison', () => {
 
         await user.click(newTab)
         expect(panelForTab(newTab)).toBe(newPanel)
-        expect(newPanel.scrollTop).toBe(47)
+        expect(newScroller.scrollTop).toBe(47)
         expect(within(newPanel).getByRole('button', { name: 'Order intake' })).toBe(newNode)
         expect(session.getActiveToolboxSectionSnapshot()).toBe('nodes')
         expect(session.getDirtySnapshot()).toBe(true)

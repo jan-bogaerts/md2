@@ -14,8 +14,8 @@ import {
 } from './diagram_comparison_layout_service'
 import { DiagramRenderer } from './diagram_renderer'
 import type { DiagramSelection } from './diagram_selection'
-import { EditableDiagram } from './editable_diagram'
 import { DiagramToolbox } from './diagram_toolbox'
+import { DiagramZoomViewport } from './diagram_zoom_viewport'
 
 const MINIMUM_PANE_HEIGHT = 160
 const SEPARATOR_HEIGHT = 6
@@ -31,7 +31,6 @@ interface DiagramComparisonProps {
 }
 
 const CurrentDiagram = memo(DiagramRenderer)
-const NewDiagram = memo(EditableDiagram)
 
 function availablePaneHeight(containerHeight: number) {
     return Math.max(containerHeight - SEPARATOR_HEIGHT, 0)
@@ -164,12 +163,7 @@ export function DiagramComparison({
                 sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'relative' }}
             >
                 <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
-                <Box
-                    aria-label="New diagram scroller"
-                    sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2, pb: 2, pt: 1 }}
-                >
-                    <NewDiagram geometry={geometry} session={session} />
-                </Box>
+                <DiagramZoomViewport geometry={geometry} session={session} />
                 <DiagramToolbox boundaryElement={newViewportElement} session={session} />
             </Paper>
         </Box>

@@ -10,7 +10,7 @@ import {
 } from './diagram_comparison_layout_service'
 import { DiagramRenderer } from './diagram_renderer'
 import type { DiagramSelection } from './diagram_selection'
-import { EditableDiagram } from './editable_diagram'
+import { DiagramZoomViewport } from './diagram_zoom_viewport'
 
 interface TabbedDiagramComparisonProps {
     currentDiagram: PositionedDiagramData
@@ -21,7 +21,6 @@ interface TabbedDiagramComparisonProps {
 }
 
 const CurrentDiagram = memo(DiagramRenderer)
-const NewDiagram = memo(EditableDiagram)
 
 /** Accessible tab layout that keeps both diagram surfaces mounted and their view state intact. */
 export function TabbedDiagramComparison({
@@ -84,10 +83,10 @@ export function TabbedDiagramComparison({
                 hidden={activeTab !== 'new'}
                 id={newPanelId}
                 role="tabpanel"
-                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, flex: 1, minHeight: 0, overflow: 'auto', p: 2 }}
+                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
             >
-                <Typography color="custom.colHead" sx={{ mb: 1 }} variant="overline">New</Typography>
-                <NewDiagram geometry={geometry} session={session} />
+                <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
+                <DiagramZoomViewport geometry={geometry} session={session} />
             </Paper>
         </Box>
     )

@@ -10,6 +10,7 @@ import {
 } from '../../services/diagrams/diagram_edit_session_service';
 import { ResizablePopper } from '../resizable_popper';
 import { DiagramToolboxToolButton } from './diagram_toolbox_tool_button';
+import { DiagramZoomInButton } from './diagram_zoom_in_button';
 import { useCancelDiagramInteractionOnEscape } from './use_diagram_tool';
 
 const DIAGRAM_TOOLBOX_SIZE_STORAGE_KEY = 'md2.diagramToolboxSize';
@@ -28,11 +29,14 @@ interface DiagramToolboxProps {
     session?: {
         getActiveToolboxSectionSnapshot: () => DiagramToolboxSection;
         getActiveToolSnapshot: () => DiagramPersistentTool;
+        getViewportScaleSnapshot: () => number;
         cancelActiveInteraction: () => boolean;
         setActiveTool: (tool: DiagramPersistentTool) => void;
         setActiveToolboxSection: (section: DiagramToolboxSection) => void;
         subscribeActiveTool: (listener: () => void) => () => void;
         subscribeActiveToolboxSection: (listener: () => void) => () => void;
+        subscribeViewportScale: (listener: () => void) => () => void;
+        zoomIn: () => boolean;
     };
 }
 
@@ -109,12 +113,15 @@ export function DiagramToolbox({
                     sx={{ alignContent: 'flex-start', display: 'flex', flex: 1, flexWrap: 'wrap', gap: 1, overflow: 'auto', p: 1.5 }}
                 >
                     {activeSection === 'edit' && (
-                        <DiagramToolboxToolButton
-                            label="Select"
-                            session={session}
-                            tool="select"
-                            tooltip="Select diagram objects"
-                        />
+                        <>
+                            <DiagramToolboxToolButton
+                                label="Select"
+                                session={session}
+                                tool="select"
+                                tooltip="Select diagram objects"
+                            />
+                            <DiagramZoomInButton session={session} />
+                        </>
                     )}
                 </Box>
             </ResizablePopper>

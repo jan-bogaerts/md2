@@ -14,7 +14,7 @@ import {
 } from './diagram_comparison_layout_service'
 import { DiagramRenderer } from './diagram_renderer'
 import type { DiagramSelection } from './diagram_selection'
-import { EditableDiagram } from './editable_diagram'
+import { DiagramZoomViewport } from './diagram_zoom_viewport'
 
 const MINIMUM_PANE_WIDTH = 240
 const SEPARATOR_WIDTH = 6
@@ -59,10 +59,10 @@ const NewDiagramPane = memo(function NewDiagramPane({ geometry, session }: NewDi
             aria-label="New"
             elevation={0}
             role="region"
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, minWidth: 0, overflow: 'auto', p: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}
         >
-            <Typography color="custom.colHead" sx={{ mb: 1 }} variant="overline">New</Typography>
-            <EditableDiagram geometry={geometry} session={session} />
+            <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
+            <DiagramZoomViewport geometry={geometry} session={session} />
         </Paper>
     )
 })

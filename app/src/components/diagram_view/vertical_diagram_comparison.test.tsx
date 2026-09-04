@@ -86,7 +86,8 @@ describe('VerticalDiagramComparison', () => {
         expect(separator).toHaveAttribute('aria-orientation', 'vertical')
         expect(comparison).toHaveStyle({ minWidth: '486px' })
         expect(current).toHaveStyle({ overflow: 'auto' })
-        expect(next).toHaveStyle({ overflow: 'auto' })
+        expect(next).toHaveStyle({ overflow: 'hidden' })
+        expect(within(next).getByLabelText('New diagram scroller')).toHaveStyle({ overflow: 'auto' })
     })
 
     it('keeps diagram edits isolated from Current and comparison pane roots', () => {
