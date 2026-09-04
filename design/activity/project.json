@@ -17020,7 +17020,7 @@
       "actionId": "21471796-1562-448a-b7cb-623599dabcea",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-04T08:44:55.467Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 30854
@@ -17534,17 +17534,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 42,
-          "timestamp": "2026-09-04T08:44:25.066Z"
+          "timestamp": "2026-09-04T08:44:55.467Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-0a394014-a5b7-4e63-b6da-f12b980bdf42",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a06b96-ba9e-77b0-8810-09d39917cf9b",
+          "createdAt": "2026-09-04T08:44:25.066Z",
+          "lastUsedAt": "2026-09-04T08:44:55.467Z",
+          "synchronizedThroughMessageId": "agent-turn-6ac36c32-b9ba-4e0d-82b1-8ebf94a0d3af-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-09-04T08:39:03.110Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 251832,
-        "runningStartedAt": "2026-09-04T08:43:55.220Z"
+        "elapsedMs": 281678,
+        "runningStartedAt": null
       },
       "title": "prepare project",
       "usage": {
