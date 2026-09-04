@@ -1002,13 +1002,50 @@
         "costUsd": 2.512864
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "c632a2b7-9a1a-4c98-b42d-79d3c26fa0c8",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "e0f25f2a67a3b3c7766abf1037d68690ccc86b80",
+          "committedAt": "2026-09-04T19:33:57+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_330_shorten_token_count.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 80
+        }
+      ],
+      "completedAt": "2026-09-04T17:33:58.276Z",
+      "conversationIds": [
+        "agent-ddacc657-6ba9-4f08-8e6f-633a8fed9c80"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-476fd4dc-a5e1-4152-8458-893bf526368f",
+      "origin": {
+        "cardInternalId": "c632a2b7-9a1a-4c98-b42d-79d3c26fa0c8",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-ddacc657-6ba9-4f08-8e6f-633a8fed9c80",
+      "startedAt": "2026-09-04T17:24:06.500Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
