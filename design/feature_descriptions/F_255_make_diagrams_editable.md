@@ -63,7 +63,6 @@ changedFiles:
   - design/feature_descriptions/F_326_integrate_diagram_editor.md
   - design/feature_descriptions/F_327_save_edited_diagram_as_copy.md
   - design/feature_descriptions/F_328_make_diagram_edit_updates_granular.md
-after: 9081512a-9bc9-4f11-a43c-1edda64ab53f
 ---
 This is the umbrella for making JSON diagrams editable. The work is split into the focused jobs below.
 

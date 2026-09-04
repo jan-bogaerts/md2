@@ -8,10 +8,9 @@ owner:
 affects:
 agents:
 policy:
-after: 6e041d8b-7aca-4ab1-9be5-56d7e31d189c
+after: 71998afb-3b7f-4da7-87e4-95e5c931a702
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ A click invokes the selection service only. The clicked and previously selected 
 
 ## Dependencies
 
-[F_286](F_286_manage_active_diagram_tool.md) and [F_290](F_290_add_diagram_selection_service.md).
+[F\_286](F_286_manage_active_diagram_tool.md) and [F\_290](F_290_add_diagram_selection_service.md).

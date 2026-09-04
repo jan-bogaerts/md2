@@ -10,8 +10,7 @@ agents:
 policy:
 after: 056265ee-3d0f-4922-8e2d-282f91bad667
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -34,4 +33,4 @@ Coordinate conversion is a pure read of the relevant viewport metrics and zoom p
 
 ## Dependencies
 
-[F_280](F_280_add_current_and_new_diagram_comparison.md).
+[F\_280](F_280_add_current_and_new_diagram_comparison.md).

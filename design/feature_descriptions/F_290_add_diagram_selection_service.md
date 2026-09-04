@@ -3,12 +3,12 @@ author:
 id: F_290
 internalId: 6e041d8b-7aca-4ab1-9be5-56d7e31d189c
 title: add diagram selection service
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 71998afb-3b7f-4da7-87e4-95e5c931a702
+after: ec72c355-fcfa-4d53-ad26-3812fcb1c7ba
 ---
 
 Parent: [F_255](F_255_make_diagrams_editable.md).
