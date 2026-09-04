@@ -7,6 +7,10 @@ import type { MouseEvent } from 'react'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { actionsForContext, diagramContext } from '../../data/action_context'
 import { dialogService } from '../../services/dialog_service'
+import {
+    diagramEditSessionService, type DiagramEditSessionService,
+} from '../../services/diagrams/diagram_edit_session_service'
+import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
 import { useActions } from '../hooks/use_actions'
@@ -14,6 +18,7 @@ import { useWorkspaceView } from '../hooks/use_workspace_view'
 import { ActionPopup } from '../actions/run/popup/action_popup'
 import { MovableFab } from '../movable_fab'
 import { DiagramRenderer } from './diagram_renderer'
+import { DiagramComparison } from './diagram_comparison'
 import { DiagramLegend } from './diagram_legend'
 import type { DiagramSelection } from './diagram_selection'
 
@@ -24,13 +29,24 @@ function reportNavigationFailure(error: unknown) {
 }
 
 interface DiagramViewProps {
+    editSession?: DiagramEditSessionService
+    geometry?: DiagramGeometryService
     service?: DiagramViewService
 }
 
 /** Full workspace surface for navigating validated diagram data. */
-export function DiagramView({ service = diagramViewService }: DiagramViewProps) {
+export function DiagramView({
+    editSession = diagramEditSessionService,
+    geometry = diagramGeometryService,
+    service = diagramViewService,
+}: DiagramViewProps) {
     const { viewMode } = useWorkspaceView()
     const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot)
+    const editSessionSnapshot = useSyncExternalStore(
+        editSession.subscribeSession,
+        editSession.getSessionSnapshot,
+        editSession.getSessionSnapshot,
+    )
     const { actions } = useActions()
     const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions])
     const activeRecords = snapshot.index.activePath.map((id) => snapshot.index.diagrams[id])
@@ -127,7 +143,16 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
                 aria-label="Diagram scroller"
                 sx={{ alignItems: 'flex-start', display: 'flex', height: '100%', justifyContent: 'flex-start', overflow: 'auto' }}
             >
-                {snapshot.currentDiagram ? <DiagramRenderer data={snapshot.currentDiagram} onSelect={handleDiagramSelect} /> : null}
+                {snapshot.currentDiagram ? (
+                    editSessionSnapshot ? (
+                        <DiagramComparison
+                            currentDiagram={snapshot.currentDiagram}
+                            geometry={geometry}
+                            onCurrentSelect={handleDiagramSelect}
+                            session={editSession}
+                        />
+                    ) : <DiagramRenderer data={snapshot.currentDiagram} onSelect={handleDiagramSelect} />
+                ) : null}
             </Box>
             {snapshot.currentDiagram ? (
                 <DiagramLegend

@@ -86,7 +86,7 @@ written.
 | `width`, `height` | `DiagramNode` | Optional; positive finite multiple of four. |
 | `waypoints[].x`, `waypoints[].y` | `DiagramEdge` | Optional; at least two points; every segment orthogonal. |
 | Connection-point data | `DiagramEdge` source and target | Added by [F_274](../feature_descriptions/F_274_add_editable_connection_points.md) as node side plus relative offset. Persisted from the day F_274 adds it. |
-| `x`, `y`, `width`, `height` | `DiagramGroup` | **Moves from derived to persisted**, because F_255 requires independently positioned and sized groups. Schema and layout change assigned to [F_278](../feature_descriptions/F_278_make_diagram_layout_compatible_with_editing.md). Same optionality and same four-pixel grid rule as node geometry. Until a group carries these fields, it keeps today's box computed from member-node extents, so existing diagrams stay readable. |
+| `x`, `y`, `width`, `height` | `DiagramGroup` | **Persisted**, because F_255 requires independently positioned and sized groups. Schema and layout carry these fields since [F_278](../feature_descriptions/F_278_make_diagram_layout_compatible_with_editing.md); each field is optional and follows the same four-pixel grid rule as node geometry. A group that omits a field keeps the member-extent value for it, so existing diagrams stay readable. Member movement never recalculates a group box. |
 
 ### Derived geometry
 

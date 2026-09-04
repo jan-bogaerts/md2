@@ -13,11 +13,10 @@ const diagram: DiagramData = {
         to: 'store',
         targetAttachment: { nodeId: 'store', offset: 0.5, side: 'left' },
     }],
-    fragments: [{ id: 'transaction', operator: 'opt', regions: [{ edgeIds: ['orders-store'], guard: 'requested' }] }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
     nodes: [
-        { fields: [{ key: 'primary', name: 'id', type: 'uuid' }], id: 'orders', label: 'Orders', role: 'focal' },
+        { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
 }
@@ -26,12 +25,39 @@ const sequenceDiagram: DiagramData = {
         { from: 'user', id: 'user-orders', kind: 'call', to: 'orders' },
         { from: 'orders', id: 'orders-user', kind: 'return', to: 'user' },
     ],
-    fragments: [{ id: 'transaction', operator: 'opt', regions: [{ edgeIds: ['user-orders'], guard: 'requested' }] }],
+    fragments: [{ id: 'transaction', operator: 'opt', regions: [{ edgeIds: ['user-orders', 'orders-user'], guard: 'requested' }] }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders'] }],
     meta: { description: 'Order call flow', title: 'Calls', type: 'sequence', version: 1 },
     nodes: [
         { id: 'user', kind: 'participant', label: 'User', role: 'external' },
         { id: 'orders', kind: 'participant', label: 'Orders', role: 'focal' },
+    ],
+}
+const entityDiagram: DiagramData = {
+    edges: [{ from: 'order', fromCardinality: '1', id: 'order-item', kind: 'relationship', to: 'item', toCardinality: 'N' }],
+    groups: [],
+    meta: { description: 'Order entities', title: 'Entities', type: 'entity', version: 1 },
+    nodes: [
+        { fields: [{ key: 'primary', name: 'id', type: 'uuid' }], id: 'order', kind: 'entity', label: 'Order', role: 'focal' },
+        { fields: [{ name: 'orderId', type: 'uuid' }], id: 'item', kind: 'entity', label: 'Item', role: 'store' },
+    ],
+}
+const flowchartDiagram: DiagramData = {
+    edges: [{ from: 'check', id: 'check-done', kind: 'flow', label: 'yes', to: 'done' }],
+    groups: [],
+    meta: { description: 'Decision flow', preset: 'flowchart', title: 'Flow', type: 'flow', version: 1 },
+    nodes: [
+        { id: 'check', kind: 'decision', label: 'Check', role: 'focal' },
+        { id: 'done', kind: 'end', label: 'Done', role: 'backend' },
+    ],
+}
+const stateDiagram: DiagramData = {
+    edges: [{ from: 'idle', id: 'start-work', kind: 'transition', label: 'start', to: 'working' }],
+    groups: [],
+    meta: { description: 'Work states', preset: 'state', title: 'States', type: 'flow', version: 1 },
+    nodes: [
+        { id: 'idle', kind: 'state', label: 'Idle', role: 'focal' },
+        { id: 'working', kind: 'state', label: 'Working', role: 'backend' },
     ],
 }
 const firstRecord: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
@@ -54,17 +80,21 @@ class DiagramSourceStub extends EventTarget {
     }
 }
 
-function createHarness(options: { createId?: () => string; source?: DiagramData } = {}) {
+function createHarness(options: {
+    createId?: () => string
+    reportValidationError?: (message: string) => void
+    source?: DiagramData
+} = {}) {
     const sourceService = new DiagramSourceStub()
-    const service = new DiagramEditSessionService(sourceService, options.createId)
+    const service = new DiagramEditSessionService(sourceService, options.createId, options.reportValidationError)
     sourceService.setSource({ diagram: options.source ?? diagram, record: firstRecord })
     service.bindProject(project)
 
     return { service, sourceService }
 }
 
-function sequenceHarness(createId?: () => string) {
-    const { service } = createHarness({ createId, source: sequenceDiagram })
+function sequenceHarness(createId?: () => string, reportValidationError?: (message: string) => void) {
+    const { service } = createHarness({ createId, reportValidationError, source: sequenceDiagram })
     service.start()
 
     return service
@@ -241,32 +271,40 @@ describe('DiagramEditSessionService', () => {
         expect(dirtyChanged).toHaveBeenCalledTimes(2)
     })
 
-    it('exposes stable IDs and granular accessors for every editable object kind', () => {
+    it('exposes stable IDs and granular accessors for architecture objects', () => {
         const { service } = createHarness()
         service.start()
 
         expect(service.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
         expect(service.getEdgeIdsSnapshot()).toEqual(['orders-store'])
         expect(service.getGroupIdsSnapshot()).toEqual(['backend'])
-        expect(service.getFragmentIdsSnapshot()).toEqual(['transaction'])
+        expect(service.getFragmentIdsSnapshot()).toEqual([])
         expect(service.getMetadataFieldSnapshot('description')).toBe('Orders architecture')
         expect(service.getEdgeFieldSnapshot('orders-store', 'kind')).toBe('connection')
         expect(service.getGroupFieldSnapshot('backend', 'label')).toBe('Backend')
-        expect(service.getFragmentFieldSnapshot('transaction', 'operator')).toBe('opt')
-        expect(service.getEntityFieldValueSnapshot('orders', 0, 'name')).toBe('id')
         expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'side')).toBe('right')
 
         service.setEdgeField('orders-store', 'label', 'writes')
         service.setGroupField('backend', 'label', 'Core')
-        service.setFragmentField('transaction', 'operator', 'loop')
-        service.setEntityField('orders', 0, 'type', 'string')
         service.setConnectionPointField('orders-store', 'sourceAttachment', 'offset', 0.75)
 
         expect(service.getEdgeFieldSnapshot('orders-store', 'label')).toBe('writes')
         expect(service.getGroupFieldSnapshot('backend', 'label')).toBe('Core')
-        expect(service.getFragmentFieldSnapshot('transaction', 'operator')).toBe('loop')
-        expect(service.getEntityFieldValueSnapshot('orders', 0, 'type')).toBe('string')
         expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'offset')).toBe(0.75)
+    })
+
+    it('exposes and changes sequence fragments and entity fields in their valid diagram types', () => {
+        const sequenceService = sequenceHarness()
+        const { service: entityService } = createHarness({ source: entityDiagram })
+        entityService.start()
+
+        expect(sequenceService.getFragmentFieldSnapshot('transaction', 'operator')).toBe('opt')
+        expect(sequenceService.setFragmentField('transaction', 'operator', 'loop')).toBe(true)
+        expect(entityService.getEntityFieldValueSnapshot('order', 0, 'type')).toBe('uuid')
+        expect(entityService.setEntityField('order', 0, 'type', 'string')).toBe(true)
+
+        expect(sequenceService.getFragmentFieldSnapshot('transaction', 'operator')).toBe('loop')
+        expect(entityService.getEntityFieldValueSnapshot('order', 0, 'type')).toBe('string')
     })
 
 
@@ -317,7 +355,7 @@ describe('DiagramEditSessionService', () => {
         expect(sessionChanged).not.toHaveBeenCalled()
     })
 
-    it('removes a node with its incident edges, group membership, and fragment references in one transaction', () => {
+    it('removes a node with its incident edges and group membership in one transaction', () => {
         const { service } = createHarness()
         service.start()
         const editable = service.getEditableDiagram()
@@ -329,13 +367,11 @@ describe('DiagramEditSessionService', () => {
         const nodeMembershipChanged = vi.fn()
         const edgeMembershipChanged = vi.fn()
         const groupMembershipChanged = vi.fn()
-        const regionMembershipChanged = vi.fn()
         const groupLabelChanged = vi.fn()
         const storeLabelChanged = vi.fn()
         service.subscribeCollectionMembership('node', nodeMembershipChanged)
         service.subscribeCollectionMembership('edge', edgeMembershipChanged)
         service.subscribeGroupMembership('backend', groupMembershipChanged)
-        service.subscribeFragmentRegionMembership('transaction', 0, regionMembershipChanged)
         service.subscribeGroupField('backend', 'label', groupLabelChanged)
         service.subscribeNodeField('store', 'label', storeLabelChanged)
 
@@ -350,7 +386,6 @@ describe('DiagramEditSessionService', () => {
         expect(service.getNodeIdsSnapshot()).toEqual(['store'])
         expect(service.getEdgeIdsSnapshot()).toEqual([])
         expect(service.getGroupNodeIdsSnapshot('backend')).toEqual(['store'])
-        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual([])
         expect(service.getNodeSnapshot('orders')).toBeNull()
         expect(nodeMembershipChanged).toHaveBeenCalledOnce()
         expect(membershipDetail(nodeMembershipChanged).removedIds).toEqual(['orders'])
@@ -364,8 +399,6 @@ describe('DiagramEditSessionService', () => {
             regionIndex: null,
             removedIds: ['orders'],
         })
-        expect(regionMembershipChanged).toHaveBeenCalledOnce()
-        expect(membershipDetail(regionMembershipChanged).removedIds).toEqual(['orders-store'])
         expect(groupLabelChanged).not.toHaveBeenCalled()
         expect(storeLabelChanged).not.toHaveBeenCalled()
         expect(service.removeNode('orders')).toBe(false)
@@ -392,7 +425,7 @@ describe('DiagramEditSessionService', () => {
 
         expect(service.removeEdge('user-orders')).toBe(true)
         expect(service.getEdgeIdsSnapshot()).toEqual(['orders-user', 'edge-1'])
-        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual([])
+        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual(['orders-user'])
         expect(regionMembershipChanged).toHaveBeenCalledOnce()
         expect(service.getNodeIdsSnapshot()).toEqual(['user', 'orders'])
         expect(service.removeEdge('user-orders')).toBe(false)
@@ -424,7 +457,8 @@ describe('DiagramEditSessionService', () => {
     })
 
     it('adds and removes one group member without republishing other collections', () => {
-        const { service } = createHarness()
+        const reportValidationError = vi.fn()
+        const { service } = createHarness({ reportValidationError })
         service.start()
         service.removeGroupMember('backend', 'store')
         const backend = service.getGroupSnapshot('backend')
@@ -443,7 +477,10 @@ describe('DiagramEditSessionService', () => {
         expect(groupMembershipChanged).toHaveBeenCalledOnce()
         expect(nodeMembershipChanged).not.toHaveBeenCalled()
         expect(service.getDirtySnapshot()).toBe(false)
-        expect(() => service.addGroupMember('backend', 'missing')).toThrow('node missing does not exist')
+        expect(service.addGroupMember('backend', 'missing')).toBe(false)
+        expect(reportValidationError).toHaveBeenCalledWith(
+            'Add group member rejected: groups.backend.nodeIds has unknown node missing',
+        )
         expect(() => service.removeGroupMember('missing', 'store')).toThrow('group missing does not exist')
         expect(service.removeGroupMember('backend', 'missing')).toBe(false)
     })
@@ -471,12 +508,15 @@ describe('DiagramEditSessionService', () => {
     })
 
     it('adds and removes fragment region edges and rejects duplicate references', () => {
-        const service = sequenceHarness()
+        const reportValidationError = vi.fn()
+        const service = sequenceHarness(undefined, reportValidationError)
         const regionChanged = vi.fn()
         const edgeMembershipChanged = vi.fn()
         service.subscribeFragmentRegionMembership('transaction', 0, regionChanged)
         service.subscribeCollectionMembership('edge', edgeMembershipChanged)
 
+        expect(service.removeFragmentRegionEdge('transaction', 0, 'orders-user')).toBe(true)
+        regionChanged.mockClear()
         expect(service.addFragmentRegionEdge('transaction', 0, 'orders-user')).toBe(true)
         expect(service.addFragmentRegionEdge('transaction', 0, 'orders-user')).toBe(false)
         expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual(['user-orders', 'orders-user'])
@@ -486,13 +526,19 @@ describe('DiagramEditSessionService', () => {
         expect(service.removeFragmentRegionEdge('transaction', 0, 'orders-user')).toBe(true)
         expect(service.removeFragmentRegionEdge('transaction', 0, 'orders-user')).toBe(false)
         expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual(['user-orders'])
+        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.addFragmentRegionEdge('transaction', 0, 'orders-user')).toBe(true)
         expect(service.getDirtySnapshot()).toBe(false)
         expect(() => service.addFragmentRegionEdge('transaction', 5, 'orders-user')).toThrow('region transaction[5] does not exist')
-        expect(() => service.addFragmentRegionEdge('transaction', 0, 'missing')).toThrow('edge missing does not exist')
+        expect(service.addFragmentRegionEdge('transaction', 0, 'missing')).toBe(false)
+        expect(reportValidationError).toHaveBeenCalledWith(
+            'Add fragment region edge rejected: fragments.transaction.regions[0].edgeIds has unknown edge missing',
+        )
     })
 
     it('leaves the session untouched when a create operation is rejected', () => {
-        const service = sequenceHarness()
+        const reportValidationError = vi.fn()
+        const service = sequenceHarness(undefined, reportValidationError)
         const editable = service.getEditableDiagram()
         const edgeIds = service.getEdgeIdsSnapshot()
         const fragmentIds = service.getFragmentIdsSnapshot()
@@ -504,15 +550,14 @@ describe('DiagramEditSessionService', () => {
         service.subscribeCollectionMembership('node', listener)
         service.subscribeDirty(listener)
 
-        expect(() => service.createEdge({ from: 'missing', kind: 'call', to: 'user' })).toThrow('node missing does not exist')
-        expect(() => service.createNode({ label: '  ', role: 'focal' })).toThrow('node label must be a non-empty string')
-        expect(() => service.createGroup({ label: 'Twice', nodeIds: ['user', 'user'] })).toThrow('member user is duplicated')
-        expect(() => service.createFragment({ operator: 'alt', regions: [{ edgeIds: [], guard: 'only' }] }))
-            .toThrow('operator alt requires 2 regions')
-        expect(() => service.createFragment({
+        expect(service.createEdge({ from: 'missing', kind: 'call', to: 'user' })).toBeNull()
+        expect(service.createNode({ label: '  ', role: 'focal' })).toBeNull()
+        expect(service.createGroup({ label: 'Twice', nodeIds: ['user', 'user'] })).toBeNull()
+        expect(service.createFragment({ operator: 'alt', regions: [{ edgeIds: [], guard: 'only' }] })).toBeNull()
+        expect(service.createFragment({
             operator: 'alt',
             regions: [{ edgeIds: ['user-orders'], guard: 'ok' }, { edgeIds: ['user-orders'], guard: 'again' }],
-        })).toThrow('region edge user-orders is duplicated')
+        })).toBeNull()
 
         expect(service.getEditableDiagram()).toBe(editable)
         expect(service.getEdgeIdsSnapshot()).toBe(edgeIds)
@@ -521,11 +566,130 @@ describe('DiagramEditSessionService', () => {
         expect(service.getGroupIdsSnapshot()).toEqual(['backend'])
         expect(service.getDirtySnapshot()).toBe(false)
         expect(listener).not.toHaveBeenCalled()
+        expect(reportValidationError).toHaveBeenCalledTimes(5)
+        expect(reportValidationError.mock.calls.map(([message]) => message)).toContain(
+            'Create edge rejected: edges.new.from has unknown node missing',
+        )
 
-        const { service: architecture } = createHarness()
+        const architectureReporter = vi.fn()
+        const { service: architecture } = createHarness({ reportValidationError: architectureReporter })
         architecture.start()
-        expect(() => architecture.createFragment({ operator: 'opt', regions: [{ edgeIds: [], guard: 'maybe' }] }))
-            .toThrow('only allowed on sequence diagrams')
+        expect(architecture.createFragment({ operator: 'opt', regions: [{ edgeIds: [], guard: 'maybe' }] })).toBeNull()
+        expect(architectureReporter).toHaveBeenCalledWith(
+            'Create fragment rejected: fragments has value only allowed for sequence diagrams',
+        )
+    })
+
+    it('rejects invalid runtime types and geometry without mutation, changes, or diagram events', () => {
+        const reportValidationError = vi.fn()
+        const { service } = createHarness({ reportValidationError })
+        service.start()
+        const editable = service.getEditableDiagram()
+        const changeIds = service.getChangeIdsSnapshot()
+        const listener = vi.fn()
+        service.subscribeDirty(listener)
+        service.subscribeChangeIds(listener)
+        service.subscribeNodeField('orders', 'x', listener)
+        service.subscribeCollectionMembership('edge', listener)
+
+        expect(service.setNodeField('orders', 'role', 'invalid' as never)).toBe(false)
+        expect(service.setNodeField('orders', 'x', 3)).toBe(false)
+        expect(service.setGroupField('backend', 'width', 0)).toBe(false)
+        expect(service.setConnectionPointField('orders-store', 'sourceAttachment', 'offset', 1.5)).toBe(false)
+        expect(service.createEdge({
+            from: 'orders',
+            kind: 'connection',
+            to: 'store',
+            waypoints: [{ x: 0, y: 0 }, { x: 4, y: 4 }],
+        })).toBeNull()
+
+        expect(service.getEditableDiagram()).toBe(editable)
+        expect(service.getNodeFieldSnapshot('orders', 'role')).toBe('focal')
+        expect(service.getNodeFieldSnapshot('orders', 'x')).toBeUndefined()
+        expect(service.getGroupFieldSnapshot('backend', 'width')).toBeUndefined()
+        expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'offset')).toBe(0.5)
+        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(listener).not.toHaveBeenCalled()
+        expect(reportValidationError.mock.calls.map(([message]) => message)).toEqual(expect.arrayContaining([
+            'Set node field rejected: nodes.orders.role has unsupported value invalid',
+            'Set node field rejected: nodes.orders.x has number outside the 4px grid',
+            'Set group field rejected: groups.backend.width has invalid number',
+            'Set connection point field rejected: edges.orders-store.sourceAttachment.offset has number outside the 0..1 range',
+            'Create edge rejected: edges.new.waypoints[1] has diagonal segment',
+        ]))
+    })
+
+    it('enforces diagram-type rules, references, cardinalities, and required semantic labels', () => {
+        const architectureReporter = vi.fn()
+        const { service: architecture } = createHarness({ reportValidationError: architectureReporter })
+        architecture.start()
+        expect(architecture.setEdgeField('orders-store', 'from', 'missing')).toBe(false)
+        expect(architecture.setEdgeField('orders-store', 'kind', 'relationship')).toBe(false)
+        expect(architecture.setEdgeField('orders-store', 'fromCardinality', '1')).toBe(false)
+        expect(architecture.setConnectionPointField('orders-store', 'sourceAttachment', 'nodeId', 'store')).toBe(false)
+        expect(architecture.createNode({ fields: [{ name: 'id' }], label: 'Wrong', role: 'focal' })).toBeNull()
+
+        const flowchartReporter = vi.fn()
+        const { service: flowchart } = createHarness({ reportValidationError: flowchartReporter, source: flowchartDiagram })
+        flowchart.start()
+        expect(flowchart.setEdgeField('check-done', 'label', undefined)).toBe(false)
+        expect(flowchart.createEdge({ from: 'check', kind: 'flow', to: 'done' })).toBeNull()
+
+        const stateReporter = vi.fn()
+        const { service: state } = createHarness({ reportValidationError: stateReporter, source: stateDiagram })
+        state.start()
+        expect(state.setEdgeField('start-work', 'label', undefined)).toBe(false)
+        expect(state.createNode({ kind: 'decision', label: 'Wrong', role: 'focal' })).toBeNull()
+
+        const sequenceReporter = vi.fn()
+        const sequence = sequenceHarness(undefined, sequenceReporter)
+        expect(sequence.createFragment({ operator: 'opt', regions: [{ edgeIds: ['user-orders'], guard: ' ' }] })).toBeNull()
+        expect(sequence.setFragmentField('transaction', 'operator', 'alt')).toBe(false)
+
+        const entityReporter = vi.fn()
+        const { service: entity } = createHarness({ reportValidationError: entityReporter, source: entityDiagram })
+        entity.start()
+        expect(entity.setEntityField('order', 0, 'key', 'invalid' as never)).toBe(false)
+
+        expect(architectureReporter.mock.calls.map(([message]) => message)).toEqual(expect.arrayContaining([
+            'Set edge field rejected: edges.orders-store.from has unknown node missing',
+            'Set edge field rejected: edges.orders-store.kind has unsupported value relationship for architecture',
+            'Set edge field rejected: edges.orders-store.fromCardinality has value only allowed for entity diagrams',
+            'Set connection point field rejected: edges.orders-store.sourceAttachment.nodeId has node store does not match endpoint orders',
+            'Create node rejected: nodes.new.fields has value only allowed for entity diagrams',
+        ]))
+        expect(flowchartReporter).toHaveBeenCalledTimes(2)
+        expect(stateReporter).toHaveBeenCalledTimes(2)
+        expect(sequenceReporter).toHaveBeenCalledTimes(2)
+        expect(entityReporter).toHaveBeenCalledWith(
+            'Set entity field rejected: nodes.order.fields[0].key has unsupported value invalid',
+        )
+    })
+
+    it('rejects removals that would empty required group or fragment regions', () => {
+        const groupReporter = vi.fn()
+        const { service: architecture } = createHarness({ reportValidationError: groupReporter })
+        architecture.start()
+        expect(architecture.removeGroupMember('backend', 'store')).toBe(true)
+        const groupNodeIds = architecture.getGroupNodeIdsSnapshot('backend')
+        expect(architecture.removeGroupMember('backend', 'orders')).toBe(false)
+        expect(architecture.getGroupNodeIdsSnapshot('backend')).toBe(groupNodeIds)
+
+        const fragmentReporter = vi.fn()
+        const sequence = sequenceHarness(undefined, fragmentReporter)
+        expect(sequence.removeFragmentRegionEdge('transaction', 0, 'user-orders')).toBe(true)
+        const regionEdgeIds = sequence.getFragmentRegionEdgeIdsSnapshot('transaction', 0)
+        expect(sequence.removeEdge('orders-user')).toBe(false)
+        expect(sequence.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toBe(regionEdgeIds)
+        expect(sequence.getEdgeSnapshot('orders-user')).not.toBeNull()
+
+        expect(groupReporter).toHaveBeenCalledWith(
+            'Remove group member rejected: groups.backend.nodeIds has empty array after removing member',
+        )
+        expect(fragmentReporter).toHaveBeenCalledWith(
+            'Remove edge rejected: fragments.transaction.regions[0].edgeIds has empty array after removing edge',
+        )
     })
 
     it('clears dirty when a created object and its field edits are removed again', () => {
@@ -533,6 +697,7 @@ describe('DiagramEditSessionService', () => {
         service.start()
 
         const createdId = service.createNode({ label: 'Billing', role: 'backend' })
+        if (!createdId) throw new Error('Expected node creation to succeed')
         service.setNodeField(createdId, 'label', 'Billing API')
         expect(service.getDirtySnapshot()).toBe(true)
 
@@ -607,6 +772,7 @@ describe('DiagramEditSessionService', () => {
         service.start()
 
         const createdId = service.createNode({ label: 'Billing', role: 'backend' })
+        if (!createdId) throw new Error('Expected node creation to succeed')
         const [additionId] = service.getChangeIdsSnapshot()
         expect(service.getChange(additionId)).toMatchObject({
             category: 'collection',

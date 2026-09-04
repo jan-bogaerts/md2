@@ -1,6 +1,6 @@
 import { useId, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { useTheme } from '@mui/material'
-import type { PositionedDiagramEdge, PositionedDiagramNode } from '../../services/diagrams/diagram_layout'
+import type { PositionedDiagramEdge } from '../../services/diagrams/diagram_layout'
 import { diagramEdgeStyle } from './diagram_edge_style'
 import { roundedDiagramPath } from './diagram_path'
 import type { DiagramSelectHandler } from './diagram_selection'
@@ -8,23 +8,23 @@ import type { DiagramSelectHandler } from './diagram_selection'
 const EDGE_LABEL_FONT_SIZE = 8
 interface DiagramEdgeProps {
     edge: PositionedDiagramEdge
-    nodes: Map<string, PositionedDiagramNode>
+    /** Endpoint labels only, so a subscribing caller can supply them without owning positioned node objects. */
+    nodeLabels: ReadonlyMap<string, string>
     onSelect: DiagramSelectHandler
 }
 
-function edgeLabel(edge: PositionedDiagramEdge, nodes: Map<string, PositionedDiagramNode>) {
-    if (edge.label) return edge.label
-    const from = nodes.get(edge.from)?.label ?? edge.from
-    const to = nodes.get(edge.to)?.label ?? edge.to
+function edgeLabel(edge: PositionedDiagramEdge, nodeLabels: ReadonlyMap<string, string>) {
+    const from = nodeLabels.get(edge.from) ?? edge.from
+    const to = nodeLabels.get(edge.to) ?? edge.to
 
-    return `${from} to ${to}`
+    return edge.label ?? `${from} to ${to}`
 }
 
 /** Themed selectable connection rendered from validated geometry. */
-export function DiagramEdge({ edge, nodes, onSelect }: DiagramEdgeProps) {
+export function DiagramEdge({ edge, nodeLabels, onSelect }: DiagramEdgeProps) {
     const theme = useTheme()
     const [focused, setFocused] = useState(false)
-    const label = edgeLabel(edge, nodes)
+    const label = edgeLabel(edge, nodeLabels)
     const path = roundedDiagramPath(edge.points)
     const { arrowhead, color, strokeDasharray, strokeWidth } = diagramEdgeStyle(edge.kind, theme, focused)
     const visibleLabel = edge.label ?? (edge.kind === 'cycle' ? 'CYCLE' : null)

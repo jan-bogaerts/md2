@@ -75,6 +75,27 @@ describe('diagram layout', () => {
         expect(nodeById(positioned, 'two').x).toBeDefined()
     })
 
+    it('keeps persisted group geometry and derives only the omitted group fields', () => {
+        const data = diagram()
+        data.groups[0] = { ...data.groups[0], height: 240, width: 360, x: 8, y: 12 }
+        const persisted = layout(data)
+        const derived = layout(diagram())
+
+        expect(persisted.groups[0]).toMatchObject({ height: 240, width: 360, x: 8, y: 12 })
+        expect(derived.groups[0].width).not.toBe(360)
+        expect(derived.groups[0].height).toBeGreaterThan(0)
+    })
+
+    it('leaves a persisted group box untouched when a member node moves', () => {
+        const data = diagram()
+        data.groups[0] = { ...data.groups[0], height: 240, width: 360, x: 8, y: 12 }
+        const moved = diagram()
+        moved.groups[0] = { ...moved.groups[0], height: 240, width: 360, x: 8, y: 12 }
+        moved.nodes[1] = { ...moved.nodes[1], x: 800, y: 600 }
+
+        expect(layout(moved).groups[0]).toMatchObject(layout(data).groups[0])
+    })
+
     it('resolves connection points against moved and resized node boundaries', () => {
         const data = diagram()
         data.groups = []

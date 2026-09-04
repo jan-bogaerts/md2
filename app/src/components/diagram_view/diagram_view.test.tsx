@@ -2,8 +2,11 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
+import type { DiagramData } from '../../services/diagrams/diagram_data'
+import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
+import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type {
-    DiagramLegendPosition, DiagramMenuState, DiagramViewSnapshot, DiagramViewService,
+    DiagramLegendPosition, DiagramMenuState, DiagramViewSnapshot, DiagramViewService, DiagramViewSourceSnapshot,
 } from '../../services/diagrams/diagram_view_service'
 import { layout } from '../../services/diagrams/diagram_layout'
 import { DiagramView } from './diagram_view'
@@ -38,22 +41,24 @@ vi.mock('../actions/run/popup/action_popup', () => ({
     },
 }))
 
+const diagramData: DiagramData = {
+    edges: [{ from: 'customer', id: 'customer-orders', kind: 'connection', label: 'places', to: 'orders' }],
+    groups: [{ id: 'domain', label: 'Domain', nodeIds: ['customer', 'orders'] }],
+    meta: {
+        description: 'Customer ordering flow',
+        title: 'Orders',
+        type: 'architecture',
+        version: 1,
+    },
+    nodes: [
+        { id: 'customer', label: 'Customer', role: 'focal' },
+        { id: 'orders', label: 'Orders', role: 'backend' },
+    ],
+}
+
 function initialSnapshot(): DiagramViewSnapshot {
     return {
-        currentDiagram: layout({
-            edges: [{ from: 'customer', id: 'customer-orders', kind: 'connection', label: 'places', to: 'orders' }],
-            groups: [{ id: 'domain', label: 'Domain', nodeIds: ['customer', 'orders'] }],
-            meta: {
-                description: 'Customer ordering flow',
-                title: 'Orders',
-                type: 'architecture',
-                version: 1,
-            },
-            nodes: [
-                { id: 'customer', label: 'Customer', role: 'focal' },
-                { id: 'orders', label: 'Orders', role: 'backend' },
-            ],
-        }),
+        currentDiagram: layout(diagramData),
         currentDiagramError: null,
         error: null,
         index: {
@@ -75,6 +80,29 @@ function initialSnapshot(): DiagramViewSnapshot {
         popup: null,
         status: 'ready',
     }
+}
+
+class DiagramSourceStub extends EventTarget {
+    private readonly source: DiagramViewSourceSnapshot = {
+        diagram: diagramData,
+        record: {actionId: 'detail', id: 'child-1', label: 'Orders', path: 'design/diagrams/child.json'},
+    }
+
+    getSourceSnapshot = () => this.source
+
+    subscribeSource = (listener: () => void) => {
+        this.addEventListener('sourceChanged', listener)
+
+        return () => this.removeEventListener('sourceChanged', listener)
+    }
+}
+
+function createEditHarness() {
+    const editSession = new DiagramEditSessionService(new DiagramSourceStub())
+    editSession.bindProject({ branch: 'main', id: 'project', rootPath: 'C:/repo' })
+    editSession.start()
+
+    return { editSession, geometry: new DiagramGeometryService(editSession) }
 }
 
 function createService() {
@@ -228,6 +256,23 @@ describe('DiagramView', () => {
         expect(service.navigateToCrumb).toHaveBeenCalledWith(0)
         expect(service.navigateToSavedDiagram).toHaveBeenCalledWith('saved-1')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('shows Current and New regions only while an edit session is active', () => {
+        const service = createService()
+        const { editSession, geometry } = createEditHarness()
+        const { unmount } = render(<DiagramView editSession={editSession} geometry={geometry} service={service} />)
+
+        expect(screen.getByRole('region', { name: 'Current' })).toBeInTheDocument()
+        expect(screen.getByRole('region', { name: 'New' })).toBeInTheDocument()
+
+        unmount()
+        editSession.discard()
+        render(<DiagramView editSession={editSession} geometry={geometry} service={service} />)
+
+        expect(screen.queryByRole('region', { name: 'Current' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('region', { name: 'New' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Customer' })).toBeInTheDocument()
     })
 
     it('opens only matching root actions, passes draggable, then closes on second plain click', async () => {

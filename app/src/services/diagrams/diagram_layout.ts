@@ -60,6 +60,12 @@ export interface PositionedDiagramEdge extends DiagramEdge {
     points: DiagramWaypoint[]
 }
 
+export interface EdgeGeometry {
+    basePoints: DiagramWaypoint[]
+    labelPlacement: PositionedDiagramLabel | undefined
+    points: DiagramWaypoint[]
+}
+
 export interface PositionedDiagramLabel {
     height: number
     textX: number
@@ -107,12 +113,18 @@ function nodeWidth(data: DiagramData, node: DiagramNode) {
     return DEFAULT_NODE_WIDTH
 }
 
-function positionedNode(data: DiagramData, node: DiagramNode, x: number, y: number): PositionedDiagramNode {
+/** Counts the incoming edges a node renders as fan-in. Presentation `cycle` edges never contribute. */
+export function nodeFanIn(edges: readonly DiagramEdge[], nodeId: string) {
+    return edges.filter(({ kind, to }) => to === nodeId && kind !== 'cycle').length
+}
+
+/** Builds one node's positioned view from its model data; supplied coordinates and sizes stay authoritative. */
+export function nodeGeometry(data: DiagramData, node: DiagramNode, x: number, y: number): PositionedDiagramNode {
     const defaultKinds = { architecture: 'component', dependency: 'component', entity: 'entity', sequence: 'participant' } as const
 
     return {
         ...node,
-        fanIn: data.edges.filter(({ kind, to }) => to === node.id && kind !== 'cycle').length,
+        fanIn: nodeFanIn(data.edges, node.id),
         height: nodeHeight(data, node),
         ...(node.kind === undefined && data.meta.type !== 'flow' ? { kind: defaultKinds[data.meta.type] } : {}),
         width: nodeWidth(data, node),
@@ -164,7 +176,7 @@ function layoutLayeredNodes(data: DiagramData) {
         const width = nodeWidth(data, node)
         const height = nodeHeight(data, node)
 
-        return positionedNode(data, node, (placement?.x ?? SURFACE_PADDING) - width / 2, (placement?.y ?? SURFACE_PADDING) - height / 2)
+        return nodeGeometry(data, node, (placement?.x ?? SURFACE_PADDING) - width / 2, (placement?.y ?? SURFACE_PADDING) - height / 2)
     })
 }
 
@@ -172,7 +184,7 @@ function layoutSequenceNodes(data: DiagramData) {
     let x = SURFACE_PADDING
 
     return data.nodes.map((node) => {
-        const result = positionedNode(data, node, x, SURFACE_PADDING)
+        const result = nodeGeometry(data, node, x, SURFACE_PADDING)
         x += result.width + SEQUENCE_COLUMN_GAP
 
         return result
@@ -660,6 +672,28 @@ function edgeLabelPlacement(
     return fallback
 }
 
+/**
+ * Routes one edge against the current node positions. `basePoints` is the route before crossing bridges are added and
+ * is what later edges must be scored against; `points` is what the renderer draws.
+ */
+export function edgeGeometry(
+    data: DiagramData,
+    edge: DiagramEdge,
+    nodes: Map<string, PositionedDiagramNode>,
+    priorEdges: PositionedDiagramEdge[],
+): EdgeGeometry {
+    const index = data.edges.findIndex(({ id }) => id === edge.id)
+    const suppliedRoute = usesSuppliedRoute(edge, nodes)
+    const points = data.meta.type === 'sequence'
+        ? sequenceEdgePoints(edge, index, nodes)
+        : graphEdgePoints(data, edge, nodes, priorEdges)
+    if (suppliedRoute && data.meta.type !== 'sequence') validateSuppliedRoute(edge, points, nodes, priorEdges)
+    const routedPoints = suppliedRoute ? points : addCrossingHops(points, priorEdges)
+    const labelPlacement = edgeLabelPlacement(edge, routedPoints, [...nodes.values()])
+
+    return { basePoints: points, labelPlacement, points: routedPoints }
+}
+
 function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]) {
     const nodes = new Map(positionedNodes.map((node) => [node.id, node]))
     const baseEdges: PositionedDiagramEdge[] = []
@@ -669,19 +703,12 @@ function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]
             || data.edges.indexOf(left) - data.edges.indexOf(right)
     })
     routeOrder.forEach((edge) => {
-        const index = data.edges.findIndex(({ id }) => id === edge.id)
-        const suppliedRoute = usesSuppliedRoute(edge, nodes)
-        const points = data.meta.type === 'sequence'
-            ? sequenceEdgePoints(edge, index, nodes)
-            : graphEdgePoints(data, edge, nodes, baseEdges)
-        if (suppliedRoute && data.meta.type !== 'sequence') validateSuppliedRoute(edge, points, nodes, baseEdges)
-        const routedPoints = suppliedRoute ? points : addCrossingHops(points, baseEdges)
-        const labelPlacement = edgeLabelPlacement(edge, routedPoints, positionedNodes)
-        baseEdges.push({ ...edge, points })
+        const { basePoints, labelPlacement, points } = edgeGeometry(data, edge, nodes, baseEdges)
+        baseEdges.push({ ...edge, points: basePoints })
         positionedEdges.push({
             ...edge,
             ...(labelPlacement ? { labelPlacement } : {}),
-            points: routedPoints,
+            points,
         })
     })
 
@@ -689,63 +716,98 @@ function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]
         - data.edges.findIndex(({ id }) => id === right.id))
 }
 
+/**
+ * Positions one group. A group carrying persisted geometry keeps it, because F_255 groups are positioned and sized
+ * independently of their members; only an omitted field falls back to the member-extent box.
+ */
+export function groupBox(group: DiagramGroup, nodesById: Map<string, PositionedDiagramNode>): PositionedDiagramGroup {
+    const members = group.nodeIds.map((id) => nodesById.get(id) as PositionedDiagramNode)
+    const left = Math.min(...members.map(({ x }) => x))
+    const top = Math.min(...members.map(({ y }) => y))
+    const right = Math.max(...members.map(({ width, x }) => x + width))
+    const bottom = Math.max(...members.map(({ height, y }) => y + height))
+
+    return {
+        ...group,
+        height: group.height ?? snap(bottom - top + GROUP_HEADER_HEIGHT + GROUP_BOTTOM_PADDING),
+        width: group.width ?? snap(right - left + GROUP_HORIZONTAL_PADDING * 2),
+        x: group.x ?? snap(left - GROUP_HORIZONTAL_PADDING),
+        y: group.y ?? snap(top - GROUP_HEADER_HEIGHT),
+    }
+}
+
 function layoutGroups(groups: DiagramGroup[], nodes: PositionedDiagramNode[]) {
     const nodesById = new Map(nodes.map((node) => [node.id, node]))
 
-    return groups.map((group): PositionedDiagramGroup => {
-        const members = group.nodeIds.map((id) => nodesById.get(id) as PositionedDiagramNode)
-        const left = Math.min(...members.map(({ x }) => x))
-        const top = Math.min(...members.map(({ y }) => y))
-        const right = Math.max(...members.map(({ width, x }) => x + width))
-        const bottom = Math.max(...members.map(({ height, y }) => y + height))
+    return groups.map((group) => groupBox(group, nodesById))
+}
 
-        return {
-            ...group,
-            height: snap(bottom - top + GROUP_HEADER_HEIGHT + GROUP_BOTTOM_PADDING),
-            width: snap(right - left + GROUP_HORIZONTAL_PADDING * 2),
-            x: snap(left - GROUP_HORIZONTAL_PADDING),
-            y: snap(top - GROUP_HEADER_HEIGHT),
+/** Builds the activation bars of one participant from the call and reply messages that touch its lifeline. */
+export function nodeActivations(node: PositionedDiagramNode, edges: PositionedDiagramEdge[], bottom: number) {
+    const activations: PositionedSequenceActivation[] = []
+    const stack: { depth: number, edge: PositionedDiagramEdge }[] = []
+    const events = edges.filter(({ from, kind, to }) => (to === node.id && kind === 'call')
+        || (from === node.id && (kind === 'return' || kind === 'success')))
+    for (const edge of events) {
+        if (edge.to === node.id && edge.kind === 'call') {
+            stack.push({ depth: stack.length, edge })
+
+            continue
         }
-    })
+        const call = stack.pop()
+        if (!call) continue
+        const start = call.edge.points[0]?.y ?? 0
+        const end = edge.points[0]?.y ?? bottom
+        activations.push({
+            height: Math.max(24, end - start), id: `${node.id}:${call.edge.id}`, width: 8,
+            x: snap(node.x + node.width / 2 - 4 + call.depth * 4), y: start,
+        })
+    }
+    for (const call of stack) {
+        const start = call.edge.points[0]?.y ?? 0
+        activations.push({
+            height: Math.max(24, bottom - start), id: `${node.id}:${call.edge.id}`, width: 8,
+            x: snap(node.x + node.width / 2 - 4 + call.depth * 4), y: start,
+        })
+    }
+
+    return activations
 }
 
 function layoutSequenceActivations(edges: PositionedDiagramEdge[], nodes: PositionedDiagramNode[], bottom: number) {
-    const activations: PositionedSequenceActivation[] = []
-    for (const node of nodes) {
-        const stack: { depth: number, edge: PositionedDiagramEdge }[] = []
-        const events = edges.filter(({ from, kind, to }) => (to === node.id && kind === 'call')
-            || (from === node.id && (kind === 'return' || kind === 'success')))
-        for (const edge of events) {
-            if (edge.to === node.id && edge.kind === 'call') {
-                stack.push({ depth: stack.length, edge })
-
-                continue
-            }
-            const call = stack.pop()
-            if (!call) continue
-            const start = call.edge.points[0]?.y ?? 0
-            const end = edge.points[0]?.y ?? bottom
-            activations.push({
-                height: Math.max(24, end - start), id: `${node.id}:${call.edge.id}`, width: 8,
-                x: snap(node.x + node.width / 2 - 4 + call.depth * 4), y: start,
-            })
-        }
-        for (const call of stack) {
-            const start = call.edge.points[0]?.y ?? 0
-            activations.push({
-                height: Math.max(24, bottom - start), id: `${node.id}:${call.edge.id}`, width: 8,
-                x: snap(node.x + node.width / 2 - 4 + call.depth * 4), y: start,
-            })
-        }
-    }
-
-    return activations.sort((left, right) => left.y - right.y)
+    return nodes.flatMap((node) => nodeActivations(node, edges, bottom)).sort((left, right) => left.y - right.y)
 }
 
 function fragmentEdges(fragment: DiagramSequenceFragment, edges: PositionedDiagramEdge[]) {
     const edgeIds = new Set(fragment.regions.flatMap(({ edgeIds: regionEdgeIds }) => regionEdgeIds))
 
     return edges.filter(({ id }) => edgeIds.has(id))
+}
+
+/** Boxes one fragment around the participants and message rows its regions reference. */
+export function sequenceFragmentBox(
+    fragment: DiagramSequenceFragment,
+    edges: PositionedDiagramEdge[],
+    nodesById: Map<string, PositionedDiagramNode>,
+): PositionedSequenceFragment {
+    const members = fragmentEdges(fragment, edges)
+    const participantIds = new Set(members.flatMap(({ from, to }) => [from, to]))
+    const participantCenters = [...participantIds].map((id) => nodeCenter(nodesById.get(id) as PositionedDiagramNode).x)
+    const rows = members.map(({ points }) => points[0].y)
+    const x = snap(Math.min(...participantCenters) - 16)
+    const y = snap(Math.min(...rows) - 32)
+    const right = snap(Math.max(...participantCenters) + 16)
+    const bottom = snap(Math.max(...rows) + 24)
+    const guardPositions = fragment.regions.map(({ edgeIds, guard }) => {
+        const firstRow = Math.min(...edges.filter(({ id }) => edgeIds.includes(id)).map(({ points }) => points[0].y))
+
+        return { guard, y: snap(firstRow - 12) }
+    })
+
+    return {
+        ...(fragment.regions.length === 2 ? { dividerY: snap(guardPositions[1].y - 12) } : {}),
+        guardPositions, height: bottom - y, id: fragment.id, operator: fragment.operator, width: right - x, x, y,
+    }
 }
 
 function layoutSequenceFragments(
@@ -755,29 +817,11 @@ function layoutSequenceFragments(
 ) {
     const nodesById = new Map(nodes.map((node) => [node.id, node]))
 
-    return fragments.map((fragment): PositionedSequenceFragment => {
-        const members = fragmentEdges(fragment, edges)
-        const participantIds = new Set(members.flatMap(({ from, to }) => [from, to]))
-        const participantCenters = [...participantIds].map((id) => nodeCenter(nodesById.get(id) as PositionedDiagramNode).x)
-        const rows = members.map(({ points }) => points[0].y)
-        const x = snap(Math.min(...participantCenters) - 16)
-        const y = snap(Math.min(...rows) - 32)
-        const right = snap(Math.max(...participantCenters) + 16)
-        const bottom = snap(Math.max(...rows) + 24)
-        const guardPositions = fragment.regions.map(({ edgeIds, guard }) => {
-            const firstRow = Math.min(...edges.filter(({ id }) => edgeIds.includes(id)).map(({ points }) => points[0].y))
-
-            return { guard, y: snap(firstRow - 12) }
-        })
-
-        return {
-            ...(fragment.regions.length === 2 ? { dividerY: snap(guardPositions[1].y - 12) } : {}),
-            guardPositions, height: bottom - y, id: fragment.id, operator: fragment.operator, width: right - x, x, y,
-        }
-    })
+    return fragments.map((fragment) => sequenceFragmentBox(fragment, edges, nodesById))
 }
 
-function surfaceSize(
+/** Measures the surface from already-positioned objects. It reads cached geometry only; it never routes or lays out. */
+export function surfaceSize(
     nodes: PositionedDiagramNode[],
     edges: PositionedDiagramEdge[],
     groups: PositionedDiagramGroup[],

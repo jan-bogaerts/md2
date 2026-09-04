@@ -53,7 +53,15 @@ export interface DiagramEdge {
     toCardinality?: DiagramCardinality
     waypoints?: DiagramWaypoint[]
 }
-export interface DiagramGroup { id: string; label: string; nodeIds: string[] }
+export interface DiagramGroup {
+    height?: number
+    id: string
+    label: string
+    nodeIds: string[]
+    width?: number
+    x?: number
+    y?: number
+}
 export interface DiagramSequenceFragmentRegion { edgeIds: string[]; guard: string }
 export interface DiagramSequenceFragment {
     id: string
@@ -68,6 +76,32 @@ export interface DiagramData {
     nodes: DiagramNode[]
 }
 
+export function requireDiagramString(value: unknown, field: string): string
+export function optionalDiagramString(value: unknown, field: string): string | undefined
+export function optionalDiagramBoolean(value: unknown, field: string): boolean | undefined
+export function requireDiagramGridNumber(value: unknown, field: string, positive?: boolean): number
+export function requireDiagramRelativeOffset(value: unknown, field: string): number
+export function requireDiagramEnum<Value extends string>(value: unknown, values: readonly Value[], field: string): Value
+export function optionalDiagramEnum<Value extends string>(value: unknown, values: readonly Value[], field: string): Value | undefined
+export function requireDiagramEdgeKind(kind: unknown, type: DiagramType, field: string): DiagramEdgeKind
+export function requireDiagramNodeKind(
+    kind: unknown,
+    type: DiagramType,
+    preset: DiagramFlowPreset | undefined,
+    field: string,
+): DiagramNodeKind | undefined
+export function requireDiagramEdgeLabel(
+    label: unknown,
+    type: DiagramType,
+    preset: DiagramFlowPreset | undefined,
+    sourceKind: DiagramNodeKind | undefined,
+    field: string,
+): string | undefined
+export function requireDiagramFragmentRegionCount(
+    operator: unknown,
+    regions: readonly DiagramSequenceFragmentRegion[],
+    field: string,
+): void
 export function parseDiagramData(content: string): DiagramData
 export function serializeDiagramData(data: DiagramData): string
 export function isDiagramDataPath(path: string): boolean

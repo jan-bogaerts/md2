@@ -37,6 +37,25 @@ describe('parseDiagramData', () => {
         expect(parseDiagramData(serialized)).toEqual(parsed)
     })
 
+    it('parses and serializes persisted group geometry', () => {
+        const diagram = validDiagram()
+        diagram.groups[0] = { ...diagram.groups[0], height: 200, width: 320, x: 40, y: 24 } as typeof diagram.groups[0]
+
+        const parsed = parseDiagramData(JSON.stringify(diagram))
+
+        expect(parsed.groups[0]).toEqual({ height: 200, id: 'backend', label: 'Backend', nodeIds: ['api', 'store'], width: 320, x: 40, y: 24 })
+        expect(parseDiagramData(serializeDiagramData(parsed))).toEqual(parsed)
+    })
+
+    it('rejects group geometry outside the grid and non-positive group sizes', () => {
+        const group = validDiagram().groups[0]
+
+        expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), groups: [{ ...group, x: 6 }] })))
+            .toThrow('groups[0].x has number outside the 4px grid')
+        expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), groups: [{ ...group, width: 0 }] })))
+            .toThrow('groups[0].width has invalid number')
+    })
+
     it('ignores legacy legend metadata', () => {
         const diagram = validDiagram()
         diagram.meta = { ...diagram.meta, legend: [{ label: 'Legacy label', role: 'focal' }] } as typeof diagram.meta

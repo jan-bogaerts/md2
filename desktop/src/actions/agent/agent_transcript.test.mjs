@@ -1,6 +1,5 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';
 
 const require = createRequire(import.meta.url);
 const { normalizeConversationContext } = require('./agent_transcript');
@@ -19,22 +18,24 @@ function conversation() {
 }
 
 describe('normalizeConversationContext', () => {
-    it('keeps ordered transcript identity and relevant tool output without protocol or reasoning', () => {
+    it('keeps ordered user and assistant messages without conversation events', () => {
         const result = normalizeConversationContext(conversation());
 
         expect(result).toContain('[User]\n\nfirst');
         expect(result).toContain('[Assistant (claude)]\n\nanswer');
-        expect(result).toContain('[Tool (command_execution)]\n\ntests passed');
-        expect(result).toContain('[Failure]\n\npermission denied');
+        expect(result).toContain('[User]\n\nnext');
+        expect(result).not.toContain('tests passed');
+        expect(result).not.toContain('permission denied');
         expect(result).not.toContain('hidden');
         expect(result).not.toContain('\u001b');
     });
 
-    it('returns only messages and events after provider cursor', () => {
+    it('returns only messages after provider cursor', () => {
         const result = normalizeConversationContext(conversation(), 'm2');
 
-        expect(result).toContain('tests passed');
         expect(result).toContain('next');
+        expect(result).not.toContain('tests passed');
+        expect(result).not.toContain('permission denied');
         expect(result).not.toContain('first');
         expect(result).not.toContain('answer');
     });
@@ -43,7 +44,7 @@ describe('normalizeConversationContext', () => {
         expect(normalizeConversationContext(conversation(), 'missing')).toContain('first');
     });
 
-    it('orders by ingestion sequence, includes command results, and excludes reasoning', () => {
+    it('excludes all event types between messages', () => {
         const timestamp = '2026-01-01T00:00:00.000Z';
         const result = normalizeConversationContext({
             entries: [
@@ -59,8 +60,9 @@ describe('normalizeConversationContext', () => {
             ],
         });
 
-        expect(result.indexOf('npm test')).toBeLessThan(result.indexOf('after command'));
-        expect(result).toContain('passed');
+        expect(result).toContain('[Assistant]\n\nafter command');
+        expect(result).not.toContain('npm test');
+        expect(result).not.toContain('passed');
         expect(result).not.toContain('hidden chain of thought');
     });
 
@@ -74,28 +76,23 @@ describe('normalizeConversationContext', () => {
             ],
         }, 'm1');
 
-        expect(result.indexOf('interleaved')).toBeLessThan(result.indexOf('next'));
+        expect(result).not.toContain('interleaved');
+        expect(result).toContain('next');
         expect(result).not.toContain('cursor');
     });
 
-    it('bounds raw fallback command context while preserving exact command and final error', () => {
-        const command = 'x'.repeat(10_000);
-        const output = `${'start'.repeat(1_000)}${'middle'.repeat(1_000)}final error`;
+    it('returns empty context when the conversation contains only events', () => {
         const result = normalizeConversationContext({
             entries: [{
-                command,
-                content: output,
+                command: 'npm test',
+                content: 'failed',
                 id: 'command-1',
                 kind: 'event',
                 timestamp: '2026-01-01T00:00:00.000Z',
                 type: 'commandExecution',
             }],
         });
-        const boundedOutput = result.slice(result.indexOf(output.slice(0, 20)));
 
-        expect(result).toContain(command);
-        expect(result).toContain('characters omitted');
-        expect(result).toMatch(/final error$/u);
-        expect(boundedOutput.length).toBeLessThanOrEqual(AGENT_RESULT_MAX_LENGTH);
+        expect(result).toBe('');
     });
 });
