@@ -3,12 +3,18 @@ author:
 id: F_279
 internalId: 2be66ea0-5097-4d45-a94e-d4a7b72331ca
 title: validate diagram edit operations
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__2be66ea0-5097-4d45-a94e-d4a7b72331ca.json
 policy:
+changedFiles:
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_geometry_service.test.ts
+  - shared/diagram_data.d.mts
+  - shared/diagram_data.mjs
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
