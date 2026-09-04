@@ -493,6 +493,29 @@
       "startedAt": "2026-09-04T17:07:36.573Z",
       "status": "completed",
       "rootConversationId": "agent-84f16648-2d61-46b3-b01c-c6c49083832d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "709a086acfd477bf6cb2f859bc001fe3d60f147a",
+          "committedAt": "2026-09-04T19:21:05+02:00",
+          "deletions": 6,
+          "filePaths": [
+            "desktop/src/actions/agent/claude_usage_terminal.js",
+            "desktop/src/actions/agent/claude_usage_terminal.test.mjs"
+          ],
+          "filesChanged": 2,
+          "insertions": 110,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-04T19:21:05+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "cd8c317c-a566-4ec1-bc4b-e598c892ea89",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
