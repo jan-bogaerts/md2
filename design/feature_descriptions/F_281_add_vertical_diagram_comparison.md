@@ -3,7 +3,7 @@ author:
 id: F_281
 internalId: 607f2bae-4287-47e0-9585-e8555c707264
 title: add vertical diagram comparison
-status: design
+status: ready for implementation
 owner:
 affects:
 agents:
