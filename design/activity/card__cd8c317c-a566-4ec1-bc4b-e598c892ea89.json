@@ -1,0 +1,466 @@
+{
+  "actionSettings": {
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "cd8c317c-a566-4ec1-bc4b-e598c892ea89",
+      "cardPath": "design/feature_descriptions/J_46_detect_claude_ready_prompt.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 55973
+      },
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/J_46_detect_claude_ready_prompt.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/J_46_detect_claude_ready_prompt.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-04T17:07:36.575Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll start by reading the spec.",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-09-04T17:07:39.265Z"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_46_detect_claude_ready_prompt.md\"",
+          "content": "---\nauthor:\nid: J_46\ninternalId: cd8c317c-a566-4ec1-bc4b-e598c892ea89\ntitle: detect Claude ready prompt\nstatus: ready for implementation\nowner:\naffects:\nagents:\n  - design/activity/card__cd8c317c-a566-4ec1-bc4b-e598c892ea89.json\npolicy:\nchangedFiles:\n  - desktop/src/actions/agent/claude_usage_terminal.js\n  - desktop/src/actions/agent/claude_usage_terminal.test.mjs\nafter: 6e041d8b-7aca-4ab1-9be5-56d7e31d189c\nbranch: j_46_detect_claude_ready_prompt\nworktree: 2\n---\n\nMake Claude account-usage polling detect when the interactive terminal is accepting input without depending only on welcome-screen copy.\n\n## Current state\n\n`runTerminalUsagePoll()` starts Claude in a PTY and waits before sending `/usage`. `terminalReady()` currently recognizes only the visible phrases `? for shortcuts` and `Try \"`. Claude Code 2.1.241 can settle on an empty `> ` input prompt without either phrase. Whether the poll catches an earlier redraw containing one of those phrases then becomes timing-dependent: one poll may time out without sending `/usage`, while a later poll succeeds.\n\nLogin, onboarding, and workspace-trust screens are detected separately. The trust screen may be answered once; login and onboarding end the poll. After `/usage` is sent, the existing rendered-screen parser correctly reads the current session and weekly usage windows.\n\n## Implementation details\n\n* Detect readiness from the active xterm cursor line in addition to the existing phrase checks.\n* Treat Claude as ready when the cursor is on an otherwise empty input line whose trimmed form is `>`. Read that line from `terminal.buffer.active` using `baseY + cursorY`.\n* Evaluate login, onboarding, and trust screens before prompt readiness. Never interpret their selection cursors or text as the Claude input prompt.\n* Keep the existing phrase checks as secondary readiness signals for Claude versions whose prompt is not yet visible when their welcome hint appears.\n* Send `/usage` only once. Preserve the existing ready and report deadlines, worker isolation, abort handling, diagnostics, usage parsing, and runtime event behavior.\n* Do not introduce a fixed startup delay. Readiness must follow observable terminal state rather than elapsed time.\n\n## Edge cases and failure modes\n\n* A trust-screen selection cursor on option 1 is not an empty `>` input prompt.\n* Welcome text may contain `>` elsewhere; only the active cursor line qualifies.\n* A prompt containing typed text does not qualify. The poll owns a fresh Claude process and expects an empty prompt before sending its command.\n* If neither a supported prompt nor a legacy marker appears, the existing ready timeout and `pty-no-ready-marker` diagnostic remain authoritative.\n* Repeated screen redraws must not send `/usage` more than once.\n\n## Tests\n\nUpdate `claude_usage_terminal.test.mjs` to cover:\n\n* a Claude Code 2.1.241-style welcome screen with no legacy readiness phrase, an empty active prompt, and `/usage` being sent;\n* login, onboarding, and trust screens taking precedence over prompt detection;\n* welcome text containing `>` away from the cursor line not being accepted;\n* repeated prompt redraws sending `/usage` once;\n* preservation of the existing legacy-marker, timeout, abort, and parsed-report behavior.\n\nRun `npm run test -- src/actions/agent/claude_usage_terminal.test.mjs`, then `npm run lint` from `desktop`.\n\n## Acceptance criteria\n\n1. Claude Code 2.1.241 reaches `/usage` when its settled screen exposes an empty active input prompt but no legacy readiness phrase.\n2. Login, onboarding, and trust handling remains unchanged and occurs before prompt readiness.\n3. `/usage` is sent at most once per terminal poll.\n4. Unsupported or incomplete screens still terminate through the existing bounded timeout and diagnostics.\n5. Usage report parsing and published rate-limit payloads remain unchanged.\n6. Focused terminal polling tests and desktop lint pass.\n\n## Out of scope\n\nChanging the `/usage` report parser, polling interval, worker-process architecture, runtime snapshot model, account-usage persistence, or UI presentation.",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-3",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_46_detect_claude_ready_prompt.md\"",
+          "providerItemId": "toolu_01BUBWgaszfYowniGpbmrhNs",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:07:43.599Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev2/desktop && wc -l src/actions/agent/claude_usage_terminal.js src/actions/agent/claude_usage_terminal.test.mjs && cat src/actions/agent/claude_usage_terminal.js",
+          "content": "  266 src/actions/agent/claude_usage_terminal.js\n  272 src/actions/agent/claude_usage_terminal.test.mjs\n  538 total\nconst nodePty = require('node-pty');\nconst { Terminal } = require('@xterm/headless');\nconst { CLAUDE_USAGE_POLL_REASONS, usageScreenExcerpt } = require('./claude_usage_diagnostics');\nconst { parseClaudeUsageOutput } = require('./claude_usage_parsing');\n\nconst CLAUDE_USAGE_TERMINAL_COLUMNS = 140;\nconst CLAUDE_USAGE_TERMINAL_ROWS = 45;\n// Verified against Claude Code 2.1.238 by running it under a pty in a folder it had never seen.\n// The affirmative option is preselected, so a carriage return answers it; sending the digit instead\n// would type a stray character into the prompt on any screen that only looked like this one.\nconst CLAUDE_USAGE_TRUST_MARKERS = ['Yes, I trust this folder', 'Accessing workspace:'];\nconst CLAUDE_USAGE_TRUST_ANSWER = '\\r';\n// Neither of these can be answered by a poller, so they end the poll instead of waiting out the deadline.\nconst CLAUDE_USAGE_LOGIN_MARKERS = ['Select login method:', 'Paste code here if prompted'];\nconst CLAUDE_USAGE_ONBOARDING_MARKERS = ['Choose the text style that looks best with your terminal'];\n\n/** Reads the visible screen only; scanning the whole scrollback on every redraw stalls the host process. */\nfunction terminalScreenText(terminal) {\n    const lines = [];\n    const { active } = terminal.buffer;\n    const start = Math.max(0, active.baseY);\n    const end = Math.min(active.length, start + (terminal.rows ?? CLAUDE_USAGE_TERMINAL_ROWS));\n    for (let index = start; index < end; index += 1) {\n        const line = active.getLine(index)?.translateToString(true);\n        if (line) lines.push(line);\n    }\n\n    return lines.join('\\n');\n}\n\nfunction terminalReady(output) {\n    return output.includes('? for shortcuts') || output.includes('Try \"');\n}\n\nfunction showsTrustScreen(output) {\n    return CLAUDE_USAGE_TRUST_MARKERS.some((marker) => output.includes(marker));\n}\n\n/** Reports the reason for a screen that blocks the poll and cannot be answered on the user's behalf. */\nfunction blockedScreenReason(output) {\n    if (CLAUDE_USAGE_LOGIN_MARKERS.some((marker) => output.includes(marker))) {\n        return CLAUDE_USAGE_POLL_REASONS.ptyLoginRequired;\n    }\n    if (CLAUDE_USAGE_ONBOARDING_MARKERS.some((marker) => output.includes(marker))) {\n        return CLAUDE_USAGE_POLL_REASONS.ptyOnboardingRequired;\n    }\n\n    return null;\n}\n\nfunction collectTerminalUsage(processHandle, terminal, observedAt, dependencies) {\n    const {\n        clearTimeout: clearPollTimeout,\n        registerAbort,\n        reportTimeoutMs,\n        readyTimeoutMs,\n        setTimeout: setPollTimeout,\n    } = dependencies;\n\n    return new Promise((resolve, reject) => {\n        let commandSent = false;\n        let exited = false;\n        let pendingExitCode = null;\n        let pendingWrites = 0;\n        let settled = false;\n        let terminalDisposed = false;\n        let trustAnswered = false;\n        let dataSubscription;\n        let exitSubscription;\n        let timeout;\n        // node-pty exposes no liveness check and its Windows agent faults natively when a pty is\n        // killed or written after its process ended, so both go through this guard. `onExit` can\n        // still be in flight, hence the try/catch on top of the flag.\n        const withLiveProcess = (action) => {\n            if (exited) return false;\n            try {\n                action();\n\n                return true;\n            } catch {\n                exited = true;\n\n                return false;\n            }\n        };\n        const killProcess = () => {\n            withLiveProcess(() => processHandle.kill());\n            exited = true;\n        };\n        // xterm flushes writes in chunks; disposing while chunks are queued runs the rest of the\n        // flush against a disposed terminal, so disposal waits for the write buffer to drain.\n        const disposeTerminal = () => {\n            if (terminalDisposed || pendingWrites > 0) return;\n            terminalDisposed = true;\n            terminal.dispose();\n        \n[3021 characters omitted]\n once they land.\n        const settleExit = (exitCode) => {\n            if (settled) return;\n            if (pendingWrites > 0) {\n                pendingExitCode = exitCode;\n                return;\n            }\n            const screen = terminalScreenText(terminal);\n            // A failed exit still counts when the screen holds a complete report; only a screen without one is a failure.\n            const payload = parseClaudeUsageOutput(screen, observedAt);\n            if (!payload && exitCode !== 0) {\n                const error = new Error('Claude usage terminal failed');\n                error.reason = CLAUDE_USAGE_POLL_REASONS.ptyFailed;\n                error.screenExcerpt = usageScreenExcerpt(screen);\n                finish(null, error);\n                return;\n            }\n            if (payload) {\n                finish({ payload, reason: null, screenExcerpt: '' });\n                return;\n            }\n            // Claude ending on its own is a different fault before and after `/usage` went out.\n            finishWithoutUsage(\n                commandSent ? CLAUDE_USAGE_POLL_REASONS.ptyExitedWithoutReport : CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker,\n                screen,\n            );\n        };\n        registerAbort?.(() => {\n            const screen = settled ? '' : terminalScreenText(terminal);\n            killProcess();\n            finishWithoutUsage(CLAUDE_USAGE_POLL_REASONS.pollAborted, screen);\n        });\n        dataSubscription = processHandle.onData((data) => {\n            if (settled) return;\n            pendingWrites += 1;\n            terminal.write(data, () => {\n                pendingWrites -= 1;\n                inspectScreen();\n                if (pendingExitCode !== null) settleExit(pendingExitCode);\n                if (settled) disposeTerminal();\n            });\n        });\n        exitSubscription = processHandle.onExit(({ exitCode }) => {\n            exited = true;\n            settleExit(exitCode);\n        });\n        timeout = setPollTimeout(() => {\n            const screen = terminalScreenText(terminal);\n            killProcess();\n            // Answering trust and still not becoming ready is a different fault from never seeing the\n            // screen at all, so it never triggers a second keystroke and never shares a reason.\n            const reason = trustAnswered && showsTrustScreen(screen)\n                ? CLAUDE_USAGE_POLL_REASONS.ptyTrustScreenUnanswered\n                : CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker;\n            finishWithoutUsage(reason, screen);\n        }, readyTimeoutMs);\n    });\n}\n\nfunction createHeadlessTerminal() {\n    return new Terminal({\n        allowProposedApi: true,\n        cols: CLAUDE_USAGE_TERMINAL_COLUMNS,\n        rows: CLAUDE_USAGE_TERMINAL_ROWS,\n    });\n}\n\n/**\n * Drives one `/usage` poll through a real pty and resolves with `{ payload, reason, screenExcerpt }`.\n * Only the usage worker may call this: node-pty's ConPTY layer can fault natively, which would end\n * whichever process hosts it.\n */\nfunction runTerminalUsagePoll(request, dependencies = {}) {\n    const {\n        clearTimeout: clearPollTimeout = clearTimeout,\n        ptySpawn = nodePty.spawn,\n        registerAbort,\n        setTimeout: setPollTimeout = setTimeout,\n        terminalFactory = createHeadlessTerminal,\n    } = dependencies;\n    const processHandle = ptySpawn(request.executable, [], {\n        cols: CLAUDE_USAGE_TERMINAL_COLUMNS,\n        cwd: request.cwd,\n        env: request.env,\n        rows: CLAUDE_USAGE_TERMINAL_ROWS,\n    });\n\n    return collectTerminalUsage(processHandle, terminalFactory(), request.observedAt, {\n        clearTimeout: clearPollTimeout,\n        readyTimeoutMs: request.readyTimeoutMs,\n        registerAbort,\n        reportTimeoutMs: request.reportTimeoutMs,\n        setTimeout: setPollTimeout,\n    });\n}\n\nmodule.exports = {\n    CLAUDE_USAGE_LOGIN_MARKERS,\n    CLAUDE_USAGE_ONBOARDING_MARKERS,\n    CLAUDE_USAGE_TERMINAL_COLUMNS,\n    CLAUDE_USAGE_TERMINAL_ROWS,\n    CLAUDE_USAGE_TRUST_ANSWER,\n    CLAUDE_USAGE_TRUST_MARKERS,\n    runTerminalUsagePoll,\n};",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-4",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev2/desktop && wc -l src/actions/agent/claude_usage_terminal.js src/actions/agent/claude_usage_terminal.test.mjs && cat src/actions/agent/claude_usage_terminal.js",
+          "providerItemId": "toolu_01EDYL621XEemR8jQYsUCC1Z",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:07:46.560Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cat src/actions/agent/claude_usage_terminal.test.mjs",
+          "content": "import { createRequire } from 'node:module';\nimport { describe, expect, it, vi } from 'vitest';\n\nconst require = createRequire(import.meta.url);\nconst { runTerminalUsagePoll } = require('./claude_usage_terminal');\nconst { CLAUDE_USAGE_EXCERPT_MAX_CHARS, CLAUDE_USAGE_POLL_REASONS } = require('./claude_usage_diagnostics');\n\nconst TERMINAL_USAGE_OUTPUT = `Settings  Status  Config  Usage  Stats\n\nCurrent session\n▌                                                  1% used\nResets 3:20pm (Europe/Brussels)\n\nCurrent week (all models)\n██████                                             12% used\nResets Aug 23, 7pm (Europe/Brussels)\n`;\n// The exact screen Claude Code 2.1.238 shows in a folder it has never run in.\nconst TRUST_SCREEN = `Accessing workspace:\nC:\\\\projects\\\\md2\nQuick safety check: Is this a project you created or one you trust?\nSecurity guide\n❯ 1. Yes, I trust this folder\n  2. No, exit\nEnter to confirm · Esc to cancel\n`;\nconst LOGIN_SCREEN = 'Select login method:\\r\\n1. Claude account with subscription\\r\\n';\nconst ONBOARDING_SCREEN = 'Choose the text style that looks best with your terminal\\r\\n';\nconst WELCOME_SCREEN = 'Claude Code v2\\r\\n? for shortcuts\\r\\n';\n\nconst REQUEST = {\n    cwd: '/project',\n    env: { PATH: '/project/bin' },\n    executable: 'claude.cmd',\n    observedAt: Date.parse('2026-08-20T08:00:00.000Z'),\n    readyTimeoutMs: 30_000,\n    reportTimeoutMs: 20_000,\n};\n\nfunction clearScreen(text) {\n    return `\\u001B[2J\\u001B[H${text.replaceAll('\\n', '\\r\\n')}`;\n}\n\nfunction terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null) {\n    const dataListeners = new Set();\n    const exitListeners = new Set();\n\n    return {\n        kill: vi.fn(),\n        onData: vi.fn((listener) => {\n            dataListeners.add(listener);\n\n            return { dispose: () => dataListeners.delete(listener) };\n        }),\n        onExit: vi.fn((listener) => {\n            exitListeners.add(listener);\n            queueMicrotask(() => dataListeners.forEach((dataListener) => dataListener(WELCOME_SCREEN)));\n\n            return { dispose: () => exitListeners.delete(listener) };\n        }),\n        write: vi.fn(() => {\n            queueMicrotask(() => {\n                dataListeners.forEach((listener) => listener(clearScreen(output)));\n                if (exitCode !== null) exitListeners.forEach((listener) => listener({ exitCode }));\n            });\n        }),\n    };\n}\n\n/** A pty that starts on the trust screen and only reaches the welcome screen once it is answered. */\nfunction trustingChild({ answerLeadsToWelcome = true } = {}) {\n    const dataListeners = new Set();\n    const exitListeners = new Set();\n    const emit = (text) => dataListeners.forEach((listener) => listener(clearScreen(text)));\n    const handle = {\n        kill: vi.fn(),\n        onData: vi.fn((listener) => {\n            dataListeners.add(listener);\n\n            return { dispose: () => dataListeners.delete(listener) };\n        }),\n        onExit: vi.fn((listener) => {\n            exitListeners.add(listener);\n            queueMicrotask(() => emit(TRUST_SCREEN));\n\n            return { dispose: () => exitListeners.delete(listener) };\n        }),\n        write: vi.fn((data) => {\n            if (data === '\\r') {\n                // Answering trust either lands on the welcome screen or leaves the same screen up.\n                queueMicrotask(() => emit(answerLeadsToWelcome ? WELCOME_SCREEN : TRUST_SCREEN));\n                return;\n            }\n            queueMicrotask(() => emit(TERMINAL_USAGE_OUTPUT));\n        }),\n    };\n\n    return handle;\n}\n\n/** A pty stuck on one screen, used to prove the ready deadline and not the report deadline expired. */\nfunction stuckChild(screen) {\n    const dataListeners = new Set();\n\n    return {\n        kill: vi.fn(),\n        onData: vi.fn((listener) => {\n            dataListeners.add(listener);\n\n            return { dispose: () => dataListeners.delete(listener) };\n        }),\n        onExit: vi.fn(() => {\n            queueMicrotask(() => dataListeners.forEach((listener) => listener(clearScreen(screen))));\n\n            return { dispos\n[2807 characters omitted]\n;\n        expect(processHandle.kill).toHaveBeenCalledOnce();\n    });\n\n    it('ends the poll on an onboarding screen with that reason', async () => {\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 60_000 },\n            { ptySpawn: () => stuckChild(ONBOARDING_SCREEN) },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyOnboardingRequired);\n    });\n\n    it('names the ready wait when an unrecognised screen never becomes ready', async () => {\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 20 },\n            { ptySpawn: () => stuckChild('Some screen nobody taught this poller about') },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker);\n        expect(result.screenExcerpt).toContain('Some screen nobody taught this poller about');\n    });\n\n    it('names the report wait when /usage went out but no report arrived', async () => {\n        const processHandle = terminalChild();\n        processHandle.write = vi.fn();\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, reportTimeoutMs: 20 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyReportTimeout);\n        expect(processHandle.kill).toHaveBeenCalledOnce();\n    });\n\n    it('bounds the screen excerpt no matter how much Claude printed', async () => {\n        const noise = Array.from({ length: 400 }, (_, index) => `noise line ${index}`).join('\\n');\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 20 },\n            { ptySpawn: () => stuckChild(noise) },\n        );\n\n        expect(result.screenExcerpt.length).toBeLessThanOrEqual(CLAUDE_USAGE_EXCERPT_MAX_CHARS + 1);\n    });\n\n    it('reports usage even when killing the already exited pty throws', async () => {\n        const processHandle = terminalChild();\n        processHandle.kill = vi.fn(() => {\n            throw new Error('Cannot kill a pty that has already exited');\n        });\n\n        const { payload } = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(payload.windows).toContainEqual(expect.objectContaining({ id: 'weekly', usedPercent: 12 }));\n    });\n\n    it('resolves without usage when the screen never shows a complete report', async () => {\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => terminalChild('partial', 0) });\n\n        expect(result.payload).toBeNull();\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyExitedWithoutReport);\n    });\n\n    it('keeps the usage left on screen when Claude exits in failure', async () => {\n        const { payload } = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => terminalChild(TERMINAL_USAGE_OUTPUT, 1) });\n\n        expect(payload.windows).toContainEqual(expect.objectContaining({ id: 'weekly', usedPercent: 12 }));\n    });\n\n    it('rejects with a reason when Claude exits in failure so the caller can mark it unavailable', async () => {\n        await expect(runTerminalUsagePoll(REQUEST, { ptySpawn: () => terminalChild('partial', 1) }))\n            .rejects.toMatchObject({\n                message: 'Claude usage terminal failed',\n                reason: CLAUDE_USAGE_POLL_REASONS.ptyFailed,\n            });\n    });\n\n    it('kills the pty and resolves without usage when aborted mid-poll', async () => {\n        const processHandle = terminalChild();\n        processHandle.write = vi.fn();\n        let abort = null;\n\n        const poll = runTerminalUsagePoll(REQUEST, {\n            ptySpawn: () => processHandle,\n            registerAbort: (handler) => {\n                abort ??= handler;\n            },\n        });\n        await vi.waitFor(() => expect(processHandle.write).toHaveBeenCalledWith('/usage\\r'));\n        abort();\n\n        await expect(poll).resolves.toMatchObject({ payload: null, reason: CLAUDE_USAGE_POLL_REASONS.pollAborted });\n        expect(processHandle.kill).toHaveBeenCalledOnce();\n    });\n});",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-5",
+          "kind": "event",
+          "label": "cat src/actions/agent/claude_usage_terminal.test.mjs",
+          "providerItemId": "toolu_01Uw4BNhHnWyXCVx3hohUaCS",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:07:48.677Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-6",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeimRQzyrPjxREoNdNREK:thinking:0",
+          "sequence": 6,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-04T17:08:06.351Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nSpec read. Source + tests read. Plan:\n\n**Change Plan — 3 blocks**\n\n**Block 1 — cursor-line prompt detection** (`claude_usage_terminal.js`)\n- Add `activeCursorLine(terminal)`: read `terminal.buffer.active.getLine(baseY + cursorY)?.translateToString(true) ?? ''`.\n- Add `showsEmptyPrompt(terminal)`: true when that line trimmed equals `>`.\n- Change `terminalReady(terminal, output)` to `showsEmptyPrompt(terminal) || output.includes('? for shortcuts') || output.includes('Try \"')`. Legacy phrases stay as secondary signal.\n\n**Block 2 — ordering guarantee** (same file)\n- In `inspectScreen`, keep login/onboarding check first; then trust check guarded only by `!trustAnswered && showsTrustScreen(output)` (drop the `!terminalReady(output)` guard) so a trust selection cursor `❯ 1.` can never be read as the input prompt. Readiness evaluated after. `commandSent` flag already guarantees `/usage` goes out once; no change there.\n\n**Block 3 — tests** (`claude_usage_terminal.test.mjs`)\n- New fixture `PROMPT_SCREEN`: 2.1.241-style welcome, no legacy phrase, ending on an empty `> ` line so pty cursor rests there.\n- New tests: (a) prompt-only screen sends `/usage` and parses report; (b) login/onboarding/trust screens win over prompt detection; (c) screen with `>` text away from cursor line → ready timeout + `ptyNoReadyMarker`; (d) repeated prompt redraws → exactly one `/usage\\r`.\n- Existing legacy-marker, timeout, abort, parse, exit tests unchanged.\n\nThen: `npm run test -- src/actions/agent/claude_usage_terminal.test.mjs`, `npm run lint` in `desktop`, then set `status: ready` in the md2 spec file.",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 7,
+          "timestamp": "2026-09-04T17:08:14.110Z"
+        },
+        {
+          "content": "{\"questions\":[{\"question\":\"Approve this 3-block change plan for J_46?\",\"header\":\"Approval\",\"multiSelect\":false,\"options\":[{\"label\":\"Approve as-is\",\"description\":\"Implement blocks 1-3, run focused tests + lint, set status: ready.\"},{\"label\":\"Approve, keep trust guard\",\"description\":\"Same, but keep the existing !terminalReady() guard on the trust branch instead of dropping it.\"}]}]}",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-8",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "output": "The user answered: \"Approve this 3-block change plan for J_46?\"=\"Approve as-is\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
+          "providerItemId": "toolu_017evpBeNQaE6nKMVjdDeZ78",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:10:09.792Z",
+          "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "claude-question-0: Approve as-is",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-answer-8",
+          "kind": "message",
+          "role": "user",
+          "sequence": 9,
+          "timestamp": "2026-09-04T17:10:09.788Z"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nApproved. Block 1 + 2:",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 10,
+          "timestamp": "2026-09-04T17:10:11.255Z"
+        },
+        {
+          "command": "python - <<'EOF'\nimport io\np='src/actions/agent/claude_usage_terminal.js'\ns=io.open(p,encoding='utf-8').read()\n\nold = \"\"\"function terminalReady(output) {\n    return output.includes('? for shortcuts') || output.includes('Try \"');\n}\n\"\"\"\nnew = \"\"\"/** The line the cursor sits on; that is the only line an input prompt can be drawn on. */\nfunction activeCursorLine(terminal) {\n    const { active } = terminal.buffer;\n\n    return active.getLine(active.baseY + active.cursorY)?.translateToString(true) ?? '';\n}\n\n// A settled Claude Code 2.1.241 prompt is an otherwise empty `> ` line under the cursor. A prompt\n// holding typed text does not qualify: this poll owns a fresh Claude and expects an empty one.\nfunction showsEmptyPrompt(terminal) {\n    return activeCursorLine(terminal).trim() === '>';\n}\n\n// The phrases are kept as a secondary signal for Claude versions that print their welcome hint\n// before the input prompt is drawn.\nfunction terminalReady(terminal, output) {\n    return showsEmptyPrompt(terminal) || output.includes('? for shortcuts') || output.includes('Try \"');\n}\n\"\"\"\nassert old in s\ns=s.replace(old,new)\n\nold2 = \"\"\"                if (!trustAnswered && !terminalReady(output) && showsTrustScreen(output)) {\"\"\"\nnew2 = \"\"\"                if (!trustAnswered && showsTrustScreen(output)) {\"\"\"\nassert old2 in s\ns=s.replace(old2,new2)\n\nold3 = \"\"\"            if (!commandSent && terminalReady(output)) {\"\"\"\nnew3 = \"\"\"            if (!commandSent && terminalReady(terminal, output)) {\"\"\"\nassert old3 in s\ns=s.replace(old3,new3)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nEOF",
+          "content": "ok",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-11",
+          "kind": "event",
+          "label": "python - <<'EOF'\nimport io\np='src/actions/agent/claude_usage_terminal.js'\ns=io.open(p,encoding='utf-8').read()\n\nold = \"\"\"function terminalReady(output) {\n    return output.includes('? for shortcuts') || output.includes('Try \"');\n}\n\"\"\"\nnew = \"\"\"/** The line the cursor sits on; that is the only line an input prompt can be drawn on. */\nfunction activeCursorLine(terminal) {\n    const { active } = terminal.buffer;\n\n    return active.getLine(active.baseY + active.cursorY)?.translateToString(true) ?? '';\n}\n\n// A settled Claude Code 2.1.241 prompt is an otherwise empty `> ` line under the cursor. A prompt\n// holding typed text does not qualify: this poll owns a fresh Claude and expects an empty one.\nfunction showsEmptyPrompt(terminal) {\n    return activeCursorLine(terminal).trim() === '>';\n}\n\n// The phrases are kept as a secondary signal for Claude versions that print their welcome hint\n// before the input prompt is drawn.\nfunction terminalReady(terminal, output) {\n    return showsEmptyPrompt(terminal) || output.includes('? for shortcuts') || output.includes('Try \"');\n}\n\"\"\"\nassert old in s\ns=s.replace(old,new)\n\nold2 = \"\"\"                if (!trustAnswered && !terminalReady(output) && showsTrustScreen(output)) {\"\"\"\nnew2 = \"\"\"                if (!trustAnswered && showsTrustScreen(output)) {\"\"\"\nassert old2 in s\ns=s.replace(old2,new2)\n\nold3 = \"\"\"            if (!commandSent && terminalReady(output)) {\"\"\"\nnew3 = \"\"\"            if (!commandSent && terminalReady(terminal, output)) {\"\"\"\nassert old3 in s\ns=s.replace(old3,new3)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nEOF",
+          "providerItemId": "toolu_019iCYQagW8aUAw9v1uqJKF6",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:10:19.816Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeimcZk9NVbFDXXpBFKM3:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-04T17:10:31.527Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "python - <<'PYEOF'\nimport io\np='src/actions/agent/claude_usage_terminal.test.mjs'\ns=io.open(p,encoding='utf-8').read()\n\nold = \"\"\"const WELCOME_SCREEN = 'Claude Code v2\\\\r\\\\n? for shortcuts\\\\r\\\\n';\n\"\"\"\nnew = \"\"\"const WELCOME_SCREEN = 'Claude Code v2\\\\r\\\\n? for shortcuts\\\\r\\\\n';\n// Claude Code 2.1.241 settles on a bare input prompt: no `? for shortcuts`, no `Try \"` hint.\nconst PROMPT_SCREEN = '\\\\u2588 Claude Code v2.1.241\\\\n\\\\n\\\\u203A ';\n// The same settled prompt, preceded by a quoted `>` that must not be mistaken for the input line.\nconst PROMPT_SCREEN_WITH_STRAY_MARKER = 'Run > claude --help for options\\\\n\\\\n\\\\u203A ';\n// A welcome screen whose only `>` sits away from the cursor, so nothing on it signals readiness.\nconst STRAY_MARKER_SCREEN = 'Run > claude --help for options\\\\nStill starting up';\n// The trust prompt with the cursor parked on its preselected option instead of on a trailing line.\nconst TRUST_SCREEN_ON_OPTION = `Accessing workspace:\nQuick safety check: Is this a project you created or one you trust?\n  2. No, exit\n\\\\u276F 1. Yes, I trust this folder`;\nconst LOGIN_SCREEN_WITH_PROMPT = `${LOGIN_SCREEN}\\\\r\\\\n\\\\u203A `;\nconst ONBOARDING_SCREEN_WITH_PROMPT = `${ONBOARDING_SCREEN}\\\\r\\\\n\\\\u203A `;\n\"\"\"\nassert old in s\ns=s.replace(old,new)\n\n# PROMPT uses > char literally; replace unicode placeholders with '>'\ns=s.replace('\\\\u203A ','> ')\ns=s.replace('\\\\u2588 ','')\ns=s.replace('\\\\u276F ','❯ ')\n\nold_child = \"\"\"function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null) {\n    const dataListeners = new Set();\n    const exitListeners = new Set();\n\n    return {\n        kill: vi.fn(),\n        onData: vi.fn((listener) => {\n            dataListeners.add(listener);\n\n            return { dispose: () => dataListeners.delete(listener) };\n        }),\n        onExit: vi.fn((listener) => {\n            exitListeners.add(listener);\n            queueMicrotask(() => dataListeners.forEach((dataListener) => dataListener(WELCOME_SCREEN)));\n\n            return { dispose: () => exitListeners.delete(listener) };\n        }),\"\"\"\nnew_child = \"\"\"function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null, startup = {}) {\n    const { redraws = 1, screen = WELCOME_SCREEN } = startup;\n    const dataListeners = new Set();\n    const exitListeners = new Set();\n\n    return {\n        kill: vi.fn(),\n        onData: vi.fn((listener) => {\n            dataListeners.add(listener);\n\n            return { dispose: () => dataListeners.delete(listener) };\n        }),\n        onExit: vi.fn((listener) => {\n            exitListeners.add(listener);\n            queueMicrotask(() => {\n                // Claude redraws its startup screen repeatedly; every redraw reaches the poller.\n                for (let redraw = 0; redraw < redraws; redraw += 1) {\n                    dataListeners.forEach((dataListener) => dataListener(clearScreen(screen)));\n                }\n            });\n\n            return { dispose: () => exitListeners.delete(listener) };\n        }),\"\"\"\nassert old_child in s\ns=s.replace(old_child,new_child)\n\ntests = \"\"\"\n    it('sends /usage when a Claude Code 2.1.241 screen settles on an empty prompt with no legacy phrase', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { screen: PROMPT_SCREEN });\n\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write).toHaveBeenCalledWith('/usage\\\\r');\n        expect(result.reason).toBeNull();\n        expect(result.payload.windows).toContainEqual(expect.objectContaining({ id: 'weekly', usedPercent: 12 }));\n    });\n\n    it('sends /usage once no matter how often the prompt screen is redrawn', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { redraws: 4, screen: PROMPT_SCREEN });\n\n        await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write.mock.calls.filter(([data]) => data === '/usage\\\\r')).toHaveLength(1);\n    });\n\n    it('ignores a `>` that sits away from the cursor and lets the ready deadline expire', async () => {\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 20 },\n            { ptySpawn: () => stuckChild(STRAY_MARKER_SCREEN) },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker);\n    });\n\n    it('ends on a login screen even when it also renders an empty prompt line', async () => {\n        const processHandle = stuckChild(LOGIN_SCREEN_WITH_PROMPT);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 60_000 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyLoginRequired);\n        expect(processHandle.write).not.toHaveBeenCalled();\n    });\n\n    it('ends on an onboarding screen even when it also renders an empty prompt line', async () => {\n        const processHandle = stuckChild(ONBOARDING_SCREEN_WITH_PROMPT);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 60_000 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyOnboardingRequired);\n        expect(processHandle.write).not.toHaveBeenCalled();\n    });\n\n    it('answers a trust screen whose cursor rests on its preselected option instead of sending /usage', async () => {\n        const processHandle = stuckChild(TRUST_SCREEN_ON_OPTION);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 20 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(processHandle.write).toHaveBeenCalledWith('\\\\r');\n        expect(processHandle.write).not.toHaveBeenCalledWith('/usage\\\\r');\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyTrustScreenUnanswered);\n    });\n\n    it('still reaches /usage through a legacy welcome screen whose prompt is not drawn yet', async () => {\n        const processHandle = terminalChild();\n\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write).toHaveBeenCalledWith('/usage\\\\r');\n        expect(result.payload.windows).toHaveLength(2);\n    });\n\n    it('accepts a settled prompt even when the screen also holds an unrelated `>`', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { screen: PROMPT_SCREEN_WITH_STRAY_MARKER });\n\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write).toHaveBeenCalledWith('/usage\\\\r');\n        expect(result.reason).toBeNull();\n    });\n});\n\"\"\"\nassert s.rstrip().endswith('});')\ns = s.rstrip()\ns = s[:s.rfind('});')] + tests.lstrip('\\n')\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nPYEOF",
+          "content": "Exit code 1\nTraceback (most recent call last):\r\n  File \"<stdin>\", line 22, in <module>\r\nAssertionError",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-13",
+          "kind": "event",
+          "label": "python - <<'PYEOF'\nimport io\np='src/actions/agent/claude_usage_terminal.test.mjs'\ns=io.open(p,encoding='utf-8').read()\n\nold = \"\"\"const WELCOME_SCREEN = 'Claude Code v2\\\\r\\\\n? for shortcuts\\\\r\\\\n';\n\"\"\"\nnew = \"\"\"const WELCOME_SCREEN = 'Claude Code v2\\\\r\\\\n? for shortcuts\\\\r\\\\n';\n// Claude Code 2.1.241 settles on a bare input prompt: no `? for shortcuts`, no `Try \"` hint.\nconst PROMPT_SCREEN = '\\\\u2588 Claude Code v2.1.241\\\\n\\\\n\\\\u203A ';\n// The same settled prompt, preceded by a quoted `>` that must not be mistaken for the input line.\nconst PROMPT_SCREEN_WITH_STRAY_MARKER = 'Run > claude --help for options\\\\n\\\\n\\\\u203A ';\n// A welcome screen whose only `>` sits away from the cursor, so nothing on it signals readiness.\nconst STRAY_MARKER_SCREEN = 'Run > claude --help for options\\\\nStill starting up';\n// The trust prompt with the cursor parked on its preselected option instead of on a trailing line.\nconst TRUST_SCREEN_ON_OPTION = `Accessing workspace:\nQuick safety check: Is this a project you created or one you trust?\n  2. No, exit\n\\\\u276F 1. Yes, I trust this folder`;\nconst LOGIN_SCREEN_WITH_PROMPT = `${LOGIN_SCREEN}\\\\r\\\\n\\\\u203A `;\nconst ONBOARDING_SCREEN_WITH_PROMPT = `${ONBOARDING_SCREEN}\\\\r\\\\n\\\\u203A `;\n\"\"\"\nassert old in s\ns=s.replace(old,new)\n\n# PROMPT uses > char literally; replace unicode placeholders with '>'\ns=s.replace('\\\\u203A ','> ')\ns=s.replace('\\\\u2588 ','')\ns=s.replace('\\\\u276F ','❯ ')\n\nold_child = \"\"\"function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null) {\n    const dataListeners = new Set();\n    const exitListeners = new Set();\n\n    return {\n        kill: vi.fn(),\n        onData: vi.fn((listener) => {\n            dataListeners.add(listener);\n\n            return { dispose: () => dataListeners.delete(listener) };\n        }),\n        onExit: vi.fn((listener) => {\n            exitListeners.add(listener);\n            queueMicrotask(() => dataListeners.forEach((dataListener) => dataListener(WELCOME_SCREEN)));\n\n            return { dispose: () => exitListeners.delete(listener) };\n        }),\"\"\"\nnew_child = \"\"\"function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null, startup = {}) {\n    const { redraws = 1, screen = WELCOME_SCREEN } = startup;\n    const dataListeners = new Set();\n    const exitListeners = new Set();\n\n    return {\n        kill: vi.fn(),\n        onData: vi.fn((listener) => {\n            dataListeners.add(listener);\n\n            return { dispose: () => dataListeners.delete(listener) };\n        }),\n        onExit: vi.fn((listener) => {\n            exitListeners.add(listener);\n            queueMicrotask(() => {\n                // Claude redraws its startup screen repeatedly; every redraw reaches the poller.\n                for (let redraw = 0; redraw < redraws; redraw += 1) {\n                    dataListeners.forEach((dataListener) => dataListener(clearScreen(screen)));\n                }\n            });\n\n            return { dispose: () => exitListeners.delete(listener) };\n        }),\"\"\"\nassert old_child in s\ns=s.replace(old_child,new_child)\n\ntests = \"\"\"\n    it('sends /usage when a Claude Code 2.1.241 screen settles on an empty prompt with no legacy phrase', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { screen: PROMPT_SCREEN });\n\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write).toHaveBeenCalledWith('/usage\\\\r');\n        expect(result.reason).toBeNull();\n        expect(result.payload.windows).toContainEqual(expect.objectContaining({ id: 'weekly', usedPercent: 12 }));\n    });\n\n    it('sends /usage once no matter how often the prompt screen is redrawn', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { redraws: 4, screen: PROMPT_SCREEN });\n\n        await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write.mock.calls.filter(([data]) => data === '/usage\\\\r')).toHaveLength(1);\n    });\n\n    it('ignores a `>` that sits away from the cursor and lets the ready deadline expire', async () => {\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 20 },\n            { ptySpawn: () => stuckChild(STRAY_MARKER_SCREEN) },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker);\n    });\n\n    it('ends on a login screen even when it also renders an empty prompt line', async () => {\n        const processHandle = stuckChild(LOGIN_SCREEN_WITH_PROMPT);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 60_000 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyLoginRequired);\n        expect(processHandle.write).not.toHaveBeenCalled();\n    });\n\n    it('ends on an onboarding screen even when it also renders an empty prompt line', async () => {\n        const processHandle = stuckChild(ONBOARDING_SCREEN_WITH_PROMPT);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 60_000 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyOnboardingRequired);\n        expect(processHandle.write).not.toHaveBeenCalled();\n    });\n\n    it('answers a trust screen whose cursor rests on its preselected option instead of sending /usage', async () => {\n        const processHandle = stuckChild(TRUST_SCREEN_ON_OPTION);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 20 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(processHandle.write).toHaveBeenCalledWith('\\\\r');\n        expect(processHandle.write).not.toHaveBeenCalledWith('/usage\\\\r');\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyTrustScreenUnanswered);\n    });\n\n    it('still reaches /usage through a legacy welcome screen whose prompt is not drawn yet', async () => {\n        const processHandle = terminalChild();\n\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write).toHaveBeenCalledWith('/usage\\\\r');\n        expect(result.payload.windows).toHaveLength(2);\n    });\n\n    it('accepts a settled prompt even when the screen also holds an unrelated `>`', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { screen: PROMPT_SCREEN_WITH_STRAY_MARKER });\n\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write).toHaveBeenCalledWith('/usage\\\\r');\n        expect(result.reason).toBeNull();\n    });\n});\n\"\"\"\nassert s.rstrip().endswith('});')\ns = s.rstrip()\ns = s[:s.rfind('});')] + tests.lstrip('\\n')\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nPYEOF",
+          "providerItemId": "toolu_01WVy8NGGaL1QEHwF49VyPD8",
+          "sequence": 13,
+          "status": "failed",
+          "timestamp": "2026-09-04T17:11:00.447Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-14",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeimfYekY3qsd2L2VZGAK:thinking:0",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-04T17:11:04.242Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "file src/actions/agent/claude_usage_terminal.test.mjs; grep -c $'\\r' src/actions/agent/claude_usage_terminal.test.mjs",
+          "content": "src/actions/agent/claude_usage_terminal.test.mjs: JavaScript source, Unicode text, UTF-8 text\n0",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-15",
+          "kind": "event",
+          "label": "file src/actions/agent/claude_usage_terminal.test.mjs; grep -c $'\\r' src/actions/agent/claude_usage_terminal.test.mjs",
+          "providerItemId": "toolu_01BGWAKeDgvNj12kvJec7gbJ",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:11:07.082Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Ceimg3HSNahBmwwFVB4N1:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-04T17:11:17.324Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat > /tmp/patch_tests.py <<'PYEOF'\nimport io\np = 'src/actions/agent/claude_usage_terminal.test.mjs'\ns = io.open(p, encoding='utf-8').read()\n\nanchor = \"const WELCOME_SCREEN = 'Claude Code v2\\\\r\\\\n? for shortcuts\\\\r\\\\n';\\n\"\nassert anchor in s, 'anchor missing'\n\nextra = anchor + r\"\"\"// Claude Code 2.1.241 settles on a bare input prompt: no `? for shortcuts`, no `Try \"` hint.\nconst PROMPT_SCREEN = 'Claude Code v2.1.241\\n\\n> ';\n// The same settled prompt, preceded by a quoted `>` that must not be mistaken for the input line.\nconst PROMPT_SCREEN_WITH_STRAY_MARKER = 'Run > claude --help for options\\n\\n> ';\n// A welcome screen whose only `>` sits away from the cursor, so nothing on it signals readiness.\nconst STRAY_MARKER_SCREEN = 'Run > claude --help for options\\nStill starting up';\n// The trust prompt with the cursor parked on its preselected option instead of on a trailing line.\nconst TRUST_SCREEN_ON_OPTION = 'Accessing workspace:\\n  2. No, exit\\n❯ 1. Yes, I trust this folder';\nconst LOGIN_SCREEN_WITH_PROMPT = `${LOGIN_SCREEN}\\n> `;\nconst ONBOARDING_SCREEN_WITH_PROMPT = `${ONBOARDING_SCREEN}\\n> `;\n\"\"\"\ns = s.replace(anchor, extra)\n\nold_child = \"\"\"function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null) {\"\"\"\nnew_child = \"\"\"function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null, startup = {}) {\n    const { redraws = 1, screen = WELCOME_SCREEN } = startup;\"\"\"\nassert old_child in s, 'child missing'\ns = s.replace(old_child, new_child)\n\nold_emit = \"\"\"            queueMicrotask(() => dataListeners.forEach((dataListener) => dataListener(WELCOME_SCREEN)));\"\"\"\nnew_emit = \"\"\"            // Claude redraws its startup screen repeatedly; every redraw reaches the poller.\n            queueMicrotask(() => {\n                for (let redraw = 0; redraw < redraws; redraw += 1) {\n                    dataListeners.forEach((dataListener) => dataListener(clearScreen(screen)));\n                }\n            });\"\"\"\nassert old_emit in s, 'emit missing'\ns = s.replace(old_emit, new_emit)\n\ntests = r\"\"\"\n    it('sends /usage when a 2.1.241 screen settles on an empty prompt with no legacy phrase', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { screen: PROMPT_SCREEN });\n\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write).toHaveBeenCalledWith('/usage\\r');\n        expect(result.reason).toBeNull();\n        expect(result.payload.windows).toContainEqual(expect.objectContaining({ id: 'weekly', usedPercent: 12 }));\n    });\n\n    it('sends /usage once no matter how often the prompt screen is redrawn', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { redraws: 4, screen: PROMPT_SCREEN });\n\n        await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write.mock.calls.filter(([data]) => data === '/usage\\r')).toHaveLength(1);\n    });\n\n    it('accepts a settled prompt even when the screen also holds an unrelated `>`', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { screen: PROMPT_SCREEN_WITH_STRAY_MARKER });\n\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write).toHaveBeenCalledWith('/usage\\r');\n        expect(result.reason).toBeNull();\n    });\n\n    it('ignores a `>` that sits away from the cursor and lets the ready deadline expire', async () => {\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 20 },\n            { ptySpawn: () => stuckChild(STRAY_MARKER_SCREEN) },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker);\n    });\n\n    it('ends on a login screen even when it also renders an empty prompt line', async () => {\n        const processHandle = stuckChild(LOGIN_SCREEN_WITH_PROMPT);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 60_000 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyLoginRequired);\n        expect(processHandle.write).not.toHaveBeenCalled();\n    });\n\n    it('ends on an onboarding screen even when it also renders an empty prompt line', async () => {\n        const processHandle = stuckChild(ONBOARDING_SCREEN_WITH_PROMPT);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 60_000 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyOnboardingRequired);\n        expect(processHandle.write).not.toHaveBeenCalled();\n    });\n\n    it('answers a trust screen whose cursor rests on its preselected option instead of sending /usage', async () => {\n        const processHandle = stuckChild(TRUST_SCREEN_ON_OPTION);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 20 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(processHandle.write).toHaveBeenCalledWith('\\r');\n        expect(processHandle.write).not.toHaveBeenCalledWith('/usage\\r');\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyTrustScreenUnanswered);\n    });\n});\n\"\"\"\ns = s.rstrip('\\n')\nassert s.endswith('});')\ns = s[:s.rfind('});')] + tests.lstrip('\\n')\nio.open(p, 'w', encoding='utf-8', newline='').write(s)\nprint('patched')\nPYEOF\npython /tmp/patch_tests.py",
+          "content": "Exit code 1\nTraceback (most recent call last):\r\n  File \"C:\\Users\\janbo\\AppData\\Local\\Temp\\patch_tests.py\", line 6, in <module>\r\n    assert anchor in s, 'anchor missing'\r\n           ^^^^^^^^^^^\r\nAssertionError: anchor missing",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-17",
+          "kind": "event",
+          "label": "cat > /tmp/patch_tests.py <<'PYEOF'\nimport io\np = 'src/actions/agent/claude_usage_terminal.test.mjs'\ns = io.open(p, encoding='utf-8').read()\n\nanchor = \"const WELCOME_SCREEN = 'Claude Code v2\\\\r\\\\n? for shortcuts\\\\r\\\\n';\\n\"\nassert anchor in s, 'anchor missing'\n\nextra = anchor + r\"\"\"// Claude Code 2.1.241 settles on a bare input prompt: no `? for shortcuts`, no `Try \"` hint.\nconst PROMPT_SCREEN = 'Claude Code v2.1.241\\n\\n> ';\n// The same settled prompt, preceded by a quoted `>` that must not be mistaken for the input line.\nconst PROMPT_SCREEN_WITH_STRAY_MARKER = 'Run > claude --help for options\\n\\n> ';\n// A welcome screen whose only `>` sits away from the cursor, so nothing on it signals readiness.\nconst STRAY_MARKER_SCREEN = 'Run > claude --help for options\\nStill starting up';\n// The trust prompt with the cursor parked on its preselected option instead of on a trailing line.\nconst TRUST_SCREEN_ON_OPTION = 'Accessing workspace:\\n  2. No, exit\\n❯ 1. Yes, I trust this folder';\nconst LOGIN_SCREEN_WITH_PROMPT = `${LOGIN_SCREEN}\\n> `;\nconst ONBOARDING_SCREEN_WITH_PROMPT = `${ONBOARDING_SCREEN}\\n> `;\n\"\"\"\ns = s.replace(anchor, extra)\n\nold_child = \"\"\"function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null) {\"\"\"\nnew_child = \"\"\"function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null, startup = {}) {\n    const { redraws = 1, screen = WELCOME_SCREEN } = startup;\"\"\"\nassert old_child in s, 'child missing'\ns = s.replace(old_child, new_child)\n\nold_emit = \"\"\"            queueMicrotask(() => dataListeners.forEach((dataListener) => dataListener(WELCOME_SCREEN)));\"\"\"\nnew_emit = \"\"\"            // Claude redraws its startup screen repeatedly; every redraw reaches the poller.\n            queueMicrotask(() => {\n                for (let redraw = 0; redraw < redraws; redraw += 1) {\n                    dataListeners.forEach((dataListener) => dataListener(clearScreen(screen)));\n                }\n            });\"\"\"\nassert old_emit in s, 'emit missing'\ns = s.replace(old_emit, new_emit)\n\ntests = r\"\"\"\n    it('sends /usage when a 2.1.241 screen settles on an empty prompt with no legacy phrase', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { screen: PROMPT_SCREEN });\n\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write).toHaveBeenCalledWith('/usage\\r');\n        expect(result.reason).toBeNull();\n        expect(result.payload.windows).toContainEqual(expect.objectContaining({ id: 'weekly', usedPercent: 12 }));\n    });\n\n    it('sends /usage once no matter how often the prompt screen is redrawn', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { redraws: 4, screen: PROMPT_SCREEN });\n\n        await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write.mock.calls.filter(([data]) => data === '/usage\\r')).toHaveLength(1);\n    });\n\n    it('accepts a settled prompt even when the screen also holds an unrelated `>`', async () => {\n        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { screen: PROMPT_SCREEN_WITH_STRAY_MARKER });\n\n        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });\n\n        expect(processHandle.write).toHaveBeenCalledWith('/usage\\r');\n        expect(result.reason).toBeNull();\n    });\n\n    it('ignores a `>` that sits away from the cursor and lets the ready deadline expire', async () => {\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 20 },\n            { ptySpawn: () => stuckChild(STRAY_MARKER_SCREEN) },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker);\n    });\n\n    it('ends on a login screen even when it also renders an empty prompt line', async () => {\n        const processHandle = stuckChild(LOGIN_SCREEN_WITH_PROMPT);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 60_000 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyLoginRequired);\n        expect(processHandle.write).not.toHaveBeenCalled();\n    });\n\n    it('ends on an onboarding screen even when it also renders an empty prompt line', async () => {\n        const processHandle = stuckChild(ONBOARDING_SCREEN_WITH_PROMPT);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 60_000 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyOnboardingRequired);\n        expect(processHandle.write).not.toHaveBeenCalled();\n    });\n\n    it('answers a trust screen whose cursor rests on its preselected option instead of sending /usage', async () => {\n        const processHandle = stuckChild(TRUST_SCREEN_ON_OPTION);\n\n        const result = await runTerminalUsagePoll(\n            { ...REQUEST, readyTimeoutMs: 20 },\n            { ptySpawn: () => processHandle },\n        );\n\n        expect(processHandle.write).toHaveBeenCalledWith('\\r');\n        expect(processHandle.write).not.toHaveBeenCalledWith('/usage\\r');\n        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyTrustScreenUnanswered);\n    });\n});\n\"\"\"\ns = s.rstrip('\\n')\nassert s.endswith('});')\ns = s[:s.rfind('});')] + tests.lstrip('\\n')\nio.open(p, 'w', encoding='utf-8', newline='').write(s)\nprint('patched')\nPYEOF\npython /tmp/patch_tests.py",
+          "providerItemId": "toolu_013dTz2SXi4rD4RmReDcjMKb",
+          "sequence": 17,
+          "status": "failed",
+          "timestamp": "2026-09-04T17:11:40.547Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeimiWbJdAuKaPYDXxfwf:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-04T17:11:44.320Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"WELCOME_SCREEN =\" src/actions/agent/claude_usage_terminal.test.mjs | cat -A | head -3",
+          "content": "29:const WELCOME_SCREEN = 'Claude Code v2\\r\\n? for shortcuts\\r\\n';$",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-19",
+          "kind": "event",
+          "label": "grep -n \"WELCOME_SCREEN =\" src/actions/agent/claude_usage_terminal.test.mjs | cat -A | head -3",
+          "providerItemId": "toolu_019Au3aHV5AE5EDQWY66EQ58",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:11:45.167Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "head -8 /tmp/patch_tests.py | cat -A | sed -n '5p'",
+          "content": "anchor = \"const WELCOME_SCREEN = 'Claude Code v2\\r\\n? for shortcuts\\r\\n';\\n\"$",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-20",
+          "kind": "event",
+          "label": "head -8 /tmp/patch_tests.py | cat -A | sed -n '5p'",
+          "providerItemId": "toolu_01Xf9LV3gqevshiuzKoMuyXC",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:11:49.136Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Ceimj99z3zyX2vdMtsDqw:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-04T17:11:57.220Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nHeredoc mangles backslashes. Using Write tool for exactness.",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 22,
+          "timestamp": "2026-09-04T17:11:57.923Z"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev2\\\\desktop\\\\src\\\\actions\\\\agent\\\\claude_usage_terminal.test.mjs\",\"limit\":30}",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-23",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { createRequire } from 'node:module';\n2\timport { describe, expect, it, vi } from 'vitest';\n3\t\n4\tconst require = createRequire(import.meta.url);\n5\tconst { runTerminalUsagePoll } = require('./claude_usage_terminal');\n6\tconst { CLAUDE_USAGE_EXCERPT_MAX_CHARS, CLAUDE_USAGE_POLL_REASONS } = require('./claude_usage_diagnostics');\n7\t\n8\tconst TERMINAL_USAGE_OUTPUT = `Settings  Status  Config  Usage  Stats\n9\t\n10\tCurrent session\n11\t▌                                                  1% used\n12\tResets 3:20pm (Europe/Brussels)\n13\t\n14\tCurrent week (all models)\n15\t██████                                             12% used\n16\tResets Aug 23, 7pm (Europe/Brussels)\n17\t`;\n18\t// The exact screen Claude Code 2.1.238 shows in a folder it has never run in.\n19\tconst TRUST_SCREEN = `Accessing workspace:\n20\tC:\\\\projects\\\\md2\n21\tQuick safety check: Is this a project you created or one you trust?\n22\tSecurity guide\n23\t❯ 1. Yes, I trust this folder\n24\t  2. No, exit\n25\tEnter to confirm · Esc to cancel\n26\t`;\n27\tconst LOGIN_SCREEN = 'Select login method:\\r\\n1. Claude account with subscription\\r\\n';\n28\tconst ONBOARDING_SCREEN = 'Choose the text style that looks best with your terminal\\r\\n';\n29\tconst WELCOME_SCREEN = 'Claude Code v2\\r\\n? for shortcuts\\r\\n';\n30\t",
+          "providerItemId": "toolu_01DE7Cben5duMiCmkuNNUFCe",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:11:58.727Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop\\src\\actions\\agent\\claude_usage_terminal.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-24",
+          "insertions": 10,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop\\src\\actions\\agent\\claude_usage_terminal.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01XBaWMGL5odpbUo8uVoUCDh",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:12:04.912Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop\\src\\actions\\agent\\claude_usage_terminal.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-25",
+          "insertions": 2,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop\\src\\actions\\agent\\claude_usage_terminal.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_018SFYmJVaSBcdmXLxdPWrNY",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:12:08.493Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop\\src\\actions\\agent\\claude_usage_terminal.test.mjs",
+          "deletions": 1,
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-26",
+          "insertions": 6,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop\\src\\actions\\agent\\claude_usage_terminal.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Pc11rUR5CtAf1ktdavwckM",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:12:12.456Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow append the new tests before the closing `});`.",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 27,
+          "timestamp": "2026-09-04T17:12:14.028Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop\\src\\actions\\agent\\claude_usage_terminal.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-28",
+          "insertions": 73,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2\\desktop\\src\\actions\\agent\\claude_usage_terminal.test.mjs has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01KhZWnihrFgPVJ7zyY3HvbQ",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:12:27.319Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "npm run test -- src/actions/agent/claude_usage_terminal.test.mjs 2>&1 | tail -50",
+          "content": "> desktop@0.5.2 test\n> vitest run src/actions/agent/claude_usage_terminal.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev2/desktop\n\n\n Test Files  1 passed (1)\n      Tests  20 passed (20)\n   Start at  19:12:32\n   Duration  723ms (transform 20ms, setup 0ms, import 68ms, tests 523ms, environment 0ms)",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-29",
+          "kind": "event",
+          "label": "npm run test -- src/actions/agent/claude_usage_terminal.test.mjs 2>&1 | tail -50",
+          "providerItemId": "toolu_01SxnRM19SCLFDN55zAUQ4to",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:12:32.941Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-30",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeimnNBQZ1A3zBVDL1CNs:thinking:0",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-04T17:12:35.478Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "npm run lint 2>&1 | tail -30",
+          "content": "> desktop@0.5.2 lint\n> eslint .",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-31",
+          "kind": "event",
+          "label": "npm run lint 2>&1 | tail -30",
+          "providerItemId": "toolu_01QJtE1xUbpha1Ge4SS4GAML",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:12:44.748Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nLint clean. Now update spec status.",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-turn-1-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 32,
+          "timestamp": "2026-09-04T17:12:46.946Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2 && sed -i '0,/^status: ready for implementation$/s//status: ready/' \"design/feature_descriptions/J_46_detect_claude_ready_prompt.md\" && sed -n '1,8p' \"design/feature_descriptions/J_46_detect_claude_ready_prompt.md\"",
+          "content": "---\nauthor:\nid: J_46\ninternalId: cd8c317c-a566-4ec1-bc4b-e598c892ea89\ntitle: detect Claude ready prompt\nstatus: ready\nowner:\naffects:\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev2",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-event-33",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2 && sed -i '0,/^status: ready for implementation$/s//status: ready/' \"design/feature_descriptions/J_46_detect_claude_ready_prompt.md\" && sed -n '1,8p' \"design/feature_descriptions/J_46_detect_claude_ready_prompt.md\"",
+          "providerItemId": "toolu_01RTXjmENKMX2gwZZznsNDHz",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-09-04T17:12:49.958Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. J_46 implemented.\n\n**Changes** — `desktop/src/actions/agent/claude_usage_terminal.js`\n- `activeCursorLine(terminal)` reads `buffer.active.getLine(baseY + cursorY)` — the only line an input prompt can live on.\n- `showsEmptyPrompt(terminal)` = that line trimmed equals `>`. Typed text disqualifies it.\n- `terminalReady(terminal, output)` = empty prompt **or** legacy `? for shortcuts` / `Try \"` phrases (secondary signal, kept for versions that show the hint before drawing the prompt).\n- Trust branch no longer guarded by `!terminalReady(...)`. Order now: login/onboarding → trust → prompt readiness. Trust selection cursor `❯ 1.` can never be read as an input prompt.\n- `commandSent` flag unchanged, so `/usage` still goes out once. Deadlines, abort, diagnostics, parser untouched. No startup delay added.\n\n**Tests** — `claude_usage_terminal.test.mjs`: `terminalChild` took an optional `{ redraws, screen }` startup arg. Seven new tests: 2.1.241 prompt-only screen reaching `/usage`; four redraws sending `/usage` once; prompt accepted alongside an unrelated `>`; stray `>` off the cursor line falling through to `ptyNoReadyMarker`; login and onboarding screens winning over an empty prompt line; trust screen with cursor on option 1 answered with `\\r`, never `/usage`.\n\n**Verification** — 20 tests pass, `npm run lint` clean. Spec `status` set to `ready`.",
+          "id": "agent-turn-e5793120-d111-4851-8eb1-98dcac874cea-turn-1-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-09-04T17:12:58.831Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-84f16648-2d61-46b3-b01c-c6c49083832d",
+      "providerSessions": [],
+      "startedAt": "2026-09-04T17:07:36.575Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 39468,
+        "runningStartedAt": "2026-09-04T17:10:09.788Z"
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 881662,
+        "inputTokens": 38,
+        "outputTokens": 16189,
+        "reasoningTokens": 0,
+        "totalTokens": 897889,
+        "costUsd": 1.23707
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "cd8c317c-a566-4ec1-bc4b-e598c892ea89",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
