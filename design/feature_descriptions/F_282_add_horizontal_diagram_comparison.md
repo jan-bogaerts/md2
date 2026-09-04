@@ -3,11 +3,12 @@ author:
 id: F_282
 internalId: b39d6ecb-a2eb-40da-8de1-1dca68881d26
 title: add horizontal diagram comparison
-status: design
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
+after: acc5894b-b0b6-4024-88fe-be8f89ccfa36
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 

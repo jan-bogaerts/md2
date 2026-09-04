@@ -8,7 +8,6 @@ owner:
 affects:
 agents:
 policy:
-after: b39d6ecb-a2eb-40da-8de1-1dca68881d26
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
