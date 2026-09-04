@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "43b22d3f-d24d-4e09-b222-bafec56806ae",
       "cardPath": "design/feature_descriptions/B_220_git_worktrees_broken.md",
-      "completedAt": null,
+      "completedAt": "2026-09-04T09:03:07.413Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 88253
@@ -714,17 +714,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 55,
-          "timestamp": "2026-09-04T09:03:06.600Z"
+          "timestamp": "2026-09-04T09:03:07.413Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-88d23336-40c1-4368-95b8-0d37d497b138",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "75c577fc-0730-4729-bbcf-dae1111d5c92",
+          "createdAt": "2026-09-04T09:03:07.413Z",
+          "lastUsedAt": "2026-09-04T09:03:07.413Z",
+          "synchronizedThroughMessageId": "agent-turn-08c75704-a661-45ea-a884-9cd0b5f323bf-turn-1-assistant-5"
+        }
+      ],
       "startedAt": "2026-09-04T08:56:30.879Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 214856,
-        "runningStartedAt": "2026-09-04T09:01:15.120Z"
+        "elapsedMs": 327149,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
