@@ -28,8 +28,23 @@ function terminalScreenText(terminal) {
     return lines.join('\n');
 }
 
-function terminalReady(output) {
-    return output.includes('? for shortcuts') || output.includes('Try "');
+/** The line the cursor sits on; that is the only line an input prompt can be drawn on. */
+function activeCursorLine(terminal) {
+    const { active } = terminal.buffer;
+
+    return active.getLine(active.baseY + active.cursorY)?.translateToString(true) ?? '';
+}
+
+// A settled Claude Code 2.1.241 prompt is an otherwise empty `> ` line under the cursor. A prompt
+// holding typed text does not qualify: this poll owns a fresh Claude and expects an empty one.
+function showsEmptyPrompt(terminal) {
+    return activeCursorLine(terminal).trim() === '>';
+}
+
+// The phrases are kept as a secondary signal for Claude versions that print their welcome hint
+// before the input prompt is drawn.
+function terminalReady(terminal, output) {
+    return showsEmptyPrompt(terminal) || output.includes('? for shortcuts') || output.includes('Try "');
 }
 
 function showsTrustScreen(output) {
@@ -134,7 +149,7 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
                 }
                 // Trust is asked once per folder and blocks every keystroke until answered. The poller
                 // writes nothing here, and agents are about to run in this same folder anyway.
-                if (!trustAnswered && !terminalReady(output) && showsTrustScreen(output)) {
+                if (!trustAnswered && showsTrustScreen(output)) {
                     trustAnswered = true;
                     if (!withLiveProcess(() => processHandle.write(CLAUDE_USAGE_TRUST_ANSWER))) {
                         finishWithoutUsage(CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker, output);
@@ -142,7 +157,7 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
                     return;
                 }
             }
-            if (!commandSent && terminalReady(output)) {
+            if (!commandSent && terminalReady(terminal, output)) {
                 commandSent = true;
                 if (!withLiveProcess(() => processHandle.write('/usage\r'))) {
                     finishWithoutUsage(CLAUDE_USAGE_POLL_REASONS.ptyReportTimeout, output);
