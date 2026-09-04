@@ -3,7 +3,7 @@ author:
 id: F_300
 internalId: 1baf99c7-1d5e-40a4-8702-29de72e0be62
 title: add diagram copy tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,15 @@ policy:
 after: 280027c6-d553-4c20-9fb4-af9010ce2c39
 branch: f_300_add_diagram_copy_tool
 worktree: 3
+changedFiles:
+  - app/src/components/diagram_view/diagram_copy_button.test.tsx
+  - app/src/components/diagram_view/diagram_copy_button.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_copy.test.ts
+  - app/src/services/diagrams/diagram_copy.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.test.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
