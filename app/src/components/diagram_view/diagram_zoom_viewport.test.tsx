@@ -64,14 +64,38 @@ describe('DiagramZoomViewport', () => {
         expect(scroller.scrollTop).toBe(75)
     })
 
+    it('preserves visible center and canonical geometry while zooming out', () => {
+        const { geometry, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const editableDiagram = session.getEditableDiagram()
+        Object.defineProperties(scroller, {
+            clientHeight: { configurable: true, value: 100 },
+            clientWidth: { configurable: true, value: 200 },
+        })
+        scroller.scrollLeft = 100
+        scroller.scrollTop = 50
+
+        act(() => { session.zoomOut() })
+
+        expect(screen.getByTestId('new-diagram-zoom-surface')).toHaveStyle({
+            transformOrigin: 'top left',
+            zoom: DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP,
+        })
+        expect(scroller.scrollLeft).toBe(50)
+        expect(scroller.scrollTop).toBe(25)
+        expect(session.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.getEditableDiagram()?.nodes[0]).toMatchObject({ x: 240, y: 120 })
+    })
+
     it('keeps pointer selection on transformed diagram nodes accurate', () => {
         const { geometry, session } = createHarness()
         const onSelect = vi.fn()
         render(<DiagramZoomViewport geometry={geometry} onSelect={onSelect} session={session} />)
 
-        act(() => { session.zoomIn() })
-        fireEvent.click(screen.getByRole('button', { name: 'Orders' }), { clientX: 310, clientY: 180 })
+        act(() => { session.zoomOut() })
+        fireEvent.click(screen.getByRole('button', { name: 'Orders' }), { clientX: 190, clientY: 120 })
 
-        expect(onSelect).toHaveBeenCalledWith({ id: 'orders', label: 'Orders', left: 310, top: 180 })
+        expect(onSelect).toHaveBeenCalledWith({ id: 'orders', label: 'Orders', left: 190, top: 120 })
     })
 })

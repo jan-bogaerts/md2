@@ -9,6 +9,7 @@ import {
     DEFAULT_DIAGRAM_ZOOM,
     DIAGRAM_ZOOM_STEP,
     MAXIMUM_DIAGRAM_ZOOM,
+    MINIMUM_DIAGRAM_ZOOM,
 } from '../../services/diagrams/diagram_edit_session_service';
 import { DiagramToolbox } from './diagram_toolbox';
 import { DiagramToolboxActionButton } from './diagram_toolbox_action_button';
@@ -87,6 +88,16 @@ class ToolboxSessionStub extends EventTarget {
 
         return true;
     }
+
+    zoomOut() {
+        const viewportScale = Math.max(this.viewportScale - DIAGRAM_ZOOM_STEP, MINIMUM_DIAGRAM_ZOOM);
+        if (viewportScale === this.viewportScale) return false;
+
+        this.viewportScale = viewportScale;
+        this.dispatchEvent(new Event('viewportScaleChanged'));
+
+        return true;
+    }
 }
 
 function createBoundary() {
@@ -124,6 +135,7 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('tab', { name: 'Edit' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('button', { name: 'Select' })).toHaveAttribute('aria-pressed', 'true');
         expect(screen.getByRole('button', { name: 'Zoom in' })).not.toHaveAttribute('aria-pressed');
+        expect(screen.getByRole('button', { name: 'Zoom out' })).not.toHaveAttribute('aria-pressed');
 
         fireEvent.mouseOver(screen.getByRole('tab', { name: 'Nodes' }));
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Nodes');
@@ -150,6 +162,24 @@ describe('DiagramToolbox', () => {
         const remainingSteps = (MAXIMUM_DIAGRAM_ZOOM - session.getViewportScaleSnapshot()) / DIAGRAM_ZOOM_STEP;
         Array.from({ length: remainingSteps }).forEach(() => fireEvent.click(button));
         expect(session.getViewportScaleSnapshot()).toBe(MAXIMUM_DIAGRAM_ZOOM);
+        expect(button).toBeDisabled();
+    });
+
+    it('zooms out by one step without changing persistent tool and disables at minimum', async () => {
+        const session = new ToolboxSessionStub();
+        session.setActiveTool('node:component');
+        render(<DiagramToolbox boundaryElement={createBoundary()} session={session} />);
+        const button = screen.getByRole('button', { name: 'Zoom out' });
+
+        fireEvent.mouseOver(button);
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Zoom out');
+        fireEvent.click(button);
+        expect(session.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP);
+        expect(session.getActiveToolSnapshot()).toBe('node:component');
+
+        const remainingSteps = (session.getViewportScaleSnapshot() - MINIMUM_DIAGRAM_ZOOM) / DIAGRAM_ZOOM_STEP;
+        Array.from({ length: remainingSteps }).forEach(() => fireEvent.click(button));
+        expect(session.getViewportScaleSnapshot()).toBe(MINIMUM_DIAGRAM_ZOOM);
         expect(button).toBeDisabled();
     });
 

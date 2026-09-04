@@ -11,6 +11,7 @@ import {
 import { ResizablePopper } from '../resizable_popper';
 import { DiagramToolboxToolButton } from './diagram_toolbox_tool_button';
 import { DiagramZoomInButton } from './diagram_zoom_in_button';
+import { DiagramZoomOutButton } from './diagram_zoom_out_button';
 import { useCancelDiagramInteractionOnEscape } from './use_diagram_tool';
 
 const DIAGRAM_TOOLBOX_SIZE_STORAGE_KEY = 'md2.diagramToolboxSize';
@@ -37,6 +38,7 @@ interface DiagramToolboxProps {
         subscribeActiveToolboxSection: (listener: () => void) => () => void;
         subscribeViewportScale: (listener: () => void) => () => void;
         zoomIn: () => boolean;
+        zoomOut: () => boolean;
     };
 }
 
@@ -121,6 +123,7 @@ export function DiagramToolbox({
                                 tooltip="Select diagram objects"
                             />
                             <DiagramZoomInButton session={session} />
+                            <DiagramZoomOutButton session={session} />
                         </>
                     )}
                 </Box>

@@ -6,6 +6,7 @@ import {
     DIAGRAM_ZOOM_STEP,
     DiagramEditSessionService,
     MAXIMUM_DIAGRAM_ZOOM,
+    MINIMUM_DIAGRAM_ZOOM,
 } from './diagram_edit_session_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
 
@@ -142,6 +143,38 @@ describe('DiagramEditSessionService', () => {
         expect(viewportScaleChanged).toHaveBeenCalledTimes(remainingSteps + 1)
     })
 
+    it('zooms out only viewport scale by defined steps down to named minimum', () => {
+        const { service } = createHarness()
+        const viewportScaleChanged = vi.fn()
+        const dirtyChanged = vi.fn()
+        const changeIdsChanged = vi.fn()
+        const sessionChanged = vi.fn()
+        service.subscribeViewportScale(viewportScaleChanged)
+        service.subscribeDirty(dirtyChanged)
+        service.subscribeChangeIds(changeIdsChanged)
+        service.subscribeSession(sessionChanged)
+        service.start()
+        sessionChanged.mockClear()
+        const editableDiagram = service.getEditableDiagram()
+        const changeIds = service.getChangeIdsSnapshot()
+
+        expect(service.zoomOut()).toBe(true)
+        expect(service.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)
+        expect(service.getEditableDiagram()).toBe(editableDiagram)
+        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(viewportScaleChanged).toHaveBeenCalledOnce()
+        expect(dirtyChanged).not.toHaveBeenCalled()
+        expect(changeIdsChanged).not.toHaveBeenCalled()
+        expect(sessionChanged).not.toHaveBeenCalled()
+
+        const remainingSteps = (service.getViewportScaleSnapshot() - MINIMUM_DIAGRAM_ZOOM) / DIAGRAM_ZOOM_STEP
+        Array.from({ length: remainingSteps }).forEach(() => service.zoomOut())
+        expect(service.getViewportScaleSnapshot()).toBe(MINIMUM_DIAGRAM_ZOOM)
+        expect(service.zoomOut()).toBe(false)
+        expect(viewportScaleChanged).toHaveBeenCalledTimes(remainingSteps + 1)
+    })
+
     it('resets viewport scale on fresh session and discard', () => {
         const { service } = createHarness()
         const viewportScaleChanged = vi.fn()
@@ -163,6 +196,7 @@ describe('DiagramEditSessionService', () => {
         const { service } = createHarness()
 
         expect(() => service.zoomIn()).toThrow('Cannot zoom diagram without an active edit session')
+        expect(() => service.zoomOut()).toThrow('Cannot zoom diagram without an active edit session')
     })
 
     it('publishes active tool and transient gesture independently', () => {

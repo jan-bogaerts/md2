@@ -46,6 +46,7 @@ const MAX_ID_GENERATION_ATTEMPTS = 100
 
 export const DEFAULT_DIAGRAM_ZOOM = 1
 export const DIAGRAM_ZOOM_STEP = 0.25
+export const MINIMUM_DIAGRAM_ZOOM = 0.5
 export const MAXIMUM_DIAGRAM_ZOOM = 2
 
 export type DiagramCollectionKind = 'edge' | 'fragment' | 'group' | 'node'
@@ -630,6 +631,17 @@ export class DiagramEditSessionService extends EventTarget {
     zoomIn() {
         if (!this.session) throw new Error('Cannot zoom diagram without an active edit session')
         const scale = Math.min(this.viewportScale + DIAGRAM_ZOOM_STEP, MAXIMUM_DIAGRAM_ZOOM)
+        if (scale === this.viewportScale) return false
+
+        this.viewportScale = scale
+        this.dispatchEvent(new Event(VIEWPORT_SCALE_CHANGED_EVENT))
+
+        return true
+    }
+
+    zoomOut() {
+        if (!this.session) throw new Error('Cannot zoom diagram without an active edit session')
+        const scale = Math.max(this.viewportScale - DIAGRAM_ZOOM_STEP, MINIMUM_DIAGRAM_ZOOM)
         if (scale === this.viewportScale) return false
 
         this.viewportScale = scale
