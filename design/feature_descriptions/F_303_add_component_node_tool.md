@@ -3,7 +3,7 @@ author:
 id: F_303
 internalId: 69834d03-c154-4c81-a656-50de20aeb0ec
 title: add component node tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,14 @@ policy:
 after: f82cd066-3072-4e2e-96d4-301bed26bae0
 branch: f_303_add_component_node_tool
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_component_node_button.test.tsx
+  - app/src/components/diagram_view/diagram_component_node_button.tsx
+  - app/src/components/diagram_view/diagram_object_details_dialog.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
