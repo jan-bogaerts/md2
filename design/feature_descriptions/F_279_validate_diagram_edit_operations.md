@@ -3,12 +3,11 @@ author:
 id: F_279
 internalId: 2be66ea0-5097-4d45-a94e-d4a7b72331ca
 title: validate diagram edit operations
-status: new
+status: design
 owner:
 affects:
 agents:
 policy:
-after: 056265ee-3d0f-4922-8e2d-282f91bad667
 ---
 
 Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
