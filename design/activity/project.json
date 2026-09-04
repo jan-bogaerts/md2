@@ -18836,7 +18836,7 @@
       "actionId": "6e05571a-e93b-4e56-be1a-520efa28fd3f",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-04T18:31:43.841Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 45568
@@ -19448,17 +19448,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 45,
-          "timestamp": "2026-09-04T18:27:42.893Z"
+          "timestamp": "2026-09-04T18:31:43.841Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-b00958f1-1c15-4b0d-82b5-edf6384ecaac",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a06dab-4bef-77a3-9fdb-157f331addfe",
+          "createdAt": "2026-09-04T18:27:42.893Z",
+          "lastUsedAt": "2026-09-04T18:31:43.841Z",
+          "synchronizedThroughMessageId": "agent-turn-43d8a9dc-b95c-4105-85f1-44feebbe9371-turn-1-assistant-6"
+        }
+      ],
       "startedAt": "2026-09-04T18:25:37.515Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-04T18:25:37.515Z"
+        "elapsedMs": 125378,
+        "runningStartedAt": null
       },
       "title": "merge",
       "usage": {
