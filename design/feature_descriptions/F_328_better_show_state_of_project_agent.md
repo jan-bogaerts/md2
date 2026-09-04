@@ -3,7 +3,7 @@ author:
 id: F_328
 internalId: 1d05ed50-60c4-42a5-b520-fbc0d625361c
 title: better show state of project agent
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,17 @@ policy:
 branch: f_328_better_show_state_of_project_agent
 worktree: 2
 after: cd8c317c-a566-4ec1-bc4b-e598c892ea89
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_chat.tsx
+  - app/src/components/agents/agent_chat_fab.test.tsx
+  - app/src/components/agents/agent_chat_fab.tsx
+  - app/src/components/hooks/use_agent_acknowledgements.ts
+  - app/src/components/movable_fab.test.tsx
+  - app/src/components/movable_fab.tsx
+  - app/src/services/agents/agent_acknowledgement_service.node.test.ts
+  - app/src/services/agents/agent_acknowledgement_service.ts
+  - app/src/services/agents/agent_integration.test.ts
+  - app/src/services/agents/agent_integration.ts
 ---
 currently, we have a FAB that shows, hides the project agent's action popup.
 
