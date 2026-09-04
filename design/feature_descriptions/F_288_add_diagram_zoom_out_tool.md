@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__ec72c355-fcfa-4d53-ad26-3812fcb1c7ba.json
 policy:
 after: 47be0198-e3ae-4ef7-9d06-3fcf5c7fd6b9
 branch: f_288_add_diagram_zoom_out_tool
