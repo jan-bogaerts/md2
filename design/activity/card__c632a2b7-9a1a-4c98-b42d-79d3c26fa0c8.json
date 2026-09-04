@@ -1022,7 +1022,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "c632a2b7-9a1a-4c98-b42d-79d3c26fa0c8",
       "cardPath": "design/feature_descriptions/F_330_shorten_token_count.md",
-      "completedAt": null,
+      "completedAt": "2026-09-04T17:56:05.873Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 107720
@@ -2467,17 +2467,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 118,
-          "timestamp": "2026-09-04T17:56:05.071Z"
+          "timestamp": "2026-09-04T17:56:05.873Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-e019c1bd-0c42-4711-b694-58d5e6e46315",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "f1fcbed4-5bf7-4b6e-b5ee-d4dd9c114688",
+          "createdAt": "2026-09-04T17:56:05.873Z",
+          "lastUsedAt": "2026-09-04T17:56:05.873Z",
+          "synchronizedThroughMessageId": "agent-turn-41a506e2-f8d1-412f-a3d6-d0345b9a0210-turn-1-assistant-19"
+        }
+      ],
       "startedAt": "2026-09-04T17:42:43.637Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 43540,
-        "runningStartedAt": "2026-09-04T17:44:48.210Z"
+        "elapsedMs": 721203,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
