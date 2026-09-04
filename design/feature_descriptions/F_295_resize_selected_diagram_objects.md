@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__f24dc638-db21-4d13-b5ec-bf173913a69b.json
 policy:
-branch: f_295_resize_selected_diagram_objects
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/diagram_comparison.tsx
   - app/src/components/diagram_view/diagram_resize_handles.tsx
