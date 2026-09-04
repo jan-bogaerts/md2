@@ -3,12 +3,12 @@ author:
 id: F_303
 internalId: 69834d03-c154-4c81-a656-50de20aeb0ec
 title: add component node tool
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: f82cd066-3072-4e2e-96d4-301bed26bae0
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
