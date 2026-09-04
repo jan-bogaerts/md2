@@ -18438,7 +18438,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 67,
-          "timestamp": "2026-09-04T11:40:52.782Z"
+          "timestamp": "2026-09-04T11:44:25.787Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -18448,15 +18448,15 @@
           "agent": "codex",
           "conversationId": "01a06c27-194c-7d20-8924-701cbf71e740",
           "createdAt": "2026-09-04T11:23:55.546Z",
-          "lastUsedAt": "2026-09-04T11:38:33.794Z",
-          "synchronizedThroughMessageId": "agent-turn-f73529ab-a6d3-4fc1-9335-0c2c5751e6ff-turn-2-assistant-2"
+          "lastUsedAt": "2026-09-04T11:40:52.782Z",
+          "synchronizedThroughMessageId": "agent-turn-f73529ab-a6d3-4fc1-9335-0c2c5751e6ff-turn-3-assistant-2"
         }
       ],
       "startedAt": "2026-09-04T11:21:36.178Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 166499,
-        "runningStartedAt": "2026-09-04T11:39:51.841Z"
+        "elapsedMs": 227440,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
