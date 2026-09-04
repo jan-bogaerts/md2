@@ -9,9 +9,13 @@ affects:
 agents:
 policy:
 ---
-
 We currently support scheduling an action using a date and time.
 
 We should improve this by adding different types of triggers:
 
-When an account usage tracker of an agent resets. Useful for when 5 hourly limit resets to 0
+* When an account usage tracker of an agent resets. Useful for when 5 hourly limit resets to 0
+* When anoher card switches to a configurable state.
+
+Next we need to add commands related to scheduling to the ´run´ menu bar:
+
+* View active schedules: opens popup with list of currently active schedules
