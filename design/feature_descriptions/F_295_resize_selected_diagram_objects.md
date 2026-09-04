@@ -3,7 +3,7 @@ author:
 id: F_295
 internalId: f24dc638-db21-4d13-b5ec-bf173913a69b
 title: resize selected diagram objects
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
