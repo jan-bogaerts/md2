@@ -16443,7 +16443,7 @@
       "actionId": "6e05571a-e93b-4e56-be1a-520efa28fd3f",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-04T15:12:55.029Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 57382
@@ -17000,7 +17000,7 @@
         }
       ],
       "startedAt": "2026-09-03T17:02:22.313Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "elapsedMs": 180338,
         "runningStartedAt": null
@@ -19671,11 +19671,11 @@
         "agent-eff0bc03-c0bc-4178-af3b-c94f6811273e"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-378ddbb9-7b64-4327-a463-f4146704cd14",
       "origin": {
@@ -19683,9 +19683,9 @@
       },
       "rootActionId": "6e05571a-e93b-4e56-be1a-520efa28fd3f",
       "rootActionLabel": "merge",
-      "rootConversationId": "agent-eff0bc03-c0bc-4178-af3b-c94f6811273e",
       "startedAt": "2026-09-04T15:10:49.599Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-eff0bc03-c0bc-4178-af3b-c94f6811273e"
     }
   ],
   "version": 5
