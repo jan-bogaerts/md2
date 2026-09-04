@@ -3,7 +3,7 @@ author:
 id: F_291
 internalId: 2f8b255c-a6f9-4f92-ad54-3f4358b2e512
 title: add direct diagram selection
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:

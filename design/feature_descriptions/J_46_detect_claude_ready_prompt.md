@@ -3,7 +3,7 @@ author:
 id: J_46
 internalId: cd8c317c-a566-4ec1-bc4b-e598c892ea89
 title: detect Claude ready prompt
-status: design
+status: ready for implementation
 owner:
 affects:
 agents:
@@ -11,6 +11,7 @@ policy:
 changedFiles:
   - desktop/src/actions/agent/claude_usage_terminal.js
   - desktop/src/actions/agent/claude_usage_terminal.test.mjs
+after: 6e041d8b-7aca-4ab1-9be5-56d7e31d189c
 ---
 
 Make Claude account-usage polling detect when the interactive terminal is accepting input without depending only on welcome-screen copy.

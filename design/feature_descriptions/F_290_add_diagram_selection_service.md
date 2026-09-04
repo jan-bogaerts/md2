@@ -8,7 +8,8 @@ owner:
 affects:
 agents:
 policy:
-after: ec72c355-fcfa-4d53-ad26-3812fcb1c7ba
+branch: f_290_add_diagram_selection_service
+worktree: 1
 ---
 
 Parent: [F_255](F_255_make_diagrams_editable.md).

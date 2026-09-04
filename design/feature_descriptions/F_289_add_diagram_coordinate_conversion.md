@@ -3,12 +3,12 @@ author:
 id: F_289
 internalId: 71998afb-3b7f-4da7-87e4-95e5c931a702
 title: add diagram coordinate conversion
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 056265ee-3d0f-4922-8e2d-282f91bad667
+after: cd8c317c-a566-4ec1-bc4b-e598c892ea89
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
