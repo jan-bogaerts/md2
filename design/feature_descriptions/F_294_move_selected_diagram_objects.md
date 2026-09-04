@@ -3,7 +3,7 @@ author:
 id: F_294
 internalId: 21b2c59c-1c07-42c2-9bc4-4e7219a645be
 title: move selected diagram objects
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,8 @@ policy:
 after: 6142a098-2865-430d-9ca9-a55e0ce5feff
 branch: f_294_move_selected_diagram_objects
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/use_diagram_tool.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
