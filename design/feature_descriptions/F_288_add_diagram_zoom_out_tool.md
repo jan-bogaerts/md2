@@ -3,7 +3,7 @@ author:
 id: F_288
 internalId: ec72c355-fcfa-4d53-ad26-3812fcb1c7ba
 title: add diagram zoom out tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,13 @@ policy:
 after: 47be0198-e3ae-4ef7-9d06-3fcf5c7fd6b9
 branch: f_288_add_diagram_zoom_out_tool
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/components/diagram_view/diagram_zoom_out_button.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
