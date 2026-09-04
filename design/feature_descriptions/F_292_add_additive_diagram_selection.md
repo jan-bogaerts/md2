@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__91ef53f7-f3da-4b1a-acf1-ca3520128a0f.json
 policy:
-branch: f_292_add_additive_diagram_selection
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/diagram_edge.tsx
   - app/src/components/diagram_view/diagram_group.tsx
