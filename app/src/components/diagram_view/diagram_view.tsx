@@ -18,9 +18,9 @@ import { useWorkspaceView } from '../hooks/use_workspace_view'
 import { ActionPopup } from '../actions/run/popup/action_popup'
 import { MovableFab } from '../movable_fab'
 import { DiagramRenderer } from './diagram_renderer'
-import { DiagramComparison } from './diagram_comparison'
 import { DiagramLegend } from './diagram_legend'
 import type { DiagramSelection } from './diagram_selection'
+import { VerticalDiagramComparison } from './vertical_diagram_comparison'
 
 const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
 
@@ -145,7 +145,7 @@ export function DiagramView({
             >
                 {snapshot.currentDiagram ? (
                     editSessionSnapshot ? (
-                        <DiagramComparison
+                        <VerticalDiagramComparison
                             currentDiagram={snapshot.currentDiagram}
                             geometry={geometry}
                             onCurrentSelect={handleDiagramSelect}
