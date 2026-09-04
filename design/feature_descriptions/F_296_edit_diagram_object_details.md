@@ -3,15 +3,16 @@ author:
 id: F_296
 internalId: 62bae796-a019-452e-bc44-8d2a62318b48
 title: edit diagram object details
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: f24dc638-db21-4d13-b5ec-bf173913a69b
+branch: f_296_edit_diagram_object_details
+worktree: 2
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -34,4 +35,4 @@ The dialog reads fields from service accessors and keeps only its temporary form
 
 ## Dependencies
 
-[F_276](F_276_add_diagram_mutation_operations.md), [F_279](F_279_validate_diagram_edit_operations.md), and [F_291](F_291_add_direct_diagram_selection.md).
+[F\_276](F_276_add_diagram_mutation_operations.md), [F\_279](F_279_validate_diagram_edit_operations.md), and [F\_291](F_291_add_direct_diagram_selection.md).

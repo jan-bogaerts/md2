@@ -3,15 +3,14 @@ author:
 id: F_297
 internalId: 20ddf6f5-ccf5-4017-96ab-94985cfbcf13
 title: add diagram delete tool
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
 after: 62bae796-a019-452e-bc44-8d2a62318b48
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -35,4 +34,4 @@ Deletion mutates only affected collection memberships and references. Collection
 
 ## Dependencies
 
-[F_276](F_276_add_diagram_mutation_operations.md), [F_277](F_277_track_diagram_changes.md), and [F_290](F_290_add_diagram_selection_service.md).
+[F\_276](F_276_add_diagram_mutation_operations.md), [F\_277](F_277_track_diagram_changes.md), and [F\_290](F_290_add_diagram_selection_service.md).

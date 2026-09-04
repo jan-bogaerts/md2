@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__f24dc638-db21-4d13-b5ec-bf173913a69b.json
 policy:
-after: 21b2c59c-1c07-42c2-9bc4-4e7219a645be
 branch: f_295_resize_selected_diagram_objects
 worktree: 1
 ---
