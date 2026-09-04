@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__20ddf6f5-ccf5-4017-96ab-94985cfbcf13.json
 policy:
 after: 62bae796-a019-452e-bc44-8d2a62318b48
 branch: f_297_add_diagram_delete_tool
