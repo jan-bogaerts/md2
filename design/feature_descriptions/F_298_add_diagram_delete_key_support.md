@@ -3,7 +3,7 @@ author:
 id: F_298
 internalId: 531e8784-9f9b-42d0-9eba-1f62646227f4
 title: add diagram Delete key support
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,8 @@ agents:
 policy:
 branch: f_298_add_diagram_delete_key_support
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/use_diagram_delete_key.test.tsx
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
