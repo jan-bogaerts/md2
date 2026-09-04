@@ -3,12 +3,11 @@ author:
 id: F_285
 internalId: 2e295c0c-a5eb-4b2f-a36a-6c6f202a750a
 title: add resizable diagram toolbox
-status: new
+status: design
 owner:
 affects:
 agents:
 policy:
-after: 2023c646-c9c0-43ae-92f7-5619042cb465
 ---
 
 Parent: [F_255](F_255_make_diagrams_editable.md).

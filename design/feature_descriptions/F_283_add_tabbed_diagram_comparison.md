@@ -3,14 +3,14 @@ author:
 id: F_283
 internalId: 2a79aab5-7f0a-4c3e-9259-2ffdc6878f3b
 title: add tabbed diagram comparison
-status: design
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
+after: 607f2bae-4287-47e0-9585-e8555c707264
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -29,4 +29,4 @@ The tab owner subscribes only to the active tab. New diagram field events rerend
 
 ## Dependencies
 
-[F_280](F_280_add_current_and_new_diagram_comparison.md).
+[F\_280](F_280_add_current_and_new_diagram_comparison.md).
