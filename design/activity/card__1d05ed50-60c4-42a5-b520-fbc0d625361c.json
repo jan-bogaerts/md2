@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "1d05ed50-60c4-42a5-b520-fbc0d625361c",
       "cardPath": "design/feature_descriptions/F_328_better_show_state_of_project_agent.md",
-      "completedAt": null,
+      "completedAt": "2026-09-04T15:46:21.224Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 82243
@@ -961,7 +961,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 69,
-          "timestamp": "2026-09-04T15:42:31.454Z"
+          "timestamp": "2026-09-04T15:46:21.224Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -971,12 +971,12 @@
           "agent": "codex",
           "conversationId": "01a06d12-c58e-7671-a100-c66687a86be0",
           "createdAt": "2026-09-04T15:42:31.454Z",
-          "lastUsedAt": "2026-09-04T15:42:31.454Z",
+          "lastUsedAt": "2026-09-04T15:46:21.224Z",
           "synchronizedThroughMessageId": "agent-turn-ef46f446-01da-4e05-96c6-540837cb1e25-turn-1-assistant-3"
         }
       ],
       "startedAt": "2026-09-04T15:39:01.597Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "elapsedMs": 209857,
         "runningStartedAt": null
@@ -990,7 +990,7 @@
         "totalTokens": 1363613
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
