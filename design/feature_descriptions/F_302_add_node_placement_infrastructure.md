@@ -3,7 +3,7 @@ author:
 id: F_302
 internalId: f82cd066-3072-4e2e-96d4-301bed26bae0
 title: add node placement infrastructure
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,13 @@ policy:
 after: f93c7796-e308-4859-a60a-ed282e4c0d2b
 branch: f_302_add_node_placement_infrastructure
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_node_placement_preview.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
+  - app/src/services/diagrams/diagram_node_placement_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
