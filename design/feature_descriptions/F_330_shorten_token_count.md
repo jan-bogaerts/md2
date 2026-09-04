@@ -3,7 +3,7 @@ author:
 id: F_330
 internalId: c632a2b7-9a1a-4c98-b42d-79d3c26fa0c8
 title: Shorten token count
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
