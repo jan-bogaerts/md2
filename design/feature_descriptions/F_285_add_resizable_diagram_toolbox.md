@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: 2a79aab5-7f0a-4c3e-9259-2ffdc6878f3b
+branch: f_285_add_resizable_diagram_toolbox
+worktree: 2
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
