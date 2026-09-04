@@ -744,13 +744,50 @@
         "costUsd": 2.2853415
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "43b22d3f-d24d-4e09-b222-bafec56806ae",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "c7781a90a8ef2b7ec73b261473dd45b42cc71e0c",
+          "committedAt": "2026-09-04T11:03:07+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_220_git_worktrees_broken.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 47
+        }
+      ],
+      "completedAt": "2026-09-04T09:03:08.313Z",
+      "conversationIds": [
+        "agent-88d23336-40c1-4368-95b8-0d37d497b138"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-3170fac4-2278-4dec-8166-8147a50b7052",
+      "origin": {
+        "cardInternalId": "43b22d3f-d24d-4e09-b222-bafec56806ae",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-88d23336-40c1-4368-95b8-0d37d497b138",
+      "startedAt": "2026-09-04T08:56:30.873Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
