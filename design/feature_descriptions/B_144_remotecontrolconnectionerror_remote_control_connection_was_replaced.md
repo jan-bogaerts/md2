@@ -13,7 +13,6 @@ sentryIssueId: 141423776
 sentryOrganization: elastetic
 after: e9c39111-06ec-4e90-98ec-3d1d0fb7e400
 ---
-
 ## Sentry issue
 
 **Title:** RemoteControlConnectionError: Remote-control connection was replaced
@@ -38,15 +37,15 @@ after: e9c39111-06ec-4e90-98ec-3d1d0fb7e400
 
 ### Application stack frames
 
-- `/assets/index-CVe3JLtK.js:27:12573` — EventTarget.recoverActiveRuns
-- `/assets/index-CVe3JLtK.js:27:16866` — EventTarget.handleEvent
-- `/assets/index-CVe3JLtK.js:27:17613` — EventTarget.publishScopedEvents
-- `/assets/index-CVe3JLtK.js:180:4635` — unknown function
-- `/assets/index-CVe3JLtK.js:175:6850` — EventTarget.refresh
-- `/assets/index-CVe3JLtK.js:175:8936` — EventTarget.enqueueOperation
-- `/assets/index-CVe3JLtK.js:175:6878` — unknown function
-- `/assets/index-CVe3JLtK.js:175:7825` — EventTarget.loadOrMigrateSummary
-- `/assets/index-CVe3JLtK.js:26:29237` — nh.listRepositoryFiles
-- `/assets/index-CVe3JLtK.js:26:36207` — nh.request
-- `/assets/index-CVe3JLtK.js:26:36305` — nh.sendRequest
-- `/assets/index-CVe3JLtK.js:26:36728` — nh.ensureConnected
+* `/assets/index-CVe3JLtK.js:27:12573` — EventTarget.recoverActiveRuns
+* `/assets/index-CVe3JLtK.js:27:16866` — EventTarget.handleEvent
+* `/assets/index-CVe3JLtK.js:27:17613` — EventTarget.publishScopedEvents
+* `/assets/index-CVe3JLtK.js:180:4635` — unknown function
+* `/assets/index-CVe3JLtK.js:175:6850` — EventTarget.refresh
+* `/assets/index-CVe3JLtK.js:175:8936` — EventTarget.enqueueOperation
+* `/assets/index-CVe3JLtK.js:175:6878` — unknown function
+* `/assets/index-CVe3JLtK.js:175:7825` — EventTarget.loadOrMigrateSummary
+* `/assets/index-CVe3JLtK.js:26:29237` — nh.listRepositoryFiles
+* `/assets/index-CVe3JLtK.js:26:36207` — nh.request
+* `/assets/index-CVe3JLtK.js:26:36305` — nh.sendRequest
+* `/assets/index-CVe3JLtK.js:26:36728` — nh.ensureConnected
