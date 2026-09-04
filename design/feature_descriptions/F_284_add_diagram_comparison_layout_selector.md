@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__2023c646-c9c0-43ae-92f7-5619042cb465.json
 policy:
 branch: f_284_add_diagram_comparison_layout_selector
 worktree: 1
