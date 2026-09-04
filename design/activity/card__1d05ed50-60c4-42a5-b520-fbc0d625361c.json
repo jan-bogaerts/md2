@@ -996,7 +996,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "1d05ed50-60c4-42a5-b520-fbc0d625361c",
       "cardPath": "design/feature_descriptions/F_328_better_show_state_of_project_agent.md",
-      "completedAt": null,
+      "completedAt": "2026-09-04T17:03:02.433Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 119227
@@ -2830,7 +2830,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 134,
-          "timestamp": "2026-09-04T17:03:02.062Z"
+          "timestamp": "2026-09-04T17:03:02.433Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2840,15 +2840,15 @@
           "agent": "codex",
           "conversationId": "01a06d19-ea63-73f1-8cf3-909d86dcfbf2",
           "createdAt": "2026-09-04T15:48:12.011Z",
-          "lastUsedAt": "2026-09-04T15:48:12.011Z",
-          "synchronizedThroughMessageId": "agent-turn-717d7168-47a6-4fa0-b2cc-7bff70c5d55c-turn-1-assistant-2"
+          "lastUsedAt": "2026-09-04T17:03:02.433Z",
+          "synchronizedThroughMessageId": "agent-turn-daa8631d-6785-4ca0-bcdd-231eb4da5944-turn-1-assistant-6"
         }
       ],
       "startedAt": "2026-09-04T15:46:49.869Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 82142,
-        "runningStartedAt": "2026-09-04T16:53:29.217Z"
+        "elapsedMs": 655358,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
