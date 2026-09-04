@@ -28,7 +28,7 @@ export function useActiveDiagramTool(service: DiagramActiveToolStore = diagramEd
     )
 }
 
-/** Subscribes one leaf to temporary placement or edge gesture state. */
+/** Subscribes one leaf to temporary placement, edge, or move gesture state. */
 export function useDiagramTransientGesture(service: DiagramTransientGestureStore = diagramEditSessionService) {
     return useSyncExternalStore(
         service.subscribeTransientGesture,

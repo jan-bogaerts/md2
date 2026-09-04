@@ -7,6 +7,8 @@ import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { layout } from '../../services/diagrams/diagram_layout'
+import { DiagramMoveService } from '../../services/diagrams/diagram_move_service'
+import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { DiagramComparison } from './diagram_comparison'
 import { DiagramComparisonLayoutService } from './diagram_comparison_layout_service'
@@ -42,7 +44,10 @@ function createHarness() {
     session.bindProject(project)
     session.start()
 
-    return { geometry: new DiagramGeometryService(session), session }
+    const geometry = new DiagramGeometryService(session)
+    const selection = new DiagramSelectionService(session)
+
+    return { geometry, movement: new DiagramMoveService(session, geometry, selection), selection, session }
 }
 
 beforeEach(() => {
@@ -178,5 +183,44 @@ describe('DiagramComparison', () => {
 
         fireEvent.keyDown(separator, { key: 'End' })
         expect(separator).toHaveAttribute('aria-valuenow', '80')
+    })
+
+    it('keeps comparison root, Current, toolbox, and unmoved node isolated during a New drag', () => {
+        const { geometry, movement, selection, session } = createHarness()
+        let comparisonRenders = 0
+        const Comparison = () => {
+            comparisonRenders += 1
+
+            return (
+                <DiagramComparison
+                    currentDiagram={layout(diagram)}
+                    geometry={geometry}
+                    movement={movement}
+                    onCurrentSelect={vi.fn()}
+                    selection={selection}
+                    session={session}
+                />
+            )
+        }
+        render(<Comparison />)
+        const current = screen.getByRole('region', { name: 'Current' })
+        const next = screen.getByRole('region', { name: 'New' })
+        const scroller = within(next).getByLabelText('New diagram scroller')
+        const orders = within(next).getByRole('button', { name: 'Orders' })
+        const store = within(next).getByRole('button', { name: 'Store' })
+        const currentMarkup = current.innerHTML
+        const storeStyle = store.getAttribute('style')
+        const toolbox = screen.getByRole('dialog', { name: 'Diagram tools' })
+        const startX = geometry.getNodeGeometryFieldSnapshot('orders', 'x')
+
+        fireEvent.pointerDown(orders, { button: 0, clientX: 100, clientY: 100, isPrimary: true, pointerId: 4 })
+        fireEvent.pointerMove(scroller, { clientX: 116, clientY: 100, pointerId: 4 })
+        fireEvent.pointerUp(scroller, { pointerId: 4 })
+
+        expect(session.getNodeSnapshot('orders')?.x).toBe((startX ?? 0) + 16)
+        expect(store.getAttribute('style')).toBe(storeStyle)
+        expect(current.innerHTML).toBe(currentMarkup)
+        expect(screen.getByRole('dialog', { name: 'Diagram tools' })).toBe(toolbox)
+        expect(comparisonRenders).toBe(1)
     })
 })

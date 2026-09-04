@@ -10,7 +10,8 @@ import type {
     DiagramWaypoint,
 } from './diagram_data'
 
-const GRID_SIZE = 4
+export const DIAGRAM_GRID_SIZE = 4
+const GRID_SIZE = DIAGRAM_GRID_SIZE
 const SURFACE_PADDING = 40
 const DEFAULT_NODE_WIDTH = 160
 const DEFAULT_NODE_HEIGHT = 72

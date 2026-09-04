@@ -49,6 +49,7 @@ export function DiagramEdge({ edge, nodeLabels, onSelect, selected }: DiagramEdg
             aria-label={label}
             aria-pressed={selected}
             data-diagram-id={edge.id}
+            data-diagram-kind="edge"
             onBlur={handleBlur}
             onClick={handleClick}
             onFocus={handleFocus}

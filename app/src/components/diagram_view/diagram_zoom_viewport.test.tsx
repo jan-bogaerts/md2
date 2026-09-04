@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
 import {
     DEFAULT_DIAGRAM_ZOOM,
@@ -7,16 +7,20 @@ import {
     DiagramEditSessionService,
 } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
+import { DiagramMoveService } from '../../services/diagrams/diagram_move_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { DiagramZoomViewport } from './diagram_zoom_viewport'
 
 const diagram: DiagramData = {
-    edges: [],
-    groups: [],
+    edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
+    groups: [{ height: 160, id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'], width: 480, x: 200, y: 80 }],
     meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
-    nodes: [{ id: 'orders', label: 'Orders', role: 'focal', x: 240, y: 120 }],
+    nodes: [
+        { id: 'orders', label: 'Orders', role: 'focal', x: 240, y: 120 },
+        { id: 'store', label: 'Store', role: 'store', x: 480, y: 120 },
+    ],
 }
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
@@ -38,8 +42,9 @@ function createHarness() {
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
+    const selection = new DiagramSelectionService(session, geometry)
 
-    return { geometry, selection: new DiagramSelectionService(session, geometry), session }
+    return { geometry, movement: new DiagramMoveService(session, geometry, selection), selection, session }
 }
 
 afterEach(cleanup)
@@ -131,5 +136,80 @@ describe('DiagramZoomViewport', () => {
             left: '100px',
             top: '50px',
         })
+    })
+
+    it('moves complete selection through scrolled, zoomed viewport coordinates and preserves it after click', () => {
+        const { geometry, movement, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} movement={movement} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const orders = screen.getByRole('button', { name: 'Orders' })
+        scroller.scrollLeft = 20
+        scroller.scrollTop = 10
+        vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({ bottom: 410, height: 400, left: 10, right: 810, toJSON: () => ({}), top: 10, width: 800, x: 10, y: 10 })
+        act(() => {
+            session.zoomOut()
+            selection.replace([
+                { objectId: 'orders', objectKind: 'node' },
+                { objectId: 'store', objectKind: 'node' },
+            ])
+        })
+
+        fireEvent.pointerDown(orders, { button: 0, clientX: 110, clientY: 70, isPrimary: true, pointerId: 1 })
+        fireEvent.pointerMove(scroller, { clientX: 134, clientY: 94, pointerId: 1 })
+        fireEvent.pointerUp(scroller, { pointerId: 1 })
+        fireEvent.click(orders)
+
+        expect(session.getNodeSnapshot('orders')).toMatchObject({ x: 272, y: 152 })
+        expect(session.getNodeSnapshot('store')).toMatchObject({ x: 512, y: 152 })
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'store', objectKind: 'node' },
+        ])
+    })
+
+    it('selects a drag target on pointer down and restores its geometry on pointer cancellation', () => {
+        const { geometry, movement, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} movement={movement} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const orders = screen.getByRole('button', { name: 'Orders' })
+
+        fireEvent.pointerDown(orders, { button: 0, clientX: 100, clientY: 100, isPrimary: true, pointerId: 2 })
+        fireEvent.pointerMove(scroller, { clientX: 124, clientY: 112, pointerId: 2 })
+        fireEvent.pointerCancel(scroller, { pointerId: 2 })
+
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
+        expect(session.getNodeSnapshot('orders')).toMatchObject({ x: 240, y: 120 })
+        expect(movement.getMoveActiveSnapshot()).toBe(false)
+    })
+
+    it('cancels and releases an active pointer when another interaction replaces move', () => {
+        const { geometry, movement, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} movement={movement} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const orders = screen.getByRole('button', { name: 'Orders' })
+
+        fireEvent.pointerDown(orders, { button: 0, clientX: 100, clientY: 100, isPrimary: true, pointerId: 3 })
+        fireEvent.pointerMove(scroller, { clientX: 116, clientY: 100, pointerId: 3 })
+        act(() => { session.setActiveTool('group') })
+        fireEvent.pointerMove(scroller, { clientX: 132, clientY: 100, pointerId: 3 })
+
+        expect(session.getNodeSnapshot('orders')).toMatchObject({ x: 240, y: 120 })
+        expect(movement.getMoveActiveSnapshot()).toBe(false)
+    })
+
+    it('selects an edge without translating geometry when its pointer moves', () => {
+        const { geometry, movement, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} movement={movement} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const edge = screen.getByRole('button', { name: 'writes' })
+
+        fireEvent.pointerDown(edge, { button: 0, clientX: 100, clientY: 100, isPrimary: true, pointerId: 5 })
+        fireEvent.pointerMove(scroller, { clientX: 132, clientY: 124, pointerId: 5 })
+        fireEvent.pointerUp(scroller, { pointerId: 5 })
+
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders-store', objectKind: 'edge' }])
+        expect(session.getNodeSnapshot('orders')).toMatchObject({ x: 240, y: 120 })
+        expect(session.getNodeSnapshot('store')).toMatchObject({ x: 480, y: 120 })
+        expect(movement.getMoveActiveSnapshot()).toBe(false)
     })
 })

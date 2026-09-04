@@ -67,6 +67,7 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect, selected 
             aria-disabled={interactive ? undefined : true}
             aria-pressed={interactive ? selected : undefined}
             data-diagram-id={node.id}
+            data-diagram-kind="node"
             onClick={interactive ? handleClick : undefined}
             onKeyDown={interactive ? handleKeyDown : undefined}
             onMouseDown={interactive ? handleMouseDown : undefined}

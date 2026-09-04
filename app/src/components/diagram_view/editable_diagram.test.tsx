@@ -1,15 +1,17 @@
 import { Profiler, type ReactNode } from 'react'
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
+import { DiagramMoveService } from '../../services/diagrams/diagram_move_service'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { EditableDiagram, EditableDiagramSurface } from './editable_diagram'
 import { EditableDiagramNodes } from './editable_diagram_collections'
 import { EditableDiagramNode } from './editable_diagram_node'
+import { DiagramZoomViewport } from './diagram_zoom_viewport'
 
 const diagram: DiagramData = {
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
@@ -138,5 +140,33 @@ describe('editable diagram', () => {
 
         expect(geometry.getSurfaceFieldSnapshot('width')).toBeGreaterThan(2000)
         expect(counts.get('host')).toBe(before.get('host'))
+    })
+
+    it('keeps collections and an unmoved leaf isolated during pointer movement', () => {
+        const { geometry, selection, session } = createHarness()
+        const movement = new DiagramMoveService(session, geometry, selection)
+        const counts: RenderCounts = new Map()
+        const nodeIds = session.getNodeIdsSnapshot()
+        const ViewportHarness = () => {
+            return (
+                <>
+                    <DiagramZoomViewport geometry={geometry} movement={movement} selection={selection} session={session} />
+                    <Counted counts={counts} id="unmoved-store">
+                        <EditableDiagramNode geometry={geometry} nodeId="store" selection={selection} session={session} />
+                    </Counted>
+                </>
+            )
+        }
+        render(<ViewportHarness />)
+        const before = new Map(counts)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const orders = within(scroller).getByRole('button', { name: 'Orders' })
+
+        fireEvent.pointerDown(orders, { button: 0, clientX: 100, clientY: 100, isPrimary: true, pointerId: 6 })
+        fireEvent.pointerMove(scroller, { clientX: 116, clientY: 100, pointerId: 6 })
+        fireEvent.pointerUp(scroller, { pointerId: 6 })
+
+        expect(counts.get('unmoved-store')).toBe(before.get('unmoved-store'))
+        expect(session.getNodeIdsSnapshot()).toBe(nodeIds)
     })
 })

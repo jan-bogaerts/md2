@@ -24,6 +24,7 @@ export function DiagramGroup({ group, onSelect, selected = false }: DiagramGroup
             aria-pressed={interactive ? selected : undefined}
             component={interactive ? 'button' : 'div'}
             data-diagram-id={interactive ? group.id : undefined}
+            data-diagram-kind={interactive ? 'group' : undefined}
             onClick={interactive ? handleClick : undefined}
             onKeyDown={interactive ? handleKeyDown : undefined}
             role={interactive ? 'button' : 'group'}
