@@ -3293,3 +3293,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-04T15:33:30.293Z,account_usage,codex,codex,primary,10080,2026-09-07T07:50:34.000Z,,,,,,42,1
 2026-09-04T15:33:30.299Z,token_usage,codex,,,,,64673,3125248,4402,2544,3196867,,
 2026-09-04T15:36:59.060Z,token_usage,codex,,,,,53204,593024,2867,3414,652509,,
+2026-09-04T15:42:31.454Z,token_usage,codex,,,,,74564,1280512,4011,4526,1363613,,
+2026-09-04T15:42:02.129Z,account_usage,claude,default,weekly,10080,2026-09-06T16:59:00.000Z,,,,,,31,0
+2026-09-04T15:45:11.655Z,token_usage,codex,,,,,29959,2172672,9884,3623,2216138,,
