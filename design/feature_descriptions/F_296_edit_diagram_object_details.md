@@ -10,8 +10,6 @@ agents:
   - design/activity/card__62bae796-a019-452e-bc44-8d2a62318b48.json
 policy:
 after: f24dc638-db21-4d13-b5ec-bf173913a69b
-branch: f_296_edit_diagram_object_details
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/diagram_edge.tsx
   - app/src/components/diagram_view/diagram_edge_details_editor.tsx

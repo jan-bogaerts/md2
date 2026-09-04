@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: 62bae796-a019-452e-bc44-8d2a62318b48
+branch: f_298_add_diagram_delete_key_support
+worktree: 1
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
