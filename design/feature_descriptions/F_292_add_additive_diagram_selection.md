@@ -3,15 +3,14 @@ author:
 id: F_292
 internalId: 91ef53f7-f3da-4b1a-acf1-ca3520128a0f
 title: add additive diagram selection
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 056265ee-3d0f-4922-8e2d-282f91bad667
+after: 2f8b255c-a6f9-4f92-ad54-3f4358b2e512
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ Ctrl-click changes one identity's selected membership in place and dispatches ev
 
 ## Dependencies
 
-[F_291](F_291_add_direct_diagram_selection.md).
+[F\_291](F_291_add_direct_diagram_selection.md).
