@@ -9,6 +9,7 @@ import type {
     DiagramLegendPosition, DiagramMenuState, DiagramViewSnapshot, DiagramViewService, DiagramViewSourceSnapshot,
 } from '../../services/diagrams/diagram_view_service'
 import { layout } from '../../services/diagrams/diagram_layout'
+import { DiagramComparisonLayoutService } from './diagram_comparison_layout_service'
 import { DiagramView } from './diagram_view'
 
 vi.mock('../hooks/use_workspace_view', () => ({ useWorkspaceView: () => ({ selectedPath: null, viewMode: 'diagrams' }) }))
@@ -261,18 +262,67 @@ describe('DiagramView', () => {
     it('shows Current and New regions only while an edit session is active', () => {
         const service = createService()
         const { editSession, geometry } = createEditHarness()
-        const { unmount } = render(<DiagramView editSession={editSession} geometry={geometry} service={service} />)
+        const layoutService = new DiagramComparisonLayoutService()
+        const { unmount } = render(
+            <DiagramView editSession={editSession} geometry={geometry} layoutService={layoutService} service={service} />,
+        )
 
+        expect(screen.getByRole('group', { name: 'Diagram comparison layout' })).toBeInTheDocument()
         expect(screen.getByRole('region', { name: 'Current' })).toBeInTheDocument()
         expect(screen.getByRole('region', { name: 'New' })).toBeInTheDocument()
 
         unmount()
         editSession.discard()
-        render(<DiagramView editSession={editSession} geometry={geometry} service={service} />)
+        render(<DiagramView editSession={editSession} geometry={geometry} layoutService={layoutService} service={service} />)
 
+        expect(screen.queryByRole('group', { name: 'Diagram comparison layout' })).not.toBeInTheDocument()
         expect(screen.queryByRole('region', { name: 'Current' })).not.toBeInTheDocument()
         expect(screen.queryByRole('region', { name: 'New' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Customer' })).toBeInTheDocument()
+    })
+
+    it('changes comparison mode without replacing edit-session state', async () => {
+        const service = createService()
+        const { editSession, geometry } = createEditHarness()
+        const layoutService = new DiagramComparisonLayoutService()
+        const user = userEvent.setup()
+        const originalDiagram = editSession.getOriginalDiagramSnapshot()
+        const editableDiagram = editSession.getEditableDiagram()
+        const sessionSnapshot = editSession.getSessionSnapshot()
+        editSession.setNodeField('customer', 'label', 'Edited customer')
+        editSession.setActiveToolboxSection('nodes')
+        render(
+            <DiagramView editSession={editSession} geometry={geometry} layoutService={layoutService} service={service} />,
+        )
+
+        await user.click(screen.getByRole('button', { name: 'Horizontal' }))
+        await user.click(screen.getByRole('button', { name: 'Tabbed' }))
+
+        expect(editSession.getOriginalDiagramSnapshot()).toBe(originalDiagram)
+        expect(editSession.getEditableDiagram()).toBe(editableDiagram)
+        expect(editSession.getSessionSnapshot()).toBe(sessionSnapshot)
+        expect(editSession.getDirtySnapshot()).toBe(true)
+        expect(editSession.getNodeFieldSnapshot('customer', 'label')).toBe('Edited customer')
+        expect(editSession.getActiveToolboxSectionSnapshot()).toBe('nodes')
+    })
+
+    it('keeps selected comparison mode while navigating inside the edit session', async () => {
+        const service = createService()
+        const { editSession, geometry } = createEditHarness()
+        const layoutService = new DiagramComparisonLayoutService()
+        const user = userEvent.setup()
+        layoutService.setComparisonMode('tabbed')
+        render(
+            <DiagramView editSession={editSession} geometry={geometry} layoutService={layoutService} service={service} />,
+        )
+
+        await user.click(screen.getByRole('button', { name: 'Back' }))
+        await user.click(screen.getByRole('button', { name: 'Overview' }))
+
+        expect(service.navigateBack).toHaveBeenCalledTimes(1)
+        expect(service.navigateToCrumb).toHaveBeenCalledWith(0)
+        expect(layoutService.getComparisonModeSnapshot()).toBe('tabbed')
+        expect(screen.getByRole('button', { name: 'Tabbed' })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('opens only matching root actions, passes draggable, then closes on second plain click', async () => {

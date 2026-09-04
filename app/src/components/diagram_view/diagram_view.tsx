@@ -19,7 +19,13 @@ import { ActionPopup } from '../actions/run/popup/action_popup'
 import { MovableFab } from '../movable_fab'
 import { DiagramRenderer } from './diagram_renderer'
 import { DiagramLegend } from './diagram_legend'
+import { DiagramComparison } from './diagram_comparison'
+import { DiagramComparisonLayout } from './diagram_comparison_layout'
+import {
+    diagramComparisonLayoutService, type DiagramComparisonLayoutService,
+} from './diagram_comparison_layout_service'
 import type { DiagramSelection } from './diagram_selection'
+import { TabbedDiagramComparison } from './tabbed_diagram_comparison'
 import { VerticalDiagramComparison } from './vertical_diagram_comparison'
 
 const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
@@ -31,6 +37,7 @@ function reportNavigationFailure(error: unknown) {
 interface DiagramViewProps {
     editSession?: DiagramEditSessionService
     geometry?: DiagramGeometryService
+    layoutService?: DiagramComparisonLayoutService
     service?: DiagramViewService
 }
 
@@ -38,6 +45,7 @@ interface DiagramViewProps {
 export function DiagramView({
     editSession = diagramEditSessionService,
     geometry = diagramGeometryService,
+    layoutService = diagramComparisonLayoutService,
     service = diagramViewService,
 }: DiagramViewProps) {
     const { viewMode } = useWorkspaceView()
@@ -145,11 +153,35 @@ export function DiagramView({
             >
                 {snapshot.currentDiagram ? (
                     editSessionSnapshot ? (
-                        <VerticalDiagramComparison
-                            currentDiagram={snapshot.currentDiagram}
-                            geometry={geometry}
-                            onCurrentSelect={handleDiagramSelect}
-                            session={editSession}
+                        <DiagramComparisonLayout
+                            horizontalComparison={(
+                                <DiagramComparison
+                                    currentDiagram={snapshot.currentDiagram}
+                                    geometry={geometry}
+                                    layoutService={layoutService}
+                                    onCurrentSelect={handleDiagramSelect}
+                                    session={editSession}
+                                />
+                            )}
+                            layoutService={layoutService}
+                            tabbedComparison={(
+                                <TabbedDiagramComparison
+                                    currentDiagram={snapshot.currentDiagram}
+                                    geometry={geometry}
+                                    layoutService={layoutService}
+                                    onCurrentSelect={handleDiagramSelect}
+                                    session={editSession}
+                                />
+                            )}
+                            verticalComparison={(
+                                <VerticalDiagramComparison
+                                    currentDiagram={snapshot.currentDiagram}
+                                    geometry={geometry}
+                                    layoutService={layoutService}
+                                    onCurrentSelect={handleDiagramSelect}
+                                    session={editSession}
+                                />
+                            )}
                         />
                     ) : <DiagramRenderer data={snapshot.currentDiagram} onSelect={handleDiagramSelect} />
                 ) : null}
