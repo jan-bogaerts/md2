@@ -10,8 +10,6 @@ agents:
   - design/activity/card__21b2c59c-1c07-42c2-9bc4-4e7219a645be.json
 policy:
 after: 6142a098-2865-430d-9ca9-a55e0ce5feff
-branch: f_294_move_selected_diagram_objects
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/use_diagram_tool.ts
 ---
