@@ -12,6 +12,8 @@ changedFiles:
   - desktop/src/actions/agent/claude_usage_terminal.js
   - desktop/src/actions/agent/claude_usage_terminal.test.mjs
 after: 6e041d8b-7aca-4ab1-9be5-56d7e31d189c
+branch: j_46_detect_claude_ready_prompt
+worktree: 2
 ---
 
 Make Claude account-usage polling detect when the interactive terminal is accepting input without depending only on welcome-screen copy.
