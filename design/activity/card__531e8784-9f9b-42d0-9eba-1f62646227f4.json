@@ -783,11 +783,11 @@
         "agent-84376036-86a4-426b-9afa-9d10d8fa721c"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-282ef37b-55d2-4940-b72b-bdd58b0a4da5",
       "origin": {
@@ -796,9 +796,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-84376036-86a4-426b-9afa-9d10d8fa721c",
       "startedAt": "2026-09-04T20:05:05.174Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-84376036-86a4-426b-9afa-9d10d8fa721c"
     }
   ],
   "version": 5
