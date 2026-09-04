@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: 607f2bae-4287-47e0-9585-e8555c707264
+branch: f_283_add_tabbed_diagram_comparison
+worktree: 2
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
