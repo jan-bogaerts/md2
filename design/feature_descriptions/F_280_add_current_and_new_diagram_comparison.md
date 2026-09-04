@@ -3,12 +3,11 @@ author:
 id: F_280
 internalId: acc5894b-b0b6-4024-88fe-be8f89ccfa36
 title: add current and new diagram comparison
-status: new
+status: design
 owner:
 affects:
 agents:
 policy:
-after: 056265ee-3d0f-4922-8e2d-282f91bad667
 ---
 
 Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
