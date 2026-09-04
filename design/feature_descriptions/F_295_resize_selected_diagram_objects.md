@@ -11,6 +11,19 @@ agents:
 policy:
 branch: f_295_resize_selected_diagram_objects
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_resize_handles.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/editable_diagram.test.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/components/diagram_view/editable_diagram_selection.test.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.tsx
+  - app/src/components/diagram_view/vertical_diagram_comparison.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_resize_service.test.ts
+  - app/src/services/diagrams/diagram_resize_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

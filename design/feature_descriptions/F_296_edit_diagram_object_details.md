@@ -3,7 +3,7 @@ author:
 id: F_296
 internalId: 62bae796-a019-452e-bc44-8d2a62318b48
 title: edit diagram object details
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,24 @@ policy:
 after: f24dc638-db21-4d13-b5ec-bf173913a69b
 branch: f_296_edit_diagram_object_details
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_edge.tsx
+  - app/src/components/diagram_view/diagram_edge_details_editor.tsx
+  - app/src/components/diagram_view/diagram_group.tsx
+  - app/src/components/diagram_view/diagram_group_details_editor.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_node_details_editor.tsx
+  - app/src/components/diagram_view/diagram_object_details_dialog.test.tsx
+  - app/src/components/diagram_view/diagram_object_details_dialog.tsx
+  - app/src/components/diagram_view/diagram_object_details_service.test.ts
+  - app/src/components/diagram_view/diagram_object_details_service.ts
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/components/diagram_view/editable_diagram_collections.tsx
+  - app/src/components/diagram_view/editable_diagram_edge.tsx
+  - app/src/components/diagram_view/editable_diagram_group.tsx
+  - app/src/components/diagram_view/editable_diagram_node.tsx
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
