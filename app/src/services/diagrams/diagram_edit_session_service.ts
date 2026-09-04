@@ -17,6 +17,7 @@ import type { DiagramRecord } from './diagram_index'
 import { diagramViewService, type DiagramViewSourceSnapshot } from './diagram_view_service'
 
 const DIRTY_CHANGED_EVENT = 'dirtyChanged'
+const CHANGE_IDS_CHANGED_EVENT = 'changeIdsChanged'
 const ORIGINAL_DIAGRAM_CHANGED_EVENT = 'originalDiagramChanged'
 const SESSION_CHANGED_EVENT = 'sessionChanged'
 const EMPTY_IDS: readonly string[] = Object.freeze([])
@@ -72,6 +73,23 @@ export interface DiagramFieldChangeDetail {
     value: unknown
 }
 
+export type DiagramChangeCategory = 'collection' | 'field' | 'membership'
+
+/** One net semantic difference between original and editable diagram state. */
+export interface DiagramChange {
+    category: DiagramChangeCategory
+    field: string | null
+    id: string
+    objectId: string
+    objectKind: DiagramObjectKind
+    originalValue: unknown
+    ownerId: string | null
+    regionIndex: number | null
+    value: unknown
+}
+
+export type DiagramChangeField = keyof DiagramChange
+
 interface DiagramSourceService {
     getSourceSnapshot(): DiagramViewSourceSnapshot | null
     subscribeSource(listener: () => void): () => void
@@ -123,6 +141,10 @@ export function diagramGroupMembershipChangedEvent(groupId: string) {
 
 export function diagramFragmentRegionMembershipChangedEvent(fragmentId: string, regionIndex: number) {
     return `diagram:fragment:${eventScope(fragmentId)}:regions:${regionIndex}:edgeIds`
+}
+
+export function diagramChangeFieldChangedEvent(changeId: string, field: DiagramChangeField) {
+    return `diagram:change:${eventScope(changeId)}:${field}`
 }
 
 interface PendingMembershipEvent {
@@ -187,7 +209,11 @@ function requireFragmentRegion(fragment: DiagramSequenceFragment, regionIndex: n
 
 /** Owns original and editable model data for one project's active diagram edit session. */
 export class DiagramEditSessionService extends EventTarget {
-    private readonly changedFields = new Set<string>()
+    private changeIds: readonly string[] = EMPTY_IDS
+    private readonly changeIdsByOwner = new Map<string, Set<string>>()
+    private changeIdsChangedPending = false
+    private readonly changeOwnerById = new Map<string, string>()
+    private readonly changesById = new Map<string, DiagramChange>()
     private readonly createId: () => string
     private dirty = false
     private edgesById = new Map<string, DiagramEdge>()
@@ -206,6 +232,7 @@ export class DiagramEditSessionService extends EventTarget {
     private originalFragmentsById = new Map<string, DiagramSequenceFragment>()
     private originalGroupsById = new Map<string, DiagramGroup>()
     private originalNodesById = new Map<string, DiagramNode>()
+    private readonly pendingChangeFieldEvents = new Map<string, Set<DiagramChangeField>>()
     private projectKey: string | null = null
     private session: DiagramEditSessionSnapshot | null = null
     private readonly sourceService: DiagramSourceService
@@ -218,6 +245,24 @@ export class DiagramEditSessionService extends EventTarget {
     }
 
     getDirtySnapshot = () => this.dirty
+
+    getChangeIdsSnapshot = () => this.changeIds
+
+    /** Complete change read boundary for review generation; React must use granular change-field snapshots. */
+    getChange = (changeId: string): DeepReadonly<DiagramChange> | null => {
+        const change = this.changesById.get(changeId)
+
+        return change ? asDeepReadonly(change) : null
+    }
+
+    getChangeFieldSnapshot = <Field extends DiagramChangeField>(
+        changeId: string,
+        field: Field,
+    ): DeepReadonly<DiagramChange[Field]> | null => {
+        const change = this.changesById.get(changeId)
+
+        return change ? asDeepReadonly(change[field]) : null
+    }
 
     /** Complete read boundary for persistence and agent processing; React must use granular snapshots. */
     getEditableDiagram = (): ReadonlyDiagramData | null => this.editableDiagram
@@ -310,6 +355,12 @@ export class DiagramEditSessionService extends EventTarget {
 
     subscribeDirty = (listener: () => void) => this.subscribe(DIRTY_CHANGED_EVENT, listener)
 
+    subscribeChangeIds = (listener: () => void) => this.subscribe(CHANGE_IDS_CHANGED_EVENT, listener)
+
+    subscribeChangeField = (changeId: string, field: DiagramChangeField, listener: () => void) => (
+        this.subscribe(diagramChangeFieldChangedEvent(changeId, field), listener)
+    )
+
     subscribeOriginalDiagram = (listener: () => void) => this.subscribe(ORIGINAL_DIAGRAM_CHANGED_EVENT, listener)
 
     subscribeSession = (listener: () => void) => this.subscribe(SESSION_CHANGED_EVENT, listener)
@@ -386,7 +437,7 @@ export class DiagramEditSessionService extends EventTarget {
         const originalDiagram = { diagram: source.diagram, record: source.record }
         const editableDiagram = structuredClone(source.diagram)
         const session = { sourceDiagramId: source.record.id }
-        this.changedFields.clear()
+        this.clearChangeRegistry()
         this.edgesById = indexById(editableDiagram.edges)
         this.fragmentsById = indexById(editableDiagram.fragments ?? [])
         this.groupsById = indexById(editableDiagram.groups)
@@ -406,11 +457,12 @@ export class DiagramEditSessionService extends EventTarget {
             ))
         )))
         this.publish({ dirty: false, editableDiagram, originalDiagram, session })
+        this.publishPendingChangeEvents()
     }
 
     /** Ends the session and releases every session-owned reference. */
     discard() {
-        this.changedFields.clear()
+        this.clearChangeRegistry()
         this.edgesById.clear()
         this.fragmentsById.clear()
         this.groupsById.clear()
@@ -426,6 +478,7 @@ export class DiagramEditSessionService extends EventTarget {
         this.groupNodeIdsById.clear()
         this.fragmentRegionEdgeIdsByKey.clear()
         this.publish({ dirty: false, editableDiagram: null, originalDiagram: null, session: null })
+        this.publishPendingChangeEvents()
     }
 
     setMetadataField<Field extends MutableDiagramMetaField>(field: Field, value: DiagramMeta[Field]) {
@@ -436,7 +489,7 @@ export class DiagramEditSessionService extends EventTarget {
         diagram.meta[field] = value
         const originalValue = this.originalDiagram?.diagram.meta[field]
         const eventName = diagramMetadataFieldChangedEvent(field)
-        this.finishFieldChange(eventName, 'meta', 'diagram', field, originalValue, previousValue, value)
+        this.finishFieldChange(eventName, 'meta:diagram', 'meta', 'diagram', field, originalValue, previousValue, value)
     }
 
     setNodeField<Field extends MutableDiagramNodeField>(nodeId: string, field: Field, value: DiagramNode[Field]) {
@@ -447,7 +500,7 @@ export class DiagramEditSessionService extends EventTarget {
         node[field] = value
         const originalValue = this.originalNodesById.get(nodeId)?.[field]
         const eventName = diagramObjectFieldChangedEvent('node', nodeId, field)
-        this.finishFieldChange(eventName, 'node', nodeId, field, originalValue, previousValue, value)
+        this.finishFieldChange(eventName, `node:${nodeId}`, 'node', nodeId, field, originalValue, previousValue, value)
     }
 
     setEdgeField<Field extends MutableDiagramEdgeField>(edgeId: string, field: Field, value: DiagramEdge[Field]) {
@@ -458,7 +511,7 @@ export class DiagramEditSessionService extends EventTarget {
         edge[field] = value
         const originalValue = this.originalEdgesById.get(edgeId)?.[field]
         const eventName = diagramObjectFieldChangedEvent('edge', edgeId, field)
-        this.finishFieldChange(eventName, 'edge', edgeId, field, originalValue, previousValue, value)
+        this.finishFieldChange(eventName, `edge:${edgeId}`, 'edge', edgeId, field, originalValue, previousValue, value)
     }
 
     setGroupField<Field extends MutableDiagramGroupField>(groupId: string, field: Field, value: DiagramGroup[Field]) {
@@ -469,7 +522,7 @@ export class DiagramEditSessionService extends EventTarget {
         group[field] = value
         const originalValue = this.originalGroupsById.get(groupId)?.[field]
         const eventName = diagramObjectFieldChangedEvent('group', groupId, field)
-        this.finishFieldChange(eventName, 'group', groupId, field, originalValue, previousValue, value)
+        this.finishFieldChange(eventName, `group:${groupId}`, 'group', groupId, field, originalValue, previousValue, value)
     }
 
     setFragmentField<Field extends MutableDiagramFragmentField>(
@@ -484,7 +537,16 @@ export class DiagramEditSessionService extends EventTarget {
         fragment[field] = value
         const originalValue = this.originalFragmentsById.get(fragmentId)?.[field]
         const eventName = diagramObjectFieldChangedEvent('fragment', fragmentId, field)
-        this.finishFieldChange(eventName, 'fragment', fragmentId, field, originalValue, previousValue, value)
+        this.finishFieldChange(
+            eventName,
+            `fragment:${fragmentId}`,
+            'fragment',
+            fragmentId,
+            field,
+            originalValue,
+            previousValue,
+            value,
+        )
     }
 
     setEntityField<Field extends MutableDiagramEntityField>(
@@ -501,7 +563,16 @@ export class DiagramEditSessionService extends EventTarget {
         const originalValue = this.originalNodesById.get(nodeId)?.fields?.[fieldIndex]?.[field]
         const objectId = `${nodeId}[${fieldIndex}]`
         const eventName = diagramEntityFieldChangedEvent(nodeId, fieldIndex, field)
-        this.finishFieldChange(eventName, 'entityField', objectId, field, originalValue, previousValue, value)
+        this.finishFieldChange(
+            eventName,
+            `node:${nodeId}`,
+            'entityField',
+            objectId,
+            field,
+            originalValue,
+            previousValue,
+            value,
+        )
     }
 
     setConnectionPointField<Field extends MutableDiagramConnectionPointField>(
@@ -518,7 +589,16 @@ export class DiagramEditSessionService extends EventTarget {
         const originalValue = this.originalEdgesById.get(edgeId)?.[endpoint]?.[field]
         const objectId = `${edgeId}:${endpoint}`
         const eventName = diagramConnectionPointFieldChangedEvent(edgeId, endpoint, field)
-        this.finishFieldChange(eventName, 'connectionPoint', objectId, field, originalValue, previousValue, value)
+        this.finishFieldChange(
+            eventName,
+            `edge:${edgeId}`,
+            'connectionPoint',
+            objectId,
+            field,
+            originalValue,
+            previousValue,
+            value,
+        )
     }
 
 
@@ -555,8 +635,7 @@ export class DiagramEditSessionService extends EventTarget {
         diagram.nodes.splice(diagram.nodes.indexOf(node), 1)
         this.nodesById.delete(nodeId)
         this.nodeIds = frozenIds(diagram.nodes)
-        this.purgeChangedFields(`diagram:node:${eventScope(nodeId)}:`)
-        this.purgeChangedFields(`diagram:entityField:${eventScope(nodeId)}:`)
+        this.purgeChangesOwnedBy(`node:${nodeId}`)
         this.markCollectionMembership('node', nodeId, false)
         events.unshift(collectionMembershipEvent('node', [], [nodeId]))
         this.commitTransaction(events)
@@ -622,7 +701,7 @@ export class DiagramEditSessionService extends EventTarget {
         this.groupsById.delete(groupId)
         this.groupNodeIdsById.delete(groupId)
         this.groupIds = frozenIds(diagram.groups)
-        this.purgeChangedFields(`diagram:group:${eventScope(groupId)}:`)
+        this.purgeChangesOwnedBy(`group:${groupId}`)
         this.markCollectionMembership('group', groupId, false)
         this.commitTransaction([collectionMembershipEvent('group', [], [groupId])])
 
@@ -660,7 +739,7 @@ export class DiagramEditSessionService extends EventTarget {
             this.fragmentRegionEdgeIdsByKey.delete(fragmentRegionKey(fragmentId, index))
         }
         this.fragmentIds = frozenIds(diagram.fragments)
-        this.purgeChangedFields(`diagram:fragment:${eventScope(fragmentId)}:`)
+        this.purgeChangesOwnedBy(`fragment:${fragmentId}`)
         this.markCollectionMembership('fragment', fragmentId, false)
         this.commitTransaction([collectionMembershipEvent('fragment', [], [fragmentId])])
 
@@ -850,8 +929,7 @@ export class DiagramEditSessionService extends EventTarget {
         }
         diagram.edges.splice(diagram.edges.indexOf(edge), 1)
         this.edgesById.delete(edgeId)
-        this.purgeChangedFields(`diagram:edge:${eventScope(edgeId)}:`)
-        this.purgeChangedFields(`diagram:connectionPoint:${eventScope(edgeId)}:`)
+        this.purgeChangesOwnedBy(`edge:${edgeId}`)
         this.markCollectionMembership('edge', edgeId, false)
 
         return true
@@ -890,7 +968,7 @@ export class DiagramEditSessionService extends EventTarget {
         return true
     }
 
-    private originalCollectionIds(objectKind: DiagramCollectionKind) {
+    private originalCollectionObjects(objectKind: DiagramCollectionKind) {
         if (objectKind === 'edge') return this.originalEdgesById
         if (objectKind === 'fragment') return this.originalFragmentsById
         if (objectKind === 'group') return this.originalGroupsById
@@ -898,49 +976,160 @@ export class DiagramEditSessionService extends EventTarget {
         return this.originalNodesById
     }
 
+    private currentCollectionObjects(objectKind: DiagramCollectionKind) {
+        if (objectKind === 'edge') return this.edgesById
+        if (objectKind === 'fragment') return this.fragmentsById
+        if (objectKind === 'group') return this.groupsById
+
+        return this.nodesById
+    }
+
     private markCollectionMembership(objectKind: DiagramCollectionKind, objectId: string, present: boolean) {
-        const key = `${diagramCollectionMembershipChangedEvent(objectKind)}:${eventScope(objectId)}`
-        this.markChange(key, present === this.originalCollectionIds(objectKind).has(objectId))
+        const id = `${diagramCollectionMembershipChangedEvent(objectKind)}:${eventScope(objectId)}`
+        const originalValue = this.originalCollectionObjects(objectKind).get(objectId) ?? null
+        const value = present ? this.currentCollectionObjects(objectKind).get(objectId) ?? null : null
+        const change: DiagramChange = {
+            category: 'collection',
+            field: null,
+            id,
+            objectId,
+            objectKind,
+            originalValue,
+            ownerId: null,
+            regionIndex: null,
+            value,
+        }
+        this.setChange(change, `${objectKind}:${objectId}`, (originalValue === null) === (value === null))
     }
 
     private markGroupMembership(groupId: string, nodeId: string, present: boolean) {
-        const key = `${diagramGroupMembershipChangedEvent(groupId)}:${eventScope(nodeId)}`
-        const originalPresent = this.originalGroupsById.get(groupId)?.nodeIds.includes(nodeId) ?? false
-        this.markChange(key, present === originalPresent)
+        const id = `${diagramGroupMembershipChangedEvent(groupId)}:${eventScope(nodeId)}`
+        const originalValue = this.originalGroupsById.get(groupId)?.nodeIds.includes(nodeId) ?? false
+        const change: DiagramChange = {
+            category: 'membership',
+            field: 'nodeIds',
+            id,
+            objectId: nodeId,
+            objectKind: 'node',
+            originalValue,
+            ownerId: groupId,
+            regionIndex: null,
+            value: present,
+        }
+        this.setChange(change, `group:${groupId}`, present === originalValue)
     }
 
     private markFragmentRegionMembership(fragmentId: string, regionIndex: number, edgeId: string, present: boolean) {
-        const key = `${diagramFragmentRegionMembershipChangedEvent(fragmentId, regionIndex)}:${eventScope(edgeId)}`
+        const id = `${diagramFragmentRegionMembershipChangedEvent(fragmentId, regionIndex)}:${eventScope(edgeId)}`
         const originalRegion = this.originalFragmentsById.get(fragmentId)?.regions[regionIndex]
-        this.markChange(key, present === (originalRegion?.edgeIds.includes(edgeId) ?? false))
-    }
-
-    private markChange(key: string, matchesOriginal: boolean) {
-        if (matchesOriginal) this.changedFields.delete(key)
-        else this.changedFields.add(key)
-    }
-
-    /** Drops every change entry owned by a removed object, so its identity leaves no dirty residue. */
-    private purgeChangedFields(keyPrefix: string) {
-        for (const key of this.changedFields) {
-            if (key.startsWith(keyPrefix)) this.changedFields.delete(key)
+        const originalValue = originalRegion?.edgeIds.includes(edgeId) ?? false
+        const change: DiagramChange = {
+            category: 'membership',
+            field: 'edgeIds',
+            id,
+            objectId: edgeId,
+            objectKind: 'edge',
+            originalValue,
+            ownerId: fragmentId,
+            regionIndex,
+            value: present,
         }
+        this.setChange(change, `fragment:${fragmentId}`, present === originalValue)
     }
 
-    /** Publishes one mutation transaction: the dirty transition first, then every membership event it caused. */
+    private setChange(change: DiagramChange, ownerKey: string, matchesOriginal: boolean) {
+        const existing = this.changesById.get(change.id)
+        if (matchesOriginal) {
+            if (existing) this.removeChange(change.id)
+
+            return
+        }
+        if (!existing) {
+            this.changesById.set(change.id, change)
+            this.changeOwnerById.set(change.id, ownerKey)
+            const ownedChangeIds = this.changeIdsByOwner.get(ownerKey) ?? new Set<string>()
+            ownedChangeIds.add(change.id)
+            this.changeIdsByOwner.set(ownerKey, ownedChangeIds)
+            this.changeIdsChangedPending = true
+
+            return
+        }
+        if (Object.is(existing.value, change.value)) return
+
+        existing.value = change.value
+        const changedFields = this.pendingChangeFieldEvents.get(change.id) ?? new Set<DiagramChangeField>()
+        changedFields.add('value')
+        this.pendingChangeFieldEvents.set(change.id, changedFields)
+    }
+
+    private removeChange(changeId: string) {
+        if (!this.changesById.delete(changeId)) return
+        const ownerKey = this.changeOwnerById.get(changeId)
+        if (!ownerKey) throw new Error(`Diagram change ${changeId} has no owner`)
+
+        this.changeOwnerById.delete(changeId)
+        const ownedChangeIds = this.changeIdsByOwner.get(ownerKey)
+        if (!ownedChangeIds) throw new Error(`Diagram change owner ${ownerKey} has no index`)
+        ownedChangeIds.delete(changeId)
+        if (ownedChangeIds.size === 0) this.changeIdsByOwner.delete(ownerKey)
+        this.pendingChangeFieldEvents.delete(changeId)
+        this.changeIdsChangedPending = true
+    }
+
+    /** Drops entries for one removed object without inspecting unrelated changes. */
+    private purgeChangesOwnedBy(ownerKey: string) {
+        const ownedChangeIds = this.changeIdsByOwner.get(ownerKey)
+        if (!ownedChangeIds) return
+
+        for (const changeId of [...ownedChangeIds]) this.removeChange(changeId)
+    }
+
+    private clearChangeRegistry() {
+        if (this.changesById.size > 0) {
+            this.changeIds = EMPTY_IDS
+            this.changeIdsChangedPending = true
+        }
+        this.changesById.clear()
+        this.changeIdsByOwner.clear()
+        this.changeOwnerById.clear()
+        this.pendingChangeFieldEvents.clear()
+    }
+
+    private refreshChangeIdsSnapshot() {
+        if (!this.changeIdsChangedPending) return
+
+        this.changeIds = this.changesById.size > 0 ? Object.freeze([...this.changesById.keys()]) : EMPTY_IDS
+    }
+
+    private publishPendingChangeEvents() {
+        if (this.changeIdsChangedPending) {
+            this.refreshChangeIdsSnapshot()
+            this.changeIdsChangedPending = false
+            this.dispatchEvent(new Event(CHANGE_IDS_CHANGED_EVENT))
+        }
+        for (const [changeId, fields] of this.pendingChangeFieldEvents) {
+            for (const field of fields) this.dispatchEvent(new Event(diagramChangeFieldChangedEvent(changeId, field)))
+        }
+        this.pendingChangeFieldEvents.clear()
+    }
+
+    /** Publishes one mutation transaction: dirty, change registry, then mutation membership events. */
     private commitTransaction(events: readonly PendingMembershipEvent[]) {
-        const dirty = this.changedFields.size > 0
+        this.refreshChangeIdsSnapshot()
+        const dirty = this.changesById.size > 0
         if (dirty !== this.dirty) {
             this.dirty = dirty
             this.dispatchEvent(new Event(DIRTY_CHANGED_EVENT))
         }
+        this.publishPendingChangeEvents()
         for (const { detail, eventName } of events) {
             this.dispatchEvent(new CustomEvent<DiagramMembershipChangeDetail>(eventName, { detail }))
         }
     }
 
     private finishFieldChange(
-        eventName: string,
+        changeId: string,
+        ownerKey: string,
         objectKind: DiagramObjectKind,
         objectId: string,
         field: string,
@@ -948,15 +1137,21 @@ export class DiagramEditSessionService extends EventTarget {
         previousValue: unknown,
         value: unknown,
     ) {
-        if (Object.is(originalValue, value)) this.changedFields.delete(eventName)
-        else this.changedFields.add(eventName)
-        const dirty = this.changedFields.size > 0
-        if (dirty !== this.dirty) {
-            this.dirty = dirty
-            this.dispatchEvent(new Event(DIRTY_CHANGED_EVENT))
+        const change: DiagramChange = {
+            category: 'field',
+            field,
+            id: changeId,
+            objectId,
+            objectKind,
+            originalValue,
+            ownerId: null,
+            regionIndex: null,
+            value,
         }
+        this.setChange(change, ownerKey, Object.is(originalValue, value))
+        this.commitTransaction([])
         const detail = { field, objectId, objectKind, previousValue, value }
-        this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(eventName, { detail }))
+        this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(changeId, { detail }))
     }
 
     private publish(next: {

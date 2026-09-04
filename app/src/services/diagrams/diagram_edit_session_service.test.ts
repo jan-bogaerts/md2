@@ -538,9 +538,135 @@ describe('DiagramEditSessionService', () => {
 
         expect(service.removeNode(createdId)).toBe(true)
         expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.getChangeIdsSnapshot()).toEqual([])
 
         service.removeNode('store')
         expect(service.getDirtySnapshot()).toBe(true)
+    })
+
+    it('stores one original value and updates one existing field change in place', () => {
+        const { service } = createHarness()
+        service.start()
+        const changeIdsChanged = vi.fn()
+        service.subscribeChangeIds(changeIdsChanged)
+
+        service.setNodeField('orders', 'x', 4)
+        const changeIds = service.getChangeIdsSnapshot()
+        const [changeId] = changeIds
+        const valueChanged = vi.fn()
+        service.subscribeChangeField(changeId, 'value', valueChanged)
+
+        expect(service.getChange(changeId)).toMatchObject({
+            category: 'field',
+            field: 'x',
+            objectId: 'orders',
+            objectKind: 'node',
+            originalValue: undefined,
+            value: 4,
+        })
+
+        service.setNodeField('orders', 'x', 8)
+
+        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(changeIdsChanged).toHaveBeenCalledOnce()
+        expect(valueChanged).toHaveBeenCalledOnce()
+        expect(service.getChangeFieldSnapshot(changeId, 'originalValue')).toBeUndefined()
+        expect(service.getChangeFieldSnapshot(changeId, 'value')).toBe(8)
+    })
+
+    it('removes a reverted field change and changes dirty only at empty boundaries', () => {
+        const { service } = createHarness()
+        service.start()
+        const dirtyChanged = vi.fn()
+        const changeIdsChanged = vi.fn()
+        service.subscribeDirty(dirtyChanged)
+        service.subscribeChangeIds(changeIdsChanged)
+
+        service.setNodeField('orders', 'label', 'Order API')
+        service.setMetadataField('title', 'System')
+        const orderedChangeIds = service.getChangeIdsSnapshot()
+        service.setNodeField('orders', 'label', 'Order API v2')
+
+        expect(service.getChangeIdsSnapshot()).toBe(orderedChangeIds)
+        expect(dirtyChanged).toHaveBeenCalledOnce()
+
+        service.setNodeField('orders', 'label', 'Orders')
+        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(dirtyChanged).toHaveBeenCalledOnce()
+
+        service.setMetadataField('title', 'Overview')
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(dirtyChanged).toHaveBeenCalledTimes(2)
+        expect(changeIdsChanged).toHaveBeenCalledTimes(4)
+    })
+
+    it('tracks collection and nested membership as net semantic changes', () => {
+        const { service } = createHarness({ createId: vi.fn().mockReturnValue('node-1') })
+        service.start()
+
+        const createdId = service.createNode({ label: 'Billing', role: 'backend' })
+        const [additionId] = service.getChangeIdsSnapshot()
+        expect(service.getChange(additionId)).toMatchObject({
+            category: 'collection',
+            objectId: createdId,
+            objectKind: 'node',
+            originalValue: null,
+        })
+        expect(service.getChangeFieldSnapshot(additionId, 'value')).toBe(service.getNodeSnapshot(createdId))
+
+        service.removeNode(createdId)
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+
+        service.removeGroupMember('backend', 'store')
+        const [membershipId] = service.getChangeIdsSnapshot()
+        expect(service.getChange(membershipId)).toMatchObject({
+            category: 'membership',
+            field: 'nodeIds',
+            objectId: 'store',
+            objectKind: 'node',
+            originalValue: true,
+            ownerId: 'backend',
+            value: false,
+        })
+
+        service.addGroupMember('backend', 'store')
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.getDirtySnapshot()).toBe(false)
+    })
+
+    it('replaces field entries with one original-object removal entry', () => {
+        const { service } = createHarness()
+        service.start()
+        const originalGroup = diagram.groups[0]
+        service.setGroupField('backend', 'label', 'Core')
+
+        service.removeGroup('backend')
+
+        const [removalId] = service.getChangeIdsSnapshot()
+        expect(service.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(service.getChange(removalId)).toMatchObject({
+            category: 'collection',
+            objectId: 'backend',
+            objectKind: 'group',
+            originalValue: originalGroup,
+            value: null,
+        })
+    })
+
+    it('publishes empty change IDs when a dirty session restarts', () => {
+        const { service } = createHarness()
+        service.start()
+        service.setNodeField('orders', 'label', 'Order API')
+        const changeIdsChanged = vi.fn()
+        service.subscribeChangeIds(changeIdsChanged)
+
+        service.start()
+
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(changeIdsChanged).toHaveBeenCalledOnce()
     })
 
     it('fails fast when field assignment has no active session or owner', () => {

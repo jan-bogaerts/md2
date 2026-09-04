@@ -5,6 +5,8 @@ import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import {
+    useEditableDiagramChangeField,
+    useEditableDiagramChangeIds,
     useEditableDiagramEdgeField,
     useEditableDiagramGroupField,
     useEditableDiagramNodeField,
@@ -19,6 +21,33 @@ const diagram: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'focal' },
         { id: 'store', label: 'Store', role: 'store' },
     ],
+}
+
+interface ChangeTreeProps {
+    collectionCounter: ReturnType<typeof vi.fn<(...values: unknown[]) => void>>
+    leafCounter: ReturnType<typeof vi.fn<(...values: unknown[]) => void>>
+    service: DiagramEditSessionService
+}
+
+function ChangeLeaf({ changeId, leafCounter, service }: ChangeTreeProps & { changeId: string }) {
+    leafCounter(useEditableDiagramChangeField(changeId, 'value', service))
+
+    return null
+}
+
+function ChangeCollection({ collectionCounter, leafCounter, service }: ChangeTreeProps) {
+    const changeIds = useEditableDiagramChangeIds(service)
+    collectionCounter(changeIds)
+
+    return changeIds.map((changeId) => (
+        <ChangeLeaf
+            changeId={changeId}
+            collectionCounter={collectionCounter}
+            key={changeId}
+            leafCounter={leafCounter}
+            service={service}
+        />
+    ))
 }
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
@@ -132,5 +161,21 @@ describe('editable diagram subscriptions', () => {
         expect(counters.sibling).toHaveBeenCalledTimes(initialCounts.sibling)
         expect(counters.edge).toHaveBeenCalledTimes(initialCounts.edge)
         expect(counters.group).toHaveBeenCalledTimes(initialCounts.group)
+    })
+
+    it('rerenders one change leaf without rerendering the change collection', () => {
+        const service = createService()
+        service.setNodeField('orders', 'x', 4)
+        const collectionCounter = vi.fn()
+        const leafCounter = vi.fn()
+        render(<ChangeCollection collectionCounter={collectionCounter} leafCounter={leafCounter} service={service} />)
+        const changeIds = service.getChangeIdsSnapshot()
+
+        act(() => service.setNodeField('orders', 'x', 8))
+
+        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(collectionCounter).toHaveBeenCalledOnce()
+        expect(leafCounter).toHaveBeenCalledTimes(2)
+        expect(leafCounter).toHaveBeenLastCalledWith(8)
     })
 })

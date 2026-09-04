@@ -10,6 +10,7 @@ import type {
 } from '../../services/diagrams/diagram_data'
 import {
     diagramEditSessionService,
+    type DiagramChangeField,
     type DiagramConnectionEndpoint,
     type DiagramEditSessionService,
 } from '../../services/diagrams/diagram_edit_session_service'
@@ -174,4 +175,27 @@ export function useEditableDiagramGroupIds(service: DiagramEditSessionService = 
 
 export function useEditableDiagramFragmentIds(service: DiagramEditSessionService = diagramEditSessionService) {
     return useEditableDiagramCollectionIds('fragment', service.getFragmentIdsSnapshot, service)
+}
+
+/** Subscribes a review collection only to semantic change membership and order. */
+export function useEditableDiagramChangeIds(service: DiagramEditSessionService = diagramEditSessionService) {
+    return useDiagramSnapshot(service.subscribeChangeIds, service.getChangeIdsSnapshot, service)
+}
+
+/** Subscribes one review leaf to one field of one semantic change. */
+export function useEditableDiagramChangeField<Field extends DiagramChangeField>(
+    changeId: string,
+    field: Field,
+    service: DiagramEditSessionService = diagramEditSessionService,
+) {
+    const subscribe = useCallback(
+        (listener: () => void) => service.subscribeChangeField(changeId, field, listener),
+        [changeId, field, service],
+    )
+    const getSnapshot = useCallback(
+        () => service.getChangeFieldSnapshot(changeId, field),
+        [changeId, field, service],
+    )
+
+    return useDiagramSnapshot(subscribe, getSnapshot, service)
 }
