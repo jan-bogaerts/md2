@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__14f288d9-b541-4263-a2b5-74f1d1b95c68.json
 policy:
+changedFiles:
+  - app/src/services/diagrams/diagram_edit_session_service.ts
 ---
 
 Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
