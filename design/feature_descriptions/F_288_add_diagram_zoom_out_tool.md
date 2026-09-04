@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: 47be0198-e3ae-4ef7-9d06-3fcf5c7fd6b9
+branch: f_288_add_diagram_zoom_out_tool
+worktree: 1
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

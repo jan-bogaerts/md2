@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__47be0198-e3ae-4ef7-9d06-3fcf5c7fd6b9.json
 policy:
-branch: f_287_add_diagram_zoom_in_tool
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/diagram_comparison.tsx
   - app/src/components/diagram_view/diagram_toolbox.test.tsx
