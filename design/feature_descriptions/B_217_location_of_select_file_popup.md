@@ -3,12 +3,12 @@ author:
 id: B_217
 internalId: 3a81bbba-94cd-4b06-9c53-198d765510b9
 title: location of select file popup
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: 9d5878e6-2d20-4574-971d-57dbd82eb389
 ---
 
 We have already done some work on this, but it is not yet ok: when we type the 'at' char in the markdown editor, we show a popup with a list of files out of which the user can select a file.

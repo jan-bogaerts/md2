@@ -3,15 +3,14 @@ author:
 id: F_295
 internalId: f24dc638-db21-4d13-b5ec-bf173913a69b
 title: resize selected diagram objects
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 3a81bbba-94cd-4b06-9c53-198d765510b9
+after: 21b2c59c-1c07-42c2-9bc4-4e7219a645be
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -32,4 +31,4 @@ Resizing assigns width and height on the existing selected object. Only that obj
 
 ## Dependencies
 
-[F_274](F_274_add_editable_connection_points.md), [F_289](F_289_add_diagram_coordinate_conversion.md), and [F_291](F_291_add_direct_diagram_selection.md).
+[F\_274](F_274_add_editable_connection_points.md), [F\_289](F_289_add_diagram_coordinate_conversion.md), and [F\_291](F_291_add_direct_diagram_selection.md).
