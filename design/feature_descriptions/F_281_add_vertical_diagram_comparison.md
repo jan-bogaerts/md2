@@ -3,12 +3,18 @@ author:
 id: F_281
 internalId: 607f2bae-4287-47e0-9585-e8555c707264
 title: add vertical diagram comparison
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__607f2bae-4287-47e0-9585-e8555c707264.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison_layout_service.test.ts
+  - app/src/components/diagram_view/diagram_comparison_layout_service.ts
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/components/diagram_view/vertical_diagram_comparison.test.tsx
+  - app/src/components/diagram_view/vertical_diagram_comparison.tsx
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
