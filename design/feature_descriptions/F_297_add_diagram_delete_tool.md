@@ -3,7 +3,7 @@ author:
 id: F_297
 internalId: 20ddf6f5-ccf5-4017-96ab-94985cfbcf13
 title: add diagram delete tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,15 @@ policy:
 after: 62bae796-a019-452e-bc44-8d2a62318b48
 branch: f_297_add_diagram_delete_tool
 worktree: 3
+changedFiles:
+  - app/src/components/diagram_view/diagram_delete_button.test.tsx
+  - app/src/components/diagram_view/diagram_delete_button.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_selection_service.test.ts
+  - app/src/services/diagrams/diagram_selection_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
