@@ -3,7 +3,7 @@ author:
 id: F_301
 internalId: f93c7796-e308-4859-a60a-ed282e4c0d2b
 title: add diagram paste tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,16 @@ agents:
 policy:
 branch: f_301_add_diagram_paste_tool
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/diagram_paste_button.test.tsx
+  - app/src/components/diagram_view/diagram_paste_button.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_copy.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_paste.test.ts
+  - app/src/services/diagrams/diagram_paste.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
