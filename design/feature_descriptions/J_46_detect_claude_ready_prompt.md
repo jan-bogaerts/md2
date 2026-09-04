@@ -3,7 +3,7 @@ author:
 id: J_46
 internalId: cd8c317c-a566-4ec1-bc4b-e598c892ea89
 title: detect Claude ready prompt
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
