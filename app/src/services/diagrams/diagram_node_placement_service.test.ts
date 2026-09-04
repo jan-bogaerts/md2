@@ -1,0 +1,156 @@
+import { describe, expect, it, vi } from 'vitest'
+import type { DiagramData, DiagramNodeKind } from './diagram_data'
+import { DiagramEditSessionService } from './diagram_edit_session_service'
+import type { DiagramRecord } from './diagram_index'
+import { DiagramNodePlacementService } from './diagram_node_placement_service'
+import { DiagramSelectionService } from './diagram_selection_service'
+import type { DiagramViewSourceSnapshot } from './diagram_view_service'
+
+const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'diagram.json' }
+
+class DiagramSourceStub extends EventTarget {
+    private readonly diagram: DiagramData
+
+    constructor(diagramData: DiagramData) {
+        super()
+        this.diagram = diagramData
+    }
+
+    getSourceSnapshot = (): DiagramViewSourceSnapshot => ({ diagram: this.diagram, record })
+
+    subscribeSource = (listener: () => void) => {
+        this.addEventListener('sourceChanged', listener)
+
+        return () => this.removeEventListener('sourceChanged', listener)
+    }
+}
+
+const geometryStub = {
+    getEdgeRouteSnapshot: () => [],
+    getGroupGeometryFieldSnapshot: () => null,
+    getNodeGeometryFieldSnapshot: () => null,
+}
+
+function diagram(type: DiagramData['meta']['type'], preset?: DiagramData['meta']['preset']): DiagramData {
+    return {
+        edges: [{ from: 'existing', id: 'existing-edge', kind: type === 'entity' ? 'relationship' : 'connection', to: 'other' }],
+        groups: [],
+        meta: { description: 'Placement test', ...(preset ? { preset } : {}), title: 'Placement', type, version: 1 },
+        nodes: [
+            { id: 'existing', label: 'Existing', role: 'focal', ...(type === 'flow' ? { kind: 'step' as const } : {}) },
+            { id: 'other', label: 'Other', role: 'backend', ...(type === 'flow' ? { kind: 'step' as const } : {}) },
+        ],
+    }
+}
+
+function createHarness(source = diagram('architecture')) {
+    const createId = vi.fn()
+        .mockReturnValueOnce('existing')
+        .mockReturnValueOnce('existing-edge')
+        .mockReturnValueOnce('placed-node')
+    const session = new DiagramEditSessionService(new DiagramSourceStub(source), createId, vi.fn())
+    const selection = new DiagramSelectionService(session, geometryStub)
+    const placement = new DiagramNodePlacementService(session, selection)
+    session.bindProject({ branch: 'main', id: 'project', rootPath: 'C:/repo' })
+    session.start()
+
+    return { createId, placement, selection, session }
+}
+
+const componentDefinition = {
+    defaults: { height: 72, label: 'New component', role: 'focal' as const, width: 160 },
+    kind: 'component' as const,
+}
+
+describe('DiagramNodePlacementService', () => {
+    it('previews on the grid, then creates and selects one node through one membership mutation', () => {
+        const { createId, placement, selection, session } = createHarness()
+        const originalNodes = session.getEditableDiagram()?.nodes
+        const originalNode = session.getNodeSnapshot('existing')
+        const originalNodeIds = session.getNodeIdsSnapshot()
+        const membershipChanged = vi.fn()
+        const previewChanged = vi.fn()
+        session.subscribeCollectionMembership('node', membershipChanged)
+        placement.subscribePreview(previewChanged)
+
+        expect(placement.activate(componentDefinition)).toBe(true)
+        expect(placement.updatePreview({ x: 13, y: 18 })).toBe(true)
+
+        expect(placement.getPreviewSnapshot()?.node).toMatchObject({ height: 72, kind: 'component', width: 160, x: 12, y: 20 })
+        expect(session.getEditableDiagram()?.nodes).toBe(originalNodes)
+        expect(session.getNodeIdsSnapshot()).toBe(originalNodeIds)
+        expect(membershipChanged).not.toHaveBeenCalled()
+        expect(session.getTransientGestureSnapshot()).toBe('placement')
+
+        expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
+
+        expect(createId).toHaveBeenCalledTimes(3)
+        expect(session.getNodeSnapshot('existing')).toBe(originalNode)
+        expect(session.getNodeIdsSnapshot()).toEqual(['existing', 'other', 'placed-node'])
+        expect(session.getNodeFieldSnapshot('placed-node', 'x')).toBe(12)
+        expect(session.getNodeFieldSnapshot('placed-node', 'y')).toBe(20)
+        expect(membershipChanged).toHaveBeenCalledOnce()
+        expect(session.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(session.getChange(session.getChangeIdsSnapshot()[0])).toMatchObject({category: 'collection', objectId: 'placed-node', objectKind: 'node', value: expect.objectContaining({ id: 'placed-node' })})
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
+        expect(placement.getPreviewSnapshot()).toBeNull()
+        expect(session.getTransientGestureSnapshot()).toBeNull()
+        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(previewChanged).toHaveBeenCalledTimes(2)
+    })
+
+    it.each([
+        ['architecture', undefined, 'component', true],
+        ['architecture', undefined, 'participant', false],
+        ['sequence', undefined, 'participant', true],
+        ['entity', undefined, 'entity', true],
+        ['flow', 'flowchart', 'decision', true],
+        ['flow', 'flowchart', 'state', false],
+        ['flow', 'state', 'state', true],
+        ['flow', 'state', 'step', false],
+    ] as const)('reports %s/%s kind %s availability as %s', (type, preset, kind, available) => {
+        const source = diagram(type, preset)
+        if (type === 'sequence') source.edges = [{ from: 'existing', id: 'existing-edge', kind: 'call', to: 'other' }]
+        if (type === 'flow') {
+            source.edges = [{ from: 'existing', id: 'existing-edge', kind: preset === 'state' ? 'transition' : 'flow', label: 'next', to: 'other' }]
+            source.nodes = source.nodes.map((node) => ({ ...node, kind: preset === 'state' ? 'state' : 'step' }))
+        }
+        const { placement } = createHarness(source)
+
+        expect(placement.isNodeKindAvailable(kind as DiagramNodeKind)).toBe(available)
+    })
+
+    it('cancels preview without creating a node and returns to Select', () => {
+        const { placement, session } = createHarness()
+        const nodeIds = session.getNodeIdsSnapshot()
+        placement.activate(componentDefinition)
+        placement.updatePreview({ x: 32, y: 40 })
+
+        expect(placement.cancelPlacement()).toBe(true)
+
+        expect(session.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(session.getChangeIdsSnapshot()).toEqual([])
+        expect(placement.getPreviewSnapshot()).toBeNull()
+        expect(session.getActiveToolSnapshot()).toBe('select')
+    })
+
+    it('clears preview when Escape-style session cancellation resets interaction', () => {
+        const { placement, session } = createHarness()
+        placement.activate(componentDefinition)
+        placement.updatePreview({ x: 32, y: 40 })
+
+        expect(session.cancelActiveInteraction()).toBe(true)
+
+        expect(placement.getPreviewSnapshot()).toBeNull()
+        expect(placement.isPlacementActive()).toBe(false)
+        expect(session.getNodeIdsSnapshot()).toEqual(['existing', 'other'])
+    })
+
+    it('rejects unsupported activation without changing active tool', () => {
+        const { placement, session } = createHarness()
+
+        expect(placement.activate({ ...componentDefinition, kind: 'participant' })).toBe(false)
+        expect(placement.isPlacementActive()).toBe(false)
+        expect(session.getActiveToolSnapshot()).toBe('select')
+    })
+})

@@ -8,6 +8,9 @@ import {
     diagramSelectionService, type DiagramSelectionService,
 } from '../../services/diagrams/diagram_selection_service'
 import {
+    diagramNodePlacementService, type DiagramNodePlacementService,
+} from '../../services/diagrams/diagram_node_placement_service'
+import {
     EditableDiagramActivations,
     EditableDiagramEdges,
     EditableDiagramFragments,
@@ -19,6 +22,7 @@ import { convertClientToDiagramCoordinates } from './diagram_coordinate_conversi
 import { DiagramSelectionRectangle } from './diagram_selection_rectangle'
 import { DiagramResizeHandles } from './diagram_resize_handles'
 import { DiagramObjectDetailsDialog } from './diagram_object_details_dialog'
+import { DiagramNodePlacementPreview } from './diagram_node_placement_preview'
 import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from './diagram_object_details_service'
@@ -29,6 +33,7 @@ import { useEditableDiagramMetadataField } from './use_editable_diagram'
 interface EditableDiagramProps {
     details?: DiagramObjectDetailsService
     geometry?: DiagramGeometryService
+    placement?: DiagramNodePlacementService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
@@ -144,6 +149,7 @@ export function EditableDiagramSurface({
 export function EditableDiagram({
     details = diagramObjectDetailsService,
     geometry = diagramGeometryService,
+    placement = diagramNodePlacementService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: EditableDiagramProps) {
@@ -165,6 +171,7 @@ export function EditableDiagram({
                 <EditableDiagramActivations geometry={geometry} session={session} />
                 <EditableDiagramEdges details={details} geometry={geometry} selection={selection} session={session} />
                 <EditableDiagramNodes details={details} geometry={geometry} selection={selection} session={session} />
+                <DiagramNodePlacementPreview placement={placement} />
                 <DiagramResizeHandles geometry={geometry} selection={selection} session={session} />
                 <DiagramSelectionRectangle selection={selection} />
             </EditableDiagramSurface>

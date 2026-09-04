@@ -9,6 +9,7 @@ import {
 } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import { DiagramMoveService } from '../../services/diagrams/diagram_move_service'
+import { DiagramNodePlacementService } from '../../services/diagrams/diagram_node_placement_service'
 import { DiagramResizeService } from '../../services/diagrams/diagram_resize_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
@@ -46,10 +47,12 @@ function createHarness() {
     session.start()
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
+    const placement = new DiagramNodePlacementService(session, selection)
 
     return {
         geometry,
         movement: new DiagramMoveService(session, geometry, selection),
+        placement,
         resize: new DiagramResizeService(session, geometry, selection),
         selection,
         session,
@@ -59,6 +62,70 @@ function createHarness() {
 afterEach(cleanup)
 
 describe('DiagramZoomViewport', () => {
+    it('previews and places one snapped node through scrolled, zoomed New coordinates', () => {
+        const { geometry, placement, selection, session } = createHarness()
+        render(
+            <DiagramZoomViewport
+                geometry={geometry}
+                placement={placement}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({bottom: 420, height: 400, left: 10, right: 810, toJSON: () => ({}), top: 20, width: 800, x: 10, y: 20})
+        act(() => {
+            session.zoomOut()
+            placement.activate({
+                defaults: { height: 72, label: 'New component', role: 'focal', width: 160 },
+                kind: 'component',
+            })
+        })
+        scroller.scrollLeft = 20
+        scroller.scrollTop = 12
+
+        fireEvent.pointerMove(scroller, { clientX: 100, clientY: 80, isPrimary: true, pointerId: 8 })
+        expect(screen.getByText('New component').closest('button')).toHaveStyle({ left: '148px', top: '96px' })
+        expect(session.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 8 })
+        fireEvent.pointerUp(scroller, { clientX: 100, clientY: 80, pointerId: 8 })
+        fireEvent.click(scroller)
+
+        const nodeId = session.getNodeIdsSnapshot()[2]
+        expect(session.getNodeSnapshot(nodeId)).toMatchObject({ kind: 'component', x: 148, y: 96 })
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: nodeId, objectKind: 'node' }])
+        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(screen.getByRole('button', { name: 'New component' })).not.toHaveAttribute('aria-disabled')
+    })
+
+    it('creates nothing when pointer cancellation ends node placement', () => {
+        const { geometry, placement, selection, session } = createHarness()
+        render(
+            <DiagramZoomViewport
+                geometry={geometry}
+                placement={placement}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        act(() => {
+            placement.activate({
+                defaults: { height: 72, label: 'New component', role: 'focal', width: 160 },
+                kind: 'component',
+            })
+        })
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 9 })
+        fireEvent.pointerCancel(scroller, { pointerId: 9 })
+
+        expect(session.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
+        expect(selection.getSelectionSnapshot()).toEqual([])
+        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(screen.queryByText('New component')).not.toBeInTheDocument()
+    })
+
     it('opens node details on double-click without moving diagram data', async () => {
         const { geometry, movement, selection, session } = createHarness()
         const details = new DiagramObjectDetailsService()
