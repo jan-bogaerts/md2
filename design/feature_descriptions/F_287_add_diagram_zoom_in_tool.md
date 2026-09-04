@@ -3,7 +3,7 @@ author:
 id: F_287
 internalId: 47be0198-e3ae-4ef7-9d06-3fcf5c7fd6b9
 title: add diagram zoom in tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,19 @@ agents:
 policy:
 branch: f_287_add_diagram_zoom_in_tool
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/components/diagram_view/diagram_zoom_in_button.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.test.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.tsx
+  - app/src/components/diagram_view/vertical_diagram_comparison.test.tsx
+  - app/src/components/diagram_view/vertical_diagram_comparison.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
