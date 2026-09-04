@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__69834d03-c154-4c81-a656-50de20aeb0ec.json
 policy:
 after: f82cd066-3072-4e2e-96d4-301bed26bae0
 branch: f_303_add_component_node_tool
