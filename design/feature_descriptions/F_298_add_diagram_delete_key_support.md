@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__531e8784-9f9b-42d0-9eba-1f62646227f4.json
 policy:
-branch: f_298_add_diagram_delete_key_support
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/use_diagram_delete_key.test.tsx
 ---
