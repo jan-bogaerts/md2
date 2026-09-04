@@ -3,15 +3,13 @@ author:
 id: F_282
 internalId: b39d6ecb-a2eb-40da-8de1-1dca68881d26
 title: add horizontal diagram comparison
-status: new
+status: design
 owner:
 affects:
 agents:
 policy:
-after: 607f2bae-4287-47e0-9585-e8555c707264
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -30,4 +28,4 @@ The horizontal split component subscribes only to its divider position and compa
 
 ## Dependencies
 
-[F_280](F_280_add_current_and_new_diagram_comparison.md).
+[F\_280](F_280_add_current_and_new_diagram_comparison.md).
