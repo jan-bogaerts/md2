@@ -105,6 +105,39 @@ function membershipDetail(listener: ReturnType<typeof vi.fn>, callIndex = 0) {
 }
 
 describe('DiagramEditSessionService', () => {
+    it('publishes active toolbox section independently and resets it with the session', () => {
+        const { service } = createHarness()
+        const sectionChanged = vi.fn()
+        const sessionChanged = vi.fn()
+        service.subscribeActiveToolboxSection(sectionChanged)
+        service.subscribeSession(sessionChanged)
+        service.start()
+        const session = service.getSessionSnapshot()
+        const editable = service.getEditableDiagram()
+
+        service.setActiveToolboxSection('nodes')
+
+        expect(service.getActiveToolboxSectionSnapshot()).toBe('nodes')
+        expect(sectionChanged).toHaveBeenCalledOnce()
+        expect(sessionChanged).toHaveBeenCalledOnce()
+        expect(service.getSessionSnapshot()).toBe(session)
+        expect(service.getEditableDiagram()).toBe(editable)
+
+        service.discard()
+
+        expect(service.getActiveToolboxSectionSnapshot()).toBe('edit')
+        expect(sectionChanged).toHaveBeenCalledTimes(2)
+        expect(sessionChanged).toHaveBeenCalledTimes(2)
+    })
+
+    it('rejects toolbox section changes without an active edit session', () => {
+        const { service } = createHarness()
+
+        expect(() => service.setActiveToolboxSection('others')).toThrow(
+            'Cannot select a diagram toolbox section without an active edit session',
+        )
+    })
+
     it('starts with immutable source references and one deep editable copy', () => {
         const { service } = createHarness()
 

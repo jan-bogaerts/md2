@@ -1,6 +1,6 @@
 import { Box, Paper, Typography } from '@mui/material'
 import {
-    memo, useCallback, useRef, useSyncExternalStore,
+    memo, useCallback, useRef, useState, useSyncExternalStore,
     type KeyboardEvent as ReactKeyboardEvent,
     type PointerEvent as ReactPointerEvent,
 } from 'react'
@@ -15,6 +15,7 @@ import {
 import { DiagramRenderer } from './diagram_renderer'
 import type { DiagramSelection } from './diagram_selection'
 import { EditableDiagram } from './editable_diagram'
+import { DiagramToolbox } from './diagram_toolbox'
 
 const MINIMUM_PANE_HEIGHT = 160
 const SEPARATOR_HEIGHT = 6
@@ -57,6 +58,7 @@ export function DiagramComparison({
     session = diagramEditSessionService,
 }: DiagramComparisonProps) {
     const containerRef = useRef<HTMLDivElement>(null)
+    const [newViewportElement, setNewViewportElement] = useState<HTMLDivElement | null>(null)
     const activePointerIdRef = useRef<number | null>(null)
     const dividerRatio = useSyncExternalStore(
         layoutService.subscribeHorizontalDivider,
@@ -157,11 +159,18 @@ export function DiagramComparison({
             <Paper
                 aria-label="New"
                 elevation={0}
+                ref={setNewViewportElement}
                 role="region"
-                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, minHeight: 0, overflow: 'auto', p: 2 }}
+                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'relative' }}
             >
-                <Typography color="custom.colHead" sx={{ mb: 1 }} variant="overline">New</Typography>
-                <NewDiagram geometry={geometry} session={session} />
+                <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
+                <Box
+                    aria-label="New diagram scroller"
+                    sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2, pb: 2, pt: 1 }}
+                >
+                    <NewDiagram geometry={geometry} session={session} />
+                </Box>
+                <DiagramToolbox boundaryElement={newViewportElement} session={session} />
             </Paper>
         </Box>
     )

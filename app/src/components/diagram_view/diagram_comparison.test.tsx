@@ -96,7 +96,7 @@ describe('DiagramComparison', () => {
         expect(comparisonRenders).toBe(1)
     })
 
-    it('places Current above New and lets each pane scroll independently', () => {
+    it('places Current above New and keeps diagram scrolling behind the New toolbox', () => {
         const { geometry, session } = createHarness()
         render(
             <DiagramComparison
@@ -112,7 +112,9 @@ describe('DiagramComparison', () => {
 
         expect(current.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(current).toHaveStyle({ overflow: 'auto' })
-        expect(next).toHaveStyle({ overflow: 'auto' })
+        expect(next).toHaveStyle({ overflow: 'hidden', position: 'relative' })
+        expect(within(next).getByLabelText('New diagram scroller')).toHaveStyle({ overflow: 'auto' })
+        expect(screen.getByRole('dialog', { name: 'Diagram tools' })).toBeInTheDocument()
     })
 
     it('resizes by pointer while preserving minimum pane heights and diagram state', () => {

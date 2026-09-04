@@ -35,12 +35,14 @@ const DIRTY_CHANGED_EVENT = 'dirtyChanged'
 const CHANGE_IDS_CHANGED_EVENT = 'changeIdsChanged'
 const ORIGINAL_DIAGRAM_CHANGED_EVENT = 'originalDiagramChanged'
 const SESSION_CHANGED_EVENT = 'sessionChanged'
+const TOOLBOX_SECTION_CHANGED_EVENT = 'toolboxSectionChanged'
 const EMPTY_IDS: readonly string[] = Object.freeze([])
 const MAX_ID_GENERATION_ATTEMPTS = 100
 
 export type DiagramCollectionKind = 'edge' | 'fragment' | 'group' | 'node'
 export type DiagramObjectKind = DiagramCollectionKind | 'connectionPoint' | 'entityField' | 'meta'
 export type DiagramConnectionEndpoint = 'sourceAttachment' | 'targetAttachment'
+export type DiagramToolboxSection = 'edit' | 'nodes' | 'edges' | 'groups' | 'others'
 export type MutableDiagramMetaField = 'description' | 'title'
 export type MutableDiagramNodeField = Exclude<keyof DiagramNode, 'fields' | 'id'>
 export type MutableDiagramEdgeField = Exclude<keyof DiagramEdge, 'id' | 'sourceAttachment' | 'targetAttachment' | 'waypoints'>
@@ -269,6 +271,7 @@ function requireFragmentRegion(fragment: DiagramSequenceFragment, regionIndex: n
 
 /** Owns original and editable model data for one project's active diagram edit session. */
 export class DiagramEditSessionService extends EventTarget {
+    private activeToolboxSection: DiagramToolboxSection = 'edit'
     private changeIds: readonly string[] = EMPTY_IDS
     private readonly changeIdsByOwner = new Map<string, Set<string>>()
     private changeIdsChangedPending = false
@@ -311,6 +314,8 @@ export class DiagramEditSessionService extends EventTarget {
     }
 
     getDirtySnapshot = () => this.dirty
+
+    getActiveToolboxSectionSnapshot = () => this.activeToolboxSection
 
     getChangeIdsSnapshot = () => this.changeIds
 
@@ -421,6 +426,8 @@ export class DiagramEditSessionService extends EventTarget {
 
     subscribeDirty = (listener: () => void) => this.subscribe(DIRTY_CHANGED_EVENT, listener)
 
+    subscribeActiveToolboxSection = (listener: () => void) => this.subscribe(TOOLBOX_SECTION_CHANGED_EVENT, listener)
+
     subscribeChangeIds = (listener: () => void) => this.subscribe(CHANGE_IDS_CHANGED_EVENT, listener)
 
     subscribeChangeField = (changeId: string, field: DiagramChangeField, listener: () => void) => (
@@ -504,6 +511,7 @@ export class DiagramEditSessionService extends EventTarget {
         const editableDiagram = structuredClone(source.diagram)
         const session = { sourceDiagramId: source.record.id }
         this.clearChangeRegistry()
+        this.resetActiveToolboxSection()
         this.edgesById = indexById(editableDiagram.edges)
         this.fragmentsById = indexById(editableDiagram.fragments ?? [])
         this.groupsById = indexById(editableDiagram.groups)
@@ -529,6 +537,7 @@ export class DiagramEditSessionService extends EventTarget {
     /** Ends the session and releases every session-owned reference. */
     discard() {
         this.clearChangeRegistry()
+        this.resetActiveToolboxSection()
         this.edgesById.clear()
         this.fragmentsById.clear()
         this.groupsById.clear()
@@ -545,6 +554,14 @@ export class DiagramEditSessionService extends EventTarget {
         this.fragmentRegionEdgeIdsByKey.clear()
         this.publish({ dirty: false, editableDiagram: null, originalDiagram: null, session: null })
         this.publishPendingChangeEvents()
+    }
+
+    setActiveToolboxSection(section: DiagramToolboxSection) {
+        if (!this.session) throw new Error('Cannot select a diagram toolbox section without an active edit session')
+        if (section === this.activeToolboxSection) return
+
+        this.activeToolboxSection = section
+        this.dispatchEvent(new Event(TOOLBOX_SECTION_CHANGED_EVENT))
     }
 
     setMetadataField<Field extends MutableDiagramMetaField>(field: Field, value: DiagramMeta[Field]) {
@@ -1443,6 +1460,13 @@ export class DiagramEditSessionService extends EventTarget {
         if (dirtyChanged) this.dispatchEvent(new Event(DIRTY_CHANGED_EVENT))
         if (originalDiagramChanged) this.dispatchEvent(new Event(ORIGINAL_DIAGRAM_CHANGED_EVENT))
         if (sessionChanged) this.dispatchEvent(new Event(SESSION_CHANGED_EVENT))
+    }
+
+    private resetActiveToolboxSection() {
+        if (this.activeToolboxSection === 'edit') return
+
+        this.activeToolboxSection = 'edit'
+        this.dispatchEvent(new Event(TOOLBOX_SECTION_CHANGED_EVENT))
     }
 
     private subscribe(eventType: string, listener: () => void) {

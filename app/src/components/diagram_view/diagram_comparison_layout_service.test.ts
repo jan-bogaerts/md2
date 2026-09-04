@@ -2,6 +2,23 @@ import { describe, expect, it, vi } from 'vitest';
 import { DiagramComparisonLayoutService } from './diagram_comparison_layout_service';
 
 describe('DiagramComparisonLayoutService', () => {
+    it('publishes active tab changes without publishing divider changes', () => {
+        const service = new DiagramComparisonLayoutService();
+        const activeTabListener = vi.fn();
+        const dividerListener = vi.fn();
+        const unsubscribeActiveTab = service.subscribeActiveTab(activeTabListener);
+        service.subscribeHorizontalDivider(dividerListener);
+
+        service.setActiveTab('new');
+        service.setActiveTab('new');
+        unsubscribeActiveTab();
+        service.setActiveTab('current');
+
+        expect(activeTabListener).toHaveBeenCalledTimes(1);
+        expect(dividerListener).not.toHaveBeenCalled();
+        expect(service.getActiveTabSnapshot()).toBe('current');
+    });
+
     it('publishes only changed divider ratios', () => {
         const service = new DiagramComparisonLayoutService();
         const listener = vi.fn();
