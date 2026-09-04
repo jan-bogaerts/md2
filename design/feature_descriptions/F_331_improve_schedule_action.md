@@ -27,4 +27,11 @@ Next we need to add commands related to scheduling to the ´run´ menu bar:
 * Add sequence: opens a popup:
   * where the user can drop cards. These are shown in a column
   * select the action to run, from the top, with buttons like a regular action popup
-  *
+  * State must be selected that determins when a card is ready and the next one can be started
+  * Trigger must be selected, from radio group when sequence starts:
+    * Now: start button is shown
+    * Set date and time
+    * When account usage of agent resets
+    * When other card´s state changes to a specific value
+  * User can drag and drop cards like in regular column
+  * Press delete on selected card removes it from list.
