@@ -10,8 +10,6 @@ agents:
   - design/activity/card__6142a098-2865-430d-9ca9-a55e0ce5feff.json
 policy:
 after: 91ef53f7-f3da-4b1a-acf1-ca3520128a0f
-branch: f_293_add_rectangle_diagram_selection
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/diagram_selection_rectangle.tsx
   - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
