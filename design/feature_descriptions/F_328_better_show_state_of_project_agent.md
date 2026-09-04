@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__1d05ed50-60c4-42a5-b520-fbc0d625361c.json
 policy:
-branch: f_328_better_show_state_of_project_agent
-worktree: 2
 after: cd8c317c-a566-4ec1-bc4b-e598c892ea89
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_chat.tsx
