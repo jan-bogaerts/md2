@@ -12,8 +12,7 @@ policy:
 branch: f_290_add_diagram_selection_service
 worktree: 1
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -36,4 +35,4 @@ Selection is stored by stable identity and updated without replacing a selected 
 
 ## Dependencies
 
-[F_275](F_275_add_diagram_edit_session_service.md).
+[F\_275](F_275_add_diagram_edit_session_service.md).
