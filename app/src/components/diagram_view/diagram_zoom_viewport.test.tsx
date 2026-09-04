@@ -8,6 +8,7 @@ import {
 } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import { DiagramMoveService } from '../../services/diagrams/diagram_move_service'
+import { DiagramResizeService } from '../../services/diagrams/diagram_resize_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
@@ -44,7 +45,13 @@ function createHarness() {
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
 
-    return { geometry, movement: new DiagramMoveService(session, geometry, selection), selection, session }
+    return {
+        geometry,
+        movement: new DiagramMoveService(session, geometry, selection),
+        resize: new DiagramResizeService(session, geometry, selection),
+        selection,
+        session,
+    }
 }
 
 afterEach(cleanup)
@@ -211,5 +218,61 @@ describe('DiagramZoomViewport', () => {
         expect(session.getNodeSnapshot('orders')).toMatchObject({ x: 240, y: 120 })
         expect(session.getNodeSnapshot('store')).toMatchObject({ x: 480, y: 120 })
         expect(movement.getMoveActiveSnapshot()).toBe(false)
+    })
+
+    it('resizes through scrolled, zoomed viewport coordinates without moving the selection', () => {
+        const { geometry, movement, resize, selection, session } = createHarness()
+        render(
+            <DiagramZoomViewport
+                geometry={geometry}
+                movement={movement}
+                resize={resize}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        scroller.scrollLeft = 20
+        scroller.scrollTop = 10
+        vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({ bottom: 410, height: 400, left: 10, right: 810, toJSON: () => ({}), top: 10, width: 800, x: 10, y: 10 })
+        act(() => {
+            session.zoomOut()
+            selection.replace([{ objectId: 'orders', objectKind: 'node' }])
+        })
+        const handle = screen.getByRole('button', { name: 'Resize Orders south-east' })
+
+        fireEvent.pointerDown(handle, { button: 0, clientX: 110, clientY: 70, isPrimary: true, pointerId: 6 })
+        fireEvent.pointerMove(scroller, { clientX: 122, clientY: 78, pointerId: 6 })
+        fireEvent.pointerUp(scroller, { pointerId: 6 })
+
+        expect(session.getNodeSnapshot('orders')).toMatchObject({ height: 84, width: 176, x: 240, y: 120 })
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
+        expect(resize.getResizeActiveSnapshot()).toBe(false)
+    })
+
+    it('supports keyboard resizing and restores pointer resize when Escape cancels it', () => {
+        const { geometry, movement, resize, selection, session } = createHarness()
+        render(
+            <DiagramZoomViewport
+                geometry={geometry}
+                movement={movement}
+                resize={resize}
+                selection={selection}
+                session={session}
+            />,
+        )
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+        const handle = screen.getByRole('button', { name: 'Resize Orders east' })
+
+        fireEvent.keyDown(handle, { key: 'ArrowRight' })
+        expect(session.getNodeSnapshot('orders')).toMatchObject({ height: 72, width: 164 })
+
+        const scroller = screen.getByLabelText('New diagram scroller')
+        fireEvent.pointerDown(handle, { button: 0, clientX: 100, clientY: 100, isPrimary: true, pointerId: 7 })
+        fireEvent.pointerMove(scroller, { clientX: 116, clientY: 100, pointerId: 7 })
+        fireEvent.keyDown(window, { key: 'Escape' })
+
+        expect(session.getNodeSnapshot('orders')).toMatchObject({ height: 72, width: 164 })
+        expect(resize.getResizeActiveSnapshot()).toBe(false)
     })
 })

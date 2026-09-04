@@ -17,6 +17,7 @@ import {
 } from './editable_diagram_collections'
 import { convertClientToDiagramCoordinates } from './diagram_coordinate_conversion'
 import { DiagramSelectionRectangle } from './diagram_selection_rectangle'
+import { DiagramResizeHandles } from './diagram_resize_handles'
 import { useDiagramSurfaceField } from './use_diagram_geometry'
 import { useEditableDiagramMetadataField } from './use_editable_diagram'
 
@@ -71,7 +72,7 @@ export function EditableDiagramSurface({
     }
     const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0 || session.getActiveToolSnapshot() !== 'select') return
-        if ((event.target as Element).closest('[data-diagram-id]')) return
+        if ((event.target as Element).closest('[data-diagram-id], [data-diagram-resize-handle]')) return
 
         event.preventDefault()
         activePointerIdRef.current = event.pointerId
@@ -110,7 +111,7 @@ export function EditableDiagramSurface({
             return
         }
         if (session.getActiveToolSnapshot() !== 'select') return
-        if ((event.target as Element).closest('[data-diagram-id]')) return
+        if ((event.target as Element).closest('[data-diagram-id], [data-diagram-resize-handle]')) return
 
         selection.clear()
     }
@@ -152,6 +153,7 @@ export function EditableDiagram({
                 <EditableDiagramActivations geometry={geometry} session={session} />
                 <EditableDiagramEdges geometry={geometry} selection={selection} session={session} />
                 <EditableDiagramNodes geometry={geometry} selection={selection} session={session} />
+                <DiagramResizeHandles geometry={geometry} selection={selection} session={session} />
                 <DiagramSelectionRectangle selection={selection} />
             </EditableDiagramSurface>
         </Box>

@@ -168,6 +168,27 @@ describe('EditableDiagram direct selection', () => {
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'backend', objectKind: 'group' }])
     })
 
+    it('shows eight accessible handles only for one resizable selection', () => {
+        const { selection } = renderHarness()
+
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+        expect(screen.getAllByRole('button', { name: /^Resize Orders /u })).toHaveLength(8)
+
+        act(() => { selection.replace([{ objectId: 'orders-store', objectKind: 'edge' }]) })
+        expect(screen.queryByRole('button', { name: /^Resize /u })).toBeNull()
+
+        act(() => {
+            selection.replace([
+                { objectId: 'orders', objectKind: 'node' },
+                { objectId: 'backend', objectKind: 'group' },
+            ])
+        })
+        expect(screen.queryByRole('button', { name: /^Resize /u })).toBeNull()
+
+        act(() => { selection.replace([{ objectId: 'backend', objectKind: 'group' }]) })
+        expect(screen.getAllByRole('button', { name: /^Resize Backend /u })).toHaveLength(8)
+    })
+
     it('selects every node, edge, and group intersecting a rectangle dragged from empty surface', () => {
         const { geometry, selection } = renderHarness()
         const surface = screen.getByLabelText('New diagram')

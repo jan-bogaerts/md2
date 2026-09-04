@@ -6,6 +6,7 @@ import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { DiagramMoveService } from '../../services/diagrams/diagram_move_service'
+import { DiagramResizeService } from '../../services/diagrams/diagram_resize_service'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { EditableDiagram, EditableDiagramSurface } from './editable_diagram'
@@ -167,6 +168,42 @@ describe('editable diagram', () => {
         fireEvent.pointerUp(scroller, { pointerId: 6 })
 
         expect(counts.get('unmoved-store')).toBe(before.get('unmoved-store'))
+        expect(session.getNodeIdsSnapshot()).toBe(nodeIds)
+    })
+
+    it('keeps collections and an unrelated leaf isolated during resize', () => {
+        const { geometry, selection, session } = createHarness()
+        const movement = new DiagramMoveService(session, geometry, selection)
+        const resize = new DiagramResizeService(session, geometry, selection)
+        const counts: RenderCounts = new Map()
+        const nodeIds = session.getNodeIdsSnapshot()
+        const ViewportHarness = () => {
+            return (
+                <>
+                    <DiagramZoomViewport
+                        geometry={geometry}
+                        movement={movement}
+                        resize={resize}
+                        selection={selection}
+                        session={session}
+                    />
+                    <Counted counts={counts} id="unrelated-store">
+                        <EditableDiagramNode geometry={geometry} nodeId="store" selection={selection} session={session} />
+                    </Counted>
+                </>
+            )
+        }
+        render(<ViewportHarness />)
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+        const before = new Map(counts)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const handle = within(scroller).getByRole('button', { name: 'Resize Orders east' })
+
+        fireEvent.pointerDown(handle, { button: 0, clientX: 100, clientY: 100, isPrimary: true, pointerId: 7 })
+        fireEvent.pointerMove(scroller, { clientX: 116, clientY: 100, pointerId: 7 })
+        fireEvent.pointerUp(scroller, { pointerId: 7 })
+
+        expect(counts.get('unrelated-store')).toBe(before.get('unrelated-store'))
         expect(session.getNodeIdsSnapshot()).toBe(nodeIds)
     })
 })

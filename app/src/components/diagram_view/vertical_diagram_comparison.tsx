@@ -10,6 +10,7 @@ import {
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'
 import { diagramMoveService, type DiagramMoveService } from '../../services/diagrams/diagram_move_service'
+import { diagramResizeService, type DiagramResizeService } from '../../services/diagrams/diagram_resize_service'
 import {
     diagramSelectionService, type DiagramSelectionService,
 } from '../../services/diagrams/diagram_selection_service'
@@ -31,6 +32,7 @@ interface VerticalDiagramComparisonProps {
     layoutService?: DiagramComparisonLayoutService
     movement?: DiagramMoveService
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
+    resize?: DiagramResizeService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
@@ -43,6 +45,7 @@ interface CurrentDiagramPaneProps {
 interface NewDiagramPaneProps {
     geometry: DiagramGeometryService
     movement: DiagramMoveService
+    resize: DiagramResizeService
     selection: DiagramSelectionService
     session: DiagramEditSessionService
 }
@@ -61,7 +64,7 @@ const CurrentDiagramPane = memo(function CurrentDiagramPane({ currentDiagram, on
     )
 })
 
-const NewDiagramPane = memo(function NewDiagramPane({ geometry, movement, selection, session }: NewDiagramPaneProps) {
+const NewDiagramPane = memo(function NewDiagramPane({ geometry, movement, resize, selection, session }: NewDiagramPaneProps) {
     return (
         <Paper
             aria-label="New"
@@ -70,7 +73,7 @@ const NewDiagramPane = memo(function NewDiagramPane({ geometry, movement, select
             sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}
         >
             <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
-            <DiagramZoomViewport geometry={geometry} movement={movement} selection={selection} session={session} />
+            <DiagramZoomViewport geometry={geometry} movement={movement} resize={resize} selection={selection} session={session} />
         </Paper>
     )
 })
@@ -98,6 +101,7 @@ export function VerticalDiagramComparison({
     layoutService = diagramComparisonLayoutService,
     movement = diagramMoveService,
     onCurrentSelect,
+    resize = diagramResizeService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: VerticalDiagramComparisonProps) {
@@ -192,7 +196,7 @@ export function VerticalDiagramComparison({
                 }}
                 tabIndex={0}
             />
-            <NewDiagramPane geometry={geometry} movement={movement} selection={selection} session={session} />
+            <NewDiagramPane geometry={geometry} movement={movement} resize={resize} selection={selection} session={session} />
         </Box>
     )
 }

@@ -6,6 +6,7 @@ import {
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'
 import { diagramMoveService, type DiagramMoveService } from '../../services/diagrams/diagram_move_service'
+import { diagramResizeService, type DiagramResizeService } from '../../services/diagrams/diagram_resize_service'
 import {
     diagramSelectionService, type DiagramSelectionService,
 } from '../../services/diagrams/diagram_selection_service'
@@ -22,6 +23,7 @@ interface TabbedDiagramComparisonProps {
     layoutService?: DiagramComparisonLayoutService
     movement?: DiagramMoveService
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
+    resize?: DiagramResizeService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
@@ -35,6 +37,7 @@ export function TabbedDiagramComparison({
     layoutService = diagramComparisonLayoutService,
     movement = diagramMoveService,
     onCurrentSelect,
+    resize = diagramResizeService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: TabbedDiagramComparisonProps) {
@@ -94,7 +97,7 @@ export function TabbedDiagramComparison({
                 sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
             >
                 <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
-                <DiagramZoomViewport geometry={geometry} movement={movement} selection={selection} session={session} />
+                <DiagramZoomViewport geometry={geometry} movement={movement} resize={resize} selection={selection} session={session} />
             </Paper>
         </Box>
     )
