@@ -3325,3 +3325,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-04T17:49:52.720Z,token_usage,codex,,,,,29607,2424576,12609,4260,2471052,,
 2026-09-04T17:52:08.603Z,account_usage,claude,default,weekly,10080,2026-09-06T16:59:00.000Z,,,,,,35,1
 2026-09-04T17:56:05.071Z,token_usage,claude,,,,,132,4910085,29971,0,4940188,,
+2026-09-04T18:02:47.679Z,token_usage,codex,,,,,53976,305024,1449,1378,361827,,
