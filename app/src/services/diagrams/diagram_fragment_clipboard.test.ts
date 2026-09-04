@@ -9,19 +9,20 @@ import {
     buildDiagramFragmentClipboardPayload,
     DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT,
     DIAGRAM_FRAGMENT_CLIPBOARD_VERSION,
+    parseDiagramFragmentClipboardPayload,
     serializeDiagramFragmentClipboardPayload,
 } from './diagram_fragment_clipboard'
 import type { DiagramSelectionIdentity } from './diagram_selection_service'
 
 const nodes: DiagramNode[] = [
-    { id: 'one', label: 'One', role: 'focal' },
-    { id: 'two', label: 'Two', role: 'backend' },
-    { id: 'three', label: 'Three', role: 'store' },
+    { id: 'one', kind: 'participant', label: 'One', role: 'focal' },
+    { id: 'two', kind: 'participant', label: 'Two', role: 'backend' },
+    { id: 'three', kind: 'participant', label: 'Three', role: 'store' },
 ]
 const edges: DiagramEdge[] = [
-    { from: 'one', id: 'one-two', kind: 'connection', to: 'two' },
-    { from: 'two', id: 'two-one', kind: 'data', to: 'one' },
-    { from: 'one', id: 'one-three', kind: 'connection', to: 'three' },
+    { from: 'one', id: 'one-two', kind: 'call', to: 'two' },
+    { from: 'two', id: 'two-one', kind: 'return', to: 'one' },
+    { from: 'one', id: 'one-three', kind: 'async', to: 'three' },
 ]
 const groups: DiagramGroup[] = [
     { id: 'selected-group', label: 'Selected', nodeIds: ['one', 'two'] },
@@ -67,7 +68,7 @@ describe('diagram fragment clipboard', () => {
             version: DIAGRAM_FRAGMENT_CLIPBOARD_VERSION,
         })
         if (!payload) throw new Error('Expected supported diagram clipboard payload')
-        expect(JSON.parse(serializeDiagramFragmentClipboardPayload(payload))).toEqual(payload)
+        expect(parseDiagramFragmentClipboardPayload(serializeDiagramFragmentClipboardPayload(payload))).toEqual(payload)
     })
 
     it.each([
@@ -100,5 +101,21 @@ describe('diagram fragment clipboard', () => {
         buildDiagramFragmentClipboardPayload(identities, diagramFragmentReader())
 
         expect(JSON.stringify({ edges, fragments, groups, nodes })).toBe(before)
+    })
+
+    it.each([
+        ['invalid JSON', '{'],
+        ['unknown format', JSON.stringify({edges: [], format: 'foreign', fragments: [], groups: [], nodes: [nodes[0]], version: 1})],
+        ['unknown version', JSON.stringify({edges: [], format: DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT, fragments: [], groups: [], nodes: [nodes[0]], version: 2})],
+        ['dangling relationship', JSON.stringify({
+            edges: [edges[0]],
+            format: DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT,
+            fragments: [],
+            groups: [],
+            nodes: [nodes[0]],
+            version: DIAGRAM_FRAGMENT_CLIPBOARD_VERSION,
+        })],
+    ])('rejects %s before paste', (_label, content) => {
+        expect(() => parseDiagramFragmentClipboardPayload(content)).toThrow('Malformed diagram clipboard data')
     })
 })

@@ -1,4 +1,10 @@
 import type {
+    DiagramData,
+    DiagramFlowPreset,
+    DiagramType,
+} from './diagram_data'
+import { parseDiagramData } from './diagram_data'
+import type {
     DiagramEditSessionService,
     ReadonlyDiagramData,
 } from './diagram_edit_session_service'
@@ -30,6 +36,58 @@ export interface DiagramFragmentClipboardPayload {
     groups: readonly ReadonlyDiagramGroup[]
     nodes: readonly ReadonlyDiagramNode[]
     version: typeof DIAGRAM_FRAGMENT_CLIPBOARD_VERSION
+}
+
+interface DiagramValidationCandidate {
+    preset?: DiagramFlowPreset
+    type: DiagramType
+}
+
+const VALIDATION_CANDIDATES: readonly DiagramValidationCandidate[] = [
+    { type: 'architecture' },
+    { type: 'dependency' },
+    { type: 'sequence' },
+    { preset: 'flowchart', type: 'flow' },
+    { preset: 'state', type: 'flow' },
+    { type: 'entity' },
+]
+
+function requireClipboardRoot(value: unknown) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Malformed diagram clipboard data: root has invalid value')
+    }
+
+    return value as Record<string, unknown>
+}
+
+function parseClipboardObjects(root: Record<string, unknown>) {
+    if (!Array.isArray(root.edges)) throw new Error('Malformed diagram clipboard data: edges has invalid array')
+    if (!Array.isArray(root.fragments)) throw new Error('Malformed diagram clipboard data: fragments has invalid array')
+    if (!Array.isArray(root.groups)) throw new Error('Malformed diagram clipboard data: groups has invalid array')
+    if (!Array.isArray(root.nodes)) throw new Error('Malformed diagram clipboard data: nodes has invalid array')
+
+    for (const { preset, type } of VALIDATION_CANDIDATES) {
+        const meta = {
+            description: 'Clipboard fragment',
+            ...(preset ? { preset } : {}),
+            title: 'Clipboard fragment',
+            type,
+            version: 1 as const,
+        }
+        try {
+            return parseDiagramData(JSON.stringify({
+                edges: root.edges,
+                fragments: root.fragments,
+                groups: root.groups,
+                meta,
+                nodes: root.nodes,
+            }))
+        } catch {
+            // Try every supported diagram type because clipboard data intentionally omits source metadata.
+        }
+    }
+
+    throw new Error('Malformed diagram clipboard data: objects have invalid fields or relationships')
 }
 
 function selectedIdsByKind(identities: readonly DiagramSelectionIdentity[]) {
@@ -138,4 +196,31 @@ export function buildDiagramFragmentClipboardPayload(
 /** Serializes one versioned internal diagram fragment without mutating source objects. */
 export function serializeDiagramFragmentClipboardPayload(payload: DiagramFragmentClipboardPayload) {
     return JSON.stringify(payload)
+}
+
+/** Parses and validates clipboard envelope, object fields, and internal relationships before paste. */
+export function parseDiagramFragmentClipboardPayload(content: string): DiagramFragmentClipboardPayload {
+    let parsedValue: unknown
+    try {
+        parsedValue = JSON.parse(content)
+    } catch {
+        throw new Error('Malformed diagram clipboard data: invalid JSON')
+    }
+    const root = requireClipboardRoot(parsedValue)
+    if (root.format !== DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT) {
+        throw new Error(`Malformed diagram clipboard data: format has unsupported value ${String(root.format)}`)
+    }
+    if (root.version !== DIAGRAM_FRAGMENT_CLIPBOARD_VERSION) {
+        throw new Error(`Malformed diagram clipboard data: version has unsupported value ${String(root.version)}`)
+    }
+    const diagram = parseClipboardObjects(root) as DiagramData
+
+    return {
+        edges: diagram.edges,
+        format: DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT,
+        fragments: diagram.fragments ?? [],
+        groups: diagram.groups,
+        nodes: diagram.nodes,
+        version: DIAGRAM_FRAGMENT_CLIPBOARD_VERSION,
+    }
 }
