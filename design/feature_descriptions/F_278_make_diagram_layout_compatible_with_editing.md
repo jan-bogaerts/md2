@@ -3,12 +3,11 @@ author:
 id: F_278
 internalId: 14f288d9-b541-4263-a2b5-74f1d1b95c68
 title: make diagram layout compatible with editing
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 056265ee-3d0f-4922-8e2d-282f91bad667
 ---
 
 Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).

@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 1d05ed50-60c4-42a5-b520-fbc0d625361c
 ---
 
 When the react app is connected to the electron app through a websocket, we don't correctly handle the commands 'copy path' an 'copy relative path': they give an error.
