@@ -215,6 +215,10 @@ export function diagramCollectionMembershipChangedEvent(objectKind: DiagramColle
     return `diagram:${objectKind}:membership`
 }
 
+export function diagramCollectionMembershipWillChangeEvent(objectKind: DiagramCollectionKind) {
+    return `diagram:${objectKind}:membership:willChange`
+}
+
 export function diagramGroupMembershipChangedEvent(groupId: string) {
     return `diagram:group:${eventScope(groupId)}:nodeIds`
 }
@@ -501,6 +505,10 @@ export class DiagramEditSessionService extends EventTarget {
 
     subscribeCollectionMembership = (objectKind: DiagramCollectionKind, listener: () => void) => (
         this.subscribe(diagramCollectionMembershipChangedEvent(objectKind), listener)
+    )
+
+    subscribeCollectionMembershipWillChange = (objectKind: DiagramCollectionKind, listener: EventListener) => (
+        this.subscribe(diagramCollectionMembershipWillChangeEvent(objectKind), listener)
     )
 
     subscribeGroupMembership = (groupId: string, listener: () => void) => (
@@ -1491,6 +1499,12 @@ export class DiagramEditSessionService extends EventTarget {
 
     /** Publishes one mutation transaction: dirty, change registry, then mutation membership events. */
     private commitTransaction(events: readonly PendingMembershipEvent[]) {
+        for (const { detail } of events) {
+            if (detail.ownerId !== null || detail.removedIds.length === 0) continue
+
+            const eventName = diagramCollectionMembershipWillChangeEvent(detail.memberKind)
+            this.dispatchEvent(new CustomEvent<DiagramMembershipChangeDetail>(eventName, { detail }))
+        }
         this.refreshChangeIdsSnapshot()
         const dirty = this.changesById.size > 0
         if (dirty !== this.dirty) {
@@ -1573,7 +1587,7 @@ export class DiagramEditSessionService extends EventTarget {
         this.dispatchEvent(new Event(VIEWPORT_SCALE_CHANGED_EVENT))
     }
 
-    private subscribe(eventType: string, listener: () => void) {
+    private subscribe(eventType: string, listener: EventListener) {
         this.addEventListener(eventType, listener)
 
         return () => this.removeEventListener(eventType, listener)
