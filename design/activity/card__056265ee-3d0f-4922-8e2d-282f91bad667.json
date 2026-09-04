@@ -383,13 +383,50 @@
         "totalTokens": 558806
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "056265ee-3d0f-4922-8e2d-282f91bad667",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "974269f71e002360c68b132444880cd22ad5d089",
+          "committedAt": "2026-09-04T19:28:00+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_272_board_columns_in_hamburger_menu.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 26
+        }
+      ],
+      "completedAt": "2026-09-04T17:28:00.736Z",
+      "conversationIds": [
+        "agent-1499d6c8-2014-4a88-8bbb-c1594215c3f2"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-cd51e627-b9cf-4412-b07e-c48c3b0b438e",
+      "origin": {
+        "cardInternalId": "056265ee-3d0f-4922-8e2d-282f91bad667",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-1499d6c8-2014-4a88-8bbb-c1594215c3f2",
+      "startedAt": "2026-09-04T17:26:29.645Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
