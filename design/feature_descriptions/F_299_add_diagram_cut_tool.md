@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__280027c6-d553-4c20-9fb4-af9010ce2c39.json
 policy:
 after: 531e8784-9f9b-42d0-9eba-1f62646227f4
 branch: f_299_add_diagram_cut_tool
