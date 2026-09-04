@@ -764,7 +764,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "43b22d3f-d24d-4e09-b222-bafec56806ae",
       "cardPath": "design/feature_descriptions/B_220_git_worktrees_broken.md",
-      "completedAt": null,
+      "completedAt": "2026-09-04T09:23:07.383Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 128014
@@ -2356,7 +2356,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 129,
-          "timestamp": "2026-09-04T09:23:06.826Z"
+          "timestamp": "2026-09-04T09:23:07.383Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2366,15 +2366,15 @@
           "agent": "claude",
           "conversationId": "5f9450f4-2e92-4ddc-ae68-2f3729229fee",
           "createdAt": "2026-09-04T09:10:51.407Z",
-          "lastUsedAt": "2026-09-04T09:10:51.407Z",
-          "synchronizedThroughMessageId": "agent-turn-1189eafe-ddca-45ee-bf5f-98bd4b21d7e0-turn-1-assistant-3"
+          "lastUsedAt": "2026-09-04T09:23:07.383Z",
+          "synchronizedThroughMessageId": "agent-turn-1189eafe-ddca-45ee-bf5f-98bd4b21d7e0-turn-2-assistant-16"
         }
       ],
       "startedAt": "2026-09-04T09:09:22.920Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 88487,
-        "runningStartedAt": "2026-09-04T09:12:14.393Z"
+        "elapsedMs": 741477,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
