@@ -3,7 +3,7 @@ author:
 id: F_277
 internalId: d8f5366f-df99-4b4a-9537-15b3e395fbfb
 title: track diagram changes
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,11 @@ policy:
 after: 14f288d9-b541-4263-a2b5-74f1d1b95c68
 branch: f_277_track_diagram_changes
 worktree: 3
+changedFiles:
+  - app/src/components/diagram_view/use_editable_diagram.test.tsx
+  - app/src/components/diagram_view/use_editable_diagram.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
