@@ -3,7 +3,7 @@ author:
 id: F_292
 internalId: 91ef53f7-f3da-4b1a-acf1-ca3520128a0f
 title: add additive diagram selection
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,17 @@ agents:
 policy:
 branch: f_292_add_additive_diagram_selection
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/diagram_edge.tsx
+  - app/src/components/diagram_view/diagram_group.tsx
+  - app/src/components/diagram_view/diagram_node.test.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_selection.ts
+  - app/src/components/diagram_view/editable_diagram_edge.tsx
+  - app/src/components/diagram_view/editable_diagram_group.tsx
+  - app/src/components/diagram_view/editable_diagram_leaves.test.tsx
+  - app/src/components/diagram_view/editable_diagram_node.tsx
+  - app/src/components/diagram_view/editable_diagram_selection.test.tsx
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
