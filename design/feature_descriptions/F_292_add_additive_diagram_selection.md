@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__91ef53f7-f3da-4b1a-acf1-ca3520128a0f.json
 policy:
-after: 2f8b255c-a6f9-4f92-ad54-3f4358b2e512
 branch: f_292_add_additive_diagram_selection
 worktree: 1
 ---
