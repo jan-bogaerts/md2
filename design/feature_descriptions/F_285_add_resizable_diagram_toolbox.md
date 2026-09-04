@@ -3,7 +3,7 @@ author:
 id: F_285
 internalId: 2e295c0c-a5eb-4b2f-a36a-6c6f202a750a
 title: add resizable diagram toolbox
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,16 @@ policy:
 after: 2a79aab5-7f0a-4c3e-9259-2ffdc6878f3b
 branch: f_285_add_resizable_diagram_toolbox
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.test.tsx
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/components/diagram_view/diagram_toolbox_button.tsx
+  - app/src/components/resizable_popper.test.tsx
+  - app/src/components/resizable_popper.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

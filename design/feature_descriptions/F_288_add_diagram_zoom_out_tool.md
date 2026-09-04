@@ -10,8 +10,7 @@ agents:
 policy:
 after: 47be0198-e3ae-4ef7-9d06-3fcf5c7fd6b9
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ Zoom is one service-owned viewport primitive. Only the New viewport transform an
 
 ## Dependencies
 
-[F_287](F_287_add_diagram_zoom_in_tool.md).
+[F\_287](F_287_add_diagram_zoom_in_tool.md).
