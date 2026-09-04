@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__cd8c317c-a566-4ec1-bc4b-e598c892ea89.json
 policy:
 changedFiles:
   - desktop/src/actions/agent/claude_usage_terminal.js
