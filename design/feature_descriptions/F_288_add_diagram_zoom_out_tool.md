@@ -3,12 +3,11 @@ author:
 id: F_288
 internalId: ec72c355-fcfa-4d53-ad26-3812fcb1c7ba
 title: add diagram zoom out tool
-status: new
+status: design
 owner:
 affects:
 agents:
 policy:
-after: 056265ee-3d0f-4922-8e2d-282f91bad667
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
