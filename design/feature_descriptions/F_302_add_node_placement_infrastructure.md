@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: f93c7796-e308-4859-a60a-ed282e4c0d2b
+branch: f_302_add_node_placement_infrastructure
+worktree: 2
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
