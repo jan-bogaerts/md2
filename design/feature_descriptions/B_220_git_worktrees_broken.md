@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__43b22d3f-d24d-4e09-b222-bafec56806ae.json
 policy:
 ---
 * tried removing a freshly created worktree where the agent apparantly made changes in the folder. refused to delete it and said -force needed to be used.
