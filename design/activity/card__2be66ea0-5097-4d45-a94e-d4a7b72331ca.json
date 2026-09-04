@@ -58,6 +58,31 @@
     "cardInternalId": "2be66ea0-5097-4d45-a94e-d4a7b72331ca",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-09-04T12:29:43.786Z",
+      "conversationIds": [
+        "agent-ce407987-ff27-4094-9606-1dc6f50885e2"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-terra",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "max",
+        "type": "agent"
+      },
+      "runId": "action-1d0dcab5-ef9c-4e95-881e-cef9ffe25174",
+      "origin": {
+        "cardInternalId": "2be66ea0-5097-4d45-a94e-d4a7b72331ca",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "rootConversationId": "agent-ce407987-ff27-4094-9606-1dc6f50885e2",
+      "startedAt": "2026-09-04T12:29:35.591Z",
+      "status": "cancelled"
+    }
+  ],
   "version": 5
 }
