@@ -136,6 +136,7 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('button', { name: 'Select' })).toHaveAttribute('aria-pressed', 'true');
         expect(screen.getByRole('button', { name: 'Zoom in' })).not.toHaveAttribute('aria-pressed');
         expect(screen.getByRole('button', { name: 'Zoom out' })).not.toHaveAttribute('aria-pressed');
+        expect(screen.getByRole('button', { name: 'Cut' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
 
         fireEvent.mouseOver(screen.getByRole('tab', { name: 'Nodes' }));
