@@ -3,15 +3,14 @@ author:
 id: F_301
 internalId: f93c7796-e308-4859-a60a-ed282e4c0d2b
 title: add diagram paste tool
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
 after: 1baf99c7-1d5e-40a4-8702-29de72e0be62
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -32,4 +31,4 @@ Paste mutates only target collections and newly created objects. Existing object
 
 ## Dependencies
 
-[F_276](F_276_add_diagram_mutation_operations.md), [F_279](F_279_validate_diagram_edit_operations.md), and [F_300](F_300_add_diagram_copy_tool.md).
+[F\_276](F_276_add_diagram_mutation_operations.md), [F\_279](F_279_validate_diagram_edit_operations.md), and [F\_300](F_300_add_diagram_copy_tool.md).
