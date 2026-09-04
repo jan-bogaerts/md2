@@ -1017,11 +1017,11 @@
         "agent-31d56b6e-0877-423b-ab5c-3d84a776cee9"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-9e387f97-2b5b-429a-98ff-07b7bb55c7de",
       "origin": {
@@ -1030,9 +1030,31 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-31d56b6e-0877-423b-ab5c-3d84a776cee9",
       "startedAt": "2026-09-04T15:39:01.595Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-31d56b6e-0877-423b-ab5c-3d84a776cee9"
+    },
+    {
+      "commits": [
+        {
+          "commit": "e624ddd8d14ba5a1ca9b6231f35247027192cb3f",
+          "committedAt": "2026-09-04T17:46:35+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_328_better_show_state_of_project_agent.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 31,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-04T17:46:35+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1d05ed50-60c4-42a5-b520-fbc0d625361c",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
