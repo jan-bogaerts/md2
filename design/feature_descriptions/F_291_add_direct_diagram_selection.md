@@ -3,7 +3,7 @@ author:
 id: F_291
 internalId: 2f8b255c-a6f9-4f92-ad54-3f4358b2e512
 title: add direct diagram selection
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,27 @@ agents:
 policy:
 branch: f_291_add_direct_diagram_selection
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/diagram.tsx
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_edge.tsx
+  - app/src/components/diagram_view/diagram_group.tsx
+  - app/src/components/diagram_view/diagram_node.test.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/editable_diagram.test.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/components/diagram_view/editable_diagram_collections.tsx
+  - app/src/components/diagram_view/editable_diagram_edge.tsx
+  - app/src/components/diagram_view/editable_diagram_group.tsx
+  - app/src/components/diagram_view/editable_diagram_leaves.test.tsx
+  - app/src/components/diagram_view/editable_diagram_node.tsx
+  - app/src/components/diagram_view/editable_diagram_selection.test.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.tsx
+  - app/src/components/diagram_view/use_diagram_selection.ts
+  - app/src/components/diagram_view/vertical_diagram_comparison.tsx
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
