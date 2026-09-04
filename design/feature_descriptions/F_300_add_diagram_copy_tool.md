@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__1baf99c7-1d5e-40a4-8702-29de72e0be62.json
 policy:
 after: 280027c6-d553-4c20-9fb4-af9010ce2c39
 branch: f_300_add_diagram_copy_tool
