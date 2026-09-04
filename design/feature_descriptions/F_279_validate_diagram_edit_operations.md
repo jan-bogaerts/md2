@@ -3,14 +3,14 @@ author:
 id: F_279
 internalId: 2be66ea0-5097-4d45-a94e-d4a7b72331ca
 title: validate diagram edit operations
-status: design
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
+after: 14f288d9-b541-4263-a2b5-74f1d1b95c68
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +31,4 @@ Validate only the proposed operation and its directly affected relationships bef
 
 ## Dependencies
 
-[F_329](F_329_make_diagram_edit_updates_granular.md) and [F_276](F_276_add_diagram_mutation_operations.md).
+[F\_329](F_329_make_diagram_edit_updates_granular.md) and [F\_276](F_276_add_diagram_mutation_operations.md).
