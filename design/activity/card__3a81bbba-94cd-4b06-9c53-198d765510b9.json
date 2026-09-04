@@ -1148,6 +1148,29 @@
       "startedAt": "2026-09-04T18:17:16.688Z",
       "status": "completed",
       "rootConversationId": "agent-932208a6-3fb2-488e-8faa-6ada58f1a76f"
+    },
+    {
+      "commits": [
+        {
+          "commit": "2f4ed23983bbab9165061f8527a2aa17040bed23",
+          "committedAt": "2026-09-04T20:32:05+02:00",
+          "deletions": 328,
+          "filePaths": [
+            "app/src/components/editor/markdown_file_search_menu.grouped.test.tsx",
+            "app/src/components/editor/markdown_file_search_menu.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 481,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-04T20:32:05+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "3a81bbba-94cd-4b06-9c53-198d765510b9",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
