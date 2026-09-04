@@ -5,4 +5,4 @@ export interface DiagramSelection {
     top: number
 }
 
-export type DiagramSelectHandler = (selection: DiagramSelection) => void
+export type DiagramSelectHandler = (selection: DiagramSelection, ctrlKey: boolean) => void

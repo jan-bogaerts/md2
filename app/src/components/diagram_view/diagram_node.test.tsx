@@ -79,17 +79,21 @@ describe('DiagramNode', () => {
         expect(getComputedStyle(button).height).toBe('200px')
     })
 
-    it('selects the node on a plain click and on Enter', async () => {
+    it('reports Ctrl state for clicks and treats keyboard activation as plain selection', async () => {
         const { button, onSelect } = renderNode(positioned())
         const user = userEvent.setup()
 
         await user.click(button)
-        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }))
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }), false)
+
+        onSelect.mockClear()
+        fireEvent.click(button, { ctrlKey: true })
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }), true)
 
         onSelect.mockClear()
         button.focus()
         await user.keyboard('{Enter}')
-        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }))
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }), false)
     })
 
     it('does not select the node when the content scrolled between mousedown and click', () => {

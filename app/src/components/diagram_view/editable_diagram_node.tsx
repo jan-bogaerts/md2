@@ -46,10 +46,15 @@ function EditableDiagramNodeLeaf({
     const selected = useIsDiagramObjectSelected(nodeId, 'node', selection)
     if (!diagramType || label === null || role === null || width === null || height === null) return null
 
-    const handleSelect = () => {
+    const handleSelect = (_selection: unknown, ctrlKey: boolean) => {
         if (session.getActiveToolSnapshot() !== 'select') return
 
-        selection.replace([{ objectId: nodeId, objectKind: 'node' }])
+        const identity = { objectId: nodeId, objectKind: 'node' } as const
+        if (ctrlKey) {
+            selection.toggle(identity)
+            return
+        }
+        selection.replace([identity])
     }
 
     const node: PositionedDiagramNode = {

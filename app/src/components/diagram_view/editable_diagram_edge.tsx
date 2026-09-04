@@ -42,10 +42,15 @@ function EditableDiagramEdgeLeaf({
     const selected = useIsDiagramObjectSelected(edgeId, 'edge', selection)
     if (from === null || to === null || kind === null || points.length === 0) return null
 
-    const handleSelect = () => {
+    const handleSelect = (_selection: unknown, ctrlKey: boolean) => {
         if (session.getActiveToolSnapshot() !== 'select') return
 
-        selection.replace([{ objectId: edgeId, objectKind: 'edge' }])
+        const identity = { objectId: edgeId, objectKind: 'edge' } as const
+        if (ctrlKey) {
+            selection.toggle(identity)
+            return
+        }
+        selection.replace([identity])
     }
 
     const edge: PositionedDiagramEdge = {

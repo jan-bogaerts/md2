@@ -41,7 +41,7 @@ function renderHarness() {
     const selection = new DiagramSelectionService(session)
     render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
 
-    return { selection, session }
+    return { geometry, selection, session }
 }
 
 afterEach(cleanup)
@@ -63,6 +63,69 @@ describe('EditableDiagram direct selection', () => {
         await user.click(screen.getByRole('button', { name: 'Backend' }))
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'backend', objectKind: 'group' }])
         expect(screen.getByRole('button', { name: 'Backend' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('adds and removes mixed object kinds with Ctrl-click', async () => {
+        const { selection } = renderHarness()
+        const user = userEvent.setup()
+        const orders = screen.getByRole('button', { name: 'Orders' })
+        const edge = screen.getByRole('button', { name: 'writes' })
+        const group = screen.getByRole('button', { name: 'Backend' })
+
+        await user.click(orders)
+        await user.keyboard('{Control>}')
+        await user.click(edge)
+        await user.click(group)
+        await user.click(edge)
+        await user.keyboard('{/Control}')
+
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'backend', objectKind: 'group' },
+        ])
+        expect(orders).toHaveAttribute('aria-pressed', 'true')
+        expect(edge).toHaveAttribute('aria-pressed', 'false')
+        expect(group).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('replaces an additive selection on a plain click', async () => {
+        const { selection } = renderHarness()
+        const user = userEvent.setup()
+
+        await user.keyboard('{Control>}')
+        await user.click(screen.getByRole('button', { name: 'Orders' }))
+        await user.click(screen.getByRole('button', { name: 'Backend' }))
+        await user.keyboard('{/Control}')
+        await user.click(screen.getByRole('button', { name: 'Store' }))
+
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'store', objectKind: 'node' }])
+    })
+
+    it('changes only selection membership during Ctrl-click', async () => {
+        const { geometry, selection, session } = renderHarness()
+        const user = userEvent.setup()
+        const editableDiagram = session.getEditableDiagram()
+        const ordersNode = session.getNodeSnapshot('orders')
+        const edgeRoute = geometry.getEdgeRouteSnapshot('orders-store')
+        const transientGesture = session.getTransientGestureSnapshot()
+        const viewportScale = session.getViewportScaleSnapshot()
+
+        await user.keyboard('{Control>}')
+        await user.click(screen.getByRole('button', { name: 'Orders' }))
+        await user.click(screen.getByRole('button', { name: 'writes' }))
+        await user.keyboard('{/Control}')
+
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'orders-store', objectKind: 'edge' },
+        ])
+        expect(session.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.getNodeSnapshot('orders')).toBe(ordersNode)
+        expect(geometry.getEdgeRouteSnapshot('orders-store')).toBe(edgeRoute)
+        expect(session.getTransientGestureSnapshot()).toBe(transientGesture)
+        expect(session.getViewportScaleSnapshot()).toBe(viewportScale)
+        expect(session.getChangeIdsSnapshot()).toEqual([])
+        expect(session.getDirtySnapshot()).toBe(false)
     })
 
     it('clears selection when empty New surface is clicked', () => {
@@ -97,7 +160,9 @@ describe('EditableDiagram direct selection', () => {
             session.setActiveTool('node:component')
         })
 
+        await user.keyboard('{Control>}')
         await user.click(screen.getByRole('button', { name: 'Orders' }))
+        await user.keyboard('{/Control}')
         fireEvent.click(screen.getByLabelText('New diagram'))
 
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'backend', objectKind: 'group' }])

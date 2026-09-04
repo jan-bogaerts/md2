@@ -34,10 +34,15 @@ function EditableDiagramGroupLeaf({
     const selected = useIsDiagramObjectSelected(groupId, 'group', selection)
     if (label === null || height === null || width === null) return null
 
-    const handleSelect = () => {
+    const handleSelect = (ctrlKey: boolean) => {
         if (session.getActiveToolSnapshot() !== 'select') return
 
-        selection.replace([{ objectId: groupId, objectKind: 'group' }])
+        const identity = { objectId: groupId, objectKind: 'group' } as const
+        if (ctrlKey) {
+            selection.toggle(identity)
+            return
+        }
+        selection.replace([identity])
     }
 
     // Membership is edited elsewhere and is not rendered by the box, so this view object carries no member IDs.

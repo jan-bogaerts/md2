@@ -45,18 +45,20 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect, selected 
     const interactive = node.drilldown !== false
     const scrollRef = useRef<HTMLDivElement>(null)
     const pressScrollTop = useRef(0)
-    const handleSelect = (left: number, top: number) => onSelect({ id: node.id, label: node.label, left, top })
+    const handleSelect = (left: number, top: number, ctrlKey: boolean) => (
+        onSelect({ id: node.id, label: node.label, left, top }, ctrlKey)
+    )
     const handleMouseDown = () => { pressScrollTop.current = scrollRef.current?.scrollTop ?? 0 }
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
         // A scrollbar drag inside the content area presses and releases on the button; that is a scroll, not a selection.
         if ((scrollRef.current?.scrollTop ?? 0) !== pressScrollTop.current) return
-        handleSelect(event.clientX, event.clientY)
+        handleSelect(event.clientX, event.clientY, event.ctrlKey)
     }
     const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
         if (event.key !== 'Enter' && event.key !== ' ') return
         event.preventDefault()
         const bounds = event.currentTarget.getBoundingClientRect()
-        handleSelect(bounds.left, bounds.bottom)
+        handleSelect(bounds.left, bounds.bottom, false)
     }
 
     return (

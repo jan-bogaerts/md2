@@ -30,13 +30,15 @@ export function DiagramEdge({ edge, nodeLabels, onSelect, selected }: DiagramEdg
     const { arrowhead, color, strokeDasharray, strokeWidth } = diagramEdgeStyle(edge.kind, theme, focused || selected)
     const visibleLabel = edge.label ?? (edge.kind === 'cycle' ? 'CYCLE' : null)
     const markerId = `diagram-arrow-${useId().replace(/:/gu, '')}`
-    const handleSelect = (left: number, top: number) => onSelect({ id: edge.id, label, left, top })
-    const handleClick = (event: MouseEvent<SVGGElement>) => handleSelect(event.clientX, event.clientY)
+    const handleSelect = (left: number, top: number, ctrlKey: boolean) => (
+        onSelect({ id: edge.id, label, left, top }, ctrlKey)
+    )
+    const handleClick = (event: MouseEvent<SVGGElement>) => handleSelect(event.clientX, event.clientY, event.ctrlKey)
     const handleKeyDown = (event: KeyboardEvent<SVGGElement>) => {
         if (event.key !== 'Enter' && event.key !== ' ') return
         event.preventDefault()
         const bounds = event.currentTarget.getBoundingClientRect()
-        handleSelect(bounds.left, bounds.bottom)
+        handleSelect(bounds.left, bounds.bottom, false)
     }
     const handleFocus = () => setFocused(true)
     const handleBlur = () => setFocused(false)

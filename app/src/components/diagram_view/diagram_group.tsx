@@ -1,15 +1,22 @@
 import { Box, Typography } from '@mui/material'
+import type { KeyboardEvent, MouseEvent } from 'react'
 import type { PositionedDiagramGroup } from '../../services/diagrams/diagram_layout'
 
 interface DiagramGroupProps {
     group: PositionedDiagramGroup
-    onSelect?: () => void
+    onSelect?: (ctrlKey: boolean) => void
     selected?: boolean
 }
 
 /** Containment or trust-zone box; interactive only on the New diagram. */
 export function DiagramGroup({ group, onSelect, selected = false }: DiagramGroupProps) {
     const interactive = !!onSelect
+    const handleClick = (event: MouseEvent<HTMLButtonElement>) => onSelect?.(event.ctrlKey)
+    const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        onSelect?.(false)
+    }
 
     return (
         <Box
@@ -17,7 +24,8 @@ export function DiagramGroup({ group, onSelect, selected = false }: DiagramGroup
             aria-pressed={interactive ? selected : undefined}
             component={interactive ? 'button' : 'div'}
             data-diagram-id={interactive ? group.id : undefined}
-            onClick={onSelect}
+            onClick={interactive ? handleClick : undefined}
+            onKeyDown={interactive ? handleKeyDown : undefined}
             role={interactive ? 'button' : 'group'}
             sx={{
                 bgcolor: 'transparent', color: 'text.primary', cursor: interactive ? 'pointer' : 'default', font: 'inherit', p: 0,

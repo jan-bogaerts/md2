@@ -1,5 +1,5 @@
 import { Profiler, type ReactNode } from 'react'
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
@@ -146,5 +146,24 @@ describe('editable diagram leaves', () => {
         expect(counts.get('store')).toBe(before.get('store'))
         expect(counts.get('edge')).toBe(before.get('edge'))
         expect(counts.get('group')).toBe(before.get('group'))
+    })
+
+    it('rerenders only the Ctrl-clicked leaf when additive membership changes', () => {
+        const { counts } = renderTree()
+        fireEvent.click(screen.getByRole('button', { name: 'Orders' }))
+        const beforeAdd = new Map(counts)
+
+        fireEvent.click(screen.getByRole('button', { name: 'writes' }), { ctrlKey: true })
+        const beforeRemove = new Map(counts)
+        fireEvent.click(screen.getByRole('button', { name: 'writes' }), { ctrlKey: true })
+
+        expect(beforeAdd.get('orders')).toBe(beforeRemove.get('orders'))
+        expect(beforeAdd.get('store')).toBe(beforeRemove.get('store'))
+        expect(beforeAdd.get('group')).toBe(beforeRemove.get('group'))
+        expect(beforeRemove.get('edge')).toBeGreaterThan(beforeAdd.get('edge') ?? 0)
+        expect(counts.get('orders')).toBe(beforeRemove.get('orders'))
+        expect(counts.get('store')).toBe(beforeRemove.get('store'))
+        expect(counts.get('group')).toBe(beforeRemove.get('group'))
+        expect(counts.get('edge')).toBeGreaterThan(beforeRemove.get('edge') ?? 0)
     })
 })
