@@ -10,6 +10,16 @@ agents:
   - design/activity/card__acc5894b-b0b6-4024-88fe-be8f89ccfa36.json
 policy:
 after: 2be66ea0-5097-4d45-a94e-d4a7b72331ca
+changedFiles:
+  - app/src/components/diagram_view/editable_diagram.test.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/components/diagram_view/editable_diagram_activation.tsx
+  - app/src/components/diagram_view/editable_diagram_collections.tsx
+  - app/src/components/diagram_view/editable_diagram_edge.tsx
+  - app/src/components/diagram_view/editable_diagram_fragment.tsx
+  - app/src/components/diagram_view/editable_diagram_group.tsx
+  - app/src/components/diagram_view/editable_diagram_leaves.test.tsx
+  - app/src/components/diagram_view/editable_diagram_lifeline.tsx
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
