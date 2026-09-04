@@ -31,4 +31,32 @@ describe('DiagramComparisonLayoutService', () => {
 
         expect(() => service.setHorizontalDividerRatio(Number.NaN)).toThrow('Horizontal diagram divider ratio must be finite');
     });
+
+    it('publishes vertical divider changes independently', () => {
+        const service = new DiagramComparisonLayoutService();
+        const horizontalListener = vi.fn();
+        const verticalListener = vi.fn();
+        service.subscribeHorizontalDivider(horizontalListener);
+        const unsubscribe = service.subscribeVerticalDivider(verticalListener);
+
+        service.setVerticalDividerRatio(0.75);
+        service.setVerticalDividerRatio(0.75);
+        unsubscribe();
+        service.setVerticalDividerRatio(0.25);
+
+        expect(horizontalListener).not.toHaveBeenCalled();
+        expect(verticalListener).toHaveBeenCalledTimes(1);
+        expect(service.getVerticalDividerSnapshot()).toBe(0.25);
+    });
+
+    it('clamps vertical ratios and rejects non-finite values', () => {
+        const service = new DiagramComparisonLayoutService();
+
+        service.setVerticalDividerRatio(-1);
+        expect(service.getVerticalDividerSnapshot()).toBe(0);
+
+        service.setVerticalDividerRatio(2);
+        expect(service.getVerticalDividerSnapshot()).toBe(1);
+        expect(() => service.setVerticalDividerRatio(Number.NaN)).toThrow('Vertical diagram divider ratio must be finite');
+    });
 });
