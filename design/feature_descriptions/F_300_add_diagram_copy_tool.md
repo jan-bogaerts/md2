@@ -8,10 +8,9 @@ owner:
 affects:
 agents:
 policy:
-after: 280027c6-d553-4c20-9fb4-af9010ce2c39
+after: 1d937bde-19d5-467d-ad73-67ef587493fe
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -35,4 +34,4 @@ Copy is a read boundary over selected identities. It reads only selected objects
 
 ## Dependencies
 
-[F_290](F_290_add_diagram_selection_service.md).
+[F\_290](F_290_add_diagram_selection_service.md).

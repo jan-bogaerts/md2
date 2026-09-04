@@ -3,15 +3,14 @@ author:
 id: F_298
 internalId: 531e8784-9f9b-42d0-9eba-1f62646227f4
 title: add diagram Delete key support
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: 62bae796-a019-452e-bc44-8d2a62318b48
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -30,4 +29,4 @@ The keyboard handler delegates to the same granular deletion operation as the to
 
 ## Dependencies
 
-[F_297](F_297_add_diagram_delete_tool.md).
+[F\_297](F_297_add_diagram_delete_tool.md).

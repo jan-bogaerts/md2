@@ -3,15 +3,14 @@ author:
 id: F_299
 internalId: 280027c6-d553-4c20-9fb4-af9010ce2c39
 title: add diagram cut tool
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
 after: 531e8784-9f9b-42d0-9eba-1f62646227f4
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ Cut reads selected fields for clipboard serialization, then uses granular deleti
 
 ## Dependencies
 
-[F_297](F_297_add_diagram_delete_tool.md) and [F_300](F_300_add_diagram_copy_tool.md).
+[F\_297](F_297_add_diagram_delete_tool.md) and [F\_300](F_300_add_diagram_copy_tool.md).
