@@ -22,6 +22,7 @@ import { DiagramObjectDetailsDialog } from './diagram_object_details_dialog'
 import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from './diagram_object_details_service'
+import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE, useDeleteDiagramSelectionOnDeleteKey } from './use_diagram_delete_key'
 import { useDiagramSurfaceField } from './use_diagram_geometry'
 import { useEditableDiagramMetadataField } from './use_editable_diagram'
 
@@ -146,8 +147,13 @@ export function EditableDiagram({
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: EditableDiagramProps) {
+    useDeleteDiagramSelectionOnDeleteKey(selection)
+
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <Box
+            {...{ [DIAGRAM_EDITOR_ROOT_ATTRIBUTE]: 'true' }}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}
+        >
             <Box>
                 <EditableDiagramTitle session={session} />
                 <EditableDiagramDescription session={session} />
