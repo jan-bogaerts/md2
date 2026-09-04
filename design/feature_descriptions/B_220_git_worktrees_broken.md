@@ -3,12 +3,22 @@ author:
 id: B_220
 internalId: 43b22d3f-d24d-4e09-b222-bafec56806ae
 title: git worktrees broken
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__43b22d3f-d24d-4e09-b222-bafec56806ae.json
 policy:
+changedFiles:
+  - app/src/components/config/worktree_remove_dialog.tsx
+  - patch_b220.py
+  - patch_b220b.py
+  - patch_b220c.py
+  - patch_b220d.py
+  - patch_b220e.py
+  - patch_b220f.py
+  - patch_b220g.py
+  - patch_b220h.py
 ---
 * tried removing a freshly created worktree where the agent apparantly made changes in the folder. refused to delete it and said -force needed to be used.
   this is not acceptable: a git worktree needs to be removable, no matter what the state of the worktree
