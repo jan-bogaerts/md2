@@ -3348,6 +3348,48 @@
       "startedAt": "2026-09-04T17:42:05.722Z",
       "status": "completed",
       "rootConversationId": "agent-b2f0afcb-7d2e-4538-a7a8-cd4127240f86"
+    },
+    {
+      "commits": [
+        {
+          "commit": "b38a88f498dd07e46878f5daf49a646a96b5e152",
+          "committedAt": "2026-09-04T19:59:20+02:00",
+          "deletions": 93,
+          "filePaths": [
+            "app/src/components/diagram_view/diagram.tsx",
+            "app/src/components/diagram_view/diagram_comparison.tsx",
+            "app/src/components/diagram_view/diagram_edge.tsx",
+            "app/src/components/diagram_view/diagram_group.tsx",
+            "app/src/components/diagram_view/diagram_node.test.tsx",
+            "app/src/components/diagram_view/diagram_node.tsx",
+            "app/src/components/diagram_view/diagram_view.tsx",
+            "app/src/components/diagram_view/diagram_zoom_viewport.test.tsx",
+            "app/src/components/diagram_view/diagram_zoom_viewport.tsx",
+            "app/src/components/diagram_view/editable_diagram.test.tsx",
+            "app/src/components/diagram_view/editable_diagram.tsx",
+            "app/src/components/diagram_view/editable_diagram_collections.tsx",
+            "app/src/components/diagram_view/editable_diagram_edge.tsx",
+            "app/src/components/diagram_view/editable_diagram_group.tsx",
+            "app/src/components/diagram_view/editable_diagram_leaves.test.tsx",
+            "app/src/components/diagram_view/editable_diagram_node.tsx",
+            "app/src/components/diagram_view/editable_diagram_selection.test.tsx",
+            "app/src/components/diagram_view/tabbed_diagram_comparison.tsx",
+            "app/src/components/diagram_view/use_diagram_selection.ts",
+            "app/src/components/diagram_view/vertical_diagram_comparison.tsx",
+            "design/feature_descriptions/F_291_add_direct_diagram_selection.md"
+          ],
+          "filesChanged": 21,
+          "insertions": 357,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-04T19:59:20+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "2f8b255c-a6f9-4f92-ad54-3f4358b2e512",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
