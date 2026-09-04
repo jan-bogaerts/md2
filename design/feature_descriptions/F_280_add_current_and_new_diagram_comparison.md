@@ -9,8 +9,7 @@ affects:
 agents:
 policy:
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -37,4 +36,4 @@ Render the immutable current diagram and editable new diagram in one comparison 
 
 ## Dependencies
 
-[F_329](F_329_make_diagram_edit_updates_granular.md) and [F_278](F_278_make_diagram_layout_compatible_with_editing.md).
+[F\_329](F_329_make_diagram_edit_updates_granular.md) and [F\_278](F_278_make_diagram_layout_compatible_with_editing.md).
