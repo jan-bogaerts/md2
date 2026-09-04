@@ -1,0 +1,17 @@
+---
+author: 
+id: F_331
+internalId: 67d4a581-6ded-4a41-a489-d079644e3e5b
+title: Improve schedule action
+status: new
+owner: 
+affects:
+agents:
+policy:
+---
+
+We currently support scheduling an action using a date and time.
+
+We should improve this by adding different types of triggers:
+
+When an account usage tracker of an agent resets. Useful for when 5 hourly limit resets to 0
