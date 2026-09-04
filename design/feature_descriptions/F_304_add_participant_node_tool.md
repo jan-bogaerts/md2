@@ -10,8 +10,7 @@ agents:
 policy:
 after: 69834d03-c154-4c81-a656-50de20aeb0ec
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ Creation adds one participant without rebuilding the participant array or existi
 
 ## Dependencies
 
-[F_302](F_302_add_node_placement_infrastructure.md) and [F_278](F_278_make_diagram_layout_compatible_with_editing.md).
+[F\_302](F_302_add_node_placement_infrastructure.md) and [F\_278](F_278_make_diagram_layout_compatible_with_editing.md).

@@ -10,8 +10,7 @@ agents:
 policy:
 after: c27b7bc9-72f5-4547-beeb-009ea47174fc
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -30,4 +29,4 @@ The button subscribes only to type and preset availability. Creation adds one st
 
 ## Dependencies
 
-[F_302](F_302_add_node_placement_infrastructure.md).
+[F\_302](F_302_add_node_placement_infrastructure.md).
