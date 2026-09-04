@@ -3,13 +3,16 @@ author:
 id: B_221
 internalId: 9081512a-9bc9-4f11-a43c-1edda64ab53f
 title: auto fill input action popup failing
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__9081512a-9bc9-4f11-a43c-1edda64ab53f.json
 policy:
 after: ec72c355-fcfa-4d53-ad26-3812fcb1c7ba
+changedFiles:
+  - app/src/components/actions/agent/action_prompt_owner.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
 ---
 
 we have already done a ton of refactoring on this bit, so the code must be a bit of a mess. this should be verified first.

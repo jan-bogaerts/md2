@@ -3,7 +3,7 @@ author:
 id: F_286
 internalId: f46ab1c9-a250-4dae-afd7-72b1afcaf3c5
 title: manage active diagram tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,16 @@ agents:
 policy:
 branch: f_286_manage_active_diagram_tool
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/components/diagram_view/diagram_toolbox_action_button.tsx
+  - app/src/components/diagram_view/diagram_toolbox_button.tsx
+  - app/src/components/diagram_view/diagram_toolbox_tool_button.tsx
+  - app/src/components/diagram_view/use_diagram_tool.test.tsx
+  - app/src/components/diagram_view/use_diagram_tool.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
