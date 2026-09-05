@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__99f79635-4a46-4254-b544-901530ad9294.json
 policy:
-branch: f_308_add_end_node_tool
-worktree: 3
 changedFiles:
   - app/src/components/diagram_view/diagram_end_node_button.test.tsx
   - app/src/components/diagram_view/diagram_end_node_button.tsx
