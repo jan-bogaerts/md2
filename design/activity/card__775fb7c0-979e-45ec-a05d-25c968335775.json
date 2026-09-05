@@ -1867,6 +1867,41 @@
       "startedAt": "2026-09-05T14:00:58.858Z",
       "status": "completed",
       "rootConversationId": "agent-d3c8afeb-8eca-41e0-ae83-4f95b59f92cc"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f1d2a91ab7d94b2acba3602f01e7d7bd1d93ce96",
+          "committedAt": "2026-09-05T16:13:28+02:00",
+          "deletions": 15,
+          "filePaths": [
+            "app/src/components/diagram_view/diagram_comparison.test.tsx",
+            "app/src/components/diagram_view/diagram_comparison.tsx",
+            "app/src/components/diagram_view/diagram_metadata_button.test.tsx",
+            "app/src/components/diagram_view/diagram_metadata_button.tsx",
+            "app/src/components/diagram_view/diagram_metadata_details_editor.tsx",
+            "app/src/components/diagram_view/diagram_object_details_dialog.test.tsx",
+            "app/src/components/diagram_view/diagram_object_details_dialog.tsx",
+            "app/src/components/diagram_view/diagram_object_details_service.test.ts",
+            "app/src/components/diagram_view/diagram_object_details_service.ts",
+            "app/src/components/diagram_view/diagram_toolbox.test.tsx",
+            "app/src/components/diagram_view/diagram_toolbox.tsx",
+            "app/src/components/diagram_view/editable_diagram.test.tsx",
+            "app/src/services/diagrams/diagram_edit_session_service.test.ts",
+            "app/src/services/diagrams/diagram_edit_session_service.ts"
+          ],
+          "filesChanged": 14,
+          "insertions": 482,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-05T16:13:28+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "775fb7c0-979e-45ec-a05d-25c968335775",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
