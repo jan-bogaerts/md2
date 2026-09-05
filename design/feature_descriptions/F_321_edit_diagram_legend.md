@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__816a1ca0-a183-46b2-9f50-8045af076328.json
 policy:
-after: 775fb7c0-979e-45ec-a05d-25c968335775
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

@@ -3,7 +3,7 @@ author:
 id: F_325
 internalId: 2c3dd0ae-5b3d-44e6-8186-a7c28544995a
 title: handle diagram implementation runs
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:

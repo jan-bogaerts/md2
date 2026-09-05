@@ -3,7 +3,7 @@ author:
 id: F_326
 internalId: 59dd5932-3f6c-4b9e-aa4e-99c2c0419b7d
 title: integrate diagram editor
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:

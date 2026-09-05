@@ -3,15 +3,14 @@ author:
 id: F_327
 internalId: 0a0fa053-2cfc-497e-9bb4-c3440ddb8638
 title: save edited diagram as a copy
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
 after: 59dd5932-3f6c-4b9e-aa4e-99c2c0419b7d
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -38,4 +37,4 @@ Save is a persistence boundary, so it may traverse and serialize the complete ca
 
 ## Dependencies
 
-[F_277](F_277_track_diagram_changes.md), [F_279](F_279_validate_diagram_edit_operations.md), and [F_326](F_326_integrate_diagram_editor.md).
+[F\_277](F_277_track_diagram_changes.md), [F\_279](F_279_validate_diagram_edit_operations.md), and [F\_326](F_326_integrate_diagram_editor.md).

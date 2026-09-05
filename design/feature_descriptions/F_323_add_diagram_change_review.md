@@ -3,15 +3,14 @@ author:
 id: F_323
 internalId: 2f0581e4-58bf-4995-a225-12ec0c03e9c0
 title: add diagram change review
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: f4697a13-3aa5-4a9e-ba9f-83276e18557b
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -35,4 +34,4 @@ The review list host subscribes only to ordered change IDs. Each row subscribes 
 
 ## Dependencies
 
-[F_279](F_279_validate_diagram_edit_operations.md) and [F_322](F_322_generate_diagram_change_descriptions.md).
+[F\_279](F_279_validate_diagram_edit_operations.md) and [F\_322](F_322_generate_diagram_change_descriptions.md).

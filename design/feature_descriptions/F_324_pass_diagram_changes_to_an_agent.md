@@ -3,7 +3,7 @@ author:
 id: F_324
 internalId: 7f17626c-05f4-40b0-9d26-824728c4cd43
 title: pass diagram changes to an agent
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
