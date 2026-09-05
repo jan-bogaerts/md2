@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: d5a729dd-61e1-4095-ae4d-c52d2d1595b6
+after: e95d43e7-76f3-4d3d-b830-06af8de63888
 ---
 
 we can get the api prices from the website from claude and codex. we can use these to also calculate all stat charts that show some form of pricing if the api was used
