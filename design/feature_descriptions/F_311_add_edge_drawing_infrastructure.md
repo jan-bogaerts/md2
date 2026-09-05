@@ -3,7 +3,7 @@ author:
 id: F_311
 internalId: ab22473c-bea7-4d12-aced-6628ef5c50f8
 title: add edge drawing infrastructure
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,15 @@ agents:
 policy:
 branch: f_311_add_edge_drawing_infrastructure
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_edge_drawing_preview.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
