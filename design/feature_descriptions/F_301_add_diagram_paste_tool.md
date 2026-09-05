@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__f93c7796-e308-4859-a60a-ed282e4c0d2b.json
 policy:
-branch: f_301_add_diagram_paste_tool
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/diagram_paste_button.test.tsx
   - app/src/components/diagram_view/diagram_paste_button.tsx
