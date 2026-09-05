@@ -69,6 +69,16 @@ const componentDefinition = {
     kind: 'component' as const,
 }
 
+const flowchartStartDefinition = {
+    defaults: { height: 48, label: 'Start', role: 'focal' as const, width: 120 },
+    kind: 'start' as const,
+}
+
+const stateStartDefinition = {
+    defaults: { height: 24, label: 'Start', role: 'focal' as const, width: 24 },
+    kind: 'start' as const,
+}
+
 const participantDefinition = {
     defaults: { height: 72, label: 'New participant', role: 'focal' as const, width: 160 },
     kind: 'participant' as const,
@@ -209,6 +219,39 @@ describe('DiagramNodePlacementService', () => {
     })
 
     it.each([
+        ['flowchart', flowchartStartDefinition, { height: 48, width: 120 }],
+        ['state', stateStartDefinition, { height: 24, width: 24 }],
+    ] as const)('places one schema-complete start node in a %s diagram', (preset, definition, size) => {
+        const source = diagram('flow', preset)
+        source.edges = [{ from: 'existing', id: 'existing-edge', kind: preset === 'state' ? 'transition' : 'flow', label: 'next', to: 'other' }]
+        source.nodes = source.nodes.map((node) => ({ ...node, kind: preset === 'state' ? 'state' : 'step' }))
+        const { placement, selection, session } = createHarness(source)
+        const originalNode = session.getNodeSnapshot('existing')
+        const membershipChanged = vi.fn()
+        session.subscribeCollectionMembership('node', membershipChanged)
+
+        expect(placement.activate(definition)).toBe(true)
+
+        expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
+
+        expect(session.getNodeSnapshot('placed-node')).toEqual({
+            height: size.height,
+            id: 'placed-node',
+            kind: 'start',
+            label: 'Start',
+            role: 'focal',
+            width: size.width,
+            x: 12,
+            y: 20,
+        })
+        expect(session.getNodeSnapshot('existing')).toBe(originalNode)
+        expect(membershipChanged).toHaveBeenCalledOnce()
+        expect(session.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
+        expect(session.getActiveToolSnapshot()).toBe('select')
+    })
+
+    it.each([
         ['architecture', undefined, 'component', true],
         ['flow', 'flowchart', 'step', true],
         ['architecture', undefined, 'participant', false],
@@ -218,6 +261,8 @@ describe('DiagramNodePlacementService', () => {
         ['flow', 'flowchart', 'state', false],
         ['flow', 'state', 'state', true],
         ['flow', 'state', 'step', false],
+        ['flow', 'flowchart', 'start', true],
+        ['flow', 'state', 'start', true],
     ] as const)('reports %s/%s kind %s availability as %s', (type, preset, kind, available) => {
         const source = diagram(type, preset)
         if (type === 'sequence') source.edges = [{ from: 'existing', id: 'existing-edge', kind: 'call', to: 'other' }]

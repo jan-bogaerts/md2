@@ -12,7 +12,9 @@ import {
     MAXIMUM_DIAGRAM_ZOOM,
     MINIMUM_DIAGRAM_ZOOM,
 } from '../../services/diagrams/diagram_edit_session_service';
+import type { DiagramComponentNodeSession } from './diagram_component_node_button';
 import { DiagramToolbox } from './diagram_toolbox';
+import type { DiagramStartNodeSession } from './diagram_start_node_button';
 import type { DiagramStepNodeMetadataField } from './diagram_step_node_button';
 import { DiagramToolboxActionButton } from './diagram_toolbox_action_button';
 import { DiagramToolboxButton } from './diagram_toolbox_button';
@@ -33,9 +35,10 @@ class ToolboxSessionStub extends EventTarget {
 
     readonly getActiveToolboxSectionSnapshot = () => this.activeSection;
     readonly getActiveToolSnapshot = () => this.activeTool;
-    readonly getMetadataFieldSnapshot = (field: DiagramStepNodeMetadataField) => (
+    readonly getMetadataFieldSnapshot = ((field: DiagramStepNodeMetadataField) => (
         field === 'preset' ? this.flowPreset : this.diagramType
-    );
+    )) as DiagramStartNodeSession['getMetadataFieldSnapshot']
+    & DiagramComponentNodeSession['getMetadataFieldSnapshot'];
     readonly getTransientGestureSnapshot = () => this.transientGesture;
     readonly getViewportScaleSnapshot = () => this.viewportScale;
 
@@ -174,6 +177,7 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('tabpanel')).toHaveStyle({ display: 'flex', flexWrap: 'wrap' });
         expect(screen.getByRole('button', { name: 'Component' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Step' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Start' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
     });
 
@@ -185,6 +189,14 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('button', { name: 'Step' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Decision' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Component' })).not.toBeInTheDocument();
+    });
+
+    it.each(['flowchart', 'state'] as const)('offers Start in Nodes for the %s preset', (flowPreset) => {
+        const session = new ToolboxSessionStub('flow', flowPreset);
+        render(<DiagramToolbox boundaryElement={createBoundary()} session={session} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Nodes' }));
+
+        expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument();
     });
 
     it('zooms by one step without changing persistent tool and disables at maximum', async () => {
