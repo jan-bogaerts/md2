@@ -27,6 +27,7 @@ changedFiles:
   - app/src/services/diagrams/diagram_geometry_service.ts
   - app/src/services/diagrams/diagram_layout.node.test.ts
   - app/src/services/diagrams/diagram_layout.ts
+after: 38dda9b3-29d3-4797-9d49-d2e435ccd6f1
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
