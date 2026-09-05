@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__ab22473c-bea7-4d12-aced-6628ef5c50f8.json
 policy:
-branch: f_311_add_edge_drawing_infrastructure
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/diagram_comparison.tsx
   - app/src/components/diagram_view/diagram_edge_drawing_preview.tsx
