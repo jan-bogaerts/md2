@@ -3,7 +3,7 @@ author:
 id: F_321
 internalId: 816a1ca0-a183-46b2-9f50-8045af076328
 title: edit diagram legend
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -22,6 +22,7 @@ changedFiles:
   - patch321_le.py
   - patch321_legend.py
   - patch321_tests.py
+after: b46b8f66-e2f3-469f-ac38-48b26dedccab
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
