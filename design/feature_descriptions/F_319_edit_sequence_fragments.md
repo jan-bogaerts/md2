@@ -3,7 +3,7 @@ author:
 id: F_319
 internalId: b1741e32-76ad-42d9-a014-6bccfec35e63
 title: edit sequence fragments
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
