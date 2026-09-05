@@ -32,8 +32,10 @@ const geometryStub = {
 }
 
 function diagram(type: DiagramData['meta']['type'], preset?: DiagramData['meta']['preset']): DiagramData {
+    const edgeKind = type === 'dependency' ? 'dependency' : type === 'entity' ? 'relationship' : 'connection'
+
     return {
-        edges: [{ from: 'existing', id: 'existing-edge', kind: type === 'entity' ? 'relationship' : 'connection', to: 'other' }],
+        edges: [{ from: 'existing', id: 'existing-edge', kind: edgeKind, to: 'other' }],
         groups: [],
         meta: { description: 'Placement test', ...(preset ? { preset } : {}), title: 'Placement', type, version: 1 },
         nodes: [
@@ -63,41 +65,44 @@ const componentDefinition = {
 }
 
 describe('DiagramNodePlacementService', () => {
-    it('previews on the grid, then creates and selects one node through one membership mutation', () => {
-        const { createId, placement, selection, session } = createHarness()
-        const originalNodes = session.getEditableDiagram()?.nodes
-        const originalNode = session.getNodeSnapshot('existing')
-        const originalNodeIds = session.getNodeIdsSnapshot()
-        const membershipChanged = vi.fn()
-        const previewChanged = vi.fn()
-        session.subscribeCollectionMembership('node', membershipChanged)
-        placement.subscribePreview(previewChanged)
+    it.each(['architecture', 'dependency'] as const)(
+        'previews on the grid, then creates and selects one component in a %s diagram through one membership mutation',
+        (diagramType) => {
+            const { createId, placement, selection, session } = createHarness(diagram(diagramType))
+            const originalNodes = session.getEditableDiagram()?.nodes
+            const originalNode = session.getNodeSnapshot('existing')
+            const originalNodeIds = session.getNodeIdsSnapshot()
+            const membershipChanged = vi.fn()
+            const previewChanged = vi.fn()
+            session.subscribeCollectionMembership('node', membershipChanged)
+            placement.subscribePreview(previewChanged)
 
-        expect(placement.activate(componentDefinition)).toBe(true)
-        expect(placement.updatePreview({ x: 13, y: 18 })).toBe(true)
+            expect(placement.activate(componentDefinition)).toBe(true)
+            expect(placement.updatePreview({ x: 13, y: 18 })).toBe(true)
 
-        expect(placement.getPreviewSnapshot()?.node).toMatchObject({ height: 72, kind: 'component', width: 160, x: 12, y: 20 })
-        expect(session.getEditableDiagram()?.nodes).toBe(originalNodes)
-        expect(session.getNodeIdsSnapshot()).toBe(originalNodeIds)
-        expect(membershipChanged).not.toHaveBeenCalled()
-        expect(session.getTransientGestureSnapshot()).toBe('placement')
+            expect(placement.getPreviewSnapshot()?.node).toMatchObject({ height: 72, kind: 'component', width: 160, x: 12, y: 20 })
+            expect(session.getEditableDiagram()?.nodes).toBe(originalNodes)
+            expect(session.getNodeIdsSnapshot()).toBe(originalNodeIds)
+            expect(membershipChanged).not.toHaveBeenCalled()
+            expect(session.getTransientGestureSnapshot()).toBe('placement')
 
-        expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
+            expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
 
-        expect(createId).toHaveBeenCalledTimes(3)
-        expect(session.getNodeSnapshot('existing')).toBe(originalNode)
-        expect(session.getNodeIdsSnapshot()).toEqual(['existing', 'other', 'placed-node'])
-        expect(session.getNodeFieldSnapshot('placed-node', 'x')).toBe(12)
-        expect(session.getNodeFieldSnapshot('placed-node', 'y')).toBe(20)
-        expect(membershipChanged).toHaveBeenCalledOnce()
-        expect(session.getChangeIdsSnapshot()).toHaveLength(1)
-        expect(session.getChange(session.getChangeIdsSnapshot()[0])).toMatchObject({category: 'collection', objectId: 'placed-node', objectKind: 'node', value: expect.objectContaining({ id: 'placed-node' })})
-        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
-        expect(placement.getPreviewSnapshot()).toBeNull()
-        expect(session.getTransientGestureSnapshot()).toBeNull()
-        expect(session.getActiveToolSnapshot()).toBe('select')
-        expect(previewChanged).toHaveBeenCalledTimes(2)
-    })
+            expect(createId).toHaveBeenCalledTimes(3)
+            expect(session.getNodeSnapshot('existing')).toBe(originalNode)
+            expect(session.getNodeIdsSnapshot()).toEqual(['existing', 'other', 'placed-node'])
+            expect(session.getNodeFieldSnapshot('placed-node', 'x')).toBe(12)
+            expect(session.getNodeFieldSnapshot('placed-node', 'y')).toBe(20)
+            expect(membershipChanged).toHaveBeenCalledOnce()
+            expect(session.getChangeIdsSnapshot()).toHaveLength(1)
+            expect(session.getChange(session.getChangeIdsSnapshot()[0])).toMatchObject({category: 'collection', objectId: 'placed-node', objectKind: 'node', value: expect.objectContaining({ id: 'placed-node' })})
+            expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
+            expect(placement.getPreviewSnapshot()).toBeNull()
+            expect(session.getTransientGestureSnapshot()).toBeNull()
+            expect(session.getActiveToolSnapshot()).toBe('select')
+            expect(previewChanged).toHaveBeenCalledTimes(2)
+        },
+    )
 
     it.each([
         ['architecture', undefined, 'component', true],

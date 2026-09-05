@@ -8,7 +8,15 @@ import {
     type DiagramPersistentTool,
     type DiagramToolboxSection,
 } from '../../services/diagrams/diagram_edit_session_service';
+import {
+    diagramNodePlacementService,
+} from '../../services/diagrams/diagram_node_placement_service';
 import { ResizablePopper } from '../resizable_popper';
+import {
+    DiagramComponentNodeButton,
+    type DiagramComponentNodePlacement,
+    type DiagramComponentNodeSession,
+} from './diagram_component_node_button';
 import { DiagramCopyButton } from './diagram_copy_button';
 import { DiagramCutButton } from './diagram_cut_button';
 import { DiagramDeleteButton } from './diagram_delete_button';
@@ -31,7 +39,8 @@ const MINIMUM_TOOLBOX_SIZE = { height: 120, width: 280 };
 
 interface DiagramToolboxProps {
     boundaryElement: HTMLElement | null;
-    session?: {
+    placement?: DiagramComponentNodePlacement;
+    session?: DiagramComponentNodeSession & {
         getActiveToolboxSectionSnapshot: () => DiagramToolboxSection;
         getActiveToolSnapshot: () => DiagramPersistentTool;
         getViewportScaleSnapshot: () => number;
@@ -49,6 +58,7 @@ interface DiagramToolboxProps {
 /** Floating shell for diagram tools. Tool leaves are added by their focused feature jobs. */
 export function DiagramToolbox({
     boundaryElement,
+    placement = diagramNodePlacementService,
     session = diagramEditSessionService,
 }: DiagramToolboxProps) {
     const [anchorElement, setAnchorElement] = useState<HTMLDivElement | null>(null);
@@ -133,6 +143,9 @@ export function DiagramToolbox({
                             <DiagramCutButton />
                             <DiagramDeleteButton />
                         </>
+                    )}
+                    {activeSection === 'nodes' && (
+                        <DiagramComponentNodeButton placement={placement} session={session} />
                     )}
                 </Box>
             </ResizablePopper>

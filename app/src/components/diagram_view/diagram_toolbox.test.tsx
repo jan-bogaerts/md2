@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { DiagramType } from '../../services/diagrams/diagram_data';
 import type {
     DiagramPersistentTool,
     DiagramTransientGesture,
@@ -18,11 +19,13 @@ import { DiagramToolboxButton } from './diagram_toolbox_button';
 class ToolboxSessionStub extends EventTarget {
     private activeSection: DiagramToolboxSection = 'edit';
     private activeTool: DiagramPersistentTool = 'select';
+    private readonly diagramType: DiagramType = 'architecture';
     private transientGesture: DiagramTransientGesture | null = null;
     private viewportScale = DEFAULT_DIAGRAM_ZOOM;
 
     readonly getActiveToolboxSectionSnapshot = () => this.activeSection;
     readonly getActiveToolSnapshot = () => this.activeTool;
+    readonly getMetadataFieldSnapshot = () => this.diagramType;
     readonly getTransientGestureSnapshot = () => this.transientGesture;
     readonly getViewportScaleSnapshot = () => this.viewportScale;
 
@@ -36,6 +39,18 @@ class ToolboxSessionStub extends EventTarget {
         this.addEventListener('sectionChanged', listener);
 
         return () => this.removeEventListener('sectionChanged', listener);
+    };
+
+    readonly subscribeMetadataField = (_field: 'type', listener: () => void) => {
+        this.addEventListener('typeChanged', listener);
+
+        return () => this.removeEventListener('typeChanged', listener);
+    };
+
+    readonly subscribeSession = (listener: () => void) => {
+        this.addEventListener('sessionChanged', listener);
+
+        return () => this.removeEventListener('sessionChanged', listener);
     };
 
     readonly subscribeTransientGesture = (listener: () => void) => {
@@ -148,6 +163,7 @@ describe('DiagramToolbox', () => {
         expect(session.getActiveToolboxSectionSnapshot()).toBe('nodes');
         expect(screen.getByRole('tab', { name: 'Nodes' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tabpanel')).toHaveStyle({ display: 'flex', flexWrap: 'wrap' });
+        expect(screen.getByRole('button', { name: 'Component' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
     });
 

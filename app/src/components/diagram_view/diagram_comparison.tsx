@@ -10,6 +10,9 @@ import {
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'
 import { diagramMoveService, type DiagramMoveService } from '../../services/diagrams/diagram_move_service'
+import {
+    diagramNodePlacementService, type DiagramNodePlacementService,
+} from '../../services/diagrams/diagram_node_placement_service'
 import { diagramResizeService, type DiagramResizeService } from '../../services/diagrams/diagram_resize_service'
 import {
     diagramSelectionService, type DiagramSelectionService,
@@ -33,6 +36,7 @@ interface DiagramComparisonProps {
     layoutService?: DiagramComparisonLayoutService
     movement?: DiagramMoveService
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
+    placement?: DiagramNodePlacementService
     resize?: DiagramResizeService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
@@ -63,6 +67,7 @@ export function DiagramComparison({
     layoutService = diagramComparisonLayoutService,
     movement = diagramMoveService,
     onCurrentSelect,
+    placement = diagramNodePlacementService,
     resize = diagramResizeService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -174,8 +179,15 @@ export function DiagramComparison({
                 sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'relative' }}
             >
                 <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
-                <DiagramZoomViewport geometry={geometry} movement={movement} resize={resize} selection={selection} session={session} />
-                <DiagramToolbox boundaryElement={newViewportElement} session={session} />
+                <DiagramZoomViewport
+                    geometry={geometry}
+                    movement={movement}
+                    placement={placement}
+                    resize={resize}
+                    selection={selection}
+                    session={session}
+                />
+                <DiagramToolbox boundaryElement={newViewportElement} placement={placement} session={session} />
             </Paper>
         </Box>
     )
