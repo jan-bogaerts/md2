@@ -3,7 +3,7 @@ author:
 id: F_267
 internalId: d7ab38b3-a791-4448-9b4d-65ce56961971
 title: render diagrams from data instead of generated svg
-status: to fix
+status: ready
 owner: 
 affects:
 agents:

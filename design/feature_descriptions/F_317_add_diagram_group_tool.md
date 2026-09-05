@@ -34,6 +34,7 @@ changedFiles:
   - app/src/services/diagrams/diagram_resize_service.test.ts
   - app/src/services/diagrams/diagram_resize_service.ts
   - shared/diagram_data.mjs
+after: c8d8482b-8abb-44a6-8ee1-1ca4e45e035c
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

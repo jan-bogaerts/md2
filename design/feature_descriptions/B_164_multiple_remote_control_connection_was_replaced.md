@@ -17,6 +17,7 @@ changedFiles:
   - app/src/services/data/remote_control_storage_service.node.test.ts
   - app/src/services/data/remote_control_storage_service.ts
   - app/src/services/project/project_session_service.service.test.ts
+after: d7ab38b3-a791-4448-9b4d-65ce56961971
 ---
 Once the error 'remote-control connection was replaced' is shown, it comes back at a regular interval. seems like the websocket is not stable.
 
