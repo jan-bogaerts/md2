@@ -3,7 +3,7 @@ author:
 id: F_320
 internalId: 775fb7c0-979e-45ec-a05d-25c968335775
 title: edit diagram metadata
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,10 @@ policy:
 after: b1741e32-76ad-42d9-a014-6bccfec35e63
 branch: f_320_edit_diagram_metadata
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_metadata_button.tsx
+  - app/src/components/diagram_view/diagram_metadata_details_editor.tsx
+  - app/src/components/diagram_view/editable_diagram.test.tsx
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
