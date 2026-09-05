@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData, DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data'
@@ -89,6 +89,88 @@ afterEach(() => {
 })
 
 describe('diagram object details dialog', () => {
+    it('shows immutable diagram context and only shows a flow preset for flow diagrams', async () => {
+        const architecture = renderHarness()
+        const user = userEvent.setup()
+        act(() => { architecture.details.open({ objectKind: 'meta' }) })
+
+        expect(screen.getByRole('dialog', { name: 'Diagram metadata' })).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Type' })).toHaveValue('architecture')
+        expect(screen.getByRole('textbox', { name: 'Type' })).toHaveAttribute('readonly')
+        expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveValue('1')
+        expect(screen.getByRole('textbox', { name: 'Schema version' })).toHaveAttribute('readonly')
+        expect(screen.queryByRole('textbox', { name: 'Flow preset' })).toBeNull()
+        await user.click(screen.getByRole('button', { name: 'Cancel' }))
+        cleanup()
+
+        const flow = renderHarness('flow', 'state')
+        act(() => { flow.details.open({ objectKind: 'meta' }) })
+
+        expect(screen.getByRole('textbox', { name: 'Flow preset' })).toHaveValue('state')
+        expect(screen.getByRole('textbox', { name: 'Flow preset' })).toHaveAttribute('readonly')
+    })
+
+    it('validates both required metadata drafts before applying either field', async () => {
+        const { details, session } = renderHarness()
+        const user = userEvent.setup()
+        const setMetadataField = vi.spyOn(session, 'setMetadataField')
+        act(() => { details.open({ objectKind: 'meta' }) })
+
+        const title = screen.getByRole('textbox', { name: 'Title' })
+        await user.clear(title)
+        fireEvent.submit(screen.getByRole('button', { name: 'Save' }).closest('form') as HTMLFormElement)
+        expect(screen.getByText('Title is required.')).toBeInTheDocument()
+        expect(setMetadataField).not.toHaveBeenCalled()
+
+        await user.type(title, 'Updated title')
+        const description = screen.getByRole('textbox', { name: 'Description' })
+        await user.clear(description)
+        fireEvent.submit(screen.getByRole('button', { name: 'Save' }).closest('form') as HTMLFormElement)
+        expect(screen.getByText('Description is required.')).toBeInTheDocument()
+        expect(setMetadataField).not.toHaveBeenCalled()
+        expect(session.getDirtySnapshot()).toBe(false)
+    })
+
+    it('trims and saves title and description through separate metadata operations', async () => {
+        const { details, session } = renderHarness()
+        const user = userEvent.setup()
+        const setMetadataField = vi.spyOn(session, 'setMetadataField')
+        act(() => { details.open({ objectKind: 'meta' }) })
+
+        const title = screen.getByRole('textbox', { name: 'Title' })
+        await user.clear(title)
+        await user.type(title, '  Updated title  ')
+        const description = screen.getByRole('textbox', { name: 'Description' })
+        await user.clear(description)
+        await user.type(description, '  Updated description  ')
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(setMetadataField).toHaveBeenNthCalledWith(1, 'title', 'Updated title')
+        expect(setMetadataField).toHaveBeenNthCalledWith(2, 'description', 'Updated description')
+        expect(session.getMetadataFieldSnapshot('title')).toBe('Updated title')
+        expect(session.getMetadataFieldSnapshot('description')).toBe('Updated description')
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    })
+
+    it('keeps metadata drafts local when Cancel closes the dialog', async () => {
+        const { details, session } = renderHarness()
+        const user = userEvent.setup()
+        act(() => { details.open({ objectKind: 'meta' }) })
+
+        const title = screen.getByRole('textbox', { name: 'Title' })
+        await user.clear(title)
+        await user.type(title, 'Draft title')
+        const description = screen.getByRole('textbox', { name: 'Description' })
+        await user.clear(description)
+        await user.type(description, 'Draft description')
+        await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+        expect(session.getMetadataFieldSnapshot('title')).toBe('Overview')
+        expect(session.getMetadataFieldSnapshot('description')).toBe('Orders diagram')
+        expect(session.getDirtySnapshot()).toBe(false)
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    })
+
     it.each([
         ['Orders', 'Node details'],
         ['writes', 'Edge details'],

@@ -484,6 +484,91 @@ describe('DiagramEditSessionService', () => {
         expect(sessionChanged).not.toHaveBeenCalled()
     })
 
+    it('trims metadata fields and publishes only each changed field with its semantic change', () => {
+        const { service } = createHarness()
+        service.start()
+        const editable = service.getEditableDiagram()
+        const nodes = editable?.nodes
+        const edges = editable?.edges
+        const groups = editable?.groups
+        const metadata = editable?.meta
+        const titleChanged = vi.fn()
+        const descriptionChanged = vi.fn()
+        const nodeChanged = vi.fn()
+        const nodeMembershipChanged = vi.fn()
+        const sessionChanged = vi.fn()
+        service.subscribeMetadataField('title', titleChanged)
+        service.subscribeMetadataField('description', descriptionChanged)
+        service.subscribeNodeField('orders', 'label', nodeChanged)
+        service.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.subscribeSession(sessionChanged)
+
+        expect(service.setMetadataField('title', '  System overview  ')).toBe(true)
+
+        expect(service.getEditableDiagram()).toBe(editable)
+        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.getEditableDiagram()?.edges).toBe(edges)
+        expect(service.getEditableDiagram()?.groups).toBe(groups)
+        expect(service.getEditableDiagram()?.meta).toBe(metadata)
+        expect(service.getMetadataFieldSnapshot('title')).toBe('System overview')
+        expect(service.getMetadataFieldSnapshot('description')).toBe('Orders architecture')
+        expect(titleChanged).toHaveBeenCalledOnce()
+        expect((titleChanged.mock.calls[0][0] as CustomEvent).detail).toEqual({
+            field: 'title',
+            objectId: 'diagram',
+            objectKind: 'meta',
+            previousValue: 'Overview',
+            value: 'System overview',
+        })
+        expect(descriptionChanged).not.toHaveBeenCalled()
+        expect(nodeChanged).not.toHaveBeenCalled()
+        expect(nodeMembershipChanged).not.toHaveBeenCalled()
+        expect(sessionChanged).not.toHaveBeenCalled()
+
+        const [titleChangeId] = service.getChangeIdsSnapshot()
+        expect(service.getChange(titleChangeId)).toMatchObject({
+            category: 'field',
+            field: 'title',
+            objectId: 'diagram',
+            objectKind: 'meta',
+            originalValue: 'Overview',
+            value: 'System overview',
+        })
+
+        expect(service.setMetadataField('description', '  Updated architecture  ')).toBe(true)
+        expect(service.getMetadataFieldSnapshot('description')).toBe('Updated architecture')
+        expect(titleChanged).toHaveBeenCalledOnce()
+        expect(descriptionChanged).toHaveBeenCalledOnce()
+        const descriptionChangeId = service.getChangeIdsSnapshot().find((changeId) => (
+            service.getChangeFieldSnapshot(changeId, 'field') === 'description'
+        ))
+        if (!descriptionChangeId) throw new Error('Expected description semantic change')
+        expect(service.getChangeFieldSnapshot(descriptionChangeId, 'value')).toBe('Updated architecture')
+    })
+
+    it('rejects blank metadata and treats surrounding whitespace on the current value as unchanged', () => {
+        const reportValidationError = vi.fn()
+        const { service } = createHarness({ reportValidationError })
+        service.start()
+        const titleChanged = vi.fn()
+        const descriptionChanged = vi.fn()
+        service.subscribeMetadataField('title', titleChanged)
+        service.subscribeMetadataField('description', descriptionChanged)
+
+        expect(service.setMetadataField('title', '  Overview  ')).toBe(false)
+        expect(service.setMetadataField('description', ' \n ')).toBe(false)
+
+        expect(service.getMetadataFieldSnapshot('title')).toBe('Overview')
+        expect(service.getMetadataFieldSnapshot('description')).toBe('Orders architecture')
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(titleChanged).not.toHaveBeenCalled()
+        expect(descriptionChanged).not.toHaveBeenCalled()
+        expect(reportValidationError).toHaveBeenCalledExactlyOnceWith(
+            'Set diagram metadata field rejected: meta.description has invalid string',
+        )
+    })
+
     it('tracks dirty from affected scalar fields and clears it when each field is reverted', () => {
         const { service } = createHarness()
         service.start()

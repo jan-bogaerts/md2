@@ -6,6 +6,7 @@ import {
 } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramEdgeDetailsEditor } from './diagram_edge_details_editor'
 import { DiagramGroupDetailsEditor } from './diagram_group_details_editor'
+import { DiagramMetadataDetailsEditor } from './diagram_metadata_details_editor'
 import { DiagramNodeDetailsEditor } from './diagram_node_details_editor'
 import {
     diagramObjectDetailsService,
@@ -19,7 +20,7 @@ interface DiagramObjectDetailsDialogProps {
 }
 
 function targetExists(target: DiagramObjectDetailsTarget | null, session: DiagramEditSessionService) {
-    if (!target) return true
+    if (!target || target.objectKind === 'meta') return true
     if (target.objectKind === 'node') return session.getNodeSnapshot(target.objectId) !== null
     if (target.objectKind === 'edge') return session.getEdgeSnapshot(target.objectId) !== null
 
@@ -32,7 +33,7 @@ export function DiagramObjectDetailsDialog({
 }: DiagramObjectDetailsDialogProps) {
     const target = useSyncExternalStore(details.subscribeTarget, details.getTargetSnapshot, details.getTargetSnapshot)
     const subscribeExists = useCallback((listener: () => void) => {
-        if (!target) return session.subscribeSession(listener)
+        if (!target || target.objectKind === 'meta') return session.subscribeSession(listener)
         const unsubscribeMembership = session.subscribeCollectionMembership(target.objectKind, listener)
         const unsubscribeSession = session.subscribeSession(listener)
 
@@ -44,14 +45,18 @@ export function DiagramObjectDetailsDialog({
     const getExistsSnapshot = useCallback(() => targetExists(target, session), [session, target])
     const exists = useSyncExternalStore(subscribeExists, getExistsSnapshot, getExistsSnapshot)
     const missingError = useMemo(() => (
-        target && !exists ? new Error(`Diagram ${target.objectKind} ${target.objectId} no longer exists`) : null
+        target && target.objectKind !== 'meta' && !exists
+            ? new Error(`Diagram ${target.objectKind} ${target.objectId} no longer exists`)
+            : null
     ), [exists, target])
     useDialogError(missingError, 'Diagram object details are unavailable')
     useEffect(() => {
         if (missingError) details.close()
     }, [details, missingError])
     const handleClose = () => details.close()
-    const title = target ? `${target.objectKind[0].toUpperCase()}${target.objectKind.slice(1)} details` : 'Diagram object details'
+    const title = target?.objectKind === 'meta' ? 'Diagram metadata' : target
+        ? `${target.objectKind[0].toUpperCase()}${target.objectKind.slice(1)} details`
+        : 'Diagram object details'
 
     return (
         <Dialog fullWidth maxWidth="sm" onClose={handleClose} open={!!target && exists}>
@@ -64,6 +69,9 @@ export function DiagramObjectDetailsDialog({
             ) : null}
             {exists && target?.objectKind === 'group' ? (
                 <DiagramGroupDetailsEditor groupId={target.objectId} key={`group:${target.objectId}`} onClose={handleClose} session={session} />
+            ) : null}
+            {exists && target?.objectKind === 'meta' ? (
+                <DiagramMetadataDetailsEditor onClose={handleClose} session={session} />
             ) : null}
         </Dialog>
     )

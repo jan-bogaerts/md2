@@ -24,6 +24,9 @@ import {
     diagramComparisonLayoutService, type DiagramComparisonLayoutService,
 } from './diagram_comparison_layout_service'
 import { DiagramRenderer } from './diagram_renderer'
+import {
+    diagramObjectDetailsService, type DiagramObjectDetailsService,
+} from './diagram_object_details_service'
 import type { DiagramSelection } from './diagram_selection'
 import { DiagramToolbox } from './diagram_toolbox'
 import { DiagramZoomViewport } from './diagram_zoom_viewport'
@@ -35,6 +38,7 @@ const MINIMUM_COMPARISON_HEIGHT = MINIMUM_PANE_HEIGHT * 2 + SEPARATOR_HEIGHT
 
 interface DiagramComparisonProps {
     currentDiagram: PositionedDiagramData
+    details?: DiagramObjectDetailsService
     drawing?: DiagramEdgeDrawingService
     geometry?: DiagramGeometryService
     layoutService?: DiagramComparisonLayoutService
@@ -67,6 +71,7 @@ function dividerRatioForHeight(proposedHeight: number, availableHeight: number) 
 /** Layout-only comparison root. Diagram changes remain inside New service-bound leaves. */
 export function DiagramComparison({
     currentDiagram,
+    details = diagramObjectDetailsService,
     drawing = diagramEdgeDrawingService,
     geometry = diagramGeometryService,
     layoutService = diagramComparisonLayoutService,
@@ -185,6 +190,7 @@ export function DiagramComparison({
             >
                 <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
                 <DiagramZoomViewport
+                    details={details}
                     drawing={drawing}
                     geometry={geometry}
                     movement={movement}
@@ -193,7 +199,13 @@ export function DiagramComparison({
                     selection={selection}
                     session={session}
                 />
-                <DiagramToolbox boundaryElement={newViewportElement} drawing={drawing} placement={placement} session={session} />
+                <DiagramToolbox
+                    boundaryElement={newViewportElement}
+                    details={details}
+                    drawing={drawing}
+                    placement={placement}
+                    session={session}
+                />
             </Paper>
         </Box>
     )

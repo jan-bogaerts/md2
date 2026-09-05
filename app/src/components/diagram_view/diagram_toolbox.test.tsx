@@ -185,6 +185,17 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('button', { name: 'Group' })).toBeInTheDocument();
     });
 
+    it('opens diagram metadata details from Others', () => {
+        const details = { open: vi.fn(() => true) };
+        const session = new ToolboxSessionStub();
+        render(<DiagramToolbox boundaryElement={createBoundary()} details={details} session={session} />);
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Others' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Metadata' }));
+
+        expect(details.open).toHaveBeenCalledWith({ objectKind: 'meta' });
+    });
+
     it('offers Step and Decision instead of Component in Nodes for flowchart diagrams', () => {
         const session = new ToolboxSessionStub('flow', 'flowchart');
         render(<DiagramToolbox boundaryElement={createBoundary()} session={session} />);

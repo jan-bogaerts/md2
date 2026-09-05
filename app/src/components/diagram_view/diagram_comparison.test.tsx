@@ -101,6 +101,38 @@ describe('DiagramComparison', () => {
         expect(comparisonRenders).toBe(1)
     })
 
+    it.each([
+        ['title', 'Overview', 'Updated overview'],
+        ['description', 'Orders architecture', 'Updated architecture'],
+    ] as const)('keeps Current fixed and updates only New %s metadata leaf', (field, originalValue, value) => {
+        const { geometry, session } = createHarness()
+        let comparisonRenders = 0
+        const Comparison = () => {
+            comparisonRenders += 1
+
+            return (
+                <DiagramComparison
+                    currentDiagram={layout(diagram)}
+                    geometry={geometry}
+                    onCurrentSelect={vi.fn()}
+                    session={session}
+                />
+            )
+        }
+        render(<Comparison />)
+        const current = screen.getByRole('region', { name: 'Current' })
+        const next = screen.getByRole('region', { name: 'New' })
+        const currentMarkup = current.innerHTML
+
+        act(() => { session.setMetadataField(field, value) })
+
+        expect(within(current).getByText(originalValue)).toBeInTheDocument()
+        expect(within(next).getByText(value)).toBeInTheDocument()
+        expect(within(next).queryByText(originalValue)).not.toBeInTheDocument()
+        expect(current.innerHTML).toBe(currentMarkup)
+        expect(comparisonRenders).toBe(1)
+    })
+
     it('places Current above New and keeps diagram scrolling behind the New toolbox', () => {
         const { geometry, session } = createHarness()
         render(

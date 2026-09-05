@@ -700,13 +700,14 @@ export class DiagramEditSessionService extends EventTarget {
     setMetadataField<Field extends MutableDiagramMetaField>(field: Field, value: DiagramMeta[Field]) {
         const diagram = this.requireEditableDiagram()
         const previousValue = diagram.meta[field]
-        if (Object.is(previousValue, value)) return false
-        if (!this.validateOperation('Set diagram metadata field', () => requireDiagramString(value, `meta.${field}`))) return false
+        const trimmedValue = value.trim()
+        if (Object.is(previousValue, trimmedValue)) return false
+        if (!this.validateOperation('Set diagram metadata field', () => requireDiagramString(trimmedValue, `meta.${field}`))) return false
 
-        diagram.meta[field] = value
+        diagram.meta[field] = trimmedValue
         const originalValue = this.originalDiagram?.diagram.meta[field]
         const eventName = diagramMetadataFieldChangedEvent(field)
-        this.finishFieldChange(eventName, 'meta:diagram', 'meta', 'diagram', field, originalValue, previousValue, value)
+        this.finishFieldChange(eventName, 'meta:diagram', 'meta', 'diagram', field, originalValue, previousValue, trimmedValue)
 
         return true
     }

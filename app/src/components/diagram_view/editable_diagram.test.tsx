@@ -1,6 +1,6 @@
 import { Profiler, type ReactNode } from 'react'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
@@ -9,7 +9,12 @@ import { DiagramMoveService } from '../../services/diagrams/diagram_move_service
 import { DiagramResizeService } from '../../services/diagrams/diagram_resize_service'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
-import { EditableDiagram, EditableDiagramSurface } from './editable_diagram'
+import {
+    EditableDiagram,
+    EditableDiagramDescription,
+    EditableDiagramSurface,
+    EditableDiagramTitle,
+} from './editable_diagram'
 import { EditableDiagramNodes } from './editable_diagram_collections'
 import { EditableDiagramNode } from './editable_diagram_node'
 import { DiagramZoomViewport } from './diagram_zoom_viewport'
@@ -44,6 +49,21 @@ function Counted({ children, counts, id }: { children: ReactNode, counts: Render
     const handleRender = () => counts.set(id, (counts.get(id) ?? 0) + 1)
 
     return <Profiler id={id} onRender={handleRender}>{children}</Profiler>
+}
+
+function MeasuredMetadata({ counts, onRootRender, session }: {
+    counts: RenderCounts,
+    onRootRender: () => void,
+    session: DiagramEditSessionService,
+}) {
+    onRootRender()
+
+    return (
+        <>
+            <Counted counts={counts} id="title"><EditableDiagramTitle session={session} /></Counted>
+            <Counted counts={counts} id="description"><EditableDiagramDescription session={session} /></Counted>
+        </>
+    )
 }
 
 function createHarness() {
@@ -86,6 +106,23 @@ describe('editable diagram', () => {
         expect(screen.getByRole('button', { name: 'Store' })).toBeTruthy()
         expect(screen.getByRole('button', { name: 'writes' })).toBeTruthy()
         expect(screen.getByRole('button', { name: 'Backend' })).toBeTruthy()
+    })
+
+    it.each([
+        ['title', 'title', 'description'],
+        ['description', 'description', 'title'],
+    ] as const)('rerenders only the %s metadata leaf', (field, changedLeaf, unchangedLeaf) => {
+        const { session } = createHarness()
+        const counts: RenderCounts = new Map()
+        const onRootRender = vi.fn()
+        render(<MeasuredMetadata counts={counts} onRootRender={onRootRender} session={session} />)
+        const before = new Map(counts)
+
+        act(() => { session.setMetadataField(field, `Updated ${field}`) })
+
+        expect(counts.get(changedLeaf)).toBeGreaterThan(before.get(changedLeaf) ?? 0)
+        expect(counts.get(unchangedLeaf)).toBe(before.get(unchangedLeaf))
+        expect(onRootRender).toHaveBeenCalledOnce()
     })
 
     it('shows an accepted edit in the New diagram immediately', () => {

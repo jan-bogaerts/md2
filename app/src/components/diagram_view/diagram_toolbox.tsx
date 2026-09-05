@@ -24,6 +24,11 @@ import { DiagramDependencyEdgeButton } from './diagram_dependency_edge_button';
 import { DiagramEntityRelationshipButton } from './diagram_entity_relationship_button';
 import { DiagramFlowEdgeButton } from './diagram_flow_edge_button';
 import { DiagramGroupButton } from './diagram_group_button';
+import { DiagramMetadataButton } from './diagram_metadata_button';
+import {
+    diagramObjectDetailsService,
+    type DiagramObjectDetailsService,
+} from './diagram_object_details_service';
 import { DiagramSequenceEdgeButton } from './diagram_sequence_edge_button';
 import {
     DiagramComponentNodeButton,
@@ -83,6 +88,7 @@ const MINIMUM_TOOLBOX_SIZE = { height: 120, width: 280 };
 
 interface DiagramToolboxProps {
     boundaryElement: HTMLElement | null;
+    details?: Pick<DiagramObjectDetailsService, 'open'>;
     drawing?: DiagramArchitectureEdgeDrawing;
     groupDrawing?: Pick<DiagramGroupDrawingService, 'activate'>;
     placement?: DiagramComponentNodePlacement & DiagramEndNodePlacement & DiagramEntityNodePlacement & DiagramStartNodePlacement
@@ -106,6 +112,7 @@ interface DiagramToolboxProps {
 /** Floating shell for diagram tools. Tool leaves are added by their focused feature jobs. */
 export function DiagramToolbox({
     boundaryElement,
+    details = diagramObjectDetailsService,
     drawing,
     groupDrawing = diagramGroupDrawingService,
     placement = diagramNodePlacementService,
@@ -223,6 +230,7 @@ export function DiagramToolbox({
                         </>
                     )}
                     {activeSection === 'groups' && <DiagramGroupButton drawing={groupDrawing} session={session} />}
+                    {activeSection === 'others' && <DiagramMetadataButton details={details} />}
                 </Box>
             </ResizablePopper>
         </>

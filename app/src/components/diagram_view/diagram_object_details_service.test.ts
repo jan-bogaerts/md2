@@ -22,4 +22,17 @@ describe('DiagramObjectDetailsService', () => {
 
         expect(() => service.open({ objectId: ' ', objectKind: 'edge' })).toThrow('Diagram details object ID is required')
     })
+
+    it('publishes singleton metadata target without an object identity', () => {
+        const service = new DiagramObjectDetailsService()
+        const listener = vi.fn()
+        service.subscribeTarget(listener)
+
+        expect(service.open({ objectKind: 'meta' })).toBe(true)
+        const target = service.getTargetSnapshot()
+        expect(target).toEqual({ objectKind: 'meta' })
+        expect(service.open({ objectKind: 'meta' })).toBe(false)
+        expect(service.getTargetSnapshot()).toBe(target)
+        expect(listener).toHaveBeenCalledOnce()
+    })
 })
