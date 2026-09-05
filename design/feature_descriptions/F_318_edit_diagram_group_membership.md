@@ -3,13 +3,16 @@ author:
 id: F_318
 internalId: 20805ee5-a17a-4a7d-803c-23e91bfae174
 title: edit diagram group membership
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__20805ee5-a17a-4a7d-803c-23e91bfae174.json
 policy:
 after: 587b42de-3d65-4665-9cb8-b714397a6964
+changedFiles:
+  - app/src/components/diagram_view/diagram_group_membership_editor.test.tsx
+  - app/src/components/diagram_view/diagram_group_membership_editor.tsx
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
