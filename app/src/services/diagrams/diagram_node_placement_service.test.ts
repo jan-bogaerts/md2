@@ -99,6 +99,11 @@ const decisionDefinition = {
     kind: 'decision' as const,
 }
 
+const stateDefinition = {
+    defaults: { height: 72, label: 'New state', role: 'focal' as const, width: 160 },
+    kind: 'state' as const,
+}
+
 describe('DiagramNodePlacementService', () => {
     it.each(['architecture', 'dependency'] as const)(
         'previews on the grid, then creates and selects one component in a %s diagram through one membership mutation',
@@ -226,6 +231,38 @@ describe('DiagramNodePlacementService', () => {
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
         expect(session.createEdge({ from: 'placed-node', kind: 'flow', to: 'existing' })).toBeNull()
         expect(session.getEdgeIdsSnapshot()).toEqual(['existing-edge'])
+    })
+
+    it('creates and selects one stable state through one membership mutation', () => {
+        const source = diagram('flow', 'state')
+        source.edges = [{ from: 'existing', id: 'existing-edge', kind: 'transition', label: 'next', to: 'other' }]
+        source.nodes = source.nodes.map((node) => ({ ...node, kind: 'state' }))
+        const { createId, placement, selection, session } = createHarness(source)
+        const originalNode = session.getNodeSnapshot('existing')
+        const originalEdge = session.getEdgeSnapshot('existing-edge')
+        const membershipChanged = vi.fn()
+        session.subscribeCollectionMembership('node', membershipChanged)
+
+        expect(placement.activate(stateDefinition)).toBe(true)
+        expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
+
+        expect(createId).toHaveBeenCalledTimes(3)
+        expect(session.getNodeSnapshot('placed-node')).toEqual({
+            height: 72,
+            id: 'placed-node',
+            kind: 'state',
+            label: 'New state',
+            role: 'focal',
+            width: 160,
+            x: 12,
+            y: 20,
+        })
+        expect(session.getNodeSnapshot('existing')).toBe(originalNode)
+        expect(session.getEdgeSnapshot('existing-edge')).toBe(originalEdge)
+        expect(membershipChanged).toHaveBeenCalledOnce()
+        expect(session.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
+        expect(session.getActiveToolSnapshot()).toBe('select')
     })
 
     it.each([

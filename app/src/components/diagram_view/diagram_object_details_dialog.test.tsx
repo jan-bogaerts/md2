@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramData, DiagramType } from '../../services/diagrams/diagram_data'
+import type { DiagramData, DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data'
 import { dialogService } from '../../services/dialog_service'
 import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
@@ -14,16 +14,16 @@ import { DiagramObjectDetailsService } from './diagram_object_details_service'
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
-function diagram(type: DiagramType = 'architecture'): DiagramData {
-    const nodeKind = type === 'flow' ? 'step' : type === 'entity' ? 'entity' : undefined
-    const edgeKind = type === 'flow' ? 'flow' : type === 'entity' ? 'relationship' : 'connection'
+function diagram(type: DiagramType = 'architecture', flowPreset: DiagramFlowPreset = 'flowchart'): DiagramData {
+    const nodeKind = type === 'flow' ? flowPreset === 'state' ? 'state' : 'step' : type === 'entity' ? 'entity' : undefined
+    const edgeKind = type === 'flow' ? flowPreset === 'state' ? 'transition' : 'flow' : type === 'entity' ? 'relationship' : 'connection'
 
     return {
         edges: [{ from: 'orders', id: 'orders-store', kind: edgeKind, label: 'writes', to: 'store' }],
         groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
         meta: {
             description: 'Orders diagram',
-            ...(type === 'flow' ? { preset: 'flowchart' as const } : {}),
+            ...(type === 'flow' ? { preset: flowPreset } : {}),
             title: 'Overview',
             type,
             version: 1,
@@ -58,8 +58,8 @@ class DiagramSourceStub extends EventTarget {
     }
 }
 
-function renderHarness(type: DiagramType = 'architecture') {
-    const source = { diagram: diagram(type), record }
+function renderHarness(type: DiagramType = 'architecture', flowPreset: DiagramFlowPreset = 'flowchart') {
+    const source = { diagram: diagram(type, flowPreset), record }
     const session = new DiagramEditSessionService(new DiagramSourceStub(source))
     session.bindProject(project)
     session.start()
@@ -172,6 +172,18 @@ describe('diagram object details dialog', () => {
         await user.dblClick(screen.getByRole('button', { name: 'Orders' }))
         expect(screen.getByRole('combobox', { name: 'Kind' })).toBeInTheDocument()
         expect(screen.queryByText('Entity fields')).toBeNull()
+    })
+
+    it('exposes state-node details with only state-preset kinds', async () => {
+        renderHarness('flow', 'state')
+        const user = userEvent.setup()
+
+        await user.dblClick(screen.getByRole('button', { name: 'Orders' }))
+        const kind = screen.getByRole('combobox', { name: 'Kind' })
+        expect(kind).toHaveTextContent('state')
+
+        await user.click(kind)
+        expect(screen.getAllByRole('option').map(({ textContent }) => textContent)).toEqual(['start', 'end', 'state'])
     })
 
     it('saves edge and group labels through focused operations', async () => {

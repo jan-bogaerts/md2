@@ -190,6 +190,19 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('button', { name: 'Step' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Decision' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Component' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'State' })).not.toBeInTheDocument();
+    });
+
+    it('offers State instead of flowchart node kinds for state diagrams', () => {
+        const session = new ToolboxSessionStub('flow', 'state');
+        render(<DiagramToolbox boundaryElement={createBoundary()} session={session} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Nodes' }));
+
+        expect(screen.getByRole('button', { name: 'State' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Step' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Decision' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Component' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Participant' })).not.toBeInTheDocument();
     });
 
     it.each(['flowchart', 'state'] as const)('offers Start and End in Nodes for the %s preset', (flowPreset) => {
