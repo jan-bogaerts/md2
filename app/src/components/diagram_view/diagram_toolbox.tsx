@@ -24,6 +24,11 @@ import { DiagramPasteButton } from './diagram_paste_button';
 import {
     DiagramParticipantButton,
 } from './diagram_participant_button';
+import {
+    DiagramStepNodeButton,
+    type DiagramStepNodePlacement,
+    type DiagramStepNodeSession,
+} from './diagram_step_node_button';
 import { DiagramToolboxToolButton } from './diagram_toolbox_tool_button';
 import { DiagramZoomInButton } from './diagram_zoom_in_button';
 import { DiagramZoomOutButton } from './diagram_zoom_out_button';
@@ -42,8 +47,9 @@ const MINIMUM_TOOLBOX_SIZE = { height: 120, width: 280 };
 
 interface DiagramToolboxProps {
     boundaryElement: HTMLElement | null;
-    placement?: DiagramComponentNodePlacement;
-    session?: DiagramComponentNodeSession & {
+    placement?: DiagramComponentNodePlacement & DiagramStepNodePlacement;
+    session?: Omit<DiagramComponentNodeSession, 'getMetadataFieldSnapshot' | 'subscribeMetadataField'>
+    & DiagramStepNodeSession & {
         getActiveToolboxSectionSnapshot: () => DiagramToolboxSection;
         getActiveToolSnapshot: () => DiagramPersistentTool;
         getViewportScaleSnapshot: () => number;
@@ -151,6 +157,7 @@ export function DiagramToolbox({
                         <>
                             <DiagramComponentNodeButton placement={placement} session={session} />
                             <DiagramParticipantButton placement={placement} session={session} />
+                            <DiagramStepNodeButton placement={placement} session={session} />
                         </>
                     )}
                 </Box>

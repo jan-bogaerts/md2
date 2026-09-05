@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { DiagramType } from '../../services/diagrams/diagram_data';
+import type { DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data';
 import type {
     DiagramPersistentTool,
     DiagramTransientGesture,
@@ -13,30 +13,31 @@ import {
     MINIMUM_DIAGRAM_ZOOM,
 } from '../../services/diagrams/diagram_edit_session_service';
 import { DiagramToolbox } from './diagram_toolbox';
+import type { DiagramStepNodeMetadataField, DiagramStepNodeSession } from './diagram_step_node_button';
 import { DiagramToolboxActionButton } from './diagram_toolbox_action_button';
 import { DiagramToolboxButton } from './diagram_toolbox_button';
 
 class ToolboxSessionStub extends EventTarget {
     private activeSection: DiagramToolboxSection = 'edit';
     private activeTool: DiagramPersistentTool = 'select';
+    private readonly diagramType: DiagramType;
+    private readonly flowPreset: DiagramFlowPreset | null;
     private transientGesture: DiagramTransientGesture | null = null;
     private viewportScale = DEFAULT_DIAGRAM_ZOOM;
-    private diagramType: DiagramType;
 
-    constructor(diagramType: DiagramType = 'architecture') {
+    constructor(diagramType: DiagramType = 'architecture', flowPreset: DiagramFlowPreset | null = null) {
         super();
         this.diagramType = diagramType;
+        this.flowPreset = flowPreset;
     }
 
     readonly getActiveToolboxSectionSnapshot = () => this.activeSection;
     readonly getActiveToolSnapshot = () => this.activeTool;
+    readonly getMetadataFieldSnapshot = ((field: DiagramStepNodeMetadataField) => (
+        field === 'preset' ? this.flowPreset : this.diagramType
+    )) as DiagramStepNodeSession['getMetadataFieldSnapshot'];
     readonly getTransientGestureSnapshot = () => this.transientGesture;
     readonly getViewportScaleSnapshot = () => this.viewportScale;
-    readonly getMetadataFieldSnapshot = (field: 'type') => {
-        void field;
-
-        return this.diagramType;
-    };
 
     readonly subscribeActiveTool = (listener: () => void) => {
         this.addEventListener('toolChanged', listener);
@@ -50,6 +51,17 @@ class ToolboxSessionStub extends EventTarget {
         return () => this.removeEventListener('sectionChanged', listener);
     };
 
+    readonly subscribeMetadataField = (field: DiagramStepNodeMetadataField, listener: () => void) => {
+        this.addEventListener(`${field}Changed`, listener);
+
+        return () => this.removeEventListener(`${field}Changed`, listener);
+    };
+
+    readonly subscribeSession = (listener: () => void) => {
+        this.addEventListener('sessionChanged', listener);
+
+        return () => this.removeEventListener('sessionChanged', listener);
+    };
     readonly subscribeTransientGesture = (listener: () => void) => {
         this.addEventListener('gestureChanged', listener);
 
@@ -173,7 +185,17 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('tab', { name: 'Nodes' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tabpanel')).toHaveStyle({ display: 'flex', flexWrap: 'wrap' });
         expect(screen.getByRole('button', { name: 'Component' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Step' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
+    });
+
+    it('offers Step instead of Component in Nodes for flowchart diagrams', () => {
+        const session = new ToolboxSessionStub('flow', 'flowchart');
+        render(<DiagramToolbox boundaryElement={createBoundary()} session={session} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Nodes' }));
+
+        expect(screen.getByRole('button', { name: 'Step' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Component' })).not.toBeInTheDocument();
     });
 
     it('zooms by one step without changing persistent tool and disables at maximum', async () => {

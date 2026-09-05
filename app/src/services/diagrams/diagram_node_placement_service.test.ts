@@ -59,6 +59,11 @@ function createHarness(source = diagram('architecture')) {
     return { createId, placement, selection, session }
 }
 
+const stepDefinition = {
+    defaults: { height: 72, label: 'New step', role: 'focal' as const, width: 160 },
+    kind: 'step' as const,
+}
+
 const componentDefinition = {
     defaults: { height: 72, label: 'New component', role: 'focal' as const, width: 160 },
     kind: 'component' as const,
@@ -148,8 +153,33 @@ describe('DiagramNodePlacementService', () => {
         expect(session.getActiveToolSnapshot()).toBe('select')
     })
 
+    it('creates and selects one step in a flowchart diagram through one membership mutation', () => {
+        const source = diagram('flow', 'flowchart')
+        source.edges = [{ from: 'existing', id: 'existing-edge', kind: 'flow', label: 'next', to: 'other' }]
+        const { placement, selection, session } = createHarness(source)
+        const originalNode = session.getNodeSnapshot('existing')
+        const membershipChanged = vi.fn()
+        session.subscribeCollectionMembership('node', membershipChanged)
+
+        expect(placement.activate(stepDefinition)).toBe(true)
+
+        expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
+
+        expect(session.getNodeSnapshot('existing')).toBe(originalNode)
+        expect(session.getNodeIdsSnapshot()).toEqual(['existing', 'other', 'placed-node'])
+        expect(session.getNodeFieldSnapshot('placed-node', 'kind')).toBe('step')
+        expect(session.getNodeFieldSnapshot('placed-node', 'label')).toBe('New step')
+        expect(session.getNodeFieldSnapshot('placed-node', 'x')).toBe(12)
+        expect(session.getNodeFieldSnapshot('placed-node', 'y')).toBe(20)
+        expect(membershipChanged).toHaveBeenCalledOnce()
+        expect(session.getChangeIdsSnapshot()).toHaveLength(1)
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
+        expect(session.getActiveToolSnapshot()).toBe('select')
+    })
+
     it.each([
         ['architecture', undefined, 'component', true],
+        ['flow', 'flowchart', 'step', true],
         ['architecture', undefined, 'participant', false],
         ['sequence', undefined, 'participant', true],
         ['entity', undefined, 'entity', true],
