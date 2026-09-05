@@ -570,17 +570,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 42,
-          "timestamp": "2026-09-04T20:37:48.898Z"
+          "timestamp": "2026-09-05T08:47:19.339Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-64eb05af-3b30-4c6c-8ca4-a2690a90e09b",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a06e20-8c35-7072-8029-536a342a2814",
+          "createdAt": "2026-09-04T20:37:48.898Z",
+          "lastUsedAt": "2026-09-04T20:37:48.898Z",
+          "synchronizedThroughMessageId": "agent-turn-5559fe06-002e-4a47-9402-4495d7a81634-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-04T20:33:41.759Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-04T20:33:41.759Z"
+        "elapsedMs": 247139,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
@@ -591,7 +599,7 @@
         "totalTokens": 1397413
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
