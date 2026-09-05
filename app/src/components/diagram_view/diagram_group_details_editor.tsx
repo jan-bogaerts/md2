@@ -1,6 +1,7 @@
 import { Alert, Button, DialogActions, DialogContent, Stack, TextField } from '@mui/material'
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import type { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
+import { DiagramGroupMembershipEditor } from './diagram_group_membership_editor'
 
 interface DiagramGroupDetailsEditorProps {
     groupId: string
@@ -30,6 +31,7 @@ export function DiagramGroupDetailsEditor({ groupId, onClose, session }: Diagram
                 <Stack spacing={2} sx={{ pt: 0.5 }}>
                     {validationError ? <Alert severity="error">{validationError}</Alert> : null}
                     <TextField autoFocus label="Label" onChange={handleLabelChange} required size="small" value={label} />
+                    <DiagramGroupMembershipEditor groupId={groupId} session={session} />
                 </Stack>
             </DialogContent>
             <DialogActions>

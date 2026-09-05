@@ -358,4 +358,61 @@ describe('diagram object details dialog', () => {
             { fallbackMessage: 'Diagram object details are unavailable' },
         )
     })
+
+    it('edits group membership through scoped member operations only', async () => {
+        const { details, session } = renderHarness()
+        const user = userEvent.setup()
+        const group = session.getGroupSnapshot('backend')
+        const node = session.getNodeSnapshot('store')
+        const groupIds = session.getGroupIdsSnapshot()
+        const labelChanged = vi.fn()
+        const membershipChanged = vi.fn()
+        session.subscribeGroupField('backend', 'label', labelChanged)
+        session.subscribeGroupMembership('backend', membershipChanged)
+
+        act(() => { details.open({ objectId: 'backend', objectKind: 'group' }) })
+        await user.click(screen.getByRole('checkbox', { name: 'Store' }))
+
+        expect(session.getGroupNodeIdsSnapshot('backend')).toEqual(['orders'])
+        expect(membershipChanged).toHaveBeenCalledOnce()
+        expect(labelChanged).not.toHaveBeenCalled()
+        expect(session.getGroupSnapshot('backend')).toBe(group)
+        expect(session.getNodeSnapshot('store')).toBe(node)
+        expect(session.getGroupIdsSnapshot()).toBe(groupIds)
+
+        await user.click(screen.getByRole('checkbox', { name: 'Store' }))
+
+        expect(session.getGroupNodeIdsSnapshot('backend')).toEqual(['orders', 'store'])
+        expect(membershipChanged).toHaveBeenCalledTimes(2)
+    })
+
+    it('records a group membership change distinct from the group move and resize changes', async () => {
+        const { details, session } = renderHarness()
+        const user = userEvent.setup()
+        act(() => { session.setGroupField('backend', 'x', 12) })
+        act(() => { session.setGroupField('backend', 'width', 20) })
+        const geometryChangeIds = session.getChangeIdsSnapshot()
+
+        act(() => { details.open({ objectId: 'backend', objectKind: 'group' }) })
+        await user.click(screen.getByRole('checkbox', { name: 'Store' }))
+
+        const membershipChangeIds = session.getChangeIdsSnapshot().filter((id) => !geometryChangeIds.includes(id))
+        expect(membershipChangeIds).toHaveLength(1)
+        expect(session.getChangeFieldSnapshot(membershipChangeIds[0], 'category')).toBe('membership')
+        expect(session.getChangeFieldSnapshot(membershipChangeIds[0], 'field')).toBe('nodeIds')
+        expect(session.getChangeFieldSnapshot(membershipChangeIds[0], 'ownerId')).toBe('backend')
+        expect(session.getGroupFieldSnapshot('backend', 'x')).toBe(12)
+        expect(session.getGroupFieldSnapshot('backend', 'width')).toBe(20)
+    })
+
+    it('drops the membership of a node removed while the group dialog is open', async () => {
+        const { details, session } = renderHarness()
+
+        act(() => { details.open({ objectId: 'backend', objectKind: 'group' }) })
+        act(() => { session.removeNode('store') })
+
+        await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Store' })).toBeNull())
+        expect(session.getGroupNodeIdsSnapshot('backend')).toEqual(['orders'])
+        expect(screen.getByRole('checkbox', { name: 'Orders' })).toBeChecked()
+    })
 })

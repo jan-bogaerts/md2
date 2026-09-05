@@ -9,6 +9,7 @@ import {
     useEditableDiagramChangeIds,
     useEditableDiagramEdgeField,
     useEditableDiagramGroupField,
+    useEditableDiagramGroupNodeIds,
     useEditableDiagramNodeField,
     useEditableDiagramNodeIds,
 } from './use_editable_diagram'
@@ -124,6 +125,43 @@ function DiagramRoot({ counters, service }: TestTreeProps) {
     return <DiagramParent counters={counters} service={service} />
 }
 
+interface MembershipTreeProps {
+    otherGroupId: string
+    otherMembershipCounter: ReturnType<typeof vi.fn<(...values: unknown[]) => void>>
+    membershipCounter: ReturnType<typeof vi.fn<(...values: unknown[]) => void>>
+    geometryCounter: ReturnType<typeof vi.fn<(...values: unknown[]) => void>>
+    service: DiagramEditSessionService
+}
+
+function MembershipLeaf({ groupId, counter, service }: {
+    counter: ReturnType<typeof vi.fn<(...values: unknown[]) => void>>
+    groupId: string
+    service: DiagramEditSessionService
+}) {
+    counter(useEditableDiagramGroupNodeIds(groupId, service))
+
+    return null
+}
+
+function MembershipTree({ geometryCounter, membershipCounter, otherGroupId, otherMembershipCounter, service }: MembershipTreeProps) {
+    return (
+        <>
+            <MembershipLeaf counter={membershipCounter} groupId="backend" service={service} />
+            <MembershipLeaf counter={otherMembershipCounter} groupId={otherGroupId} service={service} />
+            <GroupGeometryLeaf counter={geometryCounter} service={service} />
+        </>
+    )
+}
+
+function GroupGeometryLeaf({ counter, service }: {
+    counter: ReturnType<typeof vi.fn<(...values: unknown[]) => void>>
+    service: DiagramEditSessionService
+}) {
+    counter(useEditableDiagramGroupField('backend', 'x', service))
+
+    return null
+}
+
 function createService() {
     const service = new DiagramEditSessionService(new DiagramSourceStub())
     service.bindProject(project)
@@ -177,5 +215,61 @@ describe('editable diagram subscriptions', () => {
         expect(collectionCounter).toHaveBeenCalledOnce()
         expect(leafCounter).toHaveBeenCalledTimes(2)
         expect(leafCounter).toHaveBeenLastCalledWith(8)
+    })
+
+    it('rerenders only the membership leaf of the group whose members changed', () => {
+        const service = createService()
+        const otherGroupId = service.createGroup({ label: 'Frontend', nodeIds: [] })
+        if (!otherGroupId) throw new Error('Frontend group was not created')
+        const membershipCounter = vi.fn()
+        const otherMembershipCounter = vi.fn()
+        const geometryCounter = vi.fn()
+        render(
+            <MembershipTree
+                geometryCounter={geometryCounter}
+                membershipCounter={membershipCounter}
+                otherGroupId={otherGroupId}
+                otherMembershipCounter={otherMembershipCounter}
+                service={service}
+            />,
+        )
+        expect(membershipCounter).toHaveBeenLastCalledWith(['orders', 'store'])
+
+        act(() => { service.removeGroupMember('backend', 'store') })
+
+        expect(membershipCounter).toHaveBeenCalledTimes(2)
+        expect(membershipCounter).toHaveBeenLastCalledWith(['orders'])
+        expect(otherMembershipCounter).toHaveBeenCalledOnce()
+        expect(geometryCounter).toHaveBeenCalledOnce()
+
+        act(() => { service.addGroupMember(otherGroupId, 'store') })
+
+        expect(otherMembershipCounter).toHaveBeenCalledTimes(2)
+        expect(otherMembershipCounter).toHaveBeenLastCalledWith(['store'])
+        expect(membershipCounter).toHaveBeenCalledTimes(2)
+    })
+
+    it('keeps the membership leaf mounted and stable when only group geometry changes', () => {
+        const service = createService()
+        const otherGroupId = service.createGroup({ label: 'Frontend', nodeIds: [] })
+        if (!otherGroupId) throw new Error('Frontend group was not created')
+        const membershipCounter = vi.fn()
+        const geometryCounter = vi.fn()
+        render(
+            <MembershipTree
+                geometryCounter={geometryCounter}
+                membershipCounter={membershipCounter}
+                otherGroupId={otherGroupId}
+                otherMembershipCounter={vi.fn()}
+                service={service}
+            />,
+        )
+        const membership = service.getGroupNodeIdsSnapshot('backend')
+
+        act(() => { service.setGroupField('backend', 'x', 8) })
+
+        expect(geometryCounter).toHaveBeenCalledTimes(2)
+        expect(membershipCounter).toHaveBeenCalledOnce()
+        expect(service.getGroupNodeIdsSnapshot('backend')).toBe(membership)
     })
 })
