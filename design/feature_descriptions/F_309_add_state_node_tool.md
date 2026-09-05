@@ -3,15 +3,14 @@ author:
 id: F_309
 internalId: 6d5c19d7-a264-4f01-ba49-413310e223ef
 title: add state node tool
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: 99f79635-4a46-4254-b544-901530ad9294
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -30,4 +29,4 @@ The button subscribes only to type and preset availability. Creation adds one st
 
 ## Dependencies
 
-[F_302](F_302_add_node_placement_infrastructure.md).
+[F\_302](F_302_add_node_placement_infrastructure.md).

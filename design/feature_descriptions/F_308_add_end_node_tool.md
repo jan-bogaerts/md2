@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__99f79635-4a46-4254-b544-901530ad9294.json
 policy:
-after: ea81e86d-6036-45b6-8608-f4a91a7f59ed
 branch: f_308_add_end_node_tool
 worktree: 3
 ---
