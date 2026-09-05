@@ -4,12 +4,17 @@
   "description": "Describe this action.",
   "type": "agent",
   "phrases": [],
-  "prompt": "Describe what the agent should do.",
+  "prompt": "Inspect the implemented codebase and extract detailed entity data for the selected item: \"{{parent-node}}\".\n\nLocate domain code corresponding to selected label.\n\nIf selected item represents an entity, extract its related domain concepts, identity, important fields, ownership, and relationships.\n\nIf selected item represents a relationship, examine both participating concepts and extract entities needed to explain that relationship, including its direction and cardinality.\n\nDerive data from domain types, owning services, validation rules, and persistence formats. Keep scope centered on selected item. Do not model UI state, temporary transport objects, or physical storage details as domain entities.\n\nSet data type to entity. Assign stable semantic identifiers to entities and relationships. Mark items as non-drillable only when further inspection would not be useful.\n\nReturn only semantic JSON data required by appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let application calculate positions, sizes, and connector routes.",
+  "autoFinish": {
+    "when": "diagram-created"
+  },
   "output": {
     "kind": "diagram"
   },
   "appliesTo": {
     "kind": "diagram",
     "type": "child"
-  }
+  },
+  "trackFileChanges": true,
+  "streaming": true
 }

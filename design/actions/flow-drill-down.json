@@ -4,5 +4,17 @@
   "description": "Describe this action.",
   "type": "agent",
   "phrases": [],
-  "prompt": "Describe what the agent should do."
+  "prompt": "Inspect the implemented codebase and extract detailed flow data for the selected item: \"{{parent-node}}\".\n\nLocate behavior corresponding to selected label.\n\nIf selected item represents a step, decision, or state, extract its internal operations, decisions, transitions, failure paths, and outcomes.\n\nIf selected item represents a branch or transition, trace the condition or event that starts it and the behavior that follows.\n\nKeep scope centered on selected item. Use flowchart preset for procedural behavior with decisions and branches. Use state preset for behavior governed by states and transitions.\n\nSet data type to flow and set appropriate preset. Label every decision branch and state transition. Include only behavior verified in implementation. Assign stable semantic identifiers.\n\nReturn only semantic JSON data required by appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let application calculate positions, sizes, and connector routes.",
+  "appliesTo": {
+    "kind": "diagram",
+    "type": "child"
+  },
+  "autoFinish": {
+    "when": "diagram-created"
+  },
+  "output": {
+    "kind": "diagram"
+  },
+  "trackFileChanges": true,
+  "streaming": true
 }
