@@ -1,7 +1,7 @@
 {
   "id": "b99b8a16-945c-4d7a-b792-3e8a8702e0a5",
   "label": "architecture",
-  "description": "renders an architecture diagram",
+  "description": "renders an architecture diagram. used as the starting point (root) diagram.",
   "type": "agent",
   "appliesTo": {
     "kind": "diagram"
