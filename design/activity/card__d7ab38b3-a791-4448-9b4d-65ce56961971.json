@@ -5741,7 +5741,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 117729
+        "usedTokens": 139874
       },
       "entries": [
         {
@@ -6542,6 +6542,170 @@
           "role": "assistant",
           "sequence": 65,
           "timestamp": "2026-09-05T12:37:38.717Z"
+        },
+        {
+          "content": "ok, can you now write a prompt for a 'follow up' on the architecture prompt? so user selects an item on the architecture and wants to drill down in it. so we need to use a placeholder.\nalso, I have created an action for this ( see [architecture.json](design/actions/architecture.json)). is there a way to link the new one to the existing action?",
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-user-65",
+          "kind": "message",
+          "role": "user",
+          "sequence": 66,
+          "timestamp": "2026-09-05T12:40:00.838Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-event-67",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0918c2336a78cabf016a9c0da4f51c87d28f9d325a8f3d4a37",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-05T12:40:06.903Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Inspecting `architecture.json`, action schema, and child-action filtering. Need distinguish action chaining from diagram drill-down linking.\n\n",
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-09-05T12:40:07.540Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents\\\\skills\\\\technical-writer\\\\SKILL.md'; Get-Content -Raw 'design\\\\actions\\\\architecture.json'; rg -n -C 5 \\\"kind.*diagram|type.*child|matching.*child|childActions|appliesTo|onBefore|onAfter|on:\\\" app/src/services app/src/components/diagram_view desktop/src/actions/action -g '*.ts' -g '*.tsx' -g '*.js' -g '*.mjs'\"",
+          "content": "desktop/src/actions/action\\action_definitions.test.mjs-21-function file(name, definition) {\ndesktop/src/actions/action\\action_definitions.test.mjs-22-    return { content: JSON.stringify(definition), path: `actions/${name}.json` };\ndesktop/src/actions/action\\action_definitions.test.mjs-23-}\ndesktop/src/actions/action\\action_definitions.test.mjs-24-\ndesktop/src/actions/action\\action_definitions.test.mjs-25-const IMPLEMENT = {\ndesktop/src/actions/action\\action_definitions.test.mjs:26:    description: 'Implement this feature', id: 'action-implement', label: 'Implement',\ndesktop/src/actions/action\\action_definitions.test.mjs-27-    prompt: 'use /implement-feature on {{card-file}}', type: 'agent',\ndesktop/src/actions/action\\action_definitions.test.mjs-28-};\ndesktop/src/actions/action\\action_definitions.test.mjs:29:const LINT = {command: 'npm run lint', description: 'Lint', id: 'action-lint', label: 'Lint', type: 'command'};\ndesktop/src/actions/action\\action_definitions.test.mjs-30-\ndesktop/src/actions/action\\action_definitions.test.mjs-31-describe('loadActionDefinitions', () => {\ndesktop/src/actions/action\\action_definitions.test.mjs-32-    it.each(ACTION_DEFINITION_VALIDATION_PARITY_CASES)(\ndesktop/src/actions/action\\action_definitions.test.mjs-33-        'matches React validator metadata for $name',\ndesktop/src/actions/action\\action_definitions.test.mjs-34-        ({ expected, files }) => {\n--\ndesktop/src/actions/action\\action_definitions.test.mjs-36-        },\ndesktop/src/actions/action\\action_definitions.test.mjs-37-    );\ndesktop/src/actions/action\\action_definitions.test.mjs-38-\ndesktop/src/actions/action\\action_definitions.test.mjs-39-    it('parses canonical definitions and resolves shared ID links', () => {\ndesktop/src/actions/action\\action_definitions.test.mjs-40-        const actions = loadActionDefinitions([\ndesktop/src/actions/action\\action_definitions.test.mjs:41:            file('implement', { ...IMPLEMENT, onAfter: [LINT.id], phrases: [{ text: '**Run tests**', title: 'Tests' }] }),\ndesktop/src/actions/action\\action_definitions.test.mjs-42-            file('lint', LINT),\ndesktop/src/actions/action\\action_definitions.test.mjs-43-        ]);\ndesktop/src/actions/action\\action_definitions.test.mjs-44-        const implement = actions.find(({ id }) => id === IMPLEMENT.id);\ndesktop/src/actions/action\\action_definitions.test.mjs-45-        const lint = actions.find(({ id }) => id === LINT.id);\ndesktop/src/actions/action\\action_definitions.test.mjs-46-\ndesktop/src/actions/action\\action_definitions.test.mjs:47:        expect(implement.onAfter[0]).toBe(lint);\ndesktop/src/actions/action\\action_definitions.test.mjs-48-        expect(implement.phrases).toEqual([{ text: '**Run tests**', title: 'Tests' }]);\ndesktop/src/actions/action\\action_definitions.test.mjs-49-        expect(implement.sourcePath).toBe('actions/implement.json');\ndesktop/src/actions/action\\action_definitions.test.mjs-50-        expect(lint.phrases).toEqual([]);\ndesktop/src/actions/action\\action_definitions.test.mjs-51-    });\ndesktop/src/actions/action\\action_definitions.test.mjs-52-\n--\ndesktop/src/actions/action\\action_definitions.test.mjs-91-        expect(validationError([file('implement', { ...IMPLEMENT, showCommandWindow: true })]))\ndesktop/src/actions/action\\action_definitions.test.mjs-92-            .toMatchObject({ code: 'field-not-allowed', field: 'showCommandWindow' });\ndesktop/src/actions/action\\action_definitions.test.mjs-93-    });\ndesktop/src/actions/action\\action_definitions.test.mjs-94-\ndesktop/src/actions/action\\action_definitions.test.mjs-95-    it('accepts agent and command diagram actions and validates output strictly', () => {\ndesktop/src/actions/action\\action_definitions.test.mjs:96:        const diagramFields = { appliesTo: { kind: 'diagram', type: 'root' }, output: { kind: 'diagram' } };\ndesktop/src/actions/action\\action_definitions.test.mjs-97-\ndesktop/src/actions/action\\action_definitions.test.mjs-98-        expect(() => loadActionDefinitions([\ndesktop/src/actions/action\\action_definitions.test.mjs-99-            file\n[831336 characters omitted]\n/services\\actions\\action_run_settings_service.node.test.ts-123-                records: [],\napp/src/services\\actions\\action_run_settings_service.node.test.ts:124:                version: 4,\napp/src/services\\actions\\action_run_settings_service.node.test.ts-125-            })),\napp/src/services\\actions\\action_run_settings_service.node.test.ts-126-        } as unknown as ElectronActionBridge)\napp/src/services\\actions\\action_run_settings_service.node.test.ts-127-        const store = new ActionRunSettingsStore('review', 'card-1')\napp/src/services\\actions\\action_run_settings_service.node.test.ts-128-\napp/src/services\\actions\\action_run_settings_service.node.test.ts-129-        await store.load()\n--\napp/src/services\\actions\\action_run_settings_service.ts-150-        if (!this.snapshot.settingsChangedWhileWaiting) return\napp/src/services\\actions\\action_run_settings_service.ts-151-\napp/src/services\\actions\\action_run_settings_service.ts-152-        this.publish({ ...this.snapshot, settingsChangedWhileWaiting: false })\napp/src/services\\actions\\action_run_settings_service.ts-153-    }\napp/src/services\\actions\\action_run_settings_service.ts-154-\napp/src/services\\actions\\action_run_settings_service.ts:155:    private handleSaveFailure(error: unknown, revision: number) {\napp/src/services\\actions\\action_run_settings_service.ts-156-        this.dependencies.reportError(error, 'Could not save action settings')\napp/src/services\\actions\\action_run_settings_service.ts-157-        if (revision !== this.revision) return\napp/src/services\\actions\\action_run_settings_service.ts-158-\napp/src/services\\actions\\action_run_settings_service.ts-159-        this.publish({\napp/src/services\\actions\\action_run_settings_service.ts-160-            ...this.snapshot,\n--\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-12-import {\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-13-    ActionAgentSelectionDraftService,\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-14-    actionAgentSelectionDraftService,\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-15-} from './action_agent_selection_draft_service'\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-16-\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts:17:const desktopSelection: AgentSelectionState = {\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-18-    activeAgent: 'codex',\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-19-    permissionMode: 'full-access',\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-20-    settingsByAgent: {\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-21-        claude: { model: 'sonnet', thinkingLevel: 'low' },\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-22-        codex: { model: 'gpt-5.5', thinkingLevel: 'none' },\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-23-    },\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-24-}\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-25-\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts:26:const definition: RawActionDefinition = {\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-27-    agent: 'codex',\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts:28:    description: 'Review code',\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-29-    id: 'review',\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-30-    label: 'Review',\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-31-    model: 'gpt-5.6-sol',\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-32-    prompt: 'Review',\napp/src/services\\actions\\action_agent_selection_draft_service.node.test.ts-33-    thinkingLevel: 'high',\n",
+          "durationMs": 45,
+          "exitCode": 0,
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-event-69",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents\\\\skills\\\\technical-writer\\\\SKILL.md'; Get-Content -Raw 'design\\\\actions\\\\architecture.json'; rg -n -C 5 \\\"kind.*diagram|type.*child|matching.*child|childActions|appliesTo|onBefore|onAfter|on:\\\" app/src/services app/src/components/diagram_view desktop/src/actions/action -g '*.ts' -g '*.tsx' -g '*.js' -g '*.mjs'\"",
+          "providerItemId": "exec-34a4e6ca-bd8d-47de-8e90-32ce9432d2d6",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-09-05T12:40:10.800Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-event-70",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0918c2336a78cabf016a9c0dad64f487d29b8feeb84c14840c",
+          "sequence": 70,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-05T12:40:12.922Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"getActionsFor|actionsFor|matchingActions|matchesAction|actionMatches|availableActions|type === 'child'|type: 'child'\\\" app/src -g '*.ts' -g '*.tsx'; rg -n \\\"ACTION_APPLIES_TO|appliesTo.*type|diagram.*type|output\\\" shared desktop/src/actions/action/action_definitions.js app/src/data/action_types.ts app/src/data/action_context.ts -g '*.ts' -g '*.js' -g '*.mjs'\"",
+          "content": "app/src\\services\\agents\\agent_integration.ts:290:        const actions = actionService.getActionsForStateTrigger(state, context)\napp/src\\services\\actions\\action_service.node.test.ts:162:        const matches = service.getActionsForStateTrigger('ready', { file: 'design/F-010.md', kind: 'card', state: 'ready', type: 'feature' })\napp/src\\services\\actions\\action_service.ts:1:import { actionMatchesContext, type ActionContext } from '../../data/action_context'\napp/src\\services\\actions\\action_service.ts:288:    getActionsForStateTrigger(state: string, context: ActionContext): ActionDefinition[] {\napp/src\\services\\actions\\action_service.ts:289:        return this.actions.filter((action) => action.onState === state && actionMatchesContext(action, context))\napp/src\\services\\actions\\action_text.node.test.ts:107:        const childContext: ActionContext = {diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Orders', type: 'child'}\napp/src\\services\\actions\\action_text.node.test.ts:112:        expect(() => resolvePlaceholders('{{parent-node}}', { kind: 'diagram', type: 'child' }, folders, ''))\napp/src\\services\\diagrams\\diagram_view_service.ts:390:        if (context.type === 'child' && (!context.diagramId || !context.diagramItemId || !context.parentNode)) {\napp/src\\services\\diagrams\\diagram_view_service.ts:397:            label: context.type === 'child' ? context.parentNode as string : action.label,\napp/src\\services\\diagrams\\diagram_view_service.ts:398:            ...(context.type === 'child' ? {\napp/src\\services\\diagrams\\diagram_view_service.test.ts:114:            context: { diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Item', type: 'child' },\napp/src\\services\\diagrams\\diagram_view_service.test.ts:227:            context: { diagramId: 'root-2', diagramItemId: 'orders', kind: 'diagram', parentNode: 'Orders', type: 'child' },\napp/src\\services\\diagrams\\diagram_view_service.test.ts:245:            context: { diagramId: 'root-1', diagramItemId: 'orders', kind: 'diagram', parentNode: 'Orders', type: 'child' },\napp/src\\data\\action_context.node.test.ts:5:    actionMatchesContext,\napp/src\\data\\action_context.node.test.ts:6:    actionsForContext,\napp/src\\data\\action_context.node.test.ts:138:        expect(diagramContext('child', 'diagram-1', 'item-1', 'Orders')).toEqual({diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Orders', type: 'child'})\napp/src\\data\\action_context.node.test.ts:155:describe('actionMatchesContext', () => {\napp/src\\data\\action_context.node.test.ts:159:        expect(actionMatchesContext(action('impl', { state: 'design', type: 'feature' }), context)).toBe(true)\napp/src\\data\\action_context.node.test.ts:163:        expect(actionMatchesContext(action('impl', { state: 'done', type: 'feature' }), context)).toBe(false)\napp/src\\data\\action_context.node.test.ts:164:        expect(actionMatchesContext(action('impl', { type: 'bug' }), context)).toBe(false)\napp/src\\data\\action_context.node.test.ts:168:        expect(actionMatchesContext(action('impl', { folder: 'history' }), context)).toBe(false)\napp/src\\data\\action_context.node.test.ts:172:        expect(actionMatchesContext(action('any', null), context)).toBe(true)\napp/src\\data\\action_context.node.test.ts:173:        expect(actionMatchesContext(BUILTIN_CUSTOM_PROMPT, context)).toBe(true)\napp/src\\data\\action_context.node.test.ts:174:        expect(actionMatchesContext(BUILTIN_CUSTOM_PROMPT, folderContext('history', true))).toBe(true)\napp/src\\data\\action_context.node.test.ts:178:describe('actionsForContext', () => {\napp/src\\data\\action_context.node.test.ts:182:            action('child', { kind: 'diagram', type: 'child' }),\napp/src\\data\\action_context.node.test.ts:186:        expect(actionsForContext(actions, diagramContext('root')).map(({ id }) => id)).toEqual(['action-root'])\napp/src\\data\\action_context.node.test.ts:187:        expect(actionsForContext(actions, diagramContext('child', 'diagram-1', 'item-1', 'Orders')).map(({ id }) => id)).toEqual(['action-child'])\napp/src\\data\\act\n[3606 characters omitted]\n: {}),\nshared\\action_history.mjs:6:export function extractAgentCommitIds(output) {\nshared\\action_history.mjs:7:    return [...output.matchAll(AGENT_COMMIT_PATTERN)].map((match) => match[1]);\nshared\\action_history.mjs:10:/** Parse every branch and commit from Git commit summary output. */\nshared\\action_history.mjs:11:export function extractCommitSummaries(output) {\nshared\\action_history.mjs:12:    return [...output.matchAll(COMMIT_LINE_PATTERN)].map((match) => {\nshared\\action_definitions.mjs:14:    'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'output', 'onBefore', 'on', 'onAfter',\nshared\\action_definitions.mjs:21:export const ACTION_APPLIES_TO_FIELDS = Object.freeze([\nshared\\action_definitions.mjs:29:const ACTION_APPLIES_TO_FIELD_SET = new Set(ACTION_APPLIES_TO_FIELDS)\nshared\\action_definitions.mjs:35:    'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'output', 'onBefore', 'on', 'onAfter',\nshared\\action_definitions.mjs:90:    output: null,\nshared\\action_definitions.mjs:118:    output: null,\nshared\\action_definitions.mjs:203:    rejectUnknownFields(value, ACTION_APPLIES_TO_FIELD_SET, source, 'appliesTo')\nshared\\action_definitions.mjs:218:    if (!isPlainObject(value)) throw fail(`Invalid output in ${source}`, 'invalid-field', source, 'output')\nshared\\action_definitions.mjs:219:    rejectUnknownFields(value, ACTION_OUTPUT_FIELD_SET, source, 'output')\nshared\\action_definitions.mjs:221:        throw fail(`Invalid output kind in ${source}: ${String(value.kind)}`, 'invalid-field', source, 'output.kind')\nshared\\action_definitions.mjs:283:function readAutoFinish(value, streaming, output, dependencies, source) {\nshared\\action_definitions.mjs:296:        if (output?.kind !== 'diagram') {\nshared\\action_definitions.mjs:297:            throw fail(`Action autoFinish diagram-created requires diagram output in ${source}`, 'diagram-output-required', source, 'autoFinish')\nshared\\action_definitions.mjs:357:    const output = readOutput(value.output, source)\nshared\\action_definitions.mjs:358:    if (output?.kind === 'diagram' && appliesTo?.kind !== 'diagram') {\nshared\\action_definitions.mjs:359:        throw fail(`Diagram output requires diagram applicability in ${source}`, 'diagram-applies-to-required', source, 'output')\nshared\\action_definitions.mjs:372:        autoFinish: readAutoFinish(value.autoFinish, streaming, output, dependencies, source),\nshared\\action_definitions.mjs:384:        output,\nshared\\action_definitions.mjs:485:            output: raw.output ?? null,\nshared\\agent_profiles.mjs:32:    return [...command, '--print', '--verbose', '--output-format', 'stream-json']\nshared\\agent_profiles.mjs:335:    const outputArguments = command.slice(-2)\nshared\\agent_profiles.mjs:336:    if (outputArguments[0] !== 'exec' || outputArguments[1] !== '--json') {\nshared\\agent_profiles.mjs:337:        throw new Error('Codex execution command is not structured JSON output')\nshared\\agent_profiles.mjs:363:    const outputAdapter = OUTPUT_COMMAND_ADAPTERS.get(profile.name)\nshared\\agent_profiles.mjs:365:    return outputAdapter ? outputAdapter(command, searchEnabled) : command\nshared\\card_activity.mjs:98:        output: requiredString(value.output, `records[${index}].history.output`, true),\nshared\\card_activity.mjs:131:        output: requiredString(value.output, `records[${index}].details.output`, true),\nshared\\card_activity.mjs:362:            details: { command: history.command ?? '', output: history.output, type: 'command' },\nshared\\project_config_defaults.mjs:21:Supported diagram types:\nshared\\project_config_defaults.mjs:44:Node kinds by diagram type:\nshared\\project_config_defaults.mjs:52:Edge kinds by diagram type:\nshared\\tolerant_action_definitions.mjs:2:    ACTION_APPLIES_TO_FIELDS,\nshared\\tolerant_action_definitions.mjs:102:    if (isPlainObject(definition.appliesTo)) definition.appliesTo = knownFields(definition.appliesTo, ACTION_APPLIES_TO_FIELDS)\nshared\\tolerant_action_definitions.mjs:104:    if (isPlainObject(definition.output)) definition.output = knownFields(definition.output, ACTION_OUTPUT_FIELDS)\n",
+          "durationMs": 105,
+          "exitCode": 1,
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-event-71",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"getActionsFor|actionsFor|matchingActions|matchesAction|actionMatches|availableActions|type === 'child'|type: 'child'\\\" app/src -g '*.ts' -g '*.tsx'; rg -n \\\"ACTION_APPLIES_TO|appliesTo.*type|diagram.*type|output\\\" shared desktop/src/actions/action/action_definitions.js app/src/data/action_types.ts app/src/data/action_context.ts -g '*.ts' -g '*.js' -g '*.mjs'\"",
+          "providerItemId": "exec-aa708563-3019-4600-b6b0-04cf35fc6db1",
+          "sequence": 71,
+          "status": "failed",
+          "timestamp": "2026-09-05T12:40:16.292Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-event-72",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0918c2336a78cabf016a9c0db3be3487d2be904d583b4fa23c",
+          "sequence": 72,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-05T12:40:21.539Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\data\\\\action_context.ts'; Get-Content 'app\\\\src\\\\components\\\\diagram_view\\\\diagram_view.tsx' | Select-Object -First 110; Get-Content 'app\\\\src\\\\services\\\\diagrams\\\\diagram_view_service.ts' | Select-Object -Skip 200 -First 215; Get-Content 'shared\\\\action_definitions.mjs' | Select-Object -First 45; Get-Content 'shared\\\\action_definitions.mjs' | Select-Object -Skip 190 -First 35\"",
+          "content": "import { ACTION_APPLIES_TO_FIELDS, CUSTOM_PROMPT_ACTION_ID } from './action_types'\nimport type { ActionAppliesToField, ActionDefinition } from './action_types'\nimport type { Card, CardHeader, CardTypeConfig } from './data_types'\nimport { getCardIdPrefix } from './card_identifiers'\n\n/** The kind of item an action entry point is attached to. */\nexport type ActionContextKind = 'card' | 'diagram' | 'file' | 'folder' | 'merge-conflict' | 'project'\n\nexport type ActionContextFilterValueSource =\n    'kind' | 'type' | 'state' | 'file' | 'folder' | 'worktree' | 'text'\n\nexport interface ActionContextFilterDescriptor {\n    key: ActionAppliesToField\n    label: string\n    supportedContextKinds: ActionContextKind[]\n    valueSource: ActionContextFilterValueSource\n    validate: (value: string) => string | null\n}\n\n/**\n * The selected item an action is evaluated against. `appliesTo` keys are matched\n * field-by-field against this object, so every matchable property is a string.\n */\nexport interface ActionContext {\n    /** Stable card identity used for activity ownership. */\n    cardInternalId?: string\n    /** Title of the selected card, used for placeholder resolution. */\n    title?: string\n    /** Card/file type derived from the id prefix, e.g. `feature`. */\n    type?: string\n    /** Card state / status, e.g. `design`. */\n    state?: string\n    /** Path to the markdown file, used for placeholder resolution. */\n    file?: string\n    /** Folder name for folder contexts. */\n    folder?: string\n    /** Selected conflicted repository-relative path. */\n    conflictFile?: string\n    /** Newline-separated conflicted repository-relative paths. */\n    conflictFiles?: string\n    /** Active desktop conflict session binding. */\n    conflictSessionId?: string\n    /** Stable diagram record identity. */\n    diagramId?: string\n    /** Stable identity of the selected interactive SVG item. */\n    diagramItemId?: string\n    /** Selected interactive SVG item's data-diagram-label value. */\n    parentNode?: string\n    kind: ActionContextKind\n    worktree?: string\n    worktreeError?: string\n    [key: string]: string | undefined\n}\n\n/**\n * Stable identity of the item an action runs against, used to match a popup to its\n * execution and conversation history. Mutable header fields (title, state, worktree)\n * are excluded on purpose: a run that edits its own card must keep the same identity.\n */\nexport function actionContextIdentity(context: ActionContext): string {\n    if (context.kind === 'project') return 'project'\n    if (context.kind === 'diagram') {\n        return `diagram\u0000${context.type ?? ''}\u0000${context.diagramId ?? ''}\u0000${context.diagramItemId ?? ''}`\n    }\n    if (context.kind === 'folder') return `folder\u0000${context.folder ?? ''}`\n    if (context.kind === 'merge-conflict') {\n        return `merge-conflict\u0000${context.conflictSessionId ?? ''}\u0000${context.conflictFile ?? ''}`\n    }\n\n    return `${context.kind}\u0000${context.cardInternalId ?? context.file ?? ''}`\n}\n\n/** Required-value validation shared by every applicability filter descriptor. */\nexport function validateActionContextFilterValue(value: string): string | null {\n    return value.length > 0 ? null : 'Required value'\n}\n\nconst ACTION_CONTEXT_FILTER_METADATA: Record<ActionAppliesToField, Omit<ActionContextFilterDescriptor, 'key'>> = {\n    file: { label: 'Repository file', supportedContextKinds: ['card', 'file'], valueSource: 'file', validate: validateActionContextFilterValue },\n    folder: { label: 'Repository folder', supportedContextKinds: ['folder'], valueSource: 'folder', validate: validateActionContextFilterValue },\n    kind: { label: 'Target kind', supportedContextKinds: ['card', 'diagram', 'file', 'folder', 'merge-conflict', 'project'], valueSource: 'kind', validate: validateActionContextFilterValue },\n    state: { label: 'Card state', supportedContextKinds: ['card', 'file'], valueSource: 'state', validate: validateActionContextFilterValue },\n    type: { label: 'Context type', supportedContextKinds: ['card', 'diagram', 'file', 'folder'], valueSource: 'type', validate: validateActionContextF\n[19984 characters omitted]\n}\r\nimport { validateAgentSelection, validateThinkingLevel } from './agent_profiles.mjs'\r\n\r\nfunction normalizeActionId(value) {\r\n    if (typeof value !== 'string' || value.length === 0) throw new Error('Missing action id')\r\n    const normalized = value.toLowerCase().replace(/[^a-z0-9]+/gu, '_').replace(/^_+|_+$/gu, '')\r\n    if (normalized.length === 0) throw new Error(`Action id has no letters or digits: ${value}`)\r\n\r\n    return normalized\r\n}\r\n\r\nconst ACTION_TYPES = ['agent', 'command']\r\nconst LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']\r\nexport const ACTION_DEFINITION_FIELDS = Object.freeze([\r\n    'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'output', 'onBefore', 'on', 'onAfter',\r\n    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases',\r\n])\r\nexport const ACTION_AUTO_FINISH_FIELDS = Object.freeze(['when', 'state'])\r\nexport const ACTION_OUTPUT_FIELDS = Object.freeze(['kind'])\r\nexport const ACTION_ON_RULE_FIELDS = Object.freeze(['actionId', 'condition'])\r\nexport const ACTION_PHRASE_FIELDS = Object.freeze(['title', 'text'])\r\nexport const ACTION_APPLIES_TO_FIELDS = Object.freeze([\r\n    'kind', 'type', 'state', 'file', 'folder', 'worktree', 'worktreeError',\r\n])\r\nconst ACTION_DEFINITION_FIELD_SET = new Set(ACTION_DEFINITION_FIELDS)\r\nconst ACTION_AUTO_FINISH_FIELD_SET = new Set(ACTION_AUTO_FINISH_FIELDS)\r\nconst ACTION_OUTPUT_FIELD_SET = new Set(ACTION_OUTPUT_FIELDS)\r\nconst ACTION_ON_RULE_FIELD_SET = new Set(ACTION_ON_RULE_FIELDS)\r\nconst ACTION_PHRASE_FIELD_SET = new Set(ACTION_PHRASE_FIELDS)\r\nconst ACTION_APPLIES_TO_FIELD_SET = new Set(ACTION_APPLIES_TO_FIELDS)\r\nexport const CUSTOM_PROMPT_ACTION_ID = 'md2.custom-prompt'\r\nexport const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-text'\r\n\r\n// Fields the editor can route an error to. Anything else routes to the general summary.\r\nconst ROUTABLE_FIELDS = new Set([\r\n    'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'output', 'onBefore', 'on', 'onAfter',\r\n    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases',\r\n])\r\n\r\n/**\r\n * A validation failure carrying stable routing metadata (never inferred from the message text):\r\n * a machine `code`, the routable `field` (or null for definition/file errors), an optional list\r\n * `index`, and the `sourcePath` of the offending file.\r\n */\r\nexport class ActionValidationError extends Error {\r\n    constructor(message, { code, field = null, fieldPath = null, index = null, sourcePath = null }) {\r\n\r\nfunction readActionType(value, source) {\r\n    if (typeof value !== 'string' || !ACTION_TYPES.includes(value)) {\r\n        throw fail(`Invalid action type in ${source}: ${String(value)}`, 'invalid-type', source, 'type')\r\n    }\r\n\r\n    return value\r\n}\r\n\r\nfunction readAppliesTo(value, source) {\r\n    if (value === undefined) return undefined\r\n    if (!isPlainObject(value)) throw fail(`Invalid appliesTo in ${source}`, 'invalid-applies-to', source, 'appliesTo')\r\n    rejectUnknownFields(value, ACTION_APPLIES_TO_FIELD_SET, source, 'appliesTo')\r\n\r\n    const result = {}\r\n    for (const [key, entry] of Object.entries(value)) {\r\n        if (key.length === 0 || typeof entry !== 'string' || entry.length === 0) {\r\n            throw fail(`Invalid appliesTo value in ${source}: ${key}`, 'invalid-applies-to', source, 'appliesTo')\r\n        }\r\n        result[key] = entry\r\n    }\r\n\r\n    return result\r\n}\r\n\r\nfunction readOutput(value, source) {\r\n    if (value === undefined) return undefined\r\n    if (!isPlainObject(value)) throw fail(`Invalid output in ${source}`, 'invalid-field', source, 'output')\r\n    rejectUnknownFields(value, ACTION_OUTPUT_FIELD_SET, source, 'output')\r\n    if (value.kind !== 'diagram') {\r\n        throw fail(`Invalid output kind in ${source}: ${String(value.kind)}`, 'invalid-field', source, 'output.kind')\r\n    }\r\n\r\n    return { kind: 'diagram' }\r\n}\r\n",
+          "durationMs": 195,
+          "exitCode": 0,
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-event-73",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\data\\\\action_context.ts'; Get-Content 'app\\\\src\\\\components\\\\diagram_view\\\\diagram_view.tsx' | Select-Object -First 110; Get-Content 'app\\\\src\\\\services\\\\diagrams\\\\diagram_view_service.ts' | Select-Object -Skip 200 -First 215; Get-Content 'shared\\\\action_definitions.mjs' | Select-Object -First 45; Get-Content 'shared\\\\action_definitions.mjs' | Select-Object -Skip 190 -First 35\"",
+          "providerItemId": "exec-231c07d9-74fd-4c43-96ee-a628994600b6",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-09-05T12:40:25.223Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-event-74",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0918c2336a78cabf016a9c0dbb922487d2a9c36b86f3822a3a",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-05T12:40:35.915Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-event-75",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0918c2336a78cabf016a9c0dc4e44887d2ba3b0273d7812a6d",
+          "sequence": 75,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-05T12:40:38.862Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"export function actionMatchesContext|export function actionsForContext|diagramContext\\\\(type: 'child'|const childActions|ACTION_APPLIES_TO_FIELDS\\\" app/src/data/action_context.ts app/src/components/diagram_view/diagram_view.tsx shared/action_definitions.mjs\"",
+          "content": "app/src/components/diagram_view/diagram_view.tsx:69:    const childActions = useMemo(\nshared/action_definitions.mjs:21:export const ACTION_APPLIES_TO_FIELDS = Object.freeze([\nshared/action_definitions.mjs:29:const ACTION_APPLIES_TO_FIELD_SET = new Set(ACTION_APPLIES_TO_FIELDS)\napp/src/data/action_context.ts: binary file matches (found \"\\0\" byte around offset 2578)\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-event-76",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"export function actionMatchesContext|export function actionsForContext|diagramContext\\\\(type: 'child'|const childActions|ACTION_APPLIES_TO_FIELDS\\\" app/src/data/action_context.ts app/src/components/diagram_view/diagram_view.tsx shared/action_definitions.mjs\"",
+          "providerItemId": "exec-a7362fe4-729a-4df4-a987-4fed6cbafb5c",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-09-05T12:40:41.235Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-event-77",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0918c2336a78cabf016a9c0dcbd67887d28493a183b8ce2112",
+          "sequence": 77,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-05T12:40:49.900Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Use this child prompt:\n\n```text\nInspect the implemented codebase and extract the detailed architecture of the selected item: \"{{parent-node}}\".\n\nLocate the code corresponding to the selected label and determine its responsibility, internal components, services, stores, external dependencies, and communication paths.\n\nIf the selected item represents a component, describe its internal architecture. If it represents a connection, describe the components and mechanisms that implement that interaction.\n\nKeep scope centered on the selected item. Include only relationships supported by implementation. Use documentation only to clarify implemented behavior.\n\nSet data type to architecture. Assign stable semantic identifiers. Mark items as non-drillable only when further inspection would not be useful.\n\nReturn only semantic JSON data required by appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let application calculate positions, sizes, and connector routes.\n```\n\nYour existing [architecture.json](C:/Users/janbo/Documents/dev/md2/design/actions/architecture.json:1) is not root-only. This:\n\n```json\n\"appliesTo\": {\n  \"kind\": \"diagram\"\n}\n```\n\nmatches root and child contexts. Change it to:\n\n```json\n\"appliesTo\": {\n  \"kind\": \"diagram\",\n  \"type\": \"root\"\n}\n```\n\nNew drill-down action needs:\n\n```json\n\"appliesTo\": {\n  \"kind\": \"diagram\",\n  \"type\": \"child\"\n}\n```\n\nNo way currently to link child action specifically to `architecture.json`. All actions matching `diagram/child` appear for every selected diagram item. `onBefore`, `on`, and `onAfter` create execution chains, not drill-down associations.\n\nAfter child action runs, application automatically links resulting diagram record to selected parent diagram and item. Restricting child availability to one root action would require new applicability metadata, such as `parentActionId`.\n\nSkills used: `technical-writer`, `caveman`.\n\n",
+          "id": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 78,
+          "timestamp": "2026-09-05T12:40:57.129Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -6551,23 +6715,23 @@
           "agent": "codex",
           "conversationId": "01a061e5-77e7-7132-8b44-8da304ded43b",
           "createdAt": "2026-09-02T11:36:58.214Z",
-          "lastUsedAt": "2026-09-02T14:15:23.169Z",
-          "synchronizedThroughMessageId": "agent-turn-55ecd1cc-0d45-4553-90dc-b6c9d6ca70ca-turn-5-assistant-2"
+          "lastUsedAt": "2026-09-05T12:37:38.717Z",
+          "synchronizedThroughMessageId": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-turn-1-assistant-2"
         }
       ],
       "startedAt": "2026-09-02T11:33:42.824Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 442369,
-        "runningStartedAt": "2026-09-05T12:37:25.571Z"
+        "elapsedMs": 455515,
+        "runningStartedAt": "2026-09-05T12:40:00.838Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 1503360,
-        "inputTokens": 282355,
-        "outputTokens": 7718,
-        "reasoningTokens": 6575,
-        "totalTokens": 1800008
+        "cachedInputTokens": 2137472,
+        "inputTokens": 304659,
+        "outputTokens": 8780,
+        "reasoningTokens": 7954,
+        "totalTokens": 2458865
       },
       "usageSchemaVersion": 1,
       "viewed": true
