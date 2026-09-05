@@ -128,6 +128,33 @@ describe('DiagramMoveService', () => {
         expect(session.getTransientGestureSnapshot()).toBeNull()
     })
 
+    it('persists the complete derived box on the first move of an implicit group', () => {
+        const automaticDiagram = structuredClone(diagram)
+        delete automaticDiagram.groups[0].height
+        delete automaticDiagram.groups[0].width
+        delete automaticDiagram.groups[0].x
+        delete automaticDiagram.groups[0].y
+        const { geometry, movement, selection, session } = createHarness(automaticDiagram)
+        selection.replace([group])
+        const derivedBox = {
+            height: geometry.getGroupGeometryFieldSnapshot('backend', 'height'),
+            width: geometry.getGroupGeometryFieldSnapshot('backend', 'width'),
+            x: geometry.getGroupGeometryFieldSnapshot('backend', 'x'),
+            y: geometry.getGroupGeometryFieldSnapshot('backend', 'y'),
+        }
+
+        movement.beginMove(group, { x: 0, y: 0 })
+        movement.updateMove({ x: 8, y: 4 })
+        movement.completeMove()
+
+        expect(session.getGroupSnapshot('backend')).toMatchObject({
+            height: derivedBox.height,
+            width: derivedBox.width,
+            x: (derivedBox.x as number) + 8,
+            y: (derivedBox.y as number) + 4,
+        })
+    })
+
     it('restores geometry when Escape cancellation or a tool switch ends the transient gesture', () => {
         const { movement, selection, session } = createHarness()
         selection.replace([orders])

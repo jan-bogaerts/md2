@@ -58,6 +58,36 @@ function dependencyDiagram(): DiagramData {
     }
 }
 
+function editableDependencyDiagram(): DiagramData {
+    return {
+        edges: [
+            {
+                from: 'app', id: 'app-core', kind: 'dependency',
+                sourceAttachment: { nodeId: 'app', offset: 0.5, side: 'right' },
+                targetAttachment: { nodeId: 'core', offset: 0.5, side: 'left' }, to: 'core',
+            },
+            {
+                from: 'core', id: 'core-app', kind: 'cycle',
+                sourceAttachment: { nodeId: 'core', offset: 0.5, side: 'bottom' },
+                targetAttachment: { nodeId: 'app', offset: 0.5, side: 'bottom' }, to: 'app',
+            },
+            {
+                from: 'auxiliary', id: 'auxiliary-sink', kind: 'dependency',
+                sourceAttachment: { nodeId: 'auxiliary', offset: 0.5, side: 'right' },
+                targetAttachment: { nodeId: 'sink', offset: 0.5, side: 'left' }, to: 'sink',
+            },
+        ],
+        groups: [],
+        meta: { description: 'Editable dependencies', title: 'Dependencies', type: 'dependency', version: 1 },
+        nodes: [
+            { height: 64, id: 'app', label: 'App', role: 'focal', width: 120, x: 0, y: 0 },
+            { height: 64, id: 'core', label: 'Core', role: 'backend', width: 120, x: 240, y: 0 },
+            { height: 64, id: 'auxiliary', label: 'Auxiliary', role: 'external', width: 120, x: 0, y: 200 },
+            { height: 64, id: 'sink', label: 'Sink', role: 'store', width: 120, x: 240, y: 200 },
+        ],
+    }
+}
+
 function flowDiagram(): DiagramData {
     return {
         edges: [
@@ -103,8 +133,8 @@ class DiagramSourceStub extends EventTarget {
     }
 }
 
-function createHarness(diagram: DiagramData = architectureDiagram()) {
-    const session = new DiagramEditSessionService(new DiagramSourceStub(diagram))
+function createHarness(diagram: DiagramData = architectureDiagram(), createId?: () => string) {
+    const session = new DiagramEditSessionService(new DiagramSourceStub(diagram), createId)
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
@@ -164,6 +194,75 @@ describe('DiagramGeometryService', () => {
         expect(nodeBox(geometry, 'mail')).toEqual(unrelatedBefore)
         expect(geometry.getEdgeRouteSnapshot('orders-store')).not.toBe(incidentBefore)
         expect(geometry.getEdgeRouteSnapshot('orders-mail')).toBe(otherIncidentBefore)
+    })
+
+    it('reconnects one edge route and refreshes only old and new endpoint fan-in', () => {
+        const { geometry, session } = createHarness()
+        const routeBefore = geometry.getEdgeRouteSnapshot('orders-store')
+        const unrelatedRoute = geometry.getEdgeRouteSnapshot('orders-mail')
+        const dispatched = recordGeometryEvents(geometry)
+
+        expect(session.reconnectEdgeEndpoint('orders-store', 'targetAttachment', 'mail')).toBe(true)
+
+        expect(geometry.getEdgeRouteSnapshot('orders-store')).not.toBe(routeBefore)
+        expect(geometry.getEdgeRouteSnapshot('orders-mail')).toBe(unrelatedRoute)
+        expect(geometry.getNodeGeometryFieldSnapshot('store', 'fanIn')).toBe(0)
+        expect(geometry.getNodeGeometryFieldSnapshot('mail', 'fanIn')).toBe(2)
+        expect(dispatched).toContain('geometry:edge:orders-store:points')
+        expect(dispatched).toContain('geometry:node:store:fanIn')
+        expect(dispatched).toContain('geometry:node:mail:fanIn')
+        expect(dispatched.some((type) => type.startsWith('geometry:edge:orders-mail'))).toBe(false)
+    })
+
+    it.each([
+        ['app-core', 'core', 'core-app', 1],
+        ['core-app', 'app', 'app-core', 0],
+    ] as const)('reconnects dependency edge %s without rerouting other edges', (edgeId, oldTargetId, otherEdgeId, fanInChange) => {
+        const { geometry, session } = createHarness(editableDependencyDiagram())
+        const edge = session.getEdgeSnapshot(edgeId)
+        const targetAttachment = session.getConnectionPointSnapshot(edgeId, 'targetAttachment')
+        const otherRoute = geometry.getEdgeRouteSnapshot(otherEdgeId)
+        const unrelatedRoute = geometry.getEdgeRouteSnapshot('auxiliary-sink')
+        const oldTargetFanIn = geometry.getNodeGeometryFieldSnapshot(oldTargetId, 'fanIn') as number
+        const sinkFanIn = geometry.getNodeGeometryFieldSnapshot('sink', 'fanIn') as number
+        const dispatched = recordGeometryEvents(geometry)
+
+        expect(session.reconnectEdgeEndpoint(edgeId, 'targetAttachment', 'sink')).toBe(true)
+
+        expect(session.getEdgeSnapshot(edgeId)).toBe(edge)
+        expect(session.getConnectionPointSnapshot(edgeId, 'targetAttachment')).toBe(targetAttachment)
+        expect(geometry.getNodeGeometryFieldSnapshot(oldTargetId, 'fanIn')).toBe(oldTargetFanIn - fanInChange)
+        expect(geometry.getNodeGeometryFieldSnapshot('sink', 'fanIn')).toBe(sinkFanIn + fanInChange)
+        expect(geometry.getEdgeRouteSnapshot(otherEdgeId)).toBe(otherRoute)
+        expect(geometry.getEdgeRouteSnapshot('auxiliary-sink')).toBe(unrelatedRoute)
+        expect(dispatched.filter((type) => type.endsWith(':fanIn'))).toEqual(fanInChange === 1 ? [
+            `geometry:node:${oldTargetId}:fanIn`,
+            'geometry:node:sink:fanIn',
+        ] : [])
+        expect(dispatched.some((type) => type.startsWith(`geometry:edge:${otherEdgeId}:`))).toBe(false)
+        expect(dispatched.some((type) => type.startsWith('geometry:edge:auxiliary-sink:'))).toBe(false)
+    })
+
+    it.each([
+        ['app-core', 'core', 'core-app', 1],
+        ['core-app', 'app', 'app-core', 0],
+    ] as const)('deletes dependency edge %s without rerouting remaining edges', (edgeId, targetId, otherEdgeId, fanInChange) => {
+        const { geometry, session } = createHarness(editableDependencyDiagram())
+        const otherRoute = geometry.getEdgeRouteSnapshot(otherEdgeId)
+        const unrelatedRoute = geometry.getEdgeRouteSnapshot('auxiliary-sink')
+        const targetFanIn = geometry.getNodeGeometryFieldSnapshot(targetId, 'fanIn') as number
+        const dispatched = recordGeometryEvents(geometry)
+
+        expect(session.removeEdge(edgeId)).toBe(true)
+
+        expect(geometry.getEdgeRouteSnapshot(edgeId)).toHaveLength(0)
+        expect(geometry.getNodeGeometryFieldSnapshot(targetId, 'fanIn')).toBe(targetFanIn - fanInChange)
+        expect(geometry.getEdgeRouteSnapshot(otherEdgeId)).toBe(otherRoute)
+        expect(geometry.getEdgeRouteSnapshot('auxiliary-sink')).toBe(unrelatedRoute)
+        expect(dispatched.filter((type) => type.endsWith(':fanIn'))).toEqual(fanInChange === 1
+            ? [`geometry:node:${targetId}:fanIn`]
+            : [])
+        expect(dispatched.some((type) => type.startsWith('geometry:edge:'))).toBe(false)
     })
 
     it('dispatches events only for the moved node, its incident edges, and a changed surface bound', () => {
@@ -378,15 +477,61 @@ describe('DiagramGeometryService', () => {
         expect(geometry.getActivationIdsSnapshot()).toEqual(activationIds)
     })
 
-    it('moves only later sequence rows when a message is added', () => {
+    it('updates only inserted and later sequence rows plus changed fragment geometry', () => {
         const { geometry, session } = createHarness(sequenceDiagram())
-        const firstRow = geometry.getEdgeRouteSnapshot('user-orders')[0].y
-        const lastRowBefore = geometry.getEdgeRouteSnapshot('orders-user')[0].y
+        const firstRoute = geometry.getEdgeRouteSnapshot('user-orders')
+        const laterRoutes = ['orders-store', 'store-orders', 'orders-user']
+            .map((edgeId) => geometry.getEdgeRouteSnapshot(edgeId))
+        const fragmentTop = geometry.getFragmentGeometryFieldSnapshot('transaction', 'y')
+        const dispatched = recordGeometryEvents(geometry)
 
-        session.createEdge({ from: 'user', kind: 'call', to: 'store' })
+        const edgeId = session.createSequenceEdge({ from: 'user', kind: 'async', to: 'store' }, 1)
+        if (!edgeId) throw new Error('Expected sequence message creation to succeed')
 
-        expect(geometry.getEdgeRouteSnapshot('user-orders')[0].y).toBe(firstRow)
-        expect(geometry.getEdgeRouteSnapshot('orders-user')[0].y).toBe(lastRowBefore)
+        expect(geometry.getEdgeRouteSnapshot('user-orders')).toBe(firstRoute)
+        expect(geometry.getEdgeRouteSnapshot(edgeId)[0].y).toBe(laterRoutes[0][0].y)
+        laterRoutes.forEach((route, index) => {
+            expect(geometry.getEdgeRouteSnapshot(['orders-store', 'store-orders', 'orders-user'][index])).not.toBe(route)
+        })
+        expect(geometry.getFragmentGeometryFieldSnapshot('transaction', 'y')).not.toBe(fragmentTop)
+        expect(dispatched.some((event) => event.startsWith('geometry:edge:user-orders:'))).toBe(false)
+    })
+
+    it('reflows shifted sequence rows after message movement and deletion', () => {
+        const { geometry, session } = createHarness(sequenceDiagram())
+        const firstRoute = geometry.getEdgeRouteSnapshot('user-orders')
+        const insertedId = session.createSequenceEdge({ from: 'user', kind: 'async', to: 'store' }, 1)
+        if (!insertedId) throw new Error('Expected sequence message creation to succeed')
+        const insertedRoute = geometry.getEdgeRouteSnapshot(insertedId)
+        const orderBeforeMove = session.getEdgeIdsSnapshot()
+
+        expect(session.moveSequenceEdge('orders-user', 1)).toBe(true)
+        expect(session.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user', insertedId, 'orders-store', 'store-orders'])
+        expect(session.getEdgeIdsSnapshot()).not.toBe(orderBeforeMove)
+        expect(geometry.getEdgeRouteSnapshot('user-orders')).toBe(firstRoute)
+        expect(geometry.getEdgeRouteSnapshot(insertedId)).not.toBe(insertedRoute)
+
+        const routeBeforeDelete = geometry.getEdgeRouteSnapshot('orders-store')
+        expect(session.removeEdge(insertedId)).toBe(true)
+        expect(geometry.getEdgeRouteSnapshot(insertedId)).toHaveLength(0)
+        expect(geometry.getEdgeRouteSnapshot('orders-store')).not.toBe(routeBeforeDelete)
+        expect(session.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual(['orders-store'])
+    })
+
+    it('derives an activation bar from a newly matched call and success pair', () => {
+        const createId = vi.fn()
+            .mockReturnValueOnce('audit-call')
+            .mockReturnValueOnce('audit-success')
+        const { geometry, session } = createHarness(sequenceDiagram(), createId)
+        const activationIdsChanged = vi.fn()
+        geometry.subscribeActivationIds(activationIdsChanged)
+
+        expect(session.createSequenceEdge({ from: 'user', kind: 'call', to: 'store' }, 1)).toBe('audit-call')
+        expect(session.createSequenceEdge({ from: 'store', kind: 'success', to: 'user' }, 2)).toBe('audit-success')
+
+        expect(geometry.getActivationIdsSnapshot()).toContain('store:audit-call')
+        expect(geometry.getActivationFieldSnapshot('store:audit-call', 'height')).toBe(48)
+        expect(activationIdsChanged).toHaveBeenCalled()
     })
 
     it('keeps every diagram type renderable after a supported mutation', () => {

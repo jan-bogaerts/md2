@@ -12,6 +12,9 @@ import {
     diagramEdgeDrawingService, type DiagramEdgeDrawingService,
 } from '../../services/diagrams/diagram_edge_drawing_service'
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
+import {
+    diagramGroupDrawingService, type DiagramGroupDrawingService,
+} from '../../services/diagrams/diagram_group_drawing_service'
 import { diagramMoveService, type DiagramMoveService } from '../../services/diagrams/diagram_move_service'
 import {
     diagramNodePlacementService, type DiagramNodePlacementService,
@@ -34,6 +37,7 @@ interface DiagramZoomViewportProps {
     details?: DiagramObjectDetailsService
     drawing?: DiagramEdgeDrawingService
     geometry?: DiagramGeometryService
+    groupDrawing?: DiagramGroupDrawingService
     movement?: DiagramMoveService
     placement?: DiagramNodePlacementService
     resize?: DiagramResizeService
@@ -93,6 +97,7 @@ export function DiagramZoomViewport({
     details = diagramObjectDetailsService,
     drawing = diagramEdgeDrawingService,
     geometry = diagramGeometryService,
+    groupDrawing = diagramGroupDrawingService,
     movement = diagramMoveService,
     placement = diagramNodePlacementService,
     resize = diagramResizeService,
@@ -101,7 +106,7 @@ export function DiagramZoomViewport({
 }: DiagramZoomViewportProps) {
     const scrollerRef = useRef<HTMLDivElement>(null)
     const activePointerIdRef = useRef<number | null>(null)
-    const activePointerGestureRef = useRef<'move' | 'placement' | 'resize' | null>(null)
+    const activePointerGestureRef = useRef<'group' | 'move' | 'placement' | 'resize' | null>(null)
     const completingGestureRef = useRef(false)
     const suppressClickRef = useRef(false)
     const scale = useSyncExternalStore(
@@ -155,6 +160,16 @@ export function DiagramZoomViewport({
 
             return
         }
+        if (groupDrawing.isDrawingActive()) {
+            event.preventDefault()
+            if (!groupDrawing.beginDrawing(point)) return
+
+            activePointerIdRef.current = event.pointerId
+            activePointerGestureRef.current = 'group'
+            event.currentTarget.setPointerCapture?.(event.pointerId)
+
+            return
+        }
         const resizeTarget = diagramResizeTargetFromTarget(event.target)
         const identity = resizeTarget ? null : diagramIdentityFromTarget(event.target)
         const gesture = resizeTarget && resize.beginResize(resizeTarget.identity, resizeTarget.direction, point)
@@ -167,7 +182,7 @@ export function DiagramZoomViewport({
         activePointerIdRef.current = event.pointerId
         activePointerGestureRef.current = gesture
         event.currentTarget.setPointerCapture?.(event.pointerId)
-    }, [drawing, movement, placement, pointerDiagramPoint, resize])
+    }, [drawing, groupDrawing, movement, placement, pointerDiagramPoint, resize])
 
     const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current === null) {
@@ -188,11 +203,16 @@ export function DiagramZoomViewport({
 
             return
         }
+        if (activePointerGestureRef.current === 'group') {
+            groupDrawing.updateDrawing(point)
+
+            return
+        }
         const changed = activePointerGestureRef.current === 'resize'
             ? resize.updateResize(point)
             : movement.updateMove(point)
         if (changed) suppressClickRef.current = true
-    }, [drawing, movement, placement, pointerDiagramPoint, resize])
+    }, [drawing, groupDrawing, movement, placement, pointerDiagramPoint, resize])
 
     const handlePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== event.pointerId) return
@@ -201,23 +221,27 @@ export function DiagramZoomViewport({
         if (activePointerGestureRef.current === 'placement') {
             suppressClickRef.current = true
             placement.place(pointerDiagramPoint(event.clientX, event.clientY))
+        } else if (activePointerGestureRef.current === 'group') {
+            suppressClickRef.current = true
+            groupDrawing.finishDrawing(pointerDiagramPoint(event.clientX, event.clientY))
         } else if (activePointerGestureRef.current === 'resize') resize.completeResize()
         else movement.completeMove()
         completingGestureRef.current = false
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [movement, placement, pointerDiagramPoint, releaseActivePointer, resize])
+    }, [groupDrawing, movement, placement, pointerDiagramPoint, releaseActivePointer, resize])
 
     const handlePointerCancel = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== event.pointerId) return
 
         suppressClickRef.current = false
         if (activePointerGestureRef.current === 'placement') placement.cancelPlacement()
+        else if (activePointerGestureRef.current === 'group') groupDrawing.cancelDrawing()
         else if (activePointerGestureRef.current === 'resize') resize.cancelResize()
         else movement.cancelMove()
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [movement, placement, releaseActivePointer, resize])
+    }, [groupDrawing, movement, placement, releaseActivePointer, resize])
 
     const handleLostPointerCapture = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== event.pointerId) return
@@ -225,10 +249,11 @@ export function DiagramZoomViewport({
         activePointerIdRef.current = null
         suppressClickRef.current = false
         if (activePointerGestureRef.current === 'placement') placement.cancelPlacement()
+        else if (activePointerGestureRef.current === 'group') groupDrawing.cancelDrawing()
         else if (activePointerGestureRef.current === 'resize') resize.cancelResize()
         else movement.cancelMove()
         activePointerGestureRef.current = null
-    }, [movement, placement, resize])
+    }, [groupDrawing, movement, placement, resize])
 
     const handleClickCapture = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
         if (!suppressClickRef.current) return
@@ -256,6 +281,15 @@ export function DiagramZoomViewport({
 
             return
         }
+        if (groupDrawing.isDrawingActive()) {
+            event.preventDefault()
+            suppressClickRef.current = false
+            groupDrawing.cancelDrawing()
+            activePointerGestureRef.current = null
+            releaseActivePointer()
+
+            return
+        }
         if (activePointerGestureRef.current === null) return
 
         event.preventDefault()
@@ -264,7 +298,7 @@ export function DiagramZoomViewport({
         else movement.cancelMove()
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [drawing, movement, placement, releaseActivePointer, resize])
+    }, [drawing, groupDrawing, movement, placement, releaseActivePointer, resize])
 
     const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
         if (activePointerGestureRef.current !== null || !event.key.startsWith('Arrow')) return
@@ -339,6 +373,7 @@ export function DiagramZoomViewport({
                     details={details}
                     drawing={drawing}
                     geometry={geometry}
+                    groupDrawing={groupDrawing}
                     placement={placement}
                     selection={selection}
                     session={session}

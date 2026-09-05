@@ -4,7 +4,11 @@ import {
     type DiagramEditSessionService,
 } from './diagram_edit_session_service'
 import { diagramGeometryService, type DiagramGeometryService } from './diagram_geometry_service'
-import { DIAGRAM_GRID_SIZE } from './diagram_layout'
+import {
+    DIAGRAM_GRID_SIZE,
+    MINIMUM_DIAGRAM_GROUP_HEIGHT,
+    MINIMUM_DIAGRAM_GROUP_WIDTH,
+} from './diagram_layout'
 import {
     diagramSelectionService,
     type DiagramSelectionIdentity,
@@ -13,8 +17,7 @@ import {
 
 export const MINIMUM_DIAGRAM_NODE_WIDTH = 24
 export const MINIMUM_DIAGRAM_NODE_HEIGHT = 24
-export const MINIMUM_DIAGRAM_GROUP_WIDTH = 48
-export const MINIMUM_DIAGRAM_GROUP_HEIGHT = 56
+export { MINIMUM_DIAGRAM_GROUP_HEIGHT, MINIMUM_DIAGRAM_GROUP_WIDTH } from './diagram_layout'
 
 export type DiagramResizeDirection =
     | 'north'
@@ -230,14 +233,21 @@ export class DiagramResizeService {
             return
         }
 
-        if (changesX) this.session.setGroupField(object.objectId, 'x', box.x)
-        if (changesY) this.session.setGroupField(object.objectId, 'y', box.y)
+        this.session.setGroupField(object.objectId, 'x', box.x)
+        this.session.setGroupField(object.objectId, 'y', box.y)
         this.session.setGroupField(object.objectId, 'width', box.width)
         this.session.setGroupField(object.objectId, 'height', box.height)
     }
 
     private restoreResize() {
         const { direction, object } = this.requireResize()
+        if (object.objectKind === 'group') {
+            this.applyX(object, object.originalX)
+            this.applyY(object, object.originalY)
+            this.applySize(object, object.originalWidth, object.originalHeight)
+
+            return
+        }
         const { startBox } = object
         const changesX = direction === 'west' || direction === 'north-west' || direction === 'south-west'
         const changesY = direction === 'north' || direction === 'north-east' || direction === 'north-west'

@@ -15,11 +15,23 @@ const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'O
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
 function diagram(type: DiagramType = 'architecture', flowPreset: DiagramFlowPreset = 'flowchart'): DiagramData {
-    const nodeKind = type === 'flow' ? flowPreset === 'state' ? 'state' : 'step' : type === 'entity' ? 'entity' : undefined
-    const edgeKind = type === 'flow' ? flowPreset === 'state' ? 'transition' : 'flow' : type === 'entity' ? 'relationship' : 'connection'
+    const nodeKind = type === 'flow' ? flowPreset === 'state' ? 'state' : 'step'
+        : type === 'entity' ? 'entity' : type === 'sequence' ? 'participant' : undefined
+    const edgeKind = type === 'flow' ? flowPreset === 'state' ? 'transition' : 'flow'
+        : type === 'entity' ? 'relationship' : type === 'sequence' ? 'call' : 'connection'
 
     return {
-        edges: [{ from: 'orders', id: 'orders-store', kind: edgeKind, label: 'writes', to: 'store' }],
+        edges: [{
+            from: 'orders',
+            id: 'orders-store',
+            kind: edgeKind,
+            label: 'writes',
+            ...(type === 'architecture' ? {
+                sourceAttachment: { nodeId: 'orders', offset: 0.5, side: 'right' as const },
+                targetAttachment: { nodeId: 'store', offset: 0.5, side: 'left' as const },
+            } : {}),
+            to: 'store',
+        }, ...(type === 'sequence' ? [{from: 'store', id: 'store-orders', kind: 'return' as const, label: 'done', to: 'orders'}] : [])],
         groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
         meta: {
             description: 'Orders diagram',
@@ -162,7 +174,37 @@ describe('diagram object details dialog', () => {
         expect(screen.getByRole('combobox', { name: 'From cardinality' })).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'To cardinality' })).toBeInTheDocument()
         expect(screen.queryByRole('combobox', { name: 'Kind' })).toBeNull()
+        expect(screen.queryByRole('combobox', { name: 'From' })).toBeNull()
+        expect(screen.queryByRole('combobox', { name: 'To' })).toBeNull()
         expect(session.getDirtySnapshot()).toBe(false)
+    })
+
+    it('edits an entity relationship label and both optional cardinalities on the stable edge', async () => {
+        const { details, session } = renderHarness('entity')
+        const user = userEvent.setup()
+        const edge = session.getEdgeSnapshot('orders-store')
+        const labelChanged = vi.fn()
+        const fromCardinalityChanged = vi.fn()
+        const toCardinalityChanged = vi.fn()
+        session.subscribeEdgeField('orders-store', 'label', labelChanged)
+        session.subscribeEdgeField('orders-store', 'fromCardinality', fromCardinalityChanged)
+        session.subscribeEdgeField('orders-store', 'toCardinality', toCardinalityChanged)
+
+        act(() => { details.open({ objectId: 'orders-store', objectKind: 'edge' }) })
+        const label = screen.getByRole('textbox', { name: 'Label' })
+        await user.clear(label)
+        await user.type(label, 'contains')
+        await user.click(screen.getByRole('combobox', { name: 'From cardinality' }))
+        await user.click(screen.getByRole('option', { name: '1' }))
+        await user.click(screen.getByRole('combobox', { name: 'To cardinality' }))
+        await user.click(screen.getByRole('option', { name: '0..1' }))
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(session.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(session.getEdgeSnapshot('orders-store')).toMatchObject({fromCardinality: '1', label: 'contains', toCardinality: '0..1'})
+        expect(labelChanged).toHaveBeenCalledOnce()
+        expect(fromCardinalityChanged).toHaveBeenCalledOnce()
+        expect(toCardinalityChanged).toHaveBeenCalledOnce()
     })
 
     it('adds, edits, orders, and removes entity fields before saving focused mutations', async () => {
@@ -233,6 +275,73 @@ describe('diagram object details dialog', () => {
         expect(session.getGroupFieldSnapshot('backend', 'label')).toBe('Services')
         expect(edgeChanged).toHaveBeenCalledOnce()
         expect(groupChanged).toHaveBeenCalledOnce()
+    })
+
+    it('reconnects architecture edge endpoints without replacing edge or attachments', async () => {
+        const { details, session } = renderHarness()
+        const user = userEvent.setup()
+        const edge = session.getEdgeSnapshot('orders-store')
+        const sourceAttachment = session.getConnectionPointSnapshot('orders-store', 'sourceAttachment')
+        const targetAttachment = session.getConnectionPointSnapshot('orders-store', 'targetAttachment')
+        const fromChanged = vi.fn()
+        const toChanged = vi.fn()
+        session.subscribeEdgeField('orders-store', 'from', fromChanged)
+        session.subscribeEdgeField('orders-store', 'to', toChanged)
+
+        act(() => { details.open({ objectId: 'orders-store', objectKind: 'edge' }) })
+        await user.click(screen.getByRole('combobox', { name: 'From' }))
+        await user.click(screen.getByRole('option', { name: 'Store' }))
+        await user.click(screen.getByRole('combobox', { name: 'To' }))
+        await user.click(screen.getByRole('option', { name: 'Orders' }))
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(session.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(session.getConnectionPointSnapshot('orders-store', 'sourceAttachment')).toBe(sourceAttachment)
+        expect(session.getConnectionPointSnapshot('orders-store', 'targetAttachment')).toBe(targetAttachment)
+        expect(session.getEdgeFieldSnapshot('orders-store', 'from')).toBe('store')
+        expect(session.getEdgeFieldSnapshot('orders-store', 'to')).toBe('orders')
+        expect(session.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('store')
+        expect(session.getConnectionPointFieldSnapshot('orders-store', 'targetAttachment', 'nodeId')).toBe('orders')
+        expect(fromChanged).toHaveBeenCalledOnce()
+        expect(toChanged).toHaveBeenCalledOnce()
+    })
+
+    it('keeps architecture endpoint drafts unchanged when details are cancelled', async () => {
+        const { details, session } = renderHarness()
+        const user = userEvent.setup()
+
+        act(() => { details.open({ objectId: 'orders-store', objectKind: 'edge' }) })
+        await user.click(screen.getByRole('combobox', { name: 'From' }))
+        await user.click(screen.getByRole('option', { name: 'Store' }))
+        await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+        expect(session.getEdgeFieldSnapshot('orders-store', 'from')).toBe('orders')
+        expect(session.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('orders')
+        expect(session.getDirtySnapshot()).toBe(false)
+    })
+
+    it('edits sequence label, endpoints, kind, and persisted message row', async () => {
+        const { details, session } = renderHarness('sequence')
+        const user = userEvent.setup()
+        const edge = session.getEdgeSnapshot('orders-store')
+
+        act(() => { details.open({ objectId: 'orders-store', objectKind: 'edge' }) })
+        const label = screen.getByRole('textbox', { name: 'Label' })
+        await user.clear(label)
+        await user.type(label, 'completed')
+        await user.click(screen.getByRole('combobox', { name: 'From' }))
+        await user.click(screen.getByRole('option', { name: 'Store' }))
+        await user.click(screen.getByRole('combobox', { name: 'To' }))
+        await user.click(screen.getByRole('option', { name: 'Orders' }))
+        await user.click(screen.getByRole('combobox', { name: 'Kind' }))
+        await user.click(screen.getByRole('option', { name: 'success' }))
+        await user.click(screen.getByRole('combobox', { name: 'Message row' }))
+        await user.click(screen.getByRole('option', { name: '2' }))
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(session.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(session.getEdgeSnapshot('orders-store')).toMatchObject({from: 'store', kind: 'success', label: 'completed', to: 'orders'})
+        expect(session.getEdgeIdsSnapshot()).toEqual(['store-orders', 'orders-store'])
     })
 
     it('closes and reports outside render when open object disappears', async () => {

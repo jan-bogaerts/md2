@@ -11,7 +11,20 @@ import {
 import {
     diagramNodePlacementService,
 } from '../../services/diagrams/diagram_node_placement_service';
+import {
+    diagramGroupDrawingService,
+    type DiagramGroupDrawingService,
+} from '../../services/diagrams/diagram_group_drawing_service';
 import { ResizablePopper } from '../resizable_popper';
+import {
+    DiagramArchitectureEdgeButton,
+    type DiagramArchitectureEdgeDrawing,
+} from './diagram_architecture_edge_button';
+import { DiagramDependencyEdgeButton } from './diagram_dependency_edge_button';
+import { DiagramEntityRelationshipButton } from './diagram_entity_relationship_button';
+import { DiagramFlowEdgeButton } from './diagram_flow_edge_button';
+import { DiagramGroupButton } from './diagram_group_button';
+import { DiagramSequenceEdgeButton } from './diagram_sequence_edge_button';
 import {
     DiagramComponentNodeButton,
     type DiagramComponentNodePlacement,
@@ -70,6 +83,8 @@ const MINIMUM_TOOLBOX_SIZE = { height: 120, width: 280 };
 
 interface DiagramToolboxProps {
     boundaryElement: HTMLElement | null;
+    drawing?: DiagramArchitectureEdgeDrawing;
+    groupDrawing?: Pick<DiagramGroupDrawingService, 'activate'>;
     placement?: DiagramComponentNodePlacement & DiagramEndNodePlacement & DiagramEntityNodePlacement & DiagramStartNodePlacement
     & DiagramStateNodePlacement & DiagramStepNodePlacement;
     session?: Omit<DiagramComponentNodeSession, 'getMetadataFieldSnapshot' | 'subscribeMetadataField'>
@@ -91,6 +106,8 @@ interface DiagramToolboxProps {
 /** Floating shell for diagram tools. Tool leaves are added by their focused feature jobs. */
 export function DiagramToolbox({
     boundaryElement,
+    drawing,
+    groupDrawing = diagramGroupDrawingService,
     placement = diagramNodePlacementService,
     session = diagramEditSessionService,
 }: DiagramToolboxProps) {
@@ -189,6 +206,23 @@ export function DiagramToolbox({
                             <DiagramStateNodeButton placement={placement} session={session} />
                         </>
                     )}
+                    {activeSection === 'edges' && (
+                        <>
+                            <DiagramArchitectureEdgeButton drawing={drawing} kind="connection" label="Connection" session={session} />
+                            <DiagramArchitectureEdgeButton drawing={drawing} kind="data" label="Data" session={session} />
+                            <DiagramArchitectureEdgeButton drawing={drawing} kind="async" label="Async" session={session} />
+                            <DiagramDependencyEdgeButton drawing={drawing} kind="dependency" label="Dependency" session={session} />
+                            <DiagramDependencyEdgeButton drawing={drawing} kind="cycle" label="Cycle" session={session} />
+                            <DiagramSequenceEdgeButton drawing={drawing} kind="call" label="Call" session={session} />
+                            <DiagramSequenceEdgeButton drawing={drawing} kind="return" label="Return" session={session} />
+                            <DiagramSequenceEdgeButton drawing={drawing} kind="async" label="Async" session={session} />
+                            <DiagramSequenceEdgeButton drawing={drawing} kind="success" label="Success" session={session} />
+                            <DiagramFlowEdgeButton drawing={drawing} kind="flow" label="Flow" preset="flowchart" session={session} />
+                            <DiagramFlowEdgeButton drawing={drawing} kind="transition" label="Transition" preset="state" session={session} />
+                            <DiagramEntityRelationshipButton drawing={drawing} session={session} />
+                        </>
+                    )}
+                    {activeSection === 'groups' && <DiagramGroupButton drawing={groupDrawing} session={session} />}
                 </Box>
             </ResizablePopper>
         </>

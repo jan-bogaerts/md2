@@ -11,6 +11,8 @@ import type {
 } from './diagram_data'
 
 export const DIAGRAM_GRID_SIZE = 4
+export const MINIMUM_DIAGRAM_GROUP_WIDTH = 48
+export const MINIMUM_DIAGRAM_GROUP_HEIGHT = 56
 const GRID_SIZE = DIAGRAM_GRID_SIZE
 const SURFACE_PADDING = 40
 const DEFAULT_NODE_WIDTH = 160
@@ -95,6 +97,19 @@ export interface PositionedDiagramData extends Omit<DiagramData, 'edges' | 'frag
 
 function snap(value: number) {
     return Math.round(value / GRID_SIZE) * GRID_SIZE
+}
+
+/** Returns deterministic Y geometry for one zero-based sequence message row. */
+export function sequenceMessageRowY(rowIndex: number) {
+    return snap(SEQUENCE_MESSAGE_START + rowIndex * SEQUENCE_MESSAGE_GAP)
+}
+
+/** Maps diagram-space Y to a valid insertion index in the ordered sequence message collection. */
+export function sequenceMessageInsertionIndexAt(y: number, messageCount: number) {
+    if (!Number.isFinite(y)) throw new Error('Sequence message position must be finite')
+    if (!Number.isInteger(messageCount) || messageCount < 0) throw new Error('Sequence message count must be a non-negative integer')
+
+    return Math.min(Math.max(Math.round((y - SEQUENCE_MESSAGE_START) / SEQUENCE_MESSAGE_GAP), 0), messageCount)
 }
 
 function nodeHeight(data: DiagramData, node: DiagramNode) {
@@ -495,7 +510,7 @@ function sequenceEdgePoints(edge: DiagramEdge, index: number, nodes: Map<string,
     if (usesSuppliedRoute(edge, nodes)) return edge.waypoints as DiagramWaypoint[]
     const from = nodes.get(edge.from) as PositionedDiagramNode
     const to = nodes.get(edge.to) as PositionedDiagramNode
-    const rowY = snap(SEQUENCE_MESSAGE_START + index * SEQUENCE_MESSAGE_GAP)
+    const rowY = sequenceMessageRowY(index)
     const automaticStart = { x: snap(from.x + from.width / 2), y: rowY }
     const automaticEnd = { x: snap(to.x + to.width / 2), y: rowY }
     const start = edge.sourceAttachment ? absoluteConnectionPoint(edge.sourceAttachment, from) : automaticStart
@@ -723,6 +738,15 @@ function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]
  */
 export function groupBox(group: DiagramGroup, nodesById: Map<string, PositionedDiagramNode>): PositionedDiagramGroup {
     const members = group.nodeIds.map((id) => nodesById.get(id) as PositionedDiagramNode)
+    if (members.length === 0) {
+        return {
+            ...group,
+            height: group.height ?? GROUP_HEADER_HEIGHT + GROUP_BOTTOM_PADDING,
+            width: group.width ?? GROUP_HORIZONTAL_PADDING * 2,
+            x: group.x ?? SURFACE_PADDING,
+            y: group.y ?? SURFACE_PADDING,
+        }
+    }
     const left = Math.min(...members.map(({ x }) => x))
     const top = Math.min(...members.map(({ y }) => y))
     const right = Math.max(...members.map(({ width, x }) => x + width))

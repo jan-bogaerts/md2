@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DiagramData } from './diagram_data'
-import { layout } from './diagram_layout'
+import { layout, sequenceMessageInsertionIndexAt, sequenceMessageRowY } from './diagram_layout'
 
 function diagram(type: DiagramData['meta']['type'] = 'architecture'): DiagramData {
     return {
@@ -86,6 +86,16 @@ describe('diagram layout', () => {
         expect(derived.groups[0].height).toBeGreaterThan(0)
     })
 
+    it('gives an empty group without persisted geometry a finite grid-aligned automatic box', () => {
+        const data = diagram()
+        data.groups[0].nodeIds = []
+
+        const [group] = layout(data).groups
+
+        expect(group).toMatchObject({ height: 56, width: 48, x: 40, y: 40 })
+        expect([group.height, group.width, group.x, group.y].every((value) => Number.isFinite(value) && value % 4 === 0)).toBe(true)
+    })
+
     it('leaves a persisted group box untouched when a member node moves', () => {
         const data = diagram()
         data.groups[0] = { ...data.groups[0], height: 240, width: 360, x: 8, y: 12 }
@@ -164,6 +174,13 @@ describe('diagram layout', () => {
         expect(positioned.nodes[0].y).toBe(positioned.nodes[1].y)
         expect(positioned.edges[0].points[0].y).toBeLessThan(positioned.edges[1].points[0].y)
         expect(positioned.edges[0].points[0].y % 4).toBe(0)
+    })
+
+    it('maps diagram Y positions to bounded sequence insertion rows', () => {
+        expect(sequenceMessageInsertionIndexAt(sequenceMessageRowY(0), 2)).toBe(0)
+        expect(sequenceMessageInsertionIndexAt(sequenceMessageRowY(1), 2)).toBe(1)
+        expect(sequenceMessageInsertionIndexAt(sequenceMessageRowY(4), 2)).toBe(2)
+        expect(sequenceMessageInsertionIndexAt(0, 2)).toBe(0)
     })
 
     it('uses explicit connection points for sequence edges', () => {

@@ -100,6 +100,7 @@ export class DiagramGeometryService extends EventTarget {
     private activationIds: readonly string[] = EMPTY_IDS
     private readonly activationsById = new Map<string, PositionedSequenceActivation>()
     private diagram: DiagramData | null = null
+    private edgeIds: readonly string[] = EMPTY_IDS
     private readonly edgesById = new Map<string, PositionedDiagramEdge>()
     private readonly editSession: DiagramEditSessionService
     private readonly fragmentsById = new Map<string, PositionedSequenceFragment>()
@@ -201,6 +202,7 @@ export class DiagramGeometryService extends EventTarget {
         this.nodesById.clear()
         this.activationIds = EMPTY_IDS
         this.fragmentIds = EMPTY_IDS
+        this.edgeIds = EMPTY_IDS
         // Derived geometry reads model data and never writes it, so the session's read boundary is safe to narrow here.
         const diagram = this.editSession.getEditableDiagram() as DiagramData | null
         this.diagram = diagram
@@ -220,6 +222,7 @@ export class DiagramGeometryService extends EventTarget {
         for (const activation of positioned.activations) this.activationsById.set(activation.id, activation)
         for (const fragment of positioned.fragments) this.fragmentsById.set(fragment.id, fragment)
         this.activationIds = Object.freeze(positioned.activations.map(({ id }) => id))
+        this.edgeIds = Object.freeze(positioned.edges.map(({ id }) => id))
         this.fragmentIds = Object.freeze(positioned.fragments.map(({ id }) => id))
         this.surface = { height: positioned.height, width: positioned.width }
         this.subscribeDiagramObjects()
@@ -459,13 +462,17 @@ export class DiagramGeometryService extends EventTarget {
 
     private readonly handleEdgeMembershipChanged = () => {
         const diagram = this.requireDiagram()
+        const nextEdgeIds = diagram.edges.map(({ id }) => id)
+        const maximumEdgeCount = Math.max(this.edgeIds.length, nextEdgeIds.length)
+        const firstChangedRow = Array.from({ length: maximumEdgeCount })
+            .findIndex((_value, index) => this.edgeIds[index] !== nextEdgeIds[index])
         const modelIds = new Set(diagram.edges.map(({ id }) => id))
         for (const edgeId of [...this.edgesById.keys()]) {
             if (!modelIds.has(edgeId)) this.edgesById.delete(edgeId)
         }
         const addedEdges = diagram.edges.filter(({ id }) => !this.edgesById.has(id))
         for (const edge of addedEdges) this.addEdgeGeometry(edge)
-        const firstChangedRow = diagram.edges.findIndex(({ id }) => addedEdges.some((edge) => edge.id === id))
+        this.edgeIds = Object.freeze(nextEdgeIds)
         this.refreshSequenceRows(firstChangedRow)
         for (const node of diagram.nodes) this.refreshFanIn(node.id)
         this.refreshSequenceDependents(diagram.nodes.map(({ id }) => id))
@@ -485,7 +492,7 @@ export class DiagramGeometryService extends EventTarget {
         const diagram = this.requireDiagram()
         if (diagram.meta.type !== 'sequence' || firstChangedRow < 0) return
 
-        for (const edge of diagram.edges.slice(firstChangedRow + 1)) this.rerouteEdge(edge)
+        for (const edge of diagram.edges.slice(firstChangedRow)) this.rerouteEdge(edge)
     }
 
     private readonly handleGroupMembershipChanged = () => {

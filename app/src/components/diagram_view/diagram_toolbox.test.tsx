@@ -180,6 +180,9 @@ describe('DiagramToolbox', () => {
         expect(screen.queryByRole('button', { name: 'Start' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'End' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Groups' }));
+        expect(screen.getByRole('button', { name: 'Group' })).toBeInTheDocument();
     });
 
     it('offers Step and Decision instead of Component in Nodes for flowchart diagrams', () => {
@@ -273,6 +276,81 @@ describe('DiagramToolbox', () => {
         );
         expect(screen.queryByRole('button', { name: 'Entity' })).not.toBeInTheDocument();
     });
+
+    it('offers architecture edge kinds from Edges through shared drawing', () => {
+        const session = new ToolboxSessionStub('architecture');
+        const drawing = { activate: vi.fn(() => true) };
+        session.setActiveToolboxSection('edges');
+        render(<DiagramToolbox boundaryElement={createBoundary()} drawing={drawing} session={session} />);
+
+        expect(screen.getAllByRole('button').map(({ textContent }) => textContent)).toEqual([
+            'Connection', 'Data', 'Async',
+        ]);
+        fireEvent.click(screen.getByRole('button', { name: 'Data' }));
+        expect(drawing.activate).toHaveBeenCalledWith({ kind: 'data' });
+    });
+
+    it('offers dependency edge kinds from Edges through shared drawing', () => {
+        const session = new ToolboxSessionStub('dependency');
+        const drawing = { activate: vi.fn(() => true) };
+        session.setActiveToolboxSection('edges');
+        render(<DiagramToolbox boundaryElement={createBoundary()} drawing={drawing} session={session} />);
+
+        expect(screen.getAllByRole('button').map(({ textContent }) => textContent)).toEqual([
+            'Dependency', 'Cycle',
+        ]);
+        fireEvent.click(screen.getByRole('button', { name: 'Cycle' }));
+        expect(drawing.activate).toHaveBeenCalledWith({ kind: 'cycle' });
+    });
+
+    it('offers sequence message kinds from Edges through shared drawing', () => {
+        const session = new ToolboxSessionStub('sequence');
+        const drawing = { activate: vi.fn(() => true) };
+        session.setActiveToolboxSection('edges');
+        render(<DiagramToolbox boundaryElement={createBoundary()} drawing={drawing} session={session} />);
+
+        expect(screen.getAllByRole('button').map(({ textContent }) => textContent)).toEqual([
+            'Call', 'Return', 'Async', 'Success',
+        ]);
+        fireEvent.click(screen.getByRole('button', { name: 'Success' }));
+        expect(drawing.activate).toHaveBeenCalledWith({ kind: 'success' });
+    });
+
+    it.each([
+        ['Flow', 'flow', 'flowchart'],
+        ['Transition', 'transition', 'state'],
+    ] as const)('offers %s from Edges for its own flow preset only', (label, kind, flowPreset) => {
+        const session = new ToolboxSessionStub('flow', flowPreset);
+        const drawing = { activate: vi.fn(() => true) };
+        session.setActiveToolboxSection('edges');
+        render(<DiagramToolbox boundaryElement={createBoundary()} drawing={drawing} session={session} />);
+
+        expect(screen.getAllByRole('button').map(({ textContent }) => textContent)).toEqual([label]);
+        fireEvent.click(screen.getByRole('button', { name: label }));
+        expect(drawing.activate).toHaveBeenCalledWith({ kind });
+    });
+
+    it('offers Relationship from Edges only for entity diagrams', () => {
+        const session = new ToolboxSessionStub('entity');
+        const drawing = { activate: vi.fn(() => true) };
+        session.setActiveToolboxSection('edges');
+        render(<DiagramToolbox boundaryElement={createBoundary()} drawing={drawing} session={session} />);
+
+        expect(screen.getAllByRole('button').map(({ textContent }) => textContent)).toEqual(['Relationship']);
+        fireEvent.click(screen.getByRole('button', { name: 'Relationship' }));
+        expect(drawing.activate).toHaveBeenCalledWith({ kind: 'relationship' });
+    });
+
+    it.each(['flow'] as const)(
+        'does not offer architecture edge kinds for %s diagrams',
+        (diagramType) => {
+            const session = new ToolboxSessionStub(diagramType);
+            session.setActiveToolboxSection('edges');
+            render(<DiagramToolbox boundaryElement={createBoundary()} session={session} />);
+
+            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+        },
+    );
 
     it('zooms out by one step without changing persistent tool and disables at minimum', async () => {
         const session = new ToolboxSessionStub();

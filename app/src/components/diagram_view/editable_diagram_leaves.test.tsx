@@ -21,12 +21,25 @@ const diagram: DiagramData = {
     ],
 }
 const entityDiagram: DiagramData = {
-    edges: [{ from: 'orders', id: 'orders-store', kind: 'relationship', to: 'store' }],
+    edges: [{
+        from: 'orders',
+        fromCardinality: '1',
+        id: 'orders-store',
+        kind: 'relationship',
+        sourceAttachment: { nodeId: 'orders', offset: 0.5, side: 'right' },
+        targetAttachment: { nodeId: 'store', offset: 0.5, side: 'left' },
+        to: 'store',
+        toCardinality: 'N',
+    }],
     groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
     meta: { description: 'Order entities', title: 'Entities', type: 'entity', version: 1 },
     nodes: [
-        { fields: [{ key: 'primary', name: 'id', type: 'uuid' }], id: 'orders', kind: 'entity', label: 'Orders', role: 'focal' },
-        { fields: [], id: 'store', kind: 'entity', label: 'Store', role: 'store' },
+        {
+            fields: [{ key: 'primary', name: 'id', type: 'uuid' }], height: 80, id: 'orders', kind: 'entity',
+            label: 'Orders', role: 'focal', width: 120, x: 0, y: 0,
+        },
+        { fields: [], height: 80, id: 'store', kind: 'entity', label: 'Store', role: 'store', width: 120, x: 240, y: 0 },
+        { fields: [], height: 80, id: 'archive', kind: 'entity', label: 'Archive', role: 'store', width: 120, x: 600, y: 0 },
     ],
 }
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
@@ -98,7 +111,7 @@ function renderTree(sourceDiagram: DiagramData = diagram) {
     const counts: RenderCounts = new Map()
     render(<LeafTree counts={counts} geometry={geometry} selection={selection} session={session} />)
 
-    return { counts, selection, session }
+    return { counts, geometry, selection, session }
 }
 
 afterEach(cleanup)
@@ -151,6 +164,33 @@ describe('editable diagram leaves', () => {
         expect(screen.getByRole('button', { name: 'stores' })).toBeTruthy()
     })
 
+    it('rerenders only the relationship leaf when one cardinality changes', () => {
+        const { counts, session } = renderTree(entityDiagram)
+        const edge = session.getEdgeSnapshot('orders-store')
+        const before = new Map(counts)
+
+        act(() => { session.setEdgeField('orders-store', 'toCardinality', '1..*') })
+
+        expect(session.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(counts.get('edge')).toBeGreaterThan(before.get('edge') ?? 0)
+        expect(counts.get('orders')).toBe(before.get('orders'))
+        expect(counts.get('store')).toBe(before.get('store'))
+        expect(counts.get('group')).toBe(before.get('group'))
+        expect(screen.getByText('1..*')).toBeInTheDocument()
+    })
+
+    it('moves the target cardinality with moved and reconnected endpoints', () => {
+        const { session } = renderTree(entityDiagram)
+        const targetCardinality = screen.getByText('N')
+        expect(targetCardinality).toHaveAttribute('x', '232')
+
+        act(() => { session.setNodeField('store', 'x', 400) })
+        expect(targetCardinality).toHaveAttribute('x', '392')
+
+        act(() => { session.reconnectEdgeEndpoint('orders-store', 'targetAttachment', 'archive') })
+        expect(targetCardinality).toHaveAttribute('x', '592')
+    })
+
     it('rerenders the group leaf for its own label only', () => {
         const { counts, session } = renderTree()
         const before = new Map(counts)
@@ -161,6 +201,18 @@ describe('editable diagram leaves', () => {
         expect(counts.get('orders')).toBe(before.get('orders'))
         expect(counts.get('edge')).toBe(before.get('edge'))
         expect(screen.getByRole('button', { name: 'Services' })).toBeTruthy()
+    })
+
+    it('rerenders only the group leaf when independent group geometry changes', () => {
+        const { counts, session } = renderTree()
+        const before = new Map(counts)
+
+        act(() => { session.setGroupField('backend', 'x', 40) })
+
+        expect(counts.get('group')).toBeGreaterThan(before.get('group') ?? 0)
+        expect(counts.get('orders')).toBe(before.get('orders'))
+        expect(counts.get('store')).toBe(before.get('store'))
+        expect(counts.get('edge')).toBe(before.get('edge'))
     })
 
     it('rerenders only leaves whose selected boolean changes', () => {

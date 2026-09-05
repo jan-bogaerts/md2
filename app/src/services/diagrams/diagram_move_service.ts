@@ -19,8 +19,12 @@ export interface DiagramMovePoint {
 interface MovingDiagramObject {
     objectId: string
     objectKind: 'group' | 'node'
+    originalHeight: number | undefined
+    originalWidth: number | undefined
     originalX: number | undefined
     originalY: number | undefined
+    startHeight: number | undefined
+    startWidth: number | undefined
     startX: number
     startY: number
 }
@@ -136,8 +140,15 @@ export class DiagramMoveService {
             ? this.session.getNodeFieldSnapshot(objectId, 'y')
             : this.session.getGroupFieldSnapshot(objectId, 'y')
         if (originalX === null || originalY === null) throw new Error(`Diagram ${objectKind} ${objectId} does not exist`)
+        const originalHeight = objectKind === 'group' ? this.session.getGroupFieldSnapshot(objectId, 'height') : undefined
+        const originalWidth = objectKind === 'group' ? this.session.getGroupFieldSnapshot(objectId, 'width') : undefined
+        const startHeight = objectKind === 'group' ? this.geometry.getGroupGeometryFieldSnapshot(objectId, 'height') : undefined
+        const startWidth = objectKind === 'group' ? this.geometry.getGroupGeometryFieldSnapshot(objectId, 'width') : undefined
+        if (originalHeight === null || originalWidth === null || startHeight === null || startWidth === null) {
+            throw new Error(`Diagram ${objectKind} ${objectId} has no move geometry`)
+        }
 
-        return { objectId, objectKind, originalX, originalY, startX, startY }
+        return {objectId, objectKind, originalHeight, originalWidth, originalX, originalY, startHeight, startWidth, startX, startY}
     }
 
     private applyPosition(object: MovingDiagramObject, x: number | undefined, y: number | undefined) {
@@ -148,6 +159,8 @@ export class DiagramMoveService {
             return
         }
 
+        this.session.setGroupField(object.objectId, 'height', object.startHeight)
+        this.session.setGroupField(object.objectId, 'width', object.startWidth)
         this.session.setGroupField(object.objectId, 'x', x)
         this.session.setGroupField(object.objectId, 'y', y)
     }
@@ -162,8 +175,16 @@ export class DiagramMoveService {
         if (object.objectKind === 'node') {
             if (object.originalX === undefined) this.session.setNodeField(object.objectId, 'x', object.startX)
             if (object.originalY === undefined) this.session.setNodeField(object.objectId, 'y', object.startY)
+
+            this.applyPosition(object, object.originalX, object.originalY)
+
+            return
         }
-        this.applyPosition(object, object.originalX, object.originalY)
+
+        this.session.setGroupField(object.objectId, 'height', object.originalHeight)
+        this.session.setGroupField(object.objectId, 'width', object.originalWidth)
+        this.session.setGroupField(object.objectId, 'x', object.originalX)
+        this.session.setGroupField(object.objectId, 'y', object.originalY)
     }
 
     private requireMove() {

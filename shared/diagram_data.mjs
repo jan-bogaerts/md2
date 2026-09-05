@@ -171,8 +171,6 @@ function parseGroup(value, index) {
     const group = requireObject(value, field);
     const nodeIds = requireArray(group.nodeIds, `${field}.nodeIds`)
         .map((id, nodeIndex) => requireDiagramString(id, `${field}.nodeIds[${nodeIndex}]`));
-    if (nodeIds.length === 0)
-        malformed(`${field}.nodeIds`, 'empty array');
     return {
         ...(group.height === undefined ? {} : { height: requireDiagramGridNumber(group.height, `${field}.height`, true) }),
         id: requireDiagramString(group.id, `${field}.id`),

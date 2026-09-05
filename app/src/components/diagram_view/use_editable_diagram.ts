@@ -143,6 +143,20 @@ export function useEditableDiagramEntityFieldIndexes(
     return useDiagramSnapshot(subscribe, getSnapshot, service)
 }
 
+/** Subscribes one membership leaf to the node IDs of one editable group. */
+export function useEditableDiagramGroupNodeIds(
+    groupId: string,
+    service: DiagramEditSessionService = diagramEditSessionService,
+) {
+    const subscribe = useCallback(
+        (listener: () => void) => service.subscribeGroupMembership(groupId, listener),
+        [groupId, service],
+    )
+    const getSnapshot = useCallback(() => service.getGroupNodeIdsSnapshot(groupId), [groupId, service])
+
+    return useDiagramSnapshot(subscribe, getSnapshot, service)
+}
+
 /** Subscribes one leaf to one edge connection-point field. */
 export function useEditableDiagramConnectionPointField<Field extends keyof DiagramConnectionPoint>(
     edgeId: string,

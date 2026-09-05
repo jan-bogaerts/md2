@@ -144,6 +144,31 @@ describe('DiagramResizeService', () => {
         expect(session.getTransientGestureSnapshot()).toBeNull()
     })
 
+    it('persists the complete derived box on the first resize of an implicit group', () => {
+        const automaticDiagram = structuredClone(diagram)
+        delete automaticDiagram.groups[0].height
+        delete automaticDiagram.groups[0].width
+        delete automaticDiagram.groups[0].x
+        delete automaticDiagram.groups[0].y
+        const { geometry, resize, selection, session } = createHarness(automaticDiagram)
+        selection.replace([group])
+        const derivedX = geometry.getGroupGeometryFieldSnapshot('backend', 'x')
+        const derivedY = geometry.getGroupGeometryFieldSnapshot('backend', 'y')
+
+        resize.beginResize(group, 'south-east', { x: 0, y: 0 })
+        resize.updateResize({ x: 12, y: 8 })
+        resize.completeResize()
+
+        expect(session.getGroupSnapshot('backend')).toMatchObject({
+            height: (geometry.getGroupGeometryFieldSnapshot('backend', 'height') as number),
+            width: (geometry.getGroupGeometryFieldSnapshot('backend', 'width') as number),
+            x: derivedX,
+            y: derivedY,
+        })
+        expect(session.getGroupFieldSnapshot('backend', 'x')).toBe(derivedX)
+        expect(session.getGroupFieldSnapshot('backend', 'y')).toBe(derivedY)
+    })
+
     it('rolls back when Escape cancellation or another gesture replaces resize', () => {
         const { resize, selection, session } = createHarness()
         selection.replace([orders])

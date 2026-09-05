@@ -8,6 +8,7 @@ import { useDiagramNodeGeometryField, useDiagramSurfaceField } from './use_diagr
 import { useEditableDiagramMetadataField } from './use_editable_diagram'
 
 const LIFELINE_BOTTOM_MARGIN = 24
+const LIFELINE_TARGET_WIDTH = 16
 
 interface EditableDiagramLifelineProps {
     geometry?: DiagramGeometryService
@@ -31,10 +32,17 @@ function EditableDiagramLifelineLeaf({
 
     return (
         <Box
+            aria-hidden="true"
+            data-diagram-connection-target={nodeId}
             sx={{
-                borderColor: 'divider', borderLeft: '1px dashed',
-                height: surfaceHeight - LIFELINE_BOTTOM_MARGIN - y - height, left: x + width / 2,
+                height: surfaceHeight - LIFELINE_BOTTOM_MARGIN - y - height,
+                left: x + width / 2 - LIFELINE_TARGET_WIDTH / 2,
                 position: 'absolute', top: y + height, zIndex: 1,
+                width: LIFELINE_TARGET_WIDTH,
+                '&::before': {
+                    borderColor: 'divider', borderLeft: '1px dashed', content: '""', height: '100%',
+                    left: LIFELINE_TARGET_WIDTH / 2, position: 'absolute', top: 0,
+                },
             }}
         />
     )

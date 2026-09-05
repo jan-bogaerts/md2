@@ -6782,15 +6782,15 @@
           "agent": "codex",
           "conversationId": "01a061e5-77e7-7132-8b44-8da304ded43b",
           "createdAt": "2026-09-02T11:36:58.214Z",
-          "lastUsedAt": "2026-09-05T12:40:57.129Z",
-          "synchronizedThroughMessageId": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-turn-2-assistant-2"
+          "lastUsedAt": "2026-09-05T12:55:13.831Z",
+          "synchronizedThroughMessageId": "agent-turn-f0bdbc41-4a1a-43f3-8725-241404136d9b-turn-3-assistant-2"
         }
       ],
       "startedAt": "2026-09-02T11:33:42.824Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 511806,
-        "runningStartedAt": "2026-09-05T12:54:45.566Z"
+        "elapsedMs": 540071,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {

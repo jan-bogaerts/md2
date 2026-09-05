@@ -193,7 +193,7 @@ export function DiagramComparison({
                     selection={selection}
                     session={session}
                 />
-                <DiagramToolbox boundaryElement={newViewportElement} placement={placement} session={session} />
+                <DiagramToolbox boundaryElement={newViewportElement} drawing={drawing} placement={placement} session={session} />
             </Paper>
         </Box>
     )

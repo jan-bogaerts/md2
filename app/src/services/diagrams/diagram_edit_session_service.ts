@@ -55,7 +55,7 @@ export type DiagramRemovableObjectKind = Extract<DiagramCollectionKind, 'edge' |
 export type DiagramConnectionEndpoint = 'sourceAttachment' | 'targetAttachment'
 export type DiagramToolboxSection = 'edit' | 'nodes' | 'edges' | 'groups' | 'others'
 export type DiagramPersistentTool = 'select' | 'group' | `node:${DiagramNodeKind}` | `edge:${DiagramEdgeKind}`
-export type DiagramTransientGesture = 'placement' | 'edge' | 'move' | 'resize'
+export type DiagramTransientGesture = 'placement' | 'edge' | 'group' | 'move' | 'resize'
 export type MutableDiagramMetaField = 'description' | 'title'
 export type MutableDiagramNodeField = Exclude<keyof DiagramNode, 'fields' | 'id'>
 export type MutableDiagramEdgeField = Exclude<keyof DiagramEdge, 'id' | 'sourceAttachment' | 'targetAttachment' | 'waypoints'>
@@ -191,7 +191,6 @@ function validateConnectionPointValue(
 
 function validateNewGroup(group: NewDiagramGroup) {
     requireDiagramString(group.label, 'groups.new.label')
-    if (group.nodeIds.length === 0) invalidDiagramField('groups.new.nodeIds', 'empty array')
     requireOptionalGridNumber(group.height, 'groups.new.height', true)
     requireOptionalGridNumber(group.width, 'groups.new.width', true)
     requireOptionalGridNumber(group.x, 'groups.new.x')
@@ -740,6 +739,87 @@ export class DiagramEditSessionService extends EventTarget {
         return true
     }
 
+    /** Reassigns one edge endpoint and its explicit attachment in one validated transaction. */
+    reconnectEdgeEndpoint(edgeId: string, endpoint: DiagramConnectionEndpoint, nodeId: string) {
+        const edge = this.requireEdge(edgeId)
+        const edgeField = endpoint === 'sourceAttachment' ? 'from' : 'to'
+        const previousNodeId = edge[edgeField]
+        if (previousNodeId === nodeId) return false
+
+        const attachment = edge[endpoint]
+        const candidate: DiagramEdge = {
+            ...edge,
+            [edgeField]: nodeId,
+            ...(attachment ? { [endpoint]: { ...attachment, nodeId } } : {}),
+        }
+        if (!this.validateOperation('Reconnect edge endpoint', () => {
+            this.validateEdgeFieldValue(candidate, edgeField, nodeId)
+            if (attachment) validateConnectionPointValue(candidate, endpoint, 'nodeId', nodeId)
+        })) return false
+
+        edge[edgeField] = nodeId
+        if (attachment) attachment.nodeId = nodeId
+
+        const originalEdge = this.originalEdgesById.get(edgeId)
+        const edgeEventName = diagramObjectFieldChangedEvent('edge', edgeId, edgeField)
+        const edgeChange: DiagramChange = {
+            category: 'field',
+            field: edgeField,
+            id: edgeEventName,
+            objectId: edgeId,
+            objectKind: 'edge',
+            originalValue: originalEdge?.[edgeField],
+            ownerId: null,
+            regionIndex: null,
+            value: nodeId,
+        }
+        this.setChange(edgeChange, `edge:${edgeId}`, Object.is(originalEdge?.[edgeField], nodeId))
+
+        const connectionEventName = attachment
+            ? diagramConnectionPointFieldChangedEvent(edgeId, endpoint, 'nodeId')
+            : null
+        if (attachment && connectionEventName) {
+            const connectionChange: DiagramChange = {
+                category: 'field',
+                field: 'nodeId',
+                id: connectionEventName,
+                objectId: `${edgeId}:${endpoint}`,
+                objectKind: 'connectionPoint',
+                originalValue: originalEdge?.[endpoint]?.nodeId,
+                ownerId: null,
+                regionIndex: null,
+                value: nodeId,
+            }
+            this.setChange(
+                connectionChange,
+                `edge:${edgeId}`,
+                Object.is(originalEdge?.[endpoint]?.nodeId, nodeId),
+            )
+        }
+
+        this.commitTransaction([])
+        const edgeDetail: DiagramFieldChangeDetail = {
+            field: edgeField,
+            objectId: edgeId,
+            objectKind: 'edge',
+            previousValue: previousNodeId,
+            value: nodeId,
+        }
+        this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(edgeEventName, { detail: edgeDetail }))
+        if (attachment && connectionEventName) {
+            const connectionDetail: DiagramFieldChangeDetail = {
+                field: 'nodeId',
+                objectId: `${edgeId}:${endpoint}`,
+                objectKind: 'connectionPoint',
+                previousValue: previousNodeId,
+                value: nodeId,
+            }
+            this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(connectionEventName, { detail: connectionDetail }))
+        }
+
+        return true
+    }
+
     setGroupField<Field extends MutableDiagramGroupField>(groupId: string, field: Field, value: DiagramGroup[Field]) {
         const group = this.requireGroup(groupId)
         const previousValue = group[field]
@@ -951,12 +1031,54 @@ export class DiagramEditSessionService extends EventTarget {
     createEdge(edge: NewDiagramEdge): string | null {
         const diagram = this.requireEditableDiagram()
         if (!this.validateOperation('Create edge', () => this.validateNewEdge(edge))) return null
+
+        return this.insertEdge(edge, diagram.edges.length)
+    }
+
+    /** Creates one sequence message at its persisted row index. */
+    createSequenceEdge(edge: NewDiagramEdge, rowIndex: number): string | null {
+        const diagram = this.requireEditableDiagram()
+        if (!this.validateOperation('Create sequence edge', () => {
+            if (diagram.meta.type !== 'sequence') invalidDiagramField('edges.new.row', 'value only allowed for sequence diagrams')
+            if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex > diagram.edges.length) {
+                invalidDiagramField('edges.new.row', `index ${rowIndex} outside the 0..${diagram.edges.length} range`)
+            }
+            this.validateNewEdge(edge)
+        })) return null
+
+        return this.insertEdge(edge, rowIndex)
+    }
+
+    /** Moves one existing sequence message to another persisted row without changing its identity. */
+    moveSequenceEdge(edgeId: string, rowIndex: number): boolean {
+        const diagram = this.requireEditableDiagram()
+        const edge = this.requireEdge(edgeId)
+        const previousRowIndex = diagram.edges.indexOf(edge)
+        if (!this.validateOperation('Move sequence edge', () => {
+            if (diagram.meta.type !== 'sequence') invalidDiagramField(`edges.${edgeId}.row`, 'value only allowed for sequence diagrams')
+            if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= diagram.edges.length) {
+                invalidDiagramField(`edges.${edgeId}.row`, `index ${rowIndex} outside the 0..${diagram.edges.length - 1} range`)
+            }
+        })) return false
+        if (rowIndex === previousRowIndex) return false
+
+        diagram.edges.splice(previousRowIndex, 1)
+        diagram.edges.splice(rowIndex, 0, edge)
+        this.edgeIds = frozenIds(diagram.edges)
+        this.markSequenceEdgeOrderChanges()
+        this.commitTransaction([collectionMembershipEvent('edge', [], [])])
+
+        return true
+    }
+
+    private insertEdge(edge: NewDiagramEdge, rowIndex: number) {
+        const diagram = this.requireEditableDiagram()
         const id = this.generateSelectableId()
         const created: DiagramEdge = { ...edge, id }
         if (edge.sourceAttachment) created.sourceAttachment = { ...edge.sourceAttachment }
         if (edge.targetAttachment) created.targetAttachment = { ...edge.targetAttachment }
         if (edge.waypoints) created.waypoints = edge.waypoints.map((waypoint) => ({ ...waypoint }))
-        diagram.edges.push(created)
+        diagram.edges.splice(rowIndex, 0, created)
         this.edgesById.set(id, created)
         this.edgeIds = frozenIds(diagram.edges)
         this.markCollectionMembership('edge', id, true)
@@ -1129,9 +1251,6 @@ export class DiagramEditSessionService extends EventTarget {
         for (const edge of diagram.edges) {
             if (nodeIds.has(edge.from) || nodeIds.has(edge.to)) edgeIds.add(edge.id)
         }
-        for (const group of diagram.groups) {
-            if (group.nodeIds.every((nodeId) => nodeIds.has(nodeId))) groupIds.add(group.id)
-        }
         const fragmentIds = new Set(
             (diagram.fragments ?? [])
                 .filter(({ regions }) => regions.some(({ edgeIds: regionEdgeIds }) => (
@@ -1199,11 +1318,6 @@ export class DiagramEditSessionService extends EventTarget {
 
     removeGroupMember(groupId: string, nodeId: string): boolean {
         const group = this.requireGroup(groupId)
-        if (group.nodeIds.includes(nodeId) && group.nodeIds.length === 1) {
-            if (!this.validateOperation('Remove group member', () => {
-                invalidDiagramField(`groups.${groupId}.nodeIds`, 'empty array after removing member')
-            })) return false
-        }
         const events: PendingMembershipEvent[] = []
         if (!this.detachGroupMember(group, nodeId, events)) return false
 
@@ -1597,11 +1711,6 @@ export class DiagramEditSessionService extends EventTarget {
     private validateNodeRemoval(nodeId: string) {
         const diagram = this.requireEditableDiagram()
         if (diagram.nodes.length === 1) invalidDiagramField('nodes', 'empty array after removing node')
-        for (const group of diagram.groups) {
-            if (group.nodeIds.includes(nodeId) && group.nodeIds.length === 1) {
-                invalidDiagramField(`groups.${group.id}.nodeIds`, 'empty array after removing node')
-            }
-        }
         for (const edge of diagram.edges) {
             if (edge.from === nodeId || edge.to === nodeId) this.validateEdgeRemoval(edge.id)
         }
@@ -1846,6 +1955,30 @@ export class DiagramEditSessionService extends EventTarget {
             value,
         }
         this.setChange(change, `${objectKind}:${objectId}`, (originalValue === null) === (value === null))
+    }
+
+    /** Tracks row changes by relative order of original messages; created messages own their order through their addition. */
+    private markSequenceEdgeOrderChanges() {
+        const diagram = this.requireEditableDiagram()
+        const originalIds = this.originalDiagram?.diagram.edges.map(({ id }) => id) ?? []
+        const currentOriginalIds = diagram.edges.filter(({ id }) => this.originalEdgesById.has(id)).map(({ id }) => id)
+        for (const edgeId of currentOriginalIds) {
+            const originalValue = originalIds.indexOf(edgeId)
+            const value = currentOriginalIds.indexOf(edgeId)
+            const id = diagramObjectFieldChangedEvent('edge', edgeId, 'row')
+            const change: DiagramChange = {
+                category: 'field',
+                field: 'row',
+                id,
+                objectId: edgeId,
+                objectKind: 'edge',
+                originalValue,
+                ownerId: null,
+                regionIndex: null,
+                value,
+            }
+            this.setChange(change, `edge:${edgeId}`, originalValue === value)
+        }
     }
 
     private markPastedCollection(

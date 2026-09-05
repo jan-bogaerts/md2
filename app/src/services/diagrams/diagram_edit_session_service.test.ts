@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagramData } from './diagram_data'
+import { parseDiagramData, serializeDiagramData, type DiagramData } from './diagram_data'
 import type { DiagramRecord } from './diagram_index'
 import {
     DEFAULT_DIAGRAM_ZOOM,
@@ -522,6 +522,61 @@ describe('DiagramEditSessionService', () => {
         expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'offset')).toBe(0.75)
     })
 
+    it('reconnects each endpoint atomically while preserving stable edge and attachment objects', () => {
+        const { service } = createHarness()
+        service.start()
+        const edge = service.getEdgeSnapshot('orders-store')
+        const sourceAttachment = service.getConnectionPointSnapshot('orders-store', 'sourceAttachment')
+        const targetAttachment = service.getConnectionPointSnapshot('orders-store', 'targetAttachment')
+        const fromChanged = vi.fn()
+        const toChanged = vi.fn()
+        const sourceNodeChanged = vi.fn()
+        const targetNodeChanged = vi.fn()
+        const edgeMembershipChanged = vi.fn()
+        service.subscribeEdgeField('orders-store', 'from', fromChanged)
+        service.subscribeEdgeField('orders-store', 'to', toChanged)
+        service.subscribeConnectionPointField('orders-store', 'sourceAttachment', 'nodeId', sourceNodeChanged)
+        service.subscribeConnectionPointField('orders-store', 'targetAttachment', 'nodeId', targetNodeChanged)
+        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
+
+        expect(service.reconnectEdgeEndpoint('orders-store', 'sourceAttachment', 'store')).toBe(true)
+        expect(service.reconnectEdgeEndpoint('orders-store', 'targetAttachment', 'orders')).toBe(true)
+
+        expect(service.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(service.getConnectionPointSnapshot('orders-store', 'sourceAttachment')).toBe(sourceAttachment)
+        expect(service.getConnectionPointSnapshot('orders-store', 'targetAttachment')).toBe(targetAttachment)
+        expect(service.getEdgeFieldSnapshot('orders-store', 'from')).toBe('store')
+        expect(service.getEdgeFieldSnapshot('orders-store', 'to')).toBe('orders')
+        expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('store')
+        expect(service.getConnectionPointFieldSnapshot('orders-store', 'targetAttachment', 'nodeId')).toBe('orders')
+        expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'offset')).toBe(0.5)
+        expect(service.getConnectionPointFieldSnapshot('orders-store', 'targetAttachment', 'side')).toBe('left')
+        expect(fromChanged).toHaveBeenCalledOnce()
+        expect(toChanged).toHaveBeenCalledOnce()
+        expect(sourceNodeChanged).toHaveBeenCalledOnce()
+        expect(targetNodeChanged).toHaveBeenCalledOnce()
+        expect(edgeMembershipChanged).not.toHaveBeenCalled()
+    })
+
+    it('rejects endpoint reconnection before mutating either endpoint field', () => {
+        const reportValidationError = vi.fn()
+        const { service } = createHarness({ reportValidationError })
+        service.start()
+        const edge = service.getEdgeSnapshot('orders-store')
+        const sourceAttachment = service.getConnectionPointSnapshot('orders-store', 'sourceAttachment')
+
+        expect(service.reconnectEdgeEndpoint('orders-store', 'sourceAttachment', 'missing')).toBe(false)
+
+        expect(service.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(service.getConnectionPointSnapshot('orders-store', 'sourceAttachment')).toBe(sourceAttachment)
+        expect(service.getEdgeFieldSnapshot('orders-store', 'from')).toBe('orders')
+        expect(service.getConnectionPointFieldSnapshot('orders-store', 'sourceAttachment', 'nodeId')).toBe('orders')
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(reportValidationError).toHaveBeenCalledWith(
+            'Reconnect edge endpoint rejected: edges.orders-store.from has unknown node missing',
+        )
+    })
+
     it('exposes and changes sequence fragments and entity fields in their valid diagram types', () => {
         const sequenceService = sequenceHarness()
         const { service: entityService } = createHarness({ source: entityDiagram })
@@ -796,7 +851,7 @@ describe('DiagramEditSessionService', () => {
         expect(service.removeNode('orders')).toBe(false)
     })
 
-    it('deletes one selection with cascading invalid groups and fragments in one publication', () => {
+    it('deletes one selection, preserves its emptied group, and removes invalid fragments in one publication', () => {
         const source = structuredClone(sequenceDiagram)
         source.groups.push({ id: 'actors', label: 'Actors', nodeIds: ['user'] })
         const sourceBeforeDelete = structuredClone(source)
@@ -813,12 +868,14 @@ describe('DiagramEditSessionService', () => {
         const nodeMembershipChanged = vi.fn()
         const edgeMembershipChanged = vi.fn()
         const groupMembershipChanged = vi.fn()
+        const backendMembershipChanged = vi.fn()
         const fragmentMembershipChanged = vi.fn()
         const dirtyChanged = vi.fn()
         const changeIdsChanged = vi.fn()
         service.subscribeCollectionMembership('node', nodeMembershipChanged)
         service.subscribeCollectionMembership('edge', edgeMembershipChanged)
         service.subscribeCollectionMembership('group', groupMembershipChanged)
+        service.subscribeGroupMembership('backend', backendMembershipChanged)
         service.subscribeCollectionMembership('fragment', fragmentMembershipChanged)
         service.subscribeDirty(dirtyChanged)
         service.subscribeChangeIds(changeIdsChanged)
@@ -838,15 +895,16 @@ describe('DiagramEditSessionService', () => {
         expect(service.getGroupNodeIdsSnapshot('actors')).toBe(actorsNodeIds)
         expect(service.getNodeIdsSnapshot()).toEqual(['user'])
         expect(service.getEdgeIdsSnapshot()).toEqual([])
-        expect(service.getGroupIdsSnapshot()).toEqual(['actors'])
+        expect(service.getGroupIdsSnapshot()).toEqual(['backend', 'actors'])
+        expect(service.getGroupNodeIdsSnapshot('backend')).toEqual([])
         expect(service.getFragmentIdsSnapshot()).toEqual([])
         expect(membershipDetail(nodeMembershipChanged).removedIds).toEqual(['orders'])
         expect(membershipDetail(edgeMembershipChanged).removedIds).toEqual(['user-orders', 'orders-user'])
-        expect(membershipDetail(groupMembershipChanged).removedIds).toEqual(['backend'])
         expect(membershipDetail(fragmentMembershipChanged).removedIds).toEqual(['transaction'])
         expect(nodeMembershipChanged).toHaveBeenCalledOnce()
         expect(edgeMembershipChanged).toHaveBeenCalledOnce()
-        expect(groupMembershipChanged).toHaveBeenCalledOnce()
+        expect(groupMembershipChanged).not.toHaveBeenCalled()
+        expect(backendMembershipChanged).toHaveBeenCalledOnce()
         expect(fragmentMembershipChanged).toHaveBeenCalledOnce()
         expect(dirtyChanged).toHaveBeenCalledOnce()
         expect(changeIdsChanged).toHaveBeenCalledOnce()
@@ -856,7 +914,7 @@ describe('DiagramEditSessionService', () => {
                 expect.objectContaining({ category: 'collection', objectId: 'orders', objectKind: 'node', value: null }),
                 expect.objectContaining({ category: 'collection', objectId: 'user-orders', objectKind: 'edge', value: null }),
                 expect.objectContaining({ category: 'collection', objectId: 'orders-user', objectKind: 'edge', value: null }),
-                expect.objectContaining({ category: 'collection', objectId: 'backend', objectKind: 'group', value: null }),
+                expect.objectContaining({ category: 'membership', objectId: 'orders', objectKind: 'node', ownerId: 'backend', value: false }),
                 expect.objectContaining({ category: 'collection', objectId: 'transaction', objectKind: 'fragment', value: null }),
             ]),
         )
@@ -941,6 +999,43 @@ describe('DiagramEditSessionService', () => {
         expect(service.removeEdge('user-orders')).toBe(false)
     })
 
+    it('inserts and moves sequence messages by persisted row without changing fragment references', () => {
+        const service = sequenceHarness(vi.fn().mockReturnValue('edge-1'))
+        const edgeMembershipChanged = vi.fn()
+        const fragmentEdgeIds = service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)
+        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
+
+        expect(service.createSequenceEdge({ from: 'orders', kind: 'success', to: 'user' }, 1)).toBe('edge-1')
+        expect(service.getEdgeIdsSnapshot()).toEqual(['user-orders', 'edge-1', 'orders-user'])
+        expect(edgeMembershipChanged).toHaveBeenCalledOnce()
+        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toBe(fragmentEdgeIds)
+
+        expect(service.moveSequenceEdge('orders-user', 0)).toBe(true)
+        expect(service.getEdgeIdsSnapshot()).toEqual(['orders-user', 'user-orders', 'edge-1'])
+        expect(edgeMembershipChanged).toHaveBeenCalledTimes(2)
+        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toBe(fragmentEdgeIds)
+
+        const persisted = parseDiagramData(JSON.stringify(service.getEditableDiagram()))
+        const reloaded = parseDiagramData(serializeDiagramData(persisted))
+        expect(reloaded.edges.map(({ id }) => id)).toEqual(['orders-user', 'user-orders', 'edge-1'])
+        expect(reloaded.fragments?.[0].regions[0].edgeIds).toEqual(['user-orders', 'orders-user'])
+    })
+
+    it('rejects sequence row operations on invalid rows and other diagram types', () => {
+        const reportValidationError = vi.fn()
+        const sequence = sequenceHarness(vi.fn().mockReturnValue('edge-1'), reportValidationError)
+
+        expect(sequence.createSequenceEdge({ from: 'orders', kind: 'success', to: 'user' }, 3)).toBeNull()
+        expect(sequence.moveSequenceEdge('orders-user', -1)).toBe(false)
+        expect(sequence.getEdgeIdsSnapshot()).toEqual(['user-orders', 'orders-user'])
+
+        const { service: architecture } = createHarness({ reportValidationError })
+        architecture.start()
+        expect(architecture.createSequenceEdge({ from: 'orders', kind: 'connection', to: 'store' }, 0)).toBeNull()
+        expect(architecture.moveSequenceEdge('orders-store', 0)).toBe(false)
+        expect(reportValidationError).toHaveBeenCalledTimes(4)
+    })
+
     it('creates and removes groups without touching their member nodes', () => {
         const { service } = createHarness({ createId: vi.fn().mockReturnValue('group-1') })
         service.start()
@@ -950,11 +1045,12 @@ describe('DiagramEditSessionService', () => {
         service.subscribeCollectionMembership('group', groupMembershipChanged)
         service.subscribeCollectionMembership('node', nodeMembershipChanged)
 
-        const createdId = service.createGroup({ label: 'Storage', nodeIds: ['store'] })
+        const createdId = service.createGroup({ height: 80, label: 'Storage', nodeIds: [], width: 120, x: 20, y: 24 })
 
         expect(createdId).toBe('group-1')
         expect(service.getGroupIdsSnapshot()).toEqual(['backend', 'group-1'])
-        expect(service.getGroupNodeIdsSnapshot('group-1')).toEqual(['store'])
+        expect(service.getGroupNodeIdsSnapshot('group-1')).toEqual([])
+        expect(service.getGroupSnapshot('group-1')).toMatchObject({ height: 80, width: 120, x: 20, y: 24 })
         expect(groupMembershipChanged).toHaveBeenCalledOnce()
 
         expect(service.removeGroup('group-1')).toBe(true)
@@ -993,6 +1089,20 @@ describe('DiagramEditSessionService', () => {
         )
         expect(() => service.removeGroupMember('missing', 'store')).toThrow('group missing does not exist')
         expect(service.removeGroupMember('backend', 'missing')).toBe(false)
+    })
+
+    it('allows removing the final group member and removing a final member node without deleting the group', () => {
+        const { service } = createHarness()
+        service.start()
+        service.removeGroupMember('backend', 'store')
+
+        expect(service.removeGroupMember('backend', 'orders')).toBe(true)
+        expect(service.getGroupNodeIdsSnapshot('backend')).toEqual([])
+
+        expect(service.addGroupMember('backend', 'store')).toBe(true)
+        expect(service.removeNode('store')).toBe(true)
+        expect(service.getGroupSnapshot('backend')).not.toBeNull()
+        expect(service.getGroupNodeIdsSnapshot('backend')).toEqual([])
     })
 
     it('creates fragments only on sequence diagrams and keeps region edges after removal', () => {
@@ -1161,6 +1271,11 @@ describe('DiagramEditSessionService', () => {
         const { service: entity } = createHarness({ reportValidationError: entityReporter, source: entityDiagram })
         entity.start()
         expect(entity.setEntityField('order', 0, 'key', 'invalid' as never)).toBe(false)
+        const relationship = entity.getEdgeSnapshot('order-item')
+        expect(entity.setEdgeField('order-item', 'fromCardinality', 'many' as never)).toBe(false)
+        expect(entity.createEdge({ from: 'order', kind: 'relationship', to: 'missing' })).toBeNull()
+        expect(entity.getEdgeSnapshot('order-item')).toBe(relationship)
+        expect(entity.getEdgeFieldSnapshot('order-item', 'fromCardinality')).toBe('1')
 
         expect(architectureReporter.mock.calls.map(([message]) => message)).toEqual(expect.arrayContaining([
             'Set edge field rejected: edges.orders-store.from has unknown node missing',
@@ -1175,17 +1290,15 @@ describe('DiagramEditSessionService', () => {
         expect(entityReporter).toHaveBeenCalledWith(
             'Set entity field rejected: nodes.order.fields[0].key has unsupported value invalid',
         )
+        expect(entityReporter).toHaveBeenCalledWith(
+            'Set edge field rejected: edges.order-item.fromCardinality has unsupported value many',
+        )
+        expect(entityReporter).toHaveBeenCalledWith(
+            'Create edge rejected: edges.new.to has unknown node missing',
+        )
     })
 
-    it('rejects removals that would empty required group or fragment regions', () => {
-        const groupReporter = vi.fn()
-        const { service: architecture } = createHarness({ reportValidationError: groupReporter })
-        architecture.start()
-        expect(architecture.removeGroupMember('backend', 'store')).toBe(true)
-        const groupNodeIds = architecture.getGroupNodeIdsSnapshot('backend')
-        expect(architecture.removeGroupMember('backend', 'orders')).toBe(false)
-        expect(architecture.getGroupNodeIdsSnapshot('backend')).toBe(groupNodeIds)
-
+    it('rejects removals that would empty required fragment regions', () => {
         const fragmentReporter = vi.fn()
         const sequence = sequenceHarness(undefined, fragmentReporter)
         expect(sequence.removeFragmentRegionEdge('transaction', 0, 'user-orders')).toBe(true)
@@ -1194,9 +1307,6 @@ describe('DiagramEditSessionService', () => {
         expect(sequence.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toBe(regionEdgeIds)
         expect(sequence.getEdgeSnapshot('orders-user')).not.toBeNull()
 
-        expect(groupReporter).toHaveBeenCalledWith(
-            'Remove group member rejected: groups.backend.nodeIds has empty array after removing member',
-        )
         expect(fragmentReporter).toHaveBeenCalledWith(
             'Remove edge rejected: fragments.transaction.regions[0].edgeIds has empty array after removing edge',
         )

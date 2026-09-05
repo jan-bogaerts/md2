@@ -47,6 +47,16 @@ describe('parseDiagramData', () => {
         expect(parseDiagramData(serializeDiagramData(parsed))).toEqual(parsed)
     })
 
+    it('parses and serializes an empty group', () => {
+        const diagram = validDiagram()
+        diagram.groups[0] = { ...diagram.groups[0], nodeIds: [] }
+
+        const parsed = parseDiagramData(JSON.stringify(diagram))
+
+        expect(parsed.groups[0].nodeIds).toEqual([])
+        expect(parseDiagramData(serializeDiagramData(parsed))).toEqual(parsed)
+    })
+
     it('rejects group geometry outside the grid and non-positive group sizes', () => {
         const group = validDiagram().groups[0]
 

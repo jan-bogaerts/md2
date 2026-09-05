@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
@@ -9,6 +9,7 @@ import {
     DiagramEditSessionService,
 } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
+import { DiagramGroupDrawingService } from '../../services/diagrams/diagram_group_drawing_service'
 import { DiagramMoveService } from '../../services/diagrams/diagram_move_service'
 import { DiagramNodePlacementService } from '../../services/diagrams/diagram_node_placement_service'
 import { DiagramResizeService } from '../../services/diagrams/diagram_resize_service'
@@ -27,11 +28,28 @@ const diagram: DiagramData = {
         { id: 'store', label: 'Store', role: 'store', x: 480, y: 120 },
     ],
 }
+const sequenceDiagram: DiagramData = {
+    edges: [
+        { from: 'orders', id: 'orders-store', kind: 'call', label: 'writes', to: 'store' },
+        { from: 'store', id: 'store-orders', kind: 'return', label: 'done', to: 'orders' },
+    ],
+    groups: [],
+    meta: { description: 'Orders sequence', title: 'Sequence', type: 'sequence', version: 1 },
+    nodes: [
+        { id: 'orders', kind: 'participant', label: 'Orders', role: 'focal', x: 40, y: 40 },
+        { id: 'store', kind: 'participant', label: 'Store', role: 'store', x: 256, y: 40 },
+    ],
+}
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
 class DiagramSourceStub extends EventTarget {
-    private readonly source: DiagramViewSourceSnapshot = { diagram, record }
+    private readonly source: DiagramViewSourceSnapshot
+
+    constructor(sourceDiagram: DiagramData = diagram) {
+        super()
+        this.source = { diagram: sourceDiagram, record }
+    }
 
     getSourceSnapshot = () => this.source
 
@@ -42,18 +60,20 @@ class DiagramSourceStub extends EventTarget {
     }
 }
 
-function createHarness() {
-    const session = new DiagramEditSessionService(new DiagramSourceStub())
+function createHarness(sourceDiagram: DiagramData = diagram) {
+    const session = new DiagramEditSessionService(new DiagramSourceStub(sourceDiagram))
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
     const placement = new DiagramNodePlacementService(session, selection)
     const drawing = new DiagramEdgeDrawingService(session, geometry, selection)
+    const groupDrawing = new DiagramGroupDrawingService(session, selection)
 
     return {
         drawing,
         geometry,
+        groupDrawing,
         movement: new DiagramMoveService(session, geometry, selection),
         placement,
         resize: new DiagramResizeService(session, geometry, selection),
@@ -159,6 +179,26 @@ describe('DiagramZoomViewport', () => {
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
 
+    it('uses sequence lifelines to insert a message at the chosen row', () => {
+        const { drawing, geometry, selection, session } = createHarness(sequenceDiagram)
+        render(<DiagramZoomViewport drawing={drawing} geometry={geometry} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const sourceLifeline = document.querySelector('[data-diagram-connection-target="orders"]:not([data-diagram-id])')
+        const targetLifeline = document.querySelector('[data-diagram-connection-target="store"]:not([data-diagram-id])')
+        if (!sourceLifeline || !targetLifeline) throw new Error('Expected sequence lifeline targets')
+        vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({bottom: 500, height: 500, left: 0, right: 700, toJSON: () => ({}), top: 0, width: 700, x: 0, y: 0})
+        act(() => { drawing.activate({ kind: 'async' }) })
+
+        fireEvent.pointerDown(sourceLifeline, { button: 0, clientX: 120, clientY: 200, isPrimary: true, pointerId: 25 })
+        fireEvent.pointerDown(targetLifeline, { button: 0, clientX: 336, clientY: 200, isPrimary: true, pointerId: 26 })
+
+        expect(session.getEdgeIdsSnapshot()).toHaveLength(3)
+        const insertedId = session.getEdgeIdsSnapshot()[1]
+        expect(session.getEdgeSnapshot(insertedId)).toMatchObject({ from: 'orders', kind: 'async', to: 'store' })
+        expect(session.getEdgeSnapshot(insertedId)?.sourceAttachment).toBeUndefined()
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: insertedId, objectKind: 'edge' }])
+    })
+
     it('previews and places one snapped node through scrolled, zoomed New coordinates', () => {
         const { geometry, placement, selection, session } = createHarness()
         render(
@@ -194,6 +234,46 @@ describe('DiagramZoomViewport', () => {
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: nodeId, objectKind: 'node' }])
         expect(session.getActiveToolSnapshot()).toBe('select')
         expect(screen.getByRole('button', { name: 'New component' })).not.toHaveAttribute('aria-disabled')
+    })
+
+    it('draws, labels, mounts, and selects one group through scrolled, zoomed New coordinates', async () => {
+        const { geometry, groupDrawing, selection, session } = createHarness()
+        const user = userEvent.setup()
+        render(
+            <DiagramZoomViewport
+                geometry={geometry}
+                groupDrawing={groupDrawing}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({bottom: 420, height: 400, left: 10, right: 810, toJSON: () => ({}), top: 20, width: 800, x: 10, y: 20})
+        scroller.scrollLeft = 40
+        scroller.scrollTop = 20
+        act(() => {
+            session.zoomOut()
+            groupDrawing.activate()
+        })
+        const scale = session.getViewportScaleSnapshot()
+        const start = viewportClientPoint(100, 80, scale, scroller.scrollLeft, scroller.scrollTop)
+        const end = viewportClientPoint(220, 180, scale, scroller.scrollLeft, scroller.scrollTop)
+
+        fireEvent.pointerDown(scroller, { button: 0, ...start, isPrimary: true, pointerId: 31 })
+        fireEvent.pointerMove(scroller, { ...end, pointerId: 31 })
+        expect(screen.getByTestId('diagram-group-drawing-preview')).toHaveStyle({ height: '100px', left: '100px', top: '80px', width: '120px' })
+        fireEvent.pointerUp(scroller, { ...end, pointerId: 31 })
+
+        expect(session.getGroupIdsSnapshot()).toEqual(['backend'])
+        expect(screen.getByRole('dialog', { name: 'New group' })).toBeInTheDocument()
+        await user.type(screen.getByRole('textbox', { name: 'Label' }), 'Platform')
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+
+        const groupId = session.getGroupIdsSnapshot().at(-1) as string
+        expect(session.getGroupSnapshot(groupId)).toEqual({height: 100, id: groupId, label: 'Platform', nodeIds: [], width: 120, x: 100, y: 80})
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: groupId, objectKind: 'group' }])
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Platform' })).toHaveAttribute('aria-pressed', 'true'))
+        expect(screen.queryByTestId('diagram-group-drawing-preview')).not.toBeInTheDocument()
     })
 
     it('creates nothing when pointer cancellation ends node placement', () => {

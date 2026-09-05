@@ -1,6 +1,7 @@
 import { register } from '../service_injector'
 import {
     requireDiagramEdgeKind,
+    requireDiagramEdgeLabel,
     type DiagramConnectionPoint,
     type DiagramEdgeKind,
     type DiagramWaypoint,
@@ -11,10 +12,19 @@ import {
     type NewDiagramEdge,
 } from './diagram_edit_session_service'
 import { diagramGeometryService, type DiagramGeometryService } from './diagram_geometry_service'
-import type { PositionedDiagramNode } from './diagram_layout'
+import {
+    sequenceMessageInsertionIndexAt,
+    sequenceMessageRowY,
+    type PositionedDiagramNode,
+} from './diagram_layout'
 import { diagramSelectionService, type DiagramSelectionService } from './diagram_selection_service'
 
 const PREVIEW_CHANGED_EVENT = 'edgeDrawing:preview'
+/** Placeholder labels for edge kinds whose diagram preset requires a label before the edge exists. */
+const REQUIRED_EDGE_LABELS: Partial<Record<DiagramEdgeKind, string>> = {
+    flow: 'New branch',
+    transition: 'New transition',
+}
 
 export interface DiagramEdgeDrawingPoint {
     x: number
@@ -104,6 +114,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
     private preview: DiagramEdgeDrawingPreview | null = null
     private readonly geometry: DiagramEdgeDrawingGeometry
     private readonly selection: DiagramEdgeDrawingSelection
+    private sequenceRowIndex: number | null = null
     private readonly session: DiagramEditSessionService
 
     constructor(
@@ -153,6 +164,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
         if (!this.isEdgeKindAvailable(defaults.kind)) return false
 
         this.defaults = { ...defaults }
+        this.sequenceRowIndex = null
         this.setPreview(null)
         this.session.setActiveTool(`edge:${defaults.kind}`)
 
@@ -162,6 +174,16 @@ export class DiagramEdgeDrawingService extends EventTarget {
     beginSource(nodeId: string, point: DiagramEdgeDrawingPoint) {
         const defaults = this.requireActiveDefaults()
         const node = this.requirePositionedNode(nodeId)
+        if (this.session.getMetadataFieldSnapshot('type') === 'sequence') {
+            const rowIndex = sequenceMessageInsertionIndexAt(point.y, this.session.getEdgeIdsSnapshot().length)
+            const sourceAttachment = { nodeId, offset: 0.5, side: 'bottom' } as const
+            const source = Object.freeze({ x: node.x + node.width / 2, y: sequenceMessageRowY(rowIndex) })
+            this.sequenceRowIndex = rowIndex
+            this.setPreview({ kind: defaults.kind, points: Object.freeze([source]), sourceAttachment, targetAttachment: null })
+            this.session.beginTransientGesture('edge')
+
+            return true
+        }
         const sourceAttachment = diagramConnectionPointAt(node, point)
         const source = absoluteConnectionPoint(sourceAttachment, node)
         const preview = { kind: defaults.kind, points: Object.freeze([Object.freeze(source)]), sourceAttachment, targetAttachment: null }
@@ -174,6 +196,9 @@ export class DiagramEdgeDrawingService extends EventTarget {
     updatePreview(point: DiagramEdgeDrawingPoint, targetNodeId: string | null = null) {
         requireFinitePoint(point)
         const preview = this.requirePreview()
+        if (this.session.getMetadataFieldSnapshot('type') === 'sequence') {
+            return this.updateSequencePreview(point, targetNodeId, preview)
+        }
         const sourceNode = this.requirePositionedNode(preview.sourceAttachment.nodeId)
         const source = absoluteConnectionPoint(preview.sourceAttachment, sourceNode)
         const targetNode = targetNodeId ? this.findPositionedNode(targetNodeId) : null
@@ -200,18 +225,24 @@ export class DiagramEdgeDrawingService extends EventTarget {
         const targetAttachment = completedPreview.targetAttachment
         if (!targetAttachment) return null
 
+        const sequenceDiagram = this.session.getMetadataFieldSnapshot('type') === 'sequence'
+        const from = completedPreview.sourceAttachment.nodeId
         const edge: NewDiagramEdge = {
             ...defaults,
-            from: completedPreview.sourceAttachment.nodeId,
-            sourceAttachment: { ...completedPreview.sourceAttachment },
-            targetAttachment: { ...targetAttachment },
+            ...this.requiredLabel(defaults, from),
+            from,
+            ...(sequenceDiagram ? {} : { sourceAttachment: { ...completedPreview.sourceAttachment } }),
+            ...(sequenceDiagram ? {} : { targetAttachment: { ...targetAttachment } }),
             to: targetAttachment.nodeId,
         }
-        const edgeId = this.session.createEdge(edge)
+        const edgeId = sequenceDiagram
+            ? this.session.createSequenceEdge(edge, this.requireSequenceRowIndex())
+            : this.session.createEdge(edge)
         if (!edgeId) return null
 
         this.selection.replace([{ objectId: edgeId, objectKind: 'edge' }])
         this.defaults = null
+        this.sequenceRowIndex = null
         this.setPreview(null)
         this.session.setActiveTool('select')
 
@@ -236,9 +267,59 @@ export class DiagramEdgeDrawingService extends EventTarget {
 
     private readonly handleSessionChanged = () => this.clearDrawing()
 
+    private updateSequencePreview(
+        point: DiagramEdgeDrawingPoint,
+        targetNodeId: string | null,
+        preview: DiagramEdgeDrawingPreview,
+    ) {
+        const sourceNode = this.requirePositionedNode(preview.sourceAttachment.nodeId)
+        const targetNode = targetNodeId ? this.findPositionedNode(targetNodeId) : null
+        const rowIndex = sequenceMessageInsertionIndexAt(point.y, this.session.getEdgeIdsSnapshot().length)
+        const y = sequenceMessageRowY(rowIndex)
+        const source = Object.freeze({ x: sourceNode.x + sourceNode.width / 2, y })
+        const target = Object.freeze({ x: targetNode ? targetNode.x + targetNode.width / 2 : point.x, y })
+        const targetAttachment = targetNode
+            ? { nodeId: targetNode.id, offset: 0.5, side: 'bottom' } as const
+            : null
+        this.sequenceRowIndex = rowIndex
+        this.setPreview({
+            kind: preview.kind,
+            points: Object.freeze([source, target]),
+            sourceAttachment: preview.sourceAttachment,
+            targetAttachment,
+        })
+
+        return true
+    }
+
+    /** Supplies a placeholder label when the diagram preset and source node make one mandatory. */
+    private requiredLabel(defaults: DiagramEdgeDrawingDefaults, sourceNodeId: string) {
+        if (defaults.label) return {}
+
+        const diagramType = this.session.getMetadataFieldSnapshot('type')
+        if (!diagramType) return {}
+
+        const preset = this.session.getMetadataFieldSnapshot('preset')
+        const sourceKind = this.session.getNodeSnapshot(sourceNodeId)?.kind
+        try {
+            requireDiagramEdgeLabel(defaults.label, diagramType, preset ?? undefined, sourceKind, 'edges.new.label')
+
+            return {}
+        } catch {
+            return { label: REQUIRED_EDGE_LABELS[defaults.kind] ?? 'New label' }
+        }
+    }
+
     private clearDrawing() {
         this.defaults = null
+        this.sequenceRowIndex = null
         this.setPreview(null)
+    }
+
+    private requireSequenceRowIndex() {
+        if (this.sequenceRowIndex === null) throw new Error('Diagram sequence drawing has no message row')
+
+        return this.sequenceRowIndex
     }
 
     private findPositionedNode(nodeId: string) {
