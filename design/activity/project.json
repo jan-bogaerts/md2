@@ -24313,7 +24313,7 @@
       "actionId": "32cd123d-3208-4ffb-8732-184f3ef8912e",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-05T17:20:49.271Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 86932
@@ -25306,17 +25306,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 70,
-          "timestamp": "2026-09-05T17:20:48.770Z"
+          "timestamp": "2026-09-05T17:20:49.271Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-f5376fb0-689a-4a34-8dcd-088b6873d82e",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a07292-ac6f-7861-a5de-5549a7591b76",
+          "createdAt": "2026-09-05T17:20:49.271Z",
+          "lastUsedAt": "2026-09-05T17:20:49.271Z",
+          "synchronizedThroughMessageId": "agent-turn-c2f2a537-cfc4-49cf-ae1e-b157aabcf1d7-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-05T17:16:49.378Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-05T17:16:49.378Z"
+        "elapsedMs": 239893,
+        "runningStartedAt": null
       },
       "title": "architecture drill down",
       "usage": {
