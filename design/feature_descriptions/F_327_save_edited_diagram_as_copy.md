@@ -3,13 +3,24 @@ author:
 id: F_327
 internalId: 0a0fa053-2cfc-497e-9bb4-c3440ddb8638
 title: save edited diagram as a copy
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__0a0fa053-2cfc-497e-9bb4-c3440ddb8638.json
 policy:
 after: 59dd5932-3f6c-4b9e-aa4e-99c2c0419b7d
+changedFiles:
+  - app/src/components/diagram_view/diagram_change_review_actions.tsx
+  - app/src/components/diagram_view/diagram_change_review_dialog.test.tsx
+  - app/src/components/diagram_view/diagram_change_review_dialog.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_index.node.test.ts
+  - app/src/services/diagrams/diagram_index.ts
+  - app/src/services/diagrams/diagram_save_service.test.ts
+  - app/src/services/diagrams/diagram_save_service.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
