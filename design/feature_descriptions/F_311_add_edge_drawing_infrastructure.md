@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__ab22473c-bea7-4d12-aced-6628ef5c50f8.json
 policy:
 after: cffd0f4a-8cc4-4429-bacc-e08c28c7b233
 branch: f_311_add_edge_drawing_infrastructure
