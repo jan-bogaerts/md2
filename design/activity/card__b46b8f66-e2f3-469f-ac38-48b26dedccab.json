@@ -471,13 +471,50 @@
         "totalTokens": 371309
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "b46b8f66-e2f3-469f-ac38-48b26dedccab",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "91845eb235b5bd5070110105588eaa045da662aa",
+          "committedAt": "2026-09-05T18:46:56+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_250_add_tooltip_to_button_in_action_popup.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 21
+        }
+      ],
+      "completedAt": "2026-09-05T16:46:57.014Z",
+      "conversationIds": [
+        "agent-53f2e8e2-fd70-4259-9937-83f785c4e7eb"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "low",
+        "type": "agent"
+      },
+      "runId": "action-08079043-5427-4ee1-a234-77a7dcbef909",
+      "origin": {
+        "cardInternalId": "b46b8f66-e2f3-469f-ac38-48b26dedccab",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-53f2e8e2-fd70-4259-9937-83f785c4e7eb",
+      "startedAt": "2026-09-05T16:45:49.666Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
