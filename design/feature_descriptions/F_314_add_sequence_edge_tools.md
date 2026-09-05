@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__a9a843a2-367c-42ec-b9ca-7d990faf13ff.json
 policy:
 after: 38dda9b3-29d3-4797-9d49-d2e435ccd6f1
 ---
