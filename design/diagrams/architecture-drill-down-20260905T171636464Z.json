@@ -1,0 +1,456 @@
+{
+  "meta": {
+    "version": 1,
+    "type": "architecture",
+    "title": "Action Automation architecture",
+    "description": "Implemented Electron action automation: renderer control, scheduled and interactive orchestration, definition resolution, chained command or agent execution, worktree coordination, diagram completion, run events, and project-backed persistence."
+  },
+  "nodes": [
+    {
+      "id": "action-controls",
+      "label": "Action Controls",
+      "role": "input",
+      "kind": "component",
+      "sublabel": "Action popup, card triggers, editor, and schedule form initiate and interact with runs"
+    },
+    {
+      "id": "renderer-run-registry",
+      "label": "Renderer Run Registry",
+      "role": "backend",
+      "kind": "component",
+      "sublabel": "Owns renderer-side run stores, recovery, waiting promises, context bindings, and active-run subscriptions"
+    },
+    {
+      "id": "action-ipc-bridge",
+      "label": "Action IPC Bridge",
+      "role": "boundary",
+      "kind": "component",
+      "sublabel": "Preload and local bridge dispatch expose whitelisted action requests and stream run events across the Electron boundary"
+    },
+    {
+      "id": "action-runner-service",
+      "label": "Action Runner Service",
+      "role": "focal",
+      "kind": "component",
+      "sublabel": "Owns project action runtime, active and recoverable runs, conversation reservations, run control, and event publication"
+    },
+    {
+      "id": "action-scheduler-service",
+      "label": "Action Scheduler Service",
+      "role": "focal",
+      "kind": "component",
+      "sublabel": "Persists one-time schedules, reconciles bounded timers, starts unattended runs, and records terminal schedule status"
+    },
+    {
+      "id": "action-definition-resolution",
+      "label": "Action Definition Resolution",
+      "role": "backend",
+      "kind": "component",
+      "sublabel": "Indexes action IDs, lazily loads linked definitions, validates graphs against profiles and states, and resolves built-ins"
+    },
+    {
+      "id": "action-run-orchestrator",
+      "label": "Action Run Orchestrator",
+      "role": "focal",
+      "kind": "component",
+      "sublabel": "Executes onBefore, main, conditional on, and onAfter phases; handles cancellation, auto-finish, output, commits, and final activity"
+    },
+    {
+      "id": "action-worktree-coordinator",
+      "label": "Action Worktree Coordinator",
+      "role": "backend",
+      "kind": "component",
+      "sublabel": "Serializes runs per card and resolves primary, assigned worktree, or merge-conflict repository context"
+    },
+    {
+      "id": "command-action-executor",
+      "label": "Command Action Executor",
+      "role": "backend",
+      "kind": "component",
+      "sublabel": "Resolves action placeholders, spawns shell commands in the selected repository, streams output, and terminates cancelled process trees"
+    },
+    {
+      "id": "agent-action-executor",
+      "label": "Agent Action Executor",
+      "role": "backend",
+      "kind": "component",
+      "sublabel": "Builds prompts and continuation requests, binds activity conversations, and adapts action runs to the agent runtime"
+    },
+    {
+      "id": "agent-runner-service",
+      "label": "Agent Runner Service",
+      "role": "backend",
+      "kind": "component",
+      "sublabel": "Spawns provider processes, parses streaming protocols, handles questions and approvals, checkpoints conversations, and reports usage"
+    },
+    {
+      "id": "diagram-output-watcher",
+      "label": "Diagram Output Watcher",
+      "role": "optional",
+      "kind": "component",
+      "sublabel": "Watches the allocated diagram JSON path and requests auto-finish only after shared diagram-data validation succeeds"
+    },
+    {
+      "id": "project-change-watcher",
+      "label": "Project Change Watcher",
+      "role": "backend",
+      "kind": "component",
+      "sublabel": "Publishes project file changes used to reconcile externally modified schedule state"
+    },
+    {
+      "id": "worktree-and-conflict-services",
+      "label": "Worktree and Merge Conflict Services",
+      "role": "backend",
+      "kind": "component",
+      "sublabel": "Resolve configured linked worktrees and active merge-conflict sessions to repository roots and branches"
+    },
+    {
+      "id": "local-git-service",
+      "label": "Local Git Service",
+      "role": "backend",
+      "kind": "component",
+      "sublabel": "Provides action and schedule file access, activity and conversation persistence, tracked commits, commit metadata, and worktree operations"
+    },
+    {
+      "id": "desktop-agent-configuration",
+      "label": "Desktop Agent Configuration",
+      "role": "store",
+      "kind": "component",
+      "sublabel": "Electron-store configuration supplies agent profiles, commands, models, permission modes, and thinking levels"
+    },
+    {
+      "id": "local-project-repository",
+      "label": "Local Git Project",
+      "role": "store",
+      "kind": "component",
+      "sublabel": "Stores action JSON, .md2-schedules.json, activity and conversation files, generated diagrams, working-tree changes, and Git history"
+    },
+    {
+      "id": "shell-command-process",
+      "label": "Shell Command Process",
+      "role": "external",
+      "kind": "component",
+      "sublabel": "Operating-system shell process launched for command actions",
+      "drilldown": false
+    },
+    {
+      "id": "agent-cli-process",
+      "label": "Agent CLI Process",
+      "role": "external",
+      "kind": "component",
+      "sublabel": "Codex, Claude, or another configured agent executable and streaming protocol",
+      "drilldown": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "controls-command-run-registry",
+      "from": "action-controls",
+      "to": "renderer-run-registry",
+      "kind": "connection",
+      "label": "start, restart, cancel, prompt, answer, and finish"
+    },
+    {
+      "id": "run-registry-updates-controls",
+      "from": "renderer-run-registry",
+      "to": "action-controls",
+      "kind": "async",
+      "label": "run snapshots and interaction state"
+    },
+    {
+      "id": "run-registry-invokes-bridge",
+      "from": "renderer-run-registry",
+      "to": "action-ipc-bridge",
+      "kind": "connection",
+      "label": "action requests and recovery"
+    },
+    {
+      "id": "controls-register-schedule",
+      "from": "action-controls",
+      "to": "action-ipc-bridge",
+      "kind": "connection",
+      "label": "register or cancel schedule"
+    },
+    {
+      "id": "bridge-dispatches-run-control",
+      "from": "action-ipc-bridge",
+      "to": "action-runner-service",
+      "kind": "connection",
+      "label": "dispatches run lifecycle and agent interaction methods"
+    },
+    {
+      "id": "runner-streams-bridge-events",
+      "from": "action-runner-service",
+      "to": "action-ipc-bridge",
+      "kind": "async",
+      "label": "sequenced action and run events"
+    },
+    {
+      "id": "bridge-streams-registry-events",
+      "from": "action-ipc-bridge",
+      "to": "renderer-run-registry",
+      "kind": "async",
+      "label": "subscription callbacks"
+    },
+    {
+      "id": "bridge-dispatches-schedules",
+      "from": "action-ipc-bridge",
+      "to": "action-scheduler-service",
+      "kind": "connection",
+      "label": "schedule registration and cancellation"
+    },
+    {
+      "id": "scheduler-starts-unattended-run",
+      "from": "action-scheduler-service",
+      "to": "action-runner-service",
+      "kind": "async",
+      "label": "timer-fired non-streaming run and completion wait"
+    },
+    {
+      "id": "scheduler-persists-status",
+      "from": "action-scheduler-service",
+      "to": "local-git-service",
+      "kind": "data",
+      "label": "load, save, cancel, and update schedules"
+    },
+    {
+      "id": "repository-notifies-project-watcher",
+      "from": "local-project-repository",
+      "to": "project-change-watcher",
+      "kind": "async",
+      "label": "filesystem changes"
+    },
+    {
+      "id": "project-watcher-reconciles-scheduler",
+      "from": "project-change-watcher",
+      "to": "action-scheduler-service",
+      "kind": "async",
+      "label": ".md2-schedules.json changed"
+    },
+    {
+      "id": "runner-resolves-definition",
+      "from": "action-runner-service",
+      "to": "action-definition-resolution",
+      "kind": "connection",
+      "label": "resolve action ID and linked action graph"
+    },
+    {
+      "id": "definition-loads-project-actions",
+      "from": "action-definition-resolution",
+      "to": "local-git-service",
+      "kind": "data",
+      "label": "index and lazily read action files"
+    },
+    {
+      "id": "runner-reads-agent-config",
+      "from": "action-runner-service",
+      "to": "desktop-agent-configuration",
+      "kind": "data",
+      "label": "supply profiles for action resolution and execution"
+    },
+    {
+      "id": "runner-creates-run-orchestrator",
+      "from": "action-runner-service",
+      "to": "action-run-orchestrator",
+      "kind": "connection",
+      "label": "create, control, restart, and await run"
+    },
+    {
+      "id": "run-publishes-events",
+      "from": "action-run-orchestrator",
+      "to": "action-runner-service",
+      "kind": "async",
+      "label": "phase, output, interaction, and terminal events"
+    },
+    {
+      "id": "run-resolves-and-locks-worktree",
+      "from": "action-run-orchestrator",
+      "to": "action-worktree-coordinator",
+      "kind": "connection",
+      "label": "card-scoped lock and run repository resolution"
+    },
+    {
+      "id": "worktree-coordinator-resolves-context",
+      "from": "action-worktree-coordinator",
+      "to": "worktree-and-conflict-services",
+      "kind": "connection",
+      "label": "resolve worktree and merge-conflict repository state"
+    },
+    {
+      "id": "worktree-services-access-project",
+      "from": "worktree-and-conflict-services",
+      "to": "local-project-repository",
+      "kind": "data",
+      "label": "Git worktree, branch, and conflict-session operations"
+    },
+    {
+      "id": "run-executes-command",
+      "from": "action-run-orchestrator",
+      "to": "command-action-executor",
+      "kind": "connection",
+      "label": "execute resolved command action"
+    },
+    {
+      "id": "command-executor-spawns-shell",
+      "from": "command-action-executor",
+      "to": "shell-command-process",
+      "kind": "connection",
+      "label": "spawn in selected repository"
+    },
+    {
+      "id": "shell-streams-command-result",
+      "from": "shell-command-process",
+      "to": "command-action-executor",
+      "kind": "async",
+      "label": "stdout, stderr, exit, and process errors"
+    },
+    {
+      "id": "command-executor-streams-run",
+      "from": "command-action-executor",
+      "to": "action-run-orchestrator",
+      "kind": "async",
+      "label": "output and terminal result"
+    },
+    {
+      "id": "run-executes-agent",
+      "from": "action-run-orchestrator",
+      "to": "agent-action-executor",
+      "kind": "connection",
+      "label": "execute prompt or conversation continuation"
+    },
+    {
+      "id": "agent-executor-starts-runtime",
+      "from": "agent-action-executor",
+      "to": "agent-runner-service",
+      "kind": "connection",
+      "label": "start configured provider turn"
+    },
+    {
+      "id": "agent-runtime-streams-executor",
+      "from": "agent-runner-service",
+      "to": "agent-action-executor",
+      "kind": "async",
+      "label": "conversation, output, state, questions, approvals, and completion"
+    },
+    {
+      "id": "agent-executor-streams-run",
+      "from": "agent-action-executor",
+      "to": "action-run-orchestrator",
+      "kind": "async",
+      "label": "agent events and result"
+    },
+    {
+      "id": "agent-runtime-spawns-cli",
+      "from": "agent-runner-service",
+      "to": "agent-cli-process",
+      "kind": "connection",
+      "label": "spawn executable with provider adapter"
+    },
+    {
+      "id": "agent-cli-streams-protocol",
+      "from": "agent-cli-process",
+      "to": "agent-runner-service",
+      "kind": "async",
+      "label": "JSONL or text output, stderr, and exit"
+    },
+    {
+      "id": "agent-runtime-persists-conversations",
+      "from": "agent-runner-service",
+      "to": "local-project-repository",
+      "kind": "data",
+      "label": "conversation checkpoints, terminal transcripts, and usage"
+    },
+    {
+      "id": "run-persists-activity-and-commits",
+      "from": "action-run-orchestrator",
+      "to": "local-git-service",
+      "kind": "data",
+      "label": "tracked changes, commit references, and root activity record"
+    },
+    {
+      "id": "runner-reserves-conversation",
+      "from": "action-runner-service",
+      "to": "local-git-service",
+      "kind": "data",
+      "label": "ensure activity file and allocate conversation reference"
+    },
+    {
+      "id": "local-git-accesses-project",
+      "from": "local-git-service",
+      "to": "local-project-repository",
+      "kind": "data",
+      "label": "read, write, watch-related persistence, and Git operations"
+    },
+    {
+      "id": "run-starts-diagram-watcher",
+      "from": "action-run-orchestrator",
+      "to": "diagram-output-watcher",
+      "kind": "connection",
+      "label": "watch auto-finish diagram output"
+    },
+    {
+      "id": "repository-publishes-diagram-change",
+      "from": "local-project-repository",
+      "to": "diagram-output-watcher",
+      "kind": "async",
+      "label": "allocated diagram file change"
+    },
+    {
+      "id": "diagram-watcher-finishes-run",
+      "from": "diagram-output-watcher",
+      "to": "action-run-orchestrator",
+      "kind": "async",
+      "label": "validated diagram ready or watcher failure"
+    }
+  ],
+  "groups": [
+    {
+      "id": "renderer-action-boundary",
+      "label": "React Renderer",
+      "nodeIds": [
+        "action-controls",
+        "renderer-run-registry"
+      ]
+    },
+    {
+      "id": "electron-action-automation-boundary",
+      "label": "Electron Main Process — Action Automation",
+      "nodeIds": [
+        "action-runner-service",
+        "action-scheduler-service",
+        "action-definition-resolution",
+        "action-run-orchestrator",
+        "action-worktree-coordinator",
+        "command-action-executor",
+        "agent-action-executor",
+        "diagram-output-watcher"
+      ]
+    },
+    {
+      "id": "supporting-desktop-services-boundary",
+      "label": "Supporting Desktop Services",
+      "nodeIds": [
+        "project-change-watcher",
+        "worktree-and-conflict-services",
+        "local-git-service",
+        "agent-runner-service"
+      ]
+    },
+    {
+      "id": "persistence-boundary",
+      "label": "Persistence",
+      "nodeIds": [
+        "desktop-agent-configuration",
+        "local-project-repository"
+      ]
+    },
+    {
+      "id": "external-processes-boundary",
+      "label": "External Processes",
+      "nodeIds": [
+        "shell-command-process",
+        "agent-cli-process"
+      ]
+    }
+  ]
+}
