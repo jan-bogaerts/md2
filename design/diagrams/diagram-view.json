@@ -1,7 +1,6 @@
 {
   "activePath": [
-    "15cbc9ca-d130-42b3-8c03-ff19e895d665",
-    "6c6138ef-51d0-4f2a-bd77-ca9e71d9207d"
+    "a1ff5b28-244b-4455-a5cd-20eb92556cc1"
   ],
   "children": {
     "15cbc9ca-d130-42b3-8c03-ff19e895d665": {
@@ -31,11 +30,21 @@
         "itemLabel": "Action Automation"
       },
       "path": "design/diagrams/architecture-drill-down-20260905T171636464Z.json"
+    },
+    "a1ff5b28-244b-4455-a5cd-20eb92556cc1": {
+      "actionId": "a7e1e1cd-c2d5-4b5e-8ea8-bb34cc058ad9",
+      "createdAt": "2026-09-05T17:20:54.300Z",
+      "id": "a1ff5b28-244b-4455-a5cd-20eb92556cc1",
+      "label": "dependency",
+      "path": "design/diagrams/dependency-20260905T171245503Z.json"
     }
   },
   "roots": {
     "b99b8a16-945c-4d7a-b792-3e8a8702e0a5": [
       "15cbc9ca-d130-42b3-8c03-ff19e895d665"
+    ],
+    "a7e1e1cd-c2d5-4b5e-8ea8-bb34cc058ad9": [
+      "a1ff5b28-244b-4455-a5cd-20eb92556cc1"
     ]
   },
   "version": 1
