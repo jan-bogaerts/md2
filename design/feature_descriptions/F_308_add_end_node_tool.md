@@ -3,15 +3,14 @@ author:
 id: F_308
 internalId: 99f79635-4a46-4254-b544-901530ad9294
 title: add end node tool
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
 after: ea81e86d-6036-45b6-8608-f4a91a7f59ed
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ The button subscribes only to type and preset availability. Creation adds one st
 
 ## Dependencies
 
-[F_302](F_302_add_node_placement_infrastructure.md).
+[F\_302](F_302_add_node_placement_infrastructure.md).

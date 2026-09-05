@@ -3,15 +3,16 @@ author:
 id: F_306
 internalId: a85ce58c-8bc9-42dd-b6ae-799830def5e8
 title: add decision node tool
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: a0dbf3d9-3dde-43d0-962a-58d79e747f8d
+branch: f_306_add_decision_node_tool
+worktree: 2
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +32,4 @@ The button subscribes only to type and preset availability. Creation adds one st
 
 ## Dependencies
 
-[F_302](F_302_add_node_placement_infrastructure.md) and [F_279](F_279_validate_diagram_edit_operations.md).
+[F\_302](F_302_add_node_placement_infrastructure.md) and [F\_279](F_279_validate_diagram_edit_operations.md).
