@@ -3,13 +3,18 @@ author:
 id: F_322
 internalId: f4697a13-3aa5-4a9e-ba9f-83276e18557b
 title: generate diagram change descriptions
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__f4697a13-3aa5-4a9e-ba9f-83276e18557b.json
 policy:
 after: 816a1ca0-a183-46b2-9f50-8045af076328
+changedFiles:
+  - app/src/services/diagrams/diagram_change_descriptions.node.test.ts
+  - app/src/services/diagrams/diagram_change_descriptions.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
