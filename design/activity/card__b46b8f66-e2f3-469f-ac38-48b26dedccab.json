@@ -16,7 +16,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "b46b8f66-e2f3-469f-ac38-48b26dedccab",
       "cardPath": "design/feature_descriptions/F_250_add_tooltip_to_button_in_action_popup.md",
-      "completedAt": null,
+      "completedAt": "2026-09-05T16:46:56.231Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 55795
@@ -442,17 +442,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 31,
-          "timestamp": "2026-09-05T16:46:55.863Z"
+          "timestamp": "2026-09-05T16:46:56.231Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-53f2e8e2-fd70-4259-9937-83f785c4e7eb",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a07276-4b73-7f73-8daa-2bea65a33cf8",
+          "createdAt": "2026-09-05T16:46:56.231Z",
+          "lastUsedAt": "2026-09-05T16:46:56.231Z",
+          "synchronizedThroughMessageId": "agent-turn-005f97c0-f324-499d-8851-40fe1dca5097-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-05T16:45:49.668Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-05T16:45:49.668Z"
+        "elapsedMs": 66563,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
