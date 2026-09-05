@@ -1,8 +1,0 @@
-{
-  "description": "Describe this action.",
-  "id": "2fc32903-7774-492b-a7f2-c37f7a6e0c8b",
-  "label": "New action",
-  "phrases": [],
-  "prompt": "Describe what the agent should do.",
-  "type": "agent"
-}
