@@ -20,6 +20,17 @@ const worktrees: WorktreeRecord[] = [
     },
 ]
 
+/** A paused integration session, as desktop reports it through the conflict outcome. */
+const conflictSession = {
+    conflictedPaths: ['src/one.ts'],
+    externalResolverConfigured: false,
+    id: 'session-1',
+    operation: 'integrate' as const,
+    phase: 'squash' as const,
+    repositoryRoot: 'C:\\primary',
+    worktree: 1,
+}
+
 /** The selector reads the worktree list from the service, so tests seed it there. */
 function withRecords(records: WorktreeRecord[]) {
     vi.spyOn(worktreeService, 'getRecords').mockReturnValue(records)
@@ -320,6 +331,59 @@ describe('WorktreeSelector', () => {
         expect(commitCardWorktree.mock.invocationCallOrder[0]).toBeLessThan(integrateCardWorktree.mock.invocationCallOrder[0])
         expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md', false)
         expect(integrateCardWorktree.mock.invocationCallOrder[0]).toBeLessThan(setCardWorktree.mock.invocationCallOrder[0])
+    })
+
+    it('leaves the merge conflict popup alone when returning a clean worktree to Primary conflicts', async () => {
+        const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree')
+            .mockResolvedValue({ session: conflictSession, status: 'conflict' })
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderAssignedWorktree(aheadWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /Primary/u }))
+
+        await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md', false))
+        expect(setCardWorktree).not.toHaveBeenCalled()
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
+    it('unassigns after a completed integration when returning a clean worktree to Primary', async () => {
+        const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderAssignedWorktree(aheadWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /Primary/u }))
+
+        await vi.waitFor(() => expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', null))
+        expect(integrateCardWorktree.mock.invocationCallOrder[0]).toBeLessThan(setCardWorktree.mock.invocationCallOrder[0])
+        expect(reportError).not.toHaveBeenCalled()
+    })
+
+    it('closes the unassign dialog without an error when commit and integrate conflicts', async () => {
+        const dirtyWorktree = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+        vi.spyOn(worktreeService, 'getCardCommitMessage').mockReturnValue('F-1: Card')
+        vi.spyOn(worktreeService, 'commitCardWorktree').mockResolvedValue(undefined)
+        const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree')
+            .mockResolvedValue({ session: conflictSession, status: 'conflict' })
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue(undefined)
+        const reportError = vi.spyOn(dialogService, 'error')
+        renderAssignedWorktree(dirtyWorktree)
+
+        fireEvent.click(screen.getByRole('button', { name: /Worktree 1/u }))
+        fireEvent.click(screen.getByRole('menuitem', { name: /Primary/u }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Commit & integrate' }))
+
+        await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md', false))
+        await vi.waitFor(() => {
+            expect(screen.queryByRole('dialog', { name: 'Worktree has uncommitted changes' })).not.toBeInTheDocument()
+        })
+        expect(setCardWorktree).not.toHaveBeenCalled()
+        expect(reportError).not.toHaveBeenCalled()
     })
 
     it('opens the dirty dialog when backend revalidation rejects parking', async () => {

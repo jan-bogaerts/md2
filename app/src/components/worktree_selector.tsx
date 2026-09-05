@@ -119,7 +119,10 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
             try {
                 if (hasOutgoingChanges) {
                     if (!assignedRecord?.status.dirty) {
-                        await worktreeService.integrateCardWorktree(assignmentTarget.path, false)
+                        const outcome = await worktreeService.integrateCardWorktree(assignmentTarget.path, false)
+                        // A paused merge conflict already shows its own popup; unassigning now would hit the desktop
+                        // mutation guard and surface a second, redundant error.
+                        if (outcome.status === 'conflict') return
                         await worktreeService.setCardWorktree(assignmentTarget.path, null)
                         return
                     }
@@ -258,7 +261,12 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         }
 
         try {
-            await worktreeService.integrateCardWorktree(assignmentTarget.path, false)
+            const outcome = await worktreeService.integrateCardWorktree(assignmentTarget.path, false)
+            // Leave only the merge conflict popup on screen: no unassign attempt and no error message.
+            if (outcome.status === 'conflict') {
+                setUnassignDialogOpen(false)
+                return
+            }
         } catch (error) {
             setUnassignDialogOpen(false)
             dialogService.error(error, { fallbackMessage: 'Changes were committed, but the worktree could not be integrated into the project' })
