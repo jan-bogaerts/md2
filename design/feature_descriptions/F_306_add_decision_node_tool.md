@@ -3,7 +3,7 @@ author:
 id: F_306
 internalId: a85ce58c-8bc9-42dd-b6ae-799830def5e8
 title: add decision node tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,16 @@ policy:
 after: a0dbf3d9-3dde-43d0-962a-58d79e747f8d
 branch: f_306_add_decision_node_tool
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_component_node_button.test.tsx
+  - app/src/components/diagram_view/diagram_component_node_button.tsx
+  - app/src/components/diagram_view/diagram_decision_node_button.test.tsx
+  - app/src/components/diagram_view/diagram_decision_node_button.tsx
+  - app/src/components/diagram_view/diagram_node.test.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
