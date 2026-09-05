@@ -10,8 +10,7 @@ agents:
 policy:
 after: 2f0581e4-58bf-4995-a225-12ec0c03e9c0
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -35,4 +34,4 @@ Agent handoff is an explicit output boundary. It captures the reviewed text once
 
 ## Dependencies
 
-[F_323](F_323_add_diagram_change_review.md).
+[F\_323](F_323_add_diagram_change_review.md).
