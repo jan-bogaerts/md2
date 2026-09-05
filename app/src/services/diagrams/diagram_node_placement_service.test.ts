@@ -74,6 +74,11 @@ const participantDefinition = {
     kind: 'participant' as const,
 }
 
+const decisionDefinition = {
+    defaults: { height: 96, label: 'New decision', role: 'focal' as const, width: 96 },
+    kind: 'decision' as const,
+}
+
 describe('DiagramNodePlacementService', () => {
     it.each(['architecture', 'dependency'] as const)(
         'previews on the grid, then creates and selects one component in a %s diagram through one membership mutation',
@@ -175,6 +180,32 @@ describe('DiagramNodePlacementService', () => {
         expect(session.getChangeIdsSnapshot()).toHaveLength(1)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
         expect(session.getActiveToolSnapshot()).toBe('select')
+    })
+
+    it('creates one valid decision with rectangular geometry and keeps branch-label validation active', () => {
+        const { placement, selection, session } = createHarness(diagram('flow', 'flowchart'))
+        const originalNode = session.getNodeSnapshot('existing')
+        const membershipChanged = vi.fn()
+        session.subscribeCollectionMembership('node', membershipChanged)
+
+        expect(placement.activate(decisionDefinition)).toBe(true)
+        expect(placement.place({ x: 41, y: 58 })).toBe('placed-node')
+
+        expect(session.getNodeSnapshot('placed-node')).toEqual({
+            height: 96,
+            id: 'placed-node',
+            kind: 'decision',
+            label: 'New decision',
+            role: 'focal',
+            width: 96,
+            x: 40,
+            y: 60,
+        })
+        expect(session.getNodeSnapshot('existing')).toBe(originalNode)
+        expect(membershipChanged).toHaveBeenCalledOnce()
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
+        expect(session.createEdge({ from: 'placed-node', kind: 'flow', to: 'existing' })).toBeNull()
+        expect(session.getEdgeIdsSnapshot()).toEqual(['existing-edge'])
     })
 
     it.each([

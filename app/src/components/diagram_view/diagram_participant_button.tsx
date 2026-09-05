@@ -1,14 +1,13 @@
 import { useCallback, useSyncExternalStore } from 'react';
-import type { DiagramType } from '../../services/diagrams/diagram_data';
 import {
     diagramEditSessionService,
-    type DiagramPersistentTool,
 } from '../../services/diagrams/diagram_edit_session_service';
 import {
     diagramNodePlacementService,
     type DiagramNodePlacementDefinition,
     type DiagramNodePlacementService,
 } from '../../services/diagrams/diagram_node_placement_service';
+import type { DiagramComponentNodeSession } from './diagram_component_node_button';
 import { DiagramToolboxButton } from './diagram_toolbox_button';
 import { useActiveDiagramTool } from './use_diagram_tool';
 
@@ -24,13 +23,7 @@ const PARTICIPANT_DEFINITION: DiagramNodePlacementDefinition = {
     kind: 'participant',
 };
 
-export interface DiagramParticipantButtonSession {
-    getActiveToolSnapshot: () => DiagramPersistentTool;
-    getMetadataFieldSnapshot: (field: 'type') => DiagramType | null;
-    subscribeActiveTool: (listener: () => void) => () => void;
-    subscribeMetadataField: (field: 'type', listener: () => void) => () => void;
-    subscribeSession: (listener: () => void) => () => void;
-}
+export type DiagramParticipantButtonSession = DiagramComponentNodeSession;
 
 interface DiagramParticipantButtonProps {
     placement?: Pick<DiagramNodePlacementService, 'activate'>;

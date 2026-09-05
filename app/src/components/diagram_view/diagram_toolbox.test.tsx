@@ -13,7 +13,7 @@ import {
     MINIMUM_DIAGRAM_ZOOM,
 } from '../../services/diagrams/diagram_edit_session_service';
 import { DiagramToolbox } from './diagram_toolbox';
-import type { DiagramStepNodeMetadataField, DiagramStepNodeSession } from './diagram_step_node_button';
+import type { DiagramStepNodeMetadataField } from './diagram_step_node_button';
 import { DiagramToolboxActionButton } from './diagram_toolbox_action_button';
 import { DiagramToolboxButton } from './diagram_toolbox_button';
 
@@ -33,9 +33,9 @@ class ToolboxSessionStub extends EventTarget {
 
     readonly getActiveToolboxSectionSnapshot = () => this.activeSection;
     readonly getActiveToolSnapshot = () => this.activeTool;
-    readonly getMetadataFieldSnapshot = ((field: DiagramStepNodeMetadataField) => (
+    readonly getMetadataFieldSnapshot = (field: DiagramStepNodeMetadataField) => (
         field === 'preset' ? this.flowPreset : this.diagramType
-    )) as DiagramStepNodeSession['getMetadataFieldSnapshot'];
+    );
     readonly getTransientGestureSnapshot = () => this.transientGesture;
     readonly getViewportScaleSnapshot = () => this.viewportScale;
 
@@ -72,18 +72,6 @@ class ToolboxSessionStub extends EventTarget {
         this.addEventListener('viewportScaleChanged', listener);
 
         return () => this.removeEventListener('viewportScaleChanged', listener);
-    };
-
-    readonly subscribeMetadataField = (_field: 'type', listener: () => void) => {
-        this.addEventListener('typeChanged', listener);
-
-        return () => this.removeEventListener('typeChanged', listener);
-    };
-
-    readonly subscribeSession = (listener: () => void) => {
-        this.addEventListener('sessionChanged', listener);
-
-        return () => this.removeEventListener('sessionChanged', listener);
     };
 
     setActiveTool(tool: DiagramPersistentTool) {
@@ -189,12 +177,13 @@ describe('DiagramToolbox', () => {
         expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
     });
 
-    it('offers Step instead of Component in Nodes for flowchart diagrams', () => {
+    it('offers Step and Decision instead of Component in Nodes for flowchart diagrams', () => {
         const session = new ToolboxSessionStub('flow', 'flowchart');
         render(<DiagramToolbox boundaryElement={createBoundary()} session={session} />);
         fireEvent.click(screen.getByRole('tab', { name: 'Nodes' }));
 
         expect(screen.getByRole('button', { name: 'Step' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Decision' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Component' })).not.toBeInTheDocument();
     });
 

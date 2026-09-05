@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react';
-import type { DiagramType } from '../../services/diagrams/diagram_data';
+import type { DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data';
 import {
     diagramEditSessionService,
     type DiagramPersistentTool,
@@ -19,9 +19,9 @@ const COMPONENT_NODE_DEFINITION: DiagramNodePlacementDefinition = {
 
 export interface DiagramComponentNodeSession {
     getActiveToolSnapshot: () => DiagramPersistentTool;
-    getMetadataFieldSnapshot: (field: 'type') => DiagramType | null;
+    getMetadataFieldSnapshot: (field: 'preset' | 'type') => DiagramFlowPreset | DiagramType | null | undefined;
     subscribeActiveTool: (listener: () => void) => () => void;
-    subscribeMetadataField: (field: 'type', listener: () => void) => () => void;
+    subscribeMetadataField: (field: 'preset' | 'type', listener: () => void) => () => void;
     subscribeSession: (listener: () => void) => () => void;
 }
 
@@ -43,7 +43,7 @@ function useDiagramType(session: DiagramComponentNodeSession) {
         };
     }, [session]);
     const getSnapshot = useCallback(
-        (): DiagramType | null => session.getMetadataFieldSnapshot('type'),
+        () => session.getMetadataFieldSnapshot('type'),
         [session],
     );
 

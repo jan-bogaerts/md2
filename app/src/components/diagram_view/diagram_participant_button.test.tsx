@@ -15,11 +15,9 @@ class ParticipantSessionStub extends EventTarget {
     }
 
     readonly getActiveToolSnapshot = () => this.activeTool;
-    readonly getMetadataFieldSnapshot = (field: 'type') => {
-        void field;
-
-        return this.diagramType;
-    };
+    readonly getMetadataFieldSnapshot = (field: 'preset' | 'type') => (
+        field === 'type' ? this.diagramType : null
+    );
 
     readonly subscribeActiveTool = (listener: () => void) => {
         this.addEventListener('toolChanged', listener);
@@ -27,10 +25,10 @@ class ParticipantSessionStub extends EventTarget {
         return () => this.removeEventListener('toolChanged', listener);
     };
 
-    readonly subscribeMetadataField = (_field: 'type', listener: () => void) => {
-        this.addEventListener('typeChanged', listener);
+    readonly subscribeMetadataField = (field: 'preset' | 'type', listener: () => void) => {
+        this.addEventListener(`${field}Changed`, listener);
 
-        return () => this.removeEventListener('typeChanged', listener);
+        return () => this.removeEventListener(`${field}Changed`, listener);
     };
 
     readonly subscribeSession = (listener: () => void) => {

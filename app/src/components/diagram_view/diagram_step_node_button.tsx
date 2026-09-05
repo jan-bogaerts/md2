@@ -1,14 +1,13 @@
 import { useCallback, useSyncExternalStore } from 'react';
-import type { DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data';
 import {
     diagramEditSessionService,
-    type DiagramPersistentTool,
 } from '../../services/diagrams/diagram_edit_session_service';
 import {
     diagramNodePlacementService,
     type DiagramNodePlacementDefinition,
     type DiagramNodePlacementService,
 } from '../../services/diagrams/diagram_node_placement_service';
+import type { DiagramComponentNodeSession } from './diagram_component_node_button';
 import { DiagramToolboxButton } from './diagram_toolbox_button';
 import { useActiveDiagramTool } from './use_diagram_tool';
 
@@ -19,16 +18,7 @@ const STEP_NODE_DEFINITION: DiagramNodePlacementDefinition = {
 
 export type DiagramStepNodeMetadataField = 'preset' | 'type';
 
-export interface DiagramStepNodeSession {
-    getActiveToolSnapshot: () => DiagramPersistentTool;
-    getMetadataFieldSnapshot: {
-        (field: 'preset'): DiagramFlowPreset | null;
-        (field: 'type'): DiagramType | null;
-    };
-    subscribeActiveTool: (listener: () => void) => () => void;
-    subscribeMetadataField: (field: DiagramStepNodeMetadataField, listener: () => void) => () => void;
-    subscribeSession: (listener: () => void) => () => void;
-}
+export type DiagramStepNodeSession = DiagramComponentNodeSession;
 
 export type DiagramStepNodePlacement = Pick<DiagramNodePlacementService, 'activate'>;
 

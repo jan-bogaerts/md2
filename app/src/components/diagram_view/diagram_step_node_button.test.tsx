@@ -6,7 +6,6 @@ import {
     DiagramStepNodeButton,
     type DiagramStepNodeMetadataField,
     type DiagramStepNodePlacement,
-    type DiagramStepNodeSession,
 } from './diagram_step_node_button';
 
 class StepNodeSessionStub extends EventTarget {
@@ -21,9 +20,9 @@ class StepNodeSessionStub extends EventTarget {
     }
 
     readonly getActiveToolSnapshot = () => this.activeTool;
-    readonly getMetadataFieldSnapshot = ((field: DiagramStepNodeMetadataField) => (
+    readonly getMetadataFieldSnapshot = (field: DiagramStepNodeMetadataField) => (
         field === 'preset' ? this.flowPreset : this.diagramType
-    )) as DiagramStepNodeSession['getMetadataFieldSnapshot'];
+    );
     readonly subscribeActiveTool = (listener: () => void) => {
         this.addEventListener('activeToolChanged', listener);
 

@@ -9,7 +9,7 @@ import { DiagramNode } from './diagram_node'
 
 function positioned(overrides: Partial<PositionedDiagramNode> = {}): PositionedDiagramNode {
     // Cast: exactOptionalPropertyTypes rejects spreading a Partial whose optional members may be explicitly undefined.
-    return { fanIn: 0, height: 72, id: 'one', label: 'One', width: 160, x: 0, y: 0, ...overrides } as PositionedDiagramNode
+    return { fanIn: 0, height: 72, id: 'one', label: 'One', role: 'focal', width: 160, x: 0, y: 0, ...overrides } as PositionedDiagramNode
 }
 
 function renderNode(node: PositionedDiagramNode, diagramType: DiagramType = 'architecture', flowPreset?: DiagramFlowPreset) {
@@ -77,6 +77,38 @@ describe('DiagramNode', () => {
         const { button } = renderNode(positioned({ height: 200 }))
 
         expect(getComputedStyle(button).height).toBe('200px')
+    })
+
+    it('renders and resizes a decision inside unchanged rectangular bounds', () => {
+        const node = positioned({ height: 96, kind: 'decision', label: 'Choose', width: 96 })
+        const { rerender } = render(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode diagramType="flow" flowPreset="flowchart" node={node} onSelect={vi.fn()} selected={false} />
+            </ThemeProvider>,
+        )
+        const button = screen.getByRole('button', { name: 'Choose' })
+        const diamond = button.querySelector('[data-diagram-node-shape="decision"]')
+
+        expect(getComputedStyle(button).height).toBe('96px')
+        expect(getComputedStyle(button).width).toBe('96px')
+        expect(getComputedStyle(button).transform).toBe('none')
+        expect(diamond).toHaveAttribute('viewBox', '0 0 96 96')
+
+        rerender(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode
+                    diagramType="flow"
+                    flowPreset="flowchart"
+                    node={{ ...node, height: 80, width: 120 }}
+                    onSelect={vi.fn()}
+                    selected={false}
+                />
+            </ThemeProvider>,
+        )
+
+        expect(getComputedStyle(button).height).toBe('80px')
+        expect(getComputedStyle(button).width).toBe('120px')
+        expect(button.querySelector('[data-diagram-node-shape="decision"]')).toHaveAttribute('viewBox', '0 0 120 80')
     })
 
     it('reports Ctrl state for clicks and treats keyboard activation as plain selection', async () => {

@@ -23,7 +23,7 @@ class ComponentNodeSessionStub extends EventTarget {
 
         return () => this.removeEventListener('activeToolChanged', listener);
     };
-    readonly subscribeMetadataField = vi.fn((_field: 'type', listener: () => void) => {
+    readonly subscribeMetadataField = vi.fn((_field: 'preset' | 'type', listener: () => void) => {
         this.addEventListener('typeChanged', listener);
 
         return () => this.removeEventListener('typeChanged', listener);

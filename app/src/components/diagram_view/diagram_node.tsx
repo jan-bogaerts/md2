@@ -28,9 +28,13 @@ function kindStyles(node: PositionedDiagramNode, flowPreset: DiagramFlowPreset |
         } as const
     }
     if (node.kind === 'start' || node.kind === 'end') return { borderRadius: 99 }
-    if (node.kind === 'decision') return { transform: 'rotate(45deg)', '& > *': { transform: 'rotate(-45deg)' } }
+    if (node.kind === 'decision') return { bgcolor: 'transparent', border: 0 }
 
     return { borderRadius: node.kind === 'state' ? 1 : '6px' }
+}
+
+function decisionPoints(node: PositionedDiagramNode) {
+    return `${node.width / 2},1 ${node.width - 1},${node.height / 2} ${node.width / 2},${node.height - 1} 1,${node.height / 2}`
 }
 
 function fieldPrefix(key: 'primary' | 'foreign' | undefined) {
@@ -43,7 +47,9 @@ function fieldPrefix(key: 'primary' | 'foreign' | undefined) {
 /** Positioned, themed, keyboard-operable diagram item. */
 export function DiagramNode({ diagramType, flowPreset, node, onOpenDetails, onSelect, selected }: DiagramNodeProps) {
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
+    const decision = node.kind === 'decision'
     const interactive = node.drilldown !== false || !!onOpenDetails
+    const roleStyle = diagramRoleStyle(node.role)
     const scrollRef = useRef<HTMLDivElement>(null)
     const pressScrollTop = useRef(0)
     const handleSelect = (left: number, top: number, ctrlKey: boolean) => (
@@ -85,19 +91,43 @@ export function DiagramNode({ diagramType, flowPreset, node, onOpenDetails, onSe
                 alignItems: 'stretch', border: '1px solid', color: 'text.primary', display: 'flex', flexDirection: 'column',
                 height: node.height, left: node.x, overflow: 'hidden', position: 'absolute', textAlign: 'left',
                 top: node.y, width: node.width, zIndex: 2,
-                ...diagramRoleStyle(node.role),
+                ...roleStyle,
                 ...kindStyles(node, flowPreset),
                 ...(selected ? { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 } : {}),
                 '&:focus-visible': { borderColor: 'primary.main', outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
             tabIndex={interactive ? undefined : -1}
         >
+            {decision ? (
+                <Box
+                    aria-hidden="true"
+                    component="svg"
+                    data-diagram-node-shape="decision"
+                    preserveAspectRatio="none"
+                    sx={{ height: '100%', left: 0, pointerEvents: 'none', position: 'absolute', top: 0, width: '100%' }}
+                    viewBox={`0 0 ${node.width} ${node.height}`}
+                >
+                    <Box component="polygon" points={decisionPoints(node)} sx={{ color: roleStyle.bgcolor, fill: 'currentColor' }} />
+                    <Box
+                        component="polygon"
+                        points={decisionPoints(node)}
+                        sx={{
+                            color: roleStyle.borderColor,
+                            fill: 'none',
+                            stroke: 'currentColor',
+                            strokeDasharray: 'borderStyle' in roleStyle && roleStyle.borderStyle === 'dashed' ? '4 4' : undefined,
+                            strokeWidth: 1,
+                            vectorEffect: 'non-scaling-stroke',
+                        }}
+                    />
+                </Box>
+            ) : null}
             {!stateMarker ? (
                 <Box
                     data-diagram-scroll="content"
                     ref={scrollRef}
                     sx={{
-                        display: 'flex', flex: 1, flexDirection: 'column',
+                        display: 'flex', flex: 1, flexDirection: 'column', position: 'relative',
                         // `safe center` centres content that fits and falls back to top alignment once it overflows,
                         // so the tag and label stay reachable instead of being clipped above the scroll origin.
                         justifyContent: 'safe center', minHeight: 0, overflowX: 'hidden', overflowY: 'auto',
