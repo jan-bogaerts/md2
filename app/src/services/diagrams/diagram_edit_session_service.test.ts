@@ -936,11 +936,12 @@ describe('DiagramEditSessionService', () => {
         expect(service.removeNode('orders')).toBe(false)
     })
 
-    it('deletes one selection, preserves its emptied group, and removes invalid fragments in one publication', () => {
+    it('deletes one selection, preserves emptied hosts, and reports the invalid fragment region after publication', () => {
         const source = structuredClone(sequenceDiagram)
         source.groups.push({ id: 'actors', label: 'Actors', nodeIds: ['user'] })
         const sourceBeforeDelete = structuredClone(source)
-        const { service } = createHarness({ source })
+        const reportValidationError = vi.fn()
+        const { service } = createHarness({ reportValidationError, source })
         service.start()
         const editable = service.getEditableDiagram()
         const nodes = editable?.nodes
@@ -948,6 +949,7 @@ describe('DiagramEditSessionService', () => {
         const groups = editable?.groups
         const fragments = editable?.fragments
         const user = service.getNodeSnapshot('user')
+        const transaction = service.getFragmentSnapshot('transaction')
         const actors = service.getGroupSnapshot('actors')
         const actorsNodeIds = service.getGroupNodeIdsSnapshot('actors')
         const nodeMembershipChanged = vi.fn()
@@ -982,26 +984,31 @@ describe('DiagramEditSessionService', () => {
         expect(service.getEdgeIdsSnapshot()).toEqual([])
         expect(service.getGroupIdsSnapshot()).toEqual(['backend', 'actors'])
         expect(service.getGroupNodeIdsSnapshot('backend')).toEqual([])
-        expect(service.getFragmentIdsSnapshot()).toEqual([])
+        expect(service.getFragmentIdsSnapshot()).toEqual(['transaction'])
+        expect(service.getFragmentSnapshot('transaction')).toBe(transaction)
+        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual([])
         expect(membershipDetail(nodeMembershipChanged).removedIds).toEqual(['orders'])
         expect(membershipDetail(edgeMembershipChanged).removedIds).toEqual(['user-orders', 'orders-user'])
-        expect(membershipDetail(fragmentMembershipChanged).removedIds).toEqual(['transaction'])
         expect(nodeMembershipChanged).toHaveBeenCalledOnce()
         expect(edgeMembershipChanged).toHaveBeenCalledOnce()
         expect(groupMembershipChanged).not.toHaveBeenCalled()
         expect(backendMembershipChanged).toHaveBeenCalledOnce()
-        expect(fragmentMembershipChanged).toHaveBeenCalledOnce()
+        expect(fragmentMembershipChanged).not.toHaveBeenCalled()
         expect(dirtyChanged).toHaveBeenCalledOnce()
         expect(changeIdsChanged).toHaveBeenCalledOnce()
-        expect(service.getChangeIdsSnapshot()).toHaveLength(5)
+        expect(service.getChangeIdsSnapshot()).toHaveLength(7)
         expect(service.getChangeIdsSnapshot().map((changeId) => service.getChange(changeId))).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ category: 'collection', objectId: 'orders', objectKind: 'node', value: null }),
                 expect.objectContaining({ category: 'collection', objectId: 'user-orders', objectKind: 'edge', value: null }),
                 expect.objectContaining({ category: 'collection', objectId: 'orders-user', objectKind: 'edge', value: null }),
                 expect.objectContaining({ category: 'membership', objectId: 'orders', objectKind: 'node', ownerId: 'backend', value: false }),
-                expect.objectContaining({ category: 'collection', objectId: 'transaction', objectKind: 'fragment', value: null }),
+                expect.objectContaining({ category: 'membership', objectId: 'user-orders', ownerId: 'transaction', value: false }),
+                expect.objectContaining({ category: 'membership', objectId: 'orders-user', ownerId: 'transaction', value: false }),
             ]),
+        )
+        expect(reportValidationError).toHaveBeenCalledWith(
+            'Delete selection validation problem: fragments.transaction.regions[0].edgeIds has empty array',
         )
         expect(source).toEqual(sourceBeforeDelete)
         expect(service.getOriginalDiagramSnapshot()?.diagram).toEqual(sourceBeforeDelete)
@@ -1239,6 +1246,101 @@ describe('DiagramEditSessionService', () => {
         expect(reportValidationError).toHaveBeenCalledWith(
             'Add fragment region edge rejected: fragments.transaction.regions[0].edgeIds has unknown edge missing',
         )
+
+        expect(service.removeFragmentRegionEdge('transaction', 0, 'user-orders')).toBe(true)
+        expect(service.addFragmentRegionEdge('transaction', 0, 'user-orders')).toBe(true)
+        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual(['orders-user', 'user-orders'])
+        expect(service.getDirtySnapshot()).toBe(true)
+    })
+
+    it('updates operator, guards, and ordered region assignments atomically without replacing fragment identity', () => {
+        const reportValidationError = vi.fn()
+        const service = sequenceHarness(undefined, reportValidationError)
+        const fragment = service.getFragmentSnapshot('transaction')
+        const fragmentIds = service.getFragmentIdsSnapshot()
+        const fragmentCollectionChanged = vi.fn()
+        const operatorChanged = vi.fn()
+        const firstGuardChanged = vi.fn()
+        const secondGuardChanged = vi.fn()
+        const firstRegionChanged = vi.fn(() => {
+            expect(service.getFragmentSnapshot('transaction')?.regions).toEqual([
+                { edgeIds: ['orders-user'], guard: 'accepted' },
+                { edgeIds: ['user-orders'], guard: 'rejected' },
+            ])
+        })
+        const secondRegionChanged = vi.fn()
+        service.subscribeCollectionMembership('fragment', fragmentCollectionChanged)
+        service.subscribeFragmentField('transaction', 'operator', operatorChanged)
+        service.subscribeFragmentRegionField('transaction', 0, 'guard', firstGuardChanged)
+        service.subscribeFragmentRegionField('transaction', 1, 'guard', secondGuardChanged)
+        service.subscribeFragmentRegionMembership('transaction', 0, firstRegionChanged)
+        service.subscribeFragmentRegionMembership('transaction', 1, secondRegionChanged)
+
+        expect(service.updateFragment('transaction', {
+            operator: 'alt',
+            regions: [
+                { edgeIds: ['orders-user'], guard: 'accepted' },
+                { edgeIds: ['user-orders'], guard: 'rejected' },
+            ],
+        })).toBe(true)
+
+        expect(service.getFragmentSnapshot('transaction')).toBe(fragment)
+        expect(service.getFragmentIdsSnapshot()).toBe(fragmentIds)
+        expect(service.getFragmentRegionFieldSnapshot('transaction', 0, 'guard')).toBe('accepted')
+        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual(['orders-user'])
+        expect(operatorChanged).toHaveBeenCalledOnce()
+        expect(firstGuardChanged).toHaveBeenCalledOnce()
+        expect(secondGuardChanged).toHaveBeenCalledOnce()
+        expect(firstRegionChanged).toHaveBeenCalledOnce()
+        expect(secondRegionChanged).toHaveBeenCalledOnce()
+        expect(fragmentCollectionChanged).not.toHaveBeenCalled()
+        expect(reportValidationError).not.toHaveBeenCalled()
+    })
+
+    it('tracks guard and edge order edits as net fragment changes and rejects invalid complete edits before mutation', () => {
+        const reportValidationError = vi.fn()
+        const service = sequenceHarness(undefined, reportValidationError)
+        const fragment = service.getFragmentSnapshot('transaction')
+        const regionEdgeIds = service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)
+        const guardChanged = vi.fn()
+        const membershipChanged = vi.fn()
+        service.subscribeFragmentRegionField('transaction', 0, 'guard', guardChanged)
+        service.subscribeFragmentRegionMembership('transaction', 0, membershipChanged)
+
+        expect(service.updateFragment('transaction', {
+            operator: 'opt',
+            regions: [{ edgeIds: ['orders-user', 'user-orders'], guard: 'approved' }],
+        })).toBe(true)
+        const changeIds = service.getChangeIdsSnapshot()
+        expect(changeIds.map((changeId) => service.getChange(changeId))).toEqual(expect.arrayContaining([
+            expect.objectContaining({ field: 'guard', objectId: 'transaction', regionIndex: 0, value: 'approved' }),
+            expect.objectContaining({ field: 'edgeIds', objectId: 'transaction', regionIndex: 0, value: ['orders-user', 'user-orders'] }),
+        ]))
+
+        expect(service.updateFragment('transaction', {
+            operator: 'opt',
+            regions: [{ edgeIds: [], guard: 'invalid' }],
+        })).toBe(false)
+        expect(service.updateFragment('transaction', {
+            operator: 'alt',
+            regions: [
+                { edgeIds: ['user-orders'], guard: 'one' },
+                { edgeIds: ['user-orders'], guard: 'two' },
+            ],
+        })).toBe(false)
+        expect(service.getFragmentSnapshot('transaction')).toBe(fragment)
+        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual(['orders-user', 'user-orders'])
+        expect(guardChanged).toHaveBeenCalledOnce()
+        expect(membershipChanged).toHaveBeenCalledOnce()
+
+        expect(service.updateFragment('transaction', {
+            operator: 'opt',
+            regions: [{ edgeIds: ['user-orders', 'orders-user'], guard: 'requested' }],
+        })).toBe(true)
+        expect(service.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).not.toBe(regionEdgeIds)
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(reportValidationError).toHaveBeenCalledTimes(2)
     })
 
     it('leaves the session untouched when a create operation is rejected', () => {
@@ -1383,17 +1485,18 @@ describe('DiagramEditSessionService', () => {
         )
     })
 
-    it('rejects removals that would empty required fragment regions', () => {
+    it('removes an edge reference and reports the resulting empty required fragment region', () => {
         const fragmentReporter = vi.fn()
         const sequence = sequenceHarness(undefined, fragmentReporter)
         expect(sequence.removeFragmentRegionEdge('transaction', 0, 'user-orders')).toBe(true)
         const regionEdgeIds = sequence.getFragmentRegionEdgeIdsSnapshot('transaction', 0)
-        expect(sequence.removeEdge('orders-user')).toBe(false)
-        expect(sequence.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toBe(regionEdgeIds)
-        expect(sequence.getEdgeSnapshot('orders-user')).not.toBeNull()
+        expect(sequence.removeEdge('orders-user')).toBe(true)
+        expect(sequence.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).not.toBe(regionEdgeIds)
+        expect(sequence.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual([])
+        expect(sequence.getEdgeSnapshot('orders-user')).toBeNull()
 
         expect(fragmentReporter).toHaveBeenCalledWith(
-            'Remove edge rejected: fragments.transaction.regions[0].edgeIds has empty array after removing edge',
+            'Remove edge validation problem: fragments.transaction.regions[0].edgeIds has empty array',
         )
     })
 

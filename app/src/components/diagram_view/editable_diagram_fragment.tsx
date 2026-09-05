@@ -7,8 +7,12 @@ import type { PositionedSequenceFragment } from '../../services/diagrams/diagram
 import { SequenceFragment } from './sequence_fragment'
 import { useDiagramFragmentGeometryField } from './use_diagram_geometry'
 import { useEditableDiagramFragmentField } from './use_editable_diagram'
+import {
+    diagramFragmentDialogService, type DiagramFragmentDialogService,
+} from './diagram_fragment_dialog_service'
 
 interface EditableDiagramFragmentProps {
+    fragmentDialog?: DiagramFragmentDialogService
     fragmentId: string
     geometry?: DiagramGeometryService
     session?: DiagramEditSessionService
@@ -16,6 +20,7 @@ interface EditableDiagramFragmentProps {
 
 /** One sequence frame of the New diagram, bound to its own operator, box, divider, and guard positions. */
 function EditableDiagramFragmentLeaf({
+    fragmentDialog = diagramFragmentDialogService,
     fragmentId,
     geometry = diagramGeometryService,
     session = diagramEditSessionService,
@@ -40,7 +45,9 @@ function EditableDiagramFragmentLeaf({
         ...(typeof dividerY === 'number' ? { dividerY } : {}),
     }
 
-    return <SequenceFragment fragment={fragment} />
+    const handleOpenDetails = () => fragmentDialog.openEdit(fragmentId)
+
+    return <SequenceFragment fragment={fragment} onOpenDetails={handleOpenDetails} />
 }
 
 /** Memoised so a collection host rerender caused by another member cannot rerender this leaf. */

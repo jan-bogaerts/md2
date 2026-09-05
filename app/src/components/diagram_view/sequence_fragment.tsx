@@ -3,17 +3,20 @@ import type { PositionedSequenceFragment } from '../../services/diagrams/diagram
 
 interface SequenceFragmentProps {
     fragment: PositionedSequenceFragment
+    onOpenDetails?: () => void
 }
 
 /** Sequence alt, opt, or loop frame positioned behind messages. */
-export function SequenceFragment({ fragment }: SequenceFragmentProps) {
+export function SequenceFragment({ fragment, onOpenDetails }: SequenceFragmentProps) {
     return (
         <Box
             aria-label={`${fragment.operator} fragment`}
+            onDoubleClick={onOpenDetails}
             role="group"
             sx={{
                 bgcolor: 'action.hover', border: '1px solid', borderColor: 'custom.borderStrong', borderRadius: 0.5,
-                height: fragment.height, left: fragment.x, pointerEvents: 'none', position: 'absolute',
+                cursor: onOpenDetails ? 'pointer' : undefined, height: fragment.height, left: fragment.x,
+                pointerEvents: onOpenDetails ? 'auto' : 'none', position: 'absolute',
                 top: fragment.y, width: fragment.width, zIndex: 0,
             }}
         >

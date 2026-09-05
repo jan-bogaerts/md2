@@ -477,6 +477,92 @@ describe('DiagramGeometryService', () => {
         expect(geometry.getActivationIdsSnapshot()).toEqual(activationIds)
     })
 
+    it('updates only affected fragment geometry for guard and region membership edits', () => {
+        const source = sequenceDiagram()
+        source.fragments?.push({ id: 'response', operator: 'opt', regions: [{ edgeIds: ['orders-user'], guard: 'complete' }] })
+        const { geometry, session } = createHarness(source)
+        const fragmentIds = geometry.getFragmentIdsSnapshot()
+        const responseGuards = geometry.getFragmentGuardPositionsSnapshot('response')
+        const responseHeight = geometry.getFragmentGeometryFieldSnapshot('response', 'height')
+        const dispatched = recordGeometryEvents(geometry)
+
+        expect(session.setFragmentRegionField('transaction', 0, 'guard', 'approved')).toBe(true)
+
+        expect(geometry.getFragmentGuardPositionsSnapshot('transaction')).toEqual([
+            { guard: 'approved', y: expect.any(Number) },
+        ])
+        expect(geometry.getFragmentGuardPositionsSnapshot('response')).toBe(responseGuards)
+        expect(geometry.getFragmentIdsSnapshot()).toBe(fragmentIds)
+        expect(dispatched).toEqual(['geometry:fragment:transaction:guardPositions'])
+
+        dispatched.length = 0
+        expect(session.addFragmentRegionEdge('transaction', 0, 'store-orders')).toBe(true)
+
+        expect(geometry.getFragmentGeometryFieldSnapshot('transaction', 'height')).toBeGreaterThan(56)
+        expect(geometry.getFragmentGeometryFieldSnapshot('response', 'height')).toBe(responseHeight)
+        expect(geometry.getFragmentGuardPositionsSnapshot('response')).toBe(responseGuards)
+        expect(geometry.getFragmentIdsSnapshot()).toBe(fragmentIds)
+        expect(dispatched).toEqual(['geometry:fragment:transaction:height'])
+    })
+
+    it('observes guard edits in a region added after initial fragment layout', () => {
+        const { geometry, session } = createHarness(sequenceDiagram())
+
+        expect(session.updateFragment('transaction', {
+            operator: 'alt',
+            regions: [
+                { edgeIds: ['orders-store'], guard: 'approved' },
+                { edgeIds: ['orders-user'], guard: 'rejected' },
+            ],
+        })).toBe(true)
+        expect(geometry.getFragmentGuardPositionsSnapshot('transaction')).toHaveLength(2)
+        const dispatched = recordGeometryEvents(geometry)
+
+        expect(session.updateFragment('transaction', {
+            operator: 'alt',
+            regions: [
+                { edgeIds: ['orders-store'], guard: 'approved' },
+                { edgeIds: ['orders-user'], guard: 'retry' },
+            ],
+        })).toBe(true)
+
+        expect(geometry.getFragmentGuardPositionsSnapshot('transaction')[1])
+            .toEqual({ guard: 'retry', y: expect.any(Number) })
+        expect(dispatched).toEqual(['geometry:fragment:transaction:guardPositions'])
+    })
+
+    it('keeps prior fragment geometry when edge deletion empties a required region', () => {
+        const { geometry, session } = createHarness(sequenceDiagram())
+        expect(session.updateFragment('transaction', {
+            operator: 'alt',
+            regions: [
+                { edgeIds: ['orders-store'], guard: 'approved' },
+                { edgeIds: ['orders-user'], guard: 'rejected' },
+            ],
+        })).toBe(true)
+        const fragmentBox = {
+            height: geometry.getFragmentGeometryFieldSnapshot('transaction', 'height'),
+            width: geometry.getFragmentGeometryFieldSnapshot('transaction', 'width'),
+            x: geometry.getFragmentGeometryFieldSnapshot('transaction', 'x'),
+            y: geometry.getFragmentGeometryFieldSnapshot('transaction', 'y'),
+        }
+        const divider = geometry.getFragmentDividerSnapshot('transaction')
+        const guards = geometry.getFragmentGuardPositionsSnapshot('transaction')
+        const dispatched = recordGeometryEvents(geometry)
+
+        expect(session.removeEdge('orders-store')).toBe(true)
+
+        expect({
+            height: geometry.getFragmentGeometryFieldSnapshot('transaction', 'height'),
+            width: geometry.getFragmentGeometryFieldSnapshot('transaction', 'width'),
+            x: geometry.getFragmentGeometryFieldSnapshot('transaction', 'x'),
+            y: geometry.getFragmentGeometryFieldSnapshot('transaction', 'y'),
+        }).toEqual(fragmentBox)
+        expect(geometry.getFragmentDividerSnapshot('transaction')).toBe(divider)
+        expect(geometry.getFragmentGuardPositionsSnapshot('transaction')).toBe(guards)
+        expect(dispatched.some((event) => event.startsWith('geometry:fragment:transaction:'))).toBe(false)
+    })
+
     it('updates only inserted and later sequence rows plus changed fragment geometry', () => {
         const { geometry, session } = createHarness(sequenceDiagram())
         const firstRoute = geometry.getEdgeRouteSnapshot('user-orders')

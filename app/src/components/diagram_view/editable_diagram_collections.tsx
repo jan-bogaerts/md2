@@ -14,6 +14,9 @@ import { EditableDiagramNode } from './editable_diagram_node'
 import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from './diagram_object_details_service'
+import {
+    diagramFragmentDialogService, type DiagramFragmentDialogService,
+} from './diagram_fragment_dialog_service'
 import { useDiagramActivationIds, useDiagramFragmentIds } from './use_diagram_geometry'
 import {
     useEditableDiagramEdgeIds, useEditableDiagramGroupIds, useEditableDiagramNodeIds,
@@ -22,6 +25,10 @@ import {
 interface CollectionHostProps {
     geometry?: DiagramGeometryService
     session?: DiagramEditSessionService
+}
+
+interface FragmentCollectionHostProps extends CollectionHostProps {
+    fragmentDialog?: DiagramFragmentDialogService
 }
 
 interface SelectableCollectionHostProps extends CollectionHostProps {
@@ -107,13 +114,20 @@ export function EditableDiagramGroups({
 }
 
 export function EditableDiagramFragments({
+    fragmentDialog = diagramFragmentDialogService,
     geometry = diagramGeometryService,
     session = diagramEditSessionService,
-}: CollectionHostProps) {
+}: FragmentCollectionHostProps) {
     const fragmentIds = useDiagramFragmentIds(geometry)
 
     return fragmentIds.map((fragmentId) => (
-        <EditableDiagramFragment fragmentId={fragmentId} geometry={geometry} key={fragmentId} session={session} />
+        <EditableDiagramFragment
+            fragmentDialog={fragmentDialog}
+            fragmentId={fragmentId}
+            geometry={geometry}
+            key={fragmentId}
+            session={session}
+        />
     ))
 }
 

@@ -29,6 +29,10 @@ import { DiagramNodePlacementPreview } from './diagram_node_placement_preview'
 import { DiagramEdgeDrawingPreview } from './diagram_edge_drawing_preview'
 import { DiagramGroupDrawingPreview } from './diagram_group_drawing_preview'
 import { DiagramGroupLabelDialog } from './diagram_group_label_dialog'
+import { DiagramFragmentDialog } from './diagram_fragment_dialog'
+import {
+    diagramFragmentDialogService, type DiagramFragmentDialogService,
+} from './diagram_fragment_dialog_service'
 import {
     diagramEdgeDrawingService, type DiagramEdgeDrawingService,
 } from '../../services/diagrams/diagram_edge_drawing_service'
@@ -42,6 +46,7 @@ import { useEditableDiagramMetadataField } from './use_editable_diagram'
 interface EditableDiagramProps {
     details?: DiagramObjectDetailsService
     drawing?: DiagramEdgeDrawingService
+    fragmentDialog?: DiagramFragmentDialogService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
     placement?: DiagramNodePlacementService
@@ -160,6 +165,7 @@ export function EditableDiagramSurface({
 export function EditableDiagram({
     details = diagramObjectDetailsService,
     drawing = diagramEdgeDrawingService,
+    fragmentDialog = diagramFragmentDialogService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
     placement = diagramNodePlacementService,
@@ -180,7 +186,7 @@ export function EditableDiagram({
             <EditableDiagramSurface geometry={geometry} selection={selection} session={session}>
                 <EditableDiagramGroups details={details} geometry={geometry} selection={selection} session={session} />
                 <DiagramGroupDrawingPreview drawing={groupDrawing} />
-                <EditableDiagramFragments geometry={geometry} session={session} />
+                <EditableDiagramFragments fragmentDialog={fragmentDialog} geometry={geometry} session={session} />
                 <EditableDiagramLifelines geometry={geometry} session={session} />
                 <EditableDiagramActivations geometry={geometry} session={session} />
                 <EditableDiagramEdges details={details} geometry={geometry} selection={selection} session={session} />
@@ -192,6 +198,7 @@ export function EditableDiagram({
             </EditableDiagramSurface>
             <DiagramObjectDetailsDialog details={details} session={session} />
             <DiagramGroupLabelDialog drawing={groupDrawing} />
+            <DiagramFragmentDialog dialog={fragmentDialog} session={session} />
         </Box>
     )
 }

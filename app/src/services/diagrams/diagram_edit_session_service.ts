@@ -61,6 +61,7 @@ export type MutableDiagramNodeField = Exclude<keyof DiagramNode, 'fields' | 'id'
 export type MutableDiagramEdgeField = Exclude<keyof DiagramEdge, 'id' | 'sourceAttachment' | 'targetAttachment' | 'waypoints'>
 export type MutableDiagramGroupField = Exclude<keyof DiagramGroup, 'id' | 'nodeIds'>
 export type MutableDiagramFragmentField = 'operator'
+export type MutableDiagramFragmentRegionField = 'guard'
 export type MutableDiagramEntityField = keyof DiagramEntityField
 export type MutableDiagramConnectionPointField = keyof DiagramConnectionPoint
 
@@ -253,6 +254,14 @@ export function diagramFragmentRegionMembershipChangedEvent(fragmentId: string, 
     return `diagram:fragment:${eventScope(fragmentId)}:regions:${regionIndex}:edgeIds`
 }
 
+export function diagramFragmentRegionFieldChangedEvent(
+    fragmentId: string,
+    regionIndex: number,
+    field: keyof DiagramSequenceFragmentRegion,
+) {
+    return `diagram:fragment:${eventScope(fragmentId)}:regions:${regionIndex}:${field}`
+}
+
 export function diagramChangeFieldChangedEvent(changeId: string, field: DiagramChangeField) {
     return `diagram:change:${eventScope(changeId)}:${field}`
 }
@@ -302,6 +311,10 @@ function fragmentRegionKey(fragmentId: string, regionIndex: number) {
 
 function frozenIds<Item extends { id: string }>(items: readonly Item[]) {
     return Object.freeze(items.map(({ id }) => id))
+}
+
+function sameOrderedValues<Value>(left: readonly Value[], right: readonly Value[]) {
+    return left.length === right.length && left.every((value, index) => value === right[index])
 }
 
 function requireFragmentRegion(fragment: DiagramSequenceFragment, regionIndex: number) {
@@ -451,6 +464,16 @@ export class DiagramEditSessionService extends EventTarget {
         return fragment ? asDeepReadonly(fragment[field]) : null
     }
 
+    getFragmentRegionFieldSnapshot = <Field extends keyof DiagramSequenceFragmentRegion>(
+        fragmentId: string,
+        regionIndex: number,
+        field: Field,
+    ): DeepReadonly<DiagramSequenceFragmentRegion[Field]> | null => {
+        const region = this.findFragment(fragmentId)?.regions[regionIndex]
+
+        return region ? asDeepReadonly(region[field]) : null
+    }
+
     getEntityFieldSnapshot = (nodeId: string, fieldIndex: number): DeepReadonly<DiagramEntityField> | null => (
         this.findNode(nodeId)?.fields?.[fieldIndex] ?? null
     )
@@ -519,6 +542,13 @@ export class DiagramEditSessionService extends EventTarget {
     subscribeFragmentField = (fragmentId: string, field: keyof DiagramSequenceFragment, listener: () => void) => (
         this.subscribe(diagramObjectFieldChangedEvent('fragment', fragmentId, field), listener)
     )
+
+    subscribeFragmentRegionField = (
+        fragmentId: string,
+        regionIndex: number,
+        field: keyof DiagramSequenceFragmentRegion,
+        listener: () => void,
+    ) => this.subscribe(diagramFragmentRegionFieldChangedEvent(fragmentId, regionIndex, field), listener)
 
     subscribeEntityField = (
         nodeId: string,
@@ -869,6 +899,89 @@ export class DiagramEditSessionService extends EventTarget {
         return true
     }
 
+    setFragmentRegionField<Field extends MutableDiagramFragmentRegionField>(
+        fragmentId: string,
+        regionIndex: number,
+        field: Field,
+        value: DiagramSequenceFragmentRegion[Field],
+    ) {
+        const fragment = this.requireFragment(fragmentId)
+        requireFragmentRegion(fragment, regionIndex)
+        const regions = fragment.regions.map((region, index) => ({
+            edgeIds: [...region.edgeIds],
+            guard: index === regionIndex && field === 'guard' ? value : region.guard,
+        }))
+
+        return this.updateFragment(fragmentId, { operator: fragment.operator, regions })
+    }
+
+    /** Validates one complete fragment edit before applying its field and ordered-membership changes atomically. */
+    updateFragment(fragmentId: string, candidate: NewDiagramSequenceFragment): boolean {
+        const fragment = this.requireFragment(fragmentId)
+        let regions: DiagramSequenceFragmentRegion[] = []
+        if (!this.validateOperation('Update fragment', () => {
+            this.validateFragment(candidate, `fragments.${fragmentId}`)
+            regions = this.requireOwnedRegions(candidate.operator, candidate.regions, `fragments.${fragmentId}.regions`)
+        })) return false
+        const operatorChanged = fragment.operator !== candidate.operator
+        const maximumRegionCount = Math.max(fragment.regions.length, regions.length)
+        const changedRegionIndexes = Array.from({ length: maximumRegionCount }, (_value, index) => index).filter((index) => {
+            const previousRegion = fragment.regions[index]
+            const region = regions[index]
+
+            return previousRegion?.guard !== region?.guard || !sameOrderedValues(previousRegion?.edgeIds ?? [], region?.edgeIds ?? [])
+        })
+        if (!operatorChanged && changedRegionIndexes.length === 0) return false
+
+        const previousOperator = fragment.operator
+        const previousRegions = fragment.regions.map((region) => ({ edgeIds: [...region.edgeIds], guard: region.guard }))
+        fragment.operator = candidate.operator
+        for (let index = 0; index < regions.length; index += 1) {
+            const region = regions[index]
+            const existingRegion = fragment.regions[index]
+            if (!existingRegion) {
+                fragment.regions.push(region)
+                continue
+            }
+            existingRegion.guard = region.guard
+            existingRegion.edgeIds.splice(0, existingRegion.edgeIds.length, ...region.edgeIds)
+        }
+        if (fragment.regions.length > regions.length) fragment.regions.splice(regions.length)
+
+        const events: PendingMembershipEvent[] = []
+        if (operatorChanged) this.markFragmentFieldChange(fragmentId, 'operator', candidate.operator)
+        for (const regionIndex of changedRegionIndexes) {
+            const previousRegion = previousRegions[regionIndex]
+            const region = fragment.regions[regionIndex]
+            const previousEdgeIds = previousRegion?.edgeIds ?? []
+            const edgeIds = region?.edgeIds ?? []
+            const addedIds = edgeIds.filter((edgeId) => !previousEdgeIds.includes(edgeId))
+            const removedIds = previousEdgeIds.filter((edgeId) => !edgeIds.includes(edgeId))
+            if (previousRegion?.guard !== region?.guard) {
+                this.markFragmentRegionFieldChange(fragmentId, regionIndex, 'guard', region?.guard)
+            }
+            if (!sameOrderedValues(previousEdgeIds, edgeIds)) {
+                this.fragmentRegionEdgeIdsByKey.set(fragmentRegionKey(fragmentId, regionIndex), Object.freeze([...edgeIds]))
+                for (const edgeId of addedIds) this.markFragmentRegionMembership(fragmentId, regionIndex, edgeId, true)
+                for (const edgeId of removedIds) this.markFragmentRegionMembership(fragmentId, regionIndex, edgeId, false)
+                this.markFragmentRegionFieldChange(fragmentId, regionIndex, 'edgeIds', edgeIds)
+                events.push(fragmentRegionMembershipEvent(fragmentId, regionIndex, addedIds, removedIds))
+            }
+            if (!region) this.fragmentRegionEdgeIdsByKey.delete(fragmentRegionKey(fragmentId, regionIndex))
+        }
+        this.commitTransaction(events)
+        if (operatorChanged) this.publishFragmentFieldChange(fragmentId, 'operator', previousOperator, candidate.operator)
+        for (const regionIndex of changedRegionIndexes) {
+            const previousRegion = previousRegions[regionIndex]
+            const region = fragment.regions[regionIndex]
+            if (previousRegion?.guard !== region?.guard) {
+                this.publishFragmentRegionFieldChange(fragmentId, regionIndex, 'guard', previousRegion?.guard, region?.guard)
+            }
+        }
+
+        return true
+    }
+
     setEntityField<Field extends MutableDiagramEntityField>(
         nodeId: string,
         fieldIndex: number,
@@ -1092,13 +1205,22 @@ export class DiagramEditSessionService extends EventTarget {
     removeEdge(edgeId: string): boolean {
         const diagram = this.requireEditableDiagram()
         if (!this.findEdge(edgeId)) return false
-        if (!this.validateOperation('Remove edge', () => this.validateEdgeRemoval(edgeId))) return false
+        const emptiedRegionPaths = (diagram.fragments ?? []).flatMap((fragment) => (
+            fragment.regions.flatMap((region, regionIndex) => (
+                region.edgeIds.includes(edgeId) && region.edgeIds.length === 1
+                    ? [`fragments.${fragment.id}.regions[${regionIndex}].edgeIds`]
+                    : []
+            ))
+        ))
 
         const events: PendingMembershipEvent[] = []
         this.detachEdge(edgeId, events)
         this.edgeIds = frozenIds(diagram.edges)
         events.unshift(collectionMembershipEvent('edge', [], [edgeId]))
         this.commitTransaction(events)
+        for (const fieldPath of emptiedRegionPaths) {
+            this.reportValidationError(`Remove edge validation problem: ${fieldPath} has empty array`)
+        }
 
         return true
     }
@@ -1252,17 +1374,16 @@ export class DiagramEditSessionService extends EventTarget {
         for (const edge of diagram.edges) {
             if (nodeIds.has(edge.from) || nodeIds.has(edge.to)) edgeIds.add(edge.id)
         }
-        const fragmentIds = new Set(
-            (diagram.fragments ?? [])
-                .filter(({ regions }) => regions.some(({ edgeIds: regionEdgeIds }) => (
-                    regionEdgeIds.every((edgeId) => edgeIds.has(edgeId))
-                )))
-                .map(({ id }) => id),
-        )
+        const emptiedRegionPaths = (diagram.fragments ?? []).flatMap((fragment) => (
+            fragment.regions.flatMap((region, regionIndex) => (
+                region.edgeIds.length > 0 && region.edgeIds.every((edgeId) => edgeIds.has(edgeId))
+                    ? [`fragments.${fragment.id}.regions[${regionIndex}].edgeIds`]
+                    : []
+            ))
+        ))
         const removedNodeIds = diagram.nodes.filter(({ id }) => nodeIds.has(id)).map(({ id }) => id)
         const removedEdgeIds = diagram.edges.filter(({ id }) => edgeIds.has(id)).map(({ id }) => id)
         const removedGroupIds = diagram.groups.filter(({ id }) => groupIds.has(id)).map(({ id }) => id)
-        const removedFragmentIds = (diagram.fragments ?? []).filter(({ id }) => fragmentIds.has(id)).map(({ id }) => id)
         const events: PendingMembershipEvent[] = []
         for (const group of diagram.groups) {
             if (groupIds.has(group.id)) continue
@@ -1270,13 +1391,10 @@ export class DiagramEditSessionService extends EventTarget {
             this.detachGroupMembers(group, nodeIds, events)
         }
         for (const fragment of diagram.fragments ?? []) {
-            if (fragmentIds.has(fragment.id)) continue
-
             for (let index = 0; index < fragment.regions.length; index += 1) {
                 this.detachFragmentRegionEdges(fragment, index, edgeIds, events)
             }
         }
-        this.removeFragments(fragmentIds)
         this.removeGroups(groupIds)
         this.removeEdges(edgeIds)
         this.removeNodes(nodeIds)
@@ -1292,11 +1410,10 @@ export class DiagramEditSessionService extends EventTarget {
             this.groupIds = frozenIds(diagram.groups)
             events.unshift(collectionMembershipEvent('group', [], removedGroupIds))
         }
-        if (fragmentIds.size > 0) {
-            this.fragmentIds = frozenIds(diagram.fragments ?? [])
-            events.unshift(collectionMembershipEvent('fragment', [], removedFragmentIds))
-        }
         this.commitTransaction(events)
+        for (const fieldPath of emptiedRegionPaths) {
+            this.reportValidationError(`Delete selection validation problem: ${fieldPath} has empty array`)
+        }
 
         return true
     }
@@ -1340,6 +1457,7 @@ export class DiagramEditSessionService extends EventTarget {
         region.edgeIds.push(edgeId)
         this.fragmentRegionEdgeIdsByKey.set(fragmentRegionKey(fragmentId, regionIndex), Object.freeze([...region.edgeIds]))
         this.markFragmentRegionMembership(fragmentId, regionIndex, edgeId, true)
+        this.markFragmentRegionFieldChange(fragmentId, regionIndex, 'edgeIds', region.edgeIds)
         this.commitTransaction([fragmentRegionMembershipEvent(fragmentId, regionIndex, [edgeId], [])])
 
         return true
@@ -1569,13 +1687,17 @@ export class DiagramEditSessionService extends EventTarget {
     }
 
     private validateNewFragment(fragment: NewDiagramSequenceFragment) {
+        this.validateFragment(fragment, 'fragments.new')
+    }
+
+    private validateFragment(fragment: NewDiagramSequenceFragment, fieldPath: string) {
         const diagram = this.requireEditableDiagram()
         if (diagram.meta.type !== 'sequence') invalidDiagramField('fragments', 'value only allowed for sequence diagrams')
-        requireDiagramFragmentRegionCount(fragment.operator, fragment.regions, 'fragments.new')
+        requireDiagramFragmentRegionCount(fragment.operator, fragment.regions, fieldPath)
         for (let index = 0; index < fragment.regions.length; index += 1) {
             const region = fragment.regions[index]
-            requireDiagramString(region.guard, `fragments.new.regions[${index}].guard`)
-            if (region.edgeIds.length === 0) invalidDiagramField(`fragments.new.regions[${index}].edgeIds`, 'empty array')
+            requireDiagramString(region.guard, `${fieldPath}.regions[${index}].guard`)
+            if (region.edgeIds.length === 0) invalidDiagramField(`${fieldPath}.regions[${index}].edgeIds`, 'empty array')
         }
     }
 
@@ -1762,15 +1884,19 @@ export class DiagramEditSessionService extends EventTarget {
         return owned
     }
 
-    private requireOwnedRegions(operator: DiagramSequenceOperator, regions: readonly DiagramSequenceFragmentRegion[]) {
+    private requireOwnedRegions(
+        operator: DiagramSequenceOperator,
+        regions: readonly DiagramSequenceFragmentRegion[],
+        fieldPath = 'fragments.new.regions',
+    ) {
         const requiredRegionCount = operator === 'alt' ? 2 : 1
-        if (regions.length !== requiredRegionCount) invalidDiagramField('fragments.new.regions', `expected ${requiredRegionCount} regions`)
+        if (regions.length !== requiredRegionCount) invalidDiagramField(fieldPath, `expected ${requiredRegionCount} regions`)
         const seenEdgeIds = new Set<string>()
 
-        return regions.map((region): DiagramSequenceFragmentRegion => ({
+        return regions.map((region, regionIndex): DiagramSequenceFragmentRegion => ({
             edgeIds: region.edgeIds.map((edgeId) => {
-                if (!this.edgesById.has(edgeId)) invalidDiagramField('fragments.new.regions.edgeIds', `unknown edge ${edgeId}`)
-                if (seenEdgeIds.has(edgeId)) invalidDiagramField('fragments.new.regions', `duplicate edge ${edgeId}`)
+                if (!this.edgesById.has(edgeId)) invalidDiagramField(`${fieldPath}[${regionIndex}].edgeIds`, `unknown edge ${edgeId}`)
+                if (seenEdgeIds.has(edgeId)) invalidDiagramField(fieldPath, `duplicate edge ${edgeId}`)
                 seenEdgeIds.add(edgeId)
 
                 return edgeId
@@ -1826,6 +1952,7 @@ export class DiagramEditSessionService extends EventTarget {
             Object.freeze([...region.edgeIds]),
         )
         this.markFragmentRegionMembership(fragment.id, regionIndex, edgeId, false)
+        this.markFragmentRegionFieldChange(fragment.id, regionIndex, 'edgeIds', region.edgeIds)
         events.push(fragmentRegionMembershipEvent(fragment.id, regionIndex, [], [edgeId]))
 
         return true
@@ -1861,26 +1988,8 @@ export class DiagramEditSessionService extends EventTarget {
             Object.freeze([...region.edgeIds]),
         )
         for (const edgeId of removedIds) this.markFragmentRegionMembership(fragment.id, regionIndex, edgeId, false)
+        this.markFragmentRegionFieldChange(fragment.id, regionIndex, 'edgeIds', region.edgeIds)
         events.push(fragmentRegionMembershipEvent(fragment.id, regionIndex, [], removedIds))
-    }
-
-    private removeFragments(fragmentIds: ReadonlySet<string>) {
-        const diagram = this.requireEditableDiagram()
-        const fragments = diagram.fragments
-        if (!fragments) return
-
-        const removedFragments = fragments.filter(({ id }) => fragmentIds.has(id))
-        for (const fragment of removedFragments) {
-            const index = fragments.indexOf(fragment)
-
-            fragments.splice(index, 1)
-            this.fragmentsById.delete(fragment.id)
-            for (let regionIndex = 0; regionIndex < fragment.regions.length; regionIndex += 1) {
-                this.fragmentRegionEdgeIdsByKey.delete(fragmentRegionKey(fragment.id, regionIndex))
-            }
-            this.purgeChangesOwnedBy(`fragment:${fragment.id}`)
-            this.markCollectionMembership('fragment', fragment.id, false)
-        }
     }
 
     private removeGroups(groupIds: ReadonlySet<string>) {
@@ -2027,6 +2136,76 @@ export class DiagramEditSessionService extends EventTarget {
             value: present,
         }
         this.setChange(change, `fragment:${fragmentId}`, present === originalValue)
+    }
+
+    private markFragmentFieldChange<Field extends MutableDiagramFragmentField>(
+        fragmentId: string,
+        field: Field,
+        value: DiagramSequenceFragment[Field],
+    ) {
+        const originalValue = this.originalFragmentsById.get(fragmentId)?.[field]
+        const id = diagramObjectFieldChangedEvent('fragment', fragmentId, field)
+        const change: DiagramChange = {
+            category: 'field',
+            field,
+            id,
+            objectId: fragmentId,
+            objectKind: 'fragment',
+            originalValue,
+            ownerId: null,
+            regionIndex: null,
+            value,
+        }
+        this.setChange(change, `fragment:${fragmentId}`, Object.is(originalValue, value))
+    }
+
+    private markFragmentRegionFieldChange(
+        fragmentId: string,
+        regionIndex: number,
+        field: keyof DiagramSequenceFragmentRegion,
+        value: unknown,
+    ) {
+        const originalValue = this.originalFragmentsById.get(fragmentId)?.regions[regionIndex]?.[field]
+        const matchesOriginal = Array.isArray(originalValue) && Array.isArray(value)
+            ? sameOrderedValues(originalValue, value)
+            : Object.is(originalValue, value)
+        const id = diagramFragmentRegionFieldChangedEvent(fragmentId, regionIndex, field)
+        const change: DiagramChange = {
+            category: 'field',
+            field,
+            id,
+            objectId: fragmentId,
+            objectKind: 'fragment',
+            originalValue: Array.isArray(originalValue) ? Object.freeze([...originalValue]) : originalValue,
+            ownerId: fragmentId,
+            regionIndex,
+            value: Array.isArray(value) ? Object.freeze([...value]) : value,
+        }
+        this.setChange(change, `fragment:${fragmentId}`, matchesOriginal)
+    }
+
+    private publishFragmentFieldChange<Field extends MutableDiagramFragmentField>(
+        fragmentId: string,
+        field: Field,
+        previousValue: DiagramSequenceFragment[Field],
+        value: DiagramSequenceFragment[Field],
+    ) {
+        const eventName = diagramObjectFieldChangedEvent('fragment', fragmentId, field)
+        const detail = { field, objectId: fragmentId, objectKind: 'fragment' as const, previousValue, value }
+        this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(eventName, { detail }))
+    }
+
+    private publishFragmentRegionFieldChange(
+        fragmentId: string,
+        regionIndex: number,
+        field: keyof DiagramSequenceFragmentRegion,
+        previousValue: unknown,
+        value: unknown,
+    ) {
+        const eventName = diagramFragmentRegionFieldChangedEvent(fragmentId, regionIndex, field)
+        const objectId = `${fragmentId}[${regionIndex}]`
+        const detail = { field, objectId, objectKind: 'fragment' as const, previousValue, value }
+        this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(eventName, { detail }))
     }
 
     private markEntityFieldMembership(nodeId: string) {

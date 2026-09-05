@@ -30,6 +30,7 @@ import {
     type DiagramObjectDetailsService,
 } from './diagram_object_details_service';
 import { DiagramSequenceEdgeButton } from './diagram_sequence_edge_button';
+import { DiagramFragmentButton } from './diagram_fragment_button';
 import {
     DiagramComponentNodeButton,
     type DiagramComponentNodePlacement,
@@ -231,6 +232,7 @@ export function DiagramToolbox({
                     )}
                     {activeSection === 'groups' && <DiagramGroupButton drawing={groupDrawing} session={session} />}
                     {activeSection === 'others' && <DiagramMetadataButton details={details} />}
+                    {activeSection === 'others' && <DiagramFragmentButton session={session} />}
                 </Box>
             </ResizablePopper>
         </>

@@ -32,6 +32,7 @@ import {
 const GEOMETRY_SESSION_EVENT = 'geometry:session'
 const SURFACE_ID = 'surface'
 const ACTIVATION_BOTTOM_MARGIN = 24
+const MAXIMUM_FRAGMENT_REGION_COUNT = 2
 const EMPTY_IDS: readonly string[] = Object.freeze([])
 const EMPTY_ROUTE: readonly DiagramWaypoint[] = Object.freeze([])
 const EMPTY_GUARDS: readonly { guard: string, y: number }[] = Object.freeze([])
@@ -236,6 +237,7 @@ export class DiagramGeometryService extends EventTarget {
         for (const node of diagram.nodes) this.subscribeNode(node)
         for (const edge of diagram.edges) this.subscribeEdge(edge)
         for (const group of diagram.groups) this.subscribeGroup(group)
+        for (const fragment of diagram.fragments ?? []) this.subscribeFragment(fragment)
     }
 
     private subscribeNode(node: DiagramNode) {
@@ -264,6 +266,15 @@ export class DiagramGeometryService extends EventTarget {
     private subscribeGroup(group: DiagramGroup) {
         for (const field of GEOMETRY_NODE_FIELDS) {
             this.objectUnsubscribes.push(this.editSession.subscribeGroupField(group.id, field, () => this.applyGroupChange(group.id)))
+        }
+    }
+
+    private subscribeFragment(fragment: DiagramSequenceFragment) {
+        const refresh = () => this.applyFragmentChange(fragment.id)
+        this.objectUnsubscribes.push(this.editSession.subscribeFragmentField(fragment.id, 'operator', refresh))
+        for (let regionIndex = 0; regionIndex < MAXIMUM_FRAGMENT_REGION_COUNT; regionIndex += 1) {
+            this.objectUnsubscribes.push(this.editSession.subscribeFragmentRegionField(fragment.id, regionIndex, 'guard', refresh))
+            this.objectUnsubscribes.push(this.editSession.subscribeFragmentRegionMembership(fragment.id, regionIndex, refresh))
         }
     }
 
@@ -315,6 +326,14 @@ export class DiagramGeometryService extends EventTarget {
         const changedFields = BOX_FIELDS.filter((field) => this.assignField('group', groupId, positioned, field, next[field]))
         if (changedFields.length === 0) return
 
+        this.refreshSurface()
+    }
+
+    private applyFragmentChange(fragmentId: string) {
+        const fragment = (this.requireDiagram().fragments ?? []).find(({ id }) => id === fragmentId)
+        if (!fragment) return
+
+        this.refreshFragment(fragment)
         this.refreshSurface()
     }
 
@@ -398,6 +417,7 @@ export class DiagramGeometryService extends EventTarget {
     private refreshFragment(fragment: DiagramSequenceFragment) {
         const positioned = this.fragmentsById.get(fragment.id)
         if (!positioned) return
+        if (fragment.regions.some(({ edgeIds }) => edgeIds.length === 0)) return
 
         const edges = fragment.regions.flatMap(({ edgeIds }) => edgeIds)
             .map((edgeId) => this.edgesById.get(edgeId))
@@ -521,7 +541,10 @@ export class DiagramGeometryService extends EventTarget {
             const edges = fragment.regions.flatMap(({ edgeIds }) => edgeIds)
                 .map((edgeId) => this.edgesById.get(edgeId))
                 .filter((edge): edge is PositionedDiagramEdge => !!edge)
-            if (edges.length > 0) this.fragmentsById.set(fragment.id, sequenceFragmentBox(fragment, edges, this.nodesById))
+            if (edges.length > 0) {
+                this.fragmentsById.set(fragment.id, sequenceFragmentBox(fragment, edges, this.nodesById))
+                this.subscribeFragment(fragment)
+            }
         }
         this.fragmentIds = Object.freeze([...this.fragmentsById.keys()])
         this.dispatchEvent(new Event(diagramGeometryMembershipChangedEvent('fragment')))
