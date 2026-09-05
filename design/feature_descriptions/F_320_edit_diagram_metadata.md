@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__775fb7c0-979e-45ec-a05d-25c968335775.json
 policy:
 after: b1741e32-76ad-42d9-a014-6bccfec35e63
 branch: f_320_edit_diagram_metadata
