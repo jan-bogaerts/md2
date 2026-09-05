@@ -1,7 +1,11 @@
 import {
-    Alert, Button, DialogActions, DialogContent, MenuItem, Stack, TextField, Typography,
+    Alert, Button, DialogActions, DialogContent, IconButton, MenuItem, Stack, TextField, Tooltip, Typography,
 } from '@mui/material'
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
+import ArrowDownwardOutlinedIcon from '@mui/icons-material/ArrowDownwardOutlined'
+import ArrowUpwardOutlinedIcon from '@mui/icons-material/ArrowUpwardOutlined'
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
+import { useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react'
 import {
     DIAGRAM_NODE_KINDS,
     DIAGRAM_ROLES,
@@ -15,6 +19,7 @@ import type { DiagramEditSessionService } from '../../services/diagrams/diagram_
 type DrilldownDraft = 'default' | 'disabled' | 'enabled'
 
 interface EntityFieldDraft {
+    draftId: string
     key: '' | 'foreign' | 'primary'
     name: string
     type: string
@@ -25,6 +30,7 @@ interface NodeDraft {
     entityFields: EntityFieldDraft[]
     kind: DiagramNodeKind | ''
     label: string
+    nextEntityFieldId: number
     role: DiagramRole
     sublabel: string
     tag: string
@@ -71,9 +77,10 @@ function initialDraft(nodeId: string, session: DiagramEditSessionService): NodeD
 
     return {
         drilldown: drilldownDraft(node?.drilldown),
-        entityFields: node?.fields?.map((field) => ({ key: field.key ?? '', name: field.name, type: field.type ?? '' })) ?? [],
+        entityFields: node?.fields?.map((field, fieldIndex) => ({draftId: `existing:${fieldIndex}`, key: field.key ?? '', name: field.name, type: field.type ?? ''})) ?? [],
         kind: node?.kind ?? '',
         label: node?.label ?? '',
+        nextEntityFieldId: 0,
         role: node?.role ?? 'focal',
         sublabel: node?.sublabel ?? '',
         tag: node?.tag ?? '',
@@ -86,6 +93,50 @@ function entityFieldValue(draft: EntityFieldDraft): DiagramEntityField {
         name: draft.name,
         ...(optionalText(draft.type) ? { type: draft.type } : {}),
     }
+}
+
+function synchronizeEntityFields(
+    nodeId: string,
+    drafts: readonly EntityFieldDraft[],
+    session: DiagramEditSessionService,
+) {
+    const node = session.getNodeSnapshot(nodeId)
+    if (!node) return false
+
+    const currentIds = (node.fields ?? []).map((_field, fieldIndex) => `existing:${fieldIndex}`)
+    const targetIds = drafts.map(({ draftId }) => draftId)
+    let saved = true
+    for (let fieldIndex = currentIds.length - 1; fieldIndex >= 0; fieldIndex -= 1) {
+        if (targetIds.includes(currentIds[fieldIndex])) continue
+        saved = session.removeEntityField(nodeId, fieldIndex) && saved
+        currentIds.splice(fieldIndex, 1)
+    }
+    for (const [targetIndex, draft] of drafts.entries()) {
+        const currentIndex = currentIds.indexOf(draft.draftId)
+        if (currentIndex < 0) {
+            saved = session.addEntityField(nodeId, entityFieldValue(draft), targetIndex) && saved
+            currentIds.splice(targetIndex, 0, draft.draftId)
+        } else if (currentIndex !== targetIndex) {
+            saved = session.moveEntityField(nodeId, currentIndex, targetIndex) && saved
+            currentIds.splice(targetIndex, 0, currentIds.splice(currentIndex, 1)[0])
+        }
+    }
+    for (const [fieldIndex, draft] of drafts.entries()) {
+        const entityField = session.getEntityFieldSnapshot(nodeId, fieldIndex)
+        if (!entityField) continue
+        const nextEntityField = entityFieldValue(draft)
+        if (entityField.name !== nextEntityField.name) {
+            saved = session.setEntityField(nodeId, fieldIndex, 'name', nextEntityField.name) && saved
+        }
+        if (entityField.type !== nextEntityField.type) {
+            saved = session.setEntityField(nodeId, fieldIndex, 'type', nextEntityField.type) && saved
+        }
+        if (entityField.key !== nextEntityField.key) {
+            saved = session.setEntityField(nodeId, fieldIndex, 'key', nextEntityField.key) && saved
+        }
+    }
+
+    return saved
 }
 
 export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNodeDetailsEditorProps) {
@@ -107,6 +158,30 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
                 index === fieldIndex ? { ...entityField, [field]: event.target.value } : entityField
             )),
         }))
+    }
+    const handleAddEntityField = () => {
+        setDraft((current) => ({
+            ...current,
+            entityFields: [...current.entityFields, {draftId: `new:${current.nextEntityFieldId}`, key: '', name: '', type: ''}],
+            nextEntityFieldId: current.nextEntityFieldId + 1,
+        }))
+    }
+    const handleRemoveEntityField = (event: MouseEvent<HTMLButtonElement>) => {
+        const fieldIndex = Number(event.currentTarget.dataset.fieldIndex)
+        setDraft((current) => ({
+            ...current,
+            entityFields: current.entityFields.filter((_field, index) => index !== fieldIndex),
+        }))
+    }
+    const handleMoveEntityField = (event: MouseEvent<HTMLButtonElement>) => {
+        const fieldIndex = Number(event.currentTarget.dataset.fieldIndex)
+        const targetIndex = Number(event.currentTarget.dataset.targetIndex)
+        setDraft((current) => {
+            const entityFields = [...current.entityFields]
+            entityFields.splice(targetIndex, 0, entityFields.splice(fieldIndex, 1)[0])
+
+            return { ...current, entityFields }
+        })
     }
     const validate = () => {
         if (draft.label.trim().length === 0) return 'Label is required.'
@@ -145,20 +220,7 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
             saved = session.setNodeField(nodeId, 'kind', draft.kind as DiagramNodeKind) && saved
         }
         if (diagramType === 'entity') {
-            for (const [fieldIndex, entityDraft] of draft.entityFields.entries()) {
-                const entityField = node.fields?.[fieldIndex]
-                if (!entityField) continue
-                const nextEntityField = entityFieldValue(entityDraft)
-                if (entityField.name !== nextEntityField.name) {
-                    saved = session.setEntityField(nodeId, fieldIndex, 'name', nextEntityField.name) && saved
-                }
-                if (entityField.type !== nextEntityField.type) {
-                    saved = session.setEntityField(nodeId, fieldIndex, 'type', nextEntityField.type) && saved
-                }
-                if (entityField.key !== nextEntityField.key) {
-                    saved = session.setEntityField(nodeId, fieldIndex, 'key', nextEntityField.key) && saved
-                }
-            }
+            saved = synchronizeEntityFields(nodeId, draft.entityFields, session) && saved
         }
         if (saved) onClose()
     }
@@ -184,11 +246,14 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
                         <MenuItem value="enabled">Enabled</MenuItem>
                         <MenuItem value="disabled">Disabled</MenuItem>
                     </TextField>
-                    {diagramType === 'entity' && draft.entityFields.length > 0 ? (
+                    {diagramType === 'entity' ? (
                         <Stack spacing={1.5}>
-                            <Typography variant="subtitle2">Entity fields</Typography>
+                            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Typography variant="subtitle2">Entity fields</Typography>
+                                <Button onClick={handleAddEntityField} size="small" startIcon={<AddOutlinedIcon />}>Add field</Button>
+                            </Stack>
                             {draft.entityFields.map((field, fieldIndex) => (
-                                <Stack key={fieldIndex} direction="row" spacing={1}>
+                                <Stack key={field.draftId} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                                     <TextField
                                         label={`Field ${fieldIndex + 1} name`}
                                         name={`${fieldIndex}:name`}
@@ -216,6 +281,44 @@ export function DiagramNodeDetailsEditor({ nodeId, onClose, session }: DiagramNo
                                         <MenuItem value="primary">Primary</MenuItem>
                                         <MenuItem value="foreign">Foreign</MenuItem>
                                     </TextField>
+                                    <Tooltip title="Move field up">
+                                        <span>
+                                            <IconButton
+                                                aria-label={`Move field ${fieldIndex + 1} up`}
+                                                data-field-index={fieldIndex}
+                                                data-target-index={fieldIndex - 1}
+                                                disabled={fieldIndex === 0}
+                                                onClick={handleMoveEntityField}
+                                                size="small"
+                                            >
+                                                <ArrowUpwardOutlinedIcon fontSize="small" />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                    <Tooltip title="Move field down">
+                                        <span>
+                                            <IconButton
+                                                aria-label={`Move field ${fieldIndex + 1} down`}
+                                                data-field-index={fieldIndex}
+                                                data-target-index={fieldIndex + 1}
+                                                disabled={fieldIndex === draft.entityFields.length - 1}
+                                                onClick={handleMoveEntityField}
+                                                size="small"
+                                            >
+                                                <ArrowDownwardOutlinedIcon fontSize="small" />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                    <Tooltip title="Remove field">
+                                        <IconButton
+                                            aria-label={`Remove field ${fieldIndex + 1}`}
+                                            data-field-index={fieldIndex}
+                                            onClick={handleRemoveEntityField}
+                                            size="small"
+                                        >
+                                            <DeleteOutlineOutlinedIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
                                 </Stack>
                             ))}
                         </Stack>

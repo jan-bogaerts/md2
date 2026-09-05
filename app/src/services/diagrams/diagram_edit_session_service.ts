@@ -95,6 +95,12 @@ export interface DiagramMembershipChangeDetail {
     removedIds: readonly string[]
 }
 
+export interface DiagramEntityFieldMembershipChangeDetail {
+    addedIndexes: readonly number[]
+    nodeId: string
+    removedIndexes: readonly number[]
+}
+
 export interface DiagramRemovalIdentity {
     objectId: string
     objectKind: DiagramRemovableObjectKind
@@ -220,6 +226,10 @@ export function diagramEntityFieldChangedEvent(nodeId: string, fieldIndex: numbe
     return `diagram:entityField:${eventScope(nodeId)}:${fieldIndex}:${field}`
 }
 
+export function diagramEntityFieldMembershipChangedEvent(nodeId: string) {
+    return `diagram:entityField:${eventScope(nodeId)}:membership`
+}
+
 export function diagramConnectionPointFieldChangedEvent(
     edgeId: string,
     endpoint: DiagramConnectionEndpoint,
@@ -316,6 +326,7 @@ export class DiagramEditSessionService extends EventTarget {
     private edgesById = new Map<string, DiagramEdge>()
     private edgeIds: readonly string[] = EMPTY_IDS
     private editableDiagram: DiagramData | null = null
+    private entityFieldIndexesByNodeId = new Map<string, readonly number[]>()
     private fragmentsById = new Map<string, DiagramSequenceFragment>()
     private fragmentIds: readonly string[] = EMPTY_IDS
     private fragmentRegionEdgeIdsByKey = new Map<string, readonly string[]>()
@@ -396,6 +407,10 @@ export class DiagramEditSessionService extends EventTarget {
 
     getFragmentRegionEdgeIdsSnapshot = (fragmentId: string, regionIndex: number): readonly string[] | null => (
         this.fragmentRegionEdgeIdsByKey.get(fragmentRegionKey(fragmentId, regionIndex)) ?? null
+    )
+
+    getEntityFieldIndexesSnapshot = (nodeId: string): readonly number[] | null => (
+        this.entityFieldIndexesByNodeId.get(nodeId) ?? null
     )
 
     getMetadataFieldSnapshot = <Field extends keyof DiagramMeta>(field: Field): DeepReadonly<DiagramMeta[Field]> | null => (
@@ -513,6 +528,10 @@ export class DiagramEditSessionService extends EventTarget {
         listener: () => void,
     ) => this.subscribe(diagramEntityFieldChangedEvent(nodeId, fieldIndex, field), listener)
 
+    subscribeEntityFieldMembership = (nodeId: string, listener: () => void) => (
+        this.subscribe(diagramEntityFieldMembershipChangedEvent(nodeId), listener)
+    )
+
     subscribeConnectionPointField = (
         edgeId: string,
         endpoint: DiagramConnectionEndpoint,
@@ -570,6 +589,9 @@ export class DiagramEditSessionService extends EventTarget {
         this.fragmentsById = indexById(editableDiagram.fragments ?? [])
         this.groupsById = indexById(editableDiagram.groups)
         this.nodesById = indexById(editableDiagram.nodes)
+        this.entityFieldIndexesByNodeId = new Map(editableDiagram.nodes.map((node) => (
+            [node.id, DiagramEditSessionService.entityFieldIndexes(node)]
+        )))
         this.originalEdgesById = indexById(source.diagram.edges)
         this.originalFragmentsById = indexById(source.diagram.fragments ?? [])
         this.originalGroupsById = indexById(source.diagram.groups)
@@ -598,6 +620,7 @@ export class DiagramEditSessionService extends EventTarget {
         this.fragmentsById.clear()
         this.groupsById.clear()
         this.nodesById.clear()
+        this.entityFieldIndexesByNodeId.clear()
         this.originalEdgesById.clear()
         this.originalFragmentsById.clear()
         this.originalGroupsById.clear()
@@ -800,6 +823,54 @@ export class DiagramEditSessionService extends EventTarget {
         return true
     }
 
+    /** Adds one position-addressed field without replacing its owning field array. */
+    addEntityField(nodeId: string, field: DiagramEntityField, fieldIndex?: number) {
+        const node = this.requireEntityNode(nodeId)
+        const fields = node.fields ?? []
+        const index = fieldIndex ?? fields.length
+        if (!this.validateOperation('Add entity field', () => {
+            if (!Number.isInteger(index) || index < 0 || index > fields.length) {
+                invalidDiagramField(`nodes.${nodeId}.fields`, `invalid insertion index ${index}`)
+            }
+            requireEntityFieldValue('key', field.key, `nodes.${nodeId}.fields[${index}].key`)
+            requireEntityFieldValue('name', field.name, `nodes.${nodeId}.fields[${index}].name`)
+            requireEntityFieldValue('type', field.type, `nodes.${nodeId}.fields[${index}].type`)
+        })) return false
+
+        if (!node.fields) node.fields = fields
+        fields.splice(index, 0, { ...field })
+        this.finishEntityFieldMembershipChange(nodeId, [index], [])
+
+        return true
+    }
+
+    /** Removes one position-addressed field without replacing its owning field array. */
+    removeEntityField(nodeId: string, fieldIndex: number) {
+        const node = this.requireEntityNode(nodeId)
+        const fields = node.fields ?? []
+        if (!fields[fieldIndex]) return false
+
+        fields.splice(fieldIndex, 1)
+        this.finishEntityFieldMembershipChange(nodeId, [], [fieldIndex])
+
+        return true
+    }
+
+    /** Reorders one position-addressed field within its owning array. */
+    moveEntityField(nodeId: string, fieldIndex: number, targetIndex: number) {
+        const node = this.requireEntityNode(nodeId)
+        const fields = node.fields ?? []
+        const field = fields[fieldIndex]
+        if (!field || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= fields.length) return false
+        if (fieldIndex === targetIndex) return false
+
+        fields.splice(fieldIndex, 1)
+        fields.splice(targetIndex, 0, field)
+        this.finishEntityFieldMembershipChange(nodeId, [targetIndex], [fieldIndex])
+
+        return true
+    }
+
     setConnectionPointField<Field extends MutableDiagramConnectionPointField>(
         edgeId: string,
         endpoint: DiagramConnectionEndpoint,
@@ -842,6 +913,7 @@ export class DiagramEditSessionService extends EventTarget {
         if (node.fields) created.fields = node.fields.map((field) => ({ ...field }))
         diagram.nodes.push(created)
         this.nodesById.set(id, created)
+        this.entityFieldIndexesByNodeId.set(id, DiagramEditSessionService.entityFieldIndexes(created))
         this.nodeIds = frozenIds(diagram.nodes)
         this.markCollectionMembership('node', id, true)
         this.commitTransaction([collectionMembershipEvent('node', [id], [])])
@@ -866,6 +938,7 @@ export class DiagramEditSessionService extends EventTarget {
         for (const group of diagram.groups) this.detachGroupMember(group, nodeId, events)
         diagram.nodes.splice(diagram.nodes.indexOf(node), 1)
         this.nodesById.delete(nodeId)
+        this.entityFieldIndexesByNodeId.delete(nodeId)
         this.nodeIds = frozenIds(diagram.nodes)
         this.purgeChangesOwnedBy(`node:${nodeId}`)
         this.markCollectionMembership('node', nodeId, false)
@@ -981,7 +1054,10 @@ export class DiagramEditSessionService extends EventTarget {
             if (!diagram.fragments) diagram.fragments = []
             diagram.fragments.push(...pasted.fragments)
         }
-        for (const node of pasted.nodes) this.nodesById.set(node.id, node)
+        for (const node of pasted.nodes) {
+            this.nodesById.set(node.id, node)
+            this.entityFieldIndexesByNodeId.set(node.id, DiagramEditSessionService.entityFieldIndexes(node))
+        }
         for (const edge of pasted.edges) this.edgesById.set(edge.id, edge)
         for (const group of pasted.groups) {
             this.groupsById.set(group.id, group)
@@ -1236,6 +1312,14 @@ export class DiagramEditSessionService extends EventTarget {
         if (!entityField) throw new Error(`Diagram entity field ${nodeId}[${fieldIndex}] does not exist`)
 
         return entityField
+    }
+
+    private requireEntityNode(nodeId: string) {
+        const node = this.requireNode(nodeId)
+        const diagram = this.requireEditableDiagram()
+        if (diagram.meta.type !== 'entity') throw new Error(`Diagram node ${nodeId} does not belong to an entity diagram`)
+
+        return node
     }
 
     private requireConnectionPoint(edgeId: string, endpoint: DiagramConnectionEndpoint) {
@@ -1724,6 +1808,7 @@ export class DiagramEditSessionService extends EventTarget {
 
             diagram.nodes.splice(index, 1)
             this.nodesById.delete(node.id)
+            this.entityFieldIndexesByNodeId.delete(node.id)
             this.purgeChangesOwnedBy(`node:${node.id}`)
             this.markCollectionMembership('node', node.id, false)
         }
@@ -1808,6 +1893,24 @@ export class DiagramEditSessionService extends EventTarget {
             value: present,
         }
         this.setChange(change, `fragment:${fragmentId}`, present === originalValue)
+    }
+
+    private markEntityFieldMembership(nodeId: string) {
+        const originalValue = this.originalNodesById.get(nodeId)?.fields ?? []
+        const value = this.requireNode(nodeId).fields ?? []
+        const id = diagramEntityFieldMembershipChangedEvent(nodeId)
+        const change: DiagramChange = {
+            category: 'membership',
+            field: 'fields',
+            id,
+            objectId: nodeId,
+            objectKind: 'entityField',
+            originalValue,
+            ownerId: nodeId,
+            regionIndex: null,
+            value: value.map((field) => ({ ...field })),
+        }
+        this.setChange(change, `node:${nodeId}`, DiagramEditSessionService.sameEntityFields(originalValue, value))
     }
 
     private setChange(change: DiagramChange, ownerKey: string, matchesOriginal: boolean) {
@@ -1931,6 +2034,34 @@ export class DiagramEditSessionService extends EventTarget {
         this.commitTransaction([])
         const detail = { field, objectId, objectKind, previousValue, value }
         this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(changeId, { detail }))
+    }
+
+    private finishEntityFieldMembershipChange(
+        nodeId: string,
+        addedIndexes: readonly number[],
+        removedIndexes: readonly number[],
+    ) {
+        const node = this.requireNode(nodeId)
+        this.entityFieldIndexesByNodeId.set(nodeId, DiagramEditSessionService.entityFieldIndexes(node))
+        this.markEntityFieldMembership(nodeId)
+        this.commitTransaction([])
+        const detail = { addedIndexes, nodeId, removedIndexes }
+        this.dispatchEvent(new CustomEvent<DiagramEntityFieldMembershipChangeDetail>(
+            diagramEntityFieldMembershipChangedEvent(nodeId),
+            { detail },
+        ))
+    }
+
+    private static entityFieldIndexes(node: DiagramNode) {
+        return Object.freeze((node.fields ?? []).map((_field, index) => index))
+    }
+
+    private static sameEntityFields(left: readonly DiagramEntityField[], right: readonly DiagramEntityField[]) {
+        return left.length === right.length && left.every((field, index) => {
+            const other = right[index]
+
+            return field.key === other?.key && field.name === other.name && field.type === other.type
+        })
     }
 
     private publish(next: {

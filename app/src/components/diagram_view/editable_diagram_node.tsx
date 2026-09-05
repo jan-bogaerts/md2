@@ -1,5 +1,4 @@
 import { memo } from 'react'
-import type { DiagramEntityField } from '../../services/diagrams/diagram_data'
 import {
     diagramEditSessionService, type DiagramEditSessionService,
 } from '../../services/diagrams/diagram_edit_session_service'
@@ -37,7 +36,6 @@ function EditableDiagramNodeLeaf({
 }: EditableDiagramNodeProps) {
     const diagramType = useEditableDiagramMetadataField('type', session)
     const preset = useEditableDiagramMetadataField('preset', session)
-    const fields = useEditableDiagramNodeField(nodeId, 'fields', session)
     const kind = useEditableDiagramNodeField(nodeId, 'kind', session)
     const label = useEditableDiagramNodeField(nodeId, 'label', session)
     const role = useEditableDiagramNodeField(nodeId, 'role', session)
@@ -72,7 +70,6 @@ function EditableDiagramNodeLeaf({
         width,
         x: x ?? 0,
         y: y ?? 0,
-        ...(fields ? { fields: fields as DiagramEntityField[] } : {}),
         ...(kind ? { kind } : {}),
         ...(sublabel ? { sublabel } : {}),
         ...(tag ? { tag } : {}),
@@ -81,6 +78,7 @@ function EditableDiagramNodeLeaf({
     return (
         <DiagramNode
             diagramType={diagramType}
+            entityFieldSource={diagramType === 'entity' ? { nodeId, session } : undefined}
             flowPreset={preset ?? undefined}
             node={node}
             onOpenDetails={handleOpenDetails}

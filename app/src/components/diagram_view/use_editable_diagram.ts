@@ -129,6 +129,20 @@ export function useEditableDiagramEntityField<Field extends keyof DiagramEntityF
     return useDiagramSnapshot(subscribe, getSnapshot, service)
 }
 
+/** Subscribes one entity field host to field-list membership and order. */
+export function useEditableDiagramEntityFieldIndexes(
+    nodeId: string,
+    service: DiagramEditSessionService = diagramEditSessionService,
+) {
+    const subscribe = useCallback(
+        (listener: () => void) => service.subscribeEntityFieldMembership(nodeId, listener),
+        [nodeId, service],
+    )
+    const getSnapshot = useCallback(() => service.getEntityFieldIndexesSnapshot(nodeId), [nodeId, service])
+
+    return useDiagramSnapshot(subscribe, getSnapshot, service)
+}
+
 /** Subscribes one leaf to one edge connection-point field. */
 export function useEditableDiagramConnectionPointField<Field extends keyof DiagramConnectionPoint>(
     edgeId: string,

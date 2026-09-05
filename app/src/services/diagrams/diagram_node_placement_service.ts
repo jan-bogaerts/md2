@@ -25,7 +25,9 @@ export interface DiagramNodePlacementPoint {
     y: number
 }
 
-export type DiagramNodePlacementDefaults = Omit<NewDiagramNode, 'height' | 'kind' | 'width' | 'x' | 'y'> & {
+export type DiagramNodePlacementDefaults = Omit<NewDiagramNode, 'kind' | 'x' | 'y'>
+
+export interface DiagramNodePlacementPreviewSize {
     height: number
     width: number
 }
@@ -33,6 +35,7 @@ export type DiagramNodePlacementDefaults = Omit<NewDiagramNode, 'height' | 'kind
 export interface DiagramNodePlacementDefinition {
     defaults: DiagramNodePlacementDefaults
     kind: DiagramNodeKind
+    previewSize?: DiagramNodePlacementPreviewSize
 }
 
 export interface DiagramNodePlacementPreview {
@@ -60,6 +63,16 @@ function cloneDefaults(defaults: DiagramNodePlacementDefaults): DiagramNodePlace
 
 function samePreviewPoint(preview: DiagramNodePlacementPreview | null, x: number, y: number) {
     return preview?.node.x === x && preview.node.y === y
+}
+
+function previewSize(definition: DiagramNodePlacementDefinition) {
+    const height = definition.previewSize?.height ?? definition.defaults.height
+    const width = definition.previewSize?.width ?? definition.defaults.width
+    if (height === undefined || width === undefined) {
+        throw new Error('Diagram node placement requires preview dimensions')
+    }
+
+    return { height, width }
 }
 
 /** Owns one node tool from activation through transient preview and one committed placement. */
@@ -112,7 +125,11 @@ export class DiagramNodePlacementService extends EventTarget {
         if (!this.session.getSessionSnapshot()) throw new Error('Cannot activate node placement without an active edit session')
         if (!this.isNodeKindAvailable(definition.kind)) return false
 
-        this.definition = { defaults: cloneDefaults(definition.defaults), kind: definition.kind }
+        this.definition = {
+            defaults: cloneDefaults(definition.defaults),
+            kind: definition.kind,
+            ...(definition.previewSize ? { previewSize: { ...definition.previewSize } } : {}),
+        }
         this.setPreview(null)
         this.session.setActiveTool(`node:${definition.kind}`)
 
@@ -131,7 +148,7 @@ export class DiagramNodePlacementService extends EventTarget {
         if (samePreviewPoint(this.preview, x, y)) return false
 
         const modelNode: DiagramNode = { ...cloneDefaults(definition.defaults), id: PREVIEW_NODE_ID, kind: definition.kind, x, y }
-        const { height, width } = definition.defaults
+        const { height, width } = previewSize(definition)
         const node: PositionedDiagramNode = { ...modelNode, fanIn: 0, height, width, x, y }
         const preview = {
             diagramType,

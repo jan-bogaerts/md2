@@ -253,6 +253,27 @@ describe('DiagramToolbox', () => {
         expect(screen.queryByRole('button', { name: 'Participant' })).not.toBeInTheDocument();
     });
 
+    it('offers Entity from Nodes only for entity diagrams', () => {
+        const session = new ToolboxSessionStub('entity');
+        session.setActiveToolboxSection('nodes');
+        const activate = vi.fn();
+        const { rerender } = render(
+            <DiagramToolbox boundaryElement={createBoundary()} placement={{ activate }} session={session} />,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Entity' }));
+        expect(activate).toHaveBeenCalledOnce();
+
+        rerender(
+            <DiagramToolbox
+                boundaryElement={createBoundary()}
+                placement={{ activate }}
+                session={new ToolboxSessionStub('architecture')}
+            />,
+        );
+        expect(screen.queryByRole('button', { name: 'Entity' })).not.toBeInTheDocument();
+    });
+
     it('zooms out by one step without changing persistent tool and disables at minimum', async () => {
         const session = new ToolboxSessionStub();
         session.setActiveTool('node:component');

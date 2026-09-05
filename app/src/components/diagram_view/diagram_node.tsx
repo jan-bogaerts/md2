@@ -1,12 +1,21 @@
 import { Box, ButtonBase, Typography } from '@mui/material'
 import { useRef, type KeyboardEvent, type MouseEvent } from 'react'
 import type { DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data'
+import type { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import type { PositionedDiagramNode } from '../../services/diagrams/diagram_layout'
+import { DiagramEntityFieldRow } from './diagram_entity_field'
 import { diagramRoleStyle } from './diagram_role_style'
 import type { DiagramSelectHandler } from './diagram_selection'
+import { EditableDiagramEntityFields } from './editable_diagram_entity_fields'
+
+interface EditableEntityFieldSource {
+    nodeId: string
+    session: DiagramEditSessionService
+}
 
 interface DiagramNodeProps {
     diagramType: DiagramType
+    entityFieldSource?: EditableEntityFieldSource
     flowPreset?: DiagramFlowPreset
     node: PositionedDiagramNode
     onOpenDetails?: () => void
@@ -37,15 +46,8 @@ function decisionPoints(node: PositionedDiagramNode) {
     return `${node.width / 2},1 ${node.width - 1},${node.height / 2} ${node.width / 2},${node.height - 1} 1,${node.height / 2}`
 }
 
-function fieldPrefix(key: 'primary' | 'foreign' | undefined) {
-    if (key === 'primary') return '# '
-    if (key === 'foreign') return '→ '
-
-    return ''
-}
-
 /** Positioned, themed, keyboard-operable diagram item. */
-export function DiagramNode({ diagramType, flowPreset, node, onOpenDetails, onSelect, selected }: DiagramNodeProps) {
+export function DiagramNode({diagramType, entityFieldSource, flowPreset, node, onOpenDetails, onSelect, selected}: DiagramNodeProps) {
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
     const decision = node.kind === 'decision'
     const interactive = node.drilldown !== false || !!onOpenDetails
@@ -140,12 +142,12 @@ export function DiagramNode({ diagramType, flowPreset, node, onOpenDetails, onSe
                             <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="caption">{node.sublabel}</Typography>
                         ) : null}
                     </Box>
-                    {diagramType === 'entity' && node.fields ? (
+                    {diagramType === 'entity' && (entityFieldSource || node.fields) ? (
                         <Box sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', px: 2, py: 1 }}>
-                            {node.fields.map((field) => (
-                                <Typography key={`${field.key ?? 'field'}:${field.name}`} sx={{ fontFamily: 'monospace' }} variant="caption">
-                                    {fieldPrefix(field.key)}{field.name}{field.type ? `: ${field.type}` : ''}
-                                </Typography>
+                            {entityFieldSource ? (
+                                <EditableDiagramEntityFields {...entityFieldSource} />
+                            ) : node.fields?.map((field, fieldIndex) => (
+                                <DiagramEntityFieldRow field={field} key={fieldIndex} />
                             ))}
                         </Box>
                     ) : null}

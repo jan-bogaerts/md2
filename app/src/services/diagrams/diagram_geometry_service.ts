@@ -239,6 +239,7 @@ export class DiagramGeometryService extends EventTarget {
         for (const field of GEOMETRY_NODE_FIELDS) {
             this.objectUnsubscribes.push(this.editSession.subscribeNodeField(node.id, field, () => this.applyNodeChange(node.id)))
         }
+        this.objectUnsubscribes.push(this.editSession.subscribeEntityFieldMembership(node.id, () => this.applyNodeChange(node.id)))
     }
 
     private subscribeEdge(edge: DiagramEdge) {

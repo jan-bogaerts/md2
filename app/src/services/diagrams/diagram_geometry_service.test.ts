@@ -232,6 +232,22 @@ describe('DiagramGeometryService', () => {
         expect(geometry.getEdgeRouteSnapshot('order-line')).toBe(routeBefore)
     })
 
+    it('grows implicit entity height for field membership and preserves explicit resized height', () => {
+        const source = entityDiagram()
+        source.nodes[1].height = 120
+        const { geometry, session } = createHarness(source)
+        const implicitHeight = geometry.getNodeGeometryFieldSnapshot('order', 'height') as number
+        const explicitHeight = geometry.getNodeGeometryFieldSnapshot('line', 'height')
+
+        session.addEntityField('order', { name: 'customerId', type: 'uuid' })
+        session.addEntityField('line', { name: 'sku' })
+
+        expect(geometry.getNodeGeometryFieldSnapshot('order', 'height')).toBeGreaterThan(implicitHeight)
+        expect(geometry.getNodeGeometryFieldSnapshot('line', 'height')).toBe(explicitHeight)
+        expect(session.getNodeFieldSnapshot('order', 'height')).toBeUndefined()
+        expect(session.getNodeFieldSnapshot('line', 'height')).toBe(120)
+    })
+
     it('cascades nothing when a model edit leaves the derived value unchanged', () => {
         const { geometry, session } = createHarness()
         const derivedX = geometry.getNodeGeometryFieldSnapshot('mail', 'x')

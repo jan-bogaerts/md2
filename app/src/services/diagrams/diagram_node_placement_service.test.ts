@@ -104,6 +104,12 @@ const stateDefinition = {
     kind: 'state' as const,
 }
 
+const entityDefinition = {
+    defaults: { fields: [], label: 'New entity', role: 'focal' as const, width: 160 },
+    kind: 'entity' as const,
+    previewSize: { height: 48, width: 160 },
+}
+
 describe('DiagramNodePlacementService', () => {
     it.each(['architecture', 'dependency'] as const)(
         'previews on the grid, then creates and selects one component in a %s diagram through one membership mutation',
@@ -181,6 +187,28 @@ describe('DiagramNodePlacementService', () => {
         expect(session.getFragmentSnapshot('existing-fragment')).toBe(existingFragment)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
         expect(session.getActiveToolSnapshot()).toBe('select')
+    })
+
+    it('places and selects one entity while leaving its default height derived', () => {
+        const { placement, selection, session } = createHarness(diagram('entity'))
+
+        expect(placement.activate(entityDefinition)).toBe(true)
+        expect(placement.updatePreview({ x: 31, y: 42 })).toBe(true)
+        expect(placement.getPreviewSnapshot()?.node).toMatchObject({fields: [], height: 48, kind: 'entity', width: 160, x: 32, y: 44})
+        expect(placement.place({ x: 31, y: 42 })).toBe('placed-node')
+
+        expect(session.getNodeSnapshot('placed-node')).toEqual({
+            fields: [],
+            id: 'placed-node',
+            kind: 'entity',
+            label: 'New entity',
+            role: 'focal',
+            width: 160,
+            x: 32,
+            y: 44,
+        })
+        expect(session.getNodeFieldSnapshot('placed-node', 'height')).toBeUndefined()
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
     })
 
     it('creates and selects one step in a flowchart diagram through one membership mutation', () => {

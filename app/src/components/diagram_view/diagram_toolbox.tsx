@@ -25,6 +25,11 @@ import {
     type DiagramEndNodePlacement,
     type DiagramEndNodeSession,
 } from './diagram_end_node_button';
+import {
+    DiagramEntityNodeButton,
+    type DiagramEntityNodePlacement,
+    type DiagramEntityNodeSession,
+} from './diagram_entity_node_button';
 import { DiagramCopyButton } from './diagram_copy_button';
 import { DiagramCutButton } from './diagram_cut_button';
 import { DiagramDeleteButton } from './diagram_delete_button';
@@ -65,10 +70,10 @@ const MINIMUM_TOOLBOX_SIZE = { height: 120, width: 280 };
 
 interface DiagramToolboxProps {
     boundaryElement: HTMLElement | null;
-    placement?: DiagramComponentNodePlacement & DiagramEndNodePlacement & DiagramStartNodePlacement
+    placement?: DiagramComponentNodePlacement & DiagramEndNodePlacement & DiagramEntityNodePlacement & DiagramStartNodePlacement
     & DiagramStateNodePlacement & DiagramStepNodePlacement;
     session?: Omit<DiagramComponentNodeSession, 'getMetadataFieldSnapshot' | 'subscribeMetadataField'>
-    & DiagramEndNodeSession & DiagramStartNodeSession & DiagramStateNodeSession & DiagramStepNodeSession & {
+    & DiagramEndNodeSession & DiagramEntityNodeSession & DiagramStartNodeSession & DiagramStateNodeSession & DiagramStepNodeSession & {
         getActiveToolboxSectionSnapshot: () => DiagramToolboxSection;
         getActiveToolSnapshot: () => DiagramPersistentTool;
         getViewportScaleSnapshot: () => number;
@@ -175,6 +180,7 @@ export function DiagramToolbox({
                     {activeSection === 'nodes' && (
                         <>
                             <DiagramComponentNodeButton placement={placement} session={session} />
+                            <DiagramEntityNodeButton placement={placement} session={session} />
                             <DiagramParticipantButton placement={placement} session={session} />
                             <DiagramStartNodeButton placement={placement} session={session} />
                             <DiagramEndNodeButton placement={placement} session={session} />

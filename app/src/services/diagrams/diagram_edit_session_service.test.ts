@@ -536,6 +536,50 @@ describe('DiagramEditSessionService', () => {
         expect(entityService.getEntityFieldValueSnapshot('order', 0, 'type')).toBe('string')
     })
 
+    it('adds, reorders, and removes entity fields through one scoped membership event per operation', () => {
+        const { service } = createHarness({ source: entityDiagram })
+        service.start()
+        const membershipChanged = vi.fn()
+        const nodeFieldsChanged = vi.fn()
+        const originalIndexes = service.getEntityFieldIndexesSnapshot('order')
+        const originalNode = service.getNodeSnapshot('order')
+        service.subscribeEntityFieldMembership('order', membershipChanged)
+        service.subscribeNodeField('order', 'fields', nodeFieldsChanged)
+
+        expect(service.addEntityField('order', { key: 'foreign', name: 'customerId', type: 'uuid' })).toBe(true)
+        expect(service.getEntityFieldIndexesSnapshot('order')).toEqual([0, 1])
+        expect(service.getEntityFieldIndexesSnapshot('order')).not.toBe(originalIndexes)
+        expect(service.getNodeSnapshot('order')).toBe(originalNode)
+        expect(service.moveEntityField('order', 1, 0)).toBe(true)
+        expect(service.getEntityFieldValueSnapshot('order', 0, 'name')).toBe('customerId')
+        expect(service.removeEntityField('order', 1)).toBe(true)
+
+        expect(service.getEntityFieldIndexesSnapshot('order')).toEqual([0])
+        expect(service.getEntityFieldValueSnapshot('order', 0, 'name')).toBe('customerId')
+        expect(membershipChanged).toHaveBeenCalledTimes(3)
+        expect(membershipDetail(membershipChanged, 0)).toEqual({ addedIndexes: [1], nodeId: 'order', removedIndexes: [] })
+        expect(membershipDetail(membershipChanged, 1)).toEqual({ addedIndexes: [0], nodeId: 'order', removedIndexes: [1] })
+        expect(membershipDetail(membershipChanged, 2)).toEqual({ addedIndexes: [], nodeId: 'order', removedIndexes: [1] })
+        expect(nodeFieldsChanged).not.toHaveBeenCalled()
+        expect(service.getDirtySnapshot()).toBe(true)
+    })
+
+    it('validates entity fields before insertion and leaves membership unchanged when rejected', () => {
+        const reportValidationError = vi.fn()
+        const { service } = createHarness({ reportValidationError, source: entityDiagram })
+        service.start()
+        const fields = service.getNodeFieldSnapshot('order', 'fields')
+        const indexes = service.getEntityFieldIndexesSnapshot('order')
+
+        expect(service.addEntityField('order', { name: '' })).toBe(false)
+        expect(service.addEntityField('order', { name: 'createdAt' }, 3)).toBe(false)
+
+        expect(service.getNodeFieldSnapshot('order', 'fields')).toBe(fields)
+        expect(service.getEntityFieldIndexesSnapshot('order')).toBe(indexes)
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(reportValidationError).toHaveBeenCalledTimes(2)
+    })
+
 
     it('creates a node with a generated collision-free id and notifies only the node collection', () => {
         const createId = vi.fn().mockReturnValueOnce('orders').mockReturnValueOnce('orders-store').mockReturnValueOnce('node-1')

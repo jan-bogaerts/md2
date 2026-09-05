@@ -20,11 +20,25 @@ const diagram: DiagramData = {
         { id: 'store', label: 'Store', role: 'store' },
     ],
 }
+const entityDiagram: DiagramData = {
+    edges: [{ from: 'orders', id: 'orders-store', kind: 'relationship', to: 'store' }],
+    groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
+    meta: { description: 'Order entities', title: 'Entities', type: 'entity', version: 1 },
+    nodes: [
+        { fields: [{ key: 'primary', name: 'id', type: 'uuid' }], id: 'orders', kind: 'entity', label: 'Orders', role: 'focal' },
+        { fields: [], id: 'store', kind: 'entity', label: 'Store', role: 'store' },
+    ],
+}
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
 class DiagramSourceStub extends EventTarget {
-    private readonly source: DiagramViewSourceSnapshot = { diagram, record }
+    private readonly source: DiagramViewSourceSnapshot
+
+    constructor(sourceDiagram: DiagramData) {
+        super()
+        this.source = { diagram: sourceDiagram, record }
+    }
 
     getSourceSnapshot = () => this.source
 
@@ -35,8 +49,8 @@ class DiagramSourceStub extends EventTarget {
     }
 }
 
-function createHarness() {
-    const session = new DiagramEditSessionService(new DiagramSourceStub())
+function createHarness(sourceDiagram: DiagramData = diagram) {
+    const session = new DiagramEditSessionService(new DiagramSourceStub(sourceDiagram))
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
@@ -79,8 +93,8 @@ function LeafTree({ counts, geometry, selection, session }: {
     )
 }
 
-function renderTree() {
-    const { geometry, selection, session } = createHarness()
+function renderTree(sourceDiagram: DiagramData = diagram) {
+    const { geometry, selection, session } = createHarness(sourceDiagram)
     const counts: RenderCounts = new Map()
     render(<LeafTree counts={counts} geometry={geometry} selection={selection} session={session} />)
 
@@ -110,6 +124,19 @@ describe('editable diagram leaves', () => {
         expect(counts.get('edge')).toBe(before.get('edge'))
         expect(counts.get('group')).toBe(before.get('group'))
         expect(screen.getByRole('button', { name: 'Order intake' })).toBeTruthy()
+    })
+
+    it('rerenders only the owning entity leaf when one position-addressed field changes', () => {
+        const { counts, session } = renderTree(entityDiagram)
+        const before = new Map(counts)
+
+        act(() => { session.setEntityField('orders', 0, 'name', 'orderId') })
+
+        expect(counts.get('orders')).toBeGreaterThan(before.get('orders') ?? 0)
+        expect(counts.get('store')).toBe(before.get('store'))
+        expect(counts.get('edge')).toBe(before.get('edge'))
+        expect(counts.get('group')).toBe(before.get('group'))
+        expect(screen.getByText('# orderId: uuid')).toBeInTheDocument()
     })
 
     it('rerenders the edge leaf for its own label and leaves the node leaves alone', () => {

@@ -165,6 +165,29 @@ describe('diagram object details dialog', () => {
         expect(session.getDirtySnapshot()).toBe(false)
     })
 
+    it('adds, edits, orders, and removes entity fields before saving focused mutations', async () => {
+        const { session } = renderHarness('entity')
+        const user = userEvent.setup()
+        const membershipChanged = vi.fn()
+        session.subscribeEntityFieldMembership('orders', membershipChanged)
+
+        await user.dblClick(screen.getByRole('button', { name: 'Orders' }))
+        await user.click(screen.getByRole('button', { name: 'Add field' }))
+        await user.type(screen.getByRole('textbox', { name: 'Field 2 name' }), 'customerId')
+        await user.type(screen.getAllByRole('textbox', { name: 'Type' })[1], 'uuid')
+        await user.click(screen.getAllByRole('combobox', { name: 'Key' })[1])
+        await user.click(screen.getByRole('option', { name: 'Foreign' }))
+        await user.click(screen.getByRole('button', { name: 'Move field 2 up' }))
+        await user.click(screen.getByRole('button', { name: 'Remove field 2' }))
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(session.getNodeFieldSnapshot('orders', 'fields')).toEqual([
+            { key: 'foreign', name: 'customerId', type: 'uuid' },
+        ])
+        expect(membershipChanged).toHaveBeenCalledTimes(2)
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    })
+
     it('shows flow kind but hides entity-only fields', async () => {
         renderHarness('flow')
         const user = userEvent.setup()
