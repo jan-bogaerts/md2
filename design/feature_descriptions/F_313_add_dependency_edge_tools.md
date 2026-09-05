@@ -3,15 +3,14 @@ author:
 id: F_313
 internalId: 38dda9b3-29d3-4797-9d49-d2e435ccd6f1
 title: add dependency edge tools
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
 after: a19922cd-3580-4417-8906-3b8b73d4f46f
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ Dependency and cycle edges are stable service-owned objects. Creating one change
 
 ## Dependencies
 
-[F_311](F_311_add_edge_drawing_infrastructure.md).
+[F\_311](F_311_add_edge_drawing_infrastructure.md).

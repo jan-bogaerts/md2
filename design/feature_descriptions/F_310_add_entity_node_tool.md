@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__cffd0f4a-8cc4-4429-bacc-e08c28c7b233.json
 policy:
-branch: f_310_add_entity_node_tool
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/diagram_entity_field.tsx
   - app/src/components/diagram_view/diagram_entity_node_button.test.tsx

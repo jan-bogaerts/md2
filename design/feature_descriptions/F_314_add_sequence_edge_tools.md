@@ -3,15 +3,14 @@ author:
 id: F_314
 internalId: a9a843a2-367c-42ec-b9ca-7d990faf13ff
 title: add sequence edge tools
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
 after: 38dda9b3-29d3-4797-9d49-d2e435ccd6f1
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -35,4 +34,4 @@ A new message changes edge membership once. Row insertion updates only the new m
 
 ## Dependencies
 
-[F_311](F_311_add_edge_drawing_infrastructure.md) and [F_278](F_278_make_diagram_layout_compatible_with_editing.md).
+[F\_311](F_311_add_edge_drawing_infrastructure.md) and [F\_278](F_278_make_diagram_layout_compatible_with_editing.md).

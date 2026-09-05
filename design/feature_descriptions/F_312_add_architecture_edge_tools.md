@@ -3,15 +3,14 @@ author:
 id: F_312
 internalId: a19922cd-3580-4417-8906-3b8b73d4f46f
 title: add architecture edge tools
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: ab22473c-bea7-4d12-aced-6628ef5c50f8
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ Each button subscribes only to diagram-type availability. Creation adds one stab
 
 ## Dependencies
 
-[F_311](F_311_add_edge_drawing_infrastructure.md) and [F_296](F_296_edit_diagram_object_details.md).
+[F\_311](F_311_add_edge_drawing_infrastructure.md) and [F\_296](F_296_edit_diagram_object_details.md).
