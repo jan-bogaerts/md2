@@ -5,9 +5,8 @@ status: new
 title: add chatlog item commands
 after: 1fbd0445-1242-4578-b231-6b4eab1fab01
 ---
-
 for chatlogs items, add buttons that allow:
 
-* copy
-* split
-* save
+* copy: copy markdown
+* split: create a new conversation which is a duplicate of the current one, but drop everything after the split point
+* save:
