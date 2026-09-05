@@ -3,7 +3,7 @@ author:
 id: F_305
 internalId: a0dbf3d9-3dde-43d0-962a-58d79e747f8d
 title: add step node tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:

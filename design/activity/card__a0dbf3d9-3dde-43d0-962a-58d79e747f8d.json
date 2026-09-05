@@ -877,11 +877,11 @@
         "agent-61a250d1-0aa2-46fb-af45-21e33c43cd57"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-37093c52-24d2-4588-a286-3598e260362a",
       "origin": {
@@ -890,9 +890,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-61a250d1-0aa2-46fb-af45-21e33c43cd57",
       "startedAt": "2026-09-05T08:51:12.391Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-61a250d1-0aa2-46fb-af45-21e33c43cd57"
     }
   ],
   "version": 5
