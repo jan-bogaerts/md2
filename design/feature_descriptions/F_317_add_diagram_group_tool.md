@@ -3,12 +3,37 @@ author:
 id: F_317
 internalId: 587b42de-3d65-4665-9cb8-b714397a6964
 title: add diagram group tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__587b42de-3d65-4665-9cb8-b714397a6964.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_group_button.test.tsx
+  - app/src/components/diagram_view/diagram_group_button.tsx
+  - app/src/components/diagram_view/diagram_group_drawing_preview.tsx
+  - app/src/components/diagram_view/diagram_group_label_dialog.test.tsx
+  - app/src/components/diagram_view/diagram_group_label_dialog.tsx
+  - app/src/components/diagram_view/diagram_group_label_form.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/components/diagram_view/editable_diagram_leaves.test.tsx
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_group_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_group_drawing_service.ts
+  - app/src/services/diagrams/diagram_layout.node.test.ts
+  - app/src/services/diagrams/diagram_layout.ts
+  - app/src/services/diagrams/diagram_move_service.test.ts
+  - app/src/services/diagrams/diagram_move_service.ts
+  - app/src/services/diagrams/diagram_resize_service.test.ts
+  - app/src/services/diagrams/diagram_resize_service.ts
+  - shared/diagram_data.mjs
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
