@@ -1,0 +1,21 @@
+{
+  "activePath": [
+    "15cbc9ca-d130-42b3-8c03-ff19e895d665"
+  ],
+  "children": {},
+  "diagrams": {
+    "15cbc9ca-d130-42b3-8c03-ff19e895d665": {
+      "actionId": "b99b8a16-945c-4d7a-b792-3e8a8702e0a5",
+      "createdAt": "2026-09-05T17:08:52.360Z",
+      "id": "15cbc9ca-d130-42b3-8c03-ff19e895d665",
+      "label": "architecture",
+      "path": "design/diagrams/architecture-20260905T170313956Z.json"
+    }
+  },
+  "roots": {
+    "b99b8a16-945c-4d7a-b792-3e8a8702e0a5": [
+      "15cbc9ca-d130-42b3-8c03-ff19e895d665"
+    ]
+  },
+  "version": 1
+}
