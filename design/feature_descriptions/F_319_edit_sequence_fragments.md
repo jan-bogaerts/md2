@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__b1741e32-76ad-42d9-a014-6bccfec35e63.json
 policy:
 after: 20805ee5-a17a-4a7d-803c-23e91bfae174
 branch: f_319_edit_sequence_fragments
