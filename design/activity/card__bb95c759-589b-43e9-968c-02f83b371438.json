@@ -1033,6 +1033,31 @@
     "cardInternalId": "bb95c759-589b-43e9-968c-02f83b371438",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-09-05T12:48:00.250Z",
+      "conversationIds": [
+        "agent-277102e0-6d6f-46f5-9c0f-adc2443fa6fd"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-a9212aac-7197-443b-aeec-6f0a6d95fddf",
+      "origin": {
+        "cardInternalId": "bb95c759-589b-43e9-968c-02f83b371438",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "rootConversationId": "agent-277102e0-6d6f-46f5-9c0f-adc2443fa6fd",
+      "startedAt": "2026-09-05T12:41:39.394Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
