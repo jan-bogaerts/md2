@@ -3,7 +3,7 @@ author:
 id: F_310
 internalId: cffd0f4a-8cc4-4429-bacc-e08c28c7b233
 title: add entity node tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,26 @@ agents:
 policy:
 branch: f_310_add_entity_node_tool
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/diagram_entity_field.tsx
+  - app/src/components/diagram_view/diagram_entity_node_button.test.tsx
+  - app/src/components/diagram_view/diagram_entity_node_button.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_node_details_editor.tsx
+  - app/src/components/diagram_view/diagram_object_details_dialog.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/components/diagram_view/editable_diagram_entity_field.tsx
+  - app/src/components/diagram_view/editable_diagram_entity_fields.tsx
+  - app/src/components/diagram_view/editable_diagram_leaves.test.tsx
+  - app/src/components/diagram_view/editable_diagram_node.tsx
+  - app/src/components/diagram_view/use_editable_diagram.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_geometry_service.test.ts
+  - app/src/services/diagrams/diagram_geometry_service.ts
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
+  - app/src/services/diagrams/diagram_node_placement_service.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
