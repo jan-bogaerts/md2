@@ -8,6 +8,9 @@ import {
 import {
     diagramEditSessionService, type DiagramEditSessionService,
 } from '../../services/diagrams/diagram_edit_session_service'
+import {
+    diagramEdgeDrawingService, type DiagramEdgeDrawingService,
+} from '../../services/diagrams/diagram_edge_drawing_service'
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import { diagramMoveService, type DiagramMoveService } from '../../services/diagrams/diagram_move_service'
 import {
@@ -29,6 +32,7 @@ import {
 
 interface DiagramZoomViewportProps {
     details?: DiagramObjectDetailsService
+    drawing?: DiagramEdgeDrawingService
     geometry?: DiagramGeometryService
     movement?: DiagramMoveService
     placement?: DiagramNodePlacementService
@@ -60,6 +64,14 @@ function diagramIdentityFromTarget(target: EventTarget | null): DiagramSelection
     return { objectId, objectKind: objectKind as DiagramSelectableObjectKind }
 }
 
+function diagramConnectionNodeIdFromTarget(target: EventTarget | null) {
+    if (!(target instanceof Element)) return null
+
+    const node = target.closest('[data-diagram-connection-target]') as HTMLElement | null
+
+    return node?.dataset.diagramConnectionTarget ?? null
+}
+
 function diagramResizeTargetFromTarget(target: EventTarget | null): DiagramResizeTarget | null {
     if (!(target instanceof Element)) return null
 
@@ -79,6 +91,7 @@ function diagramResizeTargetFromTarget(target: EventTarget | null): DiagramResiz
 /** Scrollable New viewport whose visual scale leaves canonical diagram coordinates untouched. */
 export function DiagramZoomViewport({
     details = diagramObjectDetailsService,
+    drawing = diagramEdgeDrawingService,
     geometry = diagramGeometryService,
     movement = diagramMoveService,
     placement = diagramNodePlacementService,
@@ -124,6 +137,15 @@ export function DiagramZoomViewport({
     const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== null || event.button !== 0 || event.isPrimary === false) return
         const point = pointerDiagramPoint(event.clientX, event.clientY)
+        if (drawing.isDrawingActive()) {
+            event.preventDefault()
+            suppressClickRef.current = true
+            const nodeId = diagramConnectionNodeIdFromTarget(event.target)
+            if (drawing.hasSource()) drawing.completeTarget(nodeId, point)
+            else if (nodeId) drawing.beginSource(nodeId, point)
+
+            return
+        }
         if (placement.isPlacementActive()) {
             event.preventDefault()
             placement.updatePreview(point)
@@ -145,10 +167,15 @@ export function DiagramZoomViewport({
         activePointerIdRef.current = event.pointerId
         activePointerGestureRef.current = gesture
         event.currentTarget.setPointerCapture?.(event.pointerId)
-    }, [movement, placement, pointerDiagramPoint, resize])
+    }, [drawing, movement, placement, pointerDiagramPoint, resize])
 
     const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current === null) {
+            if (drawing.isDrawingActive() && drawing.hasSource()) {
+                drawing.updatePreview(pointerDiagramPoint(event.clientX, event.clientY), diagramConnectionNodeIdFromTarget(event.target))
+
+                return
+            }
             if (placement.isPlacementActive()) placement.updatePreview(pointerDiagramPoint(event.clientX, event.clientY))
 
             return
@@ -165,7 +192,7 @@ export function DiagramZoomViewport({
             ? resize.updateResize(point)
             : movement.updateMove(point)
         if (changed) suppressClickRef.current = true
-    }, [movement, placement, pointerDiagramPoint, resize])
+    }, [drawing, movement, placement, pointerDiagramPoint, resize])
 
     const handlePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== event.pointerId) return
@@ -213,6 +240,13 @@ export function DiagramZoomViewport({
 
     const handleWindowKeyDown = useCallback((event: KeyboardEvent) => {
         if (event.defaultPrevented || event.key !== 'Escape') return
+        if (drawing.isDrawingActive()) {
+            event.preventDefault()
+            suppressClickRef.current = false
+            drawing.cancelDrawing()
+
+            return
+        }
         if (placement.isPlacementActive()) {
             event.preventDefault()
             suppressClickRef.current = false
@@ -230,7 +264,7 @@ export function DiagramZoomViewport({
         else movement.cancelMove()
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [movement, placement, releaseActivePointer, resize])
+    }, [drawing, movement, placement, releaseActivePointer, resize])
 
     const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
         if (activePointerGestureRef.current !== null || !event.key.startsWith('Arrow')) return
@@ -303,6 +337,7 @@ export function DiagramZoomViewport({
             <Box data-testid="new-diagram-zoom-surface" sx={{ transformOrigin: 'top left', zoom: scale }}>
                 <NewDiagram
                     details={details}
+                    drawing={drawing}
                     geometry={geometry}
                     placement={placement}
                     selection={selection}

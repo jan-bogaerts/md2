@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
+import { DiagramEdgeDrawingService } from '../../services/diagrams/diagram_edge_drawing_service'
 import {
     DEFAULT_DIAGRAM_ZOOM,
     DIAGRAM_ZOOM_STEP,
@@ -48,8 +49,10 @@ function createHarness() {
     const geometry = new DiagramGeometryService(session)
     const selection = new DiagramSelectionService(session, geometry)
     const placement = new DiagramNodePlacementService(session, selection)
+    const drawing = new DiagramEdgeDrawingService(session, geometry, selection)
 
     return {
+        drawing,
         geometry,
         movement: new DiagramMoveService(session, geometry, selection),
         placement,
@@ -59,9 +62,103 @@ function createHarness() {
     }
 }
 
+function viewportClientPoint(x: number, y: number, scale: number, scrollLeft: number, scrollTop: number) {
+    return { clientX: x * scale - scrollLeft + 10, clientY: y * scale - scrollTop + 20 }
+}
+
 afterEach(cleanup)
 
 describe('DiagramZoomViewport', () => {
+    it('draws one attached edge through scrolled, zoomed New coordinates', () => {
+        const { drawing, geometry, selection, session } = createHarness()
+        render(
+            <DiagramZoomViewport
+                drawing={drawing}
+                geometry={geometry}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const source = screen.getByRole('button', { name: 'Orders' })
+        const target = screen.getByRole('button', { name: 'Store' })
+        vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({bottom: 420, height: 400, left: 10, right: 810, toJSON: () => ({}), top: 20, width: 800, x: 10, y: 20})
+        act(() => {
+            session.zoomOut()
+            drawing.activate({ kind: 'data' })
+        })
+        scroller.scrollLeft = 20
+        scroller.scrollTop = 12
+        const scale = session.getViewportScaleSnapshot()
+        const sourceX = geometry.getNodeGeometryFieldSnapshot('orders', 'x') as number
+        const sourceY = geometry.getNodeGeometryFieldSnapshot('orders', 'y') as number
+        const sourceWidth = geometry.getNodeGeometryFieldSnapshot('orders', 'width') as number
+        const sourceHeight = geometry.getNodeGeometryFieldSnapshot('orders', 'height') as number
+        const targetX = geometry.getNodeGeometryFieldSnapshot('store', 'x') as number
+        const targetY = geometry.getNodeGeometryFieldSnapshot('store', 'y') as number
+        const targetHeight = geometry.getNodeGeometryFieldSnapshot('store', 'height') as number
+        const sourceClientPoint = viewportClientPoint(
+            sourceX + sourceWidth,
+            sourceY + sourceHeight / 4,
+            scale,
+            scroller.scrollLeft,
+            scroller.scrollTop,
+        )
+        const targetClientPoint = viewportClientPoint(
+            targetX,
+            targetY + targetHeight * 3 / 4,
+            scale,
+            scroller.scrollLeft,
+            scroller.scrollTop,
+        )
+
+        fireEvent.pointerDown(source, {...sourceClientPoint, button: 0, isPrimary: true, pointerId: 21})
+        fireEvent.pointerMove(target, {...targetClientPoint, isPrimary: true, pointerId: 21})
+
+        expect(screen.getByTestId('diagram-edge-drawing-preview')).toBeInTheDocument()
+        expect(drawing.getPreviewSnapshot()).toMatchObject({
+            sourceAttachment: { nodeId: 'orders', offset: 0.25, side: 'right' },
+            targetAttachment: { nodeId: 'store', offset: 0.75, side: 'left' },
+        })
+
+        fireEvent.pointerDown(target, {...targetClientPoint, button: 0, isPrimary: true, pointerId: 22})
+
+        const edgeId = session.getEdgeIdsSnapshot().at(-1) as string
+        expect(session.getEdgeSnapshot(edgeId)).toMatchObject({
+            from: 'orders',
+            kind: 'data',
+            sourceAttachment: { nodeId: 'orders', offset: 0.25, side: 'right' },
+            targetAttachment: { nodeId: 'store', offset: 0.75, side: 'left' },
+            to: 'store',
+        })
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: edgeId, objectKind: 'edge' }])
+        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(screen.queryByTestId('diagram-edge-drawing-preview')).not.toBeInTheDocument()
+    })
+
+    it('keeps an invalid edge target recoverable until Escape cancels it', () => {
+        const { drawing, geometry, selection, session } = createHarness()
+        render(
+            <DiagramZoomViewport drawing={drawing} geometry={geometry} selection={selection} session={session} />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const source = screen.getByRole('button', { name: 'Orders' })
+        act(() => { drawing.activate({ kind: 'connection' }) })
+
+        fireEvent.pointerDown(source, { button: 0, clientX: 400, clientY: 140, isPrimary: true, pointerId: 23 })
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 700, clientY: 300, isPrimary: true, pointerId: 24 })
+
+        expect(session.getEdgeIdsSnapshot()).toEqual(['orders-store'])
+        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(drawing.getPreviewSnapshot()).not.toBeNull()
+
+        fireEvent.keyDown(window, { key: 'Escape' })
+
+        expect(session.getEdgeIdsSnapshot()).toEqual(['orders-store'])
+        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(drawing.getPreviewSnapshot()).toBeNull()
+    })
+
     it('previews and places one snapped node through scrolled, zoomed New coordinates', () => {
         const { geometry, placement, selection, session } = createHarness()
         render(

@@ -7,6 +7,9 @@ import {
 import {
     diagramEditSessionService, type DiagramEditSessionService,
 } from '../../services/diagrams/diagram_edit_session_service'
+import {
+    diagramEdgeDrawingService, type DiagramEdgeDrawingService,
+} from '../../services/diagrams/diagram_edge_drawing_service'
 import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'
 import { diagramMoveService, type DiagramMoveService } from '../../services/diagrams/diagram_move_service'
@@ -32,6 +35,7 @@ const MINIMUM_COMPARISON_HEIGHT = MINIMUM_PANE_HEIGHT * 2 + SEPARATOR_HEIGHT
 
 interface DiagramComparisonProps {
     currentDiagram: PositionedDiagramData
+    drawing?: DiagramEdgeDrawingService
     geometry?: DiagramGeometryService
     layoutService?: DiagramComparisonLayoutService
     movement?: DiagramMoveService
@@ -63,6 +67,7 @@ function dividerRatioForHeight(proposedHeight: number, availableHeight: number) 
 /** Layout-only comparison root. Diagram changes remain inside New service-bound leaves. */
 export function DiagramComparison({
     currentDiagram,
+    drawing = diagramEdgeDrawingService,
     geometry = diagramGeometryService,
     layoutService = diagramComparisonLayoutService,
     movement = diagramMoveService,
@@ -180,6 +185,7 @@ export function DiagramComparison({
             >
                 <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
                 <DiagramZoomViewport
+                    drawing={drawing}
                     geometry={geometry}
                     movement={movement}
                     placement={placement}

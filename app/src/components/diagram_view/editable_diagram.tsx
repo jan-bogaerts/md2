@@ -23,6 +23,10 @@ import { DiagramSelectionRectangle } from './diagram_selection_rectangle'
 import { DiagramResizeHandles } from './diagram_resize_handles'
 import { DiagramObjectDetailsDialog } from './diagram_object_details_dialog'
 import { DiagramNodePlacementPreview } from './diagram_node_placement_preview'
+import { DiagramEdgeDrawingPreview } from './diagram_edge_drawing_preview'
+import {
+    diagramEdgeDrawingService, type DiagramEdgeDrawingService,
+} from '../../services/diagrams/diagram_edge_drawing_service'
 import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from './diagram_object_details_service'
@@ -32,6 +36,7 @@ import { useEditableDiagramMetadataField } from './use_editable_diagram'
 
 interface EditableDiagramProps {
     details?: DiagramObjectDetailsService
+    drawing?: DiagramEdgeDrawingService
     geometry?: DiagramGeometryService
     placement?: DiagramNodePlacementService
     selection?: DiagramSelectionService
@@ -148,6 +153,7 @@ export function EditableDiagramSurface({
  */
 export function EditableDiagram({
     details = diagramObjectDetailsService,
+    drawing = diagramEdgeDrawingService,
     geometry = diagramGeometryService,
     placement = diagramNodePlacementService,
     selection = diagramSelectionService,
@@ -170,6 +176,7 @@ export function EditableDiagram({
                 <EditableDiagramLifelines geometry={geometry} session={session} />
                 <EditableDiagramActivations geometry={geometry} session={session} />
                 <EditableDiagramEdges details={details} geometry={geometry} selection={selection} session={session} />
+                <DiagramEdgeDrawingPreview drawing={drawing} />
                 <EditableDiagramNodes details={details} geometry={geometry} selection={selection} session={session} />
                 <DiagramNodePlacementPreview placement={placement} />
                 <DiagramResizeHandles geometry={geometry} selection={selection} session={session} />

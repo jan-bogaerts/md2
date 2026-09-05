@@ -82,6 +82,7 @@ export function DiagramNode({diagramType, entityFieldSource, flowPreset, node, o
             aria-label={node.label}
             aria-disabled={interactive ? undefined : true}
             aria-pressed={interactive ? selected : undefined}
+            data-diagram-connection-target={node.id}
             data-diagram-id={node.id}
             data-diagram-kind="node"
             onClick={interactive ? handleClick : undefined}
