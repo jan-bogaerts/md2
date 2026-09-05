@@ -20,6 +20,11 @@ import {
 import {
     DiagramDecisionNodeButton,
 } from './diagram_decision_node_button';
+import {
+    DiagramEndNodeButton,
+    type DiagramEndNodePlacement,
+    type DiagramEndNodeSession,
+} from './diagram_end_node_button';
 import { DiagramCopyButton } from './diagram_copy_button';
 import { DiagramCutButton } from './diagram_cut_button';
 import { DiagramDeleteButton } from './diagram_delete_button';
@@ -55,9 +60,9 @@ const MINIMUM_TOOLBOX_SIZE = { height: 120, width: 280 };
 
 interface DiagramToolboxProps {
     boundaryElement: HTMLElement | null;
-    placement?: DiagramComponentNodePlacement & DiagramStartNodePlacement & DiagramStepNodePlacement;
+    placement?: DiagramComponentNodePlacement & DiagramEndNodePlacement & DiagramStartNodePlacement & DiagramStepNodePlacement;
     session?: Omit<DiagramComponentNodeSession, 'getMetadataFieldSnapshot' | 'subscribeMetadataField'>
-    & DiagramStartNodeSession & DiagramStepNodeSession & {
+    & DiagramEndNodeSession & DiagramStartNodeSession & DiagramStepNodeSession & {
         getActiveToolboxSectionSnapshot: () => DiagramToolboxSection;
         getActiveToolSnapshot: () => DiagramPersistentTool;
         getViewportScaleSnapshot: () => number;
@@ -166,6 +171,7 @@ export function DiagramToolbox({
                             <DiagramComponentNodeButton placement={placement} session={session} />
                             <DiagramParticipantButton placement={placement} session={session} />
                             <DiagramStartNodeButton placement={placement} session={session} />
+                            <DiagramEndNodeButton placement={placement} session={session} />
                             <DiagramStepNodeButton placement={placement} session={session} />
                             <DiagramDecisionNodeButton placement={placement} session={session} />
                         </>

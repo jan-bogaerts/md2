@@ -178,6 +178,7 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('button', { name: 'Component' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Step' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Start' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'End' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
     });
 
@@ -191,12 +192,13 @@ describe('DiagramToolbox', () => {
         expect(screen.queryByRole('button', { name: 'Component' })).not.toBeInTheDocument();
     });
 
-    it.each(['flowchart', 'state'] as const)('offers Start in Nodes for the %s preset', (flowPreset) => {
+    it.each(['flowchart', 'state'] as const)('offers Start and End in Nodes for the %s preset', (flowPreset) => {
         const session = new ToolboxSessionStub('flow', flowPreset);
         render(<DiagramToolbox boundaryElement={createBoundary()} session={session} />);
         fireEvent.click(screen.getByRole('tab', { name: 'Nodes' }));
 
         expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'End' })).toBeInTheDocument();
     });
 
     it('zooms by one step without changing persistent tool and disables at maximum', async () => {

@@ -66,8 +66,8 @@ describe('DiagramNode', () => {
         expect(getComputedStyle(fields).borderTop).toContain('1px solid')
     })
 
-    it('renders no text and no scroll wrapper for state preset start and end markers', () => {
-        const { button } = renderNode(positioned({ height: 24, kind: 'start', label: 'Start', width: 24 }), 'flow', 'state')
+    it.each(['start', 'end'] as const)('renders no text and no scroll wrapper for the state preset %s marker', (kind) => {
+        const { button } = renderNode(positioned({ height: 24, kind, label: kind === 'start' ? 'Start' : 'End', width: 24 }), 'flow', 'state')
 
         expect(scrollWrapper(button)).toBeNull()
         expect(button).toBeEmptyDOMElement()
