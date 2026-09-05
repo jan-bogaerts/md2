@@ -7,6 +7,7 @@ status: ready for implementation
 owner:
 affects:
 agents:
+  - design/activity/card__a19922cd-3580-4417-8906-3b8b73d4f46f.json
 policy:
 after: ab22473c-bea7-4d12-aced-6628ef5c50f8
 branch: f_312_add_architecture_edge_tools
