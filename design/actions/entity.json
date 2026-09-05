@@ -1,0 +1,8 @@
+{
+  "id": "898b3e59-06c0-45d3-9ffb-faefa0b0fb4a",
+  "label": "entity",
+  "description": "Describe this action.",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Analyze the currently implemented codebase and create a root entity diagram of its conceptual domain model.\n\nIdentify the domain entities, their important attributes, their identities, and the relationships between them. Derive the model from domain types, owning services, validation code, and persistence formats.\n\nRepresent business concepts rather than UI state, transport objects, database implementation details, or every declared class and interface. Distinguish domain identity from paths, display labels, and persistence locations. Include relationship cardinalities when the implementation establishes them.\n\nUse concise labels and stable semantic identifiers. Make significant entities and relationships available for drill-down.\n\nFollow the diagram output instructions appended to this prompt. Do not modify existing project files; create only the requested diagram output."
+}
