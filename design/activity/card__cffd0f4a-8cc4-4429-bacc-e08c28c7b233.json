@@ -2257,6 +2257,46 @@
       "startedAt": "2026-09-05T11:10:59.806Z",
       "status": "completed",
       "rootConversationId": "agent-320b0bf8-378a-458f-8c6f-4a0fb8afcd21"
+    },
+    {
+      "commits": [
+        {
+          "commit": "965ed3d86c441a13192597a952a4277ce7ea4cdf",
+          "committedAt": "2026-09-05T13:39:21+02:00",
+          "deletions": 55,
+          "filePaths": [
+            "app/src/components/diagram_view/diagram_entity_field.tsx",
+            "app/src/components/diagram_view/diagram_entity_node_button.test.tsx",
+            "app/src/components/diagram_view/diagram_entity_node_button.tsx",
+            "app/src/components/diagram_view/diagram_node.tsx",
+            "app/src/components/diagram_view/diagram_node_details_editor.tsx",
+            "app/src/components/diagram_view/diagram_object_details_dialog.test.tsx",
+            "app/src/components/diagram_view/diagram_toolbox.test.tsx",
+            "app/src/components/diagram_view/diagram_toolbox.tsx",
+            "app/src/components/diagram_view/editable_diagram_entity_field.tsx",
+            "app/src/components/diagram_view/editable_diagram_entity_fields.tsx",
+            "app/src/components/diagram_view/editable_diagram_leaves.test.tsx",
+            "app/src/components/diagram_view/editable_diagram_node.tsx",
+            "app/src/components/diagram_view/use_editable_diagram.ts",
+            "app/src/services/diagrams/diagram_edit_session_service.test.ts",
+            "app/src/services/diagrams/diagram_edit_session_service.ts",
+            "app/src/services/diagrams/diagram_geometry_service.test.ts",
+            "app/src/services/diagrams/diagram_geometry_service.ts",
+            "app/src/services/diagrams/diagram_node_placement_service.test.ts",
+            "app/src/services/diagrams/diagram_node_placement_service.ts"
+          ],
+          "filesChanged": 19,
+          "insertions": 700,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-05T13:39:21+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "cffd0f4a-8cc4-4429-bacc-e08c28c7b233",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
