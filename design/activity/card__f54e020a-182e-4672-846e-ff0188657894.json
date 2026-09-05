@@ -1428,6 +1428,29 @@
       "startedAt": "2026-09-05T09:36:05.417Z",
       "status": "completed",
       "rootConversationId": "agent-78984379-4d34-4b35-bb3a-bb39b4d5b126"
+    },
+    {
+      "commits": [
+        {
+          "commit": "0190dc2b70e7f2dfb3ec27759c2a95a3025ac0e5",
+          "committedAt": "2026-09-05T13:10:32+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "app/src/components/worktree_selector.test.tsx",
+            "app/src/components/worktree_selector.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 74,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-05T13:10:32+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "f54e020a-182e-4672-846e-ff0188657894",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
