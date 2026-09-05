@@ -1,7 +1,7 @@
 {
   "id": "32cd123d-3208-4ffb-8732-184f3ef8912e",
   "label": "architecture drill down",
-  "description": "Describe this action.",
+  "description": "Renders an architecture diagram with the selected object as the drill down point.",
   "type": "agent",
   "phrases": [],
   "prompt": "Describe what the agent should do."
