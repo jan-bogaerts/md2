@@ -4,7 +4,8 @@
   "description": "renders an architecture diagram. used as the starting point (root) diagram.",
   "type": "agent",
   "appliesTo": {
-    "kind": "diagram"
+    "kind": "diagram",
+    "type": "root"
   },
   "streaming": true,
   "phrases": [],

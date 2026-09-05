@@ -6,7 +6,8 @@
   "phrases": [],
   "prompt": "Inspect the implemented codebase and extract the control flow of its primary workflow or lifecycle as structured data.\n\nIdentify a central workflow supported by the implementation. Extract its starting point, operations, decisions, transitions, alternative paths, failure paths, and outcomes.\n\nUse the flowchart preset when the code describes an ordered process with decisions and branches. Use the state preset when the code describes a lifecycle governed by states and transitions.\n\nSet the data type to flow and set the appropriate preset. Represent operations as steps, branching conditions as decisions, and lifecycle conditions as states. Label decision branches and state transitions with the condition or event that causes them. Include only behavior supported by the implementation.\n\nReturn only the semantic JSON data required by the appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let the application calculate positions, sizes, and connector routes.",
   "appliesTo": {
-    "kind": "diagram"
+    "kind": "diagram",
+    "type": "root"
   },
   "autoFinish": {
     "when": "diagram-created"

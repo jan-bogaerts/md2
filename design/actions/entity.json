@@ -12,7 +12,8 @@
     "kind": "diagram"
   },
   "appliesTo": {
-    "kind": "diagram"
+    "kind": "diagram",
+    "type": "root"
   },
   "streaming": true,
   "trackFileChanges": true

@@ -13,7 +13,8 @@
     "kind": "diagram"
   },
   "appliesTo": {
-    "kind": "diagram"
+    "kind": "diagram",
+    "type": "root"
   },
   "trackFileChanges": true
 }
