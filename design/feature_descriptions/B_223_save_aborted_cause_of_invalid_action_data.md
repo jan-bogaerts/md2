@@ -9,4 +9,4 @@ affects:
 agents:
 policy:
 ---
-action x has invalid
+action x has invalid unsaved data. we should not prevent the saving of an action because of this (most likely type diagram)

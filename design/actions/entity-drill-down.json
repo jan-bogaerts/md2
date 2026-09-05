@@ -4,5 +4,12 @@
   "description": "Describe this action.",
   "type": "agent",
   "phrases": [],
-  "prompt": "Describe what the agent should do."
+  "prompt": "Describe what the agent should do.",
+  "output": {
+    "kind": "diagram"
+  },
+  "appliesTo": {
+    "kind": "diagram",
+    "type": "child"
+  }
 }
