@@ -3,7 +3,7 @@ author:
 id: F_323
 internalId: 2f0581e4-58bf-4995-a225-12ec0c03e9c0
 title: add diagram change review
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -13,12 +13,14 @@ after: f4697a13-3aa5-4a9e-ba9f-83276e18557b
 changedFiles:
   - app/src/components/diagram_view/diagram_change_review_actions.tsx
   - app/src/components/diagram_view/diagram_change_review_button.tsx
+  - app/src/components/diagram_view/diagram_change_review_dialog.test.tsx
   - app/src/components/diagram_view/diagram_change_review_dialog.tsx
   - app/src/components/diagram_view/diagram_change_review_list.tsx
   - app/src/components/diagram_view/diagram_change_review_report.tsx
   - app/src/components/diagram_view/diagram_change_review_row.tsx
   - app/src/components/diagram_view/diagram_change_review_service.test.ts
   - app/src/components/diagram_view/diagram_change_review_service.ts
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
   - app/src/components/diagram_view/diagram_toolbox.tsx
   - app/src/components/diagram_view/editable_diagram.tsx
 ---
