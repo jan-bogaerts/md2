@@ -3,7 +3,7 @@ author:
 id: F_312
 internalId: a19922cd-3580-4417-8906-3b8b73d4f46f
 title: add architecture edge tools
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,17 @@ agents:
 policy:
 after: ab22473c-bea7-4d12-aced-6628ef5c50f8
 branch: f_312_add_architecture_edge_tools
+changedFiles:
+  - app/src/components/diagram_view/diagram_architecture_edge_button.test.tsx
+  - app/src/components/diagram_view/diagram_architecture_edge_button.tsx
+  - app/src/components/diagram_view/diagram_edge_details_editor.tsx
+  - app/src/components/diagram_view/diagram_object_details_dialog.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_geometry_service.test.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
