@@ -1036,6 +1036,33 @@
       "startedAt": "2026-09-05T08:48:32.682Z",
       "status": "completed",
       "rootConversationId": "agent-64eb05af-3b30-4c6c-8ca4-a2690a90e09b"
+    },
+    {
+      "commits": [
+        {
+          "commit": "6f90ca4dee324f3fc2068abf7394ac77866ca2c5",
+          "committedAt": "2026-09-05T11:05:27+02:00",
+          "deletions": 18,
+          "filePaths": [
+            "app/src/components/diagram_view/diagram_participant_button.test.tsx",
+            "app/src/components/diagram_view/diagram_participant_button.tsx",
+            "app/src/components/diagram_view/diagram_toolbox.test.tsx",
+            "app/src/components/diagram_view/diagram_toolbox.tsx",
+            "app/src/services/diagrams/diagram_geometry_service.test.ts",
+            "app/src/services/diagrams/diagram_node_placement_service.test.ts"
+          ],
+          "filesChanged": 6,
+          "insertions": 306,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-05T11:05:27+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "c27b7bc9-72f5-4547-beeb-009ea47174fc",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
