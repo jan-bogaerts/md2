@@ -802,16 +802,32 @@
           "role": "assistant",
           "sequence": 57,
           "timestamp": "2026-09-05T08:54:50.000Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-667378f3-926b-441c-b8d3-4d3232400f22-user-57",
+          "kind": "message",
+          "role": "user",
+          "sequence": 58,
+          "timestamp": "2026-09-05T09:01:19.438Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-4a9c0d39-9bf4-4e9d-80fd-7061d81df030",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a070c4-f624-7643-a667-2782d043fde4",
+          "createdAt": "2026-09-05T08:54:50.000Z",
+          "lastUsedAt": "2026-09-05T08:54:50.000Z",
+          "synchronizedThroughMessageId": "agent-turn-667378f3-926b-441c-b8d3-4d3232400f22-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-09-05T08:52:31.128Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-05T08:52:31.128Z"
+        "elapsedMs": 138872,
+        "runningStartedAt": "2026-09-05T09:01:19.438Z"
       },
       "title": "implement",
       "usage": {

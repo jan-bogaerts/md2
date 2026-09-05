@@ -3,7 +3,7 @@ author:
 id: F_304
 internalId: c27b7bc9-72f5-4547-beeb-009ea47174fc
 title: add participant node tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
