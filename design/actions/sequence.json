@@ -1,0 +1,8 @@
+{
+  "id": "d24e878f-5914-4cf0-a8d5-f496927942a6",
+  "label": "sequence",
+  "description": "Describe this action.",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Inspect the implemented codebase and extract a representative end-to-end runtime interaction as structured data.\n\nChoose a central interaction that crosses meaningful system boundaries. Identify the participants involved and extract the calls, responses, asynchronous events, and successful outcomes in chronological order.\n\nDerive the interaction from actual call paths, event handling, bridge communication, service operations, and external integrations. Keep participants at a consistent abstraction level. Include alternative, optional, or repeated sections when the implementation contains those interaction patterns.\n\nSet the data type to sequence. Represent participants as nodes and messages as edges in execution order. Use sequence fragments to describe verified alternative, optional, or repeated behavior. Assign stable semantic identifiers to participants, messages, fragments, and regions.\n\nReturn only the semantic JSON data required by the appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let the application calculate participant positions and message placement."
+}
