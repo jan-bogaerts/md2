@@ -1981,6 +1981,31 @@
     "cardInternalId": "816a1ca0-a183-46b2-9f50-8045af076328",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-09-05T14:35:07.270Z",
+      "conversationIds": [
+        "agent-8b7f4d10-889a-4455-bd64-cebd1067586f"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-f79c9d37-6e8f-40ca-b551-b20b076b14d1",
+      "origin": {
+        "cardInternalId": "816a1ca0-a183-46b2-9f50-8045af076328",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "rootConversationId": "agent-8b7f4d10-889a-4455-bd64-cebd1067586f",
+      "startedAt": "2026-09-05T14:16:08.495Z",
+      "status": "failed"
+    }
+  ],
   "version": 5
 }
