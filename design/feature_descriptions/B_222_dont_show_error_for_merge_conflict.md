@@ -3,7 +3,7 @@ author:
 id: B_222
 internalId: f54e020a-182e-4672-846e-ff0188657894
 title: dont show error for merge conflict
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
