@@ -3,7 +3,7 @@ author:
 id: F_309
 internalId: 6d5c19d7-a264-4f01-ba49-413310e223ef
 title: add state node tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -12,6 +12,13 @@ policy:
 after: 99f79635-4a46-4254-b544-901530ad9294
 branch: f_309_add_state_node_tool
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_object_details_dialog.test.tsx
+  - app/src/components/diagram_view/diagram_state_node_button.test.tsx
+  - app/src/components/diagram_view/diagram_state_node_button.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
