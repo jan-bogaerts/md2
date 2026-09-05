@@ -10,8 +10,6 @@ agents:
   - design/activity/card__775fb7c0-979e-45ec-a05d-25c968335775.json
 policy:
 after: b1741e32-76ad-42d9-a014-6bccfec35e63
-branch: f_320_edit_diagram_metadata
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/diagram_metadata_button.tsx
   - app/src/components/diagram_view/diagram_metadata_details_editor.tsx
