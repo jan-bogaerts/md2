@@ -1808,11 +1808,11 @@
         "agent-9f0d3f0d-d05a-49ae-8ec3-1ef4cbe2bffe"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-1b506db6-820e-4031-87ef-3d04e3a8b63a",
       "origin": {
@@ -1821,9 +1821,47 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-9f0d3f0d-d05a-49ae-8ec3-1ef4cbe2bffe",
       "startedAt": "2026-09-05T13:47:20.999Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-9f0d3f0d-d05a-49ae-8ec3-1ef4cbe2bffe"
+    },
+    {
+      "commits": [
+        {
+          "commit": "fe77fa33d970f3c7561e3ddad58ab9d2fcd4744f",
+          "committedAt": "2026-09-05T16:15:52+02:00",
+          "deletions": 95,
+          "filePaths": [
+            "app/src/components/diagram_view/diagram_fragment_button.test.tsx",
+            "app/src/components/diagram_view/diagram_fragment_button.tsx",
+            "app/src/components/diagram_view/diagram_fragment_dialog.test.tsx",
+            "app/src/components/diagram_view/diagram_fragment_dialog.tsx",
+            "app/src/components/diagram_view/diagram_fragment_dialog_service.test.ts",
+            "app/src/components/diagram_view/diagram_fragment_dialog_service.ts",
+            "app/src/components/diagram_view/diagram_fragment_form.tsx",
+            "app/src/components/diagram_view/diagram_fragment_region_editor.tsx",
+            "app/src/components/diagram_view/diagram_toolbox.tsx",
+            "app/src/components/diagram_view/editable_diagram.tsx",
+            "app/src/components/diagram_view/editable_diagram_collections.tsx",
+            "app/src/components/diagram_view/editable_diagram_fragment.tsx",
+            "app/src/components/diagram_view/sequence_fragment.tsx",
+            "app/src/services/diagrams/diagram_edit_session_service.test.ts",
+            "app/src/services/diagrams/diagram_edit_session_service.ts",
+            "app/src/services/diagrams/diagram_geometry_service.test.ts",
+            "app/src/services/diagrams/diagram_geometry_service.ts"
+          ],
+          "filesChanged": 17,
+          "insertions": 1044,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-05T16:15:52+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "b1741e32-76ad-42d9-a014-6bccfec35e63",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
