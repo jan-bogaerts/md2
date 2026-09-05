@@ -3,12 +3,30 @@ author:
 id: F_314
 internalId: a9a843a2-367c-42ec-b9ca-7d990faf13ff
 title: add sequence edge tools
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__a9a843a2-367c-42ec-b9ca-7d990faf13ff.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_edge_details_editor.tsx
+  - app/src/components/diagram_view/diagram_object_details_dialog.test.tsx
+  - app/src/components/diagram_view/diagram_sequence_edge_button.test.tsx
+  - app/src/components/diagram_view/diagram_sequence_edge_button.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/editable_diagram_lifeline.tsx
+  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_geometry_service.test.ts
+  - app/src/services/diagrams/diagram_geometry_service.ts
+  - app/src/services/diagrams/diagram_layout.node.test.ts
+  - app/src/services/diagrams/diagram_layout.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
