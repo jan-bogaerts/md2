@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__b1741e32-76ad-42d9-a014-6bccfec35e63.json
 policy:
-branch: f_319_edit_sequence_fragments
-worktree: 1
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
