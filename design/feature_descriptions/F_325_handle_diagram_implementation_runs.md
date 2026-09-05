@@ -10,8 +10,7 @@ agents:
 policy:
 after: 7f17626c-05f4-40b0-9d26-824728c4cd43
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ Run status and delivered state are separate service-owned primitives keyed by ru
 
 ## Dependencies
 
-[F_324](F_324_pass_diagram_changes_to_an_agent.md).
+[F\_324](F_324_pass_diagram_changes_to_an_agent.md).
