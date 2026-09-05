@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 18303c22-4ed4-4063-b55e-3f9bee7d4d4d
+after: df7f7a94-ee33-44a3-b499-2b230d484fef
 ---
 
 when we attach an image to a card, we don't show the image itself properly, but some placeholder. need to show the image itself.
