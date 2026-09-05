@@ -3,7 +3,7 @@ author:
 id: F_321
 internalId: 816a1ca0-a183-46b2-9f50-8045af076328
 title: edit diagram legend
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:

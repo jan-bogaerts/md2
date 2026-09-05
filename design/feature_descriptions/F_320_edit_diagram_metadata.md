@@ -3,15 +3,14 @@ author:
 id: F_320
 internalId: 775fb7c0-979e-45ec-a05d-25c968335775
 title: edit diagram metadata
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: b1741e32-76ad-42d9-a014-6bccfec35e63
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -35,4 +34,4 @@ Title and description are separate service-owned fields with separate events. Ed
 
 ## Dependencies
 
-[F_276](F_276_add_diagram_mutation_operations.md) and [F_285](F_285_add_resizable_diagram_toolbox.md).
+[F\_276](F_276_add_diagram_mutation_operations.md) and [F\_285](F_285_add_resizable_diagram_toolbox.md).

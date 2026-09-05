@@ -3,7 +3,7 @@ author:
 id: F_322
 internalId: f4697a13-3aa5-4a9e-ba9f-83276e18557b
 title: generate diagram change descriptions
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
