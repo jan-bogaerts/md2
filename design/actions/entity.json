@@ -1,8 +1,19 @@
 {
   "id": "898b3e59-06c0-45d3-9ffb-faefa0b0fb4a",
   "label": "entity",
-  "description": "Describe this action.",
+  "description": "Renders an entity diagram. used as the starting point (root) diagram.",
   "type": "agent",
   "phrases": [],
-  "prompt": "Inspect the implemented codebase and extract its conceptual domain model as structured data.\n\nIdentify the domain entities represented by the implementation. For each entity, extract its identity, important domain fields, semantic role, and relationships to other entities. Include relationship cardinalities when they can be established from the code.\n\nDerive the model from domain types, owning services, validation rules, and persistence formats. Represent domain concepts rather than UI state, temporary transport objects, or physical database structure. Do not treat paths, filenames, display labels, or storage locations as identity unless the domain explicitly defines them that way.\n\nSet the data type to entity. Use entity nodes, entity fields, relationship edges, and supported cardinalities. Assign stable semantic identifiers to nodes and edges.\n\nReturn only the semantic JSON data required by the appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let the application calculate positions, sizes, and connector routes."
+  "prompt": "Inspect the implemented codebase and extract its conceptual domain model as structured data.\n\nIdentify the domain entities represented by the implementation. For each entity, extract its identity, important domain fields, semantic role, and relationships to other entities. Include relationship cardinalities when they can be established from the code.\n\nDerive the model from domain types, owning services, validation rules, and persistence formats. Represent domain concepts rather than UI state, temporary transport objects, or physical database structure. Do not treat paths, filenames, display labels, or storage locations as identity unless the domain explicitly defines them that way.\n\nSet the data type to entity. Use entity nodes, entity fields, relationship edges, and supported cardinalities. Assign stable semantic identifiers to nodes and edges.\n\nReturn only the semantic JSON data required by the appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let the application calculate positions, sizes, and connector routes.",
+  "autoFinish": {
+    "when": "diagram-created"
+  },
+  "output": {
+    "kind": "diagram"
+  },
+  "appliesTo": {
+    "kind": "diagram"
+  },
+  "streaming": true,
+  "trackFileChanges": true
 }
