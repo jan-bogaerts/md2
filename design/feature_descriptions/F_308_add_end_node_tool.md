@@ -3,7 +3,7 @@ author:
 id: F_308
 internalId: 99f79635-4a46-4254-b544-901530ad9294
 title: add end node tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
@@ -11,6 +11,13 @@ agents:
 policy:
 branch: f_308_add_end_node_tool
 worktree: 3
+changedFiles:
+  - app/src/components/diagram_view/diagram_end_node_button.test.tsx
+  - app/src/components/diagram_view/diagram_end_node_button.tsx
+  - app/src/components/diagram_view/diagram_node.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
