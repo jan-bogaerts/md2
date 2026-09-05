@@ -9,6 +9,19 @@ affects:
 agents:
   - design/activity/card__816a1ca0-a183-46b2-9f50-8045af076328.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_legend_button.tsx
+  - app/src/components/diagram_view/diagram_legend_details_editor.test.tsx
+  - app/src/components/diagram_view/diagram_legend_details_editor.tsx
+  - app/src/components/diagram_view/diagram_legend_entries.ts
+  - app/src/components/diagram_view/diagram_legend_entry_editor.tsx
+  - app/src/components/diagram_view/diagram_legend_entry_list.tsx
+  - app/src/components/diagram_view/diagram_session_legend_entries.test.tsx
+  - app/src/components/diagram_view/diagram_session_legend_entries.tsx
+  - patch321_dialog.py
+  - patch321_le.py
+  - patch321_legend.py
+  - patch321_tests.py
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
