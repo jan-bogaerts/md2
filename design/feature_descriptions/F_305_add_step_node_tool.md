@@ -9,6 +9,8 @@ affects:
 agents:
 policy:
 after: c27b7bc9-72f5-4547-beeb-009ea47174fc
+branch: f_305_add_step_node_tool
+worktree: 1
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

@@ -10,8 +10,6 @@ agents:
   - design/activity/card__69834d03-c154-4c81-a656-50de20aeb0ec.json
 policy:
 after: f82cd066-3072-4e2e-96d4-301bed26bae0
-branch: f_303_add_component_node_tool
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/diagram_comparison.tsx
   - app/src/components/diagram_view/diagram_component_node_button.test.tsx
