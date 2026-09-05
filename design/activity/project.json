@@ -24285,7 +24285,7 @@
       "actionId": "a7e1e1cd-c2d5-4b5e-8ea8-bb34cc058ad9",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-05T17:20:50.845Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 76063
@@ -24800,17 +24800,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 40,
-          "timestamp": "2026-09-05T17:20:50.117Z"
+          "timestamp": "2026-09-05T17:20:50.845Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-b687b7cd-7a34-4237-8f18-3c1f3045d43d",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "f93df07e-dfd3-472e-ba73-901db708ca56",
+          "createdAt": "2026-09-05T17:20:50.845Z",
+          "lastUsedAt": "2026-09-05T17:20:50.845Z",
+          "synchronizedThroughMessageId": "agent-turn-f5aa3f9f-1636-4960-8ac9-c445fe317a0a-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-09-05T17:15:14.284Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-05T17:15:14.284Z"
+        "elapsedMs": 336561,
+        "runningStartedAt": null
       },
       "title": "dependency",
       "usage": {
@@ -26922,11 +26930,11 @@
         "agent-f5376fb0-689a-4a34-8dcd-088b6873d82e"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-8d2cef99-c14a-4f46-86a2-fa1bc902e940",
       "origin": {
@@ -26934,9 +26942,9 @@
       },
       "rootActionId": "32cd123d-3208-4ffb-8732-184f3ef8912e",
       "rootActionLabel": "architecture drill down",
-      "rootConversationId": "agent-f5376fb0-689a-4a34-8dcd-088b6873d82e",
       "startedAt": "2026-09-05T17:16:49.378Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-f5376fb0-689a-4a34-8dcd-088b6873d82e"
     }
   ],
   "version": 5
