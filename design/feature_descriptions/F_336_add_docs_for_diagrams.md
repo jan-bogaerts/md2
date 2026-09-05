@@ -9,5 +9,4 @@ affects:
 agents:
 policy:
 ---
-
-We rece tly added support for editable diagrams. This needs to be documented both on&#x20;
+We rece tly added support for editable diagrams. This needs to be documented both in readme.md and in docs folder
