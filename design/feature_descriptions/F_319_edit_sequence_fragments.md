@@ -3,15 +3,14 @@ author:
 id: F_319
 internalId: b1741e32-76ad-42d9-a014-6bccfec35e63
 title: edit sequence fragments
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
 after: 20805ee5-a17a-4a7d-803c-23e91bfae174
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -36,4 +35,4 @@ A fragment remains a stable object addressed by ID. Guard and region edits assig
 
 ## Dependencies
 
-[F_278](F_278_make_diagram_layout_compatible_with_editing.md), [F_279](F_279_validate_diagram_edit_operations.md), and [F_314](F_314_add_sequence_edge_tools.md).
+[F\_278](F_278_make_diagram_layout_compatible_with_editing.md), [F\_279](F_279_validate_diagram_edit_operations.md), and [F\_314](F_314_add_sequence_edge_tools.md).

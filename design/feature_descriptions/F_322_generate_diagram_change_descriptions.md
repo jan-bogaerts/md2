@@ -10,8 +10,7 @@ agents:
 policy:
 after: 816a1ca0-a183-46b2-9f50-8045af076328
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -36,4 +35,4 @@ Generation reads the change service, not the complete diagram. Updating one chan
 
 ## Dependencies
 
-[F_277](F_277_track_diagram_changes.md).
+[F\_277](F_277_track_diagram_changes.md).

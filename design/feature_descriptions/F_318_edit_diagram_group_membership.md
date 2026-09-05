@@ -3,15 +3,14 @@ author:
 id: F_318
 internalId: 20805ee5-a17a-4a7d-803c-23e91bfae174
 title: edit diagram group membership
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: 587b42de-3d65-4665-9cb8-b714397a6964
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -35,4 +34,4 @@ Membership is a service-owned group field with identity-scoped updates. Add or r
 
 ## Dependencies
 
-[F_317](F_317_add_diagram_group_tool.md) and [F_296](F_296_edit_diagram_object_details.md).
+[F\_317](F_317_add_diagram_group_tool.md) and [F\_296](F_296_edit_diagram_object_details.md).

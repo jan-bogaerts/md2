@@ -10,8 +10,7 @@ agents:
 policy:
 after: 775fb7c0-979e-45ec-a05d-25c968335775
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -19,7 +18,7 @@ Add legend editing to Others.
 
 ## Scope
 
-Allow users to add, rename, reorder, and remove explicit legend entries for node roles and edge kinds. This intentionally replaces a derived-only legend when F_271 is present: rendering uses explicit entries when saved by the editor and derives entries only when the diagram has none.
+Allow users to add, rename, reorder, and remove explicit legend entries for node roles and edge kinds. This intentionally replaces a derived-only legend when F\_271 is present: rendering uses explicit entries when saved by the editor and derives entries only when the diagram has none.
 
 ## Acceptance criteria
 
@@ -32,8 +31,8 @@ Allow users to add, rename, reorder, and remove explicit legend entries for node
 
 ## State and rendering rule
 
-Legend view and editable legend data, if this card retains them after its F_271 compatibility decision, are service-owned by entry. Changing one label assigns only that entry field; reordering changes only legend membership/order view data. Diagram objects and roots never subscribe to a complete legend or diagram snapshot.
+Legend view and editable legend data, if this card retains them after its F\_271 compatibility decision, are service-owned by entry. Changing one label assigns only that entry field; reordering changes only legend membership/order view data. Diagram objects and roots never subscribe to a complete legend or diagram snapshot.
 
 ## Dependencies
 
-[F_276](F_276_add_diagram_mutation_operations.md), [F_285](F_285_add_resizable_diagram_toolbox.md), and [F_271](F_271_diagrams_add_legend.md).
+[F\_276](F_276_add_diagram_mutation_operations.md), [F\_285](F_285_add_resizable_diagram_toolbox.md), and [F\_271](F_271_diagrams_add_legend.md).
