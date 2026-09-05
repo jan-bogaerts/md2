@@ -20,10 +20,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "816a1ca0-a183-46b2-9f50-8045af076328",
       "cardPath": "design/feature_descriptions/F_321_edit_diagram_legend.md",
-      "completedAt": "2026-09-05T14:35:06.970Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 106795
+        "usedTokens": 201439
       },
       "entries": [
         {
@@ -1945,6 +1945,185 @@
           "role": "assistant",
           "sequence": 154,
           "timestamp": "2026-09-05T14:35:06.970Z"
+        },
+        {
+          "content": "Continue",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 155,
+          "timestamp": "2026-09-05T17:13:11.567Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-156",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CekfeEsCsmrs85GD5YSzK:thinking:0",
+          "sequence": 156,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-05T17:13:19.884Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Blocks 1–5 are in. Block 6 — verification and close-out.",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 157,
+          "timestamp": "2026-09-05T17:13:20.348Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npm run typecheck 2>&1 | tail -15",
+          "content": "> app@0.5.2 typecheck\n> tsc --noEmit",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-158",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npm run typecheck 2>&1 | tail -15",
+          "providerItemId": "toolu_01RBuybgoVBetiLC8Ff7nWc4",
+          "sequence": 158,
+          "status": "completed",
+          "timestamp": "2026-09-05T17:13:35.670Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npx vitest run src/services/diagrams/diagram_data.node.test.ts src/services/diagrams/diagram_edit_session_service.test.ts src/services/diagrams/diagram_view_service.test.ts src/components/diagram_view/diagram_legend.test.tsx src/components/diagram_view/diagram_legend_entries.node.test.ts src/components/diagram_view/diagram_session_legend_entries.test.tsx src/components/diagram_view/diagram_legend_details_editor.test.tsx src/components/diagram_view/diagram_object_details_dialog.test.tsx src/components/diagram_view/diagram_object_details_service.test.ts src/components/diagram_view/diagram_toolbox.test.tsx src/components/diagram_view/diagram_view.test.tsx src/components/diagram_view/diagram_renderer.test.tsx src/components/diagram_view/use_editable_diagram.test.tsx 2>&1 | tail -25",
+          "content": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/app\n\n\n Test Files  13 passed (13)\n      Tests  202 passed (202)\n   Start at  19:13:41\n   Duration  19.48s (transform 1.98s, setup 776ms, import 10.91s, tests 17.72s, environment 7.46s)",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-159",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npx vitest run src/services/diagrams/diagram_data.node.test.ts src/services/diagrams/diagram_edit_session_service.test.ts src/services/diagrams/diagram_view_service.test.ts src/components/diagram_view/diagram_legend.test.tsx src/components/diagram_view/diagram_legend_entries.node.test.ts src/components/diagram_view/diagram_session_legend_entries.test.tsx src/components/diagram_view/diagram_legend_details_editor.test.tsx src/components/diagram_view/diagram_object_details_dialog.test.tsx src/components/diagram_view/diagram_object_details_service.test.ts src/components/diagram_view/diagram_toolbox.test.tsx src/components/diagram_view/diagram_view.test.tsx src/components/diagram_view/diagram_renderer.test.tsx src/components/diagram_view/use_editable_diagram.test.tsx 2>&1 | tail -25",
+          "providerItemId": "toolu_01J3kvYKNFZCd8HJcNuQ76pZ",
+          "sequence": 159,
+          "status": "completed",
+          "timestamp": "2026-09-05T17:14:00.858Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npx eslint src/components/diagram_view/diagram_legend.tsx src/components/diagram_view/diagram_legend_entries.ts src/components/diagram_view/diagram_legend_entry_list.tsx src/components/diagram_view/diagram_session_legend_entries.tsx src/components/diagram_view/diagram_legend_details_editor.tsx src/components/diagram_view/diagram_legend_entry_editor.tsx src/components/diagram_view/diagram_legend_button.tsx src/components/diagram_view/diagram_object_details_dialog.tsx src/components/diagram_view/diagram_object_details_service.ts src/components/diagram_view/diagram_toolbox.tsx src/components/diagram_view/use_editable_diagram.ts src/components/diagram_view/diagram_view.tsx src/services/diagrams/diagram_edit_session_service.ts src/components/diagram_view/diagram_legend_details_editor.test.tsx src/components/diagram_view/diagram_session_legend_entries.test.tsx 2>&1 | tail -30",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-160",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npx eslint src/components/diagram_view/diagram_legend.tsx src/components/diagram_view/diagram_legend_entries.ts src/components/diagram_view/diagram_legend_entry_list.tsx src/components/diagram_view/diagram_session_legend_entries.tsx src/components/diagram_view/diagram_legend_details_editor.tsx src/components/diagram_view/diagram_legend_entry_editor.tsx src/components/diagram_view/diagram_legend_button.tsx src/components/diagram_view/diagram_object_details_dialog.tsx src/components/diagram_view/diagram_object_details_service.ts src/components/diagram_view/diagram_toolbox.tsx src/components/diagram_view/use_editable_diagram.ts src/components/diagram_view/diagram_view.tsx src/services/diagrams/diagram_edit_session_service.ts src/components/diagram_view/diagram_legend_details_editor.test.tsx src/components/diagram_view/diagram_session_legend_entries.test.tsx 2>&1 | tail -30",
+          "providerItemId": "toolu_01MP5Eq7SfaUPQwEao1CfWVk",
+          "sequence": 160,
+          "status": "completed",
+          "timestamp": "2026-09-05T17:14:10.167Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-161",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CekfiTdXYJzjMVCHq6WGy:thinking:0",
+          "sequence": 161,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-05T17:14:12.209Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && node -e \"import('./shared/diagram_data.mjs').then(m=>{const d={edges:[{from:'a',id:'e',kind:'connection',to:'b'}],groups:[],meta:{description:'d',legend:[{label:'Service',role:'focal'},{kind:'connection',label:'Calls'}],title:'t',type:'architecture',version:1},nodes:[{id:'a',label:'A',role:'focal'},{id:'b',label:'B',role:'store'}]};console.log(m.serializeDiagramData(d).includes('\\\"legend\\\"'))})\"",
+          "content": "true",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-162",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && node -e \"import('./shared/diagram_data.mjs').then(m=>{const d={edges:[{from:'a',id:'e',kind:'connection',to:'b'}],groups:[],meta:{description:'d',legend:[{label:'Service',role:'focal'},{kind:'connection',label:'Calls'}],title:'t',type:'architecture',version:1},nodes:[{id:'a',label:'A',role:'focal'},{id:'b',label:'B',role:'store'}]};console.log(m.serializeDiagramData(d).includes('\\\"legend\\\"'))})\"",
+          "providerItemId": "toolu_01Wt2LorpMCYSJV9H9rRZfwr",
+          "sequence": 162,
+          "status": "completed",
+          "timestamp": "2026-09-05T17:14:16.846Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the status update.",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 163,
+          "timestamp": "2026-09-05T17:14:18.704Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,12p' design/feature_descriptions/F_321_edit_diagram_legend.md",
+          "content": "---\nauthor:\nid: F_321\ninternalId: 816a1ca0-a183-46b2-9f50-8045af076328\ntitle: edit diagram legend\nstatus: ready for implementation\nowner:\naffects:\nagents:\n  - design/activity/card__816a1ca0-a183-46b2-9f50-8045af076328.json\npolicy:\nchangedFiles:",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-164",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,12p' design/feature_descriptions/F_321_edit_diagram_legend.md",
+          "providerItemId": "toolu_01AjrY3ei94JBcCTW7ETzZed",
+          "sequence": 164,
+          "status": "completed",
+          "timestamp": "2026-09-05T17:14:19.339Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '12,30p' design/feature_descriptions/F_321_edit_diagram_legend.md",
+          "content": "changedFiles:\n  - app/src/components/diagram_view/diagram_legend_button.tsx\n  - app/src/components/diagram_view/diagram_legend_details_editor.test.tsx\n  - app/src/components/diagram_view/diagram_legend_details_editor.tsx\n  - app/src/components/diagram_view/diagram_legend_entries.ts\n  - app/src/components/diagram_view/diagram_legend_entry_editor.tsx\n  - app/src/components/diagram_view/diagram_legend_entry_list.tsx\n  - app/src/components/diagram_view/diagram_session_legend_entries.test.tsx\n  - app/src/components/diagram_view/diagram_session_legend_entries.tsx\n  - patch321_dialog.py\n  - patch321_le.py\n  - patch321_legend.py\n  - patch321_tests.py\n---\nParent: [F\\_255](F_255_make_diagrams_editable.md).\n\n## Goal\n\nAdd legend editing to Others.",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-165",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '12,30p' design/feature_descriptions/F_321_edit_diagram_legend.md",
+          "providerItemId": "toolu_01XUiWq7H18EmkSADQwdrhvP",
+          "sequence": 165,
+          "status": "completed",
+          "timestamp": "2026-09-05T17:14:21.524Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-166",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CekfjHfH2auL7YSokFCV8:thinking:0",
+          "sequence": 166,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-05T17:14:27.328Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls patch321_*.py 2>&1; python -c \"\nimport io\np='design/feature_descriptions/F_321_edit_diagram_legend.md'\ns=io.open(p,encoding='utf-8').read()\nold='status: ready for implementation'\nassert old in s\nio.open(p,'w',encoding='utf-8',newline='\\n').write(s.replace(old,'status: ready',1))\nprint('status updated')\n\"",
+          "content": "ls: cannot access 'patch321_*.py': No such file or directory\nstatus updated",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-167",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls patch321_*.py 2>&1; python -c \"\nimport io\np='design/feature_descriptions/F_321_edit_diagram_legend.md'\ns=io.open(p,encoding='utf-8').read()\nold='status: ready for implementation'\nassert old in s\nio.open(p,'w',encoding='utf-8',newline='\\n').write(s.replace(old,'status: ready',1))\nprint('status updated')\n\"",
+          "providerItemId": "toolu_01MTP6as2bm8Wp2cq7kxE9TD",
+          "sequence": 167,
+          "status": "completed",
+          "timestamp": "2026-09-05T17:14:31.236Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-event-168",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cekfk1E5kfLna6cLMiARw:thinking:0",
+          "sequence": 168,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-05T17:14:35.674Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. All six blocks landed.\n\n## What shipped\n\n**Legend now persists in the file format** — `shared/diagram_data.mjs` + `.d.mts` gained `meta.legend`: a list of `{ label, role }` / `{ kind, label }` entries. Parser rejects duplicate semantics, blank labels, entries carrying both or neither of `role`/`kind`, and edge kinds the diagram type does not support. Diagrams without a legend serialize byte-identically to before.\n\n**Edit session owns entries one at a time** — `addLegendEntry`, `removeLegendEntry`, `setLegendEntryLabel`, `moveLegendEntry`. Entry identity is its semantic (`node:focal`, `connection:call`), because the format gives entries no ID. Renaming assigns only that entry's field and fires only `diagram:legendEntry:<key>:label`; reordering republishes only the key-list view. Legend edits enter the semantic change set as `legendEntry` field/membership/order changes, and reverting one removes it. Removing an entry leaves `nodes` and `edges` references untouched.\n\n**Rendering** — `diagramLegendEntries` uses stored entries when present, derives only when the diagram has none, so untouched diagrams keep their derived legend.\n\n**Legend panel got the New / Current tabs you asked for.** While an edit session is active the panel shows two tabs; New opens first and tracks the session live (explicit entries, or derived from the edited nodes and edges until the first entry is added), Current shows the saved diagram. With no session there are no tabs and behaviour is exactly as before. Drag, collapse, and clamping are unchanged.\n\n**Editor** — \"Legend\" button in the Others tab opens a dialog listing entries with a label field, up/down, and remove per row, plus an add row whose picker offers only unused semantics. Every action hits the service directly; there is no draft and no whole-legend submit, so reorders show in New immediately.\n\n## Verification\n\n`npm run typecheck` clean. `eslint` clean on all 15 touched files. 13 affected test files, **202 tests pass** — including 13 new service tests, 7 session-legend/tab tests, 11 editor tests, and 4 new parser tests.\n\n## One thing to look at\n\nThe `changedFiles` block in `F_321_edit_diagram_legend.md` lists four `patch321_*.py` entries. Those were my throwaway patch scripts; I deleted them, so the list points at files that no longer exist, and it also misses most of the real files (the shared format, the edit-session service, the toolbox, the details dialog and service, the hooks, the view). I only changed `status` and left `changedFiles` alone. Say the word and I will correct it.",
+          "id": "agent-turn-1ba652c4-0764-4204-a01c-bb811a3b7a1d-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 169,
+          "timestamp": "2026-09-05T17:14:47.910Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1959,22 +2138,22 @@
         }
       ],
       "startedAt": "2026-09-05T14:16:08.497Z",
-      "status": "failed",
+      "status": "running",
       "timer": {
         "elapsedMs": 938358,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-05T17:13:11.567Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 2089190,
-        "inputTokens": 64,
-        "outputTokens": 15345,
+        "cachedInputTokens": 3687202,
+        "inputTokens": 80,
+        "outputTokens": 18949,
         "reasoningTokens": 0,
-        "totalTokens": 2104599,
-        "costUsd": 2.302673
+        "totalTokens": 3706231,
+        "costUsd": 5.105510499999999
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1989,11 +2168,11 @@
         "agent-8b7f4d10-889a-4455-bd64-cebd1067586f"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-f79c9d37-6e8f-40ca-b551-b20b076b14d1",
       "origin": {
@@ -2002,9 +2181,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-8b7f4d10-889a-4455-bd64-cebd1067586f",
       "startedAt": "2026-09-05T14:16:08.495Z",
-      "status": "failed"
+      "status": "failed",
+      "rootConversationId": "agent-8b7f4d10-889a-4455-bd64-cebd1067586f"
     }
   ],
   "version": 5
