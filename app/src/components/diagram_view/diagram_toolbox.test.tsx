@@ -19,15 +19,24 @@ import { DiagramToolboxButton } from './diagram_toolbox_button';
 class ToolboxSessionStub extends EventTarget {
     private activeSection: DiagramToolboxSection = 'edit';
     private activeTool: DiagramPersistentTool = 'select';
-    private readonly diagramType: DiagramType = 'architecture';
     private transientGesture: DiagramTransientGesture | null = null;
     private viewportScale = DEFAULT_DIAGRAM_ZOOM;
+    private diagramType: DiagramType;
+
+    constructor(diagramType: DiagramType = 'architecture') {
+        super();
+        this.diagramType = diagramType;
+    }
 
     readonly getActiveToolboxSectionSnapshot = () => this.activeSection;
     readonly getActiveToolSnapshot = () => this.activeTool;
-    readonly getMetadataFieldSnapshot = () => this.diagramType;
     readonly getTransientGestureSnapshot = () => this.transientGesture;
     readonly getViewportScaleSnapshot = () => this.viewportScale;
+    readonly getMetadataFieldSnapshot = (field: 'type') => {
+        void field;
+
+        return this.diagramType;
+    };
 
     readonly subscribeActiveTool = (listener: () => void) => {
         this.addEventListener('toolChanged', listener);
@@ -41,18 +50,6 @@ class ToolboxSessionStub extends EventTarget {
         return () => this.removeEventListener('sectionChanged', listener);
     };
 
-    readonly subscribeMetadataField = (_field: 'type', listener: () => void) => {
-        this.addEventListener('typeChanged', listener);
-
-        return () => this.removeEventListener('typeChanged', listener);
-    };
-
-    readonly subscribeSession = (listener: () => void) => {
-        this.addEventListener('sessionChanged', listener);
-
-        return () => this.removeEventListener('sessionChanged', listener);
-    };
-
     readonly subscribeTransientGesture = (listener: () => void) => {
         this.addEventListener('gestureChanged', listener);
 
@@ -63,6 +60,18 @@ class ToolboxSessionStub extends EventTarget {
         this.addEventListener('viewportScaleChanged', listener);
 
         return () => this.removeEventListener('viewportScaleChanged', listener);
+    };
+
+    readonly subscribeMetadataField = (_field: 'type', listener: () => void) => {
+        this.addEventListener('typeChanged', listener);
+
+        return () => this.removeEventListener('typeChanged', listener);
+    };
+
+    readonly subscribeSession = (listener: () => void) => {
+        this.addEventListener('sessionChanged', listener);
+
+        return () => this.removeEventListener('sessionChanged', listener);
     };
 
     setActiveTool(tool: DiagramPersistentTool) {
@@ -183,6 +192,27 @@ describe('DiagramToolbox', () => {
         Array.from({ length: remainingSteps }).forEach(() => fireEvent.click(button));
         expect(session.getViewportScaleSnapshot()).toBe(MAXIMUM_DIAGRAM_ZOOM);
         expect(button).toBeDisabled();
+    });
+
+    it('offers Participant from Nodes only for sequence diagrams', () => {
+        const session = new ToolboxSessionStub('sequence');
+        session.setActiveToolboxSection('nodes');
+        const activate = vi.fn();
+        const { rerender } = render(
+            <DiagramToolbox boundaryElement={createBoundary()} placement={{ activate }} session={session} />,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Participant' }));
+        expect(activate).toHaveBeenCalledOnce();
+
+        rerender(
+            <DiagramToolbox
+                boundaryElement={createBoundary()}
+                placement={{ activate }}
+                session={new ToolboxSessionStub('architecture')}
+            />,
+        );
+        expect(screen.queryByRole('button', { name: 'Participant' })).not.toBeInTheDocument();
     });
 
     it('zooms out by one step without changing persistent tool and disables at minimum', async () => {

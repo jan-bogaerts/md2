@@ -64,6 +64,11 @@ const componentDefinition = {
     kind: 'component' as const,
 }
 
+const participantDefinition = {
+    defaults: { height: 72, label: 'New participant', role: 'focal' as const, width: 160 },
+    kind: 'participant' as const,
+}
+
 describe('DiagramNodePlacementService', () => {
     it.each(['architecture', 'dependency'] as const)(
         'previews on the grid, then creates and selects one component in a %s diagram through one membership mutation',
@@ -103,6 +108,45 @@ describe('DiagramNodePlacementService', () => {
             expect(previewChanged).toHaveBeenCalledTimes(2)
         },
     )
+
+    it('places one valid sequence participant without replacing existing sequence objects', () => {
+        const source = diagram('sequence')
+        source.edges = [{ from: 'existing', id: 'existing-edge', kind: 'call', to: 'other' }]
+        source.fragments = [{ id: 'existing-fragment', operator: 'opt', regions: [{ edgeIds: ['existing-edge'], guard: 'sent' }] }]
+        source.nodes = source.nodes.map((node, index) => ({...node, height: 72, kind: 'participant', width: 160, x: 40 + index * 216, y: 40}))
+        const { placement, selection, session } = createHarness(source)
+        const editableDiagram = session.getEditableDiagram()
+        const nodes = editableDiagram?.nodes
+        const existingNode = session.getNodeSnapshot('existing')
+        const otherNode = session.getNodeSnapshot('other')
+        const edges = editableDiagram?.edges
+        const existingEdge = session.getEdgeSnapshot('existing-edge')
+        const fragments = editableDiagram?.fragments
+        const existingFragment = session.getFragmentSnapshot('existing-fragment')
+
+        expect(placement.activate(participantDefinition)).toBe(true)
+        expect(placement.place({ x: 503, y: 43 })).toBe('placed-node')
+
+        expect(session.getNodeSnapshot('placed-node')).toEqual({
+            height: 72,
+            id: 'placed-node',
+            kind: 'participant',
+            label: 'New participant',
+            role: 'focal',
+            width: 160,
+            x: 504,
+            y: 44,
+        })
+        expect(session.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(session.getNodeSnapshot('existing')).toBe(existingNode)
+        expect(session.getNodeSnapshot('other')).toBe(otherNode)
+        expect(session.getEditableDiagram()?.edges).toBe(edges)
+        expect(session.getEdgeSnapshot('existing-edge')).toBe(existingEdge)
+        expect(session.getEditableDiagram()?.fragments).toBe(fragments)
+        expect(session.getFragmentSnapshot('existing-fragment')).toBe(existingFragment)
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
+        expect(session.getActiveToolSnapshot()).toBe('select')
+    })
 
     it.each([
         ['architecture', undefined, 'component', true],

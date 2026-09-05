@@ -291,6 +291,52 @@ describe('DiagramGeometryService', () => {
         expect(nodeBox(geometry, 'store')).toEqual(before)
     })
 
+    it('adds an explicitly positioned participant without updating existing sequence geometry', () => {
+        const source = sequenceDiagram()
+        source.nodes = source.nodes.map((node, index) => ({...node, height: 72, width: 160, x: 40 + index * 216, y: 40}))
+        const { geometry, session } = createHarness(source)
+        const participantBoxes = new Map(source.nodes.map(({ id }) => [id, nodeBox(geometry, id)]))
+        const messageRoutes = new Map(source.edges.map(({ id }) => [id, geometry.getEdgeRouteSnapshot(id)]))
+        const activationIds = geometry.getActivationIdsSnapshot()
+        const activationBoxes = new Map(activationIds.map((id) => [id, {
+            height: geometry.getActivationFieldSnapshot(id, 'height'),
+            width: geometry.getActivationFieldSnapshot(id, 'width'),
+            x: geometry.getActivationFieldSnapshot(id, 'x'),
+            y: geometry.getActivationFieldSnapshot(id, 'y'),
+        }]))
+        const fragmentBox = {
+            height: geometry.getFragmentGeometryFieldSnapshot('transaction', 'height'),
+            width: geometry.getFragmentGeometryFieldSnapshot('transaction', 'width'),
+            x: geometry.getFragmentGeometryFieldSnapshot('transaction', 'x'),
+            y: geometry.getFragmentGeometryFieldSnapshot('transaction', 'y'),
+        }
+        const fragmentGuards = geometry.getFragmentGuardPositionsSnapshot('transaction')
+
+        const participantId = session.createNode({height: 72, kind: 'participant', label: 'Audit', role: 'focal', width: 160, x: 720, y: 40})
+        if (!participantId) throw new Error('Expected participant creation to succeed')
+
+        expect(nodeBox(geometry, participantId)).toEqual({ height: 72, width: 160, x: 720, y: 40 })
+        expect(geometry.getNodeGeometryFieldSnapshot(participantId, 'fanIn')).toBe(0)
+        for (const [nodeId, box] of participantBoxes) expect(nodeBox(geometry, nodeId)).toEqual(box)
+        for (const [edgeId, route] of messageRoutes) expect(geometry.getEdgeRouteSnapshot(edgeId)).toBe(route)
+        expect(geometry.getActivationIdsSnapshot()).toBe(activationIds)
+        for (const [activationId, box] of activationBoxes) {
+            expect({
+                height: geometry.getActivationFieldSnapshot(activationId, 'height'),
+                width: geometry.getActivationFieldSnapshot(activationId, 'width'),
+                x: geometry.getActivationFieldSnapshot(activationId, 'x'),
+                y: geometry.getActivationFieldSnapshot(activationId, 'y'),
+            }).toEqual(box)
+        }
+        expect({
+            height: geometry.getFragmentGeometryFieldSnapshot('transaction', 'height'),
+            width: geometry.getFragmentGeometryFieldSnapshot('transaction', 'width'),
+            x: geometry.getFragmentGeometryFieldSnapshot('transaction', 'x'),
+            y: geometry.getFragmentGeometryFieldSnapshot('transaction', 'y'),
+        }).toEqual(fragmentBox)
+        expect(geometry.getFragmentGuardPositionsSnapshot('transaction')).toBe(fragmentGuards)
+    })
+
     it('drops the view entries of a removed node and its incident edges only', () => {
         const { geometry, session } = createHarness()
 

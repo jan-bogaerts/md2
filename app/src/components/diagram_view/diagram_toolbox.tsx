@@ -21,6 +21,9 @@ import { DiagramCopyButton } from './diagram_copy_button';
 import { DiagramCutButton } from './diagram_cut_button';
 import { DiagramDeleteButton } from './diagram_delete_button';
 import { DiagramPasteButton } from './diagram_paste_button';
+import {
+    DiagramParticipantButton,
+} from './diagram_participant_button';
 import { DiagramToolboxToolButton } from './diagram_toolbox_tool_button';
 import { DiagramZoomInButton } from './diagram_zoom_in_button';
 import { DiagramZoomOutButton } from './diagram_zoom_out_button';
@@ -145,7 +148,10 @@ export function DiagramToolbox({
                         </>
                     )}
                     {activeSection === 'nodes' && (
-                        <DiagramComponentNodeButton placement={placement} session={session} />
+                        <>
+                            <DiagramComponentNodeButton placement={placement} session={session} />
+                            <DiagramParticipantButton placement={placement} session={session} />
+                        </>
                     )}
                 </Box>
             </ResizablePopper>
