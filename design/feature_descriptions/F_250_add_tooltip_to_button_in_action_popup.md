@@ -19,15 +19,15 @@ send: ctrl+ enter.
 
 ## Implementation details
 
-- Change Send tooltip text in `ActionPopupBottomRow` to `Send. Ctrl+Enter.` so it names both action and keyboard shortcut.
-- Keep Send `aria-label="Send"`; shortcut text is guidance, not part of control name.
-- Keep existing `span` wrapper, visibility, disabled-state, click, `Ctrl+Enter`, and `Meta+Enter` behavior unchanged.
-- Update focused `ActionPopupBottomRow` tooltip coverage. No desktop, service, state, or data-model change needed.
+* Change Send tooltip text in `ActionPopupBottomRow` to `Send. Ctrl+Enter.` so it names both action and keyboard shortcut.
+* Keep Send `aria-label="Send"`; shortcut text is guidance, not part of control name.
+* Keep existing `span` wrapper, visibility, disabled-state, click, `Ctrl+Enter`, and `Meta+Enter` behavior unchanged.
+* Update focused `ActionPopupBottomRow` tooltip coverage. No desktop, service, state, or data-model change needed.
 
 ## Acceptance criteria
 
-- When user hovers or focuses visible Send button, tooltip shows `Send. Ctrl+Enter.`.
-- Tooltip remains available when Send button is disabled.
-- Clicking enabled Send and pressing `Ctrl+Enter` submit exactly as before.
-- `Meta+Enter` behavior remains unchanged.
-- Send accessible name remains `Send`; other action-popup controls and tooltips remain unchanged.
+* When user hovers or focuses visible Send button, tooltip shows `Send. Ctrl+Enter.`.
+* Tooltip remains available when Send button is disabled.
+* Clicking enabled Send and pressing `Ctrl+Enter` submit exactly as before.
+* `Meta+Enter` behavior remains unchanged.
+* Send accessible name remains `Send`; other action-popup controls and tooltips remain unchanged.
