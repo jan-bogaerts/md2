@@ -3,7 +3,7 @@ author:
 id: F_307
 internalId: ea81e86d-6036-45b6-8608-f4a91a7f59ed
 title: add start node tool
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
