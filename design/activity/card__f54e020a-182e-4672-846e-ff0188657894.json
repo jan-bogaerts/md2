@@ -914,11 +914,11 @@
         "agent-416ba837-22ff-4754-8036-929a2cc8f3af"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-22fcd91d-b582-45e4-89ad-61277f9de17f",
       "origin": {
@@ -927,9 +927,31 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-416ba837-22ff-4754-8036-929a2cc8f3af",
       "startedAt": "2026-09-05T09:35:10.706Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-416ba837-22ff-4754-8036-929a2cc8f3af"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d08e7aabed8290019d25c078e7882d601b573edd",
+          "committedAt": "2026-09-05T11:35:42+02:00",
+          "deletions": 1,
+          "filePaths": [
+            "design/feature_descriptions/B_222_dont_show_error_for_merge_conflict.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 60,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-05T11:35:42+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "f54e020a-182e-4672-846e-ff0188657894",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
