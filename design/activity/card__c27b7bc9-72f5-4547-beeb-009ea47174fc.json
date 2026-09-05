@@ -571,6 +571,14 @@
           "role": "assistant",
           "sequence": 42,
           "timestamp": "2026-09-05T08:47:19.339Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-3319e477-6d39-430d-b1ee-9582b11f271a-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 43,
+          "timestamp": "2026-09-05T08:48:32.699Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -585,10 +593,10 @@
         }
       ],
       "startedAt": "2026-09-04T20:33:41.759Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "elapsedMs": 247139,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-05T08:48:32.699Z"
       },
       "title": "implement",
       "usage": {
@@ -599,7 +607,7 @@
         "totalTokens": 1397413
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -614,11 +622,11 @@
         "agent-64eb05af-3b30-4c6c-8ca4-a2690a90e09b"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-1ab0cfa3-977c-4af3-8882-f7a8ce27673c",
       "origin": {
@@ -627,9 +635,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-64eb05af-3b30-4c6c-8ca4-a2690a90e09b",
       "startedAt": "2026-09-04T20:33:41.759Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-64eb05af-3b30-4c6c-8ca4-a2690a90e09b"
     }
   ],
   "version": 5
