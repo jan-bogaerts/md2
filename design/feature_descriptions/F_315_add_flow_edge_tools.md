@@ -3,13 +3,16 @@ author:
 id: F_315
 internalId: bb95c759-589b-43e9-968c-02f83b371438
 title: add flow edge tools
-status: ready for implementation
+status: ready
 owner:
 affects:
 agents:
   - design/activity/card__bb95c759-589b-43e9-968c-02f83b371438.json
 policy:
 after: a9a843a2-367c-42ec-b9ca-7d990faf13ff
+changedFiles:
+  - app/src/components/diagram_view/diagram_flow_edge_button.test.tsx
+  - app/src/components/diagram_view/diagram_flow_edge_button.tsx
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
