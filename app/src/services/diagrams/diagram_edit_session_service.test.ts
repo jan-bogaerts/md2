@@ -584,6 +584,125 @@ describe('DiagramEditSessionService', () => {
         expect(sessionChanged).not.toHaveBeenCalled()
     })
 
+    it('pastes remapped objects with grid offset through one exact collection transaction', () => {
+        const createId = vi.fn()
+            .mockReturnValueOnce('user')
+            .mockReturnValueOnce('pasted-user')
+            .mockReturnValueOnce('pasted-orders')
+            .mockReturnValueOnce('pasted-call')
+            .mockReturnValueOnce('pasted-group')
+            .mockReturnValueOnce('pasted-fragment')
+        const service = sequenceHarness(createId)
+        const editable = service.getEditableDiagram()
+        const nodes = editable?.nodes
+        const edges = editable?.edges
+        const groups = editable?.groups
+        const fragments = editable?.fragments
+        const existingNode = service.getNodeSnapshot('user')
+        const existingEdge = service.getEdgeSnapshot('user-orders')
+        const nodeMembershipChanged = vi.fn()
+        const edgeMembershipChanged = vi.fn()
+        const groupMembershipChanged = vi.fn()
+        const fragmentMembershipChanged = vi.fn()
+        const existingNodeChanged = vi.fn()
+        const existingGroupMembershipChanged = vi.fn()
+        const existingFragmentMembershipChanged = vi.fn()
+        service.subscribeCollectionMembership('node', nodeMembershipChanged)
+        service.subscribeCollectionMembership('edge', edgeMembershipChanged)
+        service.subscribeCollectionMembership('group', groupMembershipChanged)
+        service.subscribeCollectionMembership('fragment', fragmentMembershipChanged)
+        service.subscribeNodeField('user', 'label', existingNodeChanged)
+        service.subscribeGroupMembership('backend', existingGroupMembershipChanged)
+        service.subscribeFragmentRegionMembership('transaction', 0, existingFragmentMembershipChanged)
+
+        const result = service.pasteFragment({
+            edges: [{
+                from: 'source-user',
+                id: 'source-call',
+                kind: 'call',
+                sourceAttachment: { nodeId: 'source-user', offset: 0.5, side: 'right' },
+                targetAttachment: { nodeId: 'source-orders', offset: 0.5, side: 'left' },
+                to: 'source-orders',
+                waypoints: [{ x: 20, y: 12 }, { x: 40, y: 12 }],
+            }],
+            fragments: [{
+                id: 'source-fragment',
+                operator: 'opt',
+                regions: [{ edgeIds: ['source-call'], guard: 'requested' }],
+            }],
+            groups: [{ id: 'source-group', label: 'Pair', nodeIds: ['source-user', 'source-orders'], x: 4, y: 8 }],
+            nodes: [
+                { id: 'source-user', kind: 'participant', label: 'User copy', role: 'external', x: 8, y: 12 },
+                { id: 'source-orders', kind: 'participant', label: 'Orders copy', role: 'focal', x: 32, y: 12 },
+            ],
+        }, 4)
+
+        expect(result).toEqual({
+            identities: [
+                { objectId: 'pasted-user', objectKind: 'node' },
+                { objectId: 'pasted-orders', objectKind: 'node' },
+                { objectId: 'pasted-call', objectKind: 'edge' },
+                { objectId: 'pasted-group', objectKind: 'group' },
+            ],
+        })
+        expect(createId).toHaveBeenCalledTimes(6)
+        expect(service.getEditableDiagram()).toBe(editable)
+        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.getEditableDiagram()?.edges).toBe(edges)
+        expect(service.getEditableDiagram()?.groups).toBe(groups)
+        expect(service.getEditableDiagram()?.fragments).toBe(fragments)
+        expect(service.getNodeSnapshot('user')).toBe(existingNode)
+        expect(service.getEdgeSnapshot('user-orders')).toBe(existingEdge)
+        expect(service.getNodeSnapshot('pasted-user')).toMatchObject({ x: 12, y: 16 })
+        expect(service.getEdgeSnapshot('pasted-call')).toMatchObject({
+            from: 'pasted-user',
+            sourceAttachment: { nodeId: 'pasted-user' },
+            targetAttachment: { nodeId: 'pasted-orders' },
+            to: 'pasted-orders',
+            waypoints: [{ x: 24, y: 16 }, { x: 44, y: 16 }],
+        })
+        expect(service.getGroupSnapshot('pasted-group')).toMatchObject({ nodeIds: ['pasted-user', 'pasted-orders'], x: 8, y: 12 })
+        expect(service.getFragmentSnapshot('pasted-fragment')).toMatchObject({regions: [{ edgeIds: ['pasted-call'], guard: 'requested' }]})
+        expect(nodeMembershipChanged).toHaveBeenCalledOnce()
+        expect(membershipDetail(nodeMembershipChanged).addedIds).toEqual(['pasted-user', 'pasted-orders'])
+        expect(edgeMembershipChanged).toHaveBeenCalledOnce()
+        expect(membershipDetail(edgeMembershipChanged).addedIds).toEqual(['pasted-call'])
+        expect(groupMembershipChanged).toHaveBeenCalledOnce()
+        expect(membershipDetail(groupMembershipChanged).addedIds).toEqual(['pasted-group'])
+        expect(fragmentMembershipChanged).toHaveBeenCalledOnce()
+        expect(membershipDetail(fragmentMembershipChanged).addedIds).toEqual(['pasted-fragment'])
+        expect(existingNodeChanged).not.toHaveBeenCalled()
+        expect(existingGroupMembershipChanged).not.toHaveBeenCalled()
+        expect(existingFragmentMembershipChanged).not.toHaveBeenCalled()
+        expect(service.getChangeIdsSnapshot()).toHaveLength(5)
+    })
+
+    it('rejects pasted object kinds unsupported by target type before mutation', () => {
+        const reportValidationError = vi.fn()
+        const { service } = createHarness({ reportValidationError })
+        service.start()
+        const editable = service.getEditableDiagram()
+        const nodeIds = service.getNodeIdsSnapshot()
+        const changeIds = service.getChangeIdsSnapshot()
+        const nodeMembershipChanged = vi.fn()
+        service.subscribeCollectionMembership('node', nodeMembershipChanged)
+
+        const result = service.pasteFragment({
+            edges: [],
+            fragments: [],
+            groups: [],
+            nodes: [{ id: 'participant', kind: 'participant', label: 'Participant', role: 'external', x: 4, y: 4 }],
+        }, 4)
+
+        expect(result).toBeNull()
+        expect(service.getEditableDiagram()).toBe(editable)
+        expect(service.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(nodeMembershipChanged).not.toHaveBeenCalled()
+        expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('Paste diagram fragment rejected'))
+    })
+
     it('removes a node with its incident edges and group membership in one transaction', () => {
         const { service } = createHarness()
         service.start()

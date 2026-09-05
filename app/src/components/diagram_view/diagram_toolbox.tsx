@@ -12,6 +12,7 @@ import { ResizablePopper } from '../resizable_popper';
 import { DiagramCopyButton } from './diagram_copy_button';
 import { DiagramCutButton } from './diagram_cut_button';
 import { DiagramDeleteButton } from './diagram_delete_button';
+import { DiagramPasteButton } from './diagram_paste_button';
 import { DiagramToolboxToolButton } from './diagram_toolbox_tool_button';
 import { DiagramZoomInButton } from './diagram_zoom_in_button';
 import { DiagramZoomOutButton } from './diagram_zoom_out_button';
@@ -128,6 +129,7 @@ export function DiagramToolbox({
                             <DiagramZoomInButton session={session} />
                             <DiagramZoomOutButton session={session} />
                             <DiagramCopyButton />
+                            <DiagramPasteButton />
                             <DiagramCutButton />
                             <DiagramDeleteButton />
                         </>

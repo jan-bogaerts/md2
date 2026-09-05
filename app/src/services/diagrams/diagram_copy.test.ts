@@ -38,7 +38,7 @@ describe('diagram copy', () => {
         const selection = supportedSelection()
         const selectionBefore = JSON.stringify(selection)
         const sourceBefore = JSON.stringify({ edges, nodes })
-        const clipboardWriter = vi.fn(async () => undefined)
+        const clipboardWriter = vi.fn<(content: string) => Promise<void>>(async () => undefined)
 
         await expect(copyDiagramSelection(selection, session, clipboardWriter, vi.fn())).resolves.toBe(true)
 

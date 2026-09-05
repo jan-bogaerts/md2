@@ -100,6 +100,17 @@ export interface DiagramRemovalIdentity {
     objectKind: DiagramRemovableObjectKind
 }
 
+export interface DiagramPasteFragment {
+    edges: readonly (ReadonlyDiagramData['edges'][number])[]
+    fragments: readonly (NonNullable<ReadonlyDiagramData['fragments']>[number])[]
+    groups: readonly (ReadonlyDiagramData['groups'][number])[]
+    nodes: readonly (ReadonlyDiagramData['nodes'][number])[]
+}
+
+export interface DiagramPasteResult {
+    identities: readonly DiagramRemovalIdentity[]
+}
+
 export interface DiagramFieldChangeDetail {
     field: string
     objectId: string
@@ -954,6 +965,56 @@ export class DiagramEditSessionService extends EventTarget {
         return id
     }
 
+    /** Validates and inserts one self-contained fragment through one collection-membership transaction. */
+    pasteFragment(fragment: DiagramPasteFragment, offset: number): DiagramPasteResult | null {
+        const diagram = this.requireEditableDiagram()
+        const pasted = this.validateOperationResult('Paste diagram fragment', () => {
+            requireDiagramGridNumber(offset, 'paste.offset', true)
+            return this.preparePastedFragment(fragment, offset)
+        })
+        if (!pasted) return null
+
+        diagram.nodes.push(...pasted.nodes)
+        diagram.edges.push(...pasted.edges)
+        diagram.groups.push(...pasted.groups)
+        if (pasted.fragments.length > 0) {
+            if (!diagram.fragments) diagram.fragments = []
+            diagram.fragments.push(...pasted.fragments)
+        }
+        for (const node of pasted.nodes) this.nodesById.set(node.id, node)
+        for (const edge of pasted.edges) this.edgesById.set(edge.id, edge)
+        for (const group of pasted.groups) {
+            this.groupsById.set(group.id, group)
+            this.groupNodeIdsById.set(group.id, Object.freeze([...group.nodeIds]))
+        }
+        for (const pastedFragment of pasted.fragments) {
+            this.fragmentsById.set(pastedFragment.id, pastedFragment)
+            pastedFragment.regions.forEach((region, index) => {
+                this.fragmentRegionEdgeIdsByKey.set(
+                    fragmentRegionKey(pastedFragment.id, index),
+                    Object.freeze([...region.edgeIds]),
+                )
+            })
+        }
+        this.nodeIds = frozenIds(diagram.nodes)
+        this.edgeIds = frozenIds(diagram.edges)
+        this.groupIds = frozenIds(diagram.groups)
+        this.fragmentIds = frozenIds(diagram.fragments ?? [])
+        const events: PendingMembershipEvent[] = []
+        this.markPastedCollection('node', pasted.nodes, events)
+        this.markPastedCollection('edge', pasted.edges, events)
+        this.markPastedCollection('group', pasted.groups, events)
+        this.markPastedCollection('fragment', pasted.fragments, events)
+        this.commitTransaction(events)
+        const identities: DiagramRemovalIdentity[] = [
+            ...pasted.nodes.map(({ id }) => ({ objectId: id, objectKind: 'node' as const })),
+            ...pasted.edges.map(({ id }) => ({ objectId: id, objectKind: 'edge' as const })),
+            ...pasted.groups.map(({ id }) => ({ objectId: id, objectKind: 'group' as const })),
+        ]
+
+        return { identities: Object.freeze(identities) }
+    }
+
     /** Removes a fragment only; the edges its regions referenced stay in the diagram. */
     removeFragment(fragmentId: string): boolean {
         const diagram = this.requireEditableDiagram()
@@ -1197,6 +1258,16 @@ export class DiagramEditSessionService extends EventTarget {
         }
     }
 
+    private validateOperationResult<Value>(operation: string, validation: () => Value): Value | null {
+        try {
+            return validation()
+        } catch (error) {
+            this.reportValidationError(`${operation} rejected: ${validationMessage(error)}`)
+
+            return null
+        }
+    }
+
     private validateNodeFieldValue(nodeId: string, field: MutableDiagramNodeField, value: unknown) {
         const diagram = this.requireEditableDiagram()
         const fieldPath = `nodes.${nodeId}.${field}`
@@ -1309,6 +1380,136 @@ export class DiagramEditSessionService extends EventTarget {
         }
     }
 
+    private preparePastedFragment(fragment: DiagramPasteFragment, offset: number) {
+        const nodeIds = new Map<string, string>()
+        const edgeIds = new Map<string, string>()
+        const groupIds = new Map<string, string>()
+        const fragmentIds = new Map<string, string>()
+        const reservedSelectableIds = new Set([...this.nodeIds, ...this.edgeIds])
+        for (const node of fragment.nodes) nodeIds.set(node.id, this.generateReservedObjectId(reservedSelectableIds))
+        for (const edge of fragment.edges) edgeIds.set(edge.id, this.generateReservedObjectId(reservedSelectableIds))
+        const reservedGroupIds = new Set(this.groupIds)
+        for (const group of fragment.groups) {
+            groupIds.set(group.id, this.generateReservedObjectId(reservedGroupIds))
+        }
+        const reservedFragmentIds = new Set(this.fragmentIds)
+        for (const sourceFragment of fragment.fragments) {
+            fragmentIds.set(sourceFragment.id, this.generateReservedObjectId(reservedFragmentIds))
+        }
+        const nodes = fragment.nodes.map((node) => this.createPastedNode(node, nodeIds, offset))
+        const pastedNodesById = indexById(nodes)
+        const edges = fragment.edges.map((edge) => this.createPastedEdge(edge, nodeIds, edgeIds, pastedNodesById, offset))
+        const groups = fragment.groups.map((group) => DiagramEditSessionService.createPastedGroup(group, nodeIds, groupIds, offset))
+        const fragments = fragment.fragments.map((sourceFragment) => (
+            this.createPastedSequenceFragment(sourceFragment, edgeIds, fragmentIds)
+        ))
+
+        return { edges, fragments, groups, nodes }
+    }
+
+    private createPastedNode(
+        source: ReadonlyDiagramData['nodes'][number],
+        nodeIds: ReadonlyMap<string, string>,
+        offset: number,
+    ) {
+        const id = nodeIds.get(source.id)
+        if (!id) invalidDiagramField('paste.nodes', `missing ID mapping for node ${source.id}`)
+        const node: DiagramNode = {
+            ...source,
+            fields: source.fields?.map((field) => ({ ...field })),
+            id,
+            ...(source.x === undefined ? {} : { x: source.x + offset }),
+            ...(source.y === undefined ? {} : { y: source.y + offset }),
+        }
+        this.validateNewNode(node)
+
+        return node
+    }
+
+    private createPastedEdge(
+        source: ReadonlyDiagramData['edges'][number],
+        nodeIds: ReadonlyMap<string, string>,
+        edgeIds: ReadonlyMap<string, string>,
+        pastedNodesById: ReadonlyMap<string, DiagramNode>,
+        offset: number,
+    ) {
+        const id = edgeIds.get(source.id)
+        const from = nodeIds.get(source.from)
+        const to = nodeIds.get(source.to)
+        if (!id || !from || !to) invalidDiagramField('paste.edges', `missing internal ID mapping for edge ${source.id}`)
+        const edge: DiagramEdge = {
+            ...source,
+            from,
+            id,
+            to,
+            ...(source.sourceAttachment ? {sourceAttachment: { ...source.sourceAttachment, nodeId: from }} : {}),
+            ...(source.targetAttachment ? {targetAttachment: { ...source.targetAttachment, nodeId: to }} : {}),
+            waypoints: source.waypoints?.map(({ x, y }) => ({ x: x + offset, y: y + offset })),
+        }
+        this.validatePastedEdge(edge, pastedNodesById)
+
+        return edge
+    }
+
+    private validatePastedEdge(edge: DiagramEdge, pastedNodesById: ReadonlyMap<string, DiagramNode>) {
+        const diagram = this.requireEditableDiagram()
+        const source = pastedNodesById.get(edge.from)
+        if (!source || !pastedNodesById.has(edge.to)) invalidDiagramField(`paste.edges.${edge.id}`, 'unknown endpoint')
+        requireDiagramEdgeKind(edge.kind, diagram.meta.type, `paste.edges.${edge.id}.kind`)
+        requireDiagramEdgeLabel(edge.label, diagram.meta.type, diagram.meta.preset, source.kind, `paste.edges.${edge.id}.label`)
+        if ((edge.fromCardinality !== undefined || edge.toCardinality !== undefined) && diagram.meta.type !== 'entity') {
+            invalidDiagramField(`paste.edges.${edge.id}.cardinality`, 'value only allowed for entity diagrams')
+        }
+    }
+
+    private static createPastedGroup(
+        source: ReadonlyDiagramData['groups'][number],
+        nodeIds: ReadonlyMap<string, string>,
+        groupIds: ReadonlyMap<string, string>,
+        offset: number,
+    ) {
+        const id = groupIds.get(source.id)
+        if (!id) invalidDiagramField('paste.groups', `missing ID mapping for group ${source.id}`)
+        const mappedNodeIds = source.nodeIds.map((nodeId) => {
+            const mappedId = nodeIds.get(nodeId)
+            if (!mappedId) invalidDiagramField(`paste.groups.${source.id}.nodeIds`, `unknown node ${nodeId}`)
+
+            return mappedId
+        })
+        const group: DiagramGroup = {
+            ...source,
+            id,
+            nodeIds: mappedNodeIds,
+            ...(source.x === undefined ? {} : { x: source.x + offset }),
+            ...(source.y === undefined ? {} : { y: source.y + offset }),
+        }
+        validateNewGroup(group)
+
+        return group
+    }
+
+    private createPastedSequenceFragment(
+        source: NonNullable<ReadonlyDiagramData['fragments']>[number],
+        edgeIds: ReadonlyMap<string, string>,
+        fragmentIds: ReadonlyMap<string, string>,
+    ) {
+        const id = fragmentIds.get(source.id)
+        if (!id) invalidDiagramField('paste.fragments', `missing ID mapping for fragment ${source.id}`)
+        const regions = source.regions.map((region) => ({
+            edgeIds: region.edgeIds.map((edgeId) => {
+                const mappedId = edgeIds.get(edgeId)
+                if (!mappedId) invalidDiagramField(`paste.fragments.${source.id}.regions.edgeIds`, `unknown edge ${edgeId}`)
+
+                return mappedId
+            }),
+            guard: region.guard,
+        }))
+        const fragment: DiagramSequenceFragment = { id, operator: source.operator, regions }
+        this.validateNewFragment(fragment)
+
+        return fragment
+    }
+
     private validateNodeRemoval(nodeId: string) {
         const diagram = this.requireEditableDiagram()
         if (diagram.nodes.length === 1) invalidDiagramField('nodes', 'empty array after removing node')
@@ -1347,6 +1548,13 @@ export class DiagramEditSessionService extends EventTarget {
         }
 
         throw new Error('Could not generate a collision-free diagram object id')
+    }
+
+    private generateReservedObjectId(reservedIds: Set<string>) {
+        const id = this.generateObjectId((candidate) => reservedIds.has(candidate))
+        reservedIds.add(id)
+
+        return id
     }
 
     private requireOwnedNodeIds(nodeIds: readonly string[]) {
@@ -1553,6 +1761,18 @@ export class DiagramEditSessionService extends EventTarget {
             value,
         }
         this.setChange(change, `${objectKind}:${objectId}`, (originalValue === null) === (value === null))
+    }
+
+    private markPastedCollection(
+        objectKind: DiagramCollectionKind,
+        objects: readonly { id: string }[],
+        events: PendingMembershipEvent[],
+    ) {
+        if (objects.length === 0) return
+
+        const addedIds = objects.map(({ id }) => id)
+        for (const id of addedIds) this.markCollectionMembership(objectKind, id, true)
+        events.push(collectionMembershipEvent(objectKind, addedIds, []))
     }
 
     private markGroupMembership(groupId: string, nodeId: string, present: boolean) {

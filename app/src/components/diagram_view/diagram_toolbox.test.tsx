@@ -137,6 +137,7 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('button', { name: 'Zoom in' })).not.toHaveAttribute('aria-pressed');
         expect(screen.getByRole('button', { name: 'Zoom out' })).not.toHaveAttribute('aria-pressed');
         expect(screen.getByRole('button', { name: 'Copy' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Paste' })).toBeEnabled();
         expect(screen.getByRole('button', { name: 'Cut' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
 
