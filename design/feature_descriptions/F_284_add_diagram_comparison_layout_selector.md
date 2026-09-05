@@ -16,6 +16,7 @@ changedFiles:
   - app/src/components/diagram_view/diagram_comparison_layout_service.ts
   - app/src/components/diagram_view/diagram_view.test.tsx
   - app/src/components/diagram_view/diagram_view.tsx
+after: 2e295c0c-a5eb-4b2f-a36a-6c6f202a750a
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 

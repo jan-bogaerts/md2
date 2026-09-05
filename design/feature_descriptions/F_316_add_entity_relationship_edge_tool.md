@@ -3,15 +3,14 @@ author:
 id: F_316
 internalId: c8d8482b-8abb-44a6-8ee1-1ca4e45e035c
 title: add entity relationship edge tool
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
 after: bb95c759-589b-43e9-968c-02f83b371438
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ Relationship label, endpoints, and cardinalities are separate fields on a stable
 
 ## Dependencies
 
-[F_311](F_311_add_edge_drawing_infrastructure.md) and [F_296](F_296_edit_diagram_object_details.md).
+[F\_311](F_311_add_edge_drawing_infrastructure.md) and [F\_296](F_296_edit_diagram_object_details.md).

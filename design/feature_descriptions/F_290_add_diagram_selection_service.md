@@ -13,6 +13,7 @@ changedFiles:
   - app/src/services/diagrams/diagram_edit_session_service.ts
   - app/src/services/diagrams/diagram_selection_service.test.ts
   - app/src/services/diagrams/diagram_selection_service.ts
+after: 9081512a-9bc9-4f11-a43c-1edda64ab53f
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

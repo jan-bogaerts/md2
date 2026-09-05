@@ -15,6 +15,7 @@ changedFiles:
   - app/src/services/diagrams/diagram_edit_session_service.ts
   - app/src/services/diagrams/diagram_geometry_service.test.ts
   - app/src/services/diagrams/diagram_geometry_service.ts
+after: 5347a970-419c-495a-9b4e-c9aafcce6741
 ---
 
 Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).

@@ -15,6 +15,7 @@ changedFiles:
   - app/src/services/diagrams/diagram_edit_session_service.test.ts
   - app/src/services/diagrams/diagram_edit_session_service.ts
   - design/architecture/editable_diagram_contract.md
+after: 1d05ed50-60c4-42a5-b520-fbc0d625361c
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 

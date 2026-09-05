@@ -30,6 +30,7 @@ changedFiles:
   - app/src/components/diagram_view/tabbed_diagram_comparison.tsx
   - app/src/components/diagram_view/use_diagram_selection.ts
   - app/src/components/diagram_view/vertical_diagram_comparison.tsx
+after: 71998afb-3b7f-4da7-87e4-95e5c931a702
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

@@ -16,6 +16,7 @@ changedFiles:
   - app/src/components/diagram_view/diagram_toolbox.test.tsx
   - app/src/components/diagram_view/diagram_toolbox.tsx
   - app/src/services/diagrams/diagram_node_placement_service.test.ts
+after: ea81e86d-6036-45b6-8608-f4a91a7f59ed
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

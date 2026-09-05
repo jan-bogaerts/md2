@@ -22,6 +22,7 @@ changedFiles:
   - app/src/components/diagram_view/vertical_diagram_comparison.tsx
   - app/src/services/diagrams/diagram_edit_session_service.test.ts
   - app/src/services/diagrams/diagram_edit_session_service.ts
+after: f46ab1c9-a250-4dae-afd7-72b1afcaf3c5
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

@@ -14,6 +14,7 @@ changedFiles:
   - app/package.json
   - app/src/services/diagrams/diagram_layout.node.test.ts
   - app/src/services/diagrams/diagram_layout.ts
+after: ce85fbc0-d5c2-4de1-a867-24325cbbd471
 ---
 Replace the hand-written layered node ranking and ordering with [Dagre](https://github.com/dagrejs/dagre). Improve automatic layouts without changing the diagram data contract or renderer.
 

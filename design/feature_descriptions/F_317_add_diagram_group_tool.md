@@ -3,15 +3,14 @@ author:
 id: F_317
 internalId: 587b42de-3d65-4665-9cb8-b714397a6964
 title: add diagram group tool
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
 after: c8d8482b-8abb-44a6-8ee1-1ca4e45e035c
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -35,4 +34,4 @@ Creation changes group membership once and mounts one group leaf by ID. Group x,
 
 ## Dependencies
 
-[F_278](F_278_make_diagram_layout_compatible_with_editing.md), [F_289](F_289_add_diagram_coordinate_conversion.md), and [F_286](F_286_manage_active_diagram_tool.md).
+[F\_278](F_278_make_diagram_layout_compatible_with_editing.md), [F\_289](F_289_add_diagram_coordinate_conversion.md), and [F\_286](F_286_manage_active_diagram_tool.md).

@@ -19,6 +19,7 @@ changedFiles:
   - app/src/services/diagrams/diagram_edit_session_service.ts
   - app/src/services/diagrams/diagram_paste.test.ts
   - app/src/services/diagrams/diagram_paste.ts
+after: 1baf99c7-1d5e-40a4-8702-29de72e0be62
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

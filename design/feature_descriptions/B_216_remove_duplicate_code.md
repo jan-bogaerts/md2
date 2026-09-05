@@ -21,6 +21,7 @@ changedFiles:
   - desktop/src/shell/local_bridge_dispatch.test.mjs
   - shared/project_config_defaults.d.mts
   - shared/project_config_defaults.mjs
+after: 906cff2c-d23c-4647-bc78-2cb5580125e2
 ---
 seems that we have some duplicate stuff in [action\_scheduler\_service.js](desktop/src/actions/action/action_scheduler_service.js),  `DEFAULT_DIAGRAM_FOOTER` is already outdated.
 

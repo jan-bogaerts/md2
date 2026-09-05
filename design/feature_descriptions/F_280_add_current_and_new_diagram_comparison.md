@@ -23,6 +23,7 @@ changedFiles:
   - app/src/components/diagram_view/editable_diagram_group.tsx
   - app/src/components/diagram_view/editable_diagram_leaves.test.tsx
   - app/src/components/diagram_view/editable_diagram_lifeline.tsx
+after: 2be66ea0-5097-4d45-a94e-d4a7b72331ca
 ---
 Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 

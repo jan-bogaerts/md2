@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__ed8ce460-5ff7-46f0-8bf2-09764585b8b2.json
 policy:
-after: 64640333-ea8c-4d4f-b2a4-2d32e74f7545
 changedFiles:
   - app/src/services/actions/action_run_registry.node.test.ts
   - app/src/services/actions/action_run_registry.ts

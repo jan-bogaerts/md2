@@ -18,6 +18,7 @@ changedFiles:
   - app/src/components/diagram_view/editable_diagram.tsx
   - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
   - app/src/services/diagrams/diagram_edge_drawing_service.ts
+after: f54e020a-182e-4672-846e-ff0188657894
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

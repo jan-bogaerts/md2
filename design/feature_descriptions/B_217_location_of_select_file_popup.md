@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__3a81bbba-94cd-4b06-9c53-198d765510b9.json
 policy:
-after: 9d5878e6-2d20-4574-971d-57dbd82eb389
+after: 7037a625-d650-4574-b1d5-874d90ba82a4
 changedFiles:
   - patch_tests.py
 ---

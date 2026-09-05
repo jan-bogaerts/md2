@@ -20,6 +20,7 @@ changedFiles:
   - app/src/components/diagram_view/editable_diagram_leaves.test.tsx
   - app/src/components/diagram_view/editable_diagram_node.tsx
   - app/src/components/diagram_view/editable_diagram_selection.test.tsx
+after: 2f8b255c-a6f9-4f92-ad54-3f4358b2e512
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 

@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__1d05ed50-60c4-42a5-b520-fbc0d625361c.json
 policy:
-after: cd8c317c-a566-4ec1-bc4b-e598c892ea89
+after: 69834d03-c154-4c81-a656-50de20aeb0ec
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_chat.tsx
   - app/src/components/agents/agent_chat_fab.test.tsx

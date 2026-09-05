@@ -3,15 +3,14 @@ author:
 id: F_315
 internalId: bb95c759-589b-43e9-968c-02f83b371438
 title: add flow edge tools
-status: new
+status: ready for implementation
 owner:
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
+after: a9a843a2-367c-42ec-b9ca-7d990faf13ff
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -31,4 +30,4 @@ Flow and transition field changes stay on their stable edge objects. Validation 
 
 ## Dependencies
 
-[F_311](F_311_add_edge_drawing_infrastructure.md) and [F_279](F_279_validate_diagram_edit_operations.md).
+[F\_311](F_311_add_edge_drawing_infrastructure.md) and [F\_279](F_279_validate_diagram_edit_operations.md).

@@ -19,6 +19,7 @@ changedFiles:
   - app/src/components/diagram_view/use_diagram_tool.ts
   - app/src/services/diagrams/diagram_edit_session_service.test.ts
   - app/src/services/diagrams/diagram_edit_session_service.ts
+after: 2023c646-c9c0-43ae-92f7-5619042cb465
 ---
 Parent: [F\_255](F_255_make_diagrams_editable.md).
 
