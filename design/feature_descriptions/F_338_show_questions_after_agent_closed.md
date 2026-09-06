@@ -21,7 +21,6 @@ changedFiles:
   - desktop/src/shell/preload.test.mjs
   - shared/agent_conversations.mjs
 ---
-
 When an agent asked a question, we show a box with the questions. this works ok. only problem, when we close the application and open it again (so the agent has stopped), we don't show the questions anymore.
 
 so, when the last message was a `askuserquestion` and the conversation is in the state `waitingforinput`, we should show the question box again.
@@ -40,9 +39,9 @@ One property of the write path matters for the fix. `upsertConversation` in `des
 
 **Persist the question as a hidden conversation entry.** In `handleQuestion`, before `persistCheckpoint`, append an event entry of a new type `agentQuestion` that carries the questions. Because event entries have no place for structured data today, extend the entry shape with an optional `questions` array, each item holding `header`, `id`, `isSecret`, `options` and `question`:
 
-- `shared/agent_conversations.mjs`: accept and re-emit `questions` in `normalizeEvent`, validating each item, so the field survives the activity-file round trip; add `agentQuestion` to `INTERNAL_EVENT_TYPES` so the transcript filters the row out. The question box, not a chat bubble, is the visible surface, and a live session shows no such row today.
-- `app/src/data/data_types.ts`: add the optional `questions` field to `AgentConversationEvent`.
-- Secret questions keep only their metadata. No answer value is ever written into the entry, so this adds no new secret exposure.
+* `shared/agent_conversations.mjs`: accept and re-emit `questions` in `normalizeEvent`, validating each item, so the field survives the activity-file round trip; add `agentQuestion` to `INTERNAL_EVENT_TYPES` so the transcript filters the row out. The question box, not a chat bubble, is the visible surface, and a live session shows no such row today.
+* `app/src/data/data_types.ts`: add the optional `questions` field to `AgentConversationEvent`.
+* Secret questions keep only their metadata. No answer value is ever written into the entry, so this adds no new secret exposure.
 
 **Resolve the entry when the question is resolved.** `answerQuestion` already appends the user's answer message and `dismissQuestions` already appends a `questionsDismissed` event, both ordered after the `agentQuestion` entry. Restoration can therefore read the transcript instead of a separate flag: a question is pending exactly when the last entry of the conversation is that `agentQuestion` entry.
 
@@ -56,11 +55,11 @@ One property of the write path matters for the fix. `upsertConversation` in `des
 
 ## Acceptance criteria
 
-- While an agent runs, an `AskUserQuestion` request writes an `agentQuestion` entry containing the questions into the conversation, and that entry survives an activity-file save and reload unchanged.
-- The `agentQuestion` entry is never rendered as a row in the chat transcript, so a live session looks exactly as it does today.
-- Closing the application while a question is pending, reopening it and selecting that conversation shows the same question box, with the same questions, headers and options as before the restart.
-- The restored box appears only when the conversation status is `waitingForInput` and the `agentQuestion` entry is the last entry. A conversation that was already answered, dismissed, cancelled, completed or failed shows no box.
-- Submitting an answer in the restored box resumes the stored conversation through `continueFrom`, sends the answers as a user message with one `<question text>: <answer>` line per question, and clears the box, after which the agent continues from that answer.
-- Dismissing the restored box appends a `questionsDismissed` entry to the stored conversation, the box disappears, and it does not come back after another restart.
-- Answering or dismissing a live question behaves exactly as before: the answer still travels over the streaming control protocol and the run's `requestId` path is untouched.
-- Secret questions restore without any stored answer value.
+* While an agent runs, an `AskUserQuestion` request writes an `agentQuestion` entry containing the questions into the conversation, and that entry survives an activity-file save and reload unchanged.
+* The `agentQuestion` entry is never rendered as a row in the chat transcript, so a live session looks exactly as it does today.
+* Closing the application while a question is pending, reopening it and selecting that conversation shows the same question box, with the same questions, headers and options as before the restart.
+* The restored box appears only when the conversation status is `waitingForInput` and the `agentQuestion` entry is the last entry. A conversation that was already answered, dismissed, cancelled, completed or failed shows no box.
+* Submitting an answer in the restored box resumes the stored conversation through `continueFrom`, sends the answers as a user message with one `<question text>: <answer>` line per question, and clears the box, after which the agent continues from that answer.
+* Dismissing the restored box appends a `questionsDismissed` entry to the stored conversation, the box disappears, and it does not come back after another restart.
+* Answering or dismissing a live question behaves exactly as before: the answer still travels over the streaming control protocol and the run's `requestId` path is untouched.
+* Secret questions restore without any stored answer value.
