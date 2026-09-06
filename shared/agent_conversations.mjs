@@ -93,6 +93,42 @@ function optionalStringArray(value) {
     return Array.isArray(value) && value.every((entry) => typeof entry === 'string') ? [...value] : null;
 }
 
+function normalizeQuestionOption(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const label = optionalString(value.label);
+    if (!label) return null;
+    const description = optionalString(value.description);
+
+    return { ...(description ? { description } : {}), label };
+}
+
+function normalizeQuestion(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const header = optionalString(value.header);
+    const id = optionalString(value.id);
+    const question = optionalString(value.question);
+    if (!header || !id || !question) return null;
+    const options = Array.isArray(value.options)
+        ? value.options.map(normalizeQuestionOption).filter((option) => option !== null)
+        : null;
+
+    return {
+        header,
+        id,
+        ...(typeof value.isSecret === 'boolean' ? { isSecret: value.isSecret } : {}),
+        ...(options ? { options } : {}),
+        question,
+    };
+}
+
+/** Structured questions of an `agentQuestion` entry, so a pending question survives a restart. */
+function optionalQuestions(value) {
+    if (!Array.isArray(value)) return null;
+    const questions = value.map(normalizeQuestion).filter((question) => question !== null);
+
+    return questions.length > 0 ? questions : null;
+}
+
 function normalizeMessage(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
     if (!AGENT_MESSAGE_ROLES.has(value.role)) return null;
@@ -136,6 +172,7 @@ function normalizeEvent(value) {
         : null;
     const parentItemId = optionalString(value.parentItemId);
     const providerItemId = optionalString(value.providerItemId);
+    const questions = optionalQuestions(value.questions);
     const runningSubThreads = optionalNonNegativeInteger(value.runningSubThreads);
     const sequence = optionalInteger(value.sequence);
     const status = optionalString(value.status);
@@ -156,6 +193,7 @@ function normalizeEvent(value) {
         ...(output !== null ? { output } : {}),
         ...(parentItemId ? { parentItemId } : {}),
         ...(providerItemId ? { providerItemId } : {}),
+        ...(questions ? { questions } : {}),
         ...(runningSubThreads !== null ? { runningSubThreads } : {}),
         ...(sequence !== null ? { sequence } : {}),
         ...(status ? { status } : {}),

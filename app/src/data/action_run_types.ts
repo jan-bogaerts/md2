@@ -2,6 +2,7 @@ import type { ActionContext } from './action_context'
 import type {
     AgentContextWindowUsage,
     AgentConversation,
+    AgentQuestion,
     AgentConversationEventEntry,
     AgentConversationMessageEntry,
     AgentConversationTimer,
@@ -56,18 +57,7 @@ export interface ActionStartRequest {
     runInput: ActionRunInput
 }
 
-export interface AgentQuestionOption {
-    description?: string
-    label: string
-}
-
-export interface AgentQuestion {
-    header: string
-    id: string
-    isSecret?: boolean
-    options?: AgentQuestionOption[] | null
-    question: string
-}
+export type { AgentQuestion, AgentQuestionOption } from './data_types'
 
 export type AgentApprovalRequestId = number | string
 export type AgentNetworkProtocol = 'http' | 'https' | 'socks5Tcp' | 'socks5Udp'

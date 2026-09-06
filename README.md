@@ -111,15 +111,33 @@ md² is still an evolving concept — see [design/architecture/initial descripti
 
 ### Run agents from a feature
 
-![A Codex action conversation alongside active feature cards and worktree controls](screenshots/set2/Screenshot%202026-08-01%20194835.jpg)
+![A Codex action conversation alongside active feature cards and worktree controls](screenshots/Screenshot%202026-09-06%20145934.jpg)
 
 *Run reusable actions from a card, follow the agent conversation, and commit or integrate the assigned worktree without losing the feature context.*
 
 ### Keep the specification beside the work
 
-![A feature card open in the Markdown editor while its agent is running](screenshots/set2/Screenshot%202026-08-01%20194919.jpg)
+![A feature card open in the Markdown editor while its agent is running](screenshots/Screenshot%202026-09-06%20150456.jpg)
 
 *The card remains the shared source of truth for its definition, agent activity, worktree, and resulting changes.*
+
+### Configure an agent action
+
+![The list view showing the prompt configuration for an agent action](screenshots/Screenshot%202026-09-06%20150101.jpg)
+
+*Predefine the prompt for an action that will be run by an agent.*
+
+### Review cost per feature
+
+![Release statistics showing the estimated cost per feature](screenshots/Screenshot%202026-09-06%20150204.jpg)
+
+*Use release statistics to compare estimated costs across the features included in the current release.*
+
+### Explore the project diagram
+
+![The experimental project diagram view](screenshots/Screenshot%202026-09-06%20150258.jpg)
+
+*Explore relationships in the new diagram view. This feature is still experimental.*
 
 ## Getting started
 

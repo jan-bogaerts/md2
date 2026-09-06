@@ -35,8 +35,9 @@ function runIsActive(status: PopupRunStatus) {
     return status === 'queued' || status === 'running' || status === 'waitingForInput'
 }
 
+/** `agentQuestion` only carries the pending question for restoration; the question box is its visible surface. */
 function conversationEventIsVisible(entry: AgentConversationEntry) {
-    if (entry.kind !== 'event' || entry.type === 'diagnostic') return false
+    if (entry.kind !== 'event' || entry.type === 'diagnostic' || entry.type === 'agentQuestion') return false
     if (entry.type !== 'reasoning' || entry.status !== 'completed') return true
 
     return reasoningDisplay(entry).hasText

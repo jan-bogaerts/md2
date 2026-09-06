@@ -23,3 +23,16 @@ export function createAcknowledgementConversationSelector() {
         return selectedConversation
     }
 }
+
+/**
+ * Questions of a conversation that is still waiting on them: the trailing `agentQuestion` entry.
+ * Answering appends a user message and dismissing appends `questionsDismissed`, so a resolved question
+ * is never the last entry.
+ */
+export function pendingConversationQuestions(conversation: AgentConversation | null) {
+    if (!conversation || conversation.status !== 'waitingForInput') return null
+    const lastEntry = conversation.entries.at(-1)
+    if (!lastEntry || lastEntry.kind !== 'event' || lastEntry.type !== 'agentQuestion') return null
+
+    return lastEntry.questions?.length ? lastEntry.questions : null
+}

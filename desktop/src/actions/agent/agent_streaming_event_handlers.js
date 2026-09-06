@@ -102,7 +102,25 @@ function handleSessionFailed(service, run, event) {
     service.failStreamingRun(run, new Error(event.content));
 }
 
+/**
+ * Records the pending question in the transcript so a restart can restore the question box: the entry
+ * is the last one exactly while the question is unresolved, because answering and dismissing both append after it.
+ */
+function appendQuestionEntry(run, questions, timestamp) {
+    run.conversation.entries.push({
+        ...createEventEntry(
+            `${run.id}-question-${run.conversation.entries.length}`,
+            'agentQuestion',
+            '',
+            timestamp,
+            nextRunSequence(run),
+        ),
+        questions,
+    });
+}
+
 async function handleQuestion(service, run, event, timestamp) {
+    appendQuestionEntry(run, event.questions, timestamp);
     transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
     run.waitingForQuestion = true;
     run.pendingQuestionRequestId = event.requestId;
