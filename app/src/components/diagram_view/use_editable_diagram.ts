@@ -205,6 +205,25 @@ export function useEditableDiagramFragmentIds(service: DiagramEditSessionService
     return useEditableDiagramCollectionIds('fragment', service.getFragmentIdsSnapshot, service)
 }
 
+/** Subscribes one legend host to explicit legend membership and order. */
+export function useEditableDiagramLegendEntryKeys(service: DiagramEditSessionService = diagramEditSessionService) {
+    return useDiagramSnapshot(service.subscribeLegendMembership, service.getLegendEntryKeysSnapshot, service)
+}
+
+/** Subscribes one legend leaf to the label of one explicit legend entry. */
+export function useEditableDiagramLegendEntryLabel(
+    entryKey: string,
+    service: DiagramEditSessionService = diagramEditSessionService,
+) {
+    const subscribe = useCallback(
+        (listener: () => void) => service.subscribeLegendEntryField(entryKey, 'label', listener),
+        [entryKey, service],
+    )
+    const getSnapshot = useCallback(() => service.getLegendEntryFieldSnapshot(entryKey, 'label'), [entryKey, service])
+
+    return useDiagramSnapshot(subscribe, getSnapshot, service)
+}
+
 /** Subscribes a review collection only to semantic change membership and order. */
 export function useEditableDiagramChangeIds(service: DiagramEditSessionService = diagramEditSessionService) {
     return useDiagramSnapshot(service.subscribeChangeIds, service.getChangeIdsSnapshot, service)

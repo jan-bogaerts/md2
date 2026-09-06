@@ -362,6 +362,30 @@ describe('ActionRunnerService', () => {
             .resolves.toMatchObject({ diagramPath: 'design/diagrams/Project-overview-20260831T142530124Z.json' });
     });
 
+    it('starts with captured reviewed text after diagram context changes', async () => {
+        const files = [actionFile('main', {
+            appliesTo: { kind: 'diagram', type: 'root' }, command: undefined,
+            prompt: 'Implement:\n{{diagram-changes}}', type: 'agent',
+        })];
+        const { agentRunnerService, runner } = createRunner(files);
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, {
+                changedPaths: [], conversation: { id: request.actionId }, missingSession: false,
+                reference: `${request.actionId}.json`, stderr: '', stdout: '', turnStarted: true,
+            });
+
+            return { runId: request.actionId };
+        });
+        const diagramContext = {diagramChanges: 'Reviewed change text', diagramId: 'diagram-1', kind: 'diagram', type: 'root'};
+        const prepared = await runner.prepareActionPrompt({ actionId: 'main', context: diagramContext });
+
+        diagramContext.diagramChanges = 'Later edited diagram text';
+        await runToCompletion(runner, {actionId: 'main', context: diagramContext, runInput: { prompt: prepared.prompt }});
+
+        expect(prepared.prompt).toBe('Implement:\nReviewed change text');
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe('Implement:\nReviewed change text');
+    });
+
     it('adds configured footer only to declared diagram output actions', async () => {
         const files = [
             actionFile('main', {appliesTo: { kind: 'diagram', type: 'root' }, command: undefined, onAfter: ['child'], output: { kind: 'diagram' }, prompt: 'Root', type: 'agent'}),

@@ -1,6 +1,6 @@
 import { Box, Paper, Typography } from '@mui/material'
 import {
-    memo, useCallback, useRef, useState, useSyncExternalStore,
+    memo, useCallback, useRef, useSyncExternalStore,
     type KeyboardEvent as ReactKeyboardEvent,
     type PointerEvent as ReactPointerEvent,
 } from 'react'
@@ -21,6 +21,9 @@ import {
     diagramSelectionService, type DiagramSelectionService,
 } from '../../services/diagrams/diagram_selection_service'
 import {
+    diagramGroupDrawingService, type DiagramGroupDrawingService,
+} from '../../services/diagrams/diagram_group_drawing_service'
+import {
     diagramComparisonLayoutService, type DiagramComparisonLayoutService,
 } from './diagram_comparison_layout_service'
 import { DiagramRenderer } from './diagram_renderer'
@@ -28,8 +31,10 @@ import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from './diagram_object_details_service'
 import type { DiagramSelection } from './diagram_selection'
-import { DiagramToolbox } from './diagram_toolbox'
-import { DiagramZoomViewport } from './diagram_zoom_viewport'
+import { DiagramNewPane } from './diagram_new_pane'
+import {
+    diagramChangeReviewService, type DiagramChangeReviewService,
+} from './diagram_change_review_service'
 
 const MINIMUM_PANE_HEIGHT = 160
 const SEPARATOR_HEIGHT = 6
@@ -41,11 +46,13 @@ interface DiagramComparisonProps {
     details?: DiagramObjectDetailsService
     drawing?: DiagramEdgeDrawingService
     geometry?: DiagramGeometryService
+    groupDrawing?: DiagramGroupDrawingService
     layoutService?: DiagramComparisonLayoutService
     movement?: DiagramMoveService
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
     placement?: DiagramNodePlacementService
     resize?: DiagramResizeService
+    review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
@@ -74,16 +81,17 @@ export function DiagramComparison({
     details = diagramObjectDetailsService,
     drawing = diagramEdgeDrawingService,
     geometry = diagramGeometryService,
+    groupDrawing = diagramGroupDrawingService,
     layoutService = diagramComparisonLayoutService,
     movement = diagramMoveService,
     onCurrentSelect,
     placement = diagramNodePlacementService,
     resize = diagramResizeService,
+    review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: DiagramComparisonProps) {
     const containerRef = useRef<HTMLDivElement>(null)
-    const [newViewportElement, setNewViewportElement] = useState<HTMLDivElement | null>(null)
     const activePointerIdRef = useRef<number | null>(null)
     const dividerRatio = useSyncExternalStore(
         layoutService.subscribeHorizontalDivider,
@@ -184,26 +192,20 @@ export function DiagramComparison({
             <Paper
                 aria-label="New"
                 elevation={0}
-                ref={setNewViewportElement}
                 role="region"
                 sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'relative' }}
             >
                 <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
-                <DiagramZoomViewport
+                <DiagramNewPane
                     details={details}
                     drawing={drawing}
                     geometry={geometry}
+                    groupDrawing={groupDrawing}
                     movement={movement}
                     placement={placement}
                     resize={resize}
+                    review={review}
                     selection={selection}
-                    session={session}
-                />
-                <DiagramToolbox
-                    boundaryElement={newViewportElement}
-                    details={details}
-                    drawing={drawing}
-                    placement={placement}
                     session={session}
                 />
             </Paper>

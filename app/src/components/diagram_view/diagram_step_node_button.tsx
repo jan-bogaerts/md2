@@ -53,7 +53,7 @@ export function DiagramStepNodeButton({
     session = diagramEditSessionService,
 }: DiagramStepNodeButtonProps) {
     const available = useFlowchartAvailability(session);
-    const activeTool = useActiveDiagramTool(session);
+    const activeTool = useActiveDiagramTool(session, 'node:step');
     const handleActivate = useCallback(() => {
         placement.activate(STEP_NODE_DEFINITION);
     }, [placement]);
@@ -62,7 +62,7 @@ export function DiagramStepNodeButton({
 
     return (
         <DiagramToolboxButton
-            active={activeTool === 'node:step'}
+            active={activeTool}
             label="Step"
             onActivate={handleActivate}
             tooltip="Place step node"

@@ -68,7 +68,7 @@ export function DiagramStartNodeButton({
     session = diagramEditSessionService,
 }: DiagramStartNodeButtonProps) {
     const flowPreset = useFlowPreset(session);
-    const activeTool = useActiveDiagramTool(session);
+    const activeTool = useActiveDiagramTool(session, 'node:start');
     const handleActivate = useCallback(() => {
         placement.activate(startNodeDefinition(session.getMetadataFieldSnapshot('preset')));
     }, [placement, session]);
@@ -77,7 +77,7 @@ export function DiagramStartNodeButton({
 
     return (
         <DiagramToolboxButton
-            active={activeTool === 'node:start'}
+            active={activeTool}
             label="Start"
             onActivate={handleActivate}
             tooltip="Place start node"

@@ -51,7 +51,7 @@ export function DiagramSequenceEdgeButton({
     session = diagramEditSessionService,
 }: DiagramSequenceEdgeButtonProps) {
     const diagramType = useDiagramType(session);
-    const activeTool = useActiveDiagramTool(session);
+    const activeTool = useActiveDiagramTool(session, `edge:${kind}`);
     const handleActivate = useCallback(() => {
         drawing.activate({ kind });
     }, [drawing, kind]);
@@ -60,7 +60,7 @@ export function DiagramSequenceEdgeButton({
 
     return (
         <DiagramToolboxButton
-            active={activeTool === `edge:${kind}`}
+            active={activeTool}
             label={label}
             onActivate={handleActivate}
             tooltip={`Draw ${label.toLowerCase()} message`}

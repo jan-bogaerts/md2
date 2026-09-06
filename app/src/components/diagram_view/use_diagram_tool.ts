@@ -19,12 +19,22 @@ export interface DiagramInteractionCancellation {
     cancelActiveInteraction: () => boolean
 }
 
-/** Subscribes one leaf to active persistent diagram tool. */
-export function useActiveDiagramTool(service: DiagramActiveToolStore = diagramEditSessionService) {
+/** Subscribes either an active-tool reader or one tool button to its selected boolean. */
+export function useActiveDiagramTool(service?: DiagramActiveToolStore): DiagramPersistentTool
+export function useActiveDiagramTool(service: DiagramActiveToolStore | undefined, tool: DiagramPersistentTool): boolean
+export function useActiveDiagramTool(
+    service: DiagramActiveToolStore = diagramEditSessionService,
+    tool?: DiagramPersistentTool,
+) {
+    const getSnapshot = useCallback(
+        () => tool ? service.getActiveToolSnapshot() === tool : service.getActiveToolSnapshot(),
+        [service, tool],
+    )
+
     return useSyncExternalStore(
         service.subscribeActiveTool,
-        service.getActiveToolSnapshot,
-        service.getActiveToolSnapshot,
+        getSnapshot,
+        getSnapshot,
     )
 }
 

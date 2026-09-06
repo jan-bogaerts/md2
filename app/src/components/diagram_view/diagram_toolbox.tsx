@@ -24,6 +24,7 @@ import { DiagramDependencyEdgeButton } from './diagram_dependency_edge_button';
 import { DiagramEntityRelationshipButton } from './diagram_entity_relationship_button';
 import { DiagramFlowEdgeButton } from './diagram_flow_edge_button';
 import { DiagramGroupButton } from './diagram_group_button';
+import { DiagramLegendButton } from './diagram_legend_button';
 import { DiagramMetadataButton } from './diagram_metadata_button';
 import {
     diagramObjectDetailsService,
@@ -75,6 +76,10 @@ import { DiagramToolboxToolButton } from './diagram_toolbox_tool_button';
 import { DiagramZoomInButton } from './diagram_zoom_in_button';
 import { DiagramZoomOutButton } from './diagram_zoom_out_button';
 import { useCancelDiagramInteractionOnEscape } from './use_diagram_tool';
+import { DiagramChangeReviewButton } from './diagram_change_review_button';
+import {
+    diagramChangeReviewService, type DiagramChangeReviewService,
+} from './diagram_change_review_service';
 
 const DIAGRAM_TOOLBOX_SIZE_STORAGE_KEY = 'md2.diagramToolboxSize';
 const TOOLBOX_SECTIONS: readonly { id: DiagramToolboxSection, label: string }[] = [
@@ -94,6 +99,7 @@ interface DiagramToolboxProps {
     groupDrawing?: Pick<DiagramGroupDrawingService, 'activate'>;
     placement?: DiagramComponentNodePlacement & DiagramEndNodePlacement & DiagramEntityNodePlacement & DiagramStartNodePlacement
     & DiagramStateNodePlacement & DiagramStepNodePlacement;
+    review?: Pick<DiagramChangeReviewService, 'open'>;
     session?: Omit<DiagramComponentNodeSession, 'getMetadataFieldSnapshot' | 'subscribeMetadataField'>
     & DiagramEndNodeSession & DiagramEntityNodeSession & DiagramStartNodeSession & DiagramStateNodeSession & DiagramStepNodeSession & {
         getActiveToolboxSectionSnapshot: () => DiagramToolboxSection;
@@ -117,6 +123,7 @@ export function DiagramToolbox({
     drawing,
     groupDrawing = diagramGroupDrawingService,
     placement = diagramNodePlacementService,
+    review = diagramChangeReviewService,
     session = diagramEditSessionService,
 }: DiagramToolboxProps) {
     const [anchorElement, setAnchorElement] = useState<HTMLDivElement | null>(null);
@@ -200,6 +207,7 @@ export function DiagramToolbox({
                             <DiagramPasteButton />
                             <DiagramCutButton />
                             <DiagramDeleteButton />
+                            <DiagramChangeReviewButton review={review} />
                         </>
                     )}
                     {activeSection === 'nodes' && (
@@ -232,6 +240,7 @@ export function DiagramToolbox({
                     )}
                     {activeSection === 'groups' && <DiagramGroupButton drawing={groupDrawing} session={session} />}
                     {activeSection === 'others' && <DiagramMetadataButton details={details} />}
+                    {activeSection === 'others' && <DiagramLegendButton details={details} />}
                     {activeSection === 'others' && <DiagramFragmentButton session={session} />}
                 </Box>
             </ResizablePopper>

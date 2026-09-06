@@ -21,12 +21,12 @@ export function DiagramToolboxToolButton({
     tool,
     tooltip,
 }: DiagramToolboxToolButtonProps) {
-    const activeTool = useActiveDiagramTool(session);
+    const activeTool = useActiveDiagramTool(session, tool);
     const handleActivate = useCallback(() => session.setActiveTool(tool), [session, tool]);
 
     return (
         <DiagramToolboxButton
-            active={activeTool === tool}
+            active={activeTool}
             label={label}
             onActivate={handleActivate}
             tooltip={tooltip}

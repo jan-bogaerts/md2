@@ -66,11 +66,50 @@ describe('parseDiagramData', () => {
             .toThrow('groups[0].width has invalid number')
     })
 
-    it('ignores legacy legend metadata', () => {
+    it('parses and serializes explicit legend entries in stored order', () => {
         const diagram = validDiagram()
-        diagram.meta = { ...diagram.meta, legend: [{ label: 'Legacy label', role: 'focal' }] } as typeof diagram.meta
+        const legend = [{ label: 'Service', role: 'focal' }, { kind: 'connection', label: 'Calls' }, { label: 'Database', role: 'store' }]
+        diagram.meta = { ...diagram.meta, legend } as typeof diagram.meta
 
-        expect(parseDiagramData(JSON.stringify(diagram)).meta).toEqual(validDiagram().meta)
+        const parsed = parseDiagramData(JSON.stringify(diagram))
+
+        expect(parsed.meta.legend).toEqual(legend)
+        expect(parseDiagramData(serializeDiagramData(parsed)).meta.legend).toEqual(legend)
+    })
+
+    it('omits the legend key for diagrams without explicit entries', () => {
+        const parsed = parseDiagramData(JSON.stringify(validDiagram()))
+
+        expect('legend' in parsed.meta).toBe(false)
+        expect(serializeDiagramData(parsed)).not.toContain('legend')
+    })
+
+    it('rejects legend entries that are duplicated, unlabelled, or semantically ambiguous', () => {
+        const withLegend = (legend: unknown) => {
+            const diagram = validDiagram()
+            diagram.meta = { ...diagram.meta, legend } as typeof diagram.meta
+
+            return () => parseDiagramData(JSON.stringify(diagram))
+        }
+
+        expect(withLegend([{ label: 'One', role: 'focal' }, { label: 'Two', role: 'focal' }]))
+            .toThrow('meta.legend[1] has duplicate entry for role:focal')
+        expect(withLegend([{ kind: 'connection', label: 'One' }, { kind: 'connection', label: 'Two' }]))
+            .toThrow('meta.legend[1] has duplicate entry for kind:connection')
+        expect(withLegend([{ kind: 'connection', label: 'Both', role: 'focal' }]))
+            .toThrow('meta.legend[0] has exactly one of role or kind')
+        expect(withLegend([{ label: 'Neither' }])).toThrow('meta.legend[0] has exactly one of role or kind')
+        expect(withLegend([{ label: '   ', role: 'focal' }])).toThrow('meta.legend[0].label has invalid string')
+        expect(withLegend([{ label: 'Unknown', role: 'nope' }])).toThrow('meta.legend[0].role has unsupported value nope')
+        expect(withLegend('nope')).toThrow('meta.legend has invalid array')
+    })
+
+    it('rejects a legend entry naming an edge kind the diagram type does not support', () => {
+        const diagram = validDiagram()
+        diagram.meta = { ...diagram.meta, legend: [{ kind: 'call', label: 'Call' }] } as typeof diagram.meta
+
+        expect(() => parseDiagramData(JSON.stringify(diagram)))
+            .toThrow('meta.legend[0].kind has unsupported value call for architecture')
     })
 
     it('requires flow preset and accepts entity fields and cardinality', () => {

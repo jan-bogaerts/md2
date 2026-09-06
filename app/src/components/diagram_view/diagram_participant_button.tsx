@@ -46,7 +46,7 @@ export function DiagramParticipantButton({
     }, [session]);
     const getDiagramType = useCallback(() => session.getMetadataFieldSnapshot('type'), [session]);
     const diagramType = useSyncExternalStore(subscribeDiagramType, getDiagramType, getDiagramType);
-    const activeTool = useActiveDiagramTool(session);
+    const activeTool = useActiveDiagramTool(session, 'node:participant');
     const handleActivate = useCallback(() => {
         placement.activate(PARTICIPANT_DEFINITION);
     }, [placement]);
@@ -55,7 +55,7 @@ export function DiagramParticipantButton({
 
     return (
         <DiagramToolboxButton
-            active={activeTool === 'node:participant'}
+            active={activeTool}
             label="Participant"
             onActivate={handleActivate}
             tooltip="Place participant"

@@ -20,12 +20,12 @@ export function DiagramGroupButton({
     drawing = diagramGroupDrawingService,
     session = diagramEditSessionService,
 }: DiagramGroupButtonProps) {
-    const activeTool = useActiveDiagramTool(session)
+    const activeTool = useActiveDiagramTool(session, 'group')
     const handleActivate = useCallback(() => drawing.activate(), [drawing])
 
     return (
         <DiagramToolboxButton
-            active={activeTool === 'group'}
+            active={activeTool}
             label="Group"
             onActivate={handleActivate}
             tooltip="Draw group"

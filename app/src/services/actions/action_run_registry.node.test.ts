@@ -124,6 +124,28 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('keeps runs for reviewed change sets on one diagram separate', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        const firstContext = {
+            diagramChanges: 'First changes', diagramChangeSetId: 'review-1', diagramId: 'diagram-1',
+            kind: 'diagram' as const, type: 'root',
+        }
+        const secondContext = {
+            diagramChanges: 'Second changes', diagramChangeSetId: 'review-2', diagramId: 'diagram-1',
+            kind: 'diagram' as const, type: 'root',
+        }
+        service.start()
+
+        emit({ ...runEvent('running'), context: firstContext })
+        emit({ ...runEvent('running'), context: secondContext, runId: 'run-2' })
+
+        expect(service.getActionRunStore('build', firstContext)?.getSnapshot().runId).toBe('run-1')
+        expect(service.getActionRunStore('build', secondContext)?.getSnapshot().runId).toBe('run-2')
+        service.stop()
+    })
+
     it('returns changed paths from terminal run data', async () => {
         const { bridge, emit } = bridgeWithEvents({ startAction: vi.fn(async () => 'run-1') })
         setActionBridgeOverride(bridge)

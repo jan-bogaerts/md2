@@ -103,6 +103,29 @@ describe('resolvePlaceholders', () => {
             .toThrow('outside diagram context')
     })
 
+    it('resolves exact reviewed diagram changes only with diagram identity', () => {
+        const reviewedText = '- Rename "Orders" to "Purchases".\n- Add connection.'
+        const diagramContext: ActionContext = {
+            diagramChanges: reviewedText,
+            diagramId: 'diagram-1',
+            kind: 'diagram',
+            type: 'root',
+        }
+
+        expect(resolvePlaceholders('Implement:\n{{diagram-changes}}', diagramContext, folders, ''))
+            .toBe(`Implement:\n${reviewedText}`)
+        expect(() => resolvePlaceholders('{{diagram-changes}}', { kind: 'diagram', type: 'root' }, folders, ''))
+            .toThrow('without an active diagram ID')
+        expect(() => resolvePlaceholders(
+            '{{diagram-changes}}',
+            { diagramChanges: '   ', diagramId: 'diagram-1', kind: 'diagram', type: 'root' },
+            folders,
+            '',
+        )).toThrow('without reviewed diagram changes')
+        expect(() => resolvePlaceholders('{{diagram-changes}}', { kind: 'project' }, folders, ''))
+            .toThrow('outside diagram context')
+    })
+
     it('resolves parent-node only for a child diagram with a selected label', () => {
         const childContext: ActionContext = {diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Orders', type: 'child'}
 

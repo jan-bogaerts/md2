@@ -26,6 +26,23 @@ function populatedIndex(): DiagramIndex {
 }
 
 describe('diagram index', () => {
+    it('round-trips edited-copy source provenance for restart loading', () => {
+        const index: DiagramIndex = {
+            activePath: ['source'],
+            children: {},
+            diagrams: {
+                copy: {
+                    actionId: 'overview', id: 'copy', label: 'Overview', path: 'diagrams/overview-edited-copy.json',
+                    sourceDiagramId: 'source',
+                },
+                source: { actionId: 'overview', id: 'source', label: 'Overview', path: 'diagrams/overview.json' },
+            },
+            roots: { overview: ['source', 'copy'] },
+            version: 1,
+        }
+
+        expect(parseDiagramIndex(serializeDiagramIndex(index))).toEqual(index)
+    })
     it('round-trips versioned root and child records', () => {
         expect(parseDiagramIndex(serializeDiagramIndex(populatedIndex()))).toEqual(populatedIndex())
     })

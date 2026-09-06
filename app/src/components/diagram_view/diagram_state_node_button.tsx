@@ -50,7 +50,7 @@ export function DiagramStateNodeButton({
     session = diagramEditSessionService,
 }: DiagramStateNodeButtonProps) {
     const available = useStatePresetAvailability(session);
-    const activeTool = useActiveDiagramTool(session);
+    const activeTool = useActiveDiagramTool(session, 'node:state');
     const handleActivate = useCallback(() => {
         placement.activate(STATE_NODE_DEFINITION);
     }, [placement]);
@@ -59,7 +59,7 @@ export function DiagramStateNodeButton({
 
     return (
         <DiagramToolboxButton
-            active={activeTool === 'node:state'}
+            active={activeTool}
             label="State"
             onActivate={handleActivate}
             tooltip="Place state node"

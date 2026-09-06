@@ -1,10 +1,27 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DiagramComparisonLayout } from './diagram_comparison_layout'
 import { DiagramComparisonLayoutService } from './diagram_comparison_layout_service'
 
-afterEach(cleanup)
+function setMobileBreakpoint(matches: boolean) {
+    Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        value: vi.fn().mockImplementation(() => ({
+            addEventListener: vi.fn(),
+            matches,
+            media: '(max-width:899.95px)',
+            removeEventListener: vi.fn(),
+        })),
+    })
+}
+
+beforeEach(() => setMobileBreakpoint(false))
+
+afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+})
 
 describe('DiagramComparisonLayout', () => {
     it('offers all modes and renders selected stable comparison', async () => {
@@ -72,5 +89,24 @@ describe('DiagramComparisonLayout', () => {
         expect(screen.getByRole('button', { name: 'Horizontal' })).toBeVisible()
         expect(screen.getByRole('button', { name: 'Tabbed' })).toBeVisible()
         expect(screen.getByLabelText('Selected diagram comparison')).toBeInTheDocument()
+    })
+
+    it('uses tabbed comparison on mobile while retaining desktop choice', () => {
+        setMobileBreakpoint(true)
+        const layoutService = new DiagramComparisonLayoutService()
+        render(
+            <DiagramComparisonLayout
+                horizontalComparison={<div>Horizontal comparison</div>}
+                layoutService={layoutService}
+                tabbedComparison={<div>Tabbed comparison</div>}
+                verticalComparison={<div>Vertical comparison</div>}
+            />,
+        )
+
+        expect(screen.getByRole('button', { name: 'Vertical' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Horizontal' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Tabbed' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByText('Tabbed comparison')).toBeInTheDocument()
+        expect(layoutService.getComparisonModeSnapshot()).toBe('vertical')
     })
 })

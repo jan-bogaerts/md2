@@ -7,15 +7,20 @@ interface DiagramObjectTarget {
     objectKind: DiagramDetailsObjectKind
 }
 
-interface DiagramMetadataTarget {
-    objectKind: 'meta'
+/** Diagram-wide editors addressed by kind alone, because the diagram owns exactly one of each. */
+interface DiagramSingletonTarget {
+    objectKind: 'legend' | 'meta'
 }
 
-export type DiagramObjectDetailsTarget = DiagramMetadataTarget | DiagramObjectTarget
+export type DiagramObjectDetailsTarget = DiagramSingletonTarget | DiagramObjectTarget
+
+function isSingletonTarget(target: DiagramObjectDetailsTarget): target is DiagramSingletonTarget {
+    return target.objectKind === 'legend' || target.objectKind === 'meta'
+}
 
 function sameTarget(left: DiagramObjectDetailsTarget | null, right: DiagramObjectDetailsTarget) {
     if (!left || left.objectKind !== right.objectKind) return false
-    if (left.objectKind === 'meta' || right.objectKind === 'meta') return true
+    if (isSingletonTarget(left) || isSingletonTarget(right)) return true
 
     return left.objectId === right.objectId
 }
@@ -33,7 +38,7 @@ export class DiagramObjectDetailsService extends EventTarget {
     }
 
     open(target: DiagramObjectDetailsTarget) {
-        if (target.objectKind !== 'meta' && target.objectId.trim().length === 0) {
+        if (!isSingletonTarget(target) && target.objectId.trim().length === 0) {
             throw new Error('Diagram details object ID is required')
         }
         if (sameTarget(this.target, target)) return false

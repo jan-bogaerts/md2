@@ -1,4 +1,4 @@
-import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Box, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme } from '@mui/material'
 import { useCallback, useSyncExternalStore, type ReactNode, type SyntheticEvent } from 'react'
 import {
     diagramComparisonLayoutService, type DiagramComparisonLayoutService, type DiagramComparisonMode,
@@ -18,6 +18,8 @@ export function DiagramComparisonLayout({
     tabbedComparison,
     verticalComparison,
 }: DiagramComparisonLayoutProps) {
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const comparisonMode = useSyncExternalStore(
         layoutService.subscribeComparisonMode,
         layoutService.getComparisonModeSnapshot,
@@ -33,6 +35,7 @@ export function DiagramComparisonLayout({
         tabbed: tabbedComparison,
         vertical: verticalComparison,
     }
+    const renderedMode = isMobile ? 'tabbed' : comparisonMode
 
     return (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
@@ -59,15 +62,15 @@ export function DiagramComparisonLayout({
                         },
                         '& .Mui-selected': { bgcolor: 'background.paper', color: 'primary.main' },
                     }}
-                    value={comparisonMode}
+                    value={renderedMode}
                 >
-                    <ToggleButton value="vertical">Vertical</ToggleButton>
-                    <ToggleButton value="horizontal">Horizontal</ToggleButton>
+                    <ToggleButton disabled={isMobile} value="vertical">Vertical</ToggleButton>
+                    <ToggleButton disabled={isMobile} value="horizontal">Horizontal</ToggleButton>
                     <ToggleButton value="tabbed">Tabbed</ToggleButton>
                 </ToggleButtonGroup>
             </Box>
             <Box aria-label="Selected diagram comparison" sx={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto' }}>
-                {comparisonByMode[comparisonMode]}
+                {comparisonByMode[renderedMode]}
             </Box>
         </Box>
     )

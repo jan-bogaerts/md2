@@ -68,7 +68,7 @@ export function DiagramEndNodeButton({
     session = diagramEditSessionService,
 }: DiagramEndNodeButtonProps) {
     const flowPreset = useFlowPreset(session);
-    const activeTool = useActiveDiagramTool(session);
+    const activeTool = useActiveDiagramTool(session, 'node:end');
     const handleActivate = useCallback(() => {
         placement.activate(endNodeDefinition(session.getMetadataFieldSnapshot('preset')));
     }, [placement, session]);
@@ -77,7 +77,7 @@ export function DiagramEndNodeButton({
 
     return (
         <DiagramToolboxButton
-            active={activeTool === 'node:end'}
+            active={activeTool}
             label="End"
             onActivate={handleActivate}
             tooltip="Place end node"

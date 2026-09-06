@@ -15,16 +15,20 @@ interface DiagramZoomInButtonProps {
 
 /** One-shot Zoom In control bound only to New viewport scale. */
 export function DiagramZoomInButton({ session = diagramEditSessionService }: DiagramZoomInButtonProps) {
-    const scale = useSyncExternalStore(
+    const getCanZoomInSnapshot = useCallback(
+        () => session.getViewportScaleSnapshot() < MAXIMUM_DIAGRAM_ZOOM,
+        [session],
+    )
+    const canZoomIn = useSyncExternalStore(
         session.subscribeViewportScale,
-        session.getViewportScaleSnapshot,
-        session.getViewportScaleSnapshot,
+        getCanZoomInSnapshot,
+        getCanZoomInSnapshot,
     )
     const handleZoomIn = useCallback(() => { session.zoomIn() }, [session])
 
     return (
         <DiagramToolboxActionButton
-            disabled={scale >= MAXIMUM_DIAGRAM_ZOOM}
+            disabled={!canZoomIn}
             label="Zoom in"
             onActivate={handleZoomIn}
             tooltip="Zoom in"

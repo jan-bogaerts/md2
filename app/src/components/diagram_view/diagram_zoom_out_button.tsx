@@ -15,16 +15,20 @@ interface DiagramZoomOutButtonProps {
 
 /** One-shot Zoom Out control bound only to New viewport scale. */
 export function DiagramZoomOutButton({ session = diagramEditSessionService }: DiagramZoomOutButtonProps) {
-    const scale = useSyncExternalStore(
+    const getCanZoomOutSnapshot = useCallback(
+        () => session.getViewportScaleSnapshot() > MINIMUM_DIAGRAM_ZOOM,
+        [session],
+    )
+    const canZoomOut = useSyncExternalStore(
         session.subscribeViewportScale,
-        session.getViewportScaleSnapshot,
-        session.getViewportScaleSnapshot,
+        getCanZoomOutSnapshot,
+        getCanZoomOutSnapshot,
     )
     const handleZoomOut = useCallback(() => { session.zoomOut() }, [session])
 
     return (
         <DiagramToolboxActionButton
-            disabled={scale <= MINIMUM_DIAGRAM_ZOOM}
+            disabled={!canZoomOut}
             label="Zoom out"
             onActivate={handleZoomOut}
             tooltip="Zoom out"

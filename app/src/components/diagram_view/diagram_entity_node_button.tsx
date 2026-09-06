@@ -58,7 +58,7 @@ export function DiagramEntityNodeButton({
     session = diagramEditSessionService,
 }: DiagramEntityNodeButtonProps) {
     const diagramType = useDiagramType(session)
-    const activeTool = useActiveDiagramTool(session)
+    const activeTool = useActiveDiagramTool(session, 'node:entity')
     const handleActivate = useCallback(() => {
         placement.activate(ENTITY_NODE_DEFINITION)
     }, [placement])
@@ -67,7 +67,7 @@ export function DiagramEntityNodeButton({
 
     return (
         <DiagramToolboxButton
-            active={activeTool === 'node:entity'}
+            active={activeTool}
             label="Entity"
             onActivate={handleActivate}
             tooltip="Place entity node"

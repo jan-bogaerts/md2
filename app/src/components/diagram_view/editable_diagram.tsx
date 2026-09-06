@@ -42,6 +42,11 @@ import {
 import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE, useDeleteDiagramSelectionOnDeleteKey } from './use_diagram_delete_key'
 import { useDiagramSurfaceField } from './use_diagram_geometry'
 import { useEditableDiagramMetadataField } from './use_editable_diagram'
+import { DiagramChangeReviewDialog } from './diagram_change_review_dialog'
+import {
+    diagramChangeReviewService, type DiagramChangeReviewService,
+} from './diagram_change_review_service'
+import { DiagramChangeActionPopup } from './diagram_change_action_popup'
 
 interface EditableDiagramProps {
     details?: DiagramObjectDetailsService
@@ -50,6 +55,7 @@ interface EditableDiagramProps {
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
     placement?: DiagramNodePlacementService
+    review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
@@ -169,6 +175,7 @@ export function EditableDiagram({
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
     placement = diagramNodePlacementService,
+    review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: EditableDiagramProps) {
@@ -177,7 +184,9 @@ export function EditableDiagram({
     return (
         <Box
             {...{ [DIAGRAM_EDITOR_ROOT_ATTRIBUTE]: 'true' }}
+            aria-label="New diagram editor"
             sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}
+            tabIndex={-1}
         >
             <Box>
                 <EditableDiagramTitle session={session} />
@@ -199,6 +208,8 @@ export function EditableDiagram({
             <DiagramObjectDetailsDialog details={details} session={session} />
             <DiagramGroupLabelDialog drawing={groupDrawing} />
             <DiagramFragmentDialog dialog={fragmentDialog} session={session} />
+            <DiagramChangeReviewDialog review={review} session={session} />
+            <DiagramChangeActionPopup review={review} />
         </Box>
     )
 }

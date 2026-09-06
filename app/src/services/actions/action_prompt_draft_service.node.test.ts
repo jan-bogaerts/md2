@@ -5,6 +5,35 @@ import { ActionPromptDraftService } from './action_prompt_draft_service'
 const context = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
 
 describe('ActionPromptDraftService', () => {
+    it('keeps reviewed change sets in separate prompt drafts for one diagram', () => {
+        const service = new ActionPromptDraftService()
+        const firstContext = {
+            diagramChanges: 'First review', diagramChangeSetId: 'review-1', diagramId: 'diagram-1',
+            kind: 'diagram' as const, type: 'root',
+        }
+        const secondContext = {
+            diagramChanges: 'Second review', diagramChangeSetId: 'review-2', diagramId: 'diagram-1',
+            kind: 'diagram' as const, type: 'root',
+        }
+
+        const first = service.getDraft('implement', firstContext, null, { prepare: true })
+        const second = service.getDraft('implement', secondContext, null, { prepare: true })
+
+        expect(second).not.toBe(first)
+    })
+
+    it('uses reviewed change-set identity instead of mutable prompt text', () => {
+        const service = new ActionPromptDraftService()
+        const firstContext = {
+            diagramChanges: 'First text', diagramChangeSetId: 'review-1', diagramId: 'diagram-1',
+            kind: 'diagram' as const, type: 'root',
+        }
+        const secondContext = { ...firstContext, diagramChanges: 'Changed transport text' }
+
+        expect(service.getDraft('implement', secondContext, null, { prepare: true }))
+            .toBe(service.getDraft('implement', firstContext, null, { prepare: true }))
+    })
+
     it('keeps one draft per action and context identity across a whole run', () => {
         const service = new ActionPromptDraftService()
         const options = { initialValue: 'Plan', prepare: false }

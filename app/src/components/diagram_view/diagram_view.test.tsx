@@ -98,10 +98,10 @@ class DiagramSourceStub extends EventTarget {
     }
 }
 
-function createEditHarness() {
+function createEditHarness(start = true) {
     const editSession = new DiagramEditSessionService(new DiagramSourceStub())
     editSession.bindProject({ branch: 'main', id: 'project', rootPath: 'C:/repo' })
-    editSession.start()
+    if (start) editSession.start()
 
     return { editSession, geometry: new DiagramGeometryService(editSession) }
 }
@@ -279,6 +279,20 @@ describe('DiagramView', () => {
         expect(screen.queryByRole('region', { name: 'Current' })).not.toBeInTheDocument()
         expect(screen.queryByRole('region', { name: 'New' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Customer' })).toBeInTheDocument()
+    })
+
+    it('starts editing from active diagram and moves focus into New editor', async () => {
+        const service = createService()
+        const { editSession, geometry } = createEditHarness(false)
+        const user = userEvent.setup()
+        render(<DiagramView editSession={editSession} geometry={geometry} service={service} />)
+
+        await user.click(screen.getByRole('button', { name: 'Edit diagram' }))
+
+        expect(editSession.getSessionSnapshot()?.sourceDiagramId).toBe('child-1')
+        expect(screen.getByRole('region', { name: 'Current' })).toBeInTheDocument()
+        expect(screen.getByRole('region', { name: 'New' })).toBeInTheDocument()
+        expect(screen.getByLabelText('New diagram editor')).toHaveFocus()
     })
 
     it('changes comparison mode without replacing edit-session state', async () => {

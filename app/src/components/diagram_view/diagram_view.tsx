@@ -30,6 +30,7 @@ import {
 import type { DiagramSelection } from './diagram_selection'
 import { TabbedDiagramComparison } from './tabbed_diagram_comparison'
 import { VerticalDiagramComparison } from './vertical_diagram_comparison'
+import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from './use_diagram_delete_key'
 
 const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
 
@@ -129,6 +130,17 @@ export function DiagramView({
     const handleCollapseLegend = () => service.collapseLegend()
     const handleExpandLegend = () => service.expandLegend()
     const handleMoveLegend = (position: { left: number, top: number }) => service.moveLegend(position)
+    const handleStartEditing = () => {
+        try {
+            editSession.start()
+            queueMicrotask(() => {
+                const editor = document.querySelector<HTMLElement>(`[${DIAGRAM_EDITOR_ROOT_ATTRIBUTE}]`)
+                editor?.focus()
+            })
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Diagram editing could not be started' })
+        }
+    }
 
     const content = snapshot.status === 'loading' ? (
         <Box sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center' }}><CircularProgress aria-label="Loading diagrams" /></Box>
@@ -202,6 +214,7 @@ export function DiagramView({
                     onExpand={handleExpandLegend}
                     onMove={handleMoveLegend}
                     position={snapshot.legend.position}
+                    session={editSessionSnapshot ? editSession : null}
                 />
             ) : null}
         </Box>
@@ -212,7 +225,7 @@ export function DiagramView({
             aria-label="Diagram view"
             sx={{ bgcolor: 'background.default', display: viewMode === 'diagrams' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden', p: 2.5 }}
         >
-            <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, gap: 1, mb: 2 }}>
+            <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, flexWrap: 'wrap', gap: 1, mb: 2, minWidth: 0 }}>
                 <Tooltip title="Back">
                     <span>
                         <Button
@@ -239,6 +252,9 @@ export function DiagramView({
                         </Button>
                     ))}
                 </Breadcrumbs>
+                {snapshot.currentDiagram && !editSessionSnapshot ? (
+                    <Button onClick={handleStartEditing} size="small" variant="outlined">Edit diagram</Button>
+                ) : null}
             </Box>
             {content}
             {snapshot.status === 'ready' ? (

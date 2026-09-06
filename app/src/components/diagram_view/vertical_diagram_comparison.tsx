@@ -12,6 +12,15 @@ import type { PositionedDiagramData } from '../../services/diagrams/diagram_layo
 import { diagramMoveService, type DiagramMoveService } from '../../services/diagrams/diagram_move_service'
 import { diagramResizeService, type DiagramResizeService } from '../../services/diagrams/diagram_resize_service'
 import {
+    diagramEdgeDrawingService, type DiagramEdgeDrawingService,
+} from '../../services/diagrams/diagram_edge_drawing_service'
+import {
+    diagramGroupDrawingService, type DiagramGroupDrawingService,
+} from '../../services/diagrams/diagram_group_drawing_service'
+import {
+    diagramNodePlacementService, type DiagramNodePlacementService,
+} from '../../services/diagrams/diagram_node_placement_service'
+import {
     diagramSelectionService, type DiagramSelectionService,
 } from '../../services/diagrams/diagram_selection_service'
 import {
@@ -19,7 +28,13 @@ import {
 } from './diagram_comparison_layout_service'
 import { DiagramRenderer } from './diagram_renderer'
 import type { DiagramSelection } from './diagram_selection'
-import { DiagramZoomViewport } from './diagram_zoom_viewport'
+import { DiagramNewPane } from './diagram_new_pane'
+import {
+    diagramObjectDetailsService, type DiagramObjectDetailsService,
+} from './diagram_object_details_service'
+import {
+    diagramChangeReviewService, type DiagramChangeReviewService,
+} from './diagram_change_review_service'
 
 const MINIMUM_PANE_WIDTH = 240
 const SEPARATOR_WIDTH = 6
@@ -28,11 +43,16 @@ const MINIMUM_COMPARISON_WIDTH = MINIMUM_PANE_WIDTH * 2 + SEPARATOR_WIDTH
 
 interface VerticalDiagramComparisonProps {
     currentDiagram: PositionedDiagramData
+    details?: DiagramObjectDetailsService
+    drawing?: DiagramEdgeDrawingService
     geometry?: DiagramGeometryService
+    groupDrawing?: DiagramGroupDrawingService
     layoutService?: DiagramComparisonLayoutService
     movement?: DiagramMoveService
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
+    placement?: DiagramNodePlacementService
     resize?: DiagramResizeService
+    review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
@@ -43,9 +63,14 @@ interface CurrentDiagramPaneProps {
 }
 
 interface NewDiagramPaneProps {
+    details: DiagramObjectDetailsService
+    drawing: DiagramEdgeDrawingService
     geometry: DiagramGeometryService
+    groupDrawing: DiagramGroupDrawingService
     movement: DiagramMoveService
+    placement: DiagramNodePlacementService
     resize: DiagramResizeService
+    review: DiagramChangeReviewService
     selection: DiagramSelectionService
     session: DiagramEditSessionService
 }
@@ -64,7 +89,9 @@ const CurrentDiagramPane = memo(function CurrentDiagramPane({ currentDiagram, on
     )
 })
 
-const NewDiagramPane = memo(function NewDiagramPane({ geometry, movement, resize, selection, session }: NewDiagramPaneProps) {
+const NewDiagramPane = memo(function NewDiagramPane(props: NewDiagramPaneProps) {
+    const {details, drawing, geometry, groupDrawing, movement} = props
+    const {placement, resize, review, selection, session} = props
     return (
         <Paper
             aria-label="New"
@@ -73,7 +100,18 @@ const NewDiagramPane = memo(function NewDiagramPane({ geometry, movement, resize
             sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}
         >
             <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
-            <DiagramZoomViewport geometry={geometry} movement={movement} resize={resize} selection={selection} session={session} />
+            <DiagramNewPane
+                details={details}
+                drawing={drawing}
+                geometry={geometry}
+                groupDrawing={groupDrawing}
+                movement={movement}
+                placement={placement}
+                resize={resize}
+                review={review}
+                selection={selection}
+                session={session}
+            />
         </Paper>
     )
 })
@@ -97,11 +135,16 @@ function dividerRatioForWidth(proposedWidth: number, availableWidth: number) {
 /** Side-by-side comparison layout. Diagram changes remain inside New service-bound leaves. */
 export function VerticalDiagramComparison({
     currentDiagram,
+    details = diagramObjectDetailsService,
+    drawing = diagramEdgeDrawingService,
     geometry = diagramGeometryService,
+    groupDrawing = diagramGroupDrawingService,
     layoutService = diagramComparisonLayoutService,
     movement = diagramMoveService,
     onCurrentSelect,
+    placement = diagramNodePlacementService,
     resize = diagramResizeService,
+    review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: VerticalDiagramComparisonProps) {
@@ -196,7 +239,18 @@ export function VerticalDiagramComparison({
                 }}
                 tabIndex={0}
             />
-            <NewDiagramPane geometry={geometry} movement={movement} resize={resize} selection={selection} session={session} />
+            <NewDiagramPane
+                details={details}
+                drawing={drawing}
+                geometry={geometry}
+                groupDrawing={groupDrawing}
+                movement={movement}
+                placement={placement}
+                resize={resize}
+                review={review}
+                selection={selection}
+                session={session}
+            />
         </Box>
     )
 }

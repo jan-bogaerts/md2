@@ -20,6 +20,8 @@ import { isDiagramDataPath, parseDiagramData, type DiagramData } from './diagram
 import { layout, type PositionedDiagramData } from './diagram_layout'
 
 const DIAGRAM_INDEX_COMMIT_MESSAGE = 'Update diagram view'
+const DIAGRAM_COPY_COMMIT_MESSAGE = 'Save edited diagram copy'
+const MAXIMUM_COPY_PATH_ATTEMPTS = 100
 
 export interface DiagramPopupState {
     anchorElement: HTMLElement
@@ -62,6 +64,12 @@ export interface DiagramViewSourceSnapshot {
     record: DiagramRecord
 }
 
+export interface SaveEditedDiagramCopyRequest {
+    content: string
+    savedRecord: DiagramRecord | null
+    sourceRecord: DiagramRecord
+}
+
 interface DiagramProjectBinding {
     config: ProjectConfig
     project: ProjectReference
@@ -91,6 +99,26 @@ const INITIAL_SNAPSHOT: DiagramViewSnapshot = {
 
 function normalizeSlashes(path: string) {
     return path.replace(/\\/gu, '/')
+}
+
+function normalizedPathKey(path: string) {
+    return normalizeSlashes(path).toLowerCase()
+}
+
+function insertAfter(values: readonly string[], existingValue: string, value: string) {
+    const existingIndex = values.indexOf(existingValue)
+    if (existingIndex < 0) throw new Error(`Diagram collection does not contain source record: ${existingValue}`)
+
+    return [...values.slice(0, existingIndex + 1), value, ...values.slice(existingIndex + 1)]
+}
+
+function diagramCopyPath(sourcePath: string, diagramsFolder: string, id: string) {
+    const sourceFileName = normalizeSlashes(sourcePath).split('/').at(-1)
+    if (!sourceFileName) throw new Error(`Diagram source path has no file name: ${sourcePath}`)
+    const sourceName = sourceFileName.replace(/\.json$/iu, '')
+    const normalizedFolder = normalizeSlashes(diagramsFolder).replace(/^\/+|\/+$/gu, '')
+
+    return `${normalizedFolder}/${sourceName}-edited-${id}.json`
 }
 
 function errorMessage(error: unknown) {
@@ -196,6 +224,31 @@ function addRecord(current: DiagramIndex, record: DiagramRecord): DiagramIndex {
     return { ...current, activePath: [...pathToDiagram(current, diagramId), record.id], children, diagrams }
 }
 
+/** Adds an edited copy beside its source without navigating away from Current. */
+function addCopyRecord(current: DiagramIndex, sourceRecord: DiagramRecord, record: DiagramRecord): DiagramIndex {
+    const diagrams = { ...current.diagrams, [record.id]: record }
+    if (!sourceRecord.parent) {
+        const sourceIds = current.roots[sourceRecord.actionId] ?? []
+        const roots = { ...current.roots, [sourceRecord.actionId]: insertAfter(sourceIds, sourceRecord.id, record.id) }
+
+        return { ...current, diagrams, roots }
+    }
+    const { actionId } = sourceRecord
+    const { diagramId, itemId } = sourceRecord.parent
+    const parentItems = current.children[diagramId]
+    const itemActions = parentItems?.[itemId]
+    const sourceIds = itemActions?.[actionId] ?? []
+    const children = {
+        ...current.children,
+        [diagramId]: {
+            ...parentItems,
+            [itemId]: { ...itemActions, [actionId]: insertAfter(sourceIds, sourceRecord.id, record.id) },
+        },
+    }
+
+    return { ...current, children, diagrams }
+}
+
 /** Owns diagram records, navigation, popup state, JSON loading, and persistence for one project. */
 export class DiagramViewService extends EventTarget {
     private binding: DiagramProjectBinding | null = null
@@ -203,6 +256,7 @@ export class DiagramViewService extends EventTarget {
     private loadPromise: Promise<void> | null = null
     private navigationToken = 0
     private processedRunIds = new Set<string>()
+    private readonly pendingCopyRecordsBySourceId = new Map<string, DiagramRecord>()
     private projectKey: string | null = null
     private snapshot = INITIAL_SNAPSHOT
     private sourceSnapshot: DiagramViewSourceSnapshot | null = null
@@ -241,6 +295,7 @@ export class DiagramViewService extends EventTarget {
         this.loadPromise = null
         this.navigationToken += 1
         this.processedRunIds.clear()
+        this.pendingCopyRecordsBySourceId.clear()
         this.projectKey = null
         this.unsubscribeRunEvents?.()
         this.unsubscribeRunEvents = null
@@ -339,6 +394,33 @@ export class DiagramViewService extends EventTarget {
         await this.applyActivePath(this.snapshot.index.activePath.slice(0, -1))
     }
 
+    /** Persists canonical edited data and its record in one shared commit batch. */
+    async saveEditedDiagramCopy(request: SaveEditedDiagramCopyRequest) {
+        const binding = this.requireBinding()
+        this.requireReady()
+        const activeSourceRecord = this.sourceSnapshot?.record
+        if (!activeSourceRecord || activeSourceRecord.id !== request.sourceRecord.id) {
+            throw new Error('Cannot save an edited diagram after its source changed')
+        }
+        parseDiagramData(request.content)
+        const record = request.savedRecord ?? await this.createCopyRecord(binding, request.sourceRecord)
+        const currentRecord = request.savedRecord ? this.snapshot.index.diagrams[request.savedRecord.id] : null
+        if (request.savedRecord && (!currentRecord || currentRecord.sourceDiagramId !== request.sourceRecord.id)) {
+            throw new Error(`Saved diagram copy is not indexed for source ${request.sourceRecord.id}`)
+        }
+        const index = request.savedRecord
+            ? { ...this.snapshot.index, diagrams: { ...this.snapshot.index.diagrams, [record.id]: record } }
+            : addCopyRecord(this.snapshot.index, request.sourceRecord, record)
+        validateDiagramPaths(index, binding.config.diagramsFolder)
+        this.dependencies.scheduleCommit({ content: request.content, path: record.path }, DIAGRAM_COPY_COMMIT_MESSAGE)
+        this.scheduleIndexCommit(index)
+        await this.dependencies.flushCommits()
+        this.pendingCopyRecordsBySourceId.delete(request.sourceRecord.id)
+        this.publish({ ...this.snapshot, index })
+
+        return record
+    }
+
     private readonly handleRunEvent = (event: ActionRunEvent) => {
         if (event.type !== 'run' || event.output?.kind !== 'diagram') return
         if (event.context.kind !== 'diagram') return
@@ -412,6 +494,34 @@ export class DiagramViewService extends EventTarget {
             { ...this.snapshot, currentDiagram: positionedDiagram, currentDiagramError: null, index, menu: null, popup: null },
             sourceSnapshot,
         )
+    }
+
+    private async createCopyRecord(binding: DiagramProjectBinding, sourceRecord: DiagramRecord) {
+        const pendingRecord = this.pendingCopyRecordsBySourceId.get(sourceRecord.id)
+        if (pendingRecord) return pendingRecord
+
+        const repositoryPaths = new Set((await binding.storage.listRepositoryFiles(binding.project)).map(normalizedPathKey))
+        Object.values(this.snapshot.index.diagrams).forEach(({ path }) => repositoryPaths.add(normalizedPathKey(path)))
+        for (let attempt = 0; attempt < MAXIMUM_COPY_PATH_ATTEMPTS; attempt += 1) {
+            const id = this.dependencies.createId()
+            const path = diagramCopyPath(sourceRecord.path, binding.config.diagramsFolder, id)
+            if (this.snapshot.index.diagrams[id] || repositoryPaths.has(normalizedPathKey(path))) continue
+
+            const record: DiagramRecord = {
+                actionId: sourceRecord.actionId,
+                createdAt: this.dependencies.createTimestamp(),
+                id,
+                label: sourceRecord.label,
+                ...(sourceRecord.parent ? { parent: sourceRecord.parent } : {}),
+                path,
+                sourceDiagramId: sourceRecord.id,
+            }
+            this.pendingCopyRecordsBySourceId.set(sourceRecord.id, record)
+
+            return record
+        }
+
+        throw new Error(`Could not generate a collision-free copy path for diagram ${sourceRecord.id}`)
     }
 
     /** Shows the requested path once its JSON resolves, discarding results of superseded navigations. */

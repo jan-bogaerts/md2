@@ -5,6 +5,7 @@ import { register } from '../service_injector'
 import {
     DIAGRAM_CARDINALITIES,
     DIAGRAM_CONNECTION_SIDES,
+    DIAGRAM_EDGE_KINDS,
     DIAGRAM_ROLES,
     optionalDiagramBoolean,
     optionalDiagramEnum,
@@ -22,10 +23,12 @@ import {
     type DiagramEdge,
     type DiagramEntityField,
     type DiagramGroup,
+    type DiagramLegendEntryData,
     type DiagramMeta,
     type DiagramNode,
     type DiagramNodeKind,
     type DiagramEdgeKind,
+    type DiagramRole,
     type DiagramSequenceFragment,
     type DiagramSequenceFragmentRegion,
     type DiagramSequenceOperator,
@@ -36,6 +39,7 @@ import { diagramViewService, type DiagramViewSourceSnapshot } from './diagram_vi
 const DIRTY_CHANGED_EVENT = 'dirtyChanged'
 const CHANGE_IDS_CHANGED_EVENT = 'changeIdsChanged'
 const ORIGINAL_DIAGRAM_CHANGED_EVENT = 'originalDiagramChanged'
+const SAVED_RECORD_CHANGED_EVENT = 'savedRecordChanged'
 const SESSION_CHANGED_EVENT = 'sessionChanged'
 const TOOLBOX_SECTION_CHANGED_EVENT = 'toolboxSectionChanged'
 const ACTIVE_TOOL_CHANGED_EVENT = 'activeToolChanged'
@@ -50,13 +54,14 @@ export const MINIMUM_DIAGRAM_ZOOM = 0.5
 export const MAXIMUM_DIAGRAM_ZOOM = 2
 
 export type DiagramCollectionKind = 'edge' | 'fragment' | 'group' | 'node'
-export type DiagramObjectKind = DiagramCollectionKind | 'connectionPoint' | 'entityField' | 'meta'
+export type DiagramObjectKind = DiagramCollectionKind | 'connectionPoint' | 'entityField' | 'legendEntry' | 'meta'
 export type DiagramRemovableObjectKind = Extract<DiagramCollectionKind, 'edge' | 'group' | 'node'>
 export type DiagramConnectionEndpoint = 'sourceAttachment' | 'targetAttachment'
 export type DiagramToolboxSection = 'edit' | 'nodes' | 'edges' | 'groups' | 'others'
 export type DiagramPersistentTool = 'select' | 'group' | `node:${DiagramNodeKind}` | `edge:${DiagramEdgeKind}`
 export type DiagramTransientGesture = 'placement' | 'edge' | 'group' | 'move' | 'resize'
 export type MutableDiagramMetaField = 'description' | 'title'
+export type MutableDiagramLegendEntryField = 'label'
 export type MutableDiagramNodeField = Exclude<keyof DiagramNode, 'fields' | 'id'>
 export type MutableDiagramEdgeField = Exclude<keyof DiagramEdge, 'id' | 'sourceAttachment' | 'targetAttachment' | 'waypoints'>
 export type MutableDiagramGroupField = Exclude<keyof DiagramGroup, 'id' | 'nodeIds'>
@@ -77,6 +82,7 @@ export type NewDiagramNode = Omit<DiagramNode, 'id'>
 export type NewDiagramEdge = Omit<DiagramEdge, 'id'>
 export type NewDiagramGroup = Omit<DiagramGroup, 'id'>
 export type NewDiagramSequenceFragment = Omit<DiagramSequenceFragment, 'id'>
+export type NewDiagramLegendEntry = { label?: string, role: DiagramRole } | { kind: DiagramEdgeKind, label?: string }
 
 export interface DiagramEditSessionSnapshot {
     sourceDiagramId: string
@@ -94,6 +100,12 @@ export interface DiagramMembershipChangeDetail {
     ownerId: string | null
     regionIndex: number | null
     removedIds: readonly string[]
+}
+
+/** Describes one legend membership transaction: which entry keys entered or left the explicit legend. */
+export interface DiagramLegendMembershipChangeDetail {
+    addedKeys: readonly string[]
+    removedKeys: readonly string[]
 }
 
 export interface DiagramEntityFieldMembershipChangeDetail {
@@ -198,6 +210,16 @@ function validateNewGroup(group: NewDiagramGroup) {
     requireOptionalGridNumber(group.y, 'groups.new.y')
 }
 
+function validateNewLegendEntry(entry: NewDiagramLegendEntry) {
+    if ('role' in entry) requireDiagramEnum(entry.role, DIAGRAM_ROLES, 'meta.legend.new.role')
+    else requireDiagramEnum(entry.kind, DIAGRAM_EDGE_KINDS, 'meta.legend.new.kind')
+    if (entry.label !== undefined) requireDiagramString(entry.label, 'meta.legend.new.label')
+}
+
+function canonicalLegendLabel(entry: NewDiagramLegendEntry) {
+    return entry.label?.trim() || ('role' in entry ? entry.role : entry.kind)
+}
+
 function eventScope(value: string) {
     return encodeURIComponent(value)
 }
@@ -236,6 +258,19 @@ export function diagramConnectionPointFieldChangedEvent(
     field: keyof DiagramConnectionPoint,
 ) {
     return `diagram:connectionPoint:${eventScope(edgeId)}:${endpoint}:${field}`
+}
+
+/** Stable identity of one legend entry: its semantic, because the file format gives entries no ID. */
+export function diagramLegendEntryKey(entry: DiagramLegendEntryData) {
+    return 'role' in entry ? `node:${entry.role}` : `connection:${entry.kind}`
+}
+
+export function diagramLegendMembershipChangedEvent() {
+    return 'diagram:legendEntry:membership'
+}
+
+export function diagramLegendEntryFieldChangedEvent(entryKey: string, field: keyof DiagramLegendEntryData | 'order') {
+    return `diagram:legendEntry:${eventScope(entryKey)}:${field}`
 }
 
 export function diagramCollectionMembershipChangedEvent(objectKind: DiagramCollectionKind) {
@@ -331,6 +366,7 @@ export class DiagramEditSessionService extends EventTarget {
     private changeIds: readonly string[] = EMPTY_IDS
     private readonly changeIdsByOwner = new Map<string, Set<string>>()
     private changeIdsChangedPending = false
+    private changeBaselineDiagram: DiagramData | null = null
     private readonly changeOwnerById = new Map<string, string>()
     private readonly changesById = new Map<string, DiagramChange>()
     private readonly createId: () => string
@@ -343,6 +379,8 @@ export class DiagramEditSessionService extends EventTarget {
     private fragmentIds: readonly string[] = EMPTY_IDS
     private fragmentRegionEdgeIdsByKey = new Map<string, readonly string[]>()
     private groupsById = new Map<string, DiagramGroup>()
+    private legendEntryKeys: readonly string[] = EMPTY_IDS
+    private originalLegendEntryKeys: readonly string[] = EMPTY_IDS
     private groupIds: readonly string[] = EMPTY_IDS
     private groupNodeIdsById = new Map<string, readonly string[]>()
     private nodesById = new Map<string, DiagramNode>()
@@ -356,6 +394,7 @@ export class DiagramEditSessionService extends EventTarget {
     private projectKey: string | null = null
     private readonly reportValidationError: DiagramEditErrorReporter
     private session: DiagramEditSessionSnapshot | null = null
+    private savedRecord: DiagramRecord | null = null
     private readonly sourceService: DiagramSourceService
     private transientGesture: DiagramTransientGesture | null = null
     private unsubscribeSource: (() => void) | null = null
@@ -405,6 +444,8 @@ export class DiagramEditSessionService extends EventTarget {
 
     getOriginalDiagramSnapshot = () => this.originalDiagram
 
+    getSavedRecordSnapshot = () => this.savedRecord
+
     getSessionSnapshot = () => this.session
 
     getEdgeIdsSnapshot = () => this.edgeIds
@@ -414,6 +455,29 @@ export class DiagramEditSessionService extends EventTarget {
     getGroupIdsSnapshot = () => this.groupIds
 
     getNodeIdsSnapshot = () => this.nodeIds
+
+    /** Ordered legend membership view; entries themselves are read one field at a time. */
+    getLegendEntryKeysSnapshot = () => this.legendEntryKeys
+
+    getLegendEntryFieldSnapshot = <Field extends 'kind' | 'label' | 'role'>(
+        entryKey: string,
+        field: Field,
+    ): string | null => {
+        const entry = this.findLegendEntry(entryKey)
+        if (!entry) return null
+
+        return (entry as Record<string, string | undefined>)[field] ?? null
+    }
+
+    getOriginalLegendEntryFieldSnapshot = <Field extends 'kind' | 'label' | 'role'>(
+        entryKey: string,
+        field: Field,
+    ): string | null => {
+        const entry = this.findOriginalLegendEntry(entryKey)
+        if (!entry) return null
+
+        return (entry as Record<string, string | undefined>)[field] ?? null
+    }
 
     getGroupNodeIdsSnapshot = (groupId: string): readonly string[] | null => this.groupNodeIdsById.get(groupId) ?? null
 
@@ -521,6 +585,8 @@ export class DiagramEditSessionService extends EventTarget {
 
     subscribeOriginalDiagram = (listener: () => void) => this.subscribe(ORIGINAL_DIAGRAM_CHANGED_EVENT, listener)
 
+    subscribeSavedRecord = (listener: () => void) => this.subscribe(SAVED_RECORD_CHANGED_EVENT, listener)
+
     subscribeSession = (listener: () => void) => this.subscribe(SESSION_CHANGED_EVENT, listener)
 
     subscribeMetadataField = (field: keyof DiagramMeta, listener: () => void) => (
@@ -567,6 +633,12 @@ export class DiagramEditSessionService extends EventTarget {
         field: keyof DiagramConnectionPoint,
         listener: () => void,
     ) => this.subscribe(diagramConnectionPointFieldChangedEvent(edgeId, endpoint, field), listener)
+
+    subscribeLegendMembership = (listener: () => void) => this.subscribe(diagramLegendMembershipChangedEvent(), listener)
+
+    subscribeLegendEntryField = (entryKey: string, field: MutableDiagramLegendEntryField, listener: () => void) => (
+        this.subscribe(diagramLegendEntryFieldChangedEvent(entryKey, field), listener)
+    )
 
     subscribeCollectionMembership = (objectKind: DiagramCollectionKind, listener: () => void) => (
         this.subscribe(diagramCollectionMembershipChangedEvent(objectKind), listener)
@@ -621,10 +693,8 @@ export class DiagramEditSessionService extends EventTarget {
         this.entityFieldIndexesByNodeId = new Map(editableDiagram.nodes.map((node) => (
             [node.id, DiagramEditSessionService.entityFieldIndexes(node)]
         )))
-        this.originalEdgesById = indexById(source.diagram.edges)
-        this.originalFragmentsById = indexById(source.diagram.fragments ?? [])
-        this.originalGroupsById = indexById(source.diagram.groups)
-        this.originalNodesById = indexById(source.diagram.nodes)
+        this.legendEntryKeys = Object.freeze((editableDiagram.meta.legend ?? []).map(diagramLegendEntryKey))
+        this.setChangeBaseline(source.diagram)
         this.edgeIds = Object.freeze(editableDiagram.edges.map(({ id }) => id))
         this.fragmentIds = Object.freeze((editableDiagram.fragments ?? []).map(({ id }) => id))
         this.groupIds = Object.freeze(editableDiagram.groups.map(({ id }) => id))
@@ -635,6 +705,7 @@ export class DiagramEditSessionService extends EventTarget {
                 [fragmentRegionKey(fragment.id, index), Object.freeze([...region.edgeIds])]
             ))
         )))
+        this.setSavedRecord(null)
         this.publish({ dirty: false, editableDiagram, originalDiagram, session })
         this.publishPendingChangeEvents()
     }
@@ -654,14 +725,39 @@ export class DiagramEditSessionService extends EventTarget {
         this.originalFragmentsById.clear()
         this.originalGroupsById.clear()
         this.originalNodesById.clear()
+        this.changeBaselineDiagram = null
         this.edgeIds = EMPTY_IDS
         this.fragmentIds = EMPTY_IDS
         this.groupIds = EMPTY_IDS
         this.nodeIds = EMPTY_IDS
+        this.legendEntryKeys = EMPTY_IDS
+        this.originalLegendEntryKeys = EMPTY_IDS
         this.groupNodeIdsById.clear()
         this.fragmentRegionEdgeIdsByKey.clear()
+        this.setSavedRecord(null)
         this.publish({ dirty: false, editableDiagram: null, originalDiagram: null, session: null })
         this.publishPendingChangeEvents()
+    }
+
+    /** Binds later saves to one record and clears changes only when saved data is still current. */
+    acknowledgeSavedCopy(record: DiagramRecord, savedDiagram: DiagramData, savedDataIsCurrent: boolean) {
+        const session = this.session
+        if (!session || record.sourceDiagramId !== session.sourceDiagramId) return false
+
+        this.setSavedRecord(record)
+        if (!savedDataIsCurrent) return true
+
+        this.setChangeBaseline(savedDiagram)
+        this.clearChangeRegistry()
+        this.publish({
+            dirty: false,
+            editableDiagram: this.editableDiagram,
+            originalDiagram: this.originalDiagram,
+            session: this.session,
+        })
+        this.publishPendingChangeEvents()
+
+        return true
     }
 
     setActiveToolboxSection(section: DiagramToolboxSection) {
@@ -735,9 +831,90 @@ export class DiagramEditSessionService extends EventTarget {
         if (!this.validateOperation('Set diagram metadata field', () => requireDiagramString(trimmedValue, `meta.${field}`))) return false
 
         diagram.meta[field] = trimmedValue
-        const originalValue = this.originalDiagram?.diagram.meta[field]
+        const originalValue = this.changeBaselineDiagram?.meta[field]
         const eventName = diagramMetadataFieldChangedEvent(field)
         this.finishFieldChange(eventName, 'meta:diagram', 'meta', 'diagram', field, originalValue, previousValue, trimmedValue)
+
+        return true
+    }
+
+    /** Appends one explicit legend entry. The first added entry replaces the derived legend for this diagram. */
+    addLegendEntry(entry: NewDiagramLegendEntry) {
+        const diagram = this.requireEditableDiagram()
+        if (!this.validateOperation('Add legend entry', () => {
+            validateNewLegendEntry(entry)
+            const entryKey = diagramLegendEntryKey(entry as DiagramLegendEntryData)
+            if (this.legendEntryKeys.includes(entryKey)) {
+                invalidDiagramField('meta.legend', `duplicate entry for ${entryKey}`)
+            }
+        })) return null
+
+        const label = canonicalLegendLabel(entry)
+        const added = ('role' in entry ? { label, role: entry.role } : { kind: entry.kind, label }) as DiagramLegendEntryData
+        const entryKey = diagramLegendEntryKey(added)
+        diagram.meta.legend = [...diagram.meta.legend ?? [], added]
+        this.finishLegendMembershipChange([entryKey], [])
+
+        return entryKey
+    }
+
+    /** Removes one legend entry. Nodes and edges keep their own role and kind fields. */
+    removeLegendEntry(entryKey: string) {
+        const diagram = this.requireEditableDiagram()
+        if (!this.legendEntryKeys.includes(entryKey)) return false
+
+        const legend = (diagram.meta.legend ?? []).filter((entry) => diagramLegendEntryKey(entry) !== entryKey)
+        if (legend.length > 0) diagram.meta.legend = legend
+        else delete diagram.meta.legend
+        this.finishLegendMembershipChange([], [entryKey])
+
+        return true
+    }
+
+    setLegendEntryLabel(entryKey: string, label: string) {
+        const entry = this.requireLegendEntry(entryKey)
+        const previousValue = entry.label
+        const trimmedValue = label.trim()
+        if (Object.is(previousValue, trimmedValue)) return false
+        if (!this.validateOperation(
+            'Set legend entry label',
+            () => requireDiagramString(trimmedValue, `meta.legend.${entryKey}.label`),
+        )) return false
+
+        entry.label = trimmedValue
+        const originalValue = this.findBaselineLegendEntry(entryKey)?.label
+        const eventName = diagramLegendEntryFieldChangedEvent(entryKey, 'label')
+        this.finishFieldChange(
+            eventName, `legendEntry:${entryKey}`, 'legendEntry', entryKey, 'label', originalValue, previousValue, trimmedValue,
+        )
+
+        return true
+    }
+
+    /** Moves one entry to a new position, changing only legend membership order. */
+    moveLegendEntry(entryKey: string, targetIndex: number) {
+        const diagram = this.requireEditableDiagram()
+        const legend = [...diagram.meta.legend ?? []]
+        const sourceIndex = legend.findIndex((entry) => diagramLegendEntryKey(entry) === entryKey)
+        if (sourceIndex < 0) throw new Error(`Diagram legend entry ${entryKey} does not exist`)
+        if (!this.validateOperation('Move legend entry', () => {
+            if (!Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= legend.length) {
+                invalidDiagramField('meta.legend', `index ${targetIndex} outside the legend`)
+            }
+        })) return false
+        if (sourceIndex === targetIndex) return false
+
+        const [moved] = legend.splice(sourceIndex, 1)
+        legend.splice(targetIndex, 0, moved)
+        diagram.meta.legend = legend
+        this.legendEntryKeys = Object.freeze(legend.map(diagramLegendEntryKey))
+        this.markLegendOrderChanges()
+        this.commitTransaction([])
+        const detail: DiagramLegendMembershipChangeDetail = { addedKeys: EMPTY_IDS, removedKeys: EMPTY_IDS }
+        this.dispatchEvent(new CustomEvent<DiagramLegendMembershipChangeDetail>(
+            diagramLegendMembershipChangedEvent(),
+            { detail },
+        ))
 
         return true
     }
@@ -1501,6 +1678,26 @@ export class DiagramEditSessionService extends EventTarget {
         return this.fragmentsById.get(fragmentId) ?? null
     }
 
+    private findLegendEntry(entryKey: string) {
+        return this.editableDiagram?.meta.legend?.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
+    }
+
+    private findOriginalLegendEntry(entryKey: string) {
+        return this.originalDiagram?.diagram.meta.legend?.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
+    }
+
+    private findBaselineLegendEntry(entryKey: string) {
+        return this.changeBaselineDiagram?.meta.legend?.find((entry) => diagramLegendEntryKey(entry) === entryKey) ?? null
+    }
+
+    private requireLegendEntry(entryKey: string) {
+        this.requireEditableDiagram()
+        const entry = this.findLegendEntry(entryKey)
+        if (!entry) throw new Error(`Diagram legend entry ${entryKey} does not exist`)
+
+        return entry
+    }
+
     private requireEditableDiagram() {
         if (!this.editableDiagram) throw new Error('Diagram edit session is not active')
 
@@ -2070,7 +2267,7 @@ export class DiagramEditSessionService extends EventTarget {
     /** Tracks row changes by relative order of original messages; created messages own their order through their addition. */
     private markSequenceEdgeOrderChanges() {
         const diagram = this.requireEditableDiagram()
-        const originalIds = this.originalDiagram?.diagram.edges.map(({ id }) => id) ?? []
+        const originalIds = this.changeBaselineDiagram?.edges.map(({ id }) => id) ?? []
         const currentOriginalIds = diagram.edges.filter(({ id }) => this.originalEdgesById.has(id)).map(({ id }) => id)
         for (const edgeId of currentOriginalIds) {
             const originalValue = originalIds.indexOf(edgeId)
@@ -2349,6 +2546,81 @@ export class DiagramEditSessionService extends EventTarget {
         this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(changeId, { detail }))
     }
 
+    /** Republishes only the legend key-list view, then dispatches one legend membership event. */
+    private finishLegendMembershipChange(addedKeys: readonly string[], removedKeys: readonly string[]) {
+        const diagram = this.requireEditableDiagram()
+        this.legendEntryKeys = Object.freeze((diagram.meta.legend ?? []).map(diagramLegendEntryKey))
+        for (const entryKey of removedKeys) this.purgeChangesOwnedBy(`legendEntry:${entryKey}`)
+        for (const entryKey of [...addedKeys, ...removedKeys]) this.markLegendMembership(entryKey)
+        for (const entryKey of addedKeys) {
+            if (this.originalLegendEntryKeys.includes(entryKey)) this.markLegendEntryLabelChange(entryKey)
+        }
+        this.markLegendOrderChanges()
+        this.commitTransaction([])
+        const detail: DiagramLegendMembershipChangeDetail = { addedKeys, removedKeys }
+        this.dispatchEvent(new CustomEvent<DiagramLegendMembershipChangeDetail>(
+            diagramLegendMembershipChangedEvent(),
+            { detail },
+        ))
+    }
+
+    private markLegendMembership(entryKey: string) {
+        const id = `${diagramLegendMembershipChangedEvent()}:${eventScope(entryKey)}`
+        const originalValue = this.originalLegendEntryKeys.includes(entryKey)
+        const value = this.legendEntryKeys.includes(entryKey)
+        const change: DiagramChange = {
+            category: 'membership',
+            field: 'legend',
+            id,
+            objectId: entryKey,
+            objectKind: 'legendEntry',
+            originalValue,
+            ownerId: 'diagram',
+            regionIndex: null,
+            value,
+        }
+        this.setChange(change, `legendEntry:${entryKey}`, originalValue === value)
+    }
+
+    private markLegendEntryLabelChange(entryKey: string) {
+        const originalValue = this.findBaselineLegendEntry(entryKey)?.label
+        const value = this.findLegendEntry(entryKey)?.label
+        const change: DiagramChange = {
+            category: 'field',
+            field: 'label',
+            id: diagramLegendEntryFieldChangedEvent(entryKey, 'label'),
+            objectId: entryKey,
+            objectKind: 'legendEntry',
+            originalValue,
+            ownerId: null,
+            regionIndex: null,
+            value,
+        }
+        this.setChange(change, `legendEntry:${entryKey}`, Object.is(originalValue, value))
+    }
+
+    /** Tracks reordering by relative order of retained entries, so adding or removing one entry is not a move. */
+    private markLegendOrderChanges() {
+        const originalRetainedKeys = this.originalLegendEntryKeys.filter((entryKey) => this.legendEntryKeys.includes(entryKey))
+        const retainedKeys = this.legendEntryKeys.filter((entryKey) => this.originalLegendEntryKeys.includes(entryKey))
+        for (const entryKey of this.originalLegendEntryKeys) {
+            const originalValue = originalRetainedKeys.indexOf(entryKey)
+            const value = retainedKeys.indexOf(entryKey)
+            const change: DiagramChange = {
+                category: 'field',
+                field: 'order',
+                id: diagramLegendEntryFieldChangedEvent(entryKey, 'order'),
+                objectId: entryKey,
+                objectKind: 'legendEntry',
+                originalValue,
+                ownerId: null,
+                regionIndex: null,
+                value,
+            }
+            this.setChange(change, `legendEntry:${entryKey}`, originalValue === value)
+        }
+    }
+
     private finishEntityFieldMembershipChange(
         nodeId: string,
         addedIndexes: readonly number[],
@@ -2393,6 +2665,22 @@ export class DiagramEditSessionService extends EventTarget {
         if (dirtyChanged) this.dispatchEvent(new Event(DIRTY_CHANGED_EVENT))
         if (originalDiagramChanged) this.dispatchEvent(new Event(ORIGINAL_DIAGRAM_CHANGED_EVENT))
         if (sessionChanged) this.dispatchEvent(new Event(SESSION_CHANGED_EVENT))
+    }
+
+    private setChangeBaseline(diagram: DiagramData) {
+        this.changeBaselineDiagram = diagram
+        this.originalLegendEntryKeys = Object.freeze((diagram.meta.legend ?? []).map(diagramLegendEntryKey))
+        this.originalEdgesById = indexById(diagram.edges)
+        this.originalFragmentsById = indexById(diagram.fragments ?? [])
+        this.originalGroupsById = indexById(diagram.groups)
+        this.originalNodesById = indexById(diagram.nodes)
+    }
+
+    private setSavedRecord(record: DiagramRecord | null) {
+        if (record === this.savedRecord) return
+
+        this.savedRecord = record
+        this.dispatchEvent(new Event(SAVED_RECORD_CHANGED_EVENT))
     }
 
     private resetActiveToolboxSection() {

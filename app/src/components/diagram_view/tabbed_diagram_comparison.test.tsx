@@ -79,6 +79,7 @@ describe('TabbedDiagramComparison', () => {
         expect(currentTab).toHaveAttribute('aria-selected', 'true')
         expect(currentPanel).not.toHaveAttribute('hidden')
         expect(newPanel).toHaveAttribute('hidden')
+        expect(screen.queryByRole('dialog', { name: 'Diagram tools' })).not.toBeInTheDocument()
 
         currentTab.focus()
         await user.keyboard('{ArrowRight}{Enter}')
@@ -87,6 +88,7 @@ describe('TabbedDiagramComparison', () => {
         expect(newTab).toHaveAttribute('aria-selected', 'true')
         expect(currentPanel).toHaveAttribute('hidden')
         expect(newPanel).not.toHaveAttribute('hidden')
+        expect(screen.getByRole('dialog', { name: 'Diagram tools' })).toBeInTheDocument()
         expect(layoutService.getActiveTabSnapshot()).toBe('new')
     })
 

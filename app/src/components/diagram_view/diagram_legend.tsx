@@ -1,16 +1,23 @@
 import ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined'
 import ExpandLessOutlined from '@mui/icons-material/ExpandLessOutlined'
-import { Box, IconButton, Paper, Tooltip, Typography } from '@mui/material'
-import { useCallback, useLayoutEffect, useRef, type MouseEvent, type PointerEvent } from 'react'
+import { Box, IconButton, Paper, Tab, Tabs, Tooltip, Typography } from '@mui/material'
+import {
+    useCallback, useId, useLayoutEffect, useRef, useState,
+    type MouseEvent, type PointerEvent, type SyntheticEvent,
+} from 'react'
 import type { DiagramLegendPosition } from '../../services/diagrams/diagram_view_service'
 import type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'
-import { DiagramLegendConnectionSample } from './diagram_legend_connection_sample'
 import { diagramLegendEntries } from './diagram_legend_entries'
+import { DiagramLegendEntryList } from './diagram_legend_entry_list'
 import { clampLegendPosition } from './diagram_legend_position'
-import { diagramRoleStyle } from './diagram_role_style'
+import {
+    DiagramSessionLegendEntries, type SessionLegendSource,
+} from './diagram_session_legend_entries'
 
 const LEGEND_INSET = 1.5
 const DRAG_THRESHOLD = 3
+
+type DiagramLegendTab = 'current' | 'new'
 
 interface DiagramLegendProps {
     collapsed: boolean
@@ -19,6 +26,8 @@ interface DiagramLegendProps {
     onExpand: () => void
     onMove: (position: DiagramLegendPosition) => void
     position: DiagramLegendPosition | null
+    /** Present only while an edit session is active, which is when the New tab is offered. */
+    session?: SessionLegendSource | null
 }
 
 interface LegendDrag {
@@ -35,11 +44,15 @@ function samePosition(first: DiagramLegendPosition, second: DiagramLegendPositio
 }
 
 /** Floating legend derived from active diagram semantics. */
-export function DiagramLegend({ collapsed, data, onCollapse, onExpand, onMove, position }: DiagramLegendProps) {
+export function DiagramLegend({ collapsed, data, onCollapse, onExpand, onMove, position, session = null }: DiagramLegendProps) {
     const panelRef = useRef<HTMLDivElement>(null)
     const dragRef = useRef<LegendDrag | null>(null)
     const suppressClickRef = useRef(false)
+    const tabsId = useId()
+    const [activeTab, setActiveTab] = useState<DiagramLegendTab>('new')
     const entries = diagramLegendEntries(data)
+    const handleTabChange = (_event: SyntheticEvent, tab: DiagramLegendTab) => setActiveTab(tab)
+    const currentTabActive = !session || activeTab === 'current'
     const clampCurrentPosition = useCallback(() => {
         const panel = panelRef.current
         const viewport = panel?.parentElement
@@ -59,7 +72,7 @@ export function DiagramLegend({ collapsed, data, onCollapse, onExpand, onMove, p
         observer.observe(viewport)
 
         return () => observer.disconnect()
-    }, [clampCurrentPosition, collapsed])
+    }, [clampCurrentPosition, collapsed, currentTabActive])
 
     const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
         if ((event.target as Element).closest('button')) return
@@ -144,21 +157,46 @@ export function DiagramLegend({ collapsed, data, onCollapse, onExpand, onMove, p
                 </Tooltip>
             </Box>
             {!collapsed ? (
-                <Box
-                    aria-label="Diagram legend entries"
-                    sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', gap: 0.75, minHeight: 0, overflowY: 'auto', p: 1.5 }}
-                >
-                    {entries.map((entry) => (
-                        <Box key={`${entry.entryType}:${entry.label}`} sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
-                            {entry.entryType === 'node' ? (
-                                <Box
-                                    data-role={entry.role}
-                                    sx={{ border: '1px solid', borderRadius: 0.5, flexShrink: 0, height: 12, width: 20, ...diagramRoleStyle(entry.role) }}
-                                />
-                            ) : <DiagramLegendConnectionSample kind={entry.kind} />}
-                            <Typography color="text.secondary" variant="caption">{entry.label}</Typography>
-                        </Box>
-                    ))}
+                <Box sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    {session ? (
+                        <Tabs
+                            aria-label="Diagram legend sides"
+                            onChange={handleTabChange}
+                            sx={{ flexShrink: 0, minHeight: 36 }}
+                            value={activeTab}
+                            variant="fullWidth"
+                        >
+                            <Tab
+                                aria-controls={`${tabsId}-new-panel`}
+                                aria-label="New"
+                                id={`${tabsId}-new-tab`}
+                                label={<Tooltip title="Legend of the edited diagram"><Box component="span">New</Box></Tooltip>}
+                                sx={{ minHeight: 36 }}
+                                value="new"
+                            />
+                            <Tab
+                                aria-controls={`${tabsId}-current-panel`}
+                                aria-label="Current"
+                                id={`${tabsId}-current-tab`}
+                                label={<Tooltip title="Legend of the saved diagram"><Box component="span">Current</Box></Tooltip>}
+                                sx={{ minHeight: 36 }}
+                                value="current"
+                            />
+                        </Tabs>
+                    ) : null}
+                    <Box
+                        aria-labelledby={session ? `${tabsId}-${activeTab}-tab` : undefined}
+                        id={session ? `${tabsId}-${activeTab}-panel` : undefined}
+                        role={session ? 'tabpanel' : undefined}
+                        sx={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}
+                    >
+                        {currentTabActive ? (
+                            <DiagramLegendEntryList
+                                entries={entries}
+                                label={session ? 'Current diagram legend entries' : 'Diagram legend entries'}
+                            />
+                        ) : <DiagramSessionLegendEntries session={session} />}
+                    </Box>
                 </Box>
             ) : null}
         </Paper>

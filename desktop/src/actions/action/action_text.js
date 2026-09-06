@@ -4,7 +4,7 @@ const { requireRootPath } = require('../../git/git_commands');
 const PLACEHOLDER_NAMES = [
     'active-cards-folder', 'worktree-folder', 'repository-folder', 'project-folder',
     'releases-folder', 'card-file', 'this-card', 'card-title', 'card-prompt',
-    'conflict-file', 'conflict-files', 'diagram-file', 'parent-node',
+    'conflict-file', 'conflict-files', 'diagram-changes', 'diagram-file', 'parent-node',
 ].join('|');
 const PLACEHOLDER_PATTERN = new RegExp(`\\{\\{\\s*(${PLACEHOLDER_NAMES})\\s*\\}\\}`, 'gu');
 const CARD_PROMPT_PLACEHOLDER_PATTERN = /\{\{\s*card-prompt\s*\}\}/u;
@@ -47,6 +47,15 @@ function resolvePlaceholders(
             return path.resolve(requireRootPath(primaryProject), releasesFolder);
         }
         if (name === 'card-prompt') return extraPrompt;
+        if (name === 'diagram-changes') {
+            if (context.kind !== 'diagram') throw new Error('Cannot resolve diagram-changes placeholder outside diagram context');
+            if (!context.diagramId) throw new Error('Cannot resolve diagram-changes placeholder without an active diagram ID');
+            if (typeof context.diagramChanges !== 'string' || context.diagramChanges.trim().length === 0) {
+                throw new Error('Cannot resolve diagram-changes placeholder without reviewed diagram changes');
+            }
+
+            return context.diagramChanges;
+        }
         if (name === 'diagram-file') {
             if (context.kind !== 'diagram') throw new Error('Cannot resolve diagram-file placeholder outside diagram context');
             if (typeof diagramFile !== 'string' || diagramFile.length === 0) {

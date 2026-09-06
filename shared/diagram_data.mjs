@@ -64,6 +64,25 @@ export function requireDiagramEnum(value, values, field) {
 export function optionalDiagramEnum(value, values, field) {
     return value === undefined ? undefined : requireDiagramEnum(value, values, field);
 }
+function parseLegend(value) {
+    if (value === undefined)
+        return undefined;
+    const seenSemantics = new Set();
+    return requireArray(value, 'meta.legend').map((entry, index) => {
+        const field = `meta.legend[${index}]`;
+        const item = requireObject(entry, field);
+        if ((item.role === undefined) === (item.kind === undefined))
+            malformed(field, 'exactly one of role or kind');
+        const semantic = item.role === undefined
+            ? { kind: requireDiagramEnum(item.kind, DIAGRAM_EDGE_KINDS, `${field}.kind`) }
+            : { role: requireDiagramEnum(item.role, DIAGRAM_ROLES, `${field}.role`) };
+        const semanticKey = item.role === undefined ? `kind:${semantic.kind}` : `role:${semantic.role}`;
+        if (seenSemantics.has(semanticKey))
+            malformed(field, `duplicate entry for ${semanticKey}`);
+        seenSemantics.add(semanticKey);
+        return { ...semantic, label: requireDiagramString(item.label, `${field}.label`) };
+    });
+}
 function parseMeta(value) {
     const meta = requireObject(value, 'meta');
     if (meta.version !== DIAGRAM_DATA_VERSION)
@@ -74,8 +93,10 @@ function parseMeta(value) {
         malformed('meta.preset', 'required value for flow diagrams');
     if (type !== 'flow' && preset)
         malformed('meta.preset', 'value only allowed for flow diagrams');
+    const legend = parseLegend(meta.legend);
     return {
         description: requireDiagramString(meta.description, 'meta.description'),
+        ...(legend ? { legend } : {}),
         ...(preset ? { preset } : {}),
         title: requireDiagramString(meta.title, 'meta.title'),
         type,
@@ -308,6 +329,10 @@ function validateTypeSpecificData(data) {
         requireDiagramEdgeLabel(edge.label, data.meta.type, data.meta.preset, sourceKind, `edges.${edge.id}.label`);
     }
     for (const node of data.nodes) requireDiagramNodeKind(node.kind, data.meta.type, data.meta.preset, `nodes.${node.id}.kind`);
+    (data.meta.legend ?? []).forEach((entry, index) => {
+        if (entry.kind !== undefined)
+            requireDiagramEdgeKind(entry.kind, data.meta.type, `meta.legend[${index}].kind`);
+    });
     validateSequenceFragments(data);
 }
 export function parseDiagramData(content) {

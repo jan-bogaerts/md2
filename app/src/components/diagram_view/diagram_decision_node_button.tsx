@@ -66,7 +66,7 @@ export function DiagramDecisionNodeButton({
 }: DiagramDecisionNodeButtonProps) {
     const diagramType = useDiagramType(session);
     const preset = useFlowPreset(session);
-    const activeTool = useActiveDiagramTool(session);
+    const activeTool = useActiveDiagramTool(session, 'node:decision');
     const handleActivate = useCallback(() => {
         placement.activate(DECISION_NODE_DEFINITION);
     }, [placement]);
@@ -75,7 +75,7 @@ export function DiagramDecisionNodeButton({
 
     return (
         <DiagramToolboxButton
-            active={activeTool === 'node:decision'}
+            active={activeTool}
             label="Decision"
             onActivate={handleActivate}
             tooltip="Place decision node"

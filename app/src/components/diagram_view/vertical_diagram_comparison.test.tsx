@@ -88,6 +88,7 @@ describe('VerticalDiagramComparison', () => {
         expect(current).toHaveStyle({ overflow: 'auto' })
         expect(next).toHaveStyle({ overflow: 'hidden' })
         expect(within(next).getByLabelText('New diagram scroller')).toHaveStyle({ overflow: 'auto' })
+        expect(screen.getByRole('dialog', { name: 'Diagram tools' })).toBeInTheDocument()
     })
 
     it('keeps diagram edits isolated from Current and comparison pane roots', () => {

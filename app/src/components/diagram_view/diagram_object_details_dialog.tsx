@@ -6,6 +6,7 @@ import {
 } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramEdgeDetailsEditor } from './diagram_edge_details_editor'
 import { DiagramGroupDetailsEditor } from './diagram_group_details_editor'
+import { DiagramLegendDetailsEditor } from './diagram_legend_details_editor'
 import { DiagramMetadataDetailsEditor } from './diagram_metadata_details_editor'
 import { DiagramNodeDetailsEditor } from './diagram_node_details_editor'
 import {
@@ -19,13 +20,22 @@ interface DiagramObjectDetailsDialogProps {
     session?: DiagramEditSessionService
 }
 
+/** Diagram-wide editors have no owning object, so they exist for as long as the session does. */
+type DiagramSingletonDetailsTarget = Extract<DiagramObjectDetailsTarget, { objectKind: 'legend' | 'meta' }>
+
+function isSingletonTarget(target: DiagramObjectDetailsTarget): target is DiagramSingletonDetailsTarget {
+    return target.objectKind === 'legend' || target.objectKind === 'meta'
+}
+
 function targetExists(target: DiagramObjectDetailsTarget | null, session: DiagramEditSessionService) {
-    if (!target || target.objectKind === 'meta') return true
+    if (!target || isSingletonTarget(target)) return true
     if (target.objectKind === 'node') return session.getNodeSnapshot(target.objectId) !== null
     if (target.objectKind === 'edge') return session.getEdgeSnapshot(target.objectId) !== null
 
     return session.getGroupSnapshot(target.objectId) !== null
 }
+
+const SINGLETON_TITLES: Record<'legend' | 'meta', string> = { legend: 'Diagram legend', meta: 'Diagram metadata' }
 
 export function DiagramObjectDetailsDialog({
     details = diagramObjectDetailsService,
@@ -33,7 +43,7 @@ export function DiagramObjectDetailsDialog({
 }: DiagramObjectDetailsDialogProps) {
     const target = useSyncExternalStore(details.subscribeTarget, details.getTargetSnapshot, details.getTargetSnapshot)
     const subscribeExists = useCallback((listener: () => void) => {
-        if (!target || target.objectKind === 'meta') return session.subscribeSession(listener)
+        if (!target || isSingletonTarget(target)) return session.subscribeSession(listener)
         const unsubscribeMembership = session.subscribeCollectionMembership(target.objectKind, listener)
         const unsubscribeSession = session.subscribeSession(listener)
 
@@ -45,7 +55,7 @@ export function DiagramObjectDetailsDialog({
     const getExistsSnapshot = useCallback(() => targetExists(target, session), [session, target])
     const exists = useSyncExternalStore(subscribeExists, getExistsSnapshot, getExistsSnapshot)
     const missingError = useMemo(() => (
-        target && target.objectKind !== 'meta' && !exists
+        target && !isSingletonTarget(target) && !exists
             ? new Error(`Diagram ${target.objectKind} ${target.objectId} no longer exists`)
             : null
     ), [exists, target])
@@ -54,9 +64,9 @@ export function DiagramObjectDetailsDialog({
         if (missingError) details.close()
     }, [details, missingError])
     const handleClose = () => details.close()
-    const title = target?.objectKind === 'meta' ? 'Diagram metadata' : target
-        ? `${target.objectKind[0].toUpperCase()}${target.objectKind.slice(1)} details`
-        : 'Diagram object details'
+    const title = !target ? 'Diagram object details' : isSingletonTarget(target)
+        ? SINGLETON_TITLES[target.objectKind]
+        : `${target.objectKind[0].toUpperCase()}${target.objectKind.slice(1)} details`
 
     return (
         <Dialog fullWidth maxWidth="sm" onClose={handleClose} open={!!target && exists}>
@@ -72,6 +82,9 @@ export function DiagramObjectDetailsDialog({
             ) : null}
             {exists && target?.objectKind === 'meta' ? (
                 <DiagramMetadataDetailsEditor onClose={handleClose} session={session} />
+            ) : null}
+            {exists && target?.objectKind === 'legend' ? (
+                <DiagramLegendDetailsEditor onClose={handleClose} session={session} />
             ) : null}
         </Dialog>
     )

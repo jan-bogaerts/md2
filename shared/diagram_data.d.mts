@@ -17,8 +17,12 @@ export type DiagramCardinality = typeof DIAGRAM_CARDINALITIES[number]
 export type DiagramSequenceOperator = typeof DIAGRAM_SEQUENCE_OPERATORS[number]
 export type DiagramConnectionSide = typeof DIAGRAM_CONNECTION_SIDES[number]
 
+export type DiagramLegendEntryData =
+    | { label: string; role: DiagramRole }
+    | { kind: DiagramEdgeKind; label: string }
 export interface DiagramMeta {
     description: string
+    legend?: DiagramLegendEntryData[]
     preset?: DiagramFlowPreset
     title: string
     type: DiagramType

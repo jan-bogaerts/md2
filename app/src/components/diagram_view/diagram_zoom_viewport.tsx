@@ -32,6 +32,9 @@ import { EditableDiagram } from './editable_diagram'
 import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from './diagram_object_details_service'
+import {
+    diagramChangeReviewService, type DiagramChangeReviewService,
+} from './diagram_change_review_service'
 
 interface DiagramZoomViewportProps {
     details?: DiagramObjectDetailsService
@@ -41,6 +44,7 @@ interface DiagramZoomViewportProps {
     movement?: DiagramMoveService
     placement?: DiagramNodePlacementService
     resize?: DiagramResizeService
+    review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
 }
@@ -101,6 +105,7 @@ export function DiagramZoomViewport({
     movement = diagramMoveService,
     placement = diagramNodePlacementService,
     resize = diagramResizeService,
+    review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
 }: DiagramZoomViewportProps) {
@@ -375,6 +380,7 @@ export function DiagramZoomViewport({
                     geometry={geometry}
                     groupDrawing={groupDrawing}
                     placement={placement}
+                    review={review}
                     selection={selection}
                     session={session}
                 />

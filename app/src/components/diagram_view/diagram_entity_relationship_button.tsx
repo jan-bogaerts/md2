@@ -47,7 +47,7 @@ export function DiagramEntityRelationshipButton({
     session = diagramEditSessionService,
 }: DiagramEntityRelationshipButtonProps) {
     const available = useEntityDiagram(session);
-    const activeTool = useActiveDiagramTool(session);
+    const activeTool = useActiveDiagramTool(session, 'edge:relationship');
     const handleActivate = useCallback(() => {
         drawing.activate({ kind: 'relationship' });
     }, [drawing]);
@@ -56,7 +56,7 @@ export function DiagramEntityRelationshipButton({
 
     return (
         <DiagramToolboxButton
-            active={activeTool === 'edge:relationship'}
+            active={activeTool}
             label="Relationship"
             onActivate={handleActivate}
             tooltip="Draw relationship edge"

@@ -66,6 +66,13 @@ const stateDiagram: DiagramData = {
         { id: 'working', kind: 'state', label: 'Working', role: 'backend' },
     ],
 }
+const legendDiagram: DiagramData = {
+    ...diagram,
+    meta: {
+        ...diagram.meta,
+        legend: [{ label: 'Service', role: 'focal' }, { label: 'Database', role: 'store' }, { kind: 'connection', label: 'Calls' }],
+    },
+}
 const firstRecord: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
@@ -101,6 +108,13 @@ function createHarness(options: {
 
 function sequenceHarness(createId?: () => string, reportValidationError?: (message: string) => void) {
     const { service } = createHarness({ createId, reportValidationError, source: sequenceDiagram })
+    service.start()
+
+    return service
+}
+
+function legendHarness(reportValidationError?: (message: string) => void) {
+    const { service } = createHarness({ reportValidationError, source: legendDiagram })
     service.start()
 
     return service
@@ -1641,6 +1655,200 @@ describe('DiagramEditSessionService', () => {
         expect(service.getChangeIdsSnapshot()).toEqual([])
         expect(service.getDirtySnapshot()).toBe(false)
         expect(changeIdsChanged).toHaveBeenCalledOnce()
+    })
+
+    it('exposes explicit legend membership and per-entry labels from the source diagram', () => {
+        const service = legendHarness()
+
+        expect(service.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'node:store', 'connection:connection'])
+        expect(service.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
+        expect(service.getLegendEntryFieldSnapshot('node:focal', 'role')).toBe('focal')
+        expect(service.getLegendEntryFieldSnapshot('connection:connection', 'kind')).toBe('connection')
+        expect(service.getLegendEntryFieldSnapshot('node:external', 'label')).toBeNull()
+        expect(service.getOriginalLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
+    })
+
+    it('reports an empty legend for a diagram without explicit entries', () => {
+        const { service } = createHarness()
+        service.start()
+
+        expect(service.getLegendEntryKeysSnapshot()).toEqual([])
+    })
+
+    it('assigns only the label of the addressed legend entry', () => {
+        const service = legendHarness()
+        const labelChanged = vi.fn()
+        const otherLabelChanged = vi.fn()
+        const membershipChanged = vi.fn()
+        service.subscribeLegendEntryField('node:focal', 'label', labelChanged)
+        service.subscribeLegendEntryField('node:store', 'label', otherLabelChanged)
+        service.subscribeLegendMembership(membershipChanged)
+        const entryKeys = service.getLegendEntryKeysSnapshot()
+
+        expect(service.setLegendEntryLabel('node:focal', '  Order service  ')).toBe(true)
+        expect(service.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Order service')
+        expect(service.getLegendEntryFieldSnapshot('node:store', 'label')).toBe('Database')
+        expect(service.getLegendEntryKeysSnapshot()).toBe(entryKeys)
+        expect(labelChanged).toHaveBeenCalledOnce()
+        expect(otherLabelChanged).not.toHaveBeenCalled()
+        expect(membershipChanged).not.toHaveBeenCalled()
+        expect(service.setLegendEntryLabel('node:focal', 'Order service')).toBe(false)
+        expect(labelChanged).toHaveBeenCalledOnce()
+    })
+
+    it('rejects an empty legend label and keeps the previous value', () => {
+        const reportValidationError = vi.fn()
+        const service = legendHarness(reportValidationError)
+
+        expect(service.setLegendEntryLabel('node:focal', '   ')).toBe(false)
+        expect(service.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
+        expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('Set legend entry label rejected'))
+        expect(service.getDirtySnapshot()).toBe(false)
+    })
+
+    it('adds an entry with a canonical label and rejects a duplicate semantic', () => {
+        const reportValidationError = vi.fn()
+        const service = legendHarness(reportValidationError)
+        const membershipChanged = vi.fn()
+        service.subscribeLegendMembership(membershipChanged)
+
+        expect(service.addLegendEntry({ role: 'external' })).toBe('node:external')
+        expect(service.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'node:store', 'connection:connection', 'node:external'])
+        expect(service.getLegendEntryFieldSnapshot('node:external', 'label')).toBe('external')
+        expect(membershipDetail(membershipChanged)).toEqual({ addedKeys: ['node:external'], removedKeys: [] })
+
+        expect(service.addLegendEntry({ label: 'Again', role: 'focal' })).toBeNull()
+        expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('duplicate entry for node:focal'))
+        expect(service.addLegendEntry({ role: 'nope' } as never)).toBeNull()
+        expect(membershipChanged).toHaveBeenCalledOnce()
+    })
+
+    it('creates an explicit legend on the first added entry of a derived diagram', () => {
+        const { service } = createHarness()
+        service.start()
+
+        expect(service.addLegendEntry({ kind: 'connection', label: 'Calls' })).toBe('connection:connection')
+        expect(service.getEditableDiagram()?.meta.legend).toEqual([{ kind: 'connection', label: 'Calls' }])
+    })
+
+    it('removes a legend entry without touching nodes or edges', () => {
+        const service = legendHarness()
+        const membershipChanged = vi.fn()
+        service.subscribeLegendMembership(membershipChanged)
+        const nodes = service.getEditableDiagram()?.nodes
+        const edges = service.getEditableDiagram()?.edges
+        const nodeIds = service.getNodeIdsSnapshot()
+        const edgeIds = service.getEdgeIdsSnapshot()
+
+        expect(service.removeLegendEntry('node:store')).toBe(true)
+        expect(service.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
+        expect(service.getEditableDiagram()?.nodes).toBe(nodes)
+        expect(service.getEditableDiagram()?.edges).toBe(edges)
+        expect(service.getNodeIdsSnapshot()).toBe(nodeIds)
+        expect(service.getEdgeIdsSnapshot()).toBe(edgeIds)
+        expect(membershipDetail(membershipChanged)).toEqual({ addedKeys: [], removedKeys: ['node:store'] })
+        expect(service.removeLegendEntry('node:store')).toBe(false)
+        expect(membershipChanged).toHaveBeenCalledOnce()
+    })
+
+    it('drops the legend key once the last explicit entry is removed', () => {
+        const service = legendHarness()
+
+        for (const entryKey of [...service.getLegendEntryKeysSnapshot()]) service.removeLegendEntry(entryKey)
+
+        expect(service.getLegendEntryKeysSnapshot()).toEqual([])
+        expect('legend' in (service.getEditableDiagram()?.meta ?? {})).toBe(false)
+    })
+
+    it('reorders legend membership without changing any entry label', () => {
+        const service = legendHarness()
+        const membershipChanged = vi.fn()
+        const labelChanged = vi.fn()
+        service.subscribeLegendMembership(membershipChanged)
+        service.subscribeLegendEntryField('connection:connection', 'label', labelChanged)
+
+        expect(service.moveLegendEntry('connection:connection', 0)).toBe(true)
+        expect(service.getLegendEntryKeysSnapshot()).toEqual(['connection:connection', 'node:focal', 'node:store'])
+        expect(service.getLegendEntryFieldSnapshot('connection:connection', 'label')).toBe('Calls')
+        expect(membershipChanged).toHaveBeenCalledOnce()
+        expect(labelChanged).not.toHaveBeenCalled()
+        expect(service.moveLegendEntry('connection:connection', 0)).toBe(false)
+        expect(() => service.moveLegendEntry('node:external', 0)).toThrow('legend entry node:external does not exist')
+    })
+
+    it('records legend label, membership, and order edits in the semantic change set', () => {
+        const service = legendHarness()
+
+        service.setLegendEntryLabel('node:focal', 'Order service')
+        expect(service.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:node%3Afocal:label'])
+        expect(service.getChange('diagram:legendEntry:node%3Afocal:label')).toMatchObject({
+            category: 'field',
+            field: 'label',
+            objectId: 'node:focal',
+            objectKind: 'legendEntry',
+            originalValue: 'Service',
+            value: 'Order service',
+        })
+        expect(service.getDirtySnapshot()).toBe(true)
+
+        service.setLegendEntryLabel('node:focal', 'Service')
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(service.getDirtySnapshot()).toBe(false)
+
+        service.addLegendEntry({ role: 'external' })
+        expect(service.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:membership:node%3Aexternal'])
+        expect(service.getChange('diagram:legendEntry:membership:node%3Aexternal')).toMatchObject({
+            category: 'membership',
+            field: 'legend',
+            objectId: 'node:external',
+            objectKind: 'legendEntry',
+            originalValue: false,
+            ownerId: 'diagram',
+            value: true,
+        })
+
+        service.removeLegendEntry('node:external')
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+
+        service.moveLegendEntry('connection:connection', 0)
+        expect(service.getChangeIdsSnapshot()).toEqual([
+            'diagram:legendEntry:node%3Afocal:order',
+            'diagram:legendEntry:node%3Astore:order',
+            'diagram:legendEntry:connection%3Aconnection:order',
+        ])
+        expect(service.getChange('diagram:legendEntry:connection%3Aconnection:order')).toMatchObject({
+            category: 'field',
+            field: 'order',
+            originalValue: 2,
+            value: 0,
+        })
+    })
+
+    it('treats removing one entry as membership only, not as reordering the rest', () => {
+        const service = legendHarness()
+
+        service.removeLegendEntry('node:focal')
+
+        expect(service.getChangeIdsSnapshot()).toEqual(['diagram:legendEntry:membership:node%3Afocal'])
+    })
+
+    it('discards legend state and its changes when the session ends', () => {
+        const service = legendHarness()
+        service.setLegendEntryLabel('node:focal', 'Order service')
+
+        service.discard()
+
+        expect(service.getLegendEntryKeysSnapshot()).toEqual([])
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+        expect(() => service.addLegendEntry({ role: 'focal' })).toThrow('session is not active')
+    })
+
+    it('fails fast when a legend entry is addressed without an active session or entry', () => {
+        const { service } = createHarness()
+
+        expect(() => service.setLegendEntryLabel('node:focal', 'Service')).toThrow('session is not active')
+        service.start()
+        expect(() => service.setLegendEntryLabel('node:focal', 'Service')).toThrow('legend entry node:focal does not exist')
     })
 
     it('fails fast when field assignment has no active session or owner', () => {

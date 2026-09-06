@@ -167,6 +167,7 @@ describe('DiagramToolbox', () => {
         expect(screen.getByRole('button', { name: 'Paste' })).toBeEnabled();
         expect(screen.getByRole('button', { name: 'Cut' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Review' })).toBeEnabled();
 
         fireEvent.mouseOver(screen.getByRole('tab', { name: 'Nodes' }));
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Nodes');
@@ -183,6 +184,16 @@ describe('DiagramToolbox', () => {
 
         fireEvent.click(screen.getByRole('tab', { name: 'Groups' }));
         expect(screen.getByRole('button', { name: 'Group' })).toBeInTheDocument();
+    });
+
+    it('opens diagram change review from Edit', () => {
+        const review = { open: vi.fn(() => true) };
+        const session = new ToolboxSessionStub();
+        render(<DiagramToolbox boundaryElement={createBoundary()} review={review} session={session} />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Review' }));
+
+        expect(review.open).toHaveBeenCalledOnce();
     });
 
     it('opens diagram metadata details from Others', () => {

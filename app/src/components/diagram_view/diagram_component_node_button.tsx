@@ -56,7 +56,7 @@ export function DiagramComponentNodeButton({
     session = diagramEditSessionService,
 }: DiagramComponentNodeButtonProps) {
     const diagramType = useDiagramType(session);
-    const activeTool = useActiveDiagramTool(session);
+    const activeTool = useActiveDiagramTool(session, 'node:component');
     const handleActivate = useCallback(() => {
         placement.activate(COMPONENT_NODE_DEFINITION);
     }, [placement]);
@@ -65,7 +65,7 @@ export function DiagramComponentNodeButton({
 
     return (
         <DiagramToolboxButton
-            active={activeTool === 'node:component'}
+            active={activeTool}
             label="Component"
             onActivate={handleActivate}
             tooltip="Place component node"
