@@ -1112,10 +1112,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "48eca8bf-b156-40bb-99cf-134b5d6fa640",
       "cardPath": "design/feature_descriptions/F_338_show_questions_after_agent_closed.md",
-      "completedAt": "2026-09-06T15:16:38.706Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 124017
+        "usedTokens": 138987
       },
       "entries": [
         {
@@ -4396,6 +4396,101 @@
           "role": "assistant",
           "sequence": 254,
           "timestamp": "2026-09-06T15:16:38.706Z"
+        },
+        {
+          "content": "i have a conversation that was in state 'waitingForInput' and shows a `askuserquestion` event before this feature was implemented. how come it doesn't show the question box when the conversation is opened?",
+          "id": "agent-turn-1d223194-3ea7-4434-9f80-615b1296dd2d-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 255,
+          "timestamp": "2026-09-06T15:34:06.269Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-1d223194-3ea7-4434-9f80-615b1296dd2d-event-256",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0288b08c8f7664a5016a9d87f2499c87d2b3136216e8d19425",
+          "sequence": 256,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:34:12.949Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Checking stored entry shape and restoration selector. Likely migration gap: feature restores only new `agentQuestion` entries carrying structured `questions`, not older `askuserquestion` transcript events.\n\n",
+          "id": "agent-turn-1d223194-3ea7-4434-9f80-615b1296dd2d-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 257,
+          "timestamp": "2026-09-06T15:34:13.821Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -ni -C 8 'askuserquestion|\\\"status\\\"\\\\s*:\\\\s*\\\"waitingForInput\\\"' design/activity; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat_selectors.ts'; \"'$lines = Get-Content '\"'shared\\\\agent_conversations.mjs'; \"'$lines[95..190]'",
+          "content": "import type { AgentConversation } from '../../../data/data_types'\nimport type { ActionRun } from '../../../services/actions/action_run_registry'\n\n/** Keeps acknowledgement data stable while unrelated conversation fields stream. */\nexport function createAcknowledgementConversationSelector() {\n    let selectedConversation: AgentConversation | null = null\n\n    return (run: ActionRun | null) => {\n        const conversation = run?.conversation ?? null\n        if (!conversation) {\n            selectedConversation = null\n            return null\n        }\n        const previousConversation = selectedConversation\n        if (\n            previousConversation !== null\n            && previousConversation.id === conversation.id\n            && previousConversation.path === conversation.path\n            && previousConversation.viewed === conversation.viewed\n        ) return selectedConversation\n\n        selectedConversation = conversation\n        return selectedConversation\n    }\n}\n\n/**\n * Questions of a conversation that is still waiting on them: the trailing `agentQuestion` entry.\n * Answering appends a user message and dismissing appends `questionsDismissed`, so a resolved question\n * is never the last entry.\n */\nexport function pendingConversationQuestions(conversation: AgentConversation | null) {\n    if (!conversation || conversation.status !== 'waitingForInput') return null\n    const lastEntry = conversation.entries.at(-1)\n    if (!lastEntry || lastEntry.kind !== 'event' || lastEntry.type !== 'agentQuestion') return null\n\n    return lastEntry.questions?.length ? lastEntry.questions : null\n}\n\r\nfunction normalizeQuestionOption(value) {\r\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\r\n    const label = optionalString(value.label);\r\n    if (!label) return null;\r\n    const description = optionalString(value.description);\r\n\r\n    return { ...(description ? { description } : {}), label };\r\n}\r\n\r\nfunction normalizeQuestion(value) {\r\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\r\n    const header = optionalString(value.header);\r\n    const id = optionalString(value.id);\r\n    const question = optionalString(value.question);\r\n    if (!header || !id || !question) return null;\r\n    if (value.isSecret !== undefined && typeof value.isSecret !== 'boolean') return null;\r\n    if (value.options !== undefined && value.options !== null && !Array.isArray(value.options)) return null;\r\n    const options = Array.isArray(value.options)\r\n        ? value.options.map(normalizeQuestionOption)\r\n        : null;\r\n    if (options?.some((option) => option === null)) return null;\r\n\r\n    return {\r\n        header,\r\n        id,\r\n        ...(typeof value.isSecret === 'boolean' ? { isSecret: value.isSecret } : {}),\r\n        ...(options ? { options } : {}),\r\n        question,\r\n    };\r\n}\r\n\r\n/** Structured questions of an `agentQuestion` entry, so a pending question survives a restart. */\r\nfunction optionalQuestions(value) {\r\n    if (value === undefined) return null;\r\n    if (!Array.isArray(value) || value.length === 0) {\r\n        throw new Error('Malformed agent conversation: invalid event.questions');\r\n    }\r\n    const questions = value.map(normalizeQuestion);\r\n    const invalidIndex = questions.findIndex((question) => question === null);\r\n    if (invalidIndex >= 0) {\r\n        throw new Error(`Malformed agent conversation: invalid event.questions[${invalidIndex}]`);\r\n    }\r\n\r\n    return questions;\r\n}\r\n\r\nfunction normalizeMessage(value) {\r\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\r\n    if (!AGENT_MESSAGE_ROLES.has(value.role)) return null;\r\n    if (typeof value.content !== 'string') return null;\r\n    const id = optionalString(value.id);\r\n    const timestamp = optionalString(value.timestamp);\r\n    if (!id || !timestamp) return null;\r\n    const agent = optionalString(value.agent);\r\n    const sequence = optionalInteger(value.sequence);\r\n\r\n    return {\r\n        ...(agent ? { agent } : {}),\r\n        content: value.content,\r\n        id,\r\n        kind: 'message',\r\n        role: value.role,\r\n        ...(sequence !== null ? { sequence } : {}),\r\n        timestamp,\r\n    };\r\n}\r\n\r\nfunction normalizeEvent(value) {\r\n    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;\r\n    if (typeof value.content !== 'string') return null;\r\n    const id = optionalString(value.id);\r\n    const timestamp = optionalString(value.timestamp);\r\n    const type = optionalString(value.type);\r\n    if (!id || !timestamp || !type) return null;\r\n    const command = optionalString(value.command);\r\n    const content = value.type === 'commandExecution' || value.type === 'tool.result'\r\n        ? boundedAgentResult(value.content)\r\n        : value.content;\r\n    const deletions = optionalNonNegativeInteger(value.deletions);\r\n    const details = optionalStringArray(value.details);\r\n    const durationMs = optionalNumber(value.durationMs);\r\n    const exitCode = optionalInteger(value.exitCode);\r\n    const insertions = optionalNonNegativeInteger(value.insertions);\r\n    const label = optionalString(value.label);\r\n    const output = value.type !== 'commandExecution' && typeof value.output === 'string'\r\n        ? boundedAgentResult(value.output)\r\n        : null;\r\n    const parentItemId = optionalString(value.parentItemId);\r\n    const providerItemId = optionalString(value.providerItemId);\r\n    const questions = optionalQuestions(value.questions);\r\n    const runningSubThreads = optionalNonNegativeInteger(value.runningSubThreads);\r\n    const sequence = optionalInteger(value.sequence);\r\n    const status = optionalString(value.status);\r\n    const summary = optionalStringArray(value.summary);\r\n    const workingDirectory = optionalString(value.workingDirectory);\r\n\r\n",
+          "durationMs": 24,
+          "exitCode": 0,
+          "id": "agent-turn-1d223194-3ea7-4434-9f80-615b1296dd2d-event-258",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -ni -C 8 'askuserquestion|\\\"status\\\"\\\\s*:\\\\s*\\\"waitingForInput\\\"' design/activity; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\conversation\\\\action_conversation_chat_selectors.ts'; \"'$lines = Get-Content '\"'shared\\\\agent_conversations.mjs'; \"'$lines[95..190]'",
+          "providerItemId": "exec-c2d19a37-647a-425a-8c7e-b71c0c13a307",
+          "sequence": 258,
+          "status": "completed",
+          "timestamp": "2026-09-06T15:34:16.967Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-1d223194-3ea7-4434-9f80-615b1296dd2d-event-259",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0288b08c8f7664a5016a9d87fa41b087d2a9487cc94683ba5b",
+          "sequence": 259,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:34:22.985Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$activityFiles = Get-ChildItem -LiteralPath '\"'design\\\\activity' -Filter '*.json' -File; foreach (\"'$activityFile in $activityFiles) { $activity = Get-Content -Raw -LiteralPath $activityFile.FullName | ConvertFrom-Json; foreach ($conversation in $activity.conversations) { if ($conversation.status -ne '\"'waitingForInput') { continue }; \"'$lastEntry = $conversation.entries[-1]; if ($lastEntry.type -notmatch '\"'AskUserQuestion|agentQuestion' -and \"'$lastEntry.label -notmatch '\"'AskUserQuestion') { continue }; [PSCustomObject]@{ File = \"'$activityFile.Name; ConversationId = $conversation.id; EntryType = $lastEntry.type; EntryStatus = $lastEntry.status; HasQuestions = $null -ne $lastEntry.questions; Content = $lastEntry.content } | ConvertTo-Json -Compress } }'",
+          "content": "{\"File\":\"card__334525ff-6818-4450-8c04-b63d4c9886f1.json\",\"ConversationId\":\"agent-e8579c7b-8b47-48e2-82cc-3088dae0f304\",\"EntryType\":\"tool.AskUserQuestion\",\"EntryStatus\":\"inProgress\",\"HasQuestions\":false,\"Content\":\"{\\\"questions\\\":[{\\\"question\\\":\\\"How should the card run lock change?\\\",\\\"header\\\":\\\"Lock scope\\\",\\\"multiSelect\\\":false,\\\"options\\\":[{\\\"label\\\":\\\"Key lock on worktree, keep serialization\\\",\\\"description\\\":\\\"Lock on repositoryRoot+worktree instead of card. Runs in different worktrees run in parallel; runs sharing one working copy still serialize. Waiting-for-input still holds the lock in that shared case, so add the visibility fix too.\\\"},{\\\"label\\\":\\\"Release lock while waitingForInput\\\",\\\"description\\\":\\\"Keep the card lock but drop it whenever the agent sits in waitingForInput, re-acquiring before the next turn. Maximum freedom, but two agents can then commit into one working copy interleaved.\\\"},{\\\"label\\\":\\\"Remove the card lock entirely\\\",\\\"description\\\":\\\"Any number of runs on a card start immediately. Simplest, matches \\u0027remove restriction\\u0027 literally; accepts concurrent commits and autoFinish races in one working copy.\\\"}]},{\\\"question\\\":\\\"What should a run that is still blocked do?\\\",\\\"header\\\":\\\"Blocked run UX\\\",\\\"multiSelect\\\":false,\\\"options\\\":[{\\\"label\\\":\\\"Show blocker + offer finish/cancel\\\",\\\"description\\\":\\\"Queued run displays which action/conversation holds the lock, with a control to finish or cancel that blocker from the popup.\\\"},{\\\"label\\\":\\\"Refuse to start with a clear error\\\",\\\"description\\\":\\\"Instead of queueing, startAction fails immediately naming the blocking action, so nothing silently hangs.\\\"},{\\\"label\\\":\\\"Leave queue behaviour as is\\\",\\\"description\\\":\\\"Only fix the lock scope; queued runs stay silent.\\\"}]}]}\"}\r\n{\"File\":\"card__526d5eb3-f1f1-4d3e-a65f-a5721d69a23c.json\",\"ConversationId\":\"agent-a906745e-0b8d-479b-9570-9568a8638bfd\",\"EntryType\":\"tool.AskUserQuestion\",\"EntryStatus\":\"inProgress\",\"HasQuestions\":false,\"Content\":\"{\\\"questions\\\":[{\\\"question\\\":\\\"Where does emoji picker open from? Editor has no right-click context menu today; only toolbar controls (e.g. MarkdownPlaceholderToolbarControl).\\\",\\\"header\\\":\\\"Entry point\\\",\\\"multiSelect\\\":false,\\\"options\\\":[{\\\"label\\\":\\\"Toolbar button (Recommended)\\\",\\\"description\\\":\\\"Add toolbar IconButton opening emoji popup, mirroring MarkdownPlaceholderToolbarControl. No new right-click infrastructure. Smallest change.\\\"},{\\\"label\\\":\\\"Right-click context menu\\\",\\\"description\\\":\\\"Build new right-click context menu on the editor content area, emoji entry inside it. New infrastructure, matches literal wording of the feature and pairs with F_237.\\\"},{\\\"label\\\":\\\"Both\\\",\\\"description\\\":\\\"Toolbar button plus right-click context menu, sharing one popup component. Bigger scope.\\\"}]},{\\\"question\\\":\\\"Emoji data source?\\\",\\\"header\\\":\\\"Emoji data\\\",\\\"multiSelect\\\":false,\\\"options\\\":[{\\\"label\\\":\\\"Bundled curated JSON (Recommended)\\\",\\\"description\\\":\\\"Ship a static emoji list (char + name + keywords + group) in repo. No new dependency, fits simple/free/open-source constraint. You choose list size (~1500 common emojis).\\\"},{\\\"label\\\":\\\"New npm dependency\\\",\\\"description\\\":\\\"Add emoji picker library (e.g. emoji-mart / emoji-picker-react). Full dataset + skin tones, but adds dependency weight and its own styling.\\\"}]},{\\\"question\\\":\\\"Also add caret typeahead trigger (type `:smi` â†’ suggestions), like `{{` for placeholders?\\\",\\\"header\\\":\\\"Typeahead\\\",\\\"multiSelect\\\":false,\\\"options\\\":[{\\\"label\\\":\\\"No, popup only (Recommended)\\\",\\\"description\\\":\\\"Scope stays as written in feature: popup selection only. Typeahead can be separate feature later.\\\"},{\\\"label\\\":\\\"Yes, add `:` typeahead too\\\",\\\"description\\\":\\\"Add emoji typeahead plugin alongside popup, reusing markdown_placeholder_typeahead_plugin pattern. Larger scope, risk of firing on ordinary colons.\\\"}]},{\\\"question\\\":\\\"Status value? Existing ready docs use `status: ready`, but you asked for `ready for implementation`.\\\",\\\"header\\\":\\\"Status value\\\",\\\"multiSelect\\\":false,\\\"options\\\":[{\\\"label\\\":\\\"ready (Recommended)\\\",\\\"description\\\":\\\"Match the 7 existing docs that use `status: ready`. Consistent with repo convention.\\\"},{\\\"label\\\":\\\"ready for implementation\\\",\\\"description\\\":\\\"Literal value you asked for. Introduces a new status string not used elsewhere.\\\"}]}]}\"}\r\n{\"File\":\"card__96236df6-2c3a-4846-9d52-f29b7ee9041d.json\",\"ConversationId\":\"agent-534217a3-07dd-46f7-8bd3-14040caa642f\",\"EntryType\":\"tool.AskUserQuestion\",\"EntryStatus\":\"inProgress\",\"HasQuestions\":false,\"Content\":\"{\\\"questions\\\":[{\\\"question\\\":\\\"Feature list names \\\\\\\"create card\\\\\\\" and \\\\\\\"Release\\\\\\\", but telemetry already emits create_card (card_operations.ts:112) and complete_release (release_operations.ts:308). What should F_180 add?\\\",\\\"header\\\":\\\"Scope\\\",\\\"options\\\":[{\\\"label\\\":\\\"Only the 3 missing (Recommended)\\\",\\\"description\\\":\\\"Add create_action, add_worktree, run_action. Note in doc that create_card and complete_release already exist, no change.\\\"},{\\\"label\\\":\\\"Also start_release event\\\",\\\"description\\\":\\\"Add the 3 missing plus a separate event when a release is started/created, not only when completed.\\\"},{\\\"label\\\":\\\"Also release outcome\\\",\\\"description\\\":\\\"Add the 3 missing plus a release-failed event, so success vs failure ratio is visible.\\\"}],\\\"multiSelect\\\":false},{\\\"question\\\":\\\"When should run_action fire?\\\",\\\"header\\\":\\\"Run action\\\",\\\"options\\\":[{\\\"label\\\":\\\"Every start, incl. auto runs (Recommended)\\\",\\\"description\\\":\\\"Fire in runElectronAction once Electron returns a runId. Covers popup runs, state-trigger auto runs, remarkable convert. Restarts/continuations excluded.\\\"},{\\\"label\\\":\\\"Every start + restarts\\\",\\\"description\\\":\\\"Also fire from restartElectronAction, so continued runs count as separate runs.\\\"},{\\\"label\\\":\\\"Only interactive runs\\\",\\\"description\\\":\\\"Only user-triggered popup runs; unattended/auto runs stay unlogged.\\\"}],\\\"multiSelect\\\":false},{\\\"question\\\":\\\"When should create_action fire? Two creation paths exist: menu \\\\\\\"New action\\\\\\\" (actionService.createDefinition, editor opens, saved later) and promptâ†’action conversion (action_popup_defaults.ts:114).\\\",\\\"header\\\":\\\"Create action\\\",\\\"options\\\":[{\\\"label\\\":\\\"On first successful save (Recommended)\\\",\\\"description\\\":\\\"Fire in saveDefinition when the action file is new to the service. Matches existing \\\\\\\"log after persistence succeeds\\\\\\\" rule; covers both paths.\\\"},{\\\"label\\\":\\\"On definition creation\\\",\\\"description\\\":\\\"Fire immediately in createDefinition/createActionDefinition, even if the user never saves.\\\"}],\\\"multiSelect\\\":false}]}\"}\r\n",
+          "durationMs": 1716,
+          "exitCode": 0,
+          "id": "agent-turn-1d223194-3ea7-4434-9f80-615b1296dd2d-event-260",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$activityFiles = Get-ChildItem -LiteralPath '\"'design\\\\activity' -Filter '*.json' -File; foreach (\"'$activityFile in $activityFiles) { $activity = Get-Content -Raw -LiteralPath $activityFile.FullName | ConvertFrom-Json; foreach ($conversation in $activity.conversations) { if ($conversation.status -ne '\"'waitingForInput') { continue }; \"'$lastEntry = $conversation.entries[-1]; if ($lastEntry.type -notmatch '\"'AskUserQuestion|agentQuestion' -and \"'$lastEntry.label -notmatch '\"'AskUserQuestion') { continue }; [PSCustomObject]@{ File = \"'$activityFile.Name; ConversationId = $conversation.id; EntryType = $lastEntry.type; EntryStatus = $lastEntry.status; HasQuestions = $null -ne $lastEntry.questions; Content = $lastEntry.content } | ConvertTo-Json -Compress } }'",
+          "providerItemId": "exec-94fa7769-ae5a-4e68-b2a1-485b46f52efa",
+          "sequence": 260,
+          "status": "completed",
+          "timestamp": "2026-09-06T15:34:28.855Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-1d223194-3ea7-4434-9f80-615b1296dd2d-event-261",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0288b08c8f7664a5016a9d8805b3b887d2bc1cdb728ff383b9",
+          "sequence": 261,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:34:39.498Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Because feature is forward-only. Your old conversations contain:\n\n- `type: \"tool.AskUserQuestion\"`\n- Questions encoded as JSON inside `content`\n- No structured `questions` field\n\nRestoration selector requires last entry to be:\n\n```text\ntype: \"agentQuestion\"\nquestions: [...]\n```\n\nSee [selector](C:/Users/janbo/Documents/dev/md2/app/src/components/actions/conversation/action_conversation_chat_selectors.ts:32).\n\nI found three affected waiting conversations, including `card__334525ff...json`. So old records are not migrated or recognized. New questions work; pre-feature questions do not.\n\nFix needs explicit legacy migration: parse trailing `tool.AskUserQuestion.content`, validate questions, generate IDs, and normalize it into restorable question data. Current task did not request backward compatibility, so none was added.\n\nSkill: [caveman](C:/Users/janbo/Documents/dev/md2/.agents/skills/caveman/SKILL.md).\n\n",
+          "id": "agent-turn-1d223194-3ea7-4434-9f80-615b1296dd2d-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 262,
+          "timestamp": "2026-09-06T15:34:44.306Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -4417,18 +4512,18 @@
         }
       ],
       "startedAt": "2026-09-06T14:51:33.702Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "elapsedMs": 1221628,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-06T15:34:06.269Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 6227455,
-        "inputTokens": 121736,
-        "outputTokens": 25306,
-        "reasoningTokens": 7792,
-        "totalTokens": 6382289,
+        "cachedInputTokens": 6611199,
+        "inputTokens": 136919,
+        "outputTokens": 25953,
+        "reasoningTokens": 8452,
+        "totalTokens": 6782523,
         "costUsd": 1.6575129999999998
       },
       "usageSchemaVersion": 1,
@@ -4507,11 +4602,11 @@
         "agent-25b1094a-4a7a-4e33-a8c4-21ba8640dc3b"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-398fbeba-8bb6-4d75-baec-44d22114555b",
       "origin": {
@@ -4520,9 +4615,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-25b1094a-4a7a-4e33-a8c4-21ba8640dc3b",
       "startedAt": "2026-09-06T15:04:18.569Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-25b1094a-4a7a-4e33-a8c4-21ba8640dc3b"
     }
   ],
   "version": 5
