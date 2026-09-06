@@ -3,7 +3,7 @@ author:
 id: F_338
 internalId: 48eca8bf-b156-40bb-99cf-134b5d6fa640
 title: show questions after agent closed
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,15 @@ agents:
 policy:
 changedFiles:
   - app/src/components/actions/agent/action_agent_question_owner.tsx
+  - app/src/components/actions/agent/action_prompt_owner.tsx
+  - app/src/components/actions/run/popup/action_agent_interaction.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
+  - app/src/services/data/remote_control_storage_service.node.test.ts
+  - desktop/src/actions/activity/activity_files.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.test.mjs
+  - shared/agent_conversations.mjs
 ---
 
 When an agent asked a question, we show a box with the questions. this works ok. only problem, when we close the application and open it again (so the agent has stopped), we don't show the questions anymore.
