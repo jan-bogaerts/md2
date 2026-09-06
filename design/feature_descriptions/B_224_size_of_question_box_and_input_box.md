@@ -3,7 +3,7 @@ author:
 id: B_224
 internalId: fa429997-fee2-4e1d-a21f-3ea586ab12ae
 title: size of question box and input box
-status: new
+status: design
 owner: 
 affects:
 agents:
