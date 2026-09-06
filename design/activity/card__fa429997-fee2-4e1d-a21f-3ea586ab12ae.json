@@ -734,7 +734,304 @@
         "totalTokens": 846024
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "fa429997-fee2-4e1d-a21f-3ea586ab12ae",
+      "cardPath": "design/feature_descriptions/B_224_size_of_question_box_and_input_box.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 48441
+      },
+      "entries": [
+        {
+          "content": "I read this in design/feature_descriptions/B_224_size_of_question_box_and_input_box.md:\n\n>  When a structured agent question is pending, \n>\n> `ActionPromptOwner`\n>\n>  passes \n>\n> `ActionAgentQuestion`\n>\n>  into \n>\n> `ActionAgentPrompt`\n>\n>  as \n>\n> `questionsPanel`\n>\n> .\n\nso, we are passing a component again as a property? this is not allowed, include a refactor instruction to fix this.",
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-06T15:07:46.946Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-2",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fdfc816a884dc6e016a9d81c6a43087d29ef5150ac7eadcb0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:07:51.744Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll trace the current `ActionPromptOwner` / `ActionAgentPrompt` relationship and the surrounding component conventions, then update the feature description with a concrete ownership refactor instruction.\n\n",
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 3,
+          "timestamp": "2026-09-06T15:07:52.607Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -C 5 \"questionsPanel|ActionPromptOwner|ActionAgentQuestion|ActionAgentPrompt\" design app desktop'",
+          "content": "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-32-    reference: string\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-33-}\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-34-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-35-export interface ActionStartRequest {\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-36-    actionId: string\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts:37:    conversationReservation?: AgentConversationReservation\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-38-    context: ActionContext\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-39-    runInput: ActionRunInput\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-40-}\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-41-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-42-export interface AgentQuestionOption {\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-43-    description?: string\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-44-    label: string\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-45-}\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n--\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-104-    reason?: string | null\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-105-    requestId: AgentApprovalRequestId\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-106-    startedAtMs: number\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-107-    threadId?: string\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-108-    toolName?: string | null\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-109-    turnId?: string\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-110-}\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-111-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts:112:interface ActionRunEventBase {\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_types.ts-113-    actionId: string\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\data\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\action_run_type\n[1040405 characters omitted]\n await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\components\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\project_workspace.test.tsx:512:    it('creates the configured folder only after the explicit create action', async () => {\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\components\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\project_workspace.test.tsx:516:        bridge.loadProjectConfig = vi.fn(async () => ({ backgroundShade: 'blue' as const, projectFolder: '', workingFolder: 'missing' }))\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\components\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\project_workspace.test.tsx:543:        await waitFor(() => expect(bridge.saveProjectConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ workingFolder: 'missing' })))\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\components\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\project_workspace.test.tsx:565:    it('shows card creation failures in the new card dialog', async () => {\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\components\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\project_workspace.test.tsx:583:        expect(screen.getByRole('dialog', { name: 'New card' })).toBeInTheDocument()\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\components\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\project_workspace.test.tsx:586:    it('lists custom configured card types and uses their prefix', async () => {\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\components\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\project_workspace.test.tsx:588:        bridge.loadProjectConfig = vi.fn(async () => ({\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\components\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\project_workspace.test.tsx:765:        const dialog = screen.getByRole('dialog', { name: 'Delete card' })\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\components\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\project_workspace.test.tsx:766:        fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\napp\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\",\ndesign\\releases\\0_1_0\\card__9df160a1-c669-422b-aea5-da5655c12134.json-1270-          \"providerItemId\": \"exec-1f115892-78c7-4ca3-8597-a24ec2338de1\",\ndesign\\releases\\0_1_0\\card__9df160a1-c669-422b-aea5-da5655c12134.json-1271-          \"sequence\": 28,\ndesign\\releases\\0_1_0\\card__9df160a1-c669-422b-aea5-da5655c12134.json-1272-          \"status\": \"completed\",\ndesign\\releases\\0_1_0\\card__9df160a1-c669-422b-aea5-da5655c12134.json-1273-          \"timestamp\": \"2026-08-04T18:28:00.590Z\",\ndesign\\releases\\0_1_0\\card__9df160a1-c669-422b-aea5-da5655c12134.json-1274-          \"type\": \"commandExecution\",\n",
+          "durationMs": 669,
+          "exitCode": 0,
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-4",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -C 5 \"questionsPanel|ActionPromptOwner|ActionAgentQuestion|ActionAgentPrompt\" design app desktop'",
+          "providerItemId": "exec-17e82558-7047-4d22-b956-bf46b2586c2f",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-09-06T15:07:55.605Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-5",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fdfc816a884dc6e016a9d81cbcf1c87d2bc96ce485b2126c3",
+          "sequence": 5,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:07:56.830Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\B_224_size_of_question_box_and_input_box.md'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\agent\\\\action_prompt_owner.tsx'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_prompt.tsx'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_agent_interaction.tsx'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_question_owner.tsx'\"",
+          "content": "---\nauthor: \nid: B_224\ninternalId: fa429997-fee2-4e1d-a21f-3ea586ab12ae\ntitle: size of question box and input box\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__fa429997-fee2-4e1d-a21f-3ea586ab12ae.json\npolicy:\n---\n\nthe way that the size of the question box and the input box is managed currently on the action popup, is a bit broken. Currently, as soon as you touch the resize bar (above the input box), the question box goes to minimum size and wont recover anymore. this is a problem.\n\nit should work like this:\n\n* when user enters text in input box, this becomes primary so question box goes to minimum size, the rest is for the input box.\n* when user clicks on any location on the question box (so it gets focus), this becomes primary and the input box should go to minimum size while the question box uses the remainder of the space.\n\n# Current state\n\n* `ActionAgentInteraction` renders conversation, then `ActionPromptOwner`. When a structured agent question is pending, `ActionPromptOwner` passes `ActionAgentQuestion` into `ActionAgentPrompt` as `questionsPanel`.\n* `ActionAgentPrompt` owns one bottom block containing prompt input and pending structured-question panel. Resize bar above that block changes total block height; it does not record which inner region user is working in.\n* Prompt has 72px minimum. Question panel has 96px minimum. Current allocation preserves stored prompt height and gives question panel remaining height. Shrinking block therefore reduces question panel first; after it reaches minimum, later interaction with question panel does not make it grow again.\n* Typing only updates prompt draft and empty-prompt layout. Clicking or focusing question panel only operates its controls. Neither interaction changes height allocation.\n* Total bottom-block height is stored as `md2.actionQuestionsBlockHeight`. Prompt-only height is stored separately as `md2.actionPromptHeight`. Chat keeps 96px minimum, and an initially unsized question panel remains capped at 40% of agent column.\n\n# Implementation details\n\nTerminology: **primary region** means region receiving bottom-block height left after other region is held at its minimum. It does not change answer state, submit anything, or move focus away from clicked control.\n\n* Extend sizing logic in `ActionAgentPrompt`; no caller needs different behavior. While question is pending, track whether prompt or question panel is primary. Question panel is primary when it first appears.\n* A live prompt edit whose value is non-empty after trimming makes prompt primary. Hold question panel at `MIN_QUESTIONS_HEIGHT` and give prompt remainder, never below `MIN_PROMPT_HEIGHT`.\n* Pointer-down anywhere in question region, including padding and child controls, makes question panel primary. Focus entering any question control does same for keyboard users. Do not prevent normal button, select, text-field, or focus behavior. Hold prompt at `MIN_PROMPT_HEIGHT` and give question panel remainder, never below `MIN_QUESTIONS_HEIGHT`.\n* Switching primary region immediately recalculates both rendered heights from current bottom-block height. If block is still unsized, measure and clamp its current height first. This prevents switch itself from changing total space reserved against chat.\n* Dragging or keyboard-resizing bar changes total bottom-block height while preserving primary region. Remainder continues going to primary region throughout resize, so touching bar cannot permanently pin question panel to minimum.\n* Keep existing total-block bounds, initial 40% question cap, internal question scrolling, 24px keyboard resize step, separator accessibility, and `md2.actionQuestionsBlockHeight` persistence. Do not persist primary region. When question disappears, prompt-only sizing and `md2.actionPromptHeight` behavior remain unchanged.\n* Update `action_agent_prompt.test.tsx`. Replace old question-first shrink expectation with primary-region allocation coverage. Keep `action_agent_question.grouped.test.tsx` coverage for question cap and scrolling.\n\n# Accept\n[26552 characters omitted]\n    },\n            questions: restoredQuestions,\n        }\n        : null\n    const visible = action.type === 'agent' || activeActionType === 'agent'\n    const displayedUsageValuesService = action.type === 'agent'\n        && assignmentContext.kind === 'card'\n        && !!assignmentContext.file\n        && !!assignmentContext.cardInternalId\n        ? usageValuesService\n        : undefined\n\n    if (!visible) return null\n\n    return (\n        <Stack sx={{ display: 'contents' }}>\n            <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>\n                <ActionLogErrorOwner bindingStore={bindingStore} resultStore={resultStore} />\n                <ActionConversationChat\n                    actionId={action.id}\n                    bindingStore={bindingStore}\n                    context={assignmentContext}\n                    popupEntryId={popupEntryId}\n                    store={conversationStore}\n                    usageValuesService={displayedUsageValuesService}\n                />\n                <ActionPromptOwner\n                    action={action}\n                    bindingStore={bindingStore}\n                    context={assignmentContext}\n                    conversationStore={conversationStore}\n                    historyStore={historyStore}\n                    inputStore={inputStore}\n                    questionsPanel={question || restored\n                        ? <ActionAgentQuestionOwner bindingStore={bindingStore} restored={restored} />\n                        : null}\n                    settingsStore={settingsStore}\n                    resultStore={resultStore}\n                    runValidationError={runValidationError}\n                    scheduleStore={scheduleStore}\n                />\n                <ActionAgentApprovals bindingStore={bindingStore} />\n            </Stack>\n        </Stack>\n    )\n}\n\r\nimport type { AgentQuestion } from '../../../data/data_types'\nimport { answerActionQuestion, dismissActionQuestions } from '../../../services/actions/action_run_registry'\nimport { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'\nimport { ActionAgentQuestion } from './action_agent_question'\nimport type { ActionRunBindingStore } from '../run/state/action_run_binding_store'\n\n/** A question read back from a stored conversation after the agent process is gone. */\nexport interface RestoredAgentQuestions {\n    onAnswer: (questions: AgentQuestion[], answers: Record<string, string[]>) => Promise<void>\n    onDismiss: () => Promise<void>\n    questions: AgentQuestion[]\n}\n\ninterface ActionAgentQuestionOwnerProps {\n    bindingStore: ActionRunBindingStore\n    restored?: RestoredAgentQuestions | null\n}\n\n/** Subscribes structured-question UI only to its bound run, falling back to a restored stored question. */\nexport function ActionAgentQuestionOwner({ bindingStore, restored = null }: ActionAgentQuestionOwnerProps) {\n    const boundRunId = useBoundRunId(bindingStore)\n    const question = useRunSelector(boundRunId, (run) => run?.question ?? null)\n\n    const handleAnswer = async (answers: Record<string, string[]>) => {\n        if (!question) {\n            if (!restored) throw new Error('Missing pending agent question for answer')\n\n            await restored.onAnswer(restored.questions, answers)\n            return\n        }\n        if (!boundRunId) throw new Error('Missing active action run for question answer')\n\n        await answerActionQuestion(boundRunId, question.requestId, answers)\n    }\n\n    const handleDismiss = async () => {\n        if (!question) {\n            if (!restored) throw new Error('Missing pending agent question for dismissal')\n\n            await restored.onDismiss()\n            return\n        }\n        if (!boundRunId) throw new Error('Missing active action run for question dismissal')\n\n        await dismissActionQuestions(boundRunId, question.requestId)\n    }\n\n    const questions = question?.questions ?? restored?.questions ?? null\n\n    return questions\n        ? <ActionAgentQuestion onAnswer={handleAnswer} onDismiss={handleDismiss} questions={questions} />\n        : null\n}\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-6",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\B_224_size_of_question_box_and_input_box.md'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\agent\\\\action_prompt_owner.tsx'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_prompt.tsx'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\action_agent_interaction.tsx'; Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\agent\\\\action_agent_question_owner.tsx'\"",
+          "providerItemId": "exec-5947cce0-1e13-4a9b-9683-ca7923051e27",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-09-06T15:08:00.218Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-7",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fdfc816a884dc6e016a9d81d13fa487d29dd36814f54fda10",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:08:06.583Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n --glob '\"'!design/activity/**'\"' --glob '\"'!design/releases/**'\"' \\\"<ActionPromptOwner|<ActionAgentPrompt|questionsPanel|responsePrompts|bottomRow\\\" app\\\\src design\\\\feature_descriptions\"",
+          "content": "design\\feature_descriptions\\B_224_size_of_question_box_and_input_box.md:23:* `ActionAgentInteraction` renders conversation, then `ActionPromptOwner`. When a structured agent question is pending, `ActionPromptOwner` passes `ActionAgentQuestion` into `ActionAgentPrompt` as `questionsPanel`.\ndesign\\feature_descriptions\\J_39_size_of_questions_box.md:36:* `ActionAgentInteraction` stops rendering `ActionAgentQuestionOwner` as a sibling of the prompt. It reads the pending question with `useRunSelector(boundRunId, (run) => run?.question ?? null)` and passes `questionsPanel={question ? <ActionAgentQuestionOwner bindingStore={bindingStore} /> : null}` to `ActionPromptOwner`, which forwards it unchanged to `ActionAgentPrompt`. Approvals stay where they are.\ndesign\\feature_descriptions\\J_39_size_of_questions_box.md:37:* `ActionAgentPrompt` wraps the prompt editor box and `questionsPanel` in one bottom-block `Box` (`display: 'flex', flexDirection: 'column', flexShrink: 0, minHeight: 0`). The prompt editor keeps its own height; the questions panel gets `flex: 1, minHeight: 0, overflowY: 'auto'`, so long question content scrolls inside the box instead of growing the block.\ndesign\\feature_descriptions\\J_39_size_of_questions_box.md:38:* When `questionsPanel` is null the bottom block renders exactly as today, prompt only, so nothing changes for runs without questions.\ndesign\\feature_descriptions\\J_39_size_of_questions_box.md:52:* The `promptEmpty` guards are replaced by a single `resizeDisabled = promptEmpty && !questionsPanel`. With a question on screen the bar is draggable and focusable even though the prompt is empty; with neither prompt text nor question it stays inert as today.\napp\\src\\components\\actions\\agent\\action_agent_question.grouped.test.tsx:480:            <ActionAgentPrompt\napp\\src\\components\\actions\\agent\\action_agent_question.grouped.test.tsx:483:                questionsPanel={(\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:46:    bottomRow?: ReactNode\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:53:    questionsPanel?: ReactNode\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:54:    responsePrompts?: ReactNode\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:60:        attachmentHandler, bottomRow, convertMessage, monospace = false, onRunShortcut, plainText = false, promptDraft,\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:61:        questionsPanel, responsePrompts,\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:81:    const hasQuestions = !!questionsPanel\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:319:                    {responsePrompts}\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:320:                    {bottomRow}\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:322:                {questionsPanel ? (\napp\\src\\components\\actions\\agent\\action_agent_prompt.tsx:333:                        {questionsPanel}\napp\\src\\components\\actions\\agent\\action_prompt_owner.tsx:31:    questionsPanel?: ReactNode\napp\\src\\components\\actions\\agent\\action_prompt_owner.tsx:44:        action, bindingStore, context, conversationStore, historyStore, inputStore, questionsPanel, resultStore,\napp\\src\\components\\actions\\agent\\action_prompt_owner.tsx:123:        <ActionAgentPrompt\napp\\src\\components\\actions\\agent\\action_prompt_owner.tsx:125:            bottomRow={(\napp\\src\\components\\actions\\agent\\action_prompt_owner.tsx:145:            questionsPanel={questionsPanel}\napp\\src\\components\\actions\\agent\\action_prompt_owner.tsx:146:            responsePrompts={action.type === 'agent' ? (\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx:103:        render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx:117:            <ActionAgentPrompt\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx:131:            <ActionAgentPrompt\napp\\src\\components\\actions\\agent\\action_agent_prompt.test.tsx:150:        render(<ActionAgentPrompt convertMessage={null} \n[3281 characters omitted]\n:        const layout = bottomRow.firstElementChild as HTMLElement\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:151:        expect(bottomRow).toHaveStyle({containerType: 'inline-size'})\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:186:        const bottomRow = screen.getByTestId('action-popup-bottom-row')\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:188:        expect(within(bottomRow).queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument()\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:189:        expect(within(bottomRow).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:190:        expect(within(bottomRow).getByRole('button', { name: 'Schedule' })).toBeInTheDocument()\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:191:        expect(within(bottomRow).getByRole('button', { name: 'Send' })).toBeInTheDocument()\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:192:        if (embedded) expect(bottomRow).toHaveAttribute('data-embedded', 'true')\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:193:        else expect(bottomRow).not.toHaveAttribute('data-embedded')\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:199:        const bottomRow = screen.getByTestId('action-popup-bottom-row')\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:201:        expect(bottomRow).toHaveAttribute('data-embedded', 'true')\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:202:        expect(within(bottomRow).getByRole('button', { name: 'Send' })).toBeEnabled()\napp\\src\\components\\actions\\run\\popup\\action_popup_bottom_row.grouped.test.tsx:203:        expect(within(bottomRow).getByRole('button', { name: 'Schedule' })).toBeEnabled()\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:324:        const bottomRow = dialog.getByTestId('action-popup-bottom-row')\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:328:        expect(bottomRow).toHaveAttribute('data-embedded', 'true')\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:329:        expect(scrollBody.contains(bottomRow)).toBe(true)\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:615:        const bottomRow = within(promptSurface).getByTestId('action-popup-bottom-row')\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:617:        expect(bottomRow).toHaveAttribute('data-embedded', 'true')\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:618:        expect(within(bottomRow).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:621:        expect(editorRegion.contains(bottomRow)).toBe(false)\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:636:        const bottomRow = screen.getByTestId('action-popup-bottom-row')\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:642:        expect(within(bottomRow).queryByRole('button', { name: /^Tokens,/u })).not.toBeInTheDocument()\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:643:        expect(within(bottomRow).queryByRole('button', { name: /^Changes,/u })).not.toBeInTheDocument()\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:1991:        const bottomRow = within(promptSurface).getByTestId('action-popup-bottom-row')\napp\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:1994:        expect(promptSurface.lastElementChild).toBe(bottomRow)\napp\\src\\components\\actions\\run\\popup\\command_action.tsx:49:                    <ActionPromptOwner\napp\\src\\components\\actions\\run\\popup\\action_agent_interaction.tsx:102:                <ActionPromptOwner\napp\\src\\components\\actions\\run\\popup\\action_agent_interaction.tsx:109:                    questionsPanel={question || restored\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-8",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n --glob '\"'!design/activity/**'\"' --glob '\"'!design/releases/**'\"' \\\"<ActionPromptOwner|<ActionAgentPrompt|questionsPanel|responsePrompts|bottomRow\\\" app\\\\src design\\\\feature_descriptions\"",
+          "providerItemId": "exec-1eaefe56-54e6-4237-a746-ad73ec27603a",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-09-06T15:08:08.586Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-9",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fdfc816a884dc6e016a9d81d9363887d283d5c6d14f355005",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:08:19.212Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-10",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fdfc816a884dc6e016a9d81e2890c87d29f267119eaef3fd1",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:08:24.432Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The violation is real: the current chain sends a constructed `ActionAgentQuestionOwner` element through both `ActionPromptOwner` and `ActionAgentPrompt`. I found two `ActionPromptOwner` call sites, so the refactor instruction also needs to preserve the command prompt’s question-free behavior explicitly.\n\n",
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 11,
+          "timestamp": "2026-09-06T15:08:25.715Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\command_action.tsx'; Get-Content -Raw 'design\\\\feature_descriptions\\\\J_39_size_of_questions_box.md'\"",
+          "content": "",
+          "durationMs": 8,
+          "exitCode": 0,
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-12",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\actions\\\\run\\\\popup\\\\command_action.tsx'; Get-Content -Raw 'design\\\\feature_descriptions\\\\J_39_size_of_questions_box.md'\"",
+          "providerItemId": "exec-87db5199-34cf-4f2d-a4a6-1993f22c7e34",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-09-06T15:08:27.844Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-13",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fdfc816a884dc6e016a9d81ecb07087d2b998860869e17436",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:08:38.680Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-14",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fdfc816a884dc6e016a9d81f6022c87d2b278ed5ca64943e2",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:08:42.520Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_224_size_of_question_box_and_input_box.md",
+          "deletions": 2,
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-15",
+          "insertions": 10,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-6f04cdd8-fa91-4682-b09a-e1c3d31651aa",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-09-06T15:08:57.145Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-16",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fdfc816a884dc6e016a9d820b930087d28f990cff72529516",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:09:00.873Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_224_size_of_question_box_and_input_box.md'; git diff -- 'design/feature_descriptions/B_224_size_of_question_box_and_input_box.md'\"",
+          "content": "diff --git a/design/feature_descriptions/B_224_size_of_question_box_and_input_box.md b/design/feature_descriptions/B_224_size_of_question_box_and_input_box.md\nindex 4dac9d80..18566281 100644\n--- a/design/feature_descriptions/B_224_size_of_question_box_and_input_box.md\n+++ b/design/feature_descriptions/B_224_size_of_question_box_and_input_box.md\n@@ -20,7 +20,7 @@ it should work like this:\n \n # Current state\n \n-* `ActionAgentInteraction` renders conversation, then `ActionPromptOwner`. When a structured agent question is pending, `ActionPromptOwner` passes `ActionAgentQuestion` into `ActionAgentPrompt` as `questionsPanel`.\n+* `ActionAgentInteraction` renders conversation, then `ActionPromptOwner`. When a structured agent question is pending, it constructs `ActionAgentQuestionOwner` and passes that React element through `ActionPromptOwner` into `ActionAgentPrompt` as `questionsPanel`. This feature-specific JSX prop violates the component ownership rule and must be removed as part of this feature.\n * `ActionAgentPrompt` owns one bottom block containing prompt input and pending structured-question panel. Resize bar above that block changes total block height; it does not record which inner region user is working in.\n * Prompt has 72px minimum. Question panel has 96px minimum. Current allocation preserves stored prompt height and gives question panel remaining height. Shrinking block therefore reduces question panel first; after it reaches minimum, later interaction with question panel does not make it grow again.\n * Typing only updates prompt draft and empty-prompt layout. Clicking or focusing question panel only operates its controls. Neither interaction changes height allocation.\n@@ -30,13 +30,20 @@ it should work like this:\n \n Terminology: **primary region** means region receiving bottom-block height left after other region is held at its minimum. It does not change answer state, submit anything, or move focus away from clicked control.\n \n+## Question component ownership refactor\n+\n+* Remove the `questionsPanel?: ReactNode` prop from both `ActionPromptOwner` and `ActionAgentPrompt`. `ActionAgentInteraction` must not construct or pass `ActionAgentQuestionOwner` as JSX.\n+* `ActionAgentPrompt` owns the prompt/question layout, so it must render `ActionAgentQuestionOwner` directly in the question region. Pass only the required data, service, and callback inputs through `ActionPromptOwner`, including the run binding and any restored-question data; do not replace `questionsPanel` with another component, render-function, `children`, or generic JSX prop.\n+* Derive whether the question region is present from the bound run's pending question and the restored-question data. Keep the subscription in the smallest component that needs that value for layout and rendering.\n+* Preserve both verified `ActionPromptOwner` call-site behaviors: the owner rendered by `ActionAgentInteraction` may show live or restored agent questions, while the command prompt rendered by `CommandAction` remains question-free. Use an explicit data/configuration input only if it is required to distinguish those call sites.\n+\n * Extend sizing logic in `ActionAgentPrompt`; no caller needs different behavior. While question is pending, track whether prompt or question panel is primary. Question panel is primary when it first appears.\n * A live prompt edit whose value is non-empty after trimming makes prompt primary. Hold question panel at `MIN_QUESTIONS_HEIGHT` and give prompt remainder, never below `MIN_PROMPT_HEIGHT`.\n * Pointer-down anywhere in question region, including padding and child controls, makes question panel primary. Focus entering any question control does same for keyboard users. Do not prevent normal button, select, text-field, or focus behavior. Hold prompt at `MIN_PROMPT_HEIGHT` and give question panel remainder, never below `MIN_QUESTIONS_HEIGHT`.\n * Switching primary region immediately recalculates both rendered heights from current bottom-block height. If block is still unsized, measure and clamp its current height first. This prevents switch itself from changing total space reserved against chat.\n * Dragging or keyboard-resizing bar changes total bottom-block height while preserving primary region. Remainder continues going to primary region throughout resize, so touching bar cannot permanently pin question panel to minimum.\n * Keep existing total-block bounds, initial 40% question cap, internal question scrolling, 24px keyboard resize step, separator accessibility, and `md2.actionQuestionsBlockHeight` persistence. Do not persist primary region. When question disappears, prompt-only sizing and `md2.actionPromptHeight` behavior remain unchanged.\n-* Update `action_agent_prompt.test.tsx`. Replace old question-first shrink expectation with primary-region allocation coverage. Keep `action_agent_question.grouped.test.tsx` coverage for question cap and scrolling.\n+* Update `action_agent_prompt.test.tsx`. Replace old question-first shrink expectation with primary-region allocation coverage, and exercise questions through the concrete question data/binding contract rather than a supplied JSX panel. Keep `action_agent_question.grouped.test.tsx` coverage for question cap and scrolling, updated so it no longer passes `questionsPanel`.\n \n # Acceptance criteria\n \n@@ -49,4 +56,5 @@ Terminology: **primary region** means region receiving bottom-block height left\n * Switching primary region does not change persisted total block height, answer values, submission state, prompt draft, or focused child control.\n * Initially unsized question panel keeps current 40% cap. Long question content scrolls inside question region.\n * With no pending question, existing empty-prompt collapse, disabled resize bar, prompt resizing, and `md2.actionPromptHeight` persistence remain unchanged.\n+* No feature-specific question component, render function, `children`, or JSX value is passed through `ActionPromptOwner` or into `ActionAgentPrompt`; `ActionAgentPrompt` renders `ActionAgentQuestionOwner` in the layout it owns.\n * Focused prompt sizing tests pass, including question-first default, both interaction-driven switches, repeated recovery, pointer and keyboard access, resize behavior, bounds, and persistence.\n",
+          "durationMs": 18,
+          "exitCode": 0,
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-17",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/B_224_size_of_question_box_and_input_box.md'; git diff -- 'design/feature_descriptions/B_224_size_of_question_box_and_input_box.md'\"",
+          "providerItemId": "exec-e5d37696-c3b1-4d94-8fa5-7b85078825d6",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-09-06T15:09:02.869Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-18",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fdfc816a884dc6e016a9d82108df487d2bdae2fc076e6f1af",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:09:07.389Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_224_size_of_question_box_and_input_box.md",
+          "deletions": 1,
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-19",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-a216b5a1-3011-4c71-bb6d-94b9cc1a31a2",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-09-06T15:09:10.629Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-event-20",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fdfc816a884dc6e016a9d82174ce087d2886530a7bb343dbd",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-06T15:09:12.368Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_224_size_of_question_box_and_input_box.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_224_size_of_question_box_and_input_box.md).\n\nThe refactor now explicitly requires:\n\n- Removing the `questionsPanel` ReactNode prop.\n- Letting `ActionAgentPrompt` render `ActionAgentQuestionOwner` directly.\n- Passing only data, services, and callbacks.\n- Preserving the question-free command prompt.\n- Updating tests to avoid supplied JSX panels.\n\nNo tests were run because only documentation changed.\n\n",
+          "id": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 21,
+          "timestamp": "2026-09-06T15:09:14.613Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-0118fb7e-d796-4f10-bd8c-bdc69ee563ef",
+      "providerSessions": [],
+      "startedAt": "2026-09-06T15:07:46.946Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-06T15:07:46.946Z"
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 280576,
+        "inputTokens": 38085,
+        "outputTokens": 1730,
+        "reasoningTokens": 2015,
+        "totalTokens": 322406
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -761,11 +1058,11 @@
         "agent-3c4776ae-a03f-4196-9c92-c807d0b77bc1"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-9063a72e-d4e9-462a-b09e-93aee21e5cb8",
       "origin": {
@@ -774,9 +1071,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-3c4776ae-a03f-4196-9c92-c807d0b77bc1",
       "startedAt": "2026-09-06T14:51:48.798Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-3c4776ae-a03f-4196-9c92-c807d0b77bc1"
     }
   ],
   "version": 5
