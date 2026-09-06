@@ -289,10 +289,12 @@ describe('ActionPopupBottomRow', () => {
         expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
     })
 
-    it('renders icon-only Schedule and exposes descriptive tooltips for idle controls', async () => {
-        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan')
+    it('renders icon-only controls and exposes Send shortcut guidance while enabled and disabled', async () => {
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
+        promptDraft.edit('Plan')
         renderBottomRow()
         const schedule = screen.getByRole('button', { name: 'Schedule' })
+        const send = screen.getByRole('button', { name: 'Send' })
 
         expect(schedule).toHaveTextContent('')
         expect(schedule.querySelector('svg')).not.toBeNull()
@@ -300,8 +302,16 @@ describe('ActionPopupBottomRow', () => {
         expect(await screen.findByText('Schedule', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
         fireEvent.mouseLeave(schedule)
         await waitFor(() => expect(screen.queryByText('Schedule', { selector: '.MuiTooltip-tooltip' })).not.toBeInTheDocument())
-        fireEvent.mouseOver(screen.getByRole('button', { name: 'Send' }))
-        expect(await screen.findByText('Send', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+        expect(send).toHaveAccessibleName('Send')
+        fireEvent.mouseOver(send)
+        expect(await screen.findByText('Send. Ctrl+Enter.', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
+        fireEvent.mouseLeave(send)
+        await waitFor(() => expect(screen.queryByText('Send. Ctrl+Enter.', { selector: '.MuiTooltip-tooltip' })).not.toBeInTheDocument())
+
+        act(() => promptDraft.edit(''))
+        expect(send).toBeDisabled()
+        fireEvent.mouseOver(send)
+        expect(await screen.findByText('Send. Ctrl+Enter.', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
     })
 
     it.each([false, true])('keeps command attachment absent and provides Run tooltip when mobile is %s', async (mobile) => {

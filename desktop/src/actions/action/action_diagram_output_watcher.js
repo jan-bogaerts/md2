@@ -3,6 +3,16 @@ const { readFile } = require('node:fs/promises');
 const path = require('node:path');
 const { parseDiagramData } = require('../../../../shared/diagram_data.mjs');
 
+const WATCHER_BACKEND_BY_PLATFORM = {
+    darwin: 'fs-events',
+    freebsd: 'kqueue',
+    linux: 'inotify',
+    win32: 'windows',
+};
+const WATCHER_BACKEND = WATCHER_BACKEND_BY_PLATFORM[process.platform];
+
+if (!WATCHER_BACKEND) throw new Error(`Unsupported watcher platform: ${process.platform}`);
+
 class ActionDiagramOutputWatcher {
     constructor(input, dependencies = {}) {
         this.diagramFile = path.resolve(input.diagramFile);
@@ -18,7 +28,7 @@ class ActionDiagramOutputWatcher {
     }
 
     async start() {
-        const subscription = await this.subscribe(this.projectRoot, this.handleEvents);
+        const subscription = await this.subscribe(this.projectRoot, this.handleEvents, { backend: WATCHER_BACKEND });
         if (this.closed) {
             await subscription.unsubscribe();
             return;

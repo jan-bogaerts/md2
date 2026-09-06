@@ -6,6 +6,7 @@ import {
     DEFAULT_PROJECT_FOLDER,
 } from '../../data/data_types'
 import { projectAgentTokenUsage } from '../../services/agents/agent_usage'
+import { formatTokenCount } from '../agents/token_count'
 import { projectAgentTokenUsageService } from '../../services/agents/project_agent_token_usage_service'
 import { useProjectConfig } from '../hooks/use_project_config'
 import { useProjectState } from '../hooks/use_project_state'
@@ -38,7 +39,7 @@ export function ProjectAgentUsageSummary({ mobile = false }: ProjectAgentUsageSu
     }
 
     const versions = totals ? [totals.current, totals.archived, ...totals.releases] : []
-    const totalLabel = totals ? `${totals.project.totalTokens.toLocaleString('en-US')} tokens` : 'Usage unavailable'
+    const totalLabel = totals ? `${formatTokenCount(totals.project.totalTokens)} tokens` : 'Usage unavailable'
 
     return (
         <>

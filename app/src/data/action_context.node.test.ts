@@ -34,6 +34,7 @@ function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionD
         onAfter: [],
         onBefore: [],
         onState: null,
+        output: null,
         phrases: [],
         prompt: null,
         showCommandWindow: false,
@@ -143,6 +144,21 @@ describe('cardContext / fileContext / folderContext / projectContext', () => {
             .toBe('diagram\0child\0diagram-1\0item-1')
         expect(actionContextIdentity(diagramContext('child', 'diagram-1', 'item-2', 'Orders')))
             .not.toBe(actionContextIdentity(diagramContext('child', 'diagram-1', 'item-1', 'Orders')))
+    })
+
+    it('uses diagram ID rather than reviewed text for reviewed root context identity', () => {
+        const first = diagramContext('root', 'diagram-1', 'First reviewed text', 'review-1')
+        const sameReview = diagramContext('root', 'diagram-1', 'Later reviewed text', 'review-1')
+        const secondReview = diagramContext('root', 'diagram-1', 'First reviewed text', 'review-2')
+
+        expect(first).toEqual({
+            diagramChanges: 'First reviewed text', diagramChangeSetId: 'review-1', diagramId: 'diagram-1',
+            kind: 'diagram', type: 'root',
+        })
+        expect(actionContextIdentity(first)).toBe(actionContextIdentity(sameReview))
+        expect(actionContextIdentity(first)).not.toBe(actionContextIdentity(secondReview))
+        expect(() => diagramContext('root', 'diagram-1', '', 'review-1')).toThrow('requires diagram, change-set, and change values')
+        expect(() => actionContextIdentity({diagramChanges: 'First reviewed text', diagramId: 'diagram-1', kind: 'diagram', type: 'root'})).toThrow('Reviewed diagram identity requires diagram, change-set, and change values')
     })
 
     it('adds and removes a project-session worktree assignment', () => {

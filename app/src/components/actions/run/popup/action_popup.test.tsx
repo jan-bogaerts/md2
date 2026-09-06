@@ -1307,6 +1307,45 @@ describe('ActionPopup', () => {
         expect(prepareActionPrompt).toHaveBeenCalledOnce()
     })
 
+    it('keeps the prompt empty after submission while the run event is delayed', async () => {
+        actionRunRegistry.stop()
+        const projectContext: ActionContext = { kind: 'project' }
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))
+        const startAction = vi.fn(async () => 'run-1')
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+
+                return vi.fn()
+            }),
+            prepareActionPrompt,
+            startAction,
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        actionRunRegistry.start()
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
+        actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
+        renderPopup(projectContext)
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        await waitFor(() => expect(prompt).toHaveValue('Stored prompt'))
+        await waitFor(() => expect(runListener).not.toBeNull())
+
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+        await waitFor(() => expect(startAction).toHaveBeenCalledOnce())
+        await waitFor(() => expect(prompt).toHaveValue(''))
+        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+
+        act(() => {
+            runListener?.({
+                actionId: 'stream', context: projectContext, runId: 'run-1', phase: 'main', rootActionId: 'stream',
+                status: 'completed', type: 'run',
+            })
+        })
+    })
+
     it('prefills the stored prompt for a new empty conversation', async () => {
         const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))
         window.md2Actions = {
@@ -1417,8 +1456,7 @@ describe('ActionPopup', () => {
             title: 'Newest unseen review',
             viewed: false,
         })
-        const preparedPrompt = deferredValue<{ prompt: string }>()
-        const prepareActionPrompt = vi.fn(() => preparedPrompt.promise)
+        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))
         window.md2Actions = {
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt,
@@ -1438,13 +1476,9 @@ describe('ActionPopup', () => {
 
         const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
         await waitFor(() => expect(loadConversation).toHaveBeenCalledWith(newestUnseenConversation.path))
-        await act(async () => {
-            preparedPrompt.resolve({ prompt: 'Stored prompt' })
-            await preparedPrompt.promise
-        })
 
         expect(prompt).toHaveValue('')
-        expect(prepareActionPrompt).toHaveBeenCalledOnce()
+        expect(prepareActionPrompt).not.toHaveBeenCalled()
     })
 
     it('clears the prompt for history and restores the stored prompt for New conversation', async () => {
@@ -2203,6 +2237,35 @@ describe('ActionPopup', () => {
         expect(screen.queryByRole('group', { name: 'Predefined phrases' })).not.toBeInTheDocument()
         act(() => runListener?.({ ...eventBase, status: 'waitingForInput', type: 'run' }))
         expect(await screen.findByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
+    })
+
+    it('does not prepare a prompt while loading a persisted waiting conversation', async () => {
+        const conversations = deferredValue<AgentConversation[]>()
+        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stored prompt' }))
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(dataService, 'listAgentConversations').mockReturnValue(conversations.promise)
+        actionService.loadFromFiles([file(agentDefinition('respond', {
+            label: 'Respond',
+            phrases: [{ text: 'Continue with tests', title: 'Continue' }],
+            streaming: true,
+        }))])
+        const persistedContext = { ...context, cardInternalId: 'card-1' }
+
+        renderPopup(persistedContext)
+
+        const promptSurface = screen.getByLabelText('Prompt')
+        const prompt = within(promptSurface).getByRole('textbox')
+        expect(prompt).toHaveValue('')
+        expect(prepareActionPrompt).not.toHaveBeenCalled()
+
+        conversations.resolve([agentConversation()])
+
+        expect(await within(promptSurface).findByRole('group', { name: 'Predefined phrases' })).toBeInTheDocument()
+        expect(prompt).toHaveValue('')
+        expect(prepareActionPrompt).not.toHaveBeenCalled()
     })
 
     it('allows manual input for a persisted waiting conversation and starts its continuation', async () => {

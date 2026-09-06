@@ -3,15 +3,26 @@ author:
 id: F_327
 internalId: 0a0fa053-2cfc-497e-9bb4-c3440ddb8638
 title: save edited diagram as a copy
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__0a0fa053-2cfc-497e-9bb4-c3440ddb8638.json
 policy:
 after: 59dd5932-3f6c-4b9e-aa4e-99c2c0419b7d
+changedFiles:
+  - app/src/components/diagram_view/diagram_change_review_actions.tsx
+  - app/src/components/diagram_view/diagram_change_review_dialog.test.tsx
+  - app/src/components/diagram_view/diagram_change_review_dialog.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_index.node.test.ts
+  - app/src/services/diagrams/diagram_index.ts
+  - app/src/services/diagrams/diagram_save_service.test.ts
+  - app/src/services/diagrams/diagram_save_service.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -32,6 +43,10 @@ On first save, serialize canonical editable data to a collision-free JSON path i
 * Stored JSON contains canonical data only, never positioned rendering fields.
 * Tests cover root and child copies, repeated saves, path collisions, restart loading, and atomic failure.
 
+## State and rendering rule
+
+Save is a persistence boundary, so it may traverse and serialize the complete canonical diagram on explicit save. That read does not rebuild model objects or publish diagram events. Save status is its own primitive; only save controls subscribe to it. Successful persistence updates saved-record/path state without replacing the editable diagram or rerendering diagram leaves.
+
 ## Dependencies
 
-[F_277](F_277_track_diagram_changes.md), [F_279](F_279_validate_diagram_edit_operations.md), and [F_326](F_326_integrate_diagram_editor.md).
+[F\_277](F_277_track_diagram_changes.md), [F\_279](F_279_validate_diagram_edit_operations.md), and [F\_326](F_326_integrate_diagram_editor.md).

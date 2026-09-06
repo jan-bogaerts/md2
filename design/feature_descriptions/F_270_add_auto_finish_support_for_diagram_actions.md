@@ -47,8 +47,6 @@ changedFiles:
   - shared/action_definitions.mjs
   - shared/diagram_data.d.mts
   - shared/tolerant_action_definitions.mjs
-branch: f_270_add_auto_finish_support_for_diagram_actions
-worktree: 3
 ---
 
 We can automatically finish a streaming agent action when its card enters a configured state. Diagram-producing actions need equivalent support: finish the streaming agent when the generated diagram JSON is ready.
@@ -99,10 +97,12 @@ or:
 
 `diagram-created` is valid only for a streaming agent diagram action. Command diagram actions complete when their process exits and do not use streaming auto-finish.
 
+For compatibility with existing regular actions, an `autoFinish` object with `state` but without `when` defaults to `card-state` and is normalized to the explicit shape when loaded.
+
 ## Implementation details
 
 * Extend the shared raw and resolved action definitions, strict field lists, validation, editor conversion, and serialization with `output`. Accept only `{ kind: "diagram" }`; reject unknown output fields and values.
-* Replace the current `{ state }` auto-finish shape with the discriminated shapes above. Update bundled and project-template action definitions to the `card-state` shape; do not retain support for the old shape.
+* Replace the current `{ state }` auto-finish shape with the discriminated shapes above. Update bundled and project-template action definitions to the `card-state` shape. Continue accepting the existing `{ state }` shape as `card-state` at the validation boundary and normalize loaded actions to the explicit shape.
 * Allow both agent and command actions to target diagram contexts. Pass the allocated diagram output path into command placeholder resolution so a command diagram action can use `{{diagram-file}}`.
 * Allocate `diagramPath`, append `diagramFooter`, and expose diagram result metadata from `output.kind`, not merely from `context.kind`. Append the footer only to diagram agent actions. Regular linked actions keep regular behavior even when the root run has diagram context.
 * Diagram View entry points still use `appliesTo` to decide where actions appear, but only `output.kind: "diagram"` declares that their result is a diagram. A diagram action must include `appliesTo.kind: "diagram"`; the reverse is not required, so regular actions may remain available in a diagram context.
@@ -131,6 +131,7 @@ or:
 * A streaming diagram agent configured with `autoFinish.when: "diagram-created"` finishes once its allocated file contains valid diagram JSON.
 * Missing, partial, or invalid JSON does not finish the agent. A later valid write does.
 * Card-state auto-finish retains its behavior through the explicit `card-state` trigger.
+* Existing card-state actions without `autoFinish.when` load as `card-state` actions without validation errors.
 * Invalid combinations and unknown fields fail validation with field-specific errors.
 * Diagram View records only successful diagram outputs and does not infer them from `ActionContext.kind`.
 * Focused shared, app, and desktop tests cover schema validation, editor behavior, agent and command diagram actions, linked regular actions, file readiness, cleanup, and unchanged card-state behavior.

@@ -5,6 +5,7 @@ import { StatsSeriesColorProvider } from './stats_series_color_provider';
 
 interface StatsUsageComparisonChartsProps {
     rows: StatsChartRow[];
+    shortTokenCounts?: boolean;
 }
 
 interface ComparisonChart {
@@ -26,7 +27,7 @@ const CHARTS: ComparisonChart[] = [
 ];
 
 /** Separately scaled comparison charts aligned by shared UTC buckets. */
-export function StatsUsageComparisonCharts({ rows }: StatsUsageComparisonChartsProps) {
+export function StatsUsageComparisonCharts({ rows, shortTokenCounts = false }: StatsUsageComparisonChartsProps) {
     return (
         <StatsSeriesColorProvider rows={rows}>
             <Stack spacing={2} sx={{ minWidth: '100%', p: 2, width: 'max-content' }}>
@@ -60,7 +61,7 @@ export function StatsUsageComparisonCharts({ rows }: StatsUsageComparisonChartsP
                         >
                             {label}
                         </Typography>
-                        <StatsBarChart ariaLabel={`${label} chart`} mode={mode} rows={rows.filter(({ chartRole }) => chartRole === role)} />
+                        <StatsBarChart ariaLabel={`${label} chart`} mode={mode} rows={rows.filter(({ chartRole }) => chartRole === role)} shortTokenCounts={shortTokenCounts} />
                     </Paper>
                 ))}
             </Stack>

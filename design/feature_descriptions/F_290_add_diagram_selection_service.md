@@ -3,15 +3,19 @@ author:
 id: F_290
 internalId: 6e041d8b-7aca-4ab1-9be5-56d7e31d189c
 title: add diagram selection service
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__6e041d8b-7aca-4ab1-9be5-56d7e31d189c.json
 policy:
-after: 71998afb-3b7f-4da7-87e4-95e5c931a702
+changedFiles:
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_selection_service.test.ts
+  - app/src/services/diagrams/diagram_selection_service.ts
+after: 9081512a-9bc9-4f11-a43c-1edda64ab53f
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -28,6 +32,10 @@ Store selections as object kind plus stable object ID. Use `EventTarget`, granul
 * Deleting an object removes it from selection before publication.
 * Multiple subscribers receive scoped updates without revision counters.
 
+## State and rendering rule
+
+Selection is stored by stable identity and updated without replacing a selected diagram object. Each selectable leaf subscribes to its own selected boolean. A selection-membership snapshot changes only when membership changes; diagram roots, object collections, unrelated leaves, and model data do not rerender or change.
+
 ## Dependencies
 
-[F_275](F_275_add_diagram_edit_session_service.md).
+[F\_275](F_275_add_diagram_edit_session_service.md).

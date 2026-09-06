@@ -143,6 +143,40 @@ describe('agent provider protocol', () => {
         });
     });
 
+    it('uses deduplicated Claude assistant usage when the result omits cache counters', () => {
+        const { events, instance } = parser('claude');
+        const rootAssistant = JSON.stringify({
+            message: {
+                content: [],
+                id: 'message-1',
+                usage: { cache_creation_input_tokens: 3, cache_read_input_tokens: 10, input_tokens: 5, output_tokens: 7 },
+            },
+            type: 'assistant',
+        });
+        const subAgentAssistant = JSON.stringify({
+            message: {
+                content: [],
+                id: 'message-1',
+                usage: { cache_creation_input_tokens: 2, cache_read_input_tokens: 20, input_tokens: 4, output_tokens: 6 },
+            },
+            parent_tool_use_id: 'agent-1',
+            type: 'assistant',
+        });
+
+        instance.push(`${rootAssistant}\n${rootAssistant}\n${subAgentAssistant}\n`);
+        instance.push('{"type":"result","usage":{"input_tokens":9,"output_tokens":13},"total_cost_usd":0.25}\n');
+        instance.finish();
+
+        expect(events.at(-1).usage).toEqual({
+            cachedInputTokens: 35,
+            costUsd: 0.25,
+            inputTokens: 9,
+            outputTokens: 13,
+            reasoningTokens: 0,
+            totalTokens: 57,
+        });
+    });
+
     it('rejects malformed terminal usage fields', () => {
         const { events, instance } = parser('codex');
 

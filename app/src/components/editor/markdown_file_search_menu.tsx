@@ -48,12 +48,34 @@ function renderOption(index: number, option: MarkdownFileSearchOption, context: 
 }
 
 /**
- * Copies the page coordinates Lexical gave its own typeahead anchor onto the frozen anchor.
- * Only the placement matters, so the frozen element stays zero-width.
+ * Places the frozen anchor on the caret, converting out of the page coordinate space Lexical
+ * writes onto its own anchor.
+ *
+ * Lexical adds the scroll offsets to the caret's viewport rect, so `source.style.left` / `top`
+ * are page coordinates. Both anchors are `position: absolute`, so the browser resolves those
+ * numbers against the nearest positioned ancestor. Inside the card details popup that ancestor is
+ * the popper Paper, which shifts the popup by the Paper's own position. Converting page ->
+ * viewport -> containing-block-local puts the popup back under the caret. Only the placement
+ * matters, so the frozen element stays zero-width.
  */
 function copyAnchorPlacement(source: HTMLElement, target: HTMLElement) {
-    target.style.left = source.style.left
-    target.style.top = source.style.top
+    const pageLeft = parseFloat(source.style.left)
+    const pageTop = parseFloat(source.style.top)
+    if (Number.isNaN(pageLeft) || Number.isNaN(pageTop)) return
+
+    const offsetParent = target.offsetParent
+    let left = pageLeft
+    let top = pageTop
+    if (offsetParent) {
+        const parentRect = offsetParent.getBoundingClientRect()
+        // Page -> viewport, then viewport -> the offset parent's padding box, which is where
+        // absolute offsets start while getBoundingClientRect measures the border box.
+        left = pageLeft - window.scrollX - parentRect.left + offsetParent.scrollLeft - offsetParent.clientLeft
+        top = pageTop - window.scrollY - parentRect.top + offsetParent.scrollTop - offsetParent.clientTop
+    }
+
+    target.style.left = `${left}px`
+    target.style.top = `${top}px`
     target.style.height = source.style.height
 }
 

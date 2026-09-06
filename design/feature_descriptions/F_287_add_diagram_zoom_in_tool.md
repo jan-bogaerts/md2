@@ -3,15 +3,28 @@ author:
 id: F_287
 internalId: 47be0198-e3ae-4ef7-9d06-3fcf5c7fd6b9
 title: add diagram zoom in tool
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__47be0198-e3ae-4ef7-9d06-3fcf5c7fd6b9.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/components/diagram_view/diagram_zoom_in_button.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.test.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.tsx
+  - app/src/components/diagram_view/vertical_diagram_comparison.test.tsx
+  - app/src/components/diagram_view/vertical_diagram_comparison.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
 after: f46ab1c9-a250-4dae-afd7-72b1afcaf3c5
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -25,6 +38,10 @@ Add Zoom In to the Edit section.
 * The button disables at maximum zoom and has an accessible label.
 * Pointer hit testing remains accurate after zoom.
 
+## State and rendering rule
+
+Zoom is one service-owned viewport primitive. Only the New viewport transform and controls that display or constrain zoom subscribe to it. Zoom does not publish diagram, geometry, collection, selection, comparison-root, or toolbox-root events.
+
 ## Dependencies
 
-[F_285](F_285_add_resizable_diagram_toolbox.md) and [F_289](F_289_add_diagram_coordinate_conversion.md).
+[F\_285](F_285_add_resizable_diagram_toolbox.md) and [F\_289](F_289_add_diagram_coordinate_conversion.md).

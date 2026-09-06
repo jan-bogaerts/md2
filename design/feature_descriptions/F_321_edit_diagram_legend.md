@@ -3,15 +3,28 @@ author:
 id: F_321
 internalId: 816a1ca0-a183-46b2-9f50-8045af076328
 title: edit diagram legend
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__816a1ca0-a183-46b2-9f50-8045af076328.json
 policy:
-after: 775fb7c0-979e-45ec-a05d-25c968335775
+changedFiles:
+  - app/src/components/diagram_view/diagram_legend_button.tsx
+  - app/src/components/diagram_view/diagram_legend_details_editor.test.tsx
+  - app/src/components/diagram_view/diagram_legend_details_editor.tsx
+  - app/src/components/diagram_view/diagram_legend_entries.ts
+  - app/src/components/diagram_view/diagram_legend_entry_editor.tsx
+  - app/src/components/diagram_view/diagram_legend_entry_list.tsx
+  - app/src/components/diagram_view/diagram_session_legend_entries.test.tsx
+  - app/src/components/diagram_view/diagram_session_legend_entries.tsx
+  - patch321_dialog.py
+  - patch321_le.py
+  - patch321_legend.py
+  - patch321_tests.py
+after: b46b8f66-e2f3-469f-ac38-48b26dedccab
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -19,7 +32,7 @@ Add legend editing to Others.
 
 ## Scope
 
-Allow users to add, rename, reorder, and remove explicit legend entries for node roles and edge kinds. This intentionally replaces a derived-only legend when F_271 is present: rendering uses explicit entries when saved by the editor and derives entries only when the diagram has none.
+Allow users to add, rename, reorder, and remove explicit legend entries for node roles and edge kinds. This intentionally replaces a derived-only legend when F\_271 is present: rendering uses explicit entries when saved by the editor and derives entries only when the diagram has none.
 
 ## Acceptance criteria
 
@@ -30,6 +43,10 @@ Allow users to add, rename, reorder, and remove explicit legend entries for node
 * Existing diagrams without explicit legend entries retain their derived legend.
 * Legend edits appear in the semantic change set.
 
+## State and rendering rule
+
+Legend view and editable legend data, if this card retains them after its F\_271 compatibility decision, are service-owned by entry. Changing one label assigns only that entry field; reordering changes only legend membership/order view data. Diagram objects and roots never subscribe to a complete legend or diagram snapshot.
+
 ## Dependencies
 
-[F_276](F_276_add_diagram_mutation_operations.md), [F_285](F_285_add_resizable_diagram_toolbox.md), and [F_271](F_271_diagrams_add_legend.md).
+[F\_276](F_276_add_diagram_mutation_operations.md), [F\_285](F_285_add_resizable_diagram_toolbox.md), and [F\_271](F_271_diagrams_add_legend.md).

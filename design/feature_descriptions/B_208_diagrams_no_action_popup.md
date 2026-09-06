@@ -18,6 +18,7 @@ changedFiles:
   - app/src/components/movable_fab.tsx
   - app/src/services/diagrams/diagram_view_service.test.ts
   - app/src/services/diagrams/diagram_view_service.ts
+after: ed8ce460-5ff7-46f0-8bf2-09764585b8b2
 ---
 
 for diagrams: there is a fab button for the diagrams, but can't move it, when clicking on it, doesn't do anything: popup is not opened.

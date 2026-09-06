@@ -3,7 +3,6 @@ import { useRef } from 'react'
 import type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'
 import { DiagramEdge } from './diagram_edge'
 import { DiagramGroup } from './diagram_group'
-import { DiagramLegend } from './diagram_legend'
 import { DiagramNode } from './diagram_node'
 import type { DiagramSelectHandler, DiagramSelection } from './diagram_selection'
 import { SequenceActivation } from './sequence_activation'
@@ -17,7 +16,7 @@ export interface DiagramProps {
 /** Diagram surface composed from validated semantic data and positioned React children. */
 export function Diagram({ data, onSelect }: DiagramProps) {
     const surfaceRef = useRef<HTMLDivElement>(null)
-    const nodes = new Map(data.nodes.map((node) => [node.id, node]))
+    const nodeLabels = new Map(data.nodes.map((node) => [node.id, node.label]))
     const handleSelect: DiagramSelectHandler = (selection) => {
         if (surfaceRef.current) onSelect(surfaceRef.current, selection)
     }
@@ -43,7 +42,9 @@ export function Diagram({ data, onSelect }: DiagramProps) {
                 )) : null}
                 {data.activations.map((activation) => <SequenceActivation activation={activation} key={activation.id} />)}
                 <svg aria-label="Diagram connections" height={data.height} style={{ left: 0, overflow: 'visible', position: 'absolute', top: 0, zIndex: 1 }} width={data.width}>
-                    {data.edges.map((edge) => <DiagramEdge edge={edge} key={edge.id} nodes={nodes} onSelect={handleSelect} />)}
+                    {data.edges.map((edge) => (
+                        <DiagramEdge edge={edge} key={edge.id} nodeLabels={nodeLabels} onSelect={handleSelect} selected={false} />
+                    ))}
                 </svg>
                 {data.nodes.map((node) => (
                     <DiagramNode
@@ -52,10 +53,10 @@ export function Diagram({ data, onSelect }: DiagramProps) {
                         key={node.id}
                         node={node}
                         onSelect={handleSelect}
+                        selected={false}
                     />
                 ))}
             </Box>
-            {data.meta.legend ? <DiagramLegend items={data.meta.legend} /> : null}
         </Box>
     )
 }

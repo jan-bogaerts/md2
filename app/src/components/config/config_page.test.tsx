@@ -423,7 +423,7 @@ describe('ConfigPage', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         await waitFor(() => expect(storage.addWorktree).toHaveBeenCalledWith(worktreeProject, 'C:\\two'))
-        expect(storage.removeWorktree).toHaveBeenCalledWith(worktreeProject, worktreeRecord.path)
+        expect(storage.removeWorktree).toHaveBeenCalledWith(worktreeProject, worktreeRecord.path, 'folder')
         expect(vi.mocked(storage.removeWorktree!).mock.invocationCallOrder[0])
             .toBeLessThan(vi.mocked(storage.addWorktree!).mock.invocationCallOrder[0])
         expect(saveProjectConfig).not.toHaveBeenCalled()
@@ -470,7 +470,7 @@ describe('ConfigPage', () => {
 
         await waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, { fallbackMessage: 'Worktree setup failed' }))
         expect(storage.refreshWorktrees).toHaveBeenCalledWith(worktreeProject)
-        expect(worktreeService.getDraft()?.removals).toEqual([secondRecord.path])
+        expect(worktreeService.getDraft()?.removals).toEqual([{ mode: 'folder', path: secondRecord.path }])
         expect(configService.get('project.pushMode')).toBe(previousPushMode)
         expect(saveProjectConfig).not.toHaveBeenCalled()
         expect(window.location.hash).toBe('#/config')

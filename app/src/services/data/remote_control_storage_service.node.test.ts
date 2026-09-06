@@ -400,7 +400,7 @@ describe('RemoteControlStorageService', () => {
         const pull = service.pullWorktree(operationRequest)
         const push = service.pushWorktree(operationRequest)
         const refresh = service.refreshWorktrees(project)
-        const removal = service.removeWorktree(project, 'C:/feature')
+        const removal = service.removeWorktree(project, 'C:/feature', 'files')
         const deletion = service.deleteLocalBranch(project, 'feature')
         const socket = lastSocket()
 
@@ -428,7 +428,7 @@ describe('RemoteControlStorageService', () => {
         expect(pullRequest).toMatchObject({ method: 'pullWorktree', params: [operationRequest] })
         expect(pushRequest).toMatchObject({ method: 'pushWorktree', params: [operationRequest] })
         expect(refreshRequest).toMatchObject({ method: 'refreshWorktrees', params: [project] })
-        expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature'] })
+        expect(removeRequest).toMatchObject({ method: 'removeWorktree', params: [project, 'C:/feature', 'files'] })
         expect(deleteRequest).toMatchObject({ method: 'deleteLocalBranch', params: [project, 'feature'] })
         for (const request of [
             selectionRequest, addRequest, commitSentRequest, discardRequest, integrateRequest, parkRequest, prepareRequest,
@@ -914,6 +914,37 @@ describe('RemoteControlStorageService', () => {
         await vi.waitFor(() => expect(callback).toHaveBeenCalledWith(event))
     })
 
+    it('restores one live merge-conflict subscription after reconnect', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        service.onMergeConflictSessionChanged(callback)
+        const firstSocket = lastSocket()
+        firstSocket.open()
+        await flushPromises()
+        const firstSubscription = JSON.parse(firstSocket.sent[0]) as { id: string }
+        firstSocket.receive({ id: firstSubscription.id, result: { subscriptionId: 'conflict-1' } })
+        await flushPromises()
+        firstSocket.close()
+
+        const reconnection = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await reconnection
+        await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1))
+        const secondSubscription = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(secondSubscription.method).toBe('onMergeConflictSessionChanged')
+        secondSocket.receive({ id: secondSubscription.id, result: { subscriptionId: 'conflict-2' } })
+        const session = { id: 'session-2', paths: ['design/F-1.md'] }
+        secondSocket.receive({
+            event: 'mergeConflictSessionChanged',
+            payload: { requestId: secondSubscription.id, session, subscriptionId: 'conflict-2' },
+        })
+
+        expect(callback).toHaveBeenCalledOnce()
+        expect(callback).toHaveBeenCalledWith(session)
+    })
+
     it('clears stale Claude callback state and restores one subscription after reconnect', async () => {
         installWebSocket()
         const service = createService()
@@ -1157,7 +1188,7 @@ describe('RemoteControlStorageService', () => {
         expect(restored).toHaveBeenCalledTimes(2)
     })
 
-    it('fails pending requests clearly when the socket closes', async () => {
+    it('fails an in-flight request once and does not replay it after reconnect', async () => {
         installWebSocket()
         const service = createService()
         const request = service.startAction(actionStartRequest())
@@ -1168,6 +1199,83 @@ describe('RemoteControlStorageService', () => {
         socket.close()
 
         await expect(request).rejects.toThrow('Remote-control connection closed')
+        const reconnection = service.connect()
+        const replacementSocket = lastSocket()
+        replacementSocket.open()
+        await reconnection
+        await flushPromises()
+
+        expect(replacementSocket.sent).toEqual([])
+    })
+
+    it('holds requests started during reconnection for the shared socket attempt', async () => {
+        installWebSocket()
+        const service = createService()
+        const firstConnection = service.connect()
+        const firstSocket = lastSocket()
+        firstSocket.open()
+        await firstConnection
+        firstSocket.close()
+
+        const request = service.getActiveProject()
+        await flushPromises()
+        expect(MockWebSocket.instances).toHaveLength(1)
+
+        const reconnection = service.connect()
+        const secondSocket = lastSocket()
+        expect(MockWebSocket.instances).toHaveLength(2)
+        secondSocket.open()
+        await reconnection
+        await flushPromises()
+
+        expect(secondSocket.sent).toHaveLength(1)
+        const sentRequest = JSON.parse(secondSocket.sent[0]) as { id: string, method: string }
+        expect(sentRequest.method).toBe('getActiveProject')
+        secondSocket.receive({ id: sentRequest.id, result: null })
+        await expect(request).resolves.toBeNull()
+    })
+
+    it('fails requests waiting for reconnection when explicitly disconnected', async () => {
+        installWebSocket()
+        const service = createService()
+        const connection = service.connect()
+        const socket = lastSocket()
+        socket.open()
+        await connection
+        socket.close()
+
+        const request = service.getActiveProject()
+        service.disconnect()
+
+        await expect(request).rejects.toThrow('Remote-control connection closed')
+        expect(MockWebSocket.instances).toHaveLength(1)
+    })
+
+    it('ignores late close and error events from an older socket', async () => {
+        installWebSocket()
+        const service = createService()
+        const connectionChanges = vi.fn()
+        service.onConnectionChanged(connectionChanges)
+        const firstConnection = service.connect()
+        const firstSocket = lastSocket()
+        firstSocket.open()
+        await firstConnection
+        firstSocket.close()
+
+        const reconnection = service.connect()
+        const secondSocket = lastSocket()
+        secondSocket.open()
+        await reconnection
+        firstSocket.dispatchEvent(new Event('close'))
+        firstSocket.dispatchEvent(new Event('error'))
+
+        const request = service.getActiveProject()
+        await flushPromises()
+        const sentRequest = JSON.parse(secondSocket.sent[0]) as { id: string }
+        secondSocket.receive({ id: sentRequest.id, result: null })
+
+        await expect(request).resolves.toBeNull()
+        expect(connectionChanges.mock.calls).toEqual([[true], [false], [true]])
     })
 
     it('connects and disconnects without a request', async () => {

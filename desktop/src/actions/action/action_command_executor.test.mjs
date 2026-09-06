@@ -121,28 +121,21 @@ describe('runCommandInWindow', () => {
         const child = createChild();
         const onOutput = vi.fn();
         const spawnCommand = vi.fn(() => child);
-        const writeFile = vi.fn(async () => undefined);
         const completion = runCommandInWindow(
             project,
             'powershell.exe -File ask.ps1',
             new AbortController().signal,
             onOutput,
-            { spawnCommand, writeFile },
+            { spawnCommand },
         );
         await vi.waitFor(() => expect(child.listenerCount('close')).toBe(1));
         child.emit('close', 0);
 
         await expect(completion).resolves.toEqual({command: 'powershell.exe -File ask.ps1', exitCode: 0, stderr: '', stdout: ''});
         expect(onOutput).not.toHaveBeenCalled();
-        expect(writeFile).toHaveBeenCalledWith(
-            expect.stringMatching(/command\.cmd$/u),
-            'powershell.exe -File ask.ps1\r\nexit /b %errorlevel%\r\n',
-            'utf8',
-        );
         expect(spawnCommand).toHaveBeenCalledWith(
-            expect.any(String),
-            ['/d', '/s', '/v:on', '/c', expect.stringContaining('/wait')],
-            expect.objectContaining({cwd: project.rootPath, stdio: 'ignore', windowsHide: true, windowsVerbatimArguments: true}),
+            'powershell.exe -File ask.ps1',
+            {cwd: project.rootPath, detached: true, shell: true, stdio: 'inherit', windowsHide: false},
         );
     });
 

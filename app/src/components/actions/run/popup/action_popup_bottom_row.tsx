@@ -218,7 +218,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                         </Tooltip>
                     ) : null}
                     {showAgentSend ? (
-                        <Tooltip title="Send">
+                        <Tooltip title="Send. Ctrl+Enter.">
                             <span>
                                 <IconButton aria-label="Send" color="primary" disabled={runDisabled} onClick={handlePrimaryRun} size="small">
                                     <ArrowUpwardOutlined sx={{ fontSize: 18 }} />

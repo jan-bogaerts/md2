@@ -187,7 +187,7 @@ describe('ProjectSessionService storage activation', () => {
         expect(dataService.projectLoading.openProject).not.toHaveBeenCalled()
     })
 
-    it('clears remote desktop config, action bridge, and Claude runtime bridge when connection closes', async () => {
+    it('keeps remote activation during reconnection and clears it on explicit disconnect', async () => {
         mockProjectOpen()
         const storage = new RemoteControlStorageService()
         storage.init({ endpoint: 'ws://127.0.0.1:1234' })
@@ -201,6 +201,12 @@ describe('ProjectSessionService storage activation', () => {
         await service.openProject('remote', { branch: 'main', id: 'remote', rootPath: '/repo' }, null, storage)
 
         for (const listener of connectionListeners) listener(false)
+
+        expect(configService.hasDesktopConfig()).toBe(true)
+        expect(getElectronActionBridge()).toBe(storage)
+        expect(getElectronClaudeRuntimeBridge()).toBe(storage)
+
+        remoteConnectionService.disconnect()
 
         expect(configService.hasDesktopConfig()).toBe(false)
         expect(getElectronActionBridge()).toBeNull()

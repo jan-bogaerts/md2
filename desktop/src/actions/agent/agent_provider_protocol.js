@@ -1,9 +1,11 @@
 const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const {
     ClaudeFileResultDecoder,
+    accumulatedClaudeUsage,
     claudeAssistantText,
     claudeTranscriptEvents,
     claudeUsage,
+    recordClaudeAssistantUsage,
 } = require('./agent_claude_events');
 const { codexTranscriptEvents } = require('./agent_codex_events');
 const { normalizeCodexEvent } = require('./agent_codex_event');
@@ -37,10 +39,6 @@ function codexUsage(event) {
         outputTokens: outputTokens - reasoningTokens,
         reasoningTokens,
     }, usage.total_tokens);
-}
-
-function providerUsage(agent, event) {
-    return agent === 'codex' ? codexUsage(event) : claudeUsage(event);
 }
 
 function providerTranscriptEvents(agent, event) {
@@ -119,6 +117,7 @@ class AgentProviderProtocolParser {
         this.rootPath = rootPath;
         this.turnStarted = false;
         this.claudeFileResultDecoder = agent === 'claude' ? new ClaudeFileResultDecoder(rootPath) : null;
+        this.claudeMessageUsages = new Map();
     }
 
     push(chunk) {
@@ -127,6 +126,16 @@ class AgentProviderProtocolParser {
 
     finish() {
         this.lines.finish();
+    }
+
+    providerUsage(event) {
+        if (this.agent === 'codex') return codexUsage(event);
+        const isSubAgentResult = typeof event.parent_tool_use_id === 'string' && event.parent_tool_use_id.length > 0;
+        if (event.type !== 'result' || isSubAgentResult) return null;
+        const usage = claudeUsage(event, accumulatedClaudeUsage(this.claudeMessageUsages));
+        this.claudeMessageUsages.clear();
+
+        return usage;
     }
 
     parseLine(line) {
@@ -144,6 +153,8 @@ class AgentProviderProtocolParser {
 
         const missingSession = isMissingSession(this.agent, event, this.turnStarted);
         this.turnStarted = this.turnStarted || isTurnEvent(this.agent, event);
+        if (this.agent === 'claude') recordClaudeAssistantUsage(this.claudeMessageUsages, event);
+        const usage = this.providerUsage(event);
         const assistantText = this.agent === 'codex' ? codexAssistantText(event) : claudeAssistantText(event);
         this.onEvent({
             assistantText,
@@ -155,7 +166,7 @@ class AgentProviderProtocolParser {
                 : this.claudeFileResultDecoder?.decode(event) ?? [],
             transcriptEvents: providerTranscriptEvents(this.agent, event),
             turnStarted: this.turnStarted,
-            usage: providerUsage(this.agent, event),
+            usage,
         });
     }
 }

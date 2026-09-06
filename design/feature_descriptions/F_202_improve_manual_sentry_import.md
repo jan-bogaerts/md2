@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__2ba8b222-8131-4283-9263-be319a8fed6f.json
 policy:
-after: f5e9bc66-ebde-41f7-ae6e-503e9e8e284a
+after: a2bfbcc3-8aee-4bd2-8575-ce658dc88a56
 ---
 currently:
 

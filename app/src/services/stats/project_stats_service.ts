@@ -88,7 +88,12 @@ export class ProjectStatsService extends EventTarget {
         if (controls.startUtc && controls.endUtc && Date.parse(controls.startUtc) > Date.parse(controls.endUtc)) {
             throw new Error('Stats start date must not be after end date');
         }
-        if (!this.source) {
+        // A display-only control changes no aggregated row, so keep the existing rows object
+        // instead of paying for a full rebuild.
+        const changedKeys = Object.keys(changes) as (keyof StatsControls)[];
+        const displayOnly = changedKeys.length > 0
+            && changedKeys.every((key) => key === 'shortTokenCounts');
+        if (!this.source || displayOnly) {
             this.publish({ ...this.snapshot, controls });
             return;
         }

@@ -1,6 +1,8 @@
 const { resolveAgentCommand } = require('../actions/agent/agent_profiles.mjs');
+const { resolveProjectPaths } = require('../project/project_paths');
 
 const INTEGRATION_ACTIVITY_LABEL = 'Integrate into project';
+const WORKTREE_REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);
 const SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\n\n';
 
 function watchErrorMessage(error) {
@@ -96,7 +98,13 @@ function createLocalBridgeDispatch(dependencies) {
         }
 
         currentLocalProject = project;
-        if (actionSchedulerService) await actionSchedulerService.startProject(project);
+        // The project config is read here, once, and the resolved paths are handed to each service.
+        // The runner starts before the scheduler: a schedule reconciled by the scheduler can fire a
+        // timer immediately, and firing calls into the runner.
+        const projectConfig = await localGitService.loadProjectConfig(project);
+        const projectPaths = resolveProjectPaths(projectConfig);
+        if (actionRunnerService) await actionRunnerService.startProject(project, projectPaths, projectConfig?.states);
+        if (actionSchedulerService) await actionSchedulerService.startProject(project, projectPaths.actionsFolder);
         await worktreeService.startProject(project);
         // Account usage polls run in this folder: Claude's per-folder trust question blocks a poll
         // started anywhere it has never run, which is why the poll waits for a project at all.
@@ -297,7 +305,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return openWorktreeFolder();
         },
-        removeWorktree: (project, folderPath) => worktreeService.remove(project, folderPath),
+        removeWorktree: (project, folderPath, mode) => {
+            if (!WORKTREE_REMOVAL_MODES.has(mode)) throw new Error(`Unknown worktree removal mode: ${String(mode)}`);
+
+            return worktreeService.remove(project, folderPath, mode);
+        },
         stopAgent: (runId) => agentRunnerService.stop(runId),
         watchProject: (project, callback) => localGitService.watchProject(
             project,

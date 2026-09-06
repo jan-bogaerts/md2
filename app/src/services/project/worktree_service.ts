@@ -7,6 +7,7 @@ import type {
     ProjectSnapshot,
     StorageService,
     WorktreeRecord,
+    WorktreeRemovalMode,
     WorktreeState,
     WorktreeStatus,
 } from '../../data/data_types'
@@ -25,11 +26,17 @@ interface WorktreeServiceDependencies {
     unassignCardWorktree: (path: string) => void
 }
 
+/** A staged removal keeps the folder disposition chosen in the confirmation dialog until Save applies it. */
+export interface WorktreeDraftRemoval {
+    mode: WorktreeRemovalMode
+    path: string
+}
+
 export interface WorktreeDraft {
     additions: string[]
     applying: boolean
     records: WorktreeRecord[]
-    removals: string[]
+    removals: WorktreeDraftRemoval[]
     selecting: boolean
 }
 
@@ -391,7 +398,7 @@ export class WorktreeService extends EventTarget {
         }
     }
 
-    stageDraftRemoval(folderPath: string) {
+    stageDraftRemoval(folderPath: string, mode: WorktreeRemovalMode = 'folder') {
         const draft = this.requireEditableDraft()
         const pathKey = worktreePathKey(folderPath)
         const pendingAddition = draft.additions.find((path) => worktreePathKey(path) === pathKey)
@@ -402,9 +409,9 @@ export class WorktreeService extends EventTarget {
 
         const record = draft.records.find(({ path }) => worktreePathKey(path) === pathKey)
         if (!record) throw new Error('Worktree removal target no longer exists')
-        if (draft.removals.some((path) => worktreePathKey(path) === pathKey)) return
+        if (draft.removals.some((removal) => worktreePathKey(removal.path) === pathKey)) return
 
-        this.replaceDraft({ ...draft, removals: [...draft.removals, record.path] })
+        this.replaceDraft({ ...draft, removals: [...draft.removals, { mode, path: record.path }] })
     }
 
     async applyDraft() {
@@ -417,13 +424,13 @@ export class WorktreeService extends EventTarget {
 
         this.replaceDraft({ ...draft, applying: true })
         try {
-            for (const folderPath of draft.removals) {
-                await storage.removeWorktree(project, folderPath)
+            for (const removal of draft.removals) {
+                await storage.removeWorktree(project, removal.path, removal.mode)
                 const currentDraft = this.draft
                 if (currentDraft) {
                     this.replaceDraft({
                         ...currentDraft,
-                        removals: currentDraft.removals.filter((path) => path !== folderPath),
+                        removals: currentDraft.removals.filter((candidate) => candidate.path !== removal.path),
                     })
                 }
             }

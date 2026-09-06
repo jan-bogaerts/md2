@@ -107,6 +107,10 @@ function handleReleaseChange(event: SelectChangeEvent) {
     setStatsControls({ releaseIdentity: event.target.value });
 }
 
+function handleTokenFormatChange(event: SelectChangeEvent) {
+    setStatsControls({ shortTokenCounts: event.target.value === 'short' });
+}
+
 function exportStats(dataset: StatsDataset, rows: StatsChartRow[]) {
     downloadStatsCsv(dataset, rows);
 }
@@ -242,6 +246,13 @@ export function StatsControls({ snapshot }: StatsControlsProps) {
                 <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Releases</Typography>
                 <Select aria-label="Releases" onChange={handleReleaseChange} size="small" value={controls.releaseIdentity}>
                     {options.releases.map(({ identity, label }) => <MenuItem key={identity} value={identity}>{label}</MenuItem>)}
+                </Select>
+            </Stack>
+            <Stack spacing={0.75}>
+                <Typography color="text.secondary" sx={{ fontWeight: 600 }} variant="caption">Token numbers</Typography>
+                <Select aria-label="Token number format" onChange={handleTokenFormatChange} size="small" value={controls.shortTokenCounts ? 'short' : 'exact'}>
+                    <MenuItem value="short">Shortened (1.2K)</MenuItem>
+                    <MenuItem value="exact">Exact (1,234)</MenuItem>
                 </Select>
             </Stack>
             <Stack spacing={0.75}>

@@ -3,12 +3,19 @@ author:
 id: J_44
 internalId: 906cff2c-d23c-4647-bc78-2cb5580125e2
 title: verify claude token count
-status: new
+status: ready
 owner: 
 affects:
 agents:
+  - design/activity/card__906cff2c-d23c-4647-bc78-2cb5580125e2.json
 policy:
-after: 3a81bbba-94cd-4b06-9c53-198d765510b9
+changedFiles:
+  - desktop/src/actions/agent/agent_claude_events.js
+  - desktop/src/actions/agent/agent_claude_events.test.mjs
+  - desktop/src/actions/agent/agent_claude_streaming_adapter.js
+  - desktop/src/actions/agent/agent_provider_protocol.js
+  - desktop/src/actions/agent/agent_provider_protocol.test.mjs
+  - desktop/src/actions/agent/agent_streaming_adapter.test.mjs
+after: 6f26ee8a-2ac0-4b8b-aad9-2953cbf7dcc1
 ---
-
-we need to verify if the token count coming from claude is done correctly cause it seems on the low side
+we need to verify if the token count coming from claude is done correctly cause it seems on the low side. lets to a comparison on how both claude and codex count the token usage and lets make certain they both use the same and correct approach.

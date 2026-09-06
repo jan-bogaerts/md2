@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ResizablePopper } from './resizable_popper'
@@ -29,7 +29,11 @@ function ExpandablePopper({ storageKey }: { storageKey?: string }) {
 }
 
 describe('ResizablePopper', () => {
-    afterEach(cleanup)
+    afterEach(() => {
+        cleanup()
+        vi.restoreAllMocks()
+        vi.unstubAllGlobals()
+    })
 
     it('keeps the surrounding application interactive while open', () => {
         const onBackgroundClick = vi.fn()
@@ -437,6 +441,58 @@ describe('ResizablePopper', () => {
         fireEvent.pointerUp(window, { pointerId: 1 })
 
         expect(dialog).toHaveStyle({ height: '584px', width: '768px' })
+    })
+
+    it('clamps size to an element boundary and responds when that boundary shrinks', () => {
+        let boundaryHeight = 300
+        let boundaryWidth = 500
+        let notifyBoundaryResize: () => void = vi.fn()
+        const boundaryElement = document.createElement('div')
+        vi.spyOn(boundaryElement, 'getBoundingClientRect').mockImplementation(() => ({
+            bottom: boundaryHeight,
+            height: boundaryHeight,
+            left: 0,
+            right: boundaryWidth,
+            toJSON: () => ({}),
+            top: 0,
+            width: boundaryWidth,
+            x: 0,
+            y: 0,
+        }))
+        class ResizeObserverStub {
+            constructor(callback: ResizeObserverCallback) {
+                notifyBoundaryResize = () => callback([], this)
+            }
+
+            disconnect = vi.fn()
+
+            observe = vi.fn()
+
+            unobserve = vi.fn()
+        }
+        vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+        render(
+            <ResizablePopper
+                anchorElement={boundaryElement}
+                boundaryElement={boundaryElement}
+                initialSize={{ height: 500, width: 700 }}
+                labelId="bounded-popper-title"
+                onClose={vi.fn()}
+                open
+                resizeLabel="Resize bounded popper"
+            >
+                <h2 id="bounded-popper-title">Bounded popper</h2>
+            </ResizablePopper>,
+        )
+        const dialog = screen.getByRole('dialog', { name: 'Bounded popper' })
+
+        expect(dialog).toHaveStyle({ height: '268px', width: '468px' })
+
+        boundaryHeight = 240
+        boundaryWidth = 360
+        act(notifyBoundaryResize)
+
+        expect(dialog).toHaveStyle({ height: '208px', width: '328px' })
     })
 
     it('can preserve editor focus and leave Escape handling to its owner', () => {

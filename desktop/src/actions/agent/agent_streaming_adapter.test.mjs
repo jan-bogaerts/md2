@@ -106,7 +106,11 @@ describe('ClaudeStreamingAdapter', () => {
         await adapter.start('plan');
         await adapter.handleMessage({ session_id: 'session-1', subtype: 'init', type: 'system' });
         await adapter.handleMessage({ message: { content: [{ text: 'proposal', type: 'text' }], id: 'message-1' }, type: 'assistant' });
-        await adapter.handleMessage({ total_cost_usd: 0.01, type: 'result', usage: { input_tokens: 4, output_tokens: 2 } });
+        await adapter.handleMessage({
+            total_cost_usd: 0.01,
+            type: 'result',
+            usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 0, input_tokens: 4, output_tokens: 2 },
+        });
         await answerClaudeContextUsage(adapter, writes);
         await adapter.sendMessage('approved');
 
@@ -164,6 +168,45 @@ describe('ClaudeStreamingAdapter', () => {
                 totalTokens: 25,
             },
         }]);
+    });
+
+    it('falls back to deduplicated root and sub-agent message usage when result cache counters are missing', async () => {
+        const { adapter, events, writes } = harness('claude');
+        const rootAssistant = {
+            message: {
+                content: [],
+                id: 'message-1',
+                usage: { cache_creation_input_tokens: 3, cache_read_input_tokens: 10, input_tokens: 5, output_tokens: 7 },
+            },
+            type: 'assistant',
+        };
+        const subAgentAssistant = {
+            message: {
+                content: [],
+                id: 'message-1',
+                usage: { cache_creation_input_tokens: 2, cache_read_input_tokens: 20, input_tokens: 4, output_tokens: 6 },
+            },
+            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,
+            type: 'assistant',
+        };
+
+        await adapter.handleMessage(rootAssistant);
+        await adapter.handleMessage(rootAssistant);
+        await adapter.handleMessage(subAgentAssistant);
+        await adapter.handleMessage({ total_cost_usd: 0.25, type: 'result', usage: { input_tokens: 9, output_tokens: 13 } });
+        await answerClaudeContextUsage(adapter, writes);
+
+        expect(events.at(-1)).toMatchObject({
+            type: 'turnCompleted',
+            usage: {
+                cachedInputTokens: 35,
+                costUsd: 0.25,
+                inputTokens: 9,
+                outputTokens: 13,
+                reasoningTokens: 0,
+                totalTokens: 57,
+            },
+        });
     });
 
     it('reports the latest context snapshot independently for each successful turn', async () => {
@@ -873,7 +916,11 @@ describe('ClaudeStreamingAdapter', () => {
         expect(events.some(({ type }) => type === 'turnCompleted')).toBe(false);
         expect(latestClaudeContextUsageRequest(writes)).toBeUndefined();
 
-        await adapter.handleMessage({ total_cost_usd: 0.01, type: 'result', usage: { input_tokens: 4, output_tokens: 2 } });
+        await adapter.handleMessage({
+            total_cost_usd: 0.01,
+            type: 'result',
+            usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 0, input_tokens: 4, output_tokens: 2 },
+        });
         await answerClaudeContextUsage(adapter, writes);
 
         expect(events.at(-1)).toMatchObject({ error: null, type: 'turnCompleted' });

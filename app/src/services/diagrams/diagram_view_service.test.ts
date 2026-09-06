@@ -4,6 +4,7 @@ import type { ActionDefinition } from '../../data/action_types'
 import { DEFAULT_PROJECT_CONFIG, resolveProjectConfigPaths, type MarkdownFile, type StorageService } from '../../data/data_types'
 import { DiagramViewService } from './diagram_view_service'
 import { serializeDiagramIndex, type DiagramIndex } from './diagram_index'
+import { serializeDiagramData } from './diagram_data'
 
 const INDEX_PATH = 'design/diagrams/diagram-view.json'
 const DIAGRAM_JSON = JSON.stringify({
@@ -116,6 +117,27 @@ describe('DiagramViewService', () => {
         })
     })
 
+    it('owns transient legend state and resets it only when project changes or service clears', async () => {
+        const { scheduleCommit, service, storage } = createHarness()
+
+        service.collapseLegend()
+        service.moveLegend({ left: 120, top: 40 })
+        service.bindProject({ config, project, storage })
+
+        expect(service.getSnapshot().legend).toEqual({ collapsed: true, position: { left: 120, top: 40 } })
+        expect(scheduleCommit).not.toHaveBeenCalled()
+
+        service.expandLegend()
+        expect(service.getSnapshot().legend.collapsed).toBe(false)
+
+        service.bindProject({ config, project: { ...project, branch: 'other' }, storage })
+        expect(service.getSnapshot().legend).toEqual({ collapsed: false, position: null })
+
+        service.moveLegend({ left: 20, top: 10 })
+        service.clear()
+        expect(service.getSnapshot().legend).toEqual({ collapsed: false, position: null })
+    })
+
     it('restores global active path and parses exact last diagram JSON from versioned index', async () => {
         const index: DiagramIndex = {
             activePath: ['root-1', 'child-1'],
@@ -142,6 +164,32 @@ describe('DiagramViewService', () => {
         expect(storage.loadTextFile).toHaveBeenCalledWith(project, 'design/diagrams/child.json')
         expect(service.getSnapshot().currentDiagram?.nodes[0]).toMatchObject({ id: 'orders', label: 'Orders' })
         expect(service.getSnapshot().currentDiagram?.width).toBeGreaterThan(0)
+        expect(service.getSourceSnapshot()?.record.id).toBe('child-1')
+        expect(service.getSourceSnapshot()?.diagram.nodes[0]).toEqual({ id: 'orders', label: 'Orders', role: 'focal' })
+        expect(service.getSourceSnapshot()?.diagram).not.toHaveProperty('width')
+    })
+
+    it('notifies source subscribers only when active source changes', async () => {
+        const { run, service } = createHarness()
+        const sourceListener = vi.fn()
+        const unsubscribe = service.subscribeSource(sourceListener)
+        await service.open()
+
+        service.openRootPopup(document.createElement('button'))
+        service.collapseLegend()
+        expect(sourceListener).not.toHaveBeenCalled()
+
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+        expect(sourceListener).toHaveBeenCalledOnce()
+
+        service.closePopup()
+        service.expandLegend()
+        expect(sourceListener).toHaveBeenCalledOnce()
+
+        unsubscribe()
+        service.clear()
+        expect(sourceListener).toHaveBeenCalledOnce()
     })
 
     it('reports malformed index without replacing it and retries on the next open', async () => {
@@ -202,16 +250,20 @@ describe('DiagramViewService', () => {
         }))
         await vi.waitFor(() => expect(service.getSnapshot().index.activePath).toEqual(['root-1', 'root-2']))
         flushCommits.mockClear()
+        service.collapseLegend()
+        service.moveLegend({ left: 80, top: 24 })
 
         await service.navigateBack()
 
         expect(service.getSnapshot().index.activePath).toEqual(['root-1'])
+        expect(service.getSnapshot().legend).toEqual({ collapsed: true, position: { left: 80, top: 24 } })
         expect(scheduledIndex(scheduleCommit)?.activePath).toEqual(['root-1'])
         expect(flushCommits).not.toHaveBeenCalled()
 
         await service.navigateToSavedDiagram('root-2')
 
         expect(service.getSnapshot().index.activePath).toEqual(['root-1', 'root-2'])
+        expect(service.getSnapshot().legend).toEqual({ collapsed: true, position: { left: 80, top: 24 } })
         expect(scheduledIndex(scheduleCommit)?.activePath).toEqual(['root-1', 'root-2'])
     })
 
@@ -227,6 +279,112 @@ describe('DiagramViewService', () => {
         expect(service.getSnapshot().index.activePath).toEqual([])
         expect(service.getSnapshot().popup).not.toBeNull()
         expect(service.getSnapshot().currentDiagram).toBeNull()
+    })
+
+    it('saves a root edit beside its source while keeping Current active', async () => {
+        const { flushCommits, run, scheduleCommit, service } = createHarness()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+        scheduleCommit.mockClear()
+        flushCommits.mockClear()
+
+        const source = service.getSourceSnapshot() as NonNullable<ReturnType<typeof service.getSourceSnapshot>>
+        const content = serializeDiagramData({ ...source.diagram, meta: { ...source.diagram.meta, title: 'Edited' } })
+        const record = await service.saveEditedDiagramCopy({ content, savedRecord: null, sourceRecord: source.record })
+
+        expect(record).toMatchObject({
+            id: 'root-2',
+            path: 'design/diagrams/overview-edited-root-2.json',
+            sourceDiagramId: 'root-1',
+        })
+        expect(service.getSnapshot().index.roots.overview).toEqual(['root-1', 'root-2'])
+        expect(service.getSnapshot().index.activePath).toEqual(['root-1'])
+        expect(service.getSourceSnapshot()).toBe(source)
+        expect(scheduleCommit).toHaveBeenCalledTimes(2)
+        expect(scheduleCommit).toHaveBeenNthCalledWith(1, { content, path: record.path }, 'Save edited diagram copy')
+        expect(scheduledIndex(scheduleCommit)?.diagrams['root-2']).toEqual(record)
+        expect(flushCommits).toHaveBeenCalledOnce()
+    })
+
+    it('saves a child edit beside its source in the same child collection', async () => {
+        const { run, service } = createHarness()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+        run(completedEvent({
+            actionId: 'detail',
+            context: { diagramId: 'root-1', diagramItemId: 'orders', kind: 'diagram', parentNode: 'Orders', type: 'child' },
+            diagramPath: 'design/diagrams/detail.json',
+            rootActionId: 'detail',
+            runId: 'child-run',
+        }))
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-2'))
+
+        const source = service.getSourceSnapshot() as NonNullable<ReturnType<typeof service.getSourceSnapshot>>
+        const record = await service.saveEditedDiagramCopy({
+            content: serializeDiagramData(source.diagram),
+            savedRecord: null,
+            sourceRecord: source.record,
+        })
+
+        expect(record).toMatchObject({ id: 'child-1', parent: source.record.parent, sourceDiagramId: 'root-2' })
+        expect(service.getSavedChildren('root-1', 'orders').map(({ id }) => id)).toEqual(['root-2', 'child-1'])
+        expect(service.getSnapshot().index.activePath).toEqual(['root-1', 'root-2'])
+    })
+
+    it('retries generated IDs until copy record and path are collision-free', async () => {
+        const collisionPath = 'design/diagrams/overview-edited-root-2.json'
+        const { run, service } = createHarness([collisionPath])
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+
+        const source = service.getSourceSnapshot() as NonNullable<ReturnType<typeof service.getSourceSnapshot>>
+        const record = await service.saveEditedDiagramCopy({
+            content: serializeDiagramData(source.diagram),
+            savedRecord: null,
+            sourceRecord: source.record,
+        })
+
+        expect(record).toMatchObject({ id: 'child-1', path: 'design/diagrams/overview-edited-child-1.json' })
+    })
+
+    it('updates one saved copy on later saves without adding another record', async () => {
+        const { run, scheduleCommit, service } = createHarness()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+        const source = service.getSourceSnapshot() as NonNullable<ReturnType<typeof service.getSourceSnapshot>>
+        const firstContent = serializeDiagramData(source.diagram)
+        const record = await service.saveEditedDiagramCopy({ content: firstContent, savedRecord: null, sourceRecord: source.record })
+        scheduleCommit.mockClear()
+        const laterContent = serializeDiagramData({ ...source.diagram, meta: { ...source.diagram.meta, title: 'Later' } })
+
+        const laterRecord = await service.saveEditedDiagramCopy({ content: laterContent, savedRecord: record, sourceRecord: source.record })
+
+        expect(laterRecord).toBe(record)
+        expect(service.getSnapshot().index.roots.overview).toEqual(['root-1', 'root-2'])
+        expect(scheduleCommit).toHaveBeenNthCalledWith(1, { content: laterContent, path: record.path }, 'Save edited diagram copy')
+    })
+
+    it('publishes no partial index after atomic failure and reuses candidate on retry', async () => {
+        const { flushCommits, run, service } = createHarness()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+        const source = service.getSourceSnapshot() as NonNullable<ReturnType<typeof service.getSourceSnapshot>>
+        const content = serializeDiagramData(source.diagram)
+        flushCommits.mockRejectedValueOnce(new Error('atomic write failed'))
+
+        await expect(service.saveEditedDiagramCopy({ content, savedRecord: null, sourceRecord: source.record }))
+            .rejects.toThrow('atomic write failed')
+        expect(service.getSnapshot().index.roots.overview).toEqual(['root-1'])
+        expect(service.getSourceSnapshot()).toBe(source)
+
+        const record = await service.saveEditedDiagramCopy({ content, savedRecord: null, sourceRecord: source.record })
+        expect(record.id).toBe('root-2')
+        expect(service.getSnapshot().index.roots.overview).toEqual(['root-1', 'root-2'])
     })
 
     it('ignores cancelled and failed runs', async () => {

@@ -1,13 +1,13 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { runGit } = require('./git_commands');
 const { MergeConflictService } = require('./merge_conflict_service');
-const { WorktreeService } = require('./worktree_service');
+const { WorktreeService, parseWorktreeList } = require('./worktree_service');
 
 async function createRepository() {
     const folderPath = await mkdtemp(join(tmpdir(), 'md2-worktree-sync-'));
@@ -85,6 +85,154 @@ describe('WorktreeService linked worktree mutations', () => {
 
             expect(service.getRecords(project)).toEqual([]);
             expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('feature');
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('rejects adding a folder that already holds files, leaving Git untouched', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+        const occupiedPath = join(repository.folderPath, 'occupied');
+        await mkdir(occupiedPath);
+        await writeFile(join(occupiedPath, 'existing.txt'), 'existing\n');
+
+        try {
+            await service.startProject(project);
+
+            await expect(service.add(project, occupiedPath)).rejects.toThrow(/Linked worktree folder is not empty/u);
+            expect(await listWorktreePaths(repository.primaryPath)).not.toContain(occupiedPath);
+            expect(await readdir(occupiedPath)).toEqual(['existing.txt']);
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+});
+
+async function listWorktreePaths(primaryPath) {
+    const output = await runGit(primaryPath, ['worktree', 'list', '--porcelain']);
+
+    return parseWorktreeList(output).map((worktree) => resolve(worktree.path));
+}
+
+async function folderExists(folderPath) {
+    try {
+        return (await stat(folderPath)).isDirectory();
+    } catch {
+        return false;
+    }
+}
+
+describe('WorktreeService removal modes', () => {
+    it('force-removes a dirty checkout and deletes its folder in folder mode', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+        await writeFile(join(repository.linkedPath, 'untracked.txt'), 'agent output\n');
+        await writeFile(join(repository.linkedPath, 'base.txt'), 'modified\n');
+
+        try {
+            await service.startProject(project);
+            await service.remove(project, repository.linkedPath, 'folder');
+
+            expect(service.getRecords(project)).toEqual([]);
+            expect(await listWorktreePaths(repository.primaryPath)).not.toContain(repository.linkedPath);
+            expect(await folderExists(repository.linkedPath)).toBe(false);
+            expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('feature');
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('leaves an empty folder behind in files mode', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+        await writeFile(join(repository.linkedPath, 'untracked.txt'), 'agent output\n');
+
+        try {
+            await service.startProject(project);
+            await service.remove(project, repository.linkedPath, 'files');
+
+            expect(await listWorktreePaths(repository.primaryPath)).not.toContain(repository.linkedPath);
+            expect(await folderExists(repository.linkedPath)).toBe(true);
+            expect(await readdir(repository.linkedPath)).toEqual([]);
+            expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('feature');
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('keeps folder and files in unregister mode and leaves no dangling .git link', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+        await writeFile(join(repository.linkedPath, 'untracked.txt'), 'agent output\n');
+
+        try {
+            await service.startProject(project);
+            await service.remove(project, repository.linkedPath, 'unregister');
+
+            expect(await listWorktreePaths(repository.primaryPath)).not.toContain(repository.linkedPath);
+            expect((await readdir(repository.linkedPath)).sort()).toEqual(['base.txt', 'untracked.txt']);
+            expect(await folderExists(join(repository.linkedPath, '.git'))).toBe(false);
+            await expect(stat(join(repository.linkedPath, '.git'))).rejects.toThrow();
+            expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('feature');
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+
+    it('prunes the stale registration of a worktree folder that is gone from disk', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+
+        try {
+            await service.startProject(project);
+            await rm(repository.linkedPath, { force: true, recursive: true });
+            await service.refreshLocal();
+
+            const [record] = service.getRecords(project);
+            expect(record).toMatchObject({ parkingBranch: null, path: repository.linkedPath, valid: false });
+
+            await service.remove(project, repository.linkedPath, 'folder');
+            expect(service.getRecords(project)).toEqual([]);
+            expect(await listWorktreePaths(repository.primaryPath)).not.toContain(repository.linkedPath);
+        } finally {
+            service.stopProject();
+            await rm(repository.folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
+});
+
+describe('WorktreeService record reading', () => {
+    it('keeps healthy records when another worktree folder is missing', async () => {
+        const repository = await createRepository();
+        const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
+        const service = createService();
+        const healthyPath = join(repository.folderPath, 'healthy');
+
+        try {
+            await service.startProject(project);
+            await service.add(project, healthyPath);
+            await rm(repository.linkedPath, { force: true, recursive: true });
+            await service.refreshLocal();
+
+            const records = service.getRecords(project);
+            const broken = records.find(({ path: recordPath }) => recordPath === repository.linkedPath);
+            const healthy = records.find(({ path: recordPath }) => recordPath === healthyPath);
+            expect(records).toHaveLength(2);
+            expect(broken).toMatchObject({ parkingBranch: null, valid: false });
+            expect(broken.error).toMatch(/prunable/u);
+            expect(healthy).toMatchObject({ error: null, valid: true });
+            expect(healthy.parkingBranch).toMatch(/^md2\/parking\//u);
         } finally {
             service.stopProject();
             await rm(repository.folderPath, { force: true, recursive: true });

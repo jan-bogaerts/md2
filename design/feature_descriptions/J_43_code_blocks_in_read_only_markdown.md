@@ -12,6 +12,7 @@ policy:
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
   - app/src/components/actions/conversation/action_conversation_message.tsx
+after: 5f931241-561d-4149-9e7c-f0803db2fef0
 ---
 in the action popup's chatlog, we show read only markdown. the formatting of code blocks is terrible: no word-wrap, no clear block. this needs to be improved.
 

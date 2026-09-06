@@ -3,15 +3,23 @@ author:
 id: F_303
 internalId: 69834d03-c154-4c81-a656-50de20aeb0ec
 title: add component node tool
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__69834d03-c154-4c81-a656-50de20aeb0ec.json
 policy:
 after: f82cd066-3072-4e2e-96d4-301bed26bae0
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_component_node_button.test.tsx
+  - app/src/components/diagram_view/diagram_component_node_button.tsx
+  - app/src/components/diagram_view/diagram_object_details_dialog.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -25,6 +33,10 @@ Add a Component button to Nodes for architecture and dependency diagrams.
 * Details can edit all component fields permitted by the schema.
 * Architecture and dependency tests cover placement and unavailable states.
 
+## State and rendering rule
+
+The button subscribes only to the diagram-type primitive needed for availability. Creation adds one component ID and object; later component fields are read by that component leaf from the service. Existing nodes and diagram parents do not receive component field events.
+
 ## Dependencies
 
-[F_302](F_302_add_node_placement_infrastructure.md).
+[F\_302](F_302_add_node_placement_infrastructure.md).

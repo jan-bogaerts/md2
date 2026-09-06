@@ -1,6 +1,7 @@
 import { Box, Stack, Tooltip, Typography, useTheme } from '@mui/material';
 import { useContext, useMemo } from 'react';
-import type { StatsChartRow } from '../../services/stats/project_stats_types';
+import type { StatsChartRow, StatsUnit } from '../../services/stats/project_stats_types';
+import { formatTokenCount } from '../agents/token_count';
 import { StatsSeriesColorsContext } from './stats_series_colors_context';
 import { assignSeriesColorsFromKeys, seriesColorInputs, seriesColorKey, type StatsSeriesPalettes } from './stats_series_colors';
 
@@ -15,6 +16,7 @@ interface StatsBarChartProps {
     ariaLabel?: string;
     mode?: StatsBarMode;
     rows: StatsChartRow[];
+    shortTokenCounts?: boolean;
 }
 
 interface BucketRows {
@@ -33,8 +35,14 @@ function effectiveSeriesIdentity(row: StatsChartRow) {
     return row.seriesIdentity ?? row.identity;
 }
 
-function formattedValue(row: StatsChartRow) {
+/** True for counts of tokens only; the `tokensPer…` units are ratios and keep their decimals. */
+function abbreviatesTokens(unit: StatsUnit, shortTokenCounts: boolean) {
+    return shortTokenCounts && unit === 'tokens';
+}
+
+function formattedValue(row: StatsChartRow, shortTokenCounts: boolean) {
     if (!row.available) return 'Unavailable';
+    if (abbreviatesTokens(row.unit, shortTokenCounts)) return formatTokenCount(row.value);
     if (row.unit === 'milliseconds') {
         return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(row.value / 1_000)} seconds`;
     }
@@ -124,7 +132,7 @@ function positionCss({ labelOffset, percentage }: ScaledPosition, baselinePercen
 }
 
 /** Theme-backed chart with fixed bucket geometry and accessible grouped stacks. */
-export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', rows }: StatsBarChartProps) {
+export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', rows, shortTokenCounts = false }: StatsBarChartProps) {
     const theme = useTheme();
     const buckets = bucketRows(rows);
     const maximum = maximumMagnitude(buckets, mode);
@@ -218,6 +226,9 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                 >
                                     {bars.map((bar) => {
                                         const total = barTotal(bar);
+                                        const totalLabel = abbreviatesTokens(bar.rows[0].unit, shortTokenCounts)
+                                            ? formatTokenCount(total)
+                                            : new Intl.NumberFormat().format(total);
                                         const stacked = mode === 'stacked' || mode === 'groupedStacked';
                                         const barMagnitude = scaledPosition(total, maximum, domainPercentage);
 
@@ -242,7 +253,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                         }}
                                                         variant="caption"
                                                     >
-                                                        {new Intl.NumberFormat().format(total)}
+                                                        {totalLabel}
                                                     </Typography>
                                                 ) : null}
                                                 {bar.rows.map((row, index) => {
@@ -255,7 +266,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                                     const identity = effectiveSeriesIdentity(row);
                                                     const color = localColors.get(seriesColorKey(row, groupNames));
                                                     const isNegative = row.value < 0;
-                                                    const barLabel = formattedValue(row);
+                                                    const barLabel = formattedValue(row, shortTokenCounts);
                                                     const showBar = row.available && row.value !== 0;
                                                     const showDeviation = row.available && row.deviation !== null;
                                                     const deviationLowerPosition = showDeviation

@@ -23,6 +23,7 @@ interface PopperPosition {
 
 interface ResizablePopperBaseProps {
     anchorElement: HTMLElement | null
+    boundaryElement?: HTMLElement | null
     bottomInset?: number
     children: ReactNode
     constrainSizeToViewport?: boolean
@@ -62,6 +63,7 @@ const INTERACTIVE_SELECTOR = [
 ].join(', ')
 const MIN_WIDTH = 280
 const MIN_HEIGHT = 200
+const DEFAULT_MINIMUM_SIZE = { height: MIN_HEIGHT, width: MIN_WIDTH }
 const HANDLE_SIZE = 16
 const EDGE_HANDLE_SIZE = 6
 const VIEWPORT_MARGIN = 16
@@ -73,24 +75,34 @@ const FULL_HEIGHT_RESIZE_DIRECTIONS: ResizeDirection[] = ['left', 'right']
 const FLIP_VIEWPORT_MODIFIER = { name: 'flip', options: { padding: VIEWPORT_MARGIN } } as const
 const VIEWPORT_POPPER_OPTIONS: NonNullable<PopperProps['popperOptions']> = { strategy: 'fixed' }
 
-function buildViewportModifiers(bottomInset: number) {
+function buildViewportModifiers(bottomInset: number, boundaryElement?: HTMLElement | null) {
     const preventViewportOverflowModifier = {
         name: 'preventOverflow',
         options: {
             altAxis: true,
+            boundary: boundaryElement ?? 'clippingParents',
             padding: { bottom: bottomInset, left: VIEWPORT_MARGIN, right: VIEWPORT_MARGIN, top: VIEWPORT_MARGIN },
             tether: false,
         },
     } as const
-    const viewportModifiers: NonNullable<PopperProps['modifiers']> = [preventViewportOverflowModifier, FLIP_VIEWPORT_MODIFIER]
+    const flipModifier = boundaryElement
+        ? { name: 'flip', options: { boundary: boundaryElement, padding: VIEWPORT_MARGIN } } as const
+        : FLIP_VIEWPORT_MODIFIER
+    const viewportModifiers: NonNullable<PopperProps['modifiers']> = [preventViewportOverflowModifier, flipModifier]
     const fullHeightViewportModifiers: NonNullable<PopperProps['modifiers']> = [preventViewportOverflowModifier]
 
     return { fullHeightViewportModifiers, viewportModifiers }
 }
 
-function clampSizeToViewport(size: PopperSize, minimumSize: MinimumPopperSize, bottomInset: number) {
-    const maximumHeight = Math.max(0, window.innerHeight - VIEWPORT_MARGIN - bottomInset)
-    const maximumWidth = Math.max(0, window.innerWidth - VIEWPORT_MARGIN * 2)
+function clampSizeToBoundary(
+    size: PopperSize,
+    minimumSize: MinimumPopperSize,
+    bottomInset: number,
+    boundaryElement?: HTMLElement | null,
+) {
+    const boundaryBounds = boundaryElement?.getBoundingClientRect()
+    const maximumHeight = Math.max(0, (boundaryBounds?.height ?? window.innerHeight) - VIEWPORT_MARGIN - bottomInset)
+    const maximumWidth = Math.max(0, (boundaryBounds?.width ?? window.innerWidth) - VIEWPORT_MARGIN * 2)
     const minimumHeight = Math.min(minimumSize.height, maximumHeight)
     const minimumWidth = Math.min(minimumSize.width, maximumWidth)
 
@@ -105,6 +117,7 @@ function loadSize(
     minimumSize: MinimumPopperSize,
     constrainSizeToViewport: boolean,
     bottomInset: number,
+    boundaryElement?: HTMLElement | null,
     storageKey?: string,
 ): PopperSize {
     if (!storageKey) return initialSize
@@ -121,7 +134,9 @@ function loadSize(
             width: Math.max(minimumSize.width, storedSize.width as number),
         }
 
-        return constrainSizeToViewport ? clampSizeToViewport(size, minimumSize, bottomInset) : size
+        return constrainSizeToViewport || boundaryElement
+            ? clampSizeToBoundary(size, minimumSize, bottomInset, boundaryElement)
+            : size
     } catch {
         return initialSize
     }
@@ -183,6 +198,7 @@ function extractAppRegionStyle(paperSx?: SxProps<Theme>): CSSProperties {
 export function ResizablePopper(props: ResizablePopperProps) {
     const {
         anchorElement,
+        boundaryElement,
         bottomInset = VIEWPORT_MARGIN,
         children,
         closeOnEscape = true,
@@ -192,7 +208,7 @@ export function ResizablePopper(props: ResizablePopperProps) {
         fullHeight = false,
         initialSize,
         labelId,
-        minimumSize = { height: MIN_HEIGHT, width: MIN_WIDTH },
+        minimumSize = DEFAULT_MINIMUM_SIZE,
         onActivate,
         onClose,
         open,
@@ -207,7 +223,14 @@ export function ResizablePopper(props: ResizablePopperProps) {
         storageKey,
     } = props
     const focusOnMount = focusOnMountProp ?? stackPosition !== undefined
-    const [size, setSize] = useState(() => loadSize(initialSize, minimumSize, constrainSizeToViewport, bottomInset, storageKey))
+    const [size, setSize] = useState(() => loadSize(
+        initialSize,
+        minimumSize,
+        constrainSizeToViewport,
+        bottomInset,
+        boundaryElement,
+        storageKey,
+    ))
     const [position, setPosition] = useState<PopperPosition | null>(() => draggable && !anchorElement ? centeredPosition(size) : null)
     const [detachedLeft, setDetachedLeft] = useState<number | null>(null)
     const anchoredLeftRef = useRef<number | null>(null)
@@ -217,8 +240,8 @@ export function ResizablePopper(props: ResizablePopperProps) {
     const resizeRef = useRef<AbortController | null>(null)
     const theme = useTheme()
     const { fullHeightViewportModifiers, viewportModifiers } = useMemo(
-        () => buildViewportModifiers(bottomInset),
-        [bottomInset],
+        () => buildViewportModifiers(bottomInset, boundaryElement),
+        [bottomInset, boundaryElement],
     )
     const overlayTheme = useMemo<Theme>(() => ({
         ...theme,
@@ -229,6 +252,25 @@ export function ResizablePopper(props: ResizablePopperProps) {
     }), [stackPosition, theme])
 
     useEffect(() => () => resizeRef.current?.abort(), [])
+    useLayoutEffect(() => {
+        if (!boundaryElement) return
+
+        const clampSize = () => setSize((current) => {
+            const clamped = clampSizeToBoundary(current, minimumSize, bottomInset, boundaryElement)
+
+            return clamped.height === current.height && clamped.width === current.width ? current : clamped
+        })
+        clampSize()
+        if (typeof ResizeObserver === 'undefined') {
+            window.addEventListener('resize', clampSize)
+
+            return () => window.removeEventListener('resize', clampSize)
+        }
+        const observer = new ResizeObserver(clampSize)
+        observer.observe(boundaryElement)
+
+        return () => observer.disconnect()
+    }, [bottomInset, boundaryElement, minimumSize])
     const setPaperElement = useCallback((element: HTMLDivElement | null) => {
         paperRef.current = element
         if (!element || !focusOnMountRef.current) return
@@ -378,8 +420,8 @@ export function ResizablePopper(props: ResizablePopperProps) {
                         start.width + (resizesLeft ? -horizontalDelta : resizesRight ? horizontalDelta : 0),
                     ),
                 }
-                const { height, width } = constrainSizeToViewport
-                    ? clampSizeToViewport(nextSize, minimumSize, bottomInset)
+                const { height, width } = constrainSizeToViewport || boundaryElement
+                    ? clampSizeToBoundary(nextSize, minimumSize, bottomInset, boundaryElement)
                     : nextSize
 
                 completedSize = { height, width }

@@ -6,6 +6,7 @@ export const DIAGRAM_EDGE_KINDS: readonly ['connection', 'data', 'dependency', '
 export const DIAGRAM_FLOW_PRESETS: readonly ['flowchart', 'state']
 export const DIAGRAM_CARDINALITIES: readonly ['1', 'N', '0..1', '1..*']
 export const DIAGRAM_SEQUENCE_OPERATORS: readonly ['alt', 'opt', 'loop']
+export const DIAGRAM_CONNECTION_SIDES: readonly ['top', 'right', 'bottom', 'left']
 
 export type DiagramType = typeof DIAGRAM_TYPES[number]
 export type DiagramRole = typeof DIAGRAM_ROLES[number]
@@ -14,11 +15,14 @@ export type DiagramEdgeKind = typeof DIAGRAM_EDGE_KINDS[number]
 export type DiagramFlowPreset = typeof DIAGRAM_FLOW_PRESETS[number]
 export type DiagramCardinality = typeof DIAGRAM_CARDINALITIES[number]
 export type DiagramSequenceOperator = typeof DIAGRAM_SEQUENCE_OPERATORS[number]
+export type DiagramConnectionSide = typeof DIAGRAM_CONNECTION_SIDES[number]
 
-export interface DiagramLegendItem { label: string; role: DiagramRole }
+export type DiagramLegendEntryData =
+    | { label: string; role: DiagramRole }
+    | { kind: DiagramEdgeKind; label: string }
 export interface DiagramMeta {
     description: string
-    legend?: DiagramLegendItem[]
+    legend?: DiagramLegendEntryData[]
     preset?: DiagramFlowPreset
     title: string
     type: DiagramType
@@ -40,17 +44,28 @@ export interface DiagramNode {
     y?: number
 }
 export interface DiagramWaypoint { x: number; y: number }
+export interface DiagramConnectionPoint { nodeId: string; offset: number; side: DiagramConnectionSide }
 export interface DiagramEdge {
     from: string
     fromCardinality?: DiagramCardinality
     id: string
     kind: DiagramEdgeKind
     label?: string
+    sourceAttachment?: DiagramConnectionPoint
+    targetAttachment?: DiagramConnectionPoint
     to: string
     toCardinality?: DiagramCardinality
     waypoints?: DiagramWaypoint[]
 }
-export interface DiagramGroup { id: string; label: string; nodeIds: string[] }
+export interface DiagramGroup {
+    height?: number
+    id: string
+    label: string
+    nodeIds: string[]
+    width?: number
+    x?: number
+    y?: number
+}
 export interface DiagramSequenceFragmentRegion { edgeIds: string[]; guard: string }
 export interface DiagramSequenceFragment {
     id: string
@@ -65,5 +80,32 @@ export interface DiagramData {
     nodes: DiagramNode[]
 }
 
+export function requireDiagramString(value: unknown, field: string): string
+export function optionalDiagramString(value: unknown, field: string): string | undefined
+export function optionalDiagramBoolean(value: unknown, field: string): boolean | undefined
+export function requireDiagramGridNumber(value: unknown, field: string, positive?: boolean): number
+export function requireDiagramRelativeOffset(value: unknown, field: string): number
+export function requireDiagramEnum<Value extends string>(value: unknown, values: readonly Value[], field: string): Value
+export function optionalDiagramEnum<Value extends string>(value: unknown, values: readonly Value[], field: string): Value | undefined
+export function requireDiagramEdgeKind(kind: unknown, type: DiagramType, field: string): DiagramEdgeKind
+export function requireDiagramNodeKind(
+    kind: unknown,
+    type: DiagramType,
+    preset: DiagramFlowPreset | undefined,
+    field: string,
+): DiagramNodeKind | undefined
+export function requireDiagramEdgeLabel(
+    label: unknown,
+    type: DiagramType,
+    preset: DiagramFlowPreset | undefined,
+    sourceKind: DiagramNodeKind | undefined,
+    field: string,
+): string | undefined
+export function requireDiagramFragmentRegionCount(
+    operator: unknown,
+    regions: readonly DiagramSequenceFragmentRegion[],
+    field: string,
+): void
 export function parseDiagramData(content: string): DiagramData
+export function serializeDiagramData(data: DiagramData): string
 export function isDiagramDataPath(path: string): boolean

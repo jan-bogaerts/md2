@@ -119,6 +119,7 @@ class GitProcess {
 
 module.exports = {
     GitProcess,
+    formatGitCommand,
     LOCAL_GIT_TIMEOUT_MS,
     NETWORK_GIT_TIMEOUT_MS,
     gitTimeoutPolicy,

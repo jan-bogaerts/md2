@@ -3,6 +3,16 @@ import type { ActionSchedule } from './action_schedule_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 import type { ProjectBackgroundShade } from '../theme/project_background_shade'
 import type { ActivityStatsCalculationResult } from '../../../shared/project_stats.mjs'
+import {
+    DEFAULT_ACTIONS_FOLDER,
+    DEFAULT_ARCHIVED_FOLDER,
+    DEFAULT_DIAGRAMS_FOLDER,
+    DEFAULT_DIAGRAM_FOOTER,
+    DEFAULT_PROJECT_FOLDER,
+    DEFAULT_RELEASES_FOLDER,
+    DEFAULT_WORKING_FOLDER,
+    joinProjectFolderPath,
+} from '../../../shared/project_config_defaults.mjs'
 import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from './card_identifiers'
 import type {
     MergeConflictPathRequest,
@@ -11,94 +21,16 @@ import type {
     WorktreeOperationOutcome,
 } from './merge_conflict_types'
 
-export const DEFAULT_WORKING_FOLDER = 'active'
-export const DEFAULT_ACTIONS_FOLDER = 'actions'
-export const DEFAULT_ARCHIVED_FOLDER = 'archived'
-export const DEFAULT_PROJECT_FOLDER = 'design'
-export const DEFAULT_RELEASES_FOLDER = 'history'
+export {
+    DEFAULT_ACTIONS_FOLDER,
+    DEFAULT_ARCHIVED_FOLDER,
+    DEFAULT_DIAGRAMS_FOLDER,
+    DEFAULT_DIAGRAM_FOOTER,
+    DEFAULT_PROJECT_FOLDER,
+    DEFAULT_RELEASES_FOLDER,
+    DEFAULT_WORKING_FOLDER,
+}
 export const DEFAULT_DIFF_COMMAND = 'git show {{commit}}'
-export const DEFAULT_DIAGRAMS_FOLDER = 'diagrams'
-export const DEFAULT_DIAGRAM_FOOTER = `Save exactly one valid JSON object to {{diagram-file}}. Write JSON only: no SVG, markup, Markdown code fence, or explanatory text.
-
-Required root fields:
-- meta: { version: 1, type, title, description }
-- nodes: [{ id, label, role }]
-- edges: [{ id, from, to, kind }]
-
-Optional root fields:
-- groups: [{ id, label, nodeIds }]
-- fragments for sequence data only
-
-Optional meta fields:
-- legend: [{ label, role }]
-- preset, required for flow data and forbidden for other types
-
-Supported diagram types:
-- architecture
-- dependency
-- sequence
-- flow
-- entity
-
-Supported roles:
-- focal
-- backend
-- store
-- external
-- input
-- optional
-- boundary
-
-Node fields:
-- Required: id, label, role
-- Optional: kind, sublabel, tag, drilldown, x, y, width, height
-- fields: [{ name, optional type, optional key }] is allowed only for entity nodes
-- Entity field key must be primary or foreign
-- Omit drilldown or set it to true for selectable nodes; set it to false only for non-selectable nodes
-
-Node kinds by diagram type:
-- architecture: component
-- dependency: component
-- sequence: participant
-- entity: entity
-- flow with preset flowchart: start, end, step, decision
-- flow with preset state: start, end, state
-
-Edge kinds by diagram type:
-- architecture: connection, data, async
-- dependency: dependency, cycle
-- sequence: call, return, async, success
-- flow: flow, transition
-- entity: relationship
-
-Optional edge fields:
-- label
-- waypoints: [{ x, y }]
-- fromCardinality and toCardinality for entity relationships only
-- Cardinalities must be 1, N, 0..1, or 1..*
-
-Flow rules:
-- meta.preset must be flowchart or state
-- Every edge leaving a decision node must have a label
-- Every state transition must have a label
-
-Sequence rules:
-- Store message edges in chronological order
-- fragments use { id, operator, regions: [{ guard, edgeIds }] }
-- operator must be alt, opt, or loop
-- alt requires exactly two regions
-- opt and loop require exactly one region
-- An edge may occur only once within a fragment
-
-Reference rules:
-- Node IDs must be unique
-- Edge IDs must be unique and must not duplicate node IDs
-- Every edge.from and edge.to must reference an existing node
-- Every group.nodeIds entry must reference an existing node
-- Every fragment edgeIds entry must reference an existing edge
-
-Layout is owned by the application. Prefer omitting x, y, width, height, and waypoints. If supplied, all geometry values must be multiples of 4, width and height must be positive, and waypoint segments must be horizontal or vertical.
-`
 export const AUTO_COMMIT_DELAY_MS = 30000
 
 /** Card type id; projects can configure custom types beyond the default feature/job/bug. */
@@ -207,10 +139,14 @@ export interface ProjectReference {
     rootPath?: string
 }
 
+/** The disposition of the checkout folder when a linked worktree is removed from Git. */
+export type WorktreeRemovalMode = 'files' | 'folder' | 'unregister'
+
 export interface WorktreeRecord {
     branch: string | null
     error: string | null
-    parkingBranch: string
+    /** Null on an invalid record: no Git command is run inside a worktree Git already reports as broken. */
+    parkingBranch: string | null
     path: string
     status: WorktreeStatus
     valid: boolean
@@ -534,7 +470,7 @@ export interface StorageService {
     saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     selectWorktreeFolder?(): Promise<string | null>
-    removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
+    removeWorktree?(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void>
     stopAgent?(project: ProjectReference, runId: string): Promise<void>
     watchProject?(
         project: ProjectReference,
@@ -568,17 +504,6 @@ export const DEFAULT_STATES: StateConfig[] = [
     { alwaysVisible: true, color: defaultColumnAccent(3), state: 'to fix' },
     { alwaysVisible: true, color: defaultColumnAccent(4), state: 'ready' },
 ]
-
-function normalizeFolderPath(folderPath: string) {
-    return folderPath.replace(/\\/gu, '/').replace(/^\/+|\/+$/gu, '')
-}
-
-function joinProjectFolderPath(projectFolder: string, folderPath: string) {
-    const normalizedProjectFolder = normalizeFolderPath(projectFolder)
-    const normalizedFolderPath = normalizeFolderPath(folderPath)
-
-    return normalizedProjectFolder.length > 0 ? `${normalizedProjectFolder}/${normalizedFolderPath}` : normalizedFolderPath
-}
 
 export function resolveProjectConfigPaths(config: ProjectConfig): ProjectConfig {
     return {

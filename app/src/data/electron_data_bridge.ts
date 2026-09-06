@@ -19,8 +19,9 @@ import type {
     ProjectWatchNotification,
     StorageProjectFiles,
     TopLevelFolderReference,
-    WorktreeState,
     WorktreeOperationRequest,
+    WorktreeRemovalMode,
+    WorktreeState,
 } from './data_types'
 import type {
     MergeConflictPathRequest,
@@ -86,7 +87,7 @@ export interface ElectronDataBridge {
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     selectProjectSubFolder?(rootPath: string): Promise<string | null>
     selectWorktreeFolder?(): Promise<string | null>
-    removeWorktree?(project: ProjectReference, folderPath: string): Promise<void>
+    removeWorktree?(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void>
     stopAgent?(runId: string): Promise<void>
     watchProject(project: ProjectReference, callback: (notification: ProjectWatchNotification) => void): () => void
     loadFile(project: ProjectReference, path: string): Promise<MarkdownFile>

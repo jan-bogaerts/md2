@@ -86,7 +86,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         usageMetricsService,
         ...overrides,
     });
-    runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions', 'design/diagrams', diagramFooter);
+    runner.startProject(project, { actionsFolder: 'actions', activeCardsFolder: 'design/feature_descriptions', diagramFooter, diagramsFolder: 'design/diagrams', projectFolder: 'design', releasesFolder: 'design/releases' }, [{ state: 'design' }, { state: 'ready' }]);
 
     return { actionWorktreeRunService, agentRunnerService, commandRunner, localGitService, runner, usageMetricsService };
 }
@@ -242,8 +242,25 @@ describe('ActionRunnerService', () => {
         const runner = new ActionRunnerService({});
 
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no project');
-        runner.startProject(project, 'actions', 'design', 'design/releases', 'design/feature_descriptions', 'design/diagrams', diagramFooter);
+        runner.startProject(project, { actionsFolder: 'actions', activeCardsFolder: 'design/feature_descriptions', diagramFooter, diagramsFolder: 'design/diagrams', projectFolder: 'design', releasesFolder: 'design/releases' }, [{ state: 'design' }, { state: 'ready' }]);
         await expect(runner.start({ actionId: 'main', context, runInput: {} })).rejects.toThrow('Action runner has no local Git service');
+    });
+
+    it.each([
+        [undefined, 'Invalid project states'],
+        [[{ state: '' }], 'Invalid project state'],
+    ])('rejects invalid configured states on project start %#', async (states, message) => {
+        const runner = new ActionRunnerService({});
+        const paths = {
+            actionsFolder: 'actions',
+            activeCardsFolder: 'design/feature_descriptions',
+            diagramFooter,
+            diagramsFolder: 'design/diagrams',
+            projectFolder: 'design',
+            releasesFolder: 'design/releases',
+        };
+
+        await expect(runner.startProject(project, paths, states)).rejects.toThrow(message);
     });
 
     it('rejects unattended streaming chains before starting a process', async () => {
@@ -345,6 +362,30 @@ describe('ActionRunnerService', () => {
             .resolves.toMatchObject({ diagramPath: 'design/diagrams/Project-overview-20260831T142530124Z.json' });
     });
 
+    it('starts with captured reviewed text after diagram context changes', async () => {
+        const files = [actionFile('main', {
+            appliesTo: { kind: 'diagram', type: 'root' }, command: undefined,
+            prompt: 'Implement:\n{{diagram-changes}}', type: 'agent',
+        })];
+        const { agentRunnerService, runner } = createRunner(files);
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete) => {
+            onComplete(0, {
+                changedPaths: [], conversation: { id: request.actionId }, missingSession: false,
+                reference: `${request.actionId}.json`, stderr: '', stdout: '', turnStarted: true,
+            });
+
+            return { runId: request.actionId };
+        });
+        const diagramContext = {diagramChanges: 'Reviewed change text', diagramId: 'diagram-1', kind: 'diagram', type: 'root'};
+        const prepared = await runner.prepareActionPrompt({ actionId: 'main', context: diagramContext });
+
+        diagramContext.diagramChanges = 'Later edited diagram text';
+        await runToCompletion(runner, {actionId: 'main', context: diagramContext, runInput: { prompt: prepared.prompt }});
+
+        expect(prepared.prompt).toBe('Implement:\nReviewed change text');
+        expect(agentRunnerService.start.mock.calls[0][1].prompt).toBe('Implement:\nReviewed change text');
+    });
+
     it('adds configured footer only to declared diagram output actions', async () => {
         const files = [
             actionFile('main', {appliesTo: { kind: 'diagram', type: 'root' }, command: undefined, onAfter: ['child'], output: { kind: 'diagram' }, prompt: 'Root', type: 'agent'}),
@@ -375,17 +416,11 @@ describe('ActionRunnerService', () => {
             command: 'write {{diagram-file}}',
             output: { kind: 'diagram' },
         })];
-        const { commandRunner, runner } = createRunner(files, {
-            now: vi.fn(() => Date.parse('2026-08-31T14:25:30.123Z')),
-        });
+        const { commandRunner, runner } = createRunner(files, {now: vi.fn(() => Date.parse('2026-08-31T14:25:30.123Z'))});
 
-        const result = await runToCompletion(runner, {
-            actionId: 'main', context: { kind: 'diagram', type: 'root' }, runInput: {},
-        });
+        const result = await runToCompletion(runner, {actionId: 'main', context: { kind: 'diagram', type: 'root' }, runInput: {}});
 
-        expect(result).toMatchObject({
-            diagramPath: 'design/diagrams/main-20260831T142530123Z.json', status: 'completed',
-        });
+        expect(result).toMatchObject({diagramPath: 'design/diagrams/main-20260831T142530123Z.json', status: 'completed'});
         expect(commandRunner.mock.calls[0][1]).toBe(
             `write ${path.resolve('C:/repo', 'design/diagrams/main-20260831T142530123Z.json')}`,
         );
@@ -585,7 +620,7 @@ describe('ActionRunnerService', () => {
         const runId = await runner.start({ actionId: 'main', context, runInput: {} });
         await vi.waitFor(() => expect(commandRunner).toHaveBeenCalledTimes(1));
 
-        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, 'other-actions', 'other-design', 'other-design/releases', 'other-design/active', 'other-design/diagrams', diagramFooter);
+        runner.startProject({ branch: 'other', id: 'other', rootPath: 'C:/other' }, { actionsFolder: 'other-actions', activeCardsFolder: 'other-design/active', diagramFooter, diagramsFolder: 'other-design/diagrams', projectFolder: 'other-design', releasesFolder: 'other-design/releases' }, [{ state: 'design' }, { state: 'ready' }]);
         resolve();
         const result = await runner.wait(runId);
 

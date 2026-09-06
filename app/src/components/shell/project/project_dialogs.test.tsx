@@ -316,14 +316,14 @@ describe('project dialog components', () => {
         const localFolderInput = screen.getByLabelText('Local repository folder')
         expect(localFolderInput).toHaveAttribute('placeholder', 'Choose or enter a local folder')
         expect(screen.getByText('Local repository folder')).toHaveAttribute('data-shrink', 'true')
-        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Open' })).toBeDisabled()
         fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
         expect(chooseLocalFolder).toHaveBeenCalledOnce()
         expect(localFolderInput).toHaveValue('')
         expect(screen.getByRole('dialog', { name: 'Open project' })).toBeInTheDocument()
 
         fireEvent.change(localFolderInput, { target: { value: 'C:/typed' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Open' }))
         expect(openLocal).toHaveBeenCalledWith('C:/typed')
         expect(openLocal).toHaveBeenCalledOnce()
 
@@ -331,8 +331,8 @@ describe('project dialog components', () => {
         expect(localFolderInput).toHaveValue('C:/recent')
         expect(openLocal).toHaveBeenCalledOnce()
 
-        expect(screen.getByRole('button', { name: 'Open Local' })).toBeEnabled()
-        fireEvent.click(screen.getByRole('button', { name: 'Open Local' }))
+        expect(screen.getByRole('button', { name: 'Open' })).toBeEnabled()
+        fireEvent.click(screen.getByRole('button', { name: 'Open' }))
         expect(openLocal).toHaveBeenLastCalledWith('C:/recent')
         expect(openLocal).toHaveBeenCalledTimes(2)
     })
@@ -370,7 +370,7 @@ describe('project dialog components', () => {
 
         fireEvent.change(screen.getByLabelText('Local repository folder'), { target: { value: 'C:/typed' } })
         expect(screen.getByRole('button', { name: 'Choose local repository folder' })).toBeDisabled()
-        expect(screen.getByRole('button', { name: 'Open Local' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Open' })).toBeDisabled()
     })
 
     it('marks manual public lookup and open requests as public', async () => {
@@ -410,7 +410,7 @@ describe('project dialog components', () => {
         fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
         fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
         await waitFor(() => expect(loadManualBranches).toHaveBeenCalledWith('octo', 'demo', true))
-        fireEvent.click(screen.getByRole('button', { name: 'Open Public' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Open' }))
         expect(openGithub).toHaveBeenCalledWith('octo', 'demo', 'main', true)
     })
 
@@ -448,7 +448,7 @@ describe('project dialog components', () => {
         fireEvent.change(screen.getByLabelText('Owner'), { target: { value: 'octo' } })
         fireEvent.change(screen.getByRole('textbox', { name: 'Repository' }), { target: { value: 'demo' } })
         fireEvent.change(screen.getByLabelText('Branch'), { target: { value: 'topic' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Open Personal' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Open' }))
 
         expect(openGithub).toHaveBeenCalledWith('octo', 'demo', 'topic', false)
     })
@@ -488,7 +488,7 @@ describe('project dialog components', () => {
         expect(screen.getByLabelText('Endpoint')).toHaveValue('ws://192.168.0.10:1234')
         expect(screen.queryByLabelText('Token')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'true')
-        expect(screen.getByRole('button', { name: 'Open Remote' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument()
     })
 
     it('keeps remote fields empty on first run', () => {
@@ -556,7 +556,7 @@ describe('project dialog components', () => {
         expect(screen.getByText('Active cards, inside the project folder. Will be created.')).toBeInTheDocument()
         expect(screen.getByText('Archived cards, inside the project folder.')).toBeInTheDocument()
         expect(screen.queryByRole('group', { name: 'Project kind' })).toBeNull()
-        expect(screen.queryByRole('button', { name: 'Open Remote' })).toBeNull()
+        expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument()
     })
 
     it('confirms all folder values for a project without md2.config.json', async () => {
@@ -592,7 +592,7 @@ describe('project dialog components', () => {
 
         fireEvent.change(screen.getByLabelText('Project folder'), { target: { value: 'docs' } })
         fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: 'cards' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Open' }))
 
         await waitFor(() => expect(confirmProjectFolderSetup).toHaveBeenCalledWith({
             actionsFolder: 'actions',
@@ -630,7 +630,7 @@ describe('project dialog components', () => {
 
         fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: '' } })
 
-        expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Open' })).toBeDisabled()
         expect(screen.getByText('Working folder is required')).toBeInTheDocument()
     })
 
@@ -659,7 +659,7 @@ describe('project dialog components', () => {
         )
 
         expect(screen.queryByLabelText('Project folder')).toBeNull()
-        expect(screen.queryByRole('button', { name: 'Save and open' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Open' })).toBeNull()
     })
 
     it('rejects a folder value that escapes the project folder', () => {
@@ -688,7 +688,7 @@ describe('project dialog components', () => {
 
         fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: '../outside' } })
 
-        expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Open' })).toBeDisabled()
         expect(screen.getByText('Working folder must stay inside the project folder')).toBeInTheDocument()
     })
 

@@ -16,7 +16,6 @@ function diagram(type: DiagramType): DiagramData {
         groups: [{ id: 'scope', label: 'Scope', nodeIds: ['one', 'two'] }],
         meta: {
             description: `${type} description`,
-            legend: [{ label: 'Focus', role: 'focal' }],
             ...(type === 'flow' ? { preset: 'flowchart' as const } : {}),
             title: `${type} title`,
             type,
@@ -53,7 +52,6 @@ describe('DiagramRenderer', () => {
         expect(screen.getByRole('button', { name: 'One' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'connects' })).toBeInTheDocument()
         expect(screen.getByRole('group', { name: 'Scope' })).toBeInTheDocument()
-        expect(screen.getByLabelText('Diagram legend')).toBeInTheDocument()
     })
 
     it('renders entity fields and owns keyboard edge selection', async () => {

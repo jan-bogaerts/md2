@@ -27,6 +27,7 @@ import { projectAccessService } from './project_access_service'
 import { createProjectAgentTokenUsageFile, projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
 import { projectStatsService } from '../stats/project_stats_service'
 import { diagramViewService } from '../diagrams/diagram_view_service'
+import { diagramEditSessionService } from '../diagrams/diagram_edit_session_service'
 import { normalizePath } from '../../../../shared/path_utils.mjs'
 import {
     type ExpectedPersistenceOutcome,
@@ -180,6 +181,7 @@ export class ProjectLoading {
         this.dependencies.beginProjectLoad()
         projectAgentTokenUsageService.clear()
         projectStatsService.clear()
+        diagramEditSessionService.clear()
         diagramViewService.clear()
     }
 
@@ -229,6 +231,7 @@ export class ProjectLoading {
             const config = resolveProjectConfigPaths(configService.getProjectConfig())
             projectStatsService.bindProject({ config, project, storage })
             diagramViewService.bindProject({ config, project, storage })
+            diagramEditSessionService.bindProject(project)
             if (config.pushMode === 'manual') {
                 await storage.restorePendingCommits?.(project)
                 await this.loadPendingPush(project)
@@ -400,6 +403,7 @@ export class ProjectLoading {
         this.dependencies.resetAgentConversations()
         projectAgentTokenUsageService.clear()
         projectStatsService.clear()
+        diagramEditSessionService.clear()
         diagramViewService.clear()
         this.dependencies.clearLoadedProject()
         this.actionReloadChangesByPath.clear()

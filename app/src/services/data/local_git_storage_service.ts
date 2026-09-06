@@ -20,6 +20,7 @@ import type {
     StorageService,
     TopLevelFolderReference,
     WorktreeOperationRequest,
+    WorktreeRemovalMode,
     WorktreeState,
 } from '../../data/data_types'
 import { withBridgeErrorRehydration } from '../../data/bridge_error_rehydration'
@@ -375,11 +376,11 @@ export class LocalGitStorageService implements StorageService {
         return bridge.selectWorktreeFolder()
     }
 
-    async removeWorktree(project: ProjectReference, folderPath: string): Promise<void> {
+    async removeWorktree(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void> {
         const bridge = this.requireBridge()
         if (!bridge.removeWorktree) throw new Error('Electron local Git bridge cannot remove worktrees')
 
-        await bridge.removeWorktree(project, folderPath)
+        await bridge.removeWorktree(project, folderPath, mode)
     }
 
     hasPendingPush(project: ProjectReference) {

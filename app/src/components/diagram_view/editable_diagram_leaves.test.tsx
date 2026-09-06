@@ -1,0 +1,261 @@
+import { Profiler, type ReactNode } from 'react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
+import type { DiagramData } from '../../services/diagrams/diagram_data'
+import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
+import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
+import type { DiagramRecord } from '../../services/diagrams/diagram_index'
+import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
+import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
+import { EditableDiagramEdge } from './editable_diagram_edge'
+import { EditableDiagramGroup } from './editable_diagram_group'
+import { EditableDiagramNode } from './editable_diagram_node'
+
+const diagram: DiagramData = {
+    edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
+    groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
+    meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
+    nodes: [
+        { id: 'orders', label: 'Orders', role: 'focal' },
+        { id: 'store', label: 'Store', role: 'store' },
+    ],
+}
+const entityDiagram: DiagramData = {
+    edges: [{
+        from: 'orders',
+        fromCardinality: '1',
+        id: 'orders-store',
+        kind: 'relationship',
+        sourceAttachment: { nodeId: 'orders', offset: 0.5, side: 'right' },
+        targetAttachment: { nodeId: 'store', offset: 0.5, side: 'left' },
+        to: 'store',
+        toCardinality: 'N',
+    }],
+    groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
+    meta: { description: 'Order entities', title: 'Entities', type: 'entity', version: 1 },
+    nodes: [
+        {
+            fields: [{ key: 'primary', name: 'id', type: 'uuid' }], height: 80, id: 'orders', kind: 'entity',
+            label: 'Orders', role: 'focal', width: 120, x: 0, y: 0,
+        },
+        { fields: [], height: 80, id: 'store', kind: 'entity', label: 'Store', role: 'store', width: 120, x: 240, y: 0 },
+        { fields: [], height: 80, id: 'archive', kind: 'entity', label: 'Archive', role: 'store', width: 120, x: 600, y: 0 },
+    ],
+}
+const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
+const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
+
+class DiagramSourceStub extends EventTarget {
+    private readonly source: DiagramViewSourceSnapshot
+
+    constructor(sourceDiagram: DiagramData) {
+        super()
+        this.source = { diagram: sourceDiagram, record }
+    }
+
+    getSourceSnapshot = () => this.source
+
+    subscribeSource = (listener: () => void) => {
+        this.addEventListener('sourceChanged', listener)
+
+        return () => this.removeEventListener('sourceChanged', listener)
+    }
+}
+
+function createHarness(sourceDiagram: DiagramData = diagram) {
+    const session = new DiagramEditSessionService(new DiagramSourceStub(sourceDiagram))
+    session.bindProject(project)
+    session.start()
+    const geometry = new DiagramGeometryService(session)
+
+    return { geometry, selection: new DiagramSelectionService(session, geometry), session }
+}
+
+type RenderCounts = Map<string, number>
+
+/** Counts commits inside one leaf subtree, so a leaf that is skipped by React is measured as skipped. */
+function CountedLeaf({ children, counts, id }: { children: ReactNode, counts: RenderCounts, id: string }) {
+    const handleRender = () => counts.set(id, (counts.get(id) ?? 0) + 1)
+
+    return <Profiler id={id} onRender={handleRender}>{children}</Profiler>
+}
+
+function LeafTree({ counts, geometry, selection, session }: {
+    counts: RenderCounts,
+    geometry: DiagramGeometryService,
+    selection: DiagramSelectionService,
+    session: DiagramEditSessionService,
+}) {
+    return (
+        <>
+            <CountedLeaf counts={counts} id="orders">
+                <EditableDiagramNode geometry={geometry} nodeId="orders" selection={selection} session={session} />
+            </CountedLeaf>
+            <CountedLeaf counts={counts} id="store">
+                <EditableDiagramNode geometry={geometry} nodeId="store" selection={selection} session={session} />
+            </CountedLeaf>
+            <svg>
+                <CountedLeaf counts={counts} id="edge">
+                    <EditableDiagramEdge edgeId="orders-store" geometry={geometry} selection={selection} session={session} />
+                </CountedLeaf>
+            </svg>
+            <CountedLeaf counts={counts} id="group">
+                <EditableDiagramGroup geometry={geometry} groupId="backend" selection={selection} session={session} />
+            </CountedLeaf>
+        </>
+    )
+}
+
+function renderTree(sourceDiagram: DiagramData = diagram) {
+    const { geometry, selection, session } = createHarness(sourceDiagram)
+    const counts: RenderCounts = new Map()
+    render(<LeafTree counts={counts} geometry={geometry} selection={selection} session={session} />)
+
+    return { counts, geometry, selection, session }
+}
+
+afterEach(cleanup)
+
+describe('editable diagram leaves', () => {
+    it('renders each leaf from its own service subscriptions', () => {
+        renderTree()
+
+        expect(screen.getByRole('button', { name: 'Orders' })).toBeTruthy()
+        expect(screen.getByRole('button', { name: 'Store' })).toBeTruthy()
+        expect(screen.getByRole('button', { name: 'writes' })).toBeTruthy()
+        expect(screen.getByRole('button', { name: 'Backend' })).toBeTruthy()
+    })
+
+    it('rerenders only the edited node leaf when one node label changes', () => {
+        const { counts, session } = renderTree()
+        const before = new Map(counts)
+
+        act(() => { session.setNodeField('orders', 'label', 'Order intake') })
+
+        expect(counts.get('orders')).toBeGreaterThan(before.get('orders') ?? 0)
+        expect(counts.get('store')).toBe(before.get('store'))
+        expect(counts.get('edge')).toBe(before.get('edge'))
+        expect(counts.get('group')).toBe(before.get('group'))
+        expect(screen.getByRole('button', { name: 'Order intake' })).toBeTruthy()
+    })
+
+    it('rerenders only the owning entity leaf when one position-addressed field changes', () => {
+        const { counts, session } = renderTree(entityDiagram)
+        const before = new Map(counts)
+
+        act(() => { session.setEntityField('orders', 0, 'name', 'orderId') })
+
+        expect(counts.get('orders')).toBeGreaterThan(before.get('orders') ?? 0)
+        expect(counts.get('store')).toBe(before.get('store'))
+        expect(counts.get('edge')).toBe(before.get('edge'))
+        expect(counts.get('group')).toBe(before.get('group'))
+        expect(screen.getByText('# orderId: uuid')).toBeInTheDocument()
+    })
+
+    it('rerenders the edge leaf for its own label and leaves the node leaves alone', () => {
+        const { counts, session } = renderTree()
+        const before = new Map(counts)
+
+        act(() => { session.setEdgeField('orders-store', 'label', 'stores') })
+
+        expect(counts.get('edge')).toBeGreaterThan(before.get('edge') ?? 0)
+        expect(counts.get('orders')).toBe(before.get('orders'))
+        expect(counts.get('store')).toBe(before.get('store'))
+        expect(screen.getByRole('button', { name: 'stores' })).toBeTruthy()
+    })
+
+    it('rerenders only the relationship leaf when one cardinality changes', () => {
+        const { counts, session } = renderTree(entityDiagram)
+        const edge = session.getEdgeSnapshot('orders-store')
+        const before = new Map(counts)
+
+        act(() => { session.setEdgeField('orders-store', 'toCardinality', '1..*') })
+
+        expect(session.getEdgeSnapshot('orders-store')).toBe(edge)
+        expect(counts.get('edge')).toBeGreaterThan(before.get('edge') ?? 0)
+        expect(counts.get('orders')).toBe(before.get('orders'))
+        expect(counts.get('store')).toBe(before.get('store'))
+        expect(counts.get('group')).toBe(before.get('group'))
+        expect(screen.getByText('1..*')).toBeInTheDocument()
+    })
+
+    it('moves the target cardinality with moved and reconnected endpoints', () => {
+        const { session } = renderTree(entityDiagram)
+        const targetCardinality = screen.getByText('N')
+        expect(targetCardinality).toHaveAttribute('x', '232')
+
+        act(() => { session.setNodeField('store', 'x', 400) })
+        expect(targetCardinality).toHaveAttribute('x', '392')
+
+        act(() => { session.reconnectEdgeEndpoint('orders-store', 'targetAttachment', 'archive') })
+        expect(targetCardinality).toHaveAttribute('x', '592')
+    })
+
+    it('rerenders the group leaf for its own label only', () => {
+        const { counts, session } = renderTree()
+        const before = new Map(counts)
+
+        act(() => { session.setGroupField('backend', 'label', 'Services') })
+
+        expect(counts.get('group')).toBeGreaterThan(before.get('group') ?? 0)
+        expect(counts.get('orders')).toBe(before.get('orders'))
+        expect(counts.get('edge')).toBe(before.get('edge'))
+        expect(screen.getByRole('button', { name: 'Services' })).toBeTruthy()
+    })
+
+    it('rerenders only the group leaf when independent group geometry changes', () => {
+        const { counts, session } = renderTree()
+        const before = new Map(counts)
+
+        act(() => { session.setGroupField('backend', 'x', 40) })
+
+        expect(counts.get('group')).toBeGreaterThan(before.get('group') ?? 0)
+        expect(counts.get('orders')).toBe(before.get('orders'))
+        expect(counts.get('store')).toBe(before.get('store'))
+        expect(counts.get('edge')).toBe(before.get('edge'))
+    })
+
+    it('rerenders only leaves whose selected boolean changes', () => {
+        const { counts, selection } = renderTree()
+        const before = new Map(counts)
+
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+
+        expect(counts.get('orders')).toBeGreaterThan(before.get('orders') ?? 0)
+        expect(counts.get('store')).toBe(before.get('store'))
+        expect(counts.get('edge')).toBe(before.get('edge'))
+        expect(counts.get('group')).toBe(before.get('group'))
+    })
+
+    it('rerenders only the Ctrl-clicked leaf when additive membership changes', () => {
+        const { counts } = renderTree()
+        fireEvent.click(screen.getByRole('button', { name: 'Orders' }))
+        const beforeAdd = new Map(counts)
+
+        fireEvent.click(screen.getByRole('button', { name: 'writes' }), { ctrlKey: true })
+        const beforeRemove = new Map(counts)
+        fireEvent.click(screen.getByRole('button', { name: 'writes' }), { ctrlKey: true })
+
+        expect(beforeAdd.get('orders')).toBe(beforeRemove.get('orders'))
+        expect(beforeAdd.get('store')).toBe(beforeRemove.get('store'))
+        expect(beforeAdd.get('group')).toBe(beforeRemove.get('group'))
+        expect(beforeRemove.get('edge')).toBeGreaterThan(beforeAdd.get('edge') ?? 0)
+        expect(counts.get('orders')).toBe(beforeRemove.get('orders'))
+        expect(counts.get('store')).toBe(beforeRemove.get('store'))
+        expect(counts.get('group')).toBe(beforeRemove.get('group'))
+        expect(counts.get('edge')).toBeGreaterThan(beforeRemove.get('edge') ?? 0)
+    })
+
+    it('does not rerender selectable leaves while transient rectangle state changes', () => {
+        const { counts, selection } = renderTree()
+        const before = new Map(counts)
+
+        act(() => {
+            selection.beginRectangleSelection({ x: 10, y: 10 })
+            selection.updateRectangleSelection({ x: 80, y: 90 })
+            selection.cancelRectangleSelection()
+        })
+
+        expect(counts).toEqual(before)
+    })
+})

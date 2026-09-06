@@ -130,9 +130,13 @@ describe('WorktreeService', () => {
         service.startDraft()
 
         await service.selectDraftAddition()
-        service.stageDraftRemoval(first.path)
+        service.stageDraftRemoval(first.path, 'unregister')
+        service.stageDraftRemoval(first.path, 'files')
 
-        expect(service.getDraft()).toMatchObject({ additions: ['C:\\new'], removals: [first.path] })
+        expect(service.getDraft()).toMatchObject({
+            additions: ['C:\\new'],
+            removals: [{ mode: 'unregister', path: first.path }],
+        })
         expect(service.getRecords()).toEqual([first])
         expect(storage.addWorktree).not.toHaveBeenCalled()
         expect(storage.removeWorktree).not.toHaveBeenCalled()
@@ -188,12 +192,12 @@ describe('WorktreeService', () => {
         initService(service, storage)
         emit(project, [first])
         service.startDraft()
-        service.stageDraftRemoval(first.path)
+        service.stageDraftRemoval(first.path, 'files')
         await service.selectDraftAddition()
 
         await service.applyDraft()
 
-        expect(storage.removeWorktree).toHaveBeenCalledWith(project, first.path)
+        expect(storage.removeWorktree).toHaveBeenCalledWith(project, first.path, 'files')
         expect(storage.addWorktree).toHaveBeenCalledWith(project, 'C:\\new')
         expect(vi.mocked(storage.removeWorktree!).mock.invocationCallOrder[0])
             .toBeLessThan(vi.mocked(storage.addWorktree!).mock.invocationCallOrder[0])
@@ -211,12 +215,16 @@ describe('WorktreeService', () => {
         emit(project, [first, second])
         service.startDraft()
         service.stageDraftRemoval(first.path)
-        service.stageDraftRemoval(second.path)
+        service.stageDraftRemoval(second.path, 'unregister')
 
         await expect(service.applyDraft()).rejects.toBe(failure)
 
         expect(storage.refreshWorktrees).toHaveBeenCalledWith(project)
-        expect(service.getDraft()).toMatchObject({ applying: false, removals: [second.path] })
+        expect(storage.removeWorktree).toHaveBeenCalledWith(project, first.path, 'folder')
+        expect(service.getDraft()).toMatchObject({
+            applying: false,
+            removals: [{ mode: 'unregister', path: second.path }],
+        })
     })
 
     it('prepares an available worktree before assigning it', async () => {

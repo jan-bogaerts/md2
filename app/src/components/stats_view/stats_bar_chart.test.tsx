@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StatsChartRow } from '../../services/stats/project_stats_types';
 import { createAppTheme } from '../../theme/app_theme';
 import { AppThemeProvider } from '../../theme/theme_provider';
+import { formatTokenCount } from '../agents/token_count';
 import { StatsBarChart } from './stats_bar_chart';
 import { StatsUsageComparisonCharts } from './stats_usage_comparison_charts';
 
@@ -374,6 +375,42 @@ describe('StatsBarChart', () => {
         ]} />);
 
         expect(barColor('Account usage chart', 'b')).toBe(barColor('Project token usage (totals) chart', 'b'));
+    });
+
+    it('abbreviates token bar labels only while the shortened format is on', () => {
+        const tokenRows = [row({ value: 428913 })];
+        const view = renderChart(<StatsBarChart rows={tokenRows} shortTokenCounts />);
+
+        expect(screen.getByText(formatTokenCount(428913))).toBeInTheDocument();
+        expect(screen.queryByText('428,913')).toBeNull();
+
+        view.rerender(<AppThemeProvider><StatsBarChart rows={tokenRows} shortTokenCounts={false} /></AppThemeProvider>);
+
+        expect(screen.getByText(new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(428913))).toBeInTheDocument();
+    });
+
+    it('leaves non-token units untouched in both token number formats', () => {
+        const otherRows = [
+            row({ identity: 'cost', seriesIdentity: 'cost', unit: 'dollars', value: 12.5 }),
+            row({ identity: 'used', seriesIdentity: 'used', unit: 'percent', value: 42 }),
+        ];
+        const exact = renderChart(<StatsBarChart mode="grouped" rows={otherRows} />);
+        const labels = () => [...exact.container.querySelectorAll('[title]')].map((element) => element.getAttribute('title'));
+        const before = labels();
+
+        exact.rerender(<AppThemeProvider><StatsBarChart mode="grouped" rows={otherRows} shortTokenCounts /></AppThemeProvider>);
+
+        expect(before.length).toBeGreaterThan(0);
+        expect(labels()).toEqual(before);
+    });
+
+    it('abbreviates the stacked total label when the shortened format is on', () => {
+        renderChart(<StatsBarChart mode="stacked" rows={[
+            row({ identity: 'a', seriesIdentity: 'a', stackIdentity: 'stack', value: 300000 }),
+            row({ identity: 'b', seriesIdentity: 'b', stackIdentity: 'stack', value: 128913 }),
+        ]} shortTokenCounts />);
+
+        expect(screen.getByText(formatTokenCount(428913))).toBeInTheDocument();
     });
 
     it('keeps agent colors stable across value-only rerenders', () => {

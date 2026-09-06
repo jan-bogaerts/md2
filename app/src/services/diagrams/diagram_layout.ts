@@ -1,4 +1,6 @@
+import dagre from '@dagrejs/dagre'
 import type {
+    DiagramConnectionPoint,
     DiagramData,
     DiagramEdge,
     DiagramGroup,
@@ -8,7 +10,10 @@ import type {
     DiagramWaypoint,
 } from './diagram_data'
 
-const GRID_SIZE = 4
+export const DIAGRAM_GRID_SIZE = 4
+export const MINIMUM_DIAGRAM_GROUP_WIDTH = 48
+export const MINIMUM_DIAGRAM_GROUP_HEIGHT = 56
+const GRID_SIZE = DIAGRAM_GRID_SIZE
 const SURFACE_PADDING = 40
 const DEFAULT_NODE_WIDTH = 160
 const DEFAULT_NODE_HEIGHT = 72
@@ -58,6 +63,12 @@ export interface PositionedDiagramEdge extends DiagramEdge {
     points: DiagramWaypoint[]
 }
 
+export interface EdgeGeometry {
+    basePoints: DiagramWaypoint[]
+    labelPlacement: PositionedDiagramLabel | undefined
+    points: DiagramWaypoint[]
+}
+
 export interface PositionedDiagramLabel {
     height: number
     textX: number
@@ -88,6 +99,19 @@ function snap(value: number) {
     return Math.round(value / GRID_SIZE) * GRID_SIZE
 }
 
+/** Returns deterministic Y geometry for one zero-based sequence message row. */
+export function sequenceMessageRowY(rowIndex: number) {
+    return snap(SEQUENCE_MESSAGE_START + rowIndex * SEQUENCE_MESSAGE_GAP)
+}
+
+/** Maps diagram-space Y to a valid insertion index in the ordered sequence message collection. */
+export function sequenceMessageInsertionIndexAt(y: number, messageCount: number) {
+    if (!Number.isFinite(y)) throw new Error('Sequence message position must be finite')
+    if (!Number.isInteger(messageCount) || messageCount < 0) throw new Error('Sequence message count must be a non-negative integer')
+
+    return Math.min(Math.max(Math.round((y - SEQUENCE_MESSAGE_START) / SEQUENCE_MESSAGE_GAP), 0), messageCount)
+}
+
 function nodeHeight(data: DiagramData, node: DiagramNode) {
     if (node.height !== undefined) return node.height
     if (node.fields) return snap(ENTITY_HEADER_HEIGHT + node.fields.length * ENTITY_FIELD_HEIGHT)
@@ -105,12 +129,18 @@ function nodeWidth(data: DiagramData, node: DiagramNode) {
     return DEFAULT_NODE_WIDTH
 }
 
-function positionedNode(data: DiagramData, node: DiagramNode, x: number, y: number): PositionedDiagramNode {
+/** Counts the incoming edges a node renders as fan-in. Presentation `cycle` edges never contribute. */
+export function nodeFanIn(edges: readonly DiagramEdge[], nodeId: string) {
+    return edges.filter(({ kind, to }) => to === nodeId && kind !== 'cycle').length
+}
+
+/** Builds one node's positioned view from its model data; supplied coordinates and sizes stay authoritative. */
+export function nodeGeometry(data: DiagramData, node: DiagramNode, x: number, y: number): PositionedDiagramNode {
     const defaultKinds = { architecture: 'component', dependency: 'component', entity: 'entity', sequence: 'participant' } as const
 
     return {
         ...node,
-        fanIn: data.edges.filter(({ kind, to }) => to === node.id && kind !== 'cycle').length,
+        fanIn: nodeFanIn(data.edges, node.id),
         height: nodeHeight(data, node),
         ...(node.kind === undefined && data.meta.type !== 'flow' ? { kind: defaultKinds[data.meta.type] } : {}),
         width: nodeWidth(data, node),
@@ -119,129 +149,58 @@ function positionedNode(data: DiagramData, node: DiagramNode, x: number, y: numb
     }
 }
 
-function incomingEdges(data: DiagramData, nodeId: string) {
-    return data.edges.filter(({ kind, to }) => to === nodeId && kind !== 'cycle')
-}
-
-/** Groups nodes into strongly connected components with an iterative Tarjan pass, ignoring cycle edges. */
-function graphComponents(data: DiagramData) {
-    const nodeIds = data.nodes.map(({ id }) => id)
-    const successors = new Map(nodeIds.map((id) => [id, [] as string[]]))
-    for (const { from, kind, to } of data.edges) {
-        if (kind !== 'cycle') successors.get(from)?.push(to)
-    }
-    const componentByNode = new Map<string, number>()
-    const indexByNode = new Map<string, number>()
-    const lowLinkByNode = new Map<string, number>()
-    const onStack = new Set<string>()
-    const stack: string[] = []
-    let nextIndex = 0
-    let component = 0
-    for (const root of nodeIds) {
-        if (indexByNode.has(root)) continue
-        const frames: { id: string, successorIndex: number }[] = [{ id: root, successorIndex: 0 }]
-        indexByNode.set(root, nextIndex)
-        lowLinkByNode.set(root, nextIndex)
-        nextIndex += 1
-        stack.push(root)
-        onStack.add(root)
-        while (frames.length > 0) {
-            const frame = frames[frames.length - 1]
-            const frameSuccessors = successors.get(frame.id) ?? []
-            if (frame.successorIndex < frameSuccessors.length) {
-                const next = frameSuccessors[frame.successorIndex]
-                frame.successorIndex += 1
-                if (!indexByNode.has(next)) {
-                    indexByNode.set(next, nextIndex)
-                    lowLinkByNode.set(next, nextIndex)
-                    nextIndex += 1
-                    stack.push(next)
-                    onStack.add(next)
-                    frames.push({ id: next, successorIndex: 0 })
-                } else if (onStack.has(next)) {
-                    lowLinkByNode.set(frame.id, Math.min(lowLinkByNode.get(frame.id) as number, indexByNode.get(next) as number))
-                }
-                continue
-            }
-            frames.pop()
-            if (lowLinkByNode.get(frame.id) === indexByNode.get(frame.id)) {
-                let member = stack.pop() as string
-                onStack.delete(member)
-                componentByNode.set(member, component)
-                while (member !== frame.id) {
-                    member = stack.pop() as string
-                    onStack.delete(member)
-                    componentByNode.set(member, component)
-                }
-                component += 1
-            }
-            const parent = frames[frames.length - 1]
-            if (parent) {
-                lowLinkByNode.set(parent.id, Math.min(lowLinkByNode.get(parent.id) as number, lowLinkByNode.get(frame.id) as number))
-            }
-        }
-    }
-
-    return { componentByNode, count: component }
-}
-
-function graphRanks(data: DiagramData) {
-    const { componentByNode, count } = graphComponents(data)
-    const componentRanks = new Map(Array.from({ length: count }, (_unused, index) => [index, 0]))
-    const maxPasses = Math.max(0, count - 1)
-    for (let pass = 0; pass < maxPasses; pass += 1) {
-        for (const { from, kind, to } of data.edges) {
-            if (kind === 'cycle') continue
-            const fromComponent = componentByNode.get(from) as number
-            const toComponent = componentByNode.get(to) as number
-            if (fromComponent === toComponent) continue
-            const candidate = (componentRanks.get(fromComponent) ?? 0) + 1
-            if (candidate > (componentRanks.get(toComponent) ?? 0)) componentRanks.set(toComponent, candidate)
-        }
-    }
-
-    return new Map(data.nodes.map(({ id }) => [id, componentRanks.get(componentByNode.get(id) as number) ?? 0]))
-}
-
-function orderedRankNodes(data: DiagramData, rankNodes: DiagramNode[], priorPositions: Map<string, number>) {
-    return [...rankNodes].sort((left, right) => {
-        const leftParents = incomingEdges(data, left.id).map(({ from }) => priorPositions.get(from) ?? 0)
-        const rightParents = incomingEdges(data, right.id).map(({ from }) => priorPositions.get(from) ?? 0)
-        const leftAverage = leftParents.length > 0 ? leftParents.reduce((sum, value) => sum + value, 0) / leftParents.length : 0
-        const rightAverage = rightParents.length > 0 ? rightParents.reduce((sum, value) => sum + value, 0) / rightParents.length : 0
-
-        return leftAverage - rightAverage || data.nodes.indexOf(left) - data.nodes.indexOf(right)
+/** Builds the Dagre input graph. Self-edges and presentation `cycle` edges are excluded so they cannot influence ranks. */
+function layeredGraph(data: DiagramData) {
+    const graph = new dagre.graphlib.Graph()
+    graph.setGraph({
+        marginx: SURFACE_PADDING,
+        marginy: SURFACE_PADDING,
+        nodesep: NODE_GAP,
+        rankdir: 'TB',
+        ranksep: RANK_GAP,
     })
-}
-
-function layoutLayeredNodes(data: DiagramData) {
-    const ranks = graphRanks(data)
-    const rankValues = [...new Set(ranks.values())].sort((left, right) => left - right)
-    const priorPositions = new Map<string, number>()
-    const positioned: PositionedDiagramNode[] = []
-    let y = SURFACE_PADDING
-    for (const rank of rankValues) {
-        const nodes = orderedRankNodes(data, data.nodes.filter(({ id }) => ranks.get(id) === rank), priorPositions)
-        let x = SURFACE_PADDING
-        let maximumHeight = 0
-        for (const node of nodes) {
-            const result = positionedNode(data, node, x, y)
-            positioned.push(result)
-            priorPositions.set(node.id, result.x)
-            x += result.width + NODE_GAP
-            maximumHeight = Math.max(maximumHeight, result.height)
-        }
-        y += maximumHeight + RANK_GAP
+    graph.setDefaultEdgeLabel(() => ({}))
+    const known = new Set<string>()
+    for (const node of data.nodes) {
+        if (known.has(node.id)) continue
+        known.add(node.id)
+        graph.setNode(node.id, { height: nodeHeight(data, node), width: nodeWidth(data, node) })
+    }
+    const added = new Set<string>()
+    for (const { from, kind, to } of data.edges) {
+        if (kind === 'cycle' || from === to || !known.has(from) || !known.has(to)) continue
+        const key = JSON.stringify([from, to])
+        if (added.has(key)) continue
+        added.add(key)
+        graph.setEdge(from, to)
     }
 
-    return positioned
+    return graph
+}
+
+/**
+ * Places layered nodes with Dagre. Dagre reports node centres, so each centre is converted to a top-left
+ * corner and snapped to the grid; `positionedNode` then keeps any supplied coordinate as authoritative.
+ * A Dagre failure propagates as a layout failure rather than falling back to partial geometry.
+ */
+function layoutLayeredNodes(data: DiagramData) {
+    const graph = layeredGraph(data)
+    dagre.layout(graph)
+
+    return data.nodes.map((node) => {
+        const placement = graph.node(node.id)
+        const width = nodeWidth(data, node)
+        const height = nodeHeight(data, node)
+
+        return nodeGeometry(data, node, (placement?.x ?? SURFACE_PADDING) - width / 2, (placement?.y ?? SURFACE_PADDING) - height / 2)
+    })
 }
 
 function layoutSequenceNodes(data: DiagramData) {
     let x = SURFACE_PADDING
 
     return data.nodes.map((node) => {
-        const result = positionedNode(data, node, x, SURFACE_PADDING)
+        const result = nodeGeometry(data, node, x, SURFACE_PADDING)
         x += result.width + SEQUENCE_COLUMN_GAP
 
         return result
@@ -267,6 +226,23 @@ function edgeSide(edge: DiagramEdge, field: 'from' | 'to', nodes: Map<string, Po
     return otherCenter.x >= center.x ? 'right' : 'left'
 }
 
+function absoluteConnectionPoint(connectionPoint: DiagramConnectionPoint, node: PositionedDiagramNode) {
+    const { offset, side } = connectionPoint
+    if (side === 'top') return { x: node.x + node.width * offset, y: node.y }
+    if (side === 'bottom') return { x: node.x + node.width * offset, y: node.y + node.height }
+    if (side === 'left') return { x: node.x, y: node.y + node.height * offset }
+
+    return { x: node.x + node.width, y: node.y + node.height * offset }
+}
+
+function endpointAttachment(edge: DiagramEdge, field: 'from' | 'to') {
+    return field === 'from' ? edge.sourceAttachment : edge.targetAttachment
+}
+
+function endpointSide(edge: DiagramEdge, field: 'from' | 'to', nodes: Map<string, PositionedDiagramNode>): NodeSide {
+    return endpointAttachment(edge, field)?.side ?? edgeSide(edge, field, nodes)
+}
+
 function portPoint(
     edge: DiagramEdge,
     edges: DiagramEdge[],
@@ -290,6 +266,36 @@ function portPoint(
     if (side === 'left') return { x: node.x, y: node.y + offset }
 
     return { x: node.x + node.width, y: node.y + offset }
+}
+
+function edgeEndpoint(
+    edge: DiagramEdge,
+    edges: DiagramEdge[],
+    field: 'from' | 'to',
+    nodes: Map<string, PositionedDiagramNode>,
+) {
+    const attachment = endpointAttachment(edge, field)
+    const node = nodes.get(edge[field]) as PositionedDiagramNode
+
+    return attachment ? absoluteConnectionPoint(attachment, node) : portPoint(edge, edges, field, nodes)
+}
+
+function samePoint(left: DiagramWaypoint, right: DiagramWaypoint) {
+    return left.x === right.x && left.y === right.y
+}
+
+function usesSuppliedRoute(edge: DiagramEdge, nodes: Map<string, PositionedDiagramNode>) {
+    if (!edge.waypoints) return false
+    const first = edge.waypoints[0]
+    const last = edge.waypoints.at(-1) as DiagramWaypoint
+    const from = nodes.get(edge.from) as PositionedDiagramNode
+    const to = nodes.get(edge.to) as PositionedDiagramNode
+    const sourceMatches = !edge.sourceAttachment
+        || samePoint(first, absoluteConnectionPoint(edge.sourceAttachment, from))
+    const targetMatches = !edge.targetAttachment
+        || samePoint(last, absoluteConnectionPoint(edge.targetAttachment, to))
+
+    return sourceMatches && targetMatches
 }
 
 function segmentIntersectsNode(start: DiagramWaypoint, end: DiagramWaypoint, node: PositionedDiagramNode) {
@@ -433,16 +439,35 @@ function graphEdgePoints(
     nodes: Map<string, PositionedDiagramNode>,
     priorEdges: PositionedDiagramEdge[],
 ) {
-    if (edge.waypoints) return edge.waypoints
+    if (usesSuppliedRoute(edge, nodes)) return edge.waypoints as DiagramWaypoint[]
     const positionedNodes = [...nodes.values()]
-    if (data.meta.type === 'dependency' && edge.kind === 'cycle') return dependencyCyclePoints(edge, nodes, priorEdges)
+    const hasAttachment = !!edge.sourceAttachment || !!edge.targetAttachment
+    if (!hasAttachment && data.meta.type === 'dependency' && edge.kind === 'cycle') {
+        return dependencyCyclePoints(edge, nodes, priorEdges)
+    }
     const from = nodes.get(edge.from) as PositionedDiagramNode
-    if (edge.from === edge.to) return selfLoopPoints(edge, from, positionedNodes, priorEdges)
-    const start = portPoint(edge, data.edges, 'from', nodes)
-    const end = portPoint(edge, data.edges, 'to', nodes)
-    const fromSide = edgeSide(edge, 'from', nodes)
-    const toSide = edgeSide(edge, 'to', nodes)
-    const verticalRoute = fromSide === 'bottom' || fromSide === 'top'
+    if (!hasAttachment && edge.from === edge.to) return selfLoopPoints(edge, from, positionedNodes, priorEdges)
+    const start = edgeEndpoint(edge, data.edges, 'from', nodes)
+    const end = edgeEndpoint(edge, data.edges, 'to', nodes)
+    const fromSide = endpointSide(edge, 'from', nodes)
+    const toSide = endpointSide(edge, 'to', nodes)
+    const fromVertical = fromSide === 'bottom' || fromSide === 'top'
+    const toVertical = toSide === 'bottom' || toSide === 'top'
+    if (fromVertical !== toVertical) {
+        const exit = fromVertical
+            ? { x: start.x, y: start.y + (fromSide === 'bottom' ? CONNECTOR_CLEARANCE : -CONNECTOR_CLEARANCE) }
+            : { x: start.x + (fromSide === 'right' ? CONNECTOR_CLEARANCE : -CONNECTOR_CLEARANCE), y: start.y }
+        const entry = toVertical
+            ? { x: end.x, y: end.y + (toSide === 'bottom' ? CONNECTOR_CLEARANCE : -CONNECTOR_CLEARANCE) }
+            : { x: end.x + (toSide === 'right' ? CONNECTOR_CLEARANCE : -CONNECTOR_CLEARANCE), y: end.y }
+        const candidates = [
+            [start, exit, { x: entry.x, y: exit.y }, entry, end],
+            [start, exit, { x: exit.x, y: entry.y }, entry, end],
+        ]
+
+        return bestRoute(edge, candidates, positionedNodes, priorEdges)
+    }
+    const verticalRoute = fromVertical
     if (verticalRoute) {
         const horizontalLanes = positionedNodes.flatMap((node) => [
             snap(node.x - CONNECTOR_CLEARANCE), snap(node.x + node.width + CONNECTOR_CLEARANCE),
@@ -482,12 +507,19 @@ function graphEdgePoints(
 }
 
 function sequenceEdgePoints(edge: DiagramEdge, index: number, nodes: Map<string, PositionedDiagramNode>) {
-    if (edge.waypoints) return edge.waypoints
+    if (usesSuppliedRoute(edge, nodes)) return edge.waypoints as DiagramWaypoint[]
     const from = nodes.get(edge.from) as PositionedDiagramNode
     const to = nodes.get(edge.to) as PositionedDiagramNode
-    const rowY = snap(SEQUENCE_MESSAGE_START + index * SEQUENCE_MESSAGE_GAP)
-    const startX = snap(from.x + from.width / 2)
-    const endX = snap(to.x + to.width / 2)
+    const rowY = sequenceMessageRowY(index)
+    const automaticStart = { x: snap(from.x + from.width / 2), y: rowY }
+    const automaticEnd = { x: snap(to.x + to.width / 2), y: rowY }
+    const start = edge.sourceAttachment ? absoluteConnectionPoint(edge.sourceAttachment, from) : automaticStart
+    const end = edge.targetAttachment ? absoluteConnectionPoint(edge.targetAttachment, to) : automaticEnd
+    if (edge.sourceAttachment || edge.targetAttachment) {
+        return [start, { x: start.x, y: rowY }, { x: end.x, y: rowY }, end]
+    }
+    const startX = automaticStart.x
+    const endX = automaticEnd.x
     if (edge.from === edge.to) {
         return [
             { x: startX, y: rowY },
@@ -656,6 +688,28 @@ function edgeLabelPlacement(
     return fallback
 }
 
+/**
+ * Routes one edge against the current node positions. `basePoints` is the route before crossing bridges are added and
+ * is what later edges must be scored against; `points` is what the renderer draws.
+ */
+export function edgeGeometry(
+    data: DiagramData,
+    edge: DiagramEdge,
+    nodes: Map<string, PositionedDiagramNode>,
+    priorEdges: PositionedDiagramEdge[],
+): EdgeGeometry {
+    const index = data.edges.findIndex(({ id }) => id === edge.id)
+    const suppliedRoute = usesSuppliedRoute(edge, nodes)
+    const points = data.meta.type === 'sequence'
+        ? sequenceEdgePoints(edge, index, nodes)
+        : graphEdgePoints(data, edge, nodes, priorEdges)
+    if (suppliedRoute && data.meta.type !== 'sequence') validateSuppliedRoute(edge, points, nodes, priorEdges)
+    const routedPoints = suppliedRoute ? points : addCrossingHops(points, priorEdges)
+    const labelPlacement = edgeLabelPlacement(edge, routedPoints, [...nodes.values()])
+
+    return { basePoints: points, labelPlacement, points: routedPoints }
+}
+
 function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]) {
     const nodes = new Map(positionedNodes.map((node) => [node.id, node]))
     const baseEdges: PositionedDiagramEdge[] = []
@@ -665,18 +719,12 @@ function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]
             || data.edges.indexOf(left) - data.edges.indexOf(right)
     })
     routeOrder.forEach((edge) => {
-        const index = data.edges.findIndex(({ id }) => id === edge.id)
-        const points = data.meta.type === 'sequence'
-            ? sequenceEdgePoints(edge, index, nodes)
-            : graphEdgePoints(data, edge, nodes, baseEdges)
-        if (edge.waypoints && data.meta.type !== 'sequence') validateSuppliedRoute(edge, points, nodes, baseEdges)
-        const routedPoints = edge.waypoints ? points : addCrossingHops(points, baseEdges)
-        const labelPlacement = edgeLabelPlacement(edge, routedPoints, positionedNodes)
-        baseEdges.push({ ...edge, points })
+        const { basePoints, labelPlacement, points } = edgeGeometry(data, edge, nodes, baseEdges)
+        baseEdges.push({ ...edge, points: basePoints })
         positionedEdges.push({
             ...edge,
             ...(labelPlacement ? { labelPlacement } : {}),
-            points: routedPoints,
+            points,
         })
     })
 
@@ -684,63 +732,107 @@ function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]
         - data.edges.findIndex(({ id }) => id === right.id))
 }
 
+/**
+ * Positions one group. A group carrying persisted geometry keeps it, because F_255 groups are positioned and sized
+ * independently of their members; only an omitted field falls back to the member-extent box.
+ */
+export function groupBox(group: DiagramGroup, nodesById: Map<string, PositionedDiagramNode>): PositionedDiagramGroup {
+    const members = group.nodeIds.map((id) => nodesById.get(id) as PositionedDiagramNode)
+    if (members.length === 0) {
+        return {
+            ...group,
+            height: group.height ?? GROUP_HEADER_HEIGHT + GROUP_BOTTOM_PADDING,
+            width: group.width ?? GROUP_HORIZONTAL_PADDING * 2,
+            x: group.x ?? SURFACE_PADDING,
+            y: group.y ?? SURFACE_PADDING,
+        }
+    }
+    const left = Math.min(...members.map(({ x }) => x))
+    const top = Math.min(...members.map(({ y }) => y))
+    const right = Math.max(...members.map(({ width, x }) => x + width))
+    const bottom = Math.max(...members.map(({ height, y }) => y + height))
+
+    return {
+        ...group,
+        height: group.height ?? snap(bottom - top + GROUP_HEADER_HEIGHT + GROUP_BOTTOM_PADDING),
+        width: group.width ?? snap(right - left + GROUP_HORIZONTAL_PADDING * 2),
+        x: group.x ?? snap(left - GROUP_HORIZONTAL_PADDING),
+        y: group.y ?? snap(top - GROUP_HEADER_HEIGHT),
+    }
+}
+
 function layoutGroups(groups: DiagramGroup[], nodes: PositionedDiagramNode[]) {
     const nodesById = new Map(nodes.map((node) => [node.id, node]))
 
-    return groups.map((group): PositionedDiagramGroup => {
-        const members = group.nodeIds.map((id) => nodesById.get(id) as PositionedDiagramNode)
-        const left = Math.min(...members.map(({ x }) => x))
-        const top = Math.min(...members.map(({ y }) => y))
-        const right = Math.max(...members.map(({ width, x }) => x + width))
-        const bottom = Math.max(...members.map(({ height, y }) => y + height))
+    return groups.map((group) => groupBox(group, nodesById))
+}
 
-        return {
-            ...group,
-            height: snap(bottom - top + GROUP_HEADER_HEIGHT + GROUP_BOTTOM_PADDING),
-            width: snap(right - left + GROUP_HORIZONTAL_PADDING * 2),
-            x: snap(left - GROUP_HORIZONTAL_PADDING),
-            y: snap(top - GROUP_HEADER_HEIGHT),
+/** Builds the activation bars of one participant from the call and reply messages that touch its lifeline. */
+export function nodeActivations(node: PositionedDiagramNode, edges: PositionedDiagramEdge[], bottom: number) {
+    const activations: PositionedSequenceActivation[] = []
+    const stack: { depth: number, edge: PositionedDiagramEdge }[] = []
+    const events = edges.filter(({ from, kind, to }) => (to === node.id && kind === 'call')
+        || (from === node.id && (kind === 'return' || kind === 'success')))
+    for (const edge of events) {
+        if (edge.to === node.id && edge.kind === 'call') {
+            stack.push({ depth: stack.length, edge })
+
+            continue
         }
-    })
+        const call = stack.pop()
+        if (!call) continue
+        const start = call.edge.points[0]?.y ?? 0
+        const end = edge.points[0]?.y ?? bottom
+        activations.push({
+            height: Math.max(24, end - start), id: `${node.id}:${call.edge.id}`, width: 8,
+            x: snap(node.x + node.width / 2 - 4 + call.depth * 4), y: start,
+        })
+    }
+    for (const call of stack) {
+        const start = call.edge.points[0]?.y ?? 0
+        activations.push({
+            height: Math.max(24, bottom - start), id: `${node.id}:${call.edge.id}`, width: 8,
+            x: snap(node.x + node.width / 2 - 4 + call.depth * 4), y: start,
+        })
+    }
+
+    return activations
 }
 
 function layoutSequenceActivations(edges: PositionedDiagramEdge[], nodes: PositionedDiagramNode[], bottom: number) {
-    const activations: PositionedSequenceActivation[] = []
-    for (const node of nodes) {
-        const stack: { depth: number, edge: PositionedDiagramEdge }[] = []
-        const events = edges.filter(({ from, kind, to }) => (to === node.id && kind === 'call')
-            || (from === node.id && (kind === 'return' || kind === 'success')))
-        for (const edge of events) {
-            if (edge.to === node.id && edge.kind === 'call') {
-                stack.push({ depth: stack.length, edge })
-
-                continue
-            }
-            const call = stack.pop()
-            if (!call) continue
-            const start = call.edge.points[0]?.y ?? 0
-            const end = edge.points[0]?.y ?? bottom
-            activations.push({
-                height: Math.max(24, end - start), id: `${node.id}:${call.edge.id}`, width: 8,
-                x: snap(node.x + node.width / 2 - 4 + call.depth * 4), y: start,
-            })
-        }
-        for (const call of stack) {
-            const start = call.edge.points[0]?.y ?? 0
-            activations.push({
-                height: Math.max(24, bottom - start), id: `${node.id}:${call.edge.id}`, width: 8,
-                x: snap(node.x + node.width / 2 - 4 + call.depth * 4), y: start,
-            })
-        }
-    }
-
-    return activations.sort((left, right) => left.y - right.y)
+    return nodes.flatMap((node) => nodeActivations(node, edges, bottom)).sort((left, right) => left.y - right.y)
 }
 
 function fragmentEdges(fragment: DiagramSequenceFragment, edges: PositionedDiagramEdge[]) {
     const edgeIds = new Set(fragment.regions.flatMap(({ edgeIds: regionEdgeIds }) => regionEdgeIds))
 
     return edges.filter(({ id }) => edgeIds.has(id))
+}
+
+/** Boxes one fragment around the participants and message rows its regions reference. */
+export function sequenceFragmentBox(
+    fragment: DiagramSequenceFragment,
+    edges: PositionedDiagramEdge[],
+    nodesById: Map<string, PositionedDiagramNode>,
+): PositionedSequenceFragment {
+    const members = fragmentEdges(fragment, edges)
+    const participantIds = new Set(members.flatMap(({ from, to }) => [from, to]))
+    const participantCenters = [...participantIds].map((id) => nodeCenter(nodesById.get(id) as PositionedDiagramNode).x)
+    const rows = members.map(({ points }) => points[0].y)
+    const x = snap(Math.min(...participantCenters) - 16)
+    const y = snap(Math.min(...rows) - 32)
+    const right = snap(Math.max(...participantCenters) + 16)
+    const bottom = snap(Math.max(...rows) + 24)
+    const guardPositions = fragment.regions.map(({ edgeIds, guard }) => {
+        const firstRow = Math.min(...edges.filter(({ id }) => edgeIds.includes(id)).map(({ points }) => points[0].y))
+
+        return { guard, y: snap(firstRow - 12) }
+    })
+
+    return {
+        ...(fragment.regions.length === 2 ? { dividerY: snap(guardPositions[1].y - 12) } : {}),
+        guardPositions, height: bottom - y, id: fragment.id, operator: fragment.operator, width: right - x, x, y,
+    }
 }
 
 function layoutSequenceFragments(
@@ -750,29 +842,11 @@ function layoutSequenceFragments(
 ) {
     const nodesById = new Map(nodes.map((node) => [node.id, node]))
 
-    return fragments.map((fragment): PositionedSequenceFragment => {
-        const members = fragmentEdges(fragment, edges)
-        const participantIds = new Set(members.flatMap(({ from, to }) => [from, to]))
-        const participantCenters = [...participantIds].map((id) => nodeCenter(nodesById.get(id) as PositionedDiagramNode).x)
-        const rows = members.map(({ points }) => points[0].y)
-        const x = snap(Math.min(...participantCenters) - 16)
-        const y = snap(Math.min(...rows) - 32)
-        const right = snap(Math.max(...participantCenters) + 16)
-        const bottom = snap(Math.max(...rows) + 24)
-        const guardPositions = fragment.regions.map(({ edgeIds, guard }) => {
-            const firstRow = Math.min(...edges.filter(({ id }) => edgeIds.includes(id)).map(({ points }) => points[0].y))
-
-            return { guard, y: snap(firstRow - 12) }
-        })
-
-        return {
-            ...(fragment.regions.length === 2 ? { dividerY: snap(guardPositions[1].y - 12) } : {}),
-            guardPositions, height: bottom - y, id: fragment.id, operator: fragment.operator, width: right - x, x, y,
-        }
-    })
+    return fragments.map((fragment) => sequenceFragmentBox(fragment, edges, nodesById))
 }
 
-function surfaceSize(
+/** Measures the surface from already-positioned objects. It reads cached geometry only; it never routes or lays out. */
+export function surfaceSize(
     nodes: PositionedDiagramNode[],
     edges: PositionedDiagramEdge[],
     groups: PositionedDiagramGroup[],

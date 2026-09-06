@@ -14,6 +14,7 @@ function setup() {
         agent: null, appliesTo: null, permissionMode: draft.permissionMode ?? null,
         builtin: false, command: null, icon: null, model: null,
         needsWorkTree: false, on: [], onAfter: [], onBefore: [], onState: null,
+        output: draft.output ?? null,
         phrases: draft.phrases ?? [], prompt: draft.prompt ?? null,
         showCommandWindow: false, sourcePath: 'actions/review.json', thinkingLevel: null,
         trackFileChanges: false, streaming: draft.streaming ?? false,

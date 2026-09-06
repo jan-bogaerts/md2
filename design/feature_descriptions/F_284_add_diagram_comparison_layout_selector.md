@@ -3,15 +3,22 @@ author:
 id: F_284
 internalId: 2023c646-c9c0-43ae-92f7-5619042cb465
 title: add diagram comparison layout selector
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__2023c646-c9c0-43ae-92f7-5619042cb465.json
 policy:
-after: 2a79aab5-7f0a-4c3e-9259-2ffdc6878f3b
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison_layout.test.tsx
+  - app/src/components/diagram_view/diagram_comparison_layout.tsx
+  - app/src/components/diagram_view/diagram_comparison_layout_service.test.ts
+  - app/src/components/diagram_view/diagram_comparison_layout_service.ts
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+after: 2e295c0c-a5eb-4b2f-a36a-6c6f202a750a
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -24,6 +31,10 @@ Let the user choose vertical, horizontal, or tabbed comparison without restartin
 * The chosen mode remains stable while navigating inside the active edit session.
 * Mobile presentation remains usable and does not overflow the workspace.
 
+## State and rendering rule
+
+The layout owner subscribes only to the comparison-mode primitive. It receives stable pane components or services, not complete diagram objects. A child field event cannot change the mode snapshot or rerender the selector and comparison root.
+
 ## Dependencies
 
-[F_281](F_281_add_vertical_diagram_comparison.md), [F_282](F_282_add_horizontal_diagram_comparison.md), and [F_283](F_283_add_tabbed_diagram_comparison.md).
+[F\_281](F_281_add_vertical_diagram_comparison.md), [F\_282](F_282_add_horizontal_diagram_comparison.md), and [F\_283](F_283_add_tabbed_diagram_comparison.md).

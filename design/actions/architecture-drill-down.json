@@ -1,0 +1,20 @@
+{
+  "id": "32cd123d-3208-4ffb-8732-184f3ef8912e",
+  "label": "architecture drill down",
+  "description": "Renders an architecture diagram with the selected object as the drill down point.",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Inspect the implemented codebase and extract the detailed architecture of the selected item: \"{{parent-node}}\".\n\nLocate the code corresponding to the selected label and determine its responsibility, internal components, services, stores, external dependencies, and communication paths.\n\nIf the selected item represents a component, describe its internal architecture. If it represents a connection, describe the components and mechanisms that implement that interaction.\n\nKeep scope centered on the selected item. Include only relationships supported by implementation. Use documentation only to clarify implemented behavior.\n\nSet data type to architecture. Assign stable semantic identifiers. Mark items as non-drillable only when further inspection would not be useful.\n\nReturn only semantic JSON data required by appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let application calculate positions, sizes, and connector routes.",
+  "autoFinish": {
+    "when": "diagram-created"
+  },
+  "output": {
+    "kind": "diagram"
+  },
+  "appliesTo": {
+    "kind": "diagram",
+    "type": "child"
+  },
+  "streaming": true,
+  "trackFileChanges": true
+}

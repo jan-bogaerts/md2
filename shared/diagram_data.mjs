@@ -8,6 +8,7 @@ export const DIAGRAM_EDGE_KINDS = [
 export const DIAGRAM_FLOW_PRESETS = ['flowchart', 'state'];
 export const DIAGRAM_CARDINALITIES = ['1', 'N', '0..1', '1..*'];
 export const DIAGRAM_SEQUENCE_OPERATORS = ['alt', 'opt', 'loop'];
+export const DIAGRAM_CONNECTION_SIDES = ['top', 'right', 'bottom', 'left'];
 function malformed(field, reason = 'invalid value') {
     throw new Error(`Malformed diagram data: ${field} has ${reason}`);
 }
@@ -21,15 +22,15 @@ function requireArray(value, field) {
         malformed(field, 'invalid array');
     return value;
 }
-function requireString(value, field) {
+export function requireDiagramString(value, field) {
     if (typeof value !== 'string' || value.trim().length === 0)
         malformed(field, 'invalid string');
     return value;
 }
-function optionalString(value, field) {
-    return value === undefined ? undefined : requireString(value, field);
+export function optionalDiagramString(value, field) {
+    return value === undefined ? undefined : requireDiagramString(value, field);
 }
-function optionalBoolean(value, field) {
+export function optionalDiagramBoolean(value, field) {
     if (value === undefined)
         return undefined;
     if (typeof value !== 'boolean')
@@ -43,47 +44,61 @@ function optionalNumber(value, field, positive = false) {
         malformed(field, 'invalid number');
     return value;
 }
-function requireGridNumber(value, field, positive = false) {
+export function requireDiagramGridNumber(value, field, positive = false) {
     const result = optionalNumber(value, field, positive);
     if (result === undefined || result % 4 !== 0)
         malformed(field, 'number outside the 4px grid');
     return result;
 }
-function requireEnum(value, values, field) {
+export function requireDiagramRelativeOffset(value, field) {
+    const result = optionalNumber(value, field);
+    if (result === undefined || result < 0 || result > 1)
+        malformed(field, 'number outside the 0..1 range');
+    return result;
+}
+export function requireDiagramEnum(value, values, field) {
     if (typeof value !== 'string' || !values.includes(value))
         malformed(field, `unsupported value ${String(value)}`);
     return value;
 }
-function optionalEnum(value, values, field) {
-    return value === undefined ? undefined : requireEnum(value, values, field);
+export function optionalDiagramEnum(value, values, field) {
+    return value === undefined ? undefined : requireDiagramEnum(value, values, field);
 }
 function parseLegend(value) {
     if (value === undefined)
         return undefined;
+    const seenSemantics = new Set();
     return requireArray(value, 'meta.legend').map((entry, index) => {
-        const item = requireObject(entry, `meta.legend[${index}]`);
-        return {
-            label: requireString(item.label, `meta.legend[${index}].label`),
-            role: requireEnum(item.role, DIAGRAM_ROLES, `meta.legend[${index}].role`),
-        };
+        const field = `meta.legend[${index}]`;
+        const item = requireObject(entry, field);
+        if ((item.role === undefined) === (item.kind === undefined))
+            malformed(field, 'exactly one of role or kind');
+        const semantic = item.role === undefined
+            ? { kind: requireDiagramEnum(item.kind, DIAGRAM_EDGE_KINDS, `${field}.kind`) }
+            : { role: requireDiagramEnum(item.role, DIAGRAM_ROLES, `${field}.role`) };
+        const semanticKey = item.role === undefined ? `kind:${semantic.kind}` : `role:${semantic.role}`;
+        if (seenSemantics.has(semanticKey))
+            malformed(field, `duplicate entry for ${semanticKey}`);
+        seenSemantics.add(semanticKey);
+        return { ...semantic, label: requireDiagramString(item.label, `${field}.label`) };
     });
 }
 function parseMeta(value) {
     const meta = requireObject(value, 'meta');
     if (meta.version !== DIAGRAM_DATA_VERSION)
         malformed('meta.version', `unsupported value ${String(meta.version)}`);
-    const type = requireEnum(meta.type, DIAGRAM_TYPES, 'meta.type');
-    const preset = optionalEnum(meta.preset, DIAGRAM_FLOW_PRESETS, 'meta.preset');
+    const type = requireDiagramEnum(meta.type, DIAGRAM_TYPES, 'meta.type');
+    const preset = optionalDiagramEnum(meta.preset, DIAGRAM_FLOW_PRESETS, 'meta.preset');
     if (type === 'flow' && !preset)
         malformed('meta.preset', 'required value for flow diagrams');
     if (type !== 'flow' && preset)
         malformed('meta.preset', 'value only allowed for flow diagrams');
     const legend = parseLegend(meta.legend);
     return {
-        description: requireString(meta.description, 'meta.description'),
+        description: requireDiagramString(meta.description, 'meta.description'),
         ...(legend ? { legend } : {}),
         ...(preset ? { preset } : {}),
-        title: requireString(meta.title, 'meta.title'),
+        title: requireDiagramString(meta.title, 'meta.title'),
         type,
         version: DIAGRAM_DATA_VERSION,
     };
@@ -93,32 +108,32 @@ function parseEntityFields(value, field) {
         return undefined;
     return requireArray(value, field).map((entry, index) => {
         const item = requireObject(entry, `${field}[${index}]`);
-        const key = optionalEnum(item.key, ['primary', 'foreign'], `${field}[${index}].key`);
+        const key = optionalDiagramEnum(item.key, ['primary', 'foreign'], `${field}[${index}].key`);
         return {
             ...(key ? { key } : {}),
-            name: requireString(item.name, `${field}[${index}].name`),
-            ...(item.type === undefined ? {} : { type: requireString(item.type, `${field}[${index}].type`) }),
+            name: requireDiagramString(item.name, `${field}[${index}].name`),
+            ...(item.type === undefined ? {} : { type: requireDiagramString(item.type, `${field}[${index}].type`) }),
         };
     });
 }
 function parseNode(value, index) {
     const field = `nodes[${index}]`;
     const node = requireObject(value, field);
-    const kind = optionalEnum(node.kind, DIAGRAM_NODE_KINDS, `${field}.kind`);
+    const kind = optionalDiagramEnum(node.kind, DIAGRAM_NODE_KINDS, `${field}.kind`);
     const fields = parseEntityFields(node.fields, `${field}.fields`);
     return {
-        ...(node.drilldown === undefined ? {} : { drilldown: optionalBoolean(node.drilldown, `${field}.drilldown`) }),
+        ...(node.drilldown === undefined ? {} : { drilldown: optionalDiagramBoolean(node.drilldown, `${field}.drilldown`) }),
         ...(fields ? { fields } : {}),
-        ...(node.height === undefined ? {} : { height: requireGridNumber(node.height, `${field}.height`, true) }),
-        id: requireString(node.id, `${field}.id`),
+        ...(node.height === undefined ? {} : { height: requireDiagramGridNumber(node.height, `${field}.height`, true) }),
+        id: requireDiagramString(node.id, `${field}.id`),
         ...(kind ? { kind } : {}),
-        label: requireString(node.label, `${field}.label`),
-        role: requireEnum(node.role, DIAGRAM_ROLES, `${field}.role`),
-        ...(node.sublabel === undefined ? {} : { sublabel: optionalString(node.sublabel, `${field}.sublabel`) }),
-        ...(node.tag === undefined ? {} : { tag: optionalString(node.tag, `${field}.tag`) }),
-        ...(node.width === undefined ? {} : { width: requireGridNumber(node.width, `${field}.width`, true) }),
-        ...(node.x === undefined ? {} : { x: requireGridNumber(node.x, `${field}.x`) }),
-        ...(node.y === undefined ? {} : { y: requireGridNumber(node.y, `${field}.y`) }),
+        label: requireDiagramString(node.label, `${field}.label`),
+        role: requireDiagramEnum(node.role, DIAGRAM_ROLES, `${field}.role`),
+        ...(node.sublabel === undefined ? {} : { sublabel: optionalDiagramString(node.sublabel, `${field}.sublabel`) }),
+        ...(node.tag === undefined ? {} : { tag: optionalDiagramString(node.tag, `${field}.tag`) }),
+        ...(node.width === undefined ? {} : { width: requireDiagramGridNumber(node.width, `${field}.width`, true) }),
+        ...(node.x === undefined ? {} : { x: requireDiagramGridNumber(node.x, `${field}.x`) }),
+        ...(node.y === undefined ? {} : { y: requireDiagramGridNumber(node.y, `${field}.y`) }),
     };
 }
 function parseWaypoints(value, field) {
@@ -127,8 +142,8 @@ function parseWaypoints(value, field) {
     const waypoints = requireArray(value, field).map((entry, index) => {
         const waypoint = requireObject(entry, `${field}[${index}]`);
         return {
-            x: requireGridNumber(waypoint.x, `${field}[${index}].x`),
-            y: requireGridNumber(waypoint.y, `${field}[${index}].y`),
+            x: requireDiagramGridNumber(waypoint.x, `${field}[${index}].x`),
+            y: requireDiagramGridNumber(waypoint.y, `${field}[${index}].y`),
         };
     });
     if (waypoints.length < 2)
@@ -141,19 +156,33 @@ function parseWaypoints(value, field) {
     }
     return waypoints;
 }
+function parseConnectionPoint(value, field) {
+    if (value === undefined)
+        return undefined;
+    const connectionPoint = requireObject(value, field);
+    return {
+        nodeId: requireDiagramString(connectionPoint.nodeId, `${field}.nodeId`),
+        offset: requireDiagramRelativeOffset(connectionPoint.offset, `${field}.offset`),
+        side: requireDiagramEnum(connectionPoint.side, DIAGRAM_CONNECTION_SIDES, `${field}.side`),
+    };
+}
 function parseEdge(value, index) {
     const field = `edges[${index}]`;
     const edge = requireObject(value, field);
-    const fromCardinality = optionalEnum(edge.fromCardinality, DIAGRAM_CARDINALITIES, `${field}.fromCardinality`);
-    const toCardinality = optionalEnum(edge.toCardinality, DIAGRAM_CARDINALITIES, `${field}.toCardinality`);
+    const fromCardinality = optionalDiagramEnum(edge.fromCardinality, DIAGRAM_CARDINALITIES, `${field}.fromCardinality`);
+    const sourceAttachment = parseConnectionPoint(edge.sourceAttachment, `${field}.sourceAttachment`);
+    const targetAttachment = parseConnectionPoint(edge.targetAttachment, `${field}.targetAttachment`);
+    const toCardinality = optionalDiagramEnum(edge.toCardinality, DIAGRAM_CARDINALITIES, `${field}.toCardinality`);
     const waypoints = parseWaypoints(edge.waypoints, `${field}.waypoints`);
     return {
-        from: requireString(edge.from, `${field}.from`),
+        from: requireDiagramString(edge.from, `${field}.from`),
         ...(fromCardinality ? { fromCardinality } : {}),
-        id: requireString(edge.id, `${field}.id`),
-        kind: requireEnum(edge.kind, DIAGRAM_EDGE_KINDS, `${field}.kind`),
-        ...(edge.label === undefined ? {} : { label: requireString(edge.label, `${field}.label`) }),
-        to: requireString(edge.to, `${field}.to`),
+        id: requireDiagramString(edge.id, `${field}.id`),
+        kind: requireDiagramEnum(edge.kind, DIAGRAM_EDGE_KINDS, `${field}.kind`),
+        ...(edge.label === undefined ? {} : { label: requireDiagramString(edge.label, `${field}.label`) }),
+        ...(sourceAttachment ? { sourceAttachment } : {}),
+        ...(targetAttachment ? { targetAttachment } : {}),
+        to: requireDiagramString(edge.to, `${field}.to`),
         ...(toCardinality ? { toCardinality } : {}),
         ...(waypoints ? { waypoints } : {}),
     };
@@ -162,30 +191,32 @@ function parseGroup(value, index) {
     const field = `groups[${index}]`;
     const group = requireObject(value, field);
     const nodeIds = requireArray(group.nodeIds, `${field}.nodeIds`)
-        .map((id, nodeIndex) => requireString(id, `${field}.nodeIds[${nodeIndex}]`));
-    if (nodeIds.length === 0)
-        malformed(`${field}.nodeIds`, 'empty array');
+        .map((id, nodeIndex) => requireDiagramString(id, `${field}.nodeIds[${nodeIndex}]`));
     return {
-        id: requireString(group.id, `${field}.id`),
-        label: requireString(group.label, `${field}.label`),
+        ...(group.height === undefined ? {} : { height: requireDiagramGridNumber(group.height, `${field}.height`, true) }),
+        id: requireDiagramString(group.id, `${field}.id`),
+        label: requireDiagramString(group.label, `${field}.label`),
         nodeIds,
+        ...(group.width === undefined ? {} : { width: requireDiagramGridNumber(group.width, `${field}.width`, true) }),
+        ...(group.x === undefined ? {} : { x: requireDiagramGridNumber(group.x, `${field}.x`) }),
+        ...(group.y === undefined ? {} : { y: requireDiagramGridNumber(group.y, `${field}.y`) }),
     };
 }
 function parseSequenceFragmentRegion(value, fragmentIndex, regionIndex) {
     const field = `fragments[${fragmentIndex}].regions[${regionIndex}]`;
     const region = requireObject(value, field);
     const edgeIds = requireArray(region.edgeIds, `${field}.edgeIds`)
-        .map((id, edgeIndex) => requireString(id, `${field}.edgeIds[${edgeIndex}]`));
+        .map((id, edgeIndex) => requireDiagramString(id, `${field}.edgeIds[${edgeIndex}]`));
     if (edgeIds.length === 0)
         malformed(`${field}.edgeIds`, 'empty array');
-    return { edgeIds, guard: requireString(region.guard, `${field}.guard`) };
+    return { edgeIds, guard: requireDiagramString(region.guard, `${field}.guard`) };
 }
 function parseSequenceFragment(value, index) {
     const field = `fragments[${index}]`;
     const fragment = requireObject(value, field);
     return {
-        id: requireString(fragment.id, `${field}.id`),
-        operator: requireEnum(fragment.operator, DIAGRAM_SEQUENCE_OPERATORS, `${field}.operator`),
+        id: requireDiagramString(fragment.id, `${field}.id`),
+        operator: requireDiagramEnum(fragment.operator, DIAGRAM_SEQUENCE_OPERATORS, `${field}.operator`),
         regions: requireArray(fragment.regions, `${field}.regions`)
             .map((region, regionIndex) => parseSequenceFragmentRegion(region, index, regionIndex)),
     };
@@ -209,11 +240,15 @@ function validateReferences(data) {
         malformed('nodes and edges', `duplicate id ${duplicateSelectableId}`);
     requireUniqueIds(data.groups, 'groups');
     requireUniqueIds(data.fragments ?? [], 'fragments');
-    for (const { from, id, to } of data.edges) {
+    for (const { from, id, sourceAttachment, targetAttachment, to } of data.edges) {
         if (!nodeIds.has(from))
             malformed(`edges.${id}.from`, `unknown node ${from}`);
         if (!nodeIds.has(to))
             malformed(`edges.${id}.to`, `unknown node ${to}`);
+        if (sourceAttachment && sourceAttachment.nodeId !== from)
+            malformed(`edges.${id}.sourceAttachment.nodeId`, `node ${sourceAttachment.nodeId} does not match from ${from}`);
+        if (targetAttachment && targetAttachment.nodeId !== to)
+            malformed(`edges.${id}.targetAttachment.nodeId`, `node ${targetAttachment.nodeId} does not match to ${to}`);
     }
     for (const { id, nodeIds: groupNodeIds } of data.groups) {
         for (const nodeId of groupNodeIds) {
@@ -235,13 +270,51 @@ function validateSequenceFragments(data) {
     if (data.meta.type !== 'sequence' && fragments.length > 0)
         malformed('fragments', 'value only allowed for sequence diagrams');
     for (const { id, operator, regions } of fragments) {
-        const requiredRegionCount = operator === 'alt' ? 2 : 1;
-        if (regions.length !== requiredRegionCount)
-            malformed(`fragments.${id}.regions`, `expected ${requiredRegionCount} regions`);
+        requireDiagramFragmentRegionCount(operator, regions, `fragments.${id}`);
         const edgeIds = regions.flatMap((region) => region.edgeIds);
         if (new Set(edgeIds).size !== edgeIds.length)
             malformed(`fragments.${id}.regions`, 'duplicate edge references');
     }
+}
+export function requireDiagramEdgeKind(kind, type, field) {
+    const edgeKinds = {
+        architecture: ['connection', 'data', 'async'],
+        dependency: ['dependency', 'cycle'],
+        entity: ['relationship'],
+        flow: ['flow', 'transition'],
+        sequence: ['call', 'return', 'async', 'success'],
+    };
+    requireDiagramEnum(kind, DIAGRAM_EDGE_KINDS, field);
+    if (!edgeKinds[type].includes(kind))
+        malformed(field, `unsupported value ${kind} for ${type}`);
+    return kind;
+}
+export function requireDiagramNodeKind(kind, type, preset, field) {
+    const defaultNodeKinds = { architecture: 'component', dependency: 'component', entity: 'entity', sequence: 'participant' };
+    const defaultNodeKind = defaultNodeKinds[type];
+    if (defaultNodeKind && kind !== undefined && kind !== defaultNodeKind)
+        malformed(field, `unsupported value ${kind} for ${type}`);
+    if (type === 'flow') {
+        const allowedKinds = preset === 'state' ? ['start', 'end', 'state'] : ['start', 'end', 'step', 'decision'];
+        if (!kind || !allowedKinds.includes(kind))
+            malformed(field, `required ${preset} node kind`);
+    }
+    if (kind !== undefined) requireDiagramEnum(kind, DIAGRAM_NODE_KINDS, field);
+    return kind;
+}
+export function requireDiagramEdgeLabel(label, type, preset, sourceKind, field) {
+    if (label !== undefined) requireDiagramString(label, field);
+    if (type === 'flow' && preset === 'flowchart' && sourceKind === 'decision' && !label)
+        malformed(field, 'required decision branch label');
+    if (type === 'flow' && preset === 'state' && !label)
+        malformed(field, 'required state transition label');
+    return label;
+}
+export function requireDiagramFragmentRegionCount(operator, regions, field) {
+    requireDiagramEnum(operator, DIAGRAM_SEQUENCE_OPERATORS, `${field}.operator`);
+    const requiredRegionCount = operator === 'alt' ? 2 : 1;
+    if (regions.length !== requiredRegionCount)
+        malformed(`${field}.regions`, `expected ${requiredRegionCount} regions`);
 }
 function validateTypeSpecificData(data) {
     if (data.meta.type !== 'entity' && data.nodes.some(({ fields }) => fields !== undefined)) {
@@ -250,42 +323,16 @@ function validateTypeSpecificData(data) {
     if (data.meta.type !== 'entity' && data.edges.some(({ fromCardinality, toCardinality }) => fromCardinality || toCardinality)) {
         malformed('edges.cardinality', 'value only allowed for entity diagrams');
     }
-    const edgeKinds = {
-        architecture: ['connection', 'data', 'async'],
-        dependency: ['dependency', 'cycle'],
-        entity: ['relationship'],
-        flow: ['flow', 'transition'],
-        sequence: ['call', 'return', 'async', 'success'],
-    };
-    const invalidEdge = data.edges.find(({ kind }) => !edgeKinds[data.meta.type].includes(kind));
-    if (invalidEdge)
-        malformed(`edges.${invalidEdge.id}.kind`, `unsupported value ${invalidEdge.kind} for ${data.meta.type}`);
-    const defaultNodeKinds = { architecture: 'component', dependency: 'component', entity: 'entity', sequence: 'participant' };
-    const defaultNodeKind = defaultNodeKinds[data.meta.type];
-    const invalidTypedNode = defaultNodeKind && data.nodes.find(({ kind }) => kind !== undefined && kind !== defaultNodeKind);
-    if (invalidTypedNode)
-        malformed(`nodes.${invalidTypedNode.id}.kind`, `unsupported value ${invalidTypedNode.kind} for ${data.meta.type}`);
-    if (data.meta.type === 'flow') {
-        const allowedKinds = data.meta.preset === 'state'
-            ? ['start', 'end', 'state']
-            : ['start', 'end', 'step', 'decision'];
-        const invalidNode = data.nodes.find(({ kind }) => !kind || !allowedKinds.includes(kind));
-        if (invalidNode)
-            malformed(`nodes.${invalidNode.id}.kind`, `required ${data.meta.preset} node kind`);
+    for (const edge of data.edges) {
+        const sourceKind = data.nodes.find(({ id }) => id === edge.from)?.kind;
+        requireDiagramEdgeKind(edge.kind, data.meta.type, `edges.${edge.id}.kind`);
+        requireDiagramEdgeLabel(edge.label, data.meta.type, data.meta.preset, sourceKind, `edges.${edge.id}.label`);
     }
-    if (data.meta.type === 'flow' && data.meta.preset === 'flowchart') {
-        const unlabeledBranch = data.edges.find(({ from, label }) => {
-            const source = data.nodes.find(({ id }) => id === from);
-            return source?.kind === 'decision' && !label;
-        });
-        if (unlabeledBranch)
-            malformed(`edges.${unlabeledBranch.id}.label`, 'required decision branch label');
-    }
-    if (data.meta.type === 'flow' && data.meta.preset === 'state') {
-        const unlabeledTransition = data.edges.find(({ label }) => !label);
-        if (unlabeledTransition)
-            malformed(`edges.${unlabeledTransition.id}.label`, 'required state transition label');
-    }
+    for (const node of data.nodes) requireDiagramNodeKind(node.kind, data.meta.type, data.meta.preset, `nodes.${node.id}.kind`);
+    (data.meta.legend ?? []).forEach((entry, index) => {
+        if (entry.kind !== undefined)
+            requireDiagramEdgeKind(entry.kind, data.meta.type, `meta.legend[${index}].kind`);
+    });
     validateSequenceFragments(data);
 }
 export function parseDiagramData(content) {
@@ -307,6 +354,11 @@ export function parseDiagramData(content) {
     validateReferences(data);
     validateTypeSpecificData(data);
     return data;
+}
+export function serializeDiagramData(data) {
+    const canonicalData = parseDiagramData(JSON.stringify(data));
+
+    return `${JSON.stringify(canonicalData, null, 2)}\n`;
 }
 export function isDiagramDataPath(path) {
     return path.toLowerCase().endsWith('.json');

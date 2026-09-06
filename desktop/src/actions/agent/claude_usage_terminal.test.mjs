@@ -27,6 +27,16 @@ Enter to confirm · Esc to cancel
 const LOGIN_SCREEN = 'Select login method:\r\n1. Claude account with subscription\r\n';
 const ONBOARDING_SCREEN = 'Choose the text style that looks best with your terminal\r\n';
 const WELCOME_SCREEN = 'Claude Code v2\r\n? for shortcuts\r\n';
+// Claude Code 2.1.241 settles on a bare input prompt: no `? for shortcuts` and no `Try "` hint.
+const PROMPT_SCREEN = 'Claude Code v2.1.241\n\n> ';
+// The same settled prompt, preceded by a `>` in prose that must not be mistaken for the input line.
+const PROMPT_SCREEN_WITH_STRAY_MARKER = 'Run > claude --help for options\n\n> ';
+// A startup screen whose only `>` sits away from the cursor, so nothing on it signals readiness.
+const STRAY_MARKER_SCREEN = 'Run > claude --help for options\nStill starting up';
+// The trust prompt with the cursor parked on its preselected option rather than on a trailing line.
+const TRUST_SCREEN_ON_OPTION = 'Accessing workspace:\n  2. No, exit\n❯ 1. Yes, I trust this folder';
+const LOGIN_SCREEN_WITH_PROMPT = `${LOGIN_SCREEN}\n> `;
+const ONBOARDING_SCREEN_WITH_PROMPT = `${ONBOARDING_SCREEN}\n> `;
 
 const REQUEST = {
     cwd: '/project',
@@ -41,7 +51,8 @@ function clearScreen(text) {
     return `\u001B[2J\u001B[H${text.replaceAll('\n', '\r\n')}`;
 }
 
-function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null) {
+function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null, startup = {}) {
+    const { redraws = 1, screen = WELCOME_SCREEN } = startup;
     const dataListeners = new Set();
     const exitListeners = new Set();
 
@@ -54,7 +65,12 @@ function terminalChild(output = TERMINAL_USAGE_OUTPUT, exitCode = null) {
         }),
         onExit: vi.fn((listener) => {
             exitListeners.add(listener);
-            queueMicrotask(() => dataListeners.forEach((dataListener) => dataListener(WELCOME_SCREEN)));
+            // Claude redraws its startup screen while it settles; every redraw reaches the poller.
+            queueMicrotask(() => {
+                for (let redraw = 0; redraw < redraws; redraw += 1) {
+                    dataListeners.forEach((dataListener) => dataListener(clearScreen(screen)));
+                }
+            });
 
             return { dispose: () => exitListeners.delete(listener) };
         }),
@@ -268,5 +284,78 @@ describe('runTerminalUsagePoll', () => {
 
         await expect(poll).resolves.toMatchObject({ payload: null, reason: CLAUDE_USAGE_POLL_REASONS.pollAborted });
         expect(processHandle.kill).toHaveBeenCalledOnce();
+    });
+
+    it('sends /usage when a 2.1.241 screen settles on an empty prompt with no legacy phrase', async () => {
+        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { screen: PROMPT_SCREEN });
+
+        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });
+
+        expect(processHandle.write).toHaveBeenCalledWith('/usage\r');
+        expect(result.reason).toBeNull();
+        expect(result.payload.windows).toContainEqual(expect.objectContaining({ id: 'weekly', usedPercent: 12 }));
+    });
+
+    it('sends /usage once no matter how often the prompt screen is redrawn', async () => {
+        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { redraws: 4, screen: PROMPT_SCREEN });
+
+        await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });
+
+        expect(processHandle.write.mock.calls.filter(([data]) => data === '/usage\r')).toHaveLength(1);
+    });
+
+    it('accepts a settled prompt even when the screen also holds an unrelated `>`', async () => {
+        const processHandle = terminalChild(TERMINAL_USAGE_OUTPUT, null, { screen: PROMPT_SCREEN_WITH_STRAY_MARKER });
+
+        const result = await runTerminalUsagePoll(REQUEST, { ptySpawn: () => processHandle });
+
+        expect(processHandle.write).toHaveBeenCalledWith('/usage\r');
+        expect(result.reason).toBeNull();
+    });
+
+    it('ignores a `>` that sits away from the cursor and lets the ready deadline expire', async () => {
+        const result = await runTerminalUsagePoll(
+            { ...REQUEST, readyTimeoutMs: 20 },
+            { ptySpawn: () => stuckChild(STRAY_MARKER_SCREEN) },
+        );
+
+        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker);
+    });
+
+    it('ends on a login screen even when it also renders an empty prompt line', async () => {
+        const processHandle = stuckChild(LOGIN_SCREEN_WITH_PROMPT);
+
+        const result = await runTerminalUsagePoll(
+            { ...REQUEST, readyTimeoutMs: 60_000 },
+            { ptySpawn: () => processHandle },
+        );
+
+        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyLoginRequired);
+        expect(processHandle.write).not.toHaveBeenCalled();
+    });
+
+    it('ends on an onboarding screen even when it also renders an empty prompt line', async () => {
+        const processHandle = stuckChild(ONBOARDING_SCREEN_WITH_PROMPT);
+
+        const result = await runTerminalUsagePoll(
+            { ...REQUEST, readyTimeoutMs: 60_000 },
+            { ptySpawn: () => processHandle },
+        );
+
+        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyOnboardingRequired);
+        expect(processHandle.write).not.toHaveBeenCalled();
+    });
+
+    it('answers a trust screen whose cursor rests on its preselected option instead of sending /usage', async () => {
+        const processHandle = stuckChild(TRUST_SCREEN_ON_OPTION);
+
+        const result = await runTerminalUsagePoll(
+            { ...REQUEST, readyTimeoutMs: 20 },
+            { ptySpawn: () => processHandle },
+        );
+
+        expect(processHandle.write).toHaveBeenCalledWith('\r');
+        expect(processHandle.write).not.toHaveBeenCalledWith('/usage\r');
+        expect(result.reason).toBe(CLAUDE_USAGE_POLL_REASONS.ptyTrustScreenUnanswered);
     });
 });

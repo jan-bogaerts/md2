@@ -139,9 +139,7 @@ describe('ActionRun', () => {
             diagramsFolder: 'design/diagrams',
         });
 
-        await expect(run.completion).resolves.toMatchObject({
-            diagramPath: 'design/diagrams/output.json', status: 'completed',
-        });
+        await expect(run.completion).resolves.toMatchObject({diagramPath: 'design/diagrams/output.json', status: 'completed'});
         expect(agentRunnerService.finish).toHaveBeenCalledWith('provider-run');
         expect(close).toHaveBeenCalledOnce();
     });
@@ -158,15 +156,45 @@ describe('ActionRun', () => {
             agentExecutor,
             context: { kind: 'diagram', type: 'root' },
             diagramFooter: 'Save {{diagram-file}}',
-            diagramOutputWatcherFactory: () => ({
-                close, start: vi.fn(async () => { throw new Error('diagram watch failed'); }),
-            }),
+            diagramOutputWatcherFactory: () => ({close, start: vi.fn(async () => { throw new Error('diagram watch failed'); })}),
             diagramPath: 'design/diagrams/output.json',
             diagramsFolder: 'design/diagrams',
         });
 
         await expect(run.completion).resolves.toMatchObject({ failure: 'diagram watch failed', status: 'failed' });
         expect(agentExecutor.execute).not.toHaveBeenCalled();
+        expect(close).toHaveBeenCalledOnce();
+    });
+
+    it('closes diagram watcher when action is cancelled', async () => {
+        const watcherStarted = deferred();
+        const close = vi.fn(async () => undefined);
+        const agentExecutor = {
+            execute: vi.fn(async (input) => new Promise((_resolve, reject) => {
+                input.signal.addEventListener('abort', () => reject(new Error('cancelled')), { once: true });
+            })),
+        };
+        const rootAction = action('diagram', {
+            agent: 'codex', appliesTo: { kind: 'diagram', type: 'root' },
+            autoFinish: { when: 'diagram-created' }, command: null,
+            output: { kind: 'diagram' }, prompt: 'Create diagram', streaming: true, type: 'agent',
+        });
+        const { run } = createRun(rootAction, {
+            agentExecutor,
+            context: { kind: 'diagram', type: 'root' },
+            diagramFooter: 'Save {{diagram-file}}',
+            diagramOutputWatcherFactory: () => ({
+                close,
+                start: vi.fn(async () => watcherStarted.resolve()),
+            }),
+            diagramPath: 'design/diagrams/output.json',
+            diagramsFolder: 'design/diagrams',
+        });
+        await watcherStarted.promise;
+
+        run.cancel();
+
+        await expect(run.completion).resolves.toMatchObject({ status: 'cancelled' });
         expect(close).toHaveBeenCalledOnce();
     });
 

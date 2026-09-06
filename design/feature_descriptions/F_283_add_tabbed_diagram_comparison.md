@@ -3,15 +3,16 @@ author:
 id: F_283
 internalId: 2a79aab5-7f0a-4c3e-9259-2ffdc6878f3b
 title: add tabbed diagram comparison
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__2a79aab5-7f0a-4c3e-9259-2ffdc6878f3b.json
 policy:
-after: b39d6ecb-a2eb-40da-8de1-1dca68881d26
+after: 607f2bae-4287-47e0-9585-e8555c707264
+branch: f_283_add_tabbed_diagram_comparison
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -24,6 +25,10 @@ Offer Current and New as accessible tabs when two simultaneous panes are unsuita
 * Only New accepts edit gestures.
 * Keyboard tab navigation follows the existing application pattern.
 
+## State and rendering rule
+
+The tab owner subscribes only to the active tab. New diagram field events rerender their subscribing leaves even while New is visible, but never republish tab state or rerender the tab layout and Current.
+
 ## Dependencies
 
-[F_280](F_280_add_current_and_new_diagram_comparison.md).
+[F\_280](F_280_add_current_and_new_diagram_comparison.md).

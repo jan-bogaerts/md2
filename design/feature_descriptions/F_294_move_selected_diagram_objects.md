@@ -3,15 +3,17 @@ author:
 id: F_294
 internalId: 21b2c59c-1c07-42c2-9bc4-4e7219a645be
 title: move selected diagram objects
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__21b2c59c-1c07-42c2-9bc4-4e7219a645be.json
 policy:
 after: 6142a098-2865-430d-9ca9-a55e0ce5feff
+changedFiles:
+  - app/src/components/diagram_view/use_diagram_tool.ts
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -29,6 +31,10 @@ A drag on a selected or newly selected object moves the complete selection. Node
 * Multi-selection preserves relative object positions.
 * Moving never changes group membership.
 
+## State and rendering rule
+
+Dragging assigns x and y on each moved canonical object without replacing it. Pointer moves notify only moved geometry leaves and incrementally dependent routes or bounds. The diagram, collections, unmoved objects, comparison root, and toolbox do not rerender. The change tracker coalesces the scoped field updates into one semantic move.
+
 ## Dependencies
 
-[F_278](F_278_make_diagram_layout_compatible_with_editing.md), [F_289](F_289_add_diagram_coordinate_conversion.md), and [F_291](F_291_add_direct_diagram_selection.md).
+[F\_278](F_278_make_diagram_layout_compatible_with_editing.md), [F\_289](F_289_add_diagram_coordinate_conversion.md), and [F\_291](F_291_add_direct_diagram_selection.md).

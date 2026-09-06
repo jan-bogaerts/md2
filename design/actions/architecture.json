@@ -1,0 +1,20 @@
+{
+  "id": "b99b8a16-945c-4d7a-b792-3e8a8702e0a5",
+  "label": "architecture",
+  "description": "renders an architecture diagram. used as the starting point (root) diagram.",
+  "type": "agent",
+  "appliesTo": {
+    "kind": "diagram",
+    "type": "root"
+  },
+  "streaming": true,
+  "phrases": [],
+  "prompt": "Inspect the implemented codebase and extract its system architecture as structured data.\n\nIdentify the runtime components, services, stores, external systems, and meaningful system boundaries. For each component, capture its responsibility and semantic role. Extract the connections between components, distinguishing ordinary communication, data movement, and asynchronous communication.\n\nRepresent architectural units at a consistent abstraction level. Do not substitute directory structure for architecture. Include only components and relationships supported by the implementation; use documentation only to clarify implemented behavior.\n\nSet the data type to architecture. Use groups for boundaries or zones that exist in the system. Assign stable semantic identifiers to nodes and edges. Mark nodes as non-drillable only when inspecting them further would not be useful.\n\nReturn only the semantic JSON data required by the appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let the application calculate positions, sizes, and connector routes.\n\nExample output shape only. Replace every example node, edge, group, and label with facts extracted from the repository:\n\n```js\n{\n  \"meta\": {\n    \"version\": 1,\n    \"type\": \"architecture\",\n    \"title\": \"System architecture\",\n    \"description\": \"Runtime components and their interactions\"\n  },\n  \"nodes\": [\n    {\n      \"id\": \"client\",\n      \"label\": \"Client\",\n      \"sublabel\": \"Receives user input\",\n      \"role\": \"input\",\n      \"kind\": \"component\"\n    },\n    {\n      \"id\": \"application-service\",\n      \"label\": \"Application service\",\n      \"sublabel\": \"Coordinates operations\",\n      \"role\": \"focal\",\n      \"kind\": \"component\"\n    },\n    {\n      \"id\": \"data-store\",\n      \"label\": \"Data store\",\n      \"sublabel\": \"Persists application data\",\n      \"role\": \"store\",\n      \"kind\": \"component\"\n    },\n    {\n      \"id\": \"external-service\",\n      \"label\": \"External service\",\n      \"role\": \"external\",\n      \"kind\": \"component\",\n      \"drilldown\": false\n    }\n  ],\n  \"edges\": [\n    {\n      \"id\": \"client-request\",\n      \"from\": \"client\",\n      \"to\": \"application-service\",\n      \"kind\": \"connection\",\n      \"label\": \"requests\"\n    },\n    {\n      \"id\": \"stored-data\",\n      \"from\": \"application-service\",\n      \"to\": \"data-store\",\n      \"kind\": \"data\",\n      \"label\": \"reads and writes\"\n    },\n    {\n      \"id\": \"external-event\",\n      \"from\": \"application-service\",\n      \"to\": \"external-service\",\n      \"kind\": \"async\",\n      \"label\": \"publishes\"\n    }\n  ],\n  \"groups\": [\n    {\n      \"id\": \"application-boundary\",\n      \"label\": \"Application\",\n      \"nodeIds\": [\"client\", \"application-service\", \"data-store\"]\n    }\n  ]\n}\n```",
+  "autoFinish": {
+    "when": "diagram-created"
+  },
+  "output": {
+    "kind": "diagram"
+  },
+  "trackFileChanges": true
+}

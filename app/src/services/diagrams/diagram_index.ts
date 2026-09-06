@@ -14,6 +14,8 @@ export interface DiagramRecord {
     label: string
     parent?: DiagramParentReference
     path: string
+    /** Source record that began an edited-copy session. */
+    sourceDiagramId?: string
 }
 
 export interface DiagramIndex {
@@ -69,6 +71,9 @@ function parseRecord(value: unknown, id: string): DiagramRecord {
         label: requireString(record.label, `diagrams.${id}.label`),
         ...(record.parent === undefined ? {} : { parent: parseParent(record.parent, `diagrams.${id}.parent`) }),
         path: requireString(record.path, `diagrams.${id}.path`),
+        ...(record.sourceDiagramId === undefined
+            ? {}
+            : { sourceDiagramId: requireString(record.sourceDiagramId, `diagrams.${id}.sourceDiagramId`) }),
     }
 }
 

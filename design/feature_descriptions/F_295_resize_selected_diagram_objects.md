@@ -3,15 +3,28 @@ author:
 id: F_295
 internalId: f24dc638-db21-4d13-b5ec-bf173913a69b
 title: resize selected diagram objects
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__f24dc638-db21-4d13-b5ec-bf173913a69b.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_resize_handles.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/editable_diagram.test.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/components/diagram_view/editable_diagram_selection.test.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.tsx
+  - app/src/components/diagram_view/vertical_diagram_comparison.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_resize_service.test.ts
+  - app/src/services/diagrams/diagram_resize_service.ts
 after: 21b2c59c-1c07-42c2-9bc4-4e7219a645be
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -26,6 +39,10 @@ Resize selected nodes and groups through visible handles.
 * Edge-only and multi-object selections do not show unsupported handles.
 * Cancelled resize restores the starting geometry and creates no change.
 
+## State and rendering rule
+
+Resizing assigns width and height on the existing selected object. Only that object's geometry leaves, incident endpoint or route leaves, and a changed surface bound may receive events. No complete object, collection, positioned diagram, or diagram root is rebuilt.
+
 ## Dependencies
 
-[F_274](F_274_add_editable_connection_points.md), [F_289](F_289_add_diagram_coordinate_conversion.md), and [F_291](F_291_add_direct_diagram_selection.md).
+[F\_274](F_274_add_editable_connection_points.md), [F\_289](F_289_add_diagram_coordinate_conversion.md), and [F\_291](F_291_add_direct_diagram_selection.md).

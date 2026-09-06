@@ -3,15 +3,24 @@ author:
 id: F_299
 internalId: 280027c6-d553-4c20-9fb4-af9010ce2c39
 title: add diagram cut tool
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__280027c6-d553-4c20-9fb4-af9010ce2c39.json
 policy:
 after: 531e8784-9f9b-42d0-9eba-1f62646227f4
+changedFiles:
+  - app/src/components/diagram_view/diagram_cut_button.test.tsx
+  - app/src/components/diagram_view/diagram_cut_button.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/services/diagrams/diagram_cut.test.ts
+  - app/src/services/diagrams/diagram_cut.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.test.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.ts
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -25,6 +34,10 @@ Add Cut to the Edit toolbox section.
 * A failed clipboard write leaves the diagram unchanged and reports an error.
 * A successful cut produces the same change set as deleting that selection.
 
+## State and rendering rule
+
+Cut reads selected fields for clipboard serialization, then uses granular deletion. Reading does not publish state. Successful removal notifies only affected collections and references; clipboard or serialization work cannot rebuild or republish the diagram.
+
 ## Dependencies
 
-[F_297](F_297_add_diagram_delete_tool.md) and [F_300](F_300_add_diagram_copy_tool.md).
+[F\_297](F_297_add_diagram_delete_tool.md) and [F\_300](F_300_add_diagram_copy_tool.md).

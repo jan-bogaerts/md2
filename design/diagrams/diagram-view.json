@@ -1,0 +1,51 @@
+{
+  "activePath": [
+    "a1ff5b28-244b-4455-a5cd-20eb92556cc1"
+  ],
+  "children": {
+    "15cbc9ca-d130-42b3-8c03-ff19e895d665": {
+      "action-automation": {
+        "32cd123d-3208-4ffb-8732-184f3ef8912e": [
+          "6c6138ef-51d0-4f2a-bd77-ca9e71d9207d"
+        ]
+      }
+    }
+  },
+  "diagrams": {
+    "15cbc9ca-d130-42b3-8c03-ff19e895d665": {
+      "actionId": "b99b8a16-945c-4d7a-b792-3e8a8702e0a5",
+      "createdAt": "2026-09-05T17:08:52.360Z",
+      "id": "15cbc9ca-d130-42b3-8c03-ff19e895d665",
+      "label": "architecture",
+      "path": "design/diagrams/architecture-20260905T170313956Z.json"
+    },
+    "6c6138ef-51d0-4f2a-bd77-ca9e71d9207d": {
+      "actionId": "32cd123d-3208-4ffb-8732-184f3ef8912e",
+      "createdAt": "2026-09-05T17:20:52.806Z",
+      "id": "6c6138ef-51d0-4f2a-bd77-ca9e71d9207d",
+      "label": "Action Automation",
+      "parent": {
+        "diagramId": "15cbc9ca-d130-42b3-8c03-ff19e895d665",
+        "itemId": "action-automation",
+        "itemLabel": "Action Automation"
+      },
+      "path": "design/diagrams/architecture-drill-down-20260905T171636464Z.json"
+    },
+    "a1ff5b28-244b-4455-a5cd-20eb92556cc1": {
+      "actionId": "a7e1e1cd-c2d5-4b5e-8ea8-bb34cc058ad9",
+      "createdAt": "2026-09-05T17:20:54.300Z",
+      "id": "a1ff5b28-244b-4455-a5cd-20eb92556cc1",
+      "label": "dependency",
+      "path": "design/diagrams/dependency-20260905T171245503Z.json"
+    }
+  },
+  "roots": {
+    "b99b8a16-945c-4d7a-b792-3e8a8702e0a5": [
+      "15cbc9ca-d130-42b3-8c03-ff19e895d665"
+    ],
+    "a7e1e1cd-c2d5-4b5e-8ea8-bb34cc058ad9": [
+      "a1ff5b28-244b-4455-a5cd-20eb92556cc1"
+    ]
+  },
+  "version": 1
+}

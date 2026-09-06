@@ -124,6 +124,28 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('keeps runs for reviewed change sets on one diagram separate', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        const firstContext = {
+            diagramChanges: 'First changes', diagramChangeSetId: 'review-1', diagramId: 'diagram-1',
+            kind: 'diagram' as const, type: 'root',
+        }
+        const secondContext = {
+            diagramChanges: 'Second changes', diagramChangeSetId: 'review-2', diagramId: 'diagram-1',
+            kind: 'diagram' as const, type: 'root',
+        }
+        service.start()
+
+        emit({ ...runEvent('running'), context: firstContext })
+        emit({ ...runEvent('running'), context: secondContext, runId: 'run-2' })
+
+        expect(service.getActionRunStore('build', firstContext)?.getSnapshot().runId).toBe('run-1')
+        expect(service.getActionRunStore('build', secondContext)?.getSnapshot().runId).toBe('run-2')
+        service.stop()
+    })
+
     it('returns changed paths from terminal run data', async () => {
         const { bridge, emit } = bridgeWithEvents({ startAction: vi.fn(async () => 'run-1') })
         setActionBridgeOverride(bridge)
@@ -816,6 +838,32 @@ describe('ActionRunRegistry', () => {
         expect(store.getSnapshot().logs[0]).toMatchObject({ message: 'build completed', status: 'completed' })
         expect(second.bridge.loadActionRunRecoverySnapshot).toHaveBeenCalledWith(['run-1'])
         await expect(completion).resolves.toMatchObject({changedPaths: ['app/recovered.ts'], diagramPath: 'design/diagrams/recovered.json', status: 'completed'})
+        release()
+        service.stop()
+    })
+
+    it('recovers tracked runs after the same bridge reconnects', async () => {
+        const loadActionRunRecoverySnapshot = vi.fn()
+            .mockResolvedValueOnce({ activeRunEvents: [], terminalResults: [] })
+            .mockResolvedValue({
+                activeRunEvents: [],
+                terminalResults: [{ changedPaths: [], failure: null, runId: 'run-1', status: 'completed' }],
+            })
+        const { bridge, emit } = bridgeWithEvents({ loadActionRunRecoverySnapshot })
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        await vi.waitFor(() => expect(loadActionRunRecoverySnapshot).toHaveBeenCalledOnce())
+        emit({ ...runEvent('running'), sequence: 1 })
+        const store = service.getRunStore('run-1')
+        if (!store) throw new Error('Missing run store')
+        const release = store.subscribe(vi.fn())
+
+        await service.recoverConnection()
+
+        expect(bridge.onActionRun).toHaveBeenCalledOnce()
+        expect(loadActionRunRecoverySnapshot).toHaveBeenLastCalledWith(['run-1'])
+        expect(store.getSnapshot().status).toBe('completed')
         release()
         service.stop()
     })

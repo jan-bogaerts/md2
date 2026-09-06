@@ -7,14 +7,30 @@ import type { MouseEvent } from 'react'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { actionsForContext, diagramContext } from '../../data/action_context'
 import { dialogService } from '../../services/dialog_service'
+import {
+    diagramEditSessionService, type DiagramEditSessionService,
+} from '../../services/diagrams/diagram_edit_session_service'
+import { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
+import {
+    diagramSelectionService, type DiagramSelectionService,
+} from '../../services/diagrams/diagram_selection_service'
 import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
 import { useActions } from '../hooks/use_actions'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
 import { ActionPopup } from '../actions/run/popup/action_popup'
 import { MovableFab } from '../movable_fab'
 import { DiagramRenderer } from './diagram_renderer'
+import { DiagramLegend } from './diagram_legend'
+import { DiagramComparison } from './diagram_comparison'
+import { DiagramComparisonLayout } from './diagram_comparison_layout'
+import {
+    diagramComparisonLayoutService, type DiagramComparisonLayoutService,
+} from './diagram_comparison_layout_service'
 import type { DiagramSelection } from './diagram_selection'
+import { TabbedDiagramComparison } from './tabbed_diagram_comparison'
+import { VerticalDiagramComparison } from './vertical_diagram_comparison'
+import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from './use_diagram_delete_key'
 
 const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
 
@@ -23,13 +39,28 @@ function reportNavigationFailure(error: unknown) {
 }
 
 interface DiagramViewProps {
+    editSession?: DiagramEditSessionService
+    geometry?: DiagramGeometryService
+    layoutService?: DiagramComparisonLayoutService
+    selection?: DiagramSelectionService
     service?: DiagramViewService
 }
 
 /** Full workspace surface for navigating validated diagram data. */
-export function DiagramView({ service = diagramViewService }: DiagramViewProps) {
+export function DiagramView({
+    editSession = diagramEditSessionService,
+    geometry = diagramGeometryService,
+    layoutService = diagramComparisonLayoutService,
+    selection = diagramSelectionService,
+    service = diagramViewService,
+}: DiagramViewProps) {
     const { viewMode } = useWorkspaceView()
     const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot)
+    const editSessionSnapshot = useSyncExternalStore(
+        editSession.subscribeSession,
+        editSession.getSessionSnapshot,
+        editSession.getSessionSnapshot,
+    )
     const { actions } = useActions()
     const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions])
     const activeRecords = snapshot.index.activePath.map((id) => snapshot.index.diagrams[id])
@@ -96,6 +127,20 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
     const handleClosePopup = () => service.closePopup()
     const handleFabActivate = (anchorElement: HTMLElement) => service.openRootPopup(anchorElement)
     const handleFabDragStart = () => service.closePopup()
+    const handleCollapseLegend = () => service.collapseLegend()
+    const handleExpandLegend = () => service.expandLegend()
+    const handleMoveLegend = (position: { left: number, top: number }) => service.moveLegend(position)
+    const handleStartEditing = () => {
+        try {
+            editSession.start()
+            queueMicrotask(() => {
+                const editor = document.querySelector<HTMLElement>(`[${DIAGRAM_EDITOR_ROOT_ATTRIBUTE}]`)
+                editor?.focus()
+            })
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Diagram editing could not be started' })
+        }
+    }
 
     const content = snapshot.status === 'loading' ? (
         <Box sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center' }}><CircularProgress aria-label="Loading diagrams" /></Box>
@@ -118,11 +163,60 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
     ) : snapshot.currentDiagramError ? (
         <Alert severity="warning">Diagram unavailable: {snapshot.currentDiagramError}</Alert>
     ) : (
-        <Box
-            aria-label="Active diagram"
-            sx={{alignItems: 'flex-start', display: 'flex', flex: 1, justifyContent: 'flex-start', minHeight: 0, overflow: 'auto'}}
-        >
-            {snapshot.currentDiagram ? <DiagramRenderer data={snapshot.currentDiagram} onSelect={handleDiagramSelect} /> : null}
+        <Box aria-label="Active diagram" sx={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+            <Box
+                aria-label="Diagram scroller"
+                sx={{ alignItems: 'flex-start', display: 'flex', height: '100%', justifyContent: 'flex-start', overflow: 'auto' }}
+            >
+                {snapshot.currentDiagram ? (
+                    editSessionSnapshot ? (
+                        <DiagramComparisonLayout
+                            horizontalComparison={(
+                                <DiagramComparison
+                                    currentDiagram={snapshot.currentDiagram}
+                                    geometry={geometry}
+                                    layoutService={layoutService}
+                                    onCurrentSelect={handleDiagramSelect}
+                                    selection={selection}
+                                    session={editSession}
+                                />
+                            )}
+                            layoutService={layoutService}
+                            tabbedComparison={(
+                                <TabbedDiagramComparison
+                                    currentDiagram={snapshot.currentDiagram}
+                                    geometry={geometry}
+                                    layoutService={layoutService}
+                                    onCurrentSelect={handleDiagramSelect}
+                                    selection={selection}
+                                    session={editSession}
+                                />
+                            )}
+                            verticalComparison={(
+                                <VerticalDiagramComparison
+                                    currentDiagram={snapshot.currentDiagram}
+                                    geometry={geometry}
+                                    layoutService={layoutService}
+                                    onCurrentSelect={handleDiagramSelect}
+                                    selection={selection}
+                                    session={editSession}
+                                />
+                            )}
+                        />
+                    ) : <DiagramRenderer data={snapshot.currentDiagram} onSelect={handleDiagramSelect} />
+                ) : null}
+            </Box>
+            {snapshot.currentDiagram ? (
+                <DiagramLegend
+                    collapsed={snapshot.legend.collapsed}
+                    data={snapshot.currentDiagram}
+                    onCollapse={handleCollapseLegend}
+                    onExpand={handleExpandLegend}
+                    onMove={handleMoveLegend}
+                    position={snapshot.legend.position}
+                    session={editSessionSnapshot ? editSession : null}
+                />
+            ) : null}
         </Box>
     )
 
@@ -131,7 +225,7 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
             aria-label="Diagram view"
             sx={{ bgcolor: 'background.default', display: viewMode === 'diagrams' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden', p: 2.5 }}
         >
-            <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, gap: 1, mb: 2 }}>
+            <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, flexWrap: 'wrap', gap: 1, mb: 2, minWidth: 0 }}>
                 <Tooltip title="Back">
                     <span>
                         <Button
@@ -158,6 +252,9 @@ export function DiagramView({ service = diagramViewService }: DiagramViewProps) 
                         </Button>
                     ))}
                 </Breadcrumbs>
+                {snapshot.currentDiagram && !editSessionSnapshot ? (
+                    <Button onClick={handleStartEditing} size="small" variant="outlined">Edit diagram</Button>
+                ) : null}
             </Box>
             {content}
             {snapshot.status === 'ready' ? (

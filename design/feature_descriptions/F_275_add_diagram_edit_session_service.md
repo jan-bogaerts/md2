@@ -3,15 +3,21 @@ author:
 id: F_275
 internalId: cc6a602a-de2d-46bd-a49e-eae08d85495d
 title: add diagram edit session service
-status: design
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__cc6a602a-de2d-46bd-a49e-eae08d85495d.json
 policy:
 after: cfe002ea-7a48-4c32-bed1-078fae7b5d5c
+changedFiles:
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
+  - app/src/services/project/project_loading.ts
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -34,4 +40,4 @@ Add a project-bound service that owns the original diagram, editable diagram, di
 
 ## Dependencies
 
-[F_273](F_273_define_editable_diagram_contract.md).
+[F\_273](F_273_define_editable_diagram_contract.md).

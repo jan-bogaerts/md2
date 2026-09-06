@@ -3,15 +3,18 @@ author:
 id: F_315
 internalId: bb95c759-589b-43e9-968c-02f83b371438
 title: add flow edge tools
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__bb95c759-589b-43e9-968c-02f83b371438.json
 policy:
 after: a9a843a2-367c-42ec-b9ca-7d990faf13ff
+changedFiles:
+  - app/src/components/diagram_view/diagram_flow_edge_button.test.tsx
+  - app/src/components/diagram_view/diagram_flow_edge_button.tsx
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -25,6 +28,10 @@ Add Flow for flowcharts and Transition for state diagrams.
 * Both kinds use shared connection points, routing, selection, reconnection, and details.
 * Invalid incomplete creation leaves the diagram unchanged.
 
+## State and rendering rule
+
+Flow and transition field changes stay on their stable edge objects. Validation reads the proposed edge and source node only. Creation updates edge membership once; editing or reconnecting notifies only that edge and directly affected endpoint leaves.
+
 ## Dependencies
 
-[F_311](F_311_add_edge_drawing_infrastructure.md) and [F_279](F_279_validate_diagram_edit_operations.md).
+[F\_311](F_311_add_edge_drawing_infrastructure.md) and [F\_279](F_279_validate_diagram_edit_operations.md).

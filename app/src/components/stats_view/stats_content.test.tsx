@@ -5,6 +5,7 @@ import { DEFAULT_PROJECT_CONFIG, type ProjectConfig, type StorageService } from 
 import { projectStatsService } from '../../services/stats/project_stats_service'
 import { completedReleaseIdentity } from '../../services/stats/stats_options'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { formatTokenCount } from '../agents/token_count'
 import { DialogDisplay } from '../dialog_display'
 import { StatsContent } from './stats_content'
 
@@ -66,6 +67,30 @@ describe('StatsContent', () => {
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Activity granularity' }))
         fireEvent.click(screen.getByRole('option', { name: 'Month' }))
         expect(projectStatsService.getSnapshot().controls.activityGranularity).toBe('month')
+    })
+
+    it('offers the token number format for every dataset and abbreviates the chart on demand', async () => {
+        const metrics = `${metricsHeader}
+2026-08-12T10:00:00.000Z,token_usage,codex,,,,,300000,100000,28913,0,428913,,
+`
+        projectStatsService.setControls({ activityGranularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime' })
+        projectStatsService.bindProject({ config, project: { branch: 'main', id: 'token-format' }, storage: metricsStorage(metrics) })
+        await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
+        renderContent()
+
+        expect(screen.getByRole('combobox', { name: 'Token number format' })).toHaveTextContent('Shortened (1.2K)')
+        expect(screen.getByText(formatTokenCount(428913))).toBeInTheDocument()
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Token number format' }))
+        fireEvent.click(screen.getByRole('option', { name: 'Exact (1,234)' }))
+
+        expect(projectStatsService.getSnapshot().controls.shortTokenCounts).toBe(false)
+        expect(screen.getByText(new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(428913))).toBeInTheDocument()
+
+        // The control belongs to no single dataset, so it survives a dataset switch.
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
+        fireEvent.click(screen.getByRole('option', { name: 'Totals by Card/Action' }))
+        expect(screen.getByRole('combobox', { name: 'Token number format' })).toHaveTextContent('Exact (1,234)')
     })
 
     it('renders and reports malformed-source errors without partial chart data', async () => {

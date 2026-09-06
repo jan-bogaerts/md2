@@ -1,6 +1,6 @@
 export interface ActionPlaceholder {
     description: string
-    name: 'active-cards-folder' | 'card-file' | 'card-prompt' | 'card-title' | 'diagram-file' | 'parent-node' | 'project-folder' | 'releases-folder' | 'repository-folder' | 'this-card' | 'worktree-folder'
+    name: 'active-cards-folder' | 'card-file' | 'card-prompt' | 'card-title' | 'diagram-changes' | 'diagram-file' | 'parent-node' | 'project-folder' | 'releases-folder' | 'repository-folder' | 'this-card' | 'worktree-folder'
 }
 
 export const ACTION_PROMPT_PLACEHOLDERS: readonly ActionPlaceholder[] = [
@@ -9,6 +9,7 @@ export const ACTION_PROMPT_PLACEHOLDERS: readonly ActionPlaceholder[] = [
     { description: 'Alias of {{card-file}} with the same selected Markdown card file path.', name: 'this-card' },
     { description: 'Title of the selected card.', name: 'card-title' },
     { description: 'Additional prompt entered when the card action runs.', name: 'card-prompt' },
+    { description: 'Reviewed change instructions captured from the active diagram edit session.', name: 'diagram-changes' },
     { description: 'Absolute path where the current diagram action must save its JSON output.', name: 'diagram-file' },
     { description: 'Label of the selected parent diagram item for a child diagram action.', name: 'parent-node' },
     { description: 'Absolute path to the configured project folder.', name: 'project-folder' },

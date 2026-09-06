@@ -3,15 +3,24 @@ author:
 id: F_311
 internalId: ab22473c-bea7-4d12-aced-6628ef5c50f8
 title: add edge drawing infrastructure
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__ab22473c-bea7-4d12-aced-6628ef5c50f8.json
 policy:
-after: cffd0f4a-8cc4-4429-bacc-e08c28c7b233
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_edge_drawing_preview.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.ts
+after: f54e020a-182e-4672-846e-ff0188657894
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -29,6 +38,10 @@ Activate an edge kind, choose a source node connection point, preview an orthogo
 * An invalid target creates nothing and keeps the gesture recoverable.
 * Shared preview and completion behavior works through scroll and zoom.
 
+## State and rendering rule
+
+Preview route is transient service-owned view data scoped to the drawing gesture. Completion adds one stable edge and changes the edge ID-list snapshot once. Existing edge objects and leaves remain unchanged; only endpoint fan-in fields that actually change receive scoped events.
+
 ## Dependencies
 
-[F_274](F_274_add_editable_connection_points.md), [F_286](F_286_manage_active_diagram_tool.md), and [F_289](F_289_add_diagram_coordinate_conversion.md).
+[F\_274](F_274_add_editable_connection_points.md), [F\_286](F_286_manage_active_diagram_tool.md), and [F\_289](F_289_add_diagram_coordinate_conversion.md).

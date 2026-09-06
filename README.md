@@ -13,6 +13,7 @@ https://github.com/user-attachments/assets/260ec55c-2905-47fa-9952-8f07b8c31c13
 - [Merge an agent's worktree branch](https://github.com/user-attachments/assets/8d9b4f55-6d97-42ff-bba4-ef36c5a64513) — Merge a branch back into the main working branch after an agent finishes implementing a card.
 - [Resolve merge conflicts between worktrees](https://github.com/user-attachments/assets/c04324ce-273d-43b7-b739-02c7011cefad) — Let an agent resolve conflicts when multiple worktrees change the same files.
 - [Switch agents during a conversation](https://github.com/user-attachments/assets/5078f4b6-3434-44f7-94ea-3b831d998eab) — Assign another agent and automatically migrate the active conversation.
+- [Open link in VsCode](https://github.com/user-attachments/assets/05484930-e84f-437e-9baa-a83e8822c97f) - open links to source code files in cards or agent responses
 
 
 ## The feature card is the center
@@ -138,10 +139,11 @@ The repo has three parts: [app/](app/) (the React/Vite web UI), [desktop/](deskt
 ### Install
 
 ```powershell
+npm install
 npm run install:all
 ```
 
-This installs dependencies for both `app` and `desktop`.
+This first installs the root development dependencies used by the shared workflows, then installs dependencies for both `app` and `desktop`.
 
 ### Run
 

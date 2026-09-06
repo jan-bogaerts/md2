@@ -285,10 +285,11 @@ function readAutoFinish(value, streaming, output, dependencies, source) {
     if (!streaming) throw fail(`Action autoFinish requires streaming in ${source}`, 'streaming-required', source, 'autoFinish')
     if (!isPlainObject(value)) throw fail(`Invalid autoFinish in ${source}`, 'invalid-field', source, 'autoFinish')
     rejectUnknownFields(value, ACTION_AUTO_FINISH_FIELD_SET, source, 'autoFinish')
-    if (value.when !== 'card-state' && value.when !== 'diagram-created') {
+    const autoFinishWhen = value.when === undefined ? 'card-state' : value.when
+    if (autoFinishWhen !== 'card-state' && autoFinishWhen !== 'diagram-created') {
         throw fail(`Invalid autoFinish trigger in ${source}`, 'invalid-field', source, 'autoFinish.when')
     }
-    if (value.when === 'diagram-created') {
+    if (autoFinishWhen === 'diagram-created') {
         if (value.state !== undefined) {
             throw fail(`Auto finish diagram-created cannot declare state in ${source}`, 'field-not-allowed', source, 'autoFinish.state')
         }

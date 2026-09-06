@@ -1,6 +1,11 @@
 const { normalizedContent } = require('./agent_event_utils');
 const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
-const { ClaudeFileResultDecoder, claudeUsage } = require('./agent_claude_events');
+const {
+    ClaudeFileResultDecoder,
+    accumulatedClaudeUsage,
+    claudeUsage,
+    recordClaudeAssistantUsage,
+} = require('./agent_claude_events');
 const { isMissingSession } = require('./agent_provider_protocol');
 
 const CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
@@ -237,6 +242,7 @@ class ClaudeStreamingAdapter {
         this.contextUsageRequestSequence = 1;
         this.pendingContextUsage = null;
         this.fileResultDecoder = new ClaudeFileResultDecoder(rootPath);
+        this.messageUsages = new Map();
         this.turnStarted = false;
     }
 
@@ -538,6 +544,7 @@ class ClaudeStreamingAdapter {
 
     async handleAssistantCompletion(event, streamKey = null) {
         await this.ensureTurnStarted();
+        recordClaudeAssistantUsage(this.messageUsages, event);
         if (!Array.isArray(event.message?.content)) {
             await this.emitProtocolError('assistant message missing content', streamKey);
             return;
@@ -633,7 +640,9 @@ class ClaudeStreamingAdapter {
         this.streamedTextItems.clear();
         this.pendingQuestions.clear();
         this.turnStarted = false;
-        const turnCompletedEvent = { error, missingSession, type: 'turnCompleted', usage: claudeUsage(event) };
+        const usage = claudeUsage(event, accumulatedClaudeUsage(this.messageUsages));
+        this.messageUsages.clear();
+        const turnCompletedEvent = { error, missingSession, type: 'turnCompleted', usage };
         if (error) {
             await this.onEvent(turnCompletedEvent);
             return;

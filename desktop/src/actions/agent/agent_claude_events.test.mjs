@@ -4,10 +4,12 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const {
     ClaudeFileResultDecoder,
+    accumulatedClaudeUsage,
     claudeAssistantText,
     claudeFileResultUsage,
     claudeTranscriptEvents,
     claudeUsage,
+    recordClaudeAssistantUsage,
 } = require('./agent_claude_events');
 const ROOT_PATH = 'C:\\repo';
 
@@ -70,6 +72,45 @@ describe('claude event decoders', () => {
         expect(() => claudeUsage({ type: 'result', usage: { input_tokens: -4, output_tokens: 'many' } }))
             .toThrow('Invalid provider token usage inputTokens');
         expect(claudeUsage({ type: 'assistant', usage: { input_tokens: 5 } })).toBeNull();
+    });
+
+    it('falls back to complete deduplicated assistant usage when result cache counters are missing', () => {
+        const messageUsages = new Map();
+        const rootMessage = {
+            message: {
+                content: [],
+                id: 'message-1',
+                usage: { cache_creation_input_tokens: 3, cache_read_input_tokens: 10, input_tokens: 5, output_tokens: 7 },
+            },
+            type: 'assistant',
+        };
+        const subAgentMessage = {
+            message: {
+                content: [],
+                id: 'message-1',
+                usage: { cache_creation_input_tokens: 2, cache_read_input_tokens: 20, input_tokens: 4, output_tokens: 6 },
+            },
+            parent_tool_use_id: 'agent-1',
+            type: 'assistant',
+        };
+
+        recordClaudeAssistantUsage(messageUsages, rootMessage);
+        recordClaudeAssistantUsage(messageUsages, rootMessage);
+        recordClaudeAssistantUsage(messageUsages, subAgentMessage);
+        const fallbackUsage = accumulatedClaudeUsage(messageUsages);
+
+        expect(claudeUsage({ total_cost_usd: 0.25, type: 'result', usage: { input_tokens: 9, output_tokens: 13 } }, fallbackUsage)).toEqual({
+            cachedInputTokens: 35,
+            costUsd: 0.25,
+            inputTokens: 9,
+            outputTokens: 13,
+            reasoningTokens: 0,
+            totalTokens: 57,
+        });
+    });
+
+    it('does not fabricate zero cache usage from an incomplete result without a fallback', () => {
+        expect(claudeUsage({ type: 'result', usage: { input_tokens: 5, output_tokens: 7 } })).toBeNull();
     });
 
     it.each(['Edit', 'MultiEdit', 'Write'])('counts %s structured patch lines', (toolName) => {

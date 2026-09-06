@@ -1,4 +1,7 @@
+import { mkdtemp, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -6,6 +9,7 @@ const {
     ensureInsideRoot,
     parseShortStat,
     requireRootPath,
+    runGit,
 } = require('./git_commands');
 
 describe('git-commands', () => {
@@ -26,4 +30,20 @@ describe('git-commands', () => {
     it('rejects paths that escape the root', () => {
         expect(() => ensureInsideRoot('C:\\repo', 'C:\\outside\\file.md')).toThrow('Local Git path escapes project root');
     });
+});
+
+describe('git-commands working directory failures', () => {
+    it('names the missing working directory instead of reporting a missing Git executable', async () => {
+        const folderPath = await mkdtemp(join(tmpdir(), 'md2-git-missing-cwd-'));
+        const missingPath = join(folderPath, 'gone');
+
+        try {
+            await expect(runGit(missingPath, ['status', '--porcelain']))
+                .rejects.toThrow(/Git working directory does not exist/u);
+            await expect(runGit(missingPath, ['status', '--porcelain'])).rejects.toThrow(missingPath);
+            await expect(runGit(missingPath, ['status', '--porcelain'])).rejects.not.toThrow(/spawn git ENOENT/u);
+        } finally {
+            await rm(folderPath, { force: true, recursive: true });
+        }
+    }, 30_000);
 });

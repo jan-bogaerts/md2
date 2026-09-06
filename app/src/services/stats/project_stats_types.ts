@@ -56,6 +56,7 @@ export interface StatsControls {
     performanceMetric: StatsPerformanceMetric;
     performanceModelIds: string[];
     releaseIdentity: string;
+    shortTokenCounts: boolean;
     startUtc: string | null;
     totalsGrouping: StatsTotalsGrouping;
     totalsMetric: StatsTotalsMetric;
@@ -180,6 +181,7 @@ export const INITIAL_CONTROLS: StatsControls = {
     performanceMetric: 'duration',
     performanceModelIds: [],
     releaseIdentity: CURRENT_RELEASE_IDENTITY,
+    shortTokenCounts: true,
     startUtc: null,
     totalsGrouping: 'card',
     totalsMetric: 'duration',

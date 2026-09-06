@@ -3,15 +3,15 @@ author:
 id: F_304
 internalId: c27b7bc9-72f5-4547-beeb-009ea47174fc
 title: add participant node tool
-status: new
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__c27b7bc9-72f5-4547-beeb-009ea47174fc.json
 policy:
-after: 69834d03-c154-4c81-a656-50de20aeb0ec
+after: 4d275542-e6f6-493e-9cb4-d75cbb83cea7
 ---
-
-Parent: [F_255](F_255_make_diagrams_editable.md).
+Parent: [F\_255](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -25,6 +25,10 @@ Add a Participant button to Nodes for sequence diagrams.
 * Existing messages, activations, and fragments remain valid.
 * The new participant is selected and editable after placement.
 
+## State and rendering rule
+
+Creation adds one participant without rebuilding the participant array or existing participant objects. Only the participant ID-list host, the new participant leaf, and sequence view objects whose positions truly depend on insertion receive updates.
+
 ## Dependencies
 
-[F_302](F_302_add_node_placement_infrastructure.md) and [F_278](F_278_make_diagram_layout_compatible_with_editing.md).
+[F\_302](F_302_add_node_placement_infrastructure.md) and [F\_278](F_278_make_diagram_layout_compatible_with_editing.md).

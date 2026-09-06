@@ -1,49 +1,52 @@
 import { useId, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { useTheme } from '@mui/material'
-import type { PositionedDiagramEdge, PositionedDiagramNode } from '../../services/diagrams/diagram_layout'
+import type { PositionedDiagramEdge } from '../../services/diagrams/diagram_layout'
+import { diagramEdgeStyle } from './diagram_edge_style'
 import { roundedDiagramPath } from './diagram_path'
 import type { DiagramSelectHandler } from './diagram_selection'
 
 const EDGE_LABEL_FONT_SIZE = 8
-const DEFAULT_EDGE_STROKE_WIDTH = 1.2
-const ACCENT_EDGE_STROKE_WIDTH = 1.5
-const FOCUSED_EDGE_STROKE_WIDTH = 3
-
 interface DiagramEdgeProps {
     edge: PositionedDiagramEdge
-    nodes: Map<string, PositionedDiagramNode>
+    /** Endpoint labels only, so a subscribing caller can supply them without owning positioned node objects. */
+    nodeLabels: ReadonlyMap<string, string>
+    onOpenDetails?: () => void
     onSelect: DiagramSelectHandler
+    selected: boolean
 }
 
-function edgeLabel(edge: PositionedDiagramEdge, nodes: Map<string, PositionedDiagramNode>) {
-    if (edge.label) return edge.label
-    const from = nodes.get(edge.from)?.label ?? edge.from
-    const to = nodes.get(edge.to)?.label ?? edge.to
+function edgeLabel(edge: PositionedDiagramEdge, nodeLabels: ReadonlyMap<string, string>) {
+    const from = nodeLabels.get(edge.from) ?? edge.from
+    const to = nodeLabels.get(edge.to) ?? edge.to
 
-    return `${from} to ${to}`
+    return edge.label ?? `${from} to ${to}`
 }
 
 /** Themed selectable connection rendered from validated geometry. */
-export function DiagramEdge({ edge, nodes, onSelect }: DiagramEdgeProps) {
+export function DiagramEdge({ edge, nodeLabels, onOpenDetails, onSelect, selected }: DiagramEdgeProps) {
     const theme = useTheme()
     const [focused, setFocused] = useState(false)
-    const label = edgeLabel(edge, nodes)
+    const label = edgeLabel(edge, nodeLabels)
     const path = roundedDiagramPath(edge.points)
-    const dashed = ['async', 'cycle', 'return'].includes(edge.kind)
-    const accent = edge.kind === 'cycle' || edge.kind === 'success'
-    const color = focused || accent ? theme.palette.primary.main : theme.palette.text.secondary
-    const strokeWidth = focused
-        ? FOCUSED_EDGE_STROKE_WIDTH
-        : accent ? ACCENT_EDGE_STROKE_WIDTH : DEFAULT_EDGE_STROKE_WIDTH
+    const { arrowhead, color, strokeDasharray, strokeWidth } = diagramEdgeStyle(edge.kind, theme, focused || selected)
     const visibleLabel = edge.label ?? (edge.kind === 'cycle' ? 'CYCLE' : null)
     const markerId = `diagram-arrow-${useId().replace(/:/gu, '')}`
-    const handleSelect = (left: number, top: number) => onSelect({ id: edge.id, label, left, top })
-    const handleClick = (event: MouseEvent<SVGGElement>) => handleSelect(event.clientX, event.clientY)
+    const handleSelect = (left: number, top: number, ctrlKey: boolean) => (
+        onSelect({ id: edge.id, label, left, top }, ctrlKey)
+    )
+    const handleClick = (event: MouseEvent<SVGGElement>) => handleSelect(event.clientX, event.clientY, event.ctrlKey)
+    const handleDoubleClick = (event: MouseEvent<SVGGElement>) => {
+        if (!onOpenDetails) return
+
+        event.preventDefault()
+        event.stopPropagation()
+        onOpenDetails()
+    }
     const handleKeyDown = (event: KeyboardEvent<SVGGElement>) => {
         if (event.key !== 'Enter' && event.key !== ' ') return
         event.preventDefault()
         const bounds = event.currentTarget.getBoundingClientRect()
-        handleSelect(bounds.left, bounds.bottom)
+        handleSelect(bounds.left, bounds.bottom, false)
     }
     const handleFocus = () => setFocused(true)
     const handleBlur = () => setFocused(false)
@@ -52,18 +55,21 @@ export function DiagramEdge({ edge, nodes, onSelect }: DiagramEdgeProps) {
     return (
         <g
             aria-label={label}
+            aria-pressed={selected}
             data-diagram-id={edge.id}
+            data-diagram-kind="edge"
             onBlur={handleBlur}
             onClick={handleClick}
+            onDoubleClick={onOpenDetails ? handleDoubleClick : undefined}
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             role="button"
-            style={{ color, cursor: 'pointer', outline: 'none' }}
+            style={{ color, cursor: 'pointer', outline: 'none', pointerEvents: 'auto' }}
             tabIndex={0}
         >
             <defs>
                 <marker id={markerId} markerHeight="6" markerWidth="8" orient="auto" refX="7" refY="3">
-                    {edge.kind === 'async'
+                    {arrowhead === 'open'
                         ? <polyline fill="none" points="0 0, 8 3, 0 6" stroke="currentColor" strokeWidth="1.2" />
                         : <path d="M0,0 L8,3 L0,6 Z" fill="currentColor" />}
                 </marker>
@@ -74,7 +80,7 @@ export function DiagramEdge({ edge, nodes, onSelect }: DiagramEdgeProps) {
                 fill="none"
                 markerEnd={`url(#${markerId})`}
                 stroke="currentColor"
-                strokeDasharray={dashed ? '4 3' : undefined}
+                strokeDasharray={strokeDasharray}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={strokeWidth}

@@ -222,6 +222,27 @@ describe('ActionService', () => {
         expect(editableActionDefinition(capturedAction)).not.toHaveProperty('showCommandWindow')
     })
 
+    it('round-trips diagram output and explicit auto-finish trigger', () => {
+        const service = new ActionService()
+        const definition = {
+            appliesTo: { kind: 'diagram', type: 'root' },
+            autoFinish: { when: 'diagram-created' },
+            description: 'Create overview',
+            id: 'diagram',
+            label: 'Diagram',
+            output: { kind: 'diagram' },
+            prompt: 'Create diagram',
+            streaming: true,
+            type: 'agent',
+        } satisfies RawActionDefinition
+        service.loadFromFiles([file(definition)])
+        const action = service.getActionByPath('actions/action.json')
+        if (!action) throw new Error('Missing diagram action')
+
+        expect(editableActionDefinition(action)).toMatchObject({autoFinish: { when: 'diagram-created' }, output: { kind: 'diagram' }})
+        expect(serializeActionDefinition(editableActionDefinition(action))).toContain('"output"')
+    })
+
     it('routes validation failures by structured metadata, not message text', () => {
         const service = new ActionService()
         service.loadFromFiles([file(VALID)])

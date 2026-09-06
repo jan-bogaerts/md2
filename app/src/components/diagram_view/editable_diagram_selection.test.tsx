@@ -1,0 +1,263 @@
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, it } from 'vitest'
+import type { DiagramData } from '../../services/diagrams/diagram_data'
+import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
+import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
+import type { DiagramRecord } from '../../services/diagrams/diagram_index'
+import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
+import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
+import { EditableDiagram } from './editable_diagram'
+
+const diagram: DiagramData = {
+    edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
+    groups: [{ id: 'backend', label: 'Backend', nodeIds: ['orders', 'store'] }],
+    meta: { description: 'Orders architecture', title: 'Overview', type: 'architecture', version: 1 },
+    nodes: [
+        { drilldown: false, id: 'orders', label: 'Orders', role: 'focal' },
+        { id: 'store', label: 'Store', role: 'store' },
+    ],
+}
+const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
+const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
+
+class DiagramSourceStub extends EventTarget {
+    private readonly source: DiagramViewSourceSnapshot = { diagram, record }
+
+    getSourceSnapshot = () => this.source
+
+    subscribeSource = (listener: () => void) => {
+        this.addEventListener('sourceChanged', listener)
+
+        return () => this.removeEventListener('sourceChanged', listener)
+    }
+}
+
+function renderHarness() {
+    const session = new DiagramEditSessionService(new DiagramSourceStub())
+    session.bindProject(project)
+    session.start()
+    const geometry = new DiagramGeometryService(session)
+    const selection = new DiagramSelectionService(session, geometry)
+    render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
+
+    return { geometry, selection, session }
+}
+
+afterEach(cleanup)
+
+describe('EditableDiagram direct selection', () => {
+    it('replaces selection when a New node, edge, or group is clicked', async () => {
+        const { selection } = renderHarness()
+        const user = userEvent.setup()
+
+        await user.click(screen.getByRole('button', { name: 'Orders' }))
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
+        expect(screen.getByRole('button', { name: 'Orders' })).toHaveAttribute('aria-pressed', 'true')
+
+        await user.click(screen.getByRole('button', { name: 'writes' }))
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders-store', objectKind: 'edge' }])
+        expect(screen.getByRole('button', { name: 'Orders' })).toHaveAttribute('aria-pressed', 'false')
+        expect(screen.getByRole('button', { name: 'writes' })).toHaveAttribute('aria-pressed', 'true')
+
+        await user.click(screen.getByRole('button', { name: 'Backend' }))
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'backend', objectKind: 'group' }])
+        expect(screen.getByRole('button', { name: 'Backend' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('adds and removes mixed object kinds with Ctrl-click', async () => {
+        const { selection } = renderHarness()
+        const user = userEvent.setup()
+        const orders = screen.getByRole('button', { name: 'Orders' })
+        const edge = screen.getByRole('button', { name: 'writes' })
+        const group = screen.getByRole('button', { name: 'Backend' })
+
+        await user.click(orders)
+        await user.keyboard('{Control>}')
+        await user.click(edge)
+        await user.click(group)
+        await user.click(edge)
+        await user.keyboard('{/Control}')
+
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'backend', objectKind: 'group' },
+        ])
+        expect(orders).toHaveAttribute('aria-pressed', 'true')
+        expect(edge).toHaveAttribute('aria-pressed', 'false')
+        expect(group).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('replaces an additive selection on a plain click', async () => {
+        const { selection } = renderHarness()
+        const user = userEvent.setup()
+
+        await user.keyboard('{Control>}')
+        await user.click(screen.getByRole('button', { name: 'Orders' }))
+        await user.click(screen.getByRole('button', { name: 'Backend' }))
+        await user.keyboard('{/Control}')
+        await user.click(screen.getByRole('button', { name: 'Store' }))
+
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'store', objectKind: 'node' }])
+    })
+
+    it('changes only selection membership during Ctrl-click', async () => {
+        const { geometry, selection, session } = renderHarness()
+        const user = userEvent.setup()
+        const editableDiagram = session.getEditableDiagram()
+        const ordersNode = session.getNodeSnapshot('orders')
+        const edgeRoute = geometry.getEdgeRouteSnapshot('orders-store')
+        const transientGesture = session.getTransientGestureSnapshot()
+        const viewportScale = session.getViewportScaleSnapshot()
+
+        await user.keyboard('{Control>}')
+        await user.click(screen.getByRole('button', { name: 'Orders' }))
+        await user.click(screen.getByRole('button', { name: 'writes' }))
+        await user.keyboard('{/Control}')
+
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'orders-store', objectKind: 'edge' },
+        ])
+        expect(session.getEditableDiagram()).toBe(editableDiagram)
+        expect(session.getNodeSnapshot('orders')).toBe(ordersNode)
+        expect(geometry.getEdgeRouteSnapshot('orders-store')).toBe(edgeRoute)
+        expect(session.getTransientGestureSnapshot()).toBe(transientGesture)
+        expect(session.getViewportScaleSnapshot()).toBe(viewportScale)
+        expect(session.getChangeIdsSnapshot()).toEqual([])
+        expect(session.getDirtySnapshot()).toBe(false)
+    })
+
+    it('clears selection when empty New surface is clicked', () => {
+        const { selection } = renderHarness()
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+
+        fireEvent.click(screen.getByLabelText('New diagram'))
+
+        expect(selection.getSelectionSnapshot()).toEqual([])
+    })
+
+    it.each([
+        ['non-drilldown node', 'Orders', 'orders', 'node'],
+        ['edge', 'writes', 'orders-store', 'edge'],
+        ['group', 'Backend', 'backend', 'group'],
+    ] as const)('selects a focused New %s from keyboard activation', async (_description, label, objectId, objectKind) => {
+        const { selection } = renderHarness()
+        const user = userEvent.setup()
+        const object = screen.getByRole('button', { name: label })
+
+        object.focus()
+        await user.keyboard('{Enter}')
+
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId, objectKind }])
+    })
+
+    it('leaves selection unchanged when another persistent tool is active', async () => {
+        const { selection, session } = renderHarness()
+        const user = userEvent.setup()
+        act(() => {
+            selection.replace([{ objectId: 'backend', objectKind: 'group' }])
+            session.setActiveTool('node:component')
+        })
+
+        await user.keyboard('{Control>}')
+        await user.click(screen.getByRole('button', { name: 'Orders' }))
+        await user.keyboard('{/Control}')
+        fireEvent.click(screen.getByLabelText('New diagram'))
+
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'backend', objectKind: 'group' }])
+    })
+
+    it('shows eight accessible handles only for one resizable selection', () => {
+        const { selection } = renderHarness()
+
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+        expect(screen.getAllByRole('button', { name: /^Resize Orders /u })).toHaveLength(8)
+
+        act(() => { selection.replace([{ objectId: 'orders-store', objectKind: 'edge' }]) })
+        expect(screen.queryByRole('button', { name: /^Resize /u })).toBeNull()
+
+        act(() => {
+            selection.replace([
+                { objectId: 'orders', objectKind: 'node' },
+                { objectId: 'backend', objectKind: 'group' },
+            ])
+        })
+        expect(screen.queryByRole('button', { name: /^Resize /u })).toBeNull()
+
+        act(() => { selection.replace([{ objectId: 'backend', objectKind: 'group' }]) })
+        expect(screen.getAllByRole('button', { name: /^Resize Backend /u })).toHaveLength(8)
+    })
+
+    it('selects every node, edge, and group intersecting a rectangle dragged from empty surface', () => {
+        const { geometry, selection } = renderHarness()
+        const surface = screen.getByLabelText('New diagram')
+        const width = geometry.getSurfaceFieldSnapshot('width')
+        const height = geometry.getSurfaceFieldSnapshot('height')
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 0, clientY: 0, pointerId: 1 })
+        fireEvent.pointerMove(surface, { clientX: width + 10, clientY: height + 10, pointerId: 1 })
+
+        expect(screen.getByTestId('diagram-selection-rectangle')).toHaveStyle({
+            height: `${height + 10}px`,
+            width: `${width + 10}px`,
+        })
+
+        fireEvent.pointerUp(surface, { clientX: width + 10, clientY: height + 10, pointerId: 1 })
+        fireEvent.click(surface)
+
+        expect(screen.queryByTestId('diagram-selection-rectangle')).toBeNull()
+        expect(selection.getSelectionSnapshot()).toEqual([
+            { objectId: 'orders', objectKind: 'node' },
+            { objectId: 'store', objectKind: 'node' },
+            { objectId: 'orders-store', objectKind: 'edge' },
+            { objectId: 'backend', objectKind: 'group' },
+        ])
+    })
+
+    it('does not begin rectangle selection from a selectable object or with another tool active', () => {
+        const { selection, session } = renderHarness()
+        const surface = screen.getByLabelText('New diagram')
+        const orders = screen.getByRole('button', { name: 'Orders' })
+        act(() => { selection.replace([{ objectId: 'backend', objectKind: 'group' }]) })
+
+        fireEvent.pointerDown(orders, { button: 0, clientX: 20, clientY: 20, pointerId: 1 })
+        fireEvent.pointerMove(surface, { clientX: 80, clientY: 80, pointerId: 1 })
+        fireEvent.pointerUp(surface, { clientX: 80, clientY: 80, pointerId: 1 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+
+        act(() => { session.setActiveTool('node:component') })
+        fireEvent.pointerDown(surface, { button: 0, clientX: 20, clientY: 20, pointerId: 2 })
+        fireEvent.pointerMove(surface, { clientX: 80, clientY: 80, pointerId: 2 })
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'backend', objectKind: 'group' }])
+    })
+
+    it('clears selection for a zero-distance surface click', () => {
+        const { selection } = renderHarness()
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { selection.replace([{ objectId: 'orders', objectKind: 'node' }]) })
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 30, clientY: 40, pointerId: 1 })
+        fireEvent.pointerUp(surface, { clientX: 30, clientY: 40, pointerId: 1 })
+        fireEvent.click(surface)
+
+        expect(selection.getSelectionSnapshot()).toEqual([])
+        expect(selection.getRectangleSnapshot()).toBeNull()
+    })
+
+    it('removes a cancelled rectangle without changing selection', () => {
+        const { selection } = renderHarness()
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { selection.replace([{ objectId: 'store', objectKind: 'node' }]) })
+        const selectionSnapshot = selection.getSelectionSnapshot()
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 10, clientY: 20, pointerId: 1 })
+        fireEvent.pointerMove(surface, { clientX: 80, clientY: 90, pointerId: 1 })
+        expect(screen.getByTestId('diagram-selection-rectangle')).toBeInTheDocument()
+        fireEvent.pointerCancel(surface, { pointerId: 1 })
+
+        expect(screen.queryByTestId('diagram-selection-rectangle')).toBeNull()
+        expect(selection.getSelectionSnapshot()).toBe(selectionSnapshot)
+    })
+})

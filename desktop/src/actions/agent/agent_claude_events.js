@@ -1,4 +1,4 @@
-const { validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
+const { sumAgentTokenUsage, validateAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const { boundedAgentResult } = require('../../../../shared/agent_conversations.mjs');
 const { normalizeChangedPaths, normalizedContent } = require('./agent_event_utils');
 const { countLineChanges, countPatchLines } = require('./agent_file_change');
@@ -149,25 +149,86 @@ function claudeTranscriptEvents(event) {
     return [];
 }
 
+const CLAUDE_TOKEN_FIELDS = [
+    'cache_creation_input_tokens',
+    'cache_read_input_tokens',
+    'input_tokens',
+    'output_tokens',
+];
+const CLAUDE_USAGE_FIELD_NAMES = {
+    cache_creation_input_tokens: 'cachedInputTokens',
+    cache_read_input_tokens: 'cachedInputTokens',
+    input_tokens: 'inputTokens',
+    output_tokens: 'outputTokens',
+};
+
+function validatePresentClaudeUsageFields(usage) {
+    if (!usage || typeof usage !== 'object' || Array.isArray(usage)) return;
+    for (const fieldName of CLAUDE_TOKEN_FIELDS) {
+        if (!Object.hasOwn(usage, fieldName)) continue;
+        const value = usage[fieldName];
+        if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+            throw new Error(`Invalid provider token usage ${CLAUDE_USAGE_FIELD_NAMES[fieldName]}`);
+        }
+    }
+}
+
+function hasCompleteClaudeUsage(usage) {
+    return !!usage
+        && typeof usage === 'object'
+        && !Array.isArray(usage)
+        && CLAUDE_TOKEN_FIELDS.every((fieldName) => Object.hasOwn(usage, fieldName));
+}
+
 // Claude folds thinking into output_tokens, so reasoningTokens is always 0, and reports cache
 // creation and cache reads as buckets alongside a cache-free input_tokens.
-function claudeUsage(event) {
-    if (event.type !== 'result' || !event.usage || typeof event.usage !== 'object' || Array.isArray(event.usage)) return null;
+function normalizeClaudeUsage(usage, costUsd, providerTotalTokens) {
+    return validateAgentTokenUsage({
+        cachedInputTokens: usage.cache_creation_input_tokens + usage.cache_read_input_tokens,
+        ...(costUsd !== undefined ? { costUsd } : {}),
+        inputTokens: usage.input_tokens,
+        outputTokens: usage.output_tokens,
+        reasoningTokens: 0,
+    }, providerTotalTokens);
+}
+
+function recordClaudeAssistantUsage(messageUsages, event) {
+    validatePresentClaudeUsageFields(event.message?.usage);
+    if (event.type !== 'assistant' || !hasCompleteClaudeUsage(event.message?.usage)) return;
+    const messageId = event.message.id;
+    if (typeof messageId !== 'string' || messageId.length === 0) return;
+    const streamKey = typeof event.parent_tool_use_id === 'string' ? event.parent_tool_use_id : 'root';
+    messageUsages.set(`${streamKey}:${messageId}`, normalizeClaudeUsage(event.message.usage));
+}
+
+function accumulatedClaudeUsage(messageUsages) {
+    if (messageUsages.size === 0) return null;
+
+    return sumAgentTokenUsage([...messageUsages.values()]);
+}
+
+/** Prefer Claude's complete turn result, falling back to deduplicated per-request message usage. */
+function claudeUsage(event, fallbackUsage = null) {
+    if (event.type !== 'result') return null;
+    validatePresentClaudeUsageFields(event.usage);
+    if (hasCompleteClaudeUsage(event.usage)) {
+        return normalizeClaudeUsage(event.usage, event.total_cost_usd, event.usage.total_tokens);
+    }
+    if (!fallbackUsage) return null;
 
     return validateAgentTokenUsage({
-        cachedInputTokens: (event.usage.cache_creation_input_tokens ?? 0) + (event.usage.cache_read_input_tokens ?? 0),
-        costUsd: event.total_cost_usd,
-        inputTokens: event.usage.input_tokens,
-        outputTokens: event.usage.output_tokens,
-        reasoningTokens: 0,
-    }, event.usage.total_tokens);
+        ...fallbackUsage,
+        ...(event.total_cost_usd !== undefined ? { costUsd: event.total_cost_usd } : {}),
+    }, fallbackUsage.totalTokens);
 }
 
 module.exports = {
     ClaudeFileResultDecoder,
+    accumulatedClaudeUsage,
     claudeAssistantText,
     claudeFileResultUsage,
     claudeFileToolEvent,
     claudeTranscriptEvents,
     claudeUsage,
+    recordClaudeAssistantUsage,
 };

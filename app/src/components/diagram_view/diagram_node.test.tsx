@@ -9,14 +9,14 @@ import { DiagramNode } from './diagram_node'
 
 function positioned(overrides: Partial<PositionedDiagramNode> = {}): PositionedDiagramNode {
     // Cast: exactOptionalPropertyTypes rejects spreading a Partial whose optional members may be explicitly undefined.
-    return { fanIn: 0, height: 72, id: 'one', label: 'One', width: 160, x: 0, y: 0, ...overrides } as PositionedDiagramNode
+    return { fanIn: 0, height: 72, id: 'one', label: 'One', role: 'focal', width: 160, x: 0, y: 0, ...overrides } as PositionedDiagramNode
 }
 
 function renderNode(node: PositionedDiagramNode, diagramType: DiagramType = 'architecture', flowPreset?: DiagramFlowPreset) {
     const onSelect = vi.fn()
     render(
         <ThemeProvider theme={createAppTheme('dark')}>
-            <DiagramNode diagramType={diagramType} flowPreset={flowPreset} node={node} onSelect={onSelect} />
+            <DiagramNode diagramType={diagramType} flowPreset={flowPreset} node={node} onSelect={onSelect} selected={false} />
         </ThemeProvider>,
     )
 
@@ -66,8 +66,8 @@ describe('DiagramNode', () => {
         expect(getComputedStyle(fields).borderTop).toContain('1px solid')
     })
 
-    it('renders no text and no scroll wrapper for state preset start and end markers', () => {
-        const { button } = renderNode(positioned({ height: 24, kind: 'start', label: 'Start', width: 24 }), 'flow', 'state')
+    it.each(['start', 'end'] as const)('renders no text and no scroll wrapper for the state preset %s marker', (kind) => {
+        const { button } = renderNode(positioned({ height: 24, kind, label: kind === 'start' ? 'Start' : 'End', width: 24 }), 'flow', 'state')
 
         expect(scrollWrapper(button)).toBeNull()
         expect(button).toBeEmptyDOMElement()
@@ -79,17 +79,53 @@ describe('DiagramNode', () => {
         expect(getComputedStyle(button).height).toBe('200px')
     })
 
-    it('selects the node on a plain click and on Enter', async () => {
+    it('renders and resizes a decision inside unchanged rectangular bounds', () => {
+        const node = positioned({ height: 96, kind: 'decision', label: 'Choose', width: 96 })
+        const { rerender } = render(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode diagramType="flow" flowPreset="flowchart" node={node} onSelect={vi.fn()} selected={false} />
+            </ThemeProvider>,
+        )
+        const button = screen.getByRole('button', { name: 'Choose' })
+        const diamond = button.querySelector('[data-diagram-node-shape="decision"]')
+
+        expect(getComputedStyle(button).height).toBe('96px')
+        expect(getComputedStyle(button).width).toBe('96px')
+        expect(getComputedStyle(button).transform).toBe('none')
+        expect(diamond).toHaveAttribute('viewBox', '0 0 96 96')
+
+        rerender(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode
+                    diagramType="flow"
+                    flowPreset="flowchart"
+                    node={{ ...node, height: 80, width: 120 }}
+                    onSelect={vi.fn()}
+                    selected={false}
+                />
+            </ThemeProvider>,
+        )
+
+        expect(getComputedStyle(button).height).toBe('80px')
+        expect(getComputedStyle(button).width).toBe('120px')
+        expect(button.querySelector('[data-diagram-node-shape="decision"]')).toHaveAttribute('viewBox', '0 0 120 80')
+    })
+
+    it('reports Ctrl state for clicks and treats keyboard activation as plain selection', async () => {
         const { button, onSelect } = renderNode(positioned())
         const user = userEvent.setup()
 
         await user.click(button)
-        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }))
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }), false)
+
+        onSelect.mockClear()
+        fireEvent.click(button, { ctrlKey: true })
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }), true)
 
         onSelect.mockClear()
         button.focus()
         await user.keyboard('{Enter}')
-        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }))
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }), false)
     })
 
     it('does not select the node when the content scrolled between mousedown and click', () => {

@@ -13,6 +13,7 @@ changedFiles:
   - app/src/components/diagram_view/diagram_node.test.tsx
   - app/src/components/diagram_view/diagram_node.tsx
   - app/src/components/diagram_view/diagram_renderer.test.tsx
+after: 7b0ea8f9-7db3-44dd-8372-7103eca2324d
 ---
 
 Some diagram buttons seem to be disabled, this prevents us from scrolling so we can't read the full sub labels.

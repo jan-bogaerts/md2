@@ -8,6 +8,7 @@ import {
     actionAcknowledgementEvent,
     agentAcknowledgementService,
     cardAcknowledgementEvent,
+    PROJECT_ACKNOWLEDGEMENT_EVENT,
 } from './agent_acknowledgement_service'
 import { cardAgentState } from './card_agent_state'
 import { conversation, createDataService, createDeferred, createStorage, waitForWorkerTurn } from '../test_support/data_service_test_support'
@@ -545,8 +546,51 @@ describe('AgentIntegration', () => {
         await expect(firstRequest).resolves.toEqual([projectConversation])
         await expect(secondRequest).resolves.toEqual([projectConversation])
         await expect(service.listAgentConversations(context)).resolves.toEqual([projectConversation])
+        expect(service.agents.getProjectAgentConversationsSnapshot()).toBe(await service.listAgentConversations(context))
         expect(listAgentConversationReferences).toHaveBeenCalledTimes(1)
         expect(loadAgentConversation).toHaveBeenCalledTimes(1)
+    })
+
+    it('applies live project conversation snapshots and announces each change', async () => {
+        configService.init()
+        let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
+                actionRunCallback = callback
+
+                return vi.fn()
+            },
+            updateActionConversationViewed: vi.fn(async (_reference: string, viewed: boolean) => ({ viewed })),
+        } as unknown as typeof window.md2Actions
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        if (!actionRunCallback) throw new Error('Action run callback not registered')
+        const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
+        const changed = vi.fn()
+        agentAcknowledgementService.addEventListener(PROJECT_ACKNOWLEDGEMENT_EVENT, changed)
+        const context = { kind: 'project' as const }
+        const reference = 'design/activity/project.json#conversation=project-agent'
+        const runningConversation = {...conversation(reference), cardInternalId: null, cardPath: null, status: 'running' as const}
+        const startedEvent = {
+            actionId: 'implement', context, runId: 'project-run', phase: 'main' as const,
+            rootActionId: 'implement', status: 'running' as const, type: 'update' as const,
+            update: { conversation: runningConversation, kind: 'agentStarted' as const },
+        }
+
+        emitActionRun(startedEvent)
+        expect(service.agents.getProjectAgentConversationsSnapshot()).toEqual([runningConversation])
+
+        const completedConversation = { ...runningConversation, status: 'completed' as const, viewed: false }
+        emitActionRun({
+            ...startedEvent,
+            status: 'completed',
+            update: { conversation: completedConversation, kind: 'agentClosed' },
+        })
+
+        expect(service.agents.getProjectAgentConversationsSnapshot()).toEqual([completedConversation])
+        expect(changed.mock.calls.length).toBeGreaterThanOrEqual(2)
+        agentAcknowledgementService.removeEventListener(PROJECT_ACKNOWLEDGEMENT_EVENT, changed)
     })
 
     it('loads one historical card on demand and shares completed and concurrent requests', async () => {

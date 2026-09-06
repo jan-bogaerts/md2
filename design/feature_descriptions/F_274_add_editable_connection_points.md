@@ -3,15 +3,25 @@ author:
 id: F_274
 internalId: cfe002ea-7a48-4c32-bed1-078fae7b5d5c
 title: add editable connection points
-status: design
+status: ready
 owner:
 affects:
 agents:
+  - design/activity/card__cfe002ea-7a48-4c32-bed1-078fae7b5d5c.json
 policy:
-after: cd29dd64-c875-44fb-b4c4-e131a4a113c8
+changedFiles:
+  - app/src/data/data_types.ts
+  - app/src/services/config/config_service.service.test.ts
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_layout.node.test.ts
+  - app/src/services/diagrams/diagram_layout.ts
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - shared/diagram_data.d.mts
+  - shared/diagram_data.mjs
+after: c632a2b7-9a1a-4c98-b42d-79d3c26fa0c8
 ---
-
-Parent: [F_255 make diagrams editable](F_255_make_diagrams_editable.md).
+Parent: [F\_255 make diagrams editable](F_255_make_diagrams_editable.md).
 
 ## Goal
 
@@ -34,4 +44,4 @@ Represent edge endpoints as stable connection points on nodes so users can draw 
 
 ## Dependencies
 
-[F_273](F_273_define_editable_diagram_contract.md).
+[F\_273](F_273_define_editable_diagram_contract.md).

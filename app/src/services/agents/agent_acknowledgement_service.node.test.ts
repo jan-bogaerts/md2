@@ -7,6 +7,7 @@ import {
     actionAcknowledgementEvent,
     agentAcknowledgementService,
     cardAcknowledgementEvent,
+    PROJECT_ACKNOWLEDGEMENT_EVENT,
 } from './agent_acknowledgement_service'
 import { hasUnseenConversation, latestUnseenConversation } from './card_agent_state'
 
@@ -41,6 +42,19 @@ function runEvent(status: ActionRunStatus): ActionRunEvent {
         status,
         type: 'run',
     }
+}
+
+function projectConversation(viewed = true): AgentConversation {
+    return {
+        ...conversation('project-conversation', viewed),
+        cardInternalId: null,
+        cardPath: null,
+        path: 'design/activity/project.json#conversation=project-conversation',
+    }
+}
+
+function projectRunEvent(status: ActionRunStatus): ActionRunEvent {
+    return { ...runEvent(status), context: { kind: 'project' }, runId: 'project-run' }
 }
 
 /** Starts the run registry against a bridge that reports the given conversation for the emitted run. */
@@ -192,6 +206,32 @@ describe('AgentAcknowledgementService', () => {
 
         await vi.waitFor(() => expect(updateActionConversationViewed).toHaveBeenCalledWith(unseen.path, true))
         await vi.waitFor(() => expect(unseen.viewed).toBe(true))
+    })
+
+    it('marks project conversations unseen and announces project-only changes', async () => {
+        const running = projectConversation()
+        const { publish, updateActionConversationViewed } = startRunRegistry(running)
+        const card = vi.fn()
+        agentAcknowledgementService.addEventListener(cardAcknowledgementEvent(cardInternalId), card)
+
+        publish(projectRunEvent('running'))
+        publish(projectRunEvent('completed'))
+
+        await vi.waitFor(() => expect(updateActionConversationViewed).toHaveBeenCalledWith(running.path, false))
+        expect(card).not.toHaveBeenCalled()
+    })
+
+    it('acknowledges a visible unseen project conversation', async () => {
+        const { updateActionConversationViewed } = startRunRegistry(null)
+        const unseen = projectConversation(false)
+        const project = vi.fn()
+        agentAcknowledgementService.addEventListener(PROJECT_ACKNOWLEDGEMENT_EVENT, project)
+
+        agentAcknowledgementService.setConversationVisible('project-popup', null, actionId, unseen, true)
+
+        await vi.waitFor(() => expect(updateActionConversationViewed).toHaveBeenCalledWith(unseen.path, true))
+        await vi.waitFor(() => expect(unseen.viewed).toBe(true))
+        expect(project).toHaveBeenCalledOnce()
     })
 
     it('leaves the conversation unseen and retryable when persistence fails', async () => {

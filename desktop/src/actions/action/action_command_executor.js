@@ -1,7 +1,4 @@
 const { spawn } = require('node:child_process');
-const { mkdtemp, rm, writeFile } = require('node:fs/promises');
-const { tmpdir } = require('node:os');
-const { join } = require('node:path');
 const { assertGitRoot, requireRootPath } = require('../../git/git_commands');
 const { terminateProcessTree } = require('../process_tree');
 const { ActionCancellationError } = require('./action_cancellation_error');
@@ -67,30 +64,18 @@ async function runCommandInWindow(project, command, signal, _onOutput, dependenc
     await assertGitRoot(rootPath);
     if (signal.aborted) throw new ActionCancellationError('Action cancelled');
 
-    const createTemporaryDirectory = dependencies.mkdtemp ?? mkdtemp;
-    const removeTemporaryDirectory = dependencies.rm ?? rm;
     const spawnCommand = dependencies.spawnCommand ?? spawn;
     const terminate = dependencies.terminateProcessTree ?? terminateProcessTree;
-    const writeCommandFile = dependencies.writeFile ?? writeFile;
-    const temporaryDirectory = await createTemporaryDirectory(join(tmpdir(), 'md2-command-window-'));
-    const commandFile = join(temporaryDirectory, 'command.cmd');
+    const child = spawnCommand(command, {
+        cwd: rootPath,
+        detached: true,
+        shell: true,
+        stdio: 'inherit',
+        windowsHide: false,
+    });
+    const exitCode = await waitForVisibleCommand(child, signal, terminate);
 
-    try {
-        await writeCommandFile(commandFile, `${command}\r\nexit /b %errorlevel%\r\n`, 'utf8');
-        if (signal.aborted) throw new ActionCancellationError('Action cancelled');
-        const launcher = `start "" /wait cmd.exe /d /s /c call "${commandFile}" & exit /b !errorlevel!`;
-        const child = spawnCommand(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/v:on', '/c', launcher], {
-            cwd: rootPath,
-            stdio: 'ignore',
-            windowsHide: true,
-            windowsVerbatimArguments: true,
-        });
-        const exitCode = await waitForVisibleCommand(child, signal, terminate);
-
-        return { command, exitCode, stderr: '', stdout: '' };
-    } finally {
-        await removeTemporaryDirectory(temporaryDirectory, { force: true, recursive: true });
-    }
+    return { command, exitCode, stderr: '', stdout: '' };
 }
 
 function executeCommandAction(input) {

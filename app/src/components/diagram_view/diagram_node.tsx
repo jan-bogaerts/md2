@@ -1,15 +1,26 @@
 import { Box, ButtonBase, Typography } from '@mui/material'
 import { useRef, type KeyboardEvent, type MouseEvent } from 'react'
 import type { DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data'
+import type { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import type { PositionedDiagramNode } from '../../services/diagrams/diagram_layout'
+import { DiagramEntityFieldRow } from './diagram_entity_field'
 import { diagramRoleStyle } from './diagram_role_style'
 import type { DiagramSelectHandler } from './diagram_selection'
+import { EditableDiagramEntityFields } from './editable_diagram_entity_fields'
+
+interface EditableEntityFieldSource {
+    nodeId: string
+    session: DiagramEditSessionService
+}
 
 interface DiagramNodeProps {
     diagramType: DiagramType
+    entityFieldSource?: EditableEntityFieldSource
     flowPreset?: DiagramFlowPreset
     node: PositionedDiagramNode
+    onOpenDetails?: () => void
     onSelect: DiagramSelectHandler
+    selected: boolean
 }
 
 function kindStyles(node: PositionedDiagramNode, flowPreset: DiagramFlowPreset | undefined) {
@@ -26,44 +37,56 @@ function kindStyles(node: PositionedDiagramNode, flowPreset: DiagramFlowPreset |
         } as const
     }
     if (node.kind === 'start' || node.kind === 'end') return { borderRadius: 99 }
-    if (node.kind === 'decision') return { transform: 'rotate(45deg)', '& > *': { transform: 'rotate(-45deg)' } }
+    if (node.kind === 'decision') return { bgcolor: 'transparent', border: 0 }
 
     return { borderRadius: node.kind === 'state' ? 1 : '6px' }
 }
 
-function fieldPrefix(key: 'primary' | 'foreign' | undefined) {
-    if (key === 'primary') return '# '
-    if (key === 'foreign') return '→ '
-
-    return ''
+function decisionPoints(node: PositionedDiagramNode) {
+    return `${node.width / 2},1 ${node.width - 1},${node.height / 2} ${node.width / 2},${node.height - 1} 1,${node.height / 2}`
 }
 
 /** Positioned, themed, keyboard-operable diagram item. */
-export function DiagramNode({ diagramType, flowPreset, node, onSelect }: DiagramNodeProps) {
+export function DiagramNode({diagramType, entityFieldSource, flowPreset, node, onOpenDetails, onSelect, selected}: DiagramNodeProps) {
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
-    const interactive = node.drilldown !== false
+    const decision = node.kind === 'decision'
+    const interactive = node.drilldown !== false || !!onOpenDetails
+    const roleStyle = diagramRoleStyle(node.role)
     const scrollRef = useRef<HTMLDivElement>(null)
     const pressScrollTop = useRef(0)
-    const handleSelect = (left: number, top: number) => onSelect({ id: node.id, label: node.label, left, top })
+    const handleSelect = (left: number, top: number, ctrlKey: boolean) => (
+        onSelect({ id: node.id, label: node.label, left, top }, ctrlKey)
+    )
     const handleMouseDown = () => { pressScrollTop.current = scrollRef.current?.scrollTop ?? 0 }
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
         // A scrollbar drag inside the content area presses and releases on the button; that is a scroll, not a selection.
         if ((scrollRef.current?.scrollTop ?? 0) !== pressScrollTop.current) return
-        handleSelect(event.clientX, event.clientY)
+        handleSelect(event.clientX, event.clientY, event.ctrlKey)
     }
     const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
         if (event.key !== 'Enter' && event.key !== ' ') return
         event.preventDefault()
         const bounds = event.currentTarget.getBoundingClientRect()
-        handleSelect(bounds.left, bounds.bottom)
+        handleSelect(bounds.left, bounds.bottom, false)
+    }
+    const handleDoubleClick = (event: MouseEvent<HTMLButtonElement>) => {
+        if (!onOpenDetails) return
+
+        event.preventDefault()
+        event.stopPropagation()
+        onOpenDetails()
     }
 
     return (
         <ButtonBase
             aria-label={node.label}
             aria-disabled={interactive ? undefined : true}
+            aria-pressed={interactive ? selected : undefined}
+            data-diagram-connection-target={node.id}
             data-diagram-id={node.id}
+            data-diagram-kind="node"
             onClick={interactive ? handleClick : undefined}
+            onDoubleClick={onOpenDetails ? handleDoubleClick : undefined}
             onKeyDown={interactive ? handleKeyDown : undefined}
             onMouseDown={interactive ? handleMouseDown : undefined}
             role="button"
@@ -71,18 +94,43 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect }: Diagram
                 alignItems: 'stretch', border: '1px solid', color: 'text.primary', display: 'flex', flexDirection: 'column',
                 height: node.height, left: node.x, overflow: 'hidden', position: 'absolute', textAlign: 'left',
                 top: node.y, width: node.width, zIndex: 2,
-                ...diagramRoleStyle(node.role),
+                ...roleStyle,
                 ...kindStyles(node, flowPreset),
+                ...(selected ? { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 } : {}),
                 '&:focus-visible': { borderColor: 'primary.main', outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
             }}
             tabIndex={interactive ? undefined : -1}
         >
+            {decision ? (
+                <Box
+                    aria-hidden="true"
+                    component="svg"
+                    data-diagram-node-shape="decision"
+                    preserveAspectRatio="none"
+                    sx={{ height: '100%', left: 0, pointerEvents: 'none', position: 'absolute', top: 0, width: '100%' }}
+                    viewBox={`0 0 ${node.width} ${node.height}`}
+                >
+                    <Box component="polygon" points={decisionPoints(node)} sx={{ color: roleStyle.bgcolor, fill: 'currentColor' }} />
+                    <Box
+                        component="polygon"
+                        points={decisionPoints(node)}
+                        sx={{
+                            color: roleStyle.borderColor,
+                            fill: 'none',
+                            stroke: 'currentColor',
+                            strokeDasharray: 'borderStyle' in roleStyle && roleStyle.borderStyle === 'dashed' ? '4 4' : undefined,
+                            strokeWidth: 1,
+                            vectorEffect: 'non-scaling-stroke',
+                        }}
+                    />
+                </Box>
+            ) : null}
             {!stateMarker ? (
                 <Box
                     data-diagram-scroll="content"
                     ref={scrollRef}
                     sx={{
-                        display: 'flex', flex: 1, flexDirection: 'column',
+                        display: 'flex', flex: 1, flexDirection: 'column', position: 'relative',
                         // `safe center` centres content that fits and falls back to top alignment once it overflows,
                         // so the tag and label stay reachable instead of being clipped above the scroll origin.
                         justifyContent: 'safe center', minHeight: 0, overflowX: 'hidden', overflowY: 'auto',
@@ -95,12 +143,12 @@ export function DiagramNode({ diagramType, flowPreset, node, onSelect }: Diagram
                             <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="caption">{node.sublabel}</Typography>
                         ) : null}
                     </Box>
-                    {diagramType === 'entity' && node.fields ? (
+                    {diagramType === 'entity' && (entityFieldSource || node.fields) ? (
                         <Box sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', px: 2, py: 1 }}>
-                            {node.fields.map((field) => (
-                                <Typography key={`${field.key ?? 'field'}:${field.name}`} sx={{ fontFamily: 'monospace' }} variant="caption">
-                                    {fieldPrefix(field.key)}{field.name}{field.type ? `: ${field.type}` : ''}
-                                </Typography>
+                            {entityFieldSource ? (
+                                <EditableDiagramEntityFields {...entityFieldSource} />
+                            ) : node.fields?.map((field, fieldIndex) => (
+                                <DiagramEntityFieldRow field={field} key={fieldIndex} />
                             ))}
                         </Box>
                     ) : null}
