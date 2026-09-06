@@ -3,7 +3,7 @@ author:
 id: F_338
 internalId: 48eca8bf-b156-40bb-99cf-134b5d6fa640
 title: show questions after agent closed
-status: new
+status: design
 owner: 
 affects:
 agents:
