@@ -308,6 +308,19 @@ export interface AgentProviderSession {
     synchronizedThroughMessageId: string
 }
 
+export interface AgentQuestionOption {
+    description?: string
+    label: string
+}
+
+export interface AgentQuestion {
+    header: string
+    id: string
+    isSecret?: boolean
+    options?: AgentQuestionOption[] | null
+    question: string
+}
+
 export interface AgentConversationEvent {
     command?: string
     content: string
@@ -322,6 +335,8 @@ export interface AgentConversationEvent {
     paths?: string[]
     parentItemId?: string
     providerItemId?: string
+    /** Only on an `agentQuestion` entry: the questions the agent asked, restored after a restart. */
+    questions?: AgentQuestion[]
     runningSubThreads?: number
     sequence?: number
     status?: string

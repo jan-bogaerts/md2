@@ -1,4 +1,5 @@
 import type { ActionContext } from '../../../../data/action_context'
+import type { AgentQuestion } from '../../../../data/data_types'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { getElectronActionBridge } from '../../../../data/electron_action_bridge'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
@@ -13,6 +14,7 @@ import {
     defaultCancelAction,
     defaultCloseWaitingConversation,
     defaultConvertPromptToAction,
+    defaultDismissWaitingConversationQuestions,
     defaultFinishAction,
     defaultRestartAction,
     defaultRunAction,
@@ -213,6 +215,46 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
     }
 
     await runWithPrompt(input, prompt)
+}
+
+/**
+ * Keys each answer by the question text rather than by md2's synthetic question id, because the resumed
+ * agent has never seen those ids and only recognises the question it wrote itself.
+ */
+export function composeRestoredQuestionAnswers(
+    questions: AgentQuestion[],
+    answers: Record<string, string[]>,
+) {
+    return questions
+        .filter(({ id }) => answers[id]?.length)
+        .map(({ id, question }) => `${question}: ${answers[id].join(', ')}`)
+        .join('\n')
+}
+
+/**
+ * Answers a question restored from a stored conversation: the streaming request id died with the agent
+ * process, so the answers are resumed as an ordinary prompt on top of the stored conversation instead.
+ */
+export async function answerRestoredConversationQuestions(
+    input: ActionPopupOperationInput,
+    questions: AgentQuestion[],
+    answers: Record<string, string[]>,
+) {
+    const content = composeRestoredQuestionAnswers(questions, answers)
+    if (content.trim().length === 0) throw new Error('Missing agent question answers')
+
+    await runWithPrompt(input, content)
+}
+
+/** Dismisses a question restored from a stored conversation, without resuming the agent. */
+export async function dismissRestoredConversationQuestions(input: ActionPopupOperationInput) {
+    const { conversationStore } = input
+    const conversation = conversationStore.getSnapshot().selectedConversation
+    if (!conversation) throw new Error('No agent conversation is selected')
+
+    const updatedConversation = await defaultDismissWaitingConversationQuestions(conversation.path)
+    conversationStore.updateConversation(updatedConversation)
+    dataService.agents.updateAgentConversation(updatedConversation)
 }
 
 export async function convertPromptToAction(input: ActionPopupOperationInput) {

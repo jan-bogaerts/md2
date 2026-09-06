@@ -86,6 +86,7 @@ const ACTION_METHODS = [
     'closeWaitingActionConversation',
     'deleteActionQueuedPrompt',
     'dismissActionQuestions',
+    'dismissWaitingActionConversationQuestions',
     'editActionQueuedPrompt',
     'enqueueActionPrompt',
     'finishActionRun',

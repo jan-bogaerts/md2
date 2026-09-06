@@ -129,6 +129,15 @@ export function defaultCloseWaitingConversation(reference: string, status: 'canc
     return bridge.closeWaitingActionConversation(reference, status)
 }
 
+export function defaultDismissWaitingConversationQuestions(reference: string) {
+    const bridge = getElectronActionBridge()
+    if (!bridge?.dismissWaitingActionConversationQuestions) {
+        throw new Error('Dismissing stored conversation questions requires Electron')
+    }
+
+    return bridge.dismissWaitingActionConversationQuestions(reference)
+}
+
 export function defaultSendMessage(runId: string, content: string) {
     return sendActionMessage(runId, content)
 }

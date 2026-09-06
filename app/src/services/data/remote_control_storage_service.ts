@@ -603,6 +603,10 @@ export class RemoteControlStorageService implements
         return this.request<AgentConversation>('closeWaitingActionConversation', [reference, status])
     }
 
+    async dismissWaitingActionConversationQuestions(reference: string): Promise<AgentConversation> {
+        return this.request<AgentConversation>('dismissWaitingActionConversationQuestions', [reference])
+    }
+
     async updateActionConversationViewed(reference: string, viewed: boolean): Promise<AgentConversation> {
         return this.request<AgentConversation>('updateActionConversationViewed', [reference, viewed])
     }

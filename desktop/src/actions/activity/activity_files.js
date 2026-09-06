@@ -341,6 +341,57 @@ async function closeWaitingActivityConversation(project, reference, status) {
     });
 }
 
+/**
+ * Marks the questions of a conversation the user reopened after the agent stopped as dismissed, by appending the
+ * same `questionsDismissed` entry a live dismissal writes, so the restored question box stays gone across restarts.
+ */
+async function dismissWaitingActivityConversationQuestions(project, reference) {
+    if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
+
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { activityPath, conversationId } = parseConversationActivityReference(reference);
+    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
+
+    return queueActivityUpdate(absolutePath, async () => {
+        const stored = await readStoredActivity(absolutePath);
+        const activity = activityValue(stored);
+        const conversation = findActivityConversation(activity, conversationId);
+        if (conversation.status !== 'waitingForInput') {
+            throw new Error(`Agent conversation is no longer waiting for input: ${reference}`);
+        }
+        const lastEntry = conversation.entries.at(-1);
+        if (!lastEntry || lastEntry.kind !== 'event' || lastEntry.type !== 'agentQuestion') {
+            throw new Error(`Agent conversation has no pending question: ${reference}`);
+        }
+
+        const timestamp = new Date().toISOString();
+        const sequence = Number.isSafeInteger(lastEntry.sequence) ? lastEntry.sequence + 1 : undefined;
+        const dismissal = {
+            content: '',
+            id: `${conversationId}-questions-dismissed-${conversation.entries.length}`,
+            kind: 'event',
+            label: 'Questions dismissed',
+            ...(sequence === undefined ? {} : { sequence }),
+            status: 'completed',
+            timestamp,
+            type: 'questionsDismissed',
+        };
+        const updatedActivity = {
+            ...activity,
+            conversations: activity.conversations.map((storedConversation) => (
+                storedConversation.id === conversationId
+                    ? { ...storedConversation, entries: [...storedConversation.entries, dismissal] }
+                    : storedConversation
+            )),
+        };
+        await writeActivityFile(absolutePath, updatedActivity);
+        const updatedConversation = findActivityConversation(parseActivityValue(updatedActivity), conversationId);
+
+        return { ...updatedConversation, path: reference };
+    });
+}
+
 async function listAgentConversationReferences(project, projectFolder) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -414,6 +465,7 @@ module.exports = {
     appendAndCommitSystemActivity,
     appendActionActivity,
     closeWaitingActivityConversation,
+    dismissWaitingActivityConversationQuestions,
     compactActivityFiles,
     ensureActivityFile,
     listAgentConversationReferences,

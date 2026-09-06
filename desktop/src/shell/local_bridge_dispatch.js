@@ -469,6 +469,9 @@ function createLocalBridgeDispatch(dependencies) {
         closeWaitingActionConversation: (reference, status) => (
             localGitService.closeWaitingActivityConversation(currentLocalProject, reference, status)
         ),
+        dismissWaitingActionConversationQuestions: (reference) => (
+            localGitService.dismissWaitingActivityConversationQuestions(currentLocalProject, reference)
+        ),
         updateActionConversationViewed: (reference, viewed) => (
             localGitService.updateActivityConversationViewed(currentLocalProject, reference, viewed)
         ),
