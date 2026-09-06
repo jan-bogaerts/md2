@@ -740,7 +740,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "fa429997-fee2-4e1d-a21f-3ea586ab12ae",
       "cardPath": "design/feature_descriptions/B_224_size_of_question_box_and_input_box.md",
-      "completedAt": null,
+      "completedAt": "2026-09-06T15:10:20.600Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 48441
@@ -1010,17 +1010,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 21,
-          "timestamp": "2026-09-06T15:09:14.613Z"
+          "timestamp": "2026-09-06T15:10:20.600Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-0118fb7e-d796-4f10-bd8c-bdc69ee563ef",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a07742-e49e-79c3-96bb-9363eb937cd8",
+          "createdAt": "2026-09-06T15:09:14.613Z",
+          "lastUsedAt": "2026-09-06T15:09:14.613Z",
+          "synchronizedThroughMessageId": "agent-turn-91b093ce-a7de-4223-8913-61fb098fc6a3-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-06T15:07:46.946Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-06T15:07:46.946Z"
+        "elapsedMs": 87667,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
