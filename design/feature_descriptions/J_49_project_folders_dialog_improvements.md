@@ -9,4 +9,6 @@ affects:
 agents:
 policy:
 ---
-![Screenshot 2026-09-08 170205.jpg](file:///C:/Users/janbo/Pictures/temp/Screenshot%202026-09-08%20170205.jpg)
+We need to improve the style of the dialog
+
+See image:
