@@ -25,7 +25,7 @@ we need to refactor the zoom feature:
 ## implementation details
 
 * Replace Zoom In and Zoom Out toolbox buttons with one reusable horizontal MUI slider floating above the lower-left corner of each diagram viewport. Keep it outside scrolling content so scrolling or scaling does not move the control. Give it a theme-based floating surface, an accessible name identifying Current or New, and percentage value text.
-* Keep existing 50% minimum, 200% maximum, 100% default, and 25-percentage-point step. Slider input sets scale directly; keyboard input uses normal slider keys and the same bounds and step.
+* Use 10% minimum, 250% maximum, 100% default, and existing 25-percentage-point steps. Treat 10% as an explicit endpoint below 25%. Slider input sets scale directly; keyboard input uses the same values.
 * Keep Current and New scale as separate service-owned primitives. `DiagramViewService` owns Current scale and publishes a granular scale event; `DiagramEditSessionService` continues to own New scale. Slider and matching viewport subscribe with `useSyncExternalStore`; diagram, comparison, and toolbox roots do not subscribe to scale.
 * Reset Current to 100% when active saved diagram changes. Reset New to 100% when an edit session starts or ends, as today. Preserve both values when comparison layout or active comparison tab changes.
 * Apply same zoomed-surface and center-preserving scroll calculation to Current and New. Scaling remains visual only: positioned data, editable model data, selection, and change set remain unchanged. New pointer coordinate conversion continues using New scale only.
@@ -37,7 +37,7 @@ we need to refactor the zoom feature:
 * Every visible Current or New diagram has one horizontal zoom slider floating in its lower-left corner; no Zoom In or Zoom Out toolbox buttons remain.
 * Current can zoom in normal read-only mode and in every comparison layout.
 * When Current and New are both shown, changing one slider changes only its own viewport. Each scale remains unchanged when user switches comparison layout or tab.
-* Each slider ranges from 50% through 200%, starts at 100%, moves in 25-percentage-point steps, supports keyboard operation, and exposes diagram identity plus current percentage to assistive technology.
+* Each slider ranges from 10% through 250%, starts at 100%, moves in 25-percentage-point steps except for the 10% endpoint, supports keyboard operation, and exposes diagram identity plus current percentage to assistive technology.
 * Navigating to another saved diagram resets Current to 100%. Starting or ending an edit session resets New to 100%.
 * Zoom keeps visible viewport center stable where available and never changes diagram coordinates, editable data, selection, dirty state, or change set.
 * Selection and Current item activation remain usable at every scale. New selection, placement, edge and group drawing, moving, and resizing remain accurate at every scale.
