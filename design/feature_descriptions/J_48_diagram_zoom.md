@@ -36,6 +36,7 @@ changedFiles:
   - app/src/services/diagrams/diagram_view_service.test.ts
   - app/src/services/diagrams/diagram_view_service.ts
   - app/src/services/diagrams/diagram_zoom.ts
+after: 78a34547-ca4b-47ac-97cf-78b33da210e9
 ---
 
 we already have a diagram zoom for the editable part of the diagram. we don't yet allow zooming for the non-editable (current-state) version of the diagram. this is annoying. also, the zoom in\&out buttons are not convenient.

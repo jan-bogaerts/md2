@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__ad96a8b4-de34-44c9-9761-c2834fd8710a.json
 policy:
+after: 30a808a9-ebec-4f4e-835b-dfb089c714ef
 ---
 
 here are the logs we got from claude usage polling:

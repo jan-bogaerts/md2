@@ -15,6 +15,7 @@ changedFiles:
   - app/src/components/shell/project/new_card_dialog_back_dismiss.grouped.test.tsx
   - app/src/services/mobile_back_dismiss_service.node.test.ts
   - app/src/services/mobile_back_dismiss_service.ts
+after: cd3e256b-4d1e-433f-97b9-a662110f1596
 ---
 
 When the app is on a small screen and running in a browser, so not in electron. And a popup is open, which will be full screen in this situation, then the browser´s back button should close the popup.
