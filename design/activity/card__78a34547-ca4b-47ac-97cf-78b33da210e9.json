@@ -646,7 +646,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 74070
+        "usedTokens": 80906
       },
       "entries": [
         {
@@ -1482,25 +1482,218 @@
           "role": "assistant",
           "sequence": 65,
           "timestamp": "2026-09-08T11:36:29.951Z"
+        },
+        {
+          "content": "why do we have this restriction in the first place? i did not put it there. lets first find out of the exclusion has a purpose",
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-user-65",
+          "kind": "message",
+          "role": "user",
+          "sequence": 66,
+          "timestamp": "2026-09-08T11:40:31.756Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-67",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CequhX6kELRoxtnYP1xWe:thinking:0",
+          "sequence": 67,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T11:40:38.741Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Digging further into whether that exclusion is load-bearing.",
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-09-08T11:40:38.743Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && git show ecb2f137 --stat | tail -40 && echo \"=== files changed count ===\" && git show ecb2f137 --stat | tail -1",
+          "content": " ....tsx => card_properties_panel.grouped.test.tsx} |    0\n ...sx => card_properties_popover.grouped.test.tsx} |    0\n ...ew.test.tsx => file_tree_view.grouped.test.tsx} |    0\n ...xt_view.test.tsx => text_view.grouped.test.tsx} |    0\n .../text_view/text_view_no_mock.test.tsx           |    4 +\n ...est.ts => electron_file_bridge.service.test.ts} |    0\n ...ion.test.ts => project_session.service.test.ts} |    0\n ...s => recent_local_repositories.service.test.ts} |    0\n ...s => remote_control_connection.service.test.ts} |    0\n ...s => action_entry_point_parity.service.test.ts} |    0\n ... => agent_capabilities_service.service.test.ts} |    0\n ...s => claude_rate_limit_service.service.test.ts} |    0\n ...ts => codex_cli_update_service.service.test.ts} |    0\n ...ts => codex_rate_limit_service.service.test.ts} |    0\n ...s => attachment_choice_service.service.test.ts} |    0\n ...test.ts => attachment_workflow.service.test.ts} |    0\n ...> new_card_attachment_workflow.service.test.ts} |    0\n ...urrency.test.ts => concurrency.service.test.ts} |    0\n ....test.ts => config_persistence.service.test.ts} |    0\n ...vice.test.ts => config_service.service.test.ts} |    0\n ...ervice.test.ts => data_service.service.test.ts} |    0\n ...s => remote_connection_service.service.test.ts} |    0\n ... github_project_config_storage.service.test.ts} |    0\n ...t.ts => github_storage_loading.service.test.ts} |    0\n ...github_storage_pending_commits.service.test.ts} |    0\n ...ts => github_storage_read_only.service.test.ts} |    0\n ...ithub_storage_write_operations.service.test.ts} |    0\n ... expected_persistence_outcomes.service.test.ts} |    0\n ...> expected_persistence_storage.service.test.ts} |    0\n ...ts => project_read_only_guards.service.test.ts} |    0\n ....ts => project_session_service.service.test.ts} |    0\n ....test.ts => release_operations.service.test.ts} |    1 +\n ...test.ts => application_storage.service.test.ts} |    0\n ...e.test.ts => telemetry_service.service.test.ts} |    0\n app/src/test/memory_storage.ts                     |   27 +\n app/src/test/node_setup.ts                         |    2 +-\n app/src/test/service_setup.ts                      |    9 +\n app/src/test/test_window.ts                        |   24 +\n app/vite.config.ts                                 |   24 +-\n 123 files changed, 178 insertions(+), 1224 deletions(-)\n=== files changed count ===\n 123 files changed, 178 insertions(+), 1224 deletions(-)",
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-69",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && git show ecb2f137 --stat | tail -40 && echo \"=== files changed count ===\" && git show ecb2f137 --stat | tail -1",
+          "providerItemId": "toolu_01JSuFmxfDooQqvD4pp776Qr",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-09-08T11:40:40.340Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && git log --format=\"%h %ad %s\" --date=short -8 ecb2f137 | cat",
+          "content": "ecb2f137 2026-08-31 Integrate into project\ne057e0cc 2026-08-31 Record merge activity\n388f2f4e 2026-08-31 Update project activity\nd00ee3b1 2026-08-31 release\n95823f13 2026-08-31 Update project activity\n7199218a 2026-08-31 Save project changes before worktree synchronization\n50bea128 2026-08-31 Update 7 files\n30ea5592 2026-08-31 Record + activity",
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-70",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && git log --format=\"%h %ad %s\" --date=short -8 ecb2f137 | cat",
+          "providerItemId": "toolu_016MNwGJjTg2jm3NNT9tU9rh",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-09-08T11:40:41.056Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-71",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CequiC91LLMHmjgQxnHcV:thinking:0",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T11:40:45.634Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/actions/actions_no_mock.test.tsx && echo \"=== text_view_no_mock ===\" && cat app/src/components/text_view/text_view_no_mock.test.tsx && echo \"=== all no_mock files ===\" && find app/src -name \"*_no_mock.test.tsx\" | head",
+          "content": "import './agent/action_agent_approval.grouped.test'\nimport './agent/action_agent_capability_fields.grouped.test'\nimport './agent/action_agent_question.grouped.test'\nimport './conversation/action_conversation_chat.grouped.test'\nimport './conversation/action_conversation_chat_integration.grouped.test'\nimport './conversation/action_conversation_picker.grouped.test'\nimport './conversation/action_list_error.grouped.test'\nimport './conversation/action_log_error_display.grouped.test'\nimport './conversation/conversation_timer.grouped.test'\nimport './conversation/diff_view.grouped.test'\nimport './conversation/reasoning_event.grouped.test'\nimport './editor/action_definition_fields.grouped.test'\nimport './editor/action_editor.grouped.test'\nimport './editor/action_editor_field.grouped.test'\nimport './editor/action_filter_editor.grouped.test'\nimport './run/popup/action_popup_bottom_row.grouped.test'\nimport './run/popup/action_usage_summary.grouped.test'\nimport './run/popup/action_usage_summary_owner.grouped.test'\nimport './run/schedule/action_schedule_form.grouped.test'\nimport './run/state/action_run_status.grouped.test'\nimport './run/trigger/action_entry_points.grouped.test'\nimport './run/trigger/action_icon.grouped.test'\n=== text_view_no_mock ===\nimport './card_properties_panel.grouped.test'\nimport './card_properties_popover.grouped.test'\nimport './file_tree_view.grouped.test'\nimport './text_view.grouped.test'\n=== all no_mock files ===\napp/src/components/actions/actions_no_mock.test.tsx\napp/src/components/card_view/card_view_no_mock.test.tsx\napp/src/components/config/config_no_mock.test.tsx\napp/src/components/editor/editor_no_mock.test.tsx\napp/src/components/shell/menu/menu_components_no_mock.test.tsx\napp/src/components/shell/project/new_card_no_mock.test.tsx\napp/src/components/shell/shell_connections_no_mock.test.tsx\napp/src/components/shell/shell_controls_no_mock.test.tsx\napp/src/components/text_view/text_view_no_mock.test.tsx",
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-72",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/actions/actions_no_mock.test.tsx && echo \"=== text_view_no_mock ===\" && cat app/src/components/text_view/text_view_no_mock.test.tsx && echo \"=== all no_mock files ===\" && find app/src -name \"*_no_mock.test.tsx\" | head",
+          "providerItemId": "toolu_01J87tPeDBS5tmdqBhL63DzD",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-09-08T11:40:47.068Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-73",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CequieTJBAwDrLfdVvaUn:thinking:0",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T11:40:52.849Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/project/new_card_no_mock.test.tsx && echo \"=== card_view_no_mock ===\" && cat app/src/components/card_view/card_view_no_mock.test.tsx",
+          "content": "import './new_card_dialog_attachment.grouped.test'\nimport './new_card_markdown_editor.grouped.test'\n=== card_view_no_mock ===\nimport './affects_editor_dialog.grouped.test'\nimport './card_body_editor.grouped.test'\nimport './card_commit_menu.grouped.test'\nimport './card_drag_overlay.grouped.test'\nimport './card_path_menu_items.grouped.test'\nimport './card_worktree_indicator.grouped.test'\nimport './mobile_card_view.grouped.test'\nimport './mobile_card_view_menu.grouped.test'",
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-74",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/project/new_card_no_mock.test.tsx && echo \"=== card_view_no_mock ===\" && cat app/src/components/card_view/card_view_no_mock.test.tsx",
+          "providerItemId": "toolu_01VLxHJRn3QUnvdgGcKAAkcf",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-09-08T11:40:54.501Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"vi.mock\" app/src/components/shell/project/*.grouped.test.tsx 2>/dev/null | head; echo \"=== grouped in project dir ===\"; ls app/src/components/shell/project/ | grep -E \"grouped|no_mock\"",
+          "content": "=== grouped in project dir ===\nnew_card_dialog_attachment.grouped.test.tsx\nnew_card_markdown_editor.grouped.test.tsx\nnew_card_no_mock.test.tsx",
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-75",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"vi.mock\" app/src/components/shell/project/*.grouped.test.tsx 2>/dev/null | head; echo \"=== grouped in project dir ===\"; ls app/src/components/shell/project/ | grep -E \"grouped|no_mock\"",
+          "providerItemId": "toolu_01QDj7GmsxP6YK8bvoLrhZiQ",
+          "sequence": 75,
+          "status": "completed",
+          "timestamp": "2026-09-08T11:40:56.119Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-76",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CequjKNc5RryeEhiJFnx3:thinking:0",
+          "sequence": 76,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T11:40:59.408Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && echo \"grouped files with vi.mock:\" && grep -rln \"vi\\.mock\" app/src --include=*.grouped.test.tsx | wc -l && echo \"total grouped:\" && find app/src -name \"*.grouped.test.tsx\" | wc -l && echo \"grouped files NOT imported by an aggregator:\" && for f in $(find app/src -name \"*.grouped.test.tsx\"); do b=$(basename \"$f\" .tsx); grep -rq \"$b'\" app/src --include=*_no_mock.test.tsx || echo \"$f\"; done",
+          "content": "grouped files with vi.mock:\n2\ntotal grouped:\n73\ngrouped files NOT imported by an aggregator:",
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-77",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && echo \"grouped files with vi.mock:\" && grep -rln \"vi\\.mock\" app/src --include=*.grouped.test.tsx | wc -l && echo \"total grouped:\" && find app/src -name \"*.grouped.test.tsx\" | wc -l && echo \"grouped files NOT imported by an aggregator:\" && for f in $(find app/src -name \"*.grouped.test.tsx\"); do b=$(basename \"$f\" .tsx); grep -rq \"$b'\" app/src --include=*_no_mock.test.tsx || echo \"$f\"; done",
+          "providerItemId": "toolu_01YcNCc2K9dRZjSz4K1LwbXJ",
+          "sequence": 77,
+          "status": "completed",
+          "timestamp": "2026-09-08T11:41:06.178Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npm run test -- src/components/shell/project/new_card_no_mock.test.tsx 2>&1 | tail -10",
+          "content": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/app\n\n\n Test Files  1 passed (1)\n      Tests  2 passed (2)\n   Start at  13:41:11\n   Duration  4.59s (transform 764ms, setup 95ms, import 2.00s, tests 1.58s, environment 797ms)",
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-78",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npm run test -- src/components/shell/project/new_card_no_mock.test.tsx 2>&1 | tail -10",
+          "providerItemId": "toolu_016ErSH9zWkvuRULcCG3eDar",
+          "sequence": 78,
+          "status": "completed",
+          "timestamp": "2026-09-08T11:41:16.339Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-event-79",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cequknz4MmznvBsPKed9K:thinking:0",
+          "sequence": 79,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T11:41:23.076Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\n## Answer: the exclusion is load-bearing, and grouped tests do run\n\nI was wrong in my previous message — correcting that. Grouped tests are not orphaned.\n\nThe mechanism: alongside each set of `*.grouped.test.tsx` files sits an aggregator named `*_no_mock.test.tsx` that does nothing but import them:\n\n```\napp/src/components/shell/project/new_card_no_mock.test.tsx\n    import './new_card_dialog_attachment.grouped.test'\n    import './new_card_markdown_editor.grouped.test'\n```\n\nThere are 9 such aggregators, and every one of the 73 grouped files is imported by exactly one of them — I checked all 73, none is orphaned. The aggregator is a plain `.test.tsx`, so the `ui` project collects it and runs its imported suites. The `exclude` line at `app/vite.config.ts:156` exists precisely so vitest does not *also* collect each grouped file standalone, which would run every one of those suites twice.\n\nPurpose of the grouping, from the naming and the contents: a `_no_mock` file batches many component suites into one jsdom module registry, so they pay the module-graph and environment cost once instead of 73 times. That only works if the batched suites don't call `vi.mock`, since a module mock in one would leak into its file-mates — and indeed only 2 of the 73 use `vi.mock` at all. Same commit `ecb2f137` flipped `fileParallelism` to `true` and `TEST_WORKERS` from 1 to 2, so this was a test-speed refactor.\n\nVerified live: `npm run test -- src/components/shell/project/new_card_no_mock.test.tsx` passes, running both grouped suites it imports. My earlier temp-config failures were my config's fault, not the tests'.\n\nSo the spec's instruction is right as written, and the question I asked you is moot. Block 3 gets a real `.grouped.test.tsx`, registered in the existing aggregator, and written without `vi.mock`.\n\n## Change plan — 4 blocks\n\n**Block 1 — back-dismiss service**\nNew `app/src/services/mobile_back_dismiss_service.ts`: class `MobileBackDismissService` plus singleton `mobileBackDismissService` via `register()`. Ordered array of `{ id, onDismiss }`; the single `popstate` listener attaches lazily on the first `register()` so the constructor never touches `window` (node tests stub `window` as `{}`).\n- `register(id, onDismiss)` calls `history.pushState({ md2BackDismiss: id }, '')` with no URL argument, then appends the record.\n- The `popstate` handler returns early after decrementing the self-inflicted counter when that counter is above zero; returns when the array is empty; otherwise calls the top `onDismiss()` and synchronously pushes a replacement entry, keeping the registration.\n- `unregister(id)` removes the record and increments a queued-unwind counter that a microtask flushes once as `history.go(-count)`, raising the self-inflicted counter by one per `go()` call, because one `go(-n)` produces one `popstate`, not n.\n\nTest `mobile_back_dismiss_service.node.test.ts` with a fake window (EventTarget plus history stub): push on register, top dismissal with replacement push, ignored `popstate` when nothing is registered, several unregistrations batched into one `history.go`, and no dismissal on a self-inflicted unwind.\n\n**Block 2 — card popup wiring**\nNew `app/src/components/hooks/use_card_popup_back_dismiss.ts`: subscribes through `subscribeCardPopups`, computes `active = isMobile && !isElectron()`, keeps the registration count equal to `entries.length` when active and zero otherwise, unregisters all on unmount. Dismiss callback reads the live snapshot and calls `cardPopupService.close(entries.at(-1).id)`. Called once from `app/src/components/project_workspace.tsx`, the single owner of both `CardActionPopupHost` and, through `CardView`/`MobileCardView`, `CardBodyPopover`.\nTest `use_card_popup_back_dismiss.test.tsx` (plain, so it may mock `isElectron`): two stacked popups need two back presses; desktop width or Electron registers nothing.\n\n**Block 3 — new-card dialog**\n`new_card_dialog.tsx` gains an effect registering while `open && isMobile && !isElectron()`, its dismiss callback delegating to `handleDialogClose` through a ref so the effect does not re-run each render; unregisters on close and unmount.\nTest `new_card_dialog_back_dismiss.grouped.test.tsx`, no `vi.mock`, added as an import to `new_card_no_mock.test.tsx`: back with a clean draft closes the dialog; back with a dirty draft shows the discard confirmation and the dialog stays open. Electron detection there is steered by assigning `window.md2Lifecycle` rather than mocking the module, which keeps the file mock-free.\n\n**Block 4 — status**\nSet `status: ready` in `design/feature_descriptions/F_337_handle_back_button_when_on_mobile.md`.\n\nRenderer only: no Electron main process, preload, WebSocket, persistence or Git changes. I'll run the three new test files plus the `new_card_no_mock` aggregator, and `npm run typecheck`.\n\nApprove?",
+          "id": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 80,
+          "timestamp": "2026-09-08T11:41:44.069Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-6551ad8a-897d-4964-b7f3-60ed5fbba1f0",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "460b500a-2663-4241-b10e-6c13459432d7",
+          "createdAt": "2026-09-08T11:36:29.951Z",
+          "lastUsedAt": "2026-09-08T11:36:29.951Z",
+          "synchronizedThroughMessageId": "agent-turn-e741a152-b8a1-4987-9ec1-d9f8759e46ee-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-09-08T11:25:45.296Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 145687,
-        "runningStartedAt": "2026-09-08T11:35:03.659Z"
+        "elapsedMs": 231979,
+        "runningStartedAt": "2026-09-08T11:40:31.756Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 1661095,
-        "inputTokens": 60,
-        "outputTokens": 12799,
+        "cachedInputTokens": 2135667,
+        "inputTokens": 72,
+        "outputTokens": 17154,
         "reasoningTokens": 0,
-        "totalTokens": 1673954,
-        "costUsd": 1.688361
+        "totalTokens": 2152893,
+        "costUsd": 3.787885
       },
       "usageSchemaVersion": 1,
       "viewed": true
