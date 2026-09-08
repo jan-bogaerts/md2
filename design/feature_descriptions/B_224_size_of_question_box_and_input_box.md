@@ -17,7 +17,7 @@ changedFiles:
   - app/src/components/actions/run/popup/action_agent_interaction.tsx
   - app/src/components/actions/run/popup/command_action.tsx
   - app/vite.grouped.config.ts
-after: ad96a8b4-de34-44c9-9761-c2834fd8710a
+after: 266d68d4-69a9-4863-a0b7-bd1b9e5eed75
 ---
 
 the way that the size of the question box and the input box is managed currently on the action popup, is a bit broken. Currently, as soon as you touch the resize bar (above the input box), the question box goes to minimum size and wont recover anymore. this is a problem.
