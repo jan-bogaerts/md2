@@ -34,7 +34,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "ad96a8b4-de34-44c9-9761-c2834fd8710a",
       "cardPath": "design/feature_descriptions/B_225_polling_claude_not_working_correctly.md",
-      "completedAt": null,
+      "completedAt": "2026-09-08T08:59:39.352Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 119155
@@ -1503,7 +1503,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 117,
-          "timestamp": "2026-09-08T08:51:11.996Z"
+          "timestamp": "2026-09-08T08:59:39.352Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1513,12 +1513,12 @@
           "agent": "claude",
           "conversationId": "a6fe4a67-41da-458e-9006-d586d3a9825d",
           "createdAt": "2026-09-08T08:36:19.771Z",
-          "lastUsedAt": "2026-09-08T08:49:09.566Z",
-          "synchronizedThroughMessageId": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-turn-2-assistant-10"
+          "lastUsedAt": "2026-09-08T08:59:39.352Z",
+          "synchronizedThroughMessageId": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-09-08T08:33:58.589Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "elapsedMs": 765842,
         "runningStartedAt": null
@@ -1533,7 +1533,7 @@
         "costUsd": 10.383274500000002
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
