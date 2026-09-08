@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 78a34547-ca4b-47ac-97cf-78b33da210e9
 ---
 
 we currently keep track how long a conversation runs. we should improve this measurement and include how much time was spend running tools and then the rest. this way, we can see how much time was actually used by the agent itself.
