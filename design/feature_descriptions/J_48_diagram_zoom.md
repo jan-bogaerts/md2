@@ -3,12 +3,39 @@ author:
 id: J_48
 internalId: 3e78e609-b7b9-496d-bc72-0826743d5d65
 title: diagram zoom
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__3e78e609-b7b9-496d-bc72-0826743d5d65.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.test.tsx
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_current_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_current_viewport.tsx
+  - app/src/components/diagram_view/diagram_editor_rendering.test.tsx
+  - app/src/components/diagram_view/diagram_new_pane.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/components/diagram_view/diagram_zoom_in_button.tsx
+  - app/src/components/diagram_view/diagram_zoom_out_button.tsx
+  - app/src/components/diagram_view/diagram_zoom_slider.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_slider.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.test.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.tsx
+  - app/src/components/diagram_view/use_preserve_diagram_zoom_center.ts
+  - app/src/components/diagram_view/vertical_diagram_comparison.test.tsx
+  - app/src/components/diagram_view/vertical_diagram_comparison.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
+  - app/src/services/diagrams/diagram_zoom.ts
 ---
 
 we already have a diagram zoom for the editable part of the diagram. we don't yet allow zooming for the non-editable (current-state) version of the diagram. this is annoying. also, the zoom in\&out buttons are not convenient.
