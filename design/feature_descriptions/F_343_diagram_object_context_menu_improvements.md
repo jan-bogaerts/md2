@@ -3,12 +3,17 @@ author:
 id: F_343
 internalId: aad6e895-0481-4a5f-b6b3-e4c6d1ac655e
 title: diagram object context menu improvements
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__aad6e895-0481-4a5f-b6b3-e4c6d1ac655e.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_item_menu.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
 ---
 
 on diagram view, the context menu of the objects currently has 2 static titles 'actions' and 'saved diagrams' with below them, each respectable list of items. The static titles should become sub menus. Actions would have as menu items: the list of actions that can be executed, saved diagrams the list of already existing diagrams.
