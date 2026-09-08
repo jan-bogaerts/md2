@@ -1,0 +1,575 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "5fdacfce-a360-41f7-a964-343f37edd94e",
+      "cardPath": "design/feature_descriptions/F_340_diagram_drag_surface.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 78845
+      },
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_340_diagram_drag_surface.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-08T13:40:43.192Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the feature description first.",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-09-08T13:40:46.209Z"
+        },
+        {
+          "command": "cat \"design/feature_descriptions/F_340_diagram_drag_surface.md\"",
+          "content": "---\nauthor: \nid: F_340\ninternalId: 5fdacfce-a360-41f7-a964-343f37edd94e\ntitle: diagram drag surface\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__5fdacfce-a360-41f7-a964-343f37edd94e.json\npolicy:\n---\nuser should be able to drag the diagram surface around both in editable and non-editable diagrams. this should move the scroll position.",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-3",
+          "kind": "event",
+          "label": "cat \"design/feature_descriptions/F_340_diagram_drag_surface.md\"",
+          "providerItemId": "toolu_01YYEGrQr73tLjJrpnm86woP",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:40:47.520Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer4sSDdjAuPtYrM7afJc:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:40:49.894Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "ls app/src/components/diagram_view/ && echo \"---B227---\" && cat design/feature_descriptions/B_227_fix_legend_dragging.md",
+          "content": "architecture_diagram.tsx\ndependency_diagram.tsx\ndiagram.tsx\ndiagram_architecture_edge_button.test.tsx\ndiagram_architecture_edge_button.tsx\ndiagram_change_action_popup.tsx\ndiagram_change_review_actions.tsx\ndiagram_change_review_button.tsx\ndiagram_change_review_dialog.test.tsx\ndiagram_change_review_dialog.tsx\ndiagram_change_review_list.tsx\ndiagram_change_review_report.tsx\ndiagram_change_review_row.tsx\ndiagram_change_review_service.test.ts\ndiagram_change_review_service.ts\ndiagram_comparison.test.tsx\ndiagram_comparison.tsx\ndiagram_comparison_layout.test.tsx\ndiagram_comparison_layout.tsx\ndiagram_comparison_layout_service.test.ts\ndiagram_comparison_layout_service.ts\ndiagram_component_node_button.test.tsx\ndiagram_component_node_button.tsx\ndiagram_coordinate_conversion.test.ts\ndiagram_coordinate_conversion.ts\ndiagram_copy_button.test.tsx\ndiagram_copy_button.tsx\ndiagram_current_viewport.test.tsx\ndiagram_current_viewport.tsx\ndiagram_cut_button.test.tsx\ndiagram_cut_button.tsx\ndiagram_decision_node_button.test.tsx\ndiagram_decision_node_button.tsx\ndiagram_delete_button.test.tsx\ndiagram_delete_button.tsx\ndiagram_dependency_edge_button.test.tsx\ndiagram_dependency_edge_button.tsx\ndiagram_edge.tsx\ndiagram_edge_details_editor.tsx\ndiagram_edge_drawing_preview.tsx\ndiagram_edge_style.node.test.ts\ndiagram_edge_style.ts\ndiagram_editor_integration.test.tsx\ndiagram_editor_rendering.test.tsx\ndiagram_end_node_button.test.tsx\ndiagram_end_node_button.tsx\ndiagram_entity_field.tsx\ndiagram_entity_node_button.test.tsx\ndiagram_entity_node_button.tsx\ndiagram_entity_relationship_button.test.tsx\ndiagram_entity_relationship_button.tsx\ndiagram_flow_edge_button.test.tsx\ndiagram_flow_edge_button.tsx\ndiagram_fragment_button.test.tsx\ndiagram_fragment_button.tsx\ndiagram_fragment_dialog.test.tsx\ndiagram_fragment_dialog.tsx\ndiagram_fragment_dialog_service.test.ts\ndiagram_fragment_dialog_service.ts\ndiagram_fragment_form.tsx\ndiagram_fragment_region_editor.tsx\ndiagram_group.tsx\ndiagram_group_button.test.tsx\ndiagram_group_button.tsx\ndiagram_group_details_editor.tsx\ndiagram_group_drawing_preview.tsx\ndiagram_group_label_dialog.test.tsx\ndiagram_group_label_dialog.tsx\ndiagram_group_label_form.tsx\ndiagram_group_membership_editor.test.tsx\ndiagram_group_membership_editor.tsx\ndiagram_legend.test.tsx\ndiagram_legend.tsx\ndiagram_legend_button.tsx\ndiagram_legend_connection_sample.tsx\ndiagram_legend_details_editor.test.tsx\ndiagram_legend_details_editor.tsx\ndiagram_legend_entries.node.test.ts\ndiagram_legend_entries.ts\ndiagram_legend_entry_editor.tsx\ndiagram_legend_entry_list.tsx\ndiagram_legend_position.ts\ndiagram_metadata_button.test.tsx\ndiagram_metadata_button.tsx\ndiagram_metadata_details_editor.tsx\ndiagram_new_pane.tsx\ndiagram_node.test.tsx\ndiagram_node.tsx\ndiagram_node_details_editor.tsx\ndiagram_node_placement_preview.tsx\ndiagram_object_details_dialog.test.tsx\ndiagram_object_details_dialog.tsx\ndiagram_object_details_service.test.ts\ndiagram_object_details_service.ts\ndiagram_participant_button.test.tsx\ndiagram_participant_button.tsx\ndiagram_paste_button.test.tsx\ndiagram_paste_button.tsx\ndiagram_path.node.test.ts\ndiagram_path.ts\ndiagram_renderer.test.tsx\ndiagram_renderer.tsx\ndiagram_resize_handles.tsx\ndiagram_role_style.ts\ndiagram_selection.ts\ndiagram_selection_rectangle.tsx\ndiagram_sequence_edge_button.test.tsx\ndiagram_sequence_edge_button.tsx\ndiagram_session_legend_entries.test.tsx\ndiagram_session_legend_entries.tsx\ndiagram_start_node_button.test.tsx\ndiagram_start_node_button.tsx\ndiagram_state_node_button.test.tsx\ndiagram_state_node_button.tsx\ndiagram_step_node_button.test.tsx\ndiagram_step_node_button.tsx\ndiagram_toolbox.test.tsx\ndiagram_toolbox.tsx\ndiagram_toolbox_action_button.tsx\ndiagram_toolbox_button.tsx\ndiagram_toolbox_tool_button.tsx\ndiagram_view.test.tsx\ndiagram_view.tsx\ndiagram_zoom_slider.test.tsx\ndiagram_zoom_slider.tsx\ndiagram_zoom_viewport.test.tsx\ndiagram_zoom_viewport.tsx\neditable_diagram.test.tsx\neditable_diagram.tsx\neditable_diagram_activation.tsx\neditable_diagram_collections.tsx\neditable_diagram_edge.tsx\neditable_diagram_entity_field.tsx\neditable_diagram_entity_fields.tsx\neditable_diagram_fragment.tsx\neditable_diagram_group.tsx\neditable_diagram_leaves.test.tsx\neditable_diagram_lifeline.tsx\neditable_diagram_node.tsx\neditable_diagram_selection.test.tsx\nentity_diagram.tsx\nflow_diagram.tsx\nsequence_activation.tsx\nsequence_diagram.tsx\nsequence_fragment.tsx\ntabbed_diagram_comparison.test.tsx\ntabbed_diagram_comparison.tsx\nuse_diagram_delete_key.test.tsx\nuse_diagram_delete_key.ts\nuse_diagram_geometry.test.tsx\nuse_diagram_geometry.ts\nuse_diagram_selection.ts\nuse_diagram_tool.test.tsx\nuse_diagram_tool.ts\nuse_editable_diagram.test.tsx\nuse_editable_diagram.ts\nuse_preserve_diagram_zoom_center.ts\nvertical_diagram_comparison.test.tsx\nvertical_diagram_comparison.tsx\n---B227---\n---\nauthor: \nid: B_227\ninternalId: e9560174-0ace-4098-9293-b0e60b449135\ntitle: fix legend dragging\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__e9560174-0ace-4098-9293-b0e60b449135.json\npolicy:\n---\n\nwhen on diagram view and user drags the legend around, repaint is very slow. it seems that the entire diagram is re-rendered while dragging. this should not be the case. the position of the legend should be something only the legend needs re-rendering for.\n\nsee attached performance trace, taken of a short drag, to see what is actually going on.\n\n[Trace-20260908T153545.json](file:///C:/Users/janbo/Documents/dev/Trace-20260908T153545.json)",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-5",
+          "kind": "event",
+          "label": "ls app/src/components/diagram_view/ && echo \"---B227---\" && cat design/feature_descriptions/B_227_fix_legend_dragging.md",
+          "providerItemId": "toolu_01XMzk6ykJyfDwiGyiBNvHuz",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:40:50.841Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-6",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer4sgMBveiYwoWVk6na3:thinking:0",
+          "sequence": 6,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:40:53.419Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd app/src/components/diagram_view; wc -l diagram_view.tsx diagram_zoom_viewport.tsx diagram_renderer.tsx use_diagram_tool.ts diagram_legend.tsx editable_diagram.tsx diagram.tsx use_diagram_geometry.ts diagram_selection_rectangle.tsx diagram_coordinate_conversion.ts use_preserve_diagram_zoom_center.ts diagram_legend_position.ts",
+          "content": "  300 diagram_view.tsx\n  375 diagram_zoom_viewport.tsx\n   17 diagram_renderer.tsx\n   64 use_diagram_tool.ts\n  204 diagram_legend.tsx\n  215 editable_diagram.tsx\n   62 diagram.tsx\n  141 use_diagram_geometry.ts\n   40 diagram_selection_rectangle.tsx\n   53 diagram_coordinate_conversion.ts\n   22 use_preserve_diagram_zoom_center.ts\n   18 diagram_legend_position.ts\n 1511 total",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-7",
+          "kind": "event",
+          "label": "cd app/src/components/diagram_view; wc -l diagram_view.tsx diagram_zoom_viewport.tsx diagram_renderer.tsx use_diagram_tool.ts diagram_legend.tsx editable_diagram.tsx diagram.tsx use_diagram_geometry.ts diagram_selection_rectangle.tsx diagram_coordinate_conversion.ts use_preserve_diagram_zoom_center.ts diagram_legend_position.ts",
+          "providerItemId": "toolu_01T9KrNWFpRrAMmzboVSZqKp",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:40:55.176Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; cat diagram_zoom_viewport.tsx",
+          "content": "import { Box } from '@mui/material'\nimport {\n    memo, useCallback, useEffect, useRef, useSyncExternalStore,\n    type KeyboardEvent as ReactKeyboardEvent,\n    type MouseEvent as ReactMouseEvent,\n    type PointerEvent as ReactPointerEvent,\n} from 'react'\nimport {\n    diagramEditSessionService, type DiagramEditSessionService,\n} from '../../services/diagrams/diagram_edit_session_service'\nimport {\n    diagramEdgeDrawingService, type DiagramEdgeDrawingService,\n} from '../../services/diagrams/diagram_edge_drawing_service'\nimport { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'\nimport {\n    diagramGroupDrawingService, type DiagramGroupDrawingService,\n} from '../../services/diagrams/diagram_group_drawing_service'\nimport { diagramMoveService, type DiagramMoveService } from '../../services/diagrams/diagram_move_service'\nimport {\n    diagramNodePlacementService, type DiagramNodePlacementService,\n} from '../../services/diagrams/diagram_node_placement_service'\nimport {\n    diagramResizeService,\n    type DiagramResizeDirection,\n    type DiagramResizeService,\n} from '../../services/diagrams/diagram_resize_service'\nimport {\n    diagramSelectionService, type DiagramSelectableObjectKind, type DiagramSelectionIdentity, type DiagramSelectionService,\n} from '../../services/diagrams/diagram_selection_service'\nimport { convertClientToDiagramCoordinates } from './diagram_coordinate_conversion'\nimport { EditableDiagram } from './editable_diagram'\nimport {\n    diagramObjectDetailsService, type DiagramObjectDetailsService,\n} from './diagram_object_details_service'\nimport {\n    diagramChangeReviewService, type DiagramChangeReviewService,\n} from './diagram_change_review_service'\nimport { usePreserveDiagramZoomCenter } from './use_preserve_diagram_zoom_center'\n\ninterface DiagramZoomViewportProps {\n    details?: DiagramObjectDetailsService\n    drawing?: DiagramEdgeDrawingService\n    geometry?: DiagramGeometryService\n    groupDrawing?: DiagramGroupDrawingService\n    movement?: DiagramMoveService\n    placement?: DiagramNodePlacementService\n    resize?: DiagramResizeService\n    review?: DiagramChangeReviewService\n    selection?: DiagramSelectionService\n    session?: DiagramEditSessionService\n}\n\nconst NewDiagram = memo(EditableDiagram)\nconst KEYBOARD_RESIZE_STEP = 4\n\ninterface DiagramResizeTarget {\n    direction: DiagramResizeDirection\n    identity: DiagramSelectionIdentity\n}\n\nfunction diagramIdentityFromTarget(target: EventTarget | null): DiagramSelectionIdentity | null {\n    if (!(target instanceof Element)) return null\n\n    const objectElement = target.closest('[data-diagram-id][data-diagram-kind]') as HTMLElement | null\n    const objectId = objectElement?.dataset.diagramId\n    const objectKind = objectElement?.dataset.diagramKind\n    if (!objectId || (objectKind !== 'edge' && objectKind !== 'group' && objectKind !== 'node')) return null\n\n    return { objectId, objectKind: objectKind as DiagramSelectableObjectKind }\n}\n\nfunction diagramConnectionNodeIdFromTarget(target: EventTarget | null) {\n    if (!(target instanceof Element)) return null\n\n    const node = target.closest('[data-diagram-connection-target]') as HTMLElement | null\n\n    return node?.dataset.diagramConnectionTarget ?? null\n}\n\nfunction diagramResizeTargetFromTarget(target: EventTarget | null): DiagramResizeTarget | null {\n    if (!(target instanceof Element)) return null\n\n    const handle = target.closest('[data-diagram-resize-handle]') as HTMLElement | null\n    const direction = handle?.dataset.diagramResizeDirection\n    const objectId = handle?.dataset.diagramResizeObjectId\n    const objectKind = handle?.dataset.diagramResizeObjectKind\n    const directions: DiagramResizeDirection[] = [\n        'north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west',\n    ]\n    if (!objectId || (objectKind !== 'group' && objectKind !== 'node')\n        || !directions.includes(direction as DiagramResizeDirection)) return null\n\n    return { direction: direction as DiagramResizeDirection, identity: { obj\n[7861 characters omitted]\n {\n            event.preventDefault()\n            suppressClickRef.current = false\n            drawing.cancelDrawing()\n\n            return\n        }\n        if (placement.isPlacementActive()) {\n            event.preventDefault()\n            suppressClickRef.current = false\n            placement.cancelPlacement()\n            activePointerGestureRef.current = null\n            releaseActivePointer()\n\n            return\n        }\n        if (groupDrawing.isDrawingActive()) {\n            event.preventDefault()\n            suppressClickRef.current = false\n            groupDrawing.cancelDrawing()\n            activePointerGestureRef.current = null\n            releaseActivePointer()\n\n            return\n        }\n        if (activePointerGestureRef.current === null) return\n\n        event.preventDefault()\n        suppressClickRef.current = false\n        if (activePointerGestureRef.current === 'resize') resize.cancelResize()\n        else movement.cancelMove()\n        activePointerGestureRef.current = null\n        releaseActivePointer()\n    }, [drawing, groupDrawing, movement, placement, releaseActivePointer, resize])\n\n    const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {\n        if (activePointerGestureRef.current !== null || !event.key.startsWith('Arrow')) return\n        const resizeTarget = diagramResizeTargetFromTarget(event.target)\n        if (!resizeTarget) return\n\n        const horizontal = resizeTarget.direction.includes('east') || resizeTarget.direction.includes('west')\n        const vertical = resizeTarget.direction.includes('north') || resizeTarget.direction.includes('south')\n        const delta = {\n            x: horizontal ? (event.key === 'ArrowLeft' ? -KEYBOARD_RESIZE_STEP : event.key === 'ArrowRight' ? KEYBOARD_RESIZE_STEP : 0) : 0,\n            y: vertical ? (event.key === 'ArrowUp' ? -KEYBOARD_RESIZE_STEP : event.key === 'ArrowDown' ? KEYBOARD_RESIZE_STEP : 0) : 0,\n        }\n        if (delta.x === 0 && delta.y === 0) return\n\n        event.preventDefault()\n        const start = { x: 0, y: 0 }\n        if (!resize.beginResize(resizeTarget.identity, resizeTarget.direction, start)) return\n        resize.updateResize(delta)\n        resize.completeResize()\n    }, [resize])\n\n    const handleTransientGestureChanged = useCallback(() => {\n        if (\n            completingGestureRef.current\n            || activePointerIdRef.current === null\n            || session.getTransientGestureSnapshot() === activePointerGestureRef.current\n        ) return\n\n        suppressClickRef.current = false\n        activePointerGestureRef.current = null\n        releaseActivePointer()\n    }, [releaseActivePointer, session])\n\n    useEffect(() => {\n        window.addEventListener('keydown', handleWindowKeyDown)\n\n        return () => window.removeEventListener('keydown', handleWindowKeyDown)\n    }, [handleWindowKeyDown])\n\n    useEffect(\n        () => session.subscribeTransientGesture(handleTransientGestureChanged),\n        [handleTransientGestureChanged, session],\n    )\n\n    return (\n        <Box\n            aria-label=\"New diagram scroller\"\n            onClickCapture={handleClickCapture}\n            onKeyDown={handleKeyDown}\n            onLostPointerCapture={handleLostPointerCapture}\n            onPointerCancel={handlePointerCancel}\n            onPointerDown={handlePointerDown}\n            onPointerMove={handlePointerMove}\n            onPointerUp={handlePointerUp}\n            ref={scrollerRef}\n            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', px: 2, pb: 2, pt: 1 }}\n        >\n            <Box data-testid=\"new-diagram-zoom-surface\" sx={{ transformOrigin: 'top left', zoom: scale }}>\n                <NewDiagram\n                    details={details}\n                    drawing={drawing}\n                    geometry={geometry}\n                    groupDrawing={groupDrawing}\n                    placement={placement}\n                    review={review}\n                    selection={selection}\n                    session={session}\n                />\n            </Box>\n        </Box>\n    )\n}",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-8",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; cat diagram_zoom_viewport.tsx",
+          "providerItemId": "toolu_017G68rnn7oj63sV7AaFhzpo",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:40:57.367Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-9",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer4tAAWwot9uLE74g8oJ:thinking:0",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:40:59.929Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; cat diagram_view.tsx; echo \"=====DIAGRAM.TSX\"; cat diagram.tsx; echo \"=====RENDERER\"; cat diagram_renderer.tsx; echo \"=====COORD\"; cat diagram_coordinate_conversion.ts; echo \"=====PRESERVE\"; cat use_preserve_diagram_zoom_center.ts",
+          "content": "import {\n    Alert, Box, Breadcrumbs, Button, CircularProgress, Menu, MenuItem, Paper, Tooltip, Typography,\n} from '@mui/material'\nimport AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'\nimport ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined'\nimport type { MouseEvent } from 'react'\nimport { useEffect, useMemo, useSyncExternalStore } from 'react'\nimport { actionsForContext, diagramContext } from '../../data/action_context'\nimport { dialogService } from '../../services/dialog_service'\nimport {\n    diagramEditSessionService, type DiagramEditSessionService,\n} from '../../services/diagrams/diagram_edit_session_service'\nimport { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'\nimport type { DiagramRecord } from '../../services/diagrams/diagram_index'\nimport {\n    diagramSelectionService, type DiagramSelectionService,\n} from '../../services/diagrams/diagram_selection_service'\nimport { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'\nimport { useActions } from '../hooks/use_actions'\nimport { useWorkspaceView } from '../hooks/use_workspace_view'\nimport { ActionPopup } from '../actions/run/popup/action_popup'\nimport { MovableFab } from '../movable_fab'\nimport { DiagramLegend } from './diagram_legend'\nimport { DiagramComparison } from './diagram_comparison'\nimport { DiagramComparisonLayout } from './diagram_comparison_layout'\nimport {\n    diagramComparisonLayoutService, type DiagramComparisonLayoutService,\n} from './diagram_comparison_layout_service'\nimport type { DiagramSelection } from './diagram_selection'\nimport { TabbedDiagramComparison } from './tabbed_diagram_comparison'\nimport { VerticalDiagramComparison } from './vertical_diagram_comparison'\nimport { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from './use_diagram_delete_key'\nimport { DiagramCurrentViewport } from './diagram_current_viewport'\n\nconst ROOT_DIAGRAM_CONTEXT = diagramContext('root')\n\nfunction reportNavigationFailure(error: unknown) {\n    dialogService.error(error, { fallbackMessage: 'Diagram navigation failed' })\n}\n\ninterface DiagramViewProps {\n    editSession?: DiagramEditSessionService\n    geometry?: DiagramGeometryService\n    layoutService?: DiagramComparisonLayoutService\n    selection?: DiagramSelectionService\n    service?: DiagramViewService\n}\n\n/** Full workspace surface for navigating validated diagram data. */\nexport function DiagramView({\n    editSession = diagramEditSessionService,\n    geometry = diagramGeometryService,\n    layoutService = diagramComparisonLayoutService,\n    selection = diagramSelectionService,\n    service = diagramViewService,\n}: DiagramViewProps) {\n    const { viewMode } = useWorkspaceView()\n    const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot)\n    const editSessionSnapshot = useSyncExternalStore(\n        editSession.subscribeSession,\n        editSession.getSessionSnapshot,\n        editSession.getSessionSnapshot,\n    )\n    const { actions } = useActions()\n    const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions])\n    const activeRecords = snapshot.index.activePath.map((id) => snapshot.index.diagrams[id])\n    const selectedContext = useMemo(() => snapshot.menu\n        ? diagramContext('child', snapshot.menu.diagramId, snapshot.menu.itemId, snapshot.menu.itemLabel)\n        : null, [snapshot.menu])\n    const childActions = useMemo(\n        () => selectedContext ? actionsForContext(actions, selectedContext) : [],\n        [actions, selectedContext],\n    )\n    const savedChildren = snapshot.menu\n        ? service.getSavedChildren(snapshot.menu.diagramId, snapshot.menu.itemId)\n        : []\n    const rootDiagrams = snapshot.index.activePath.length === 0 ? service.getRootDiagrams() : []\n    const diagramTitle = (record: DiagramRecord) => {\n        const label = actions.find(({ id }) => id === record.actionId)?.label ?? record.label\n\n        return record.createdAt ? `${label} - ${new Date(record.createdAt).toLocale\n[13987 characters omitted]\n  ))}\n                </svg>\n                {data.nodes.map((node) => (\n                    <DiagramNode\n                        diagramType={data.meta.type}\n                        flowPreset={data.meta.preset}\n                        key={node.id}\n                        node={node}\n                        onSelect={handleSelect}\n                        selected={false}\n                    />\n                ))}\n            </Box>\n        </Box>\n    )\n}\n=====RENDERER\nimport type { DiagramProps } from './diagram'\nimport { ArchitectureDiagram } from './architecture_diagram'\nimport { DependencyDiagram } from './dependency_diagram'\nimport { EntityDiagram } from './entity_diagram'\nimport { FlowDiagram } from './flow_diagram'\nimport { SequenceDiagram } from './sequence_diagram'\n\n/** Select one of five supported thin renderers from validated metadata. */\nexport function DiagramRenderer(props: DiagramProps) {\n    const { type } = props.data.meta\n    if (type === 'architecture') return <ArchitectureDiagram {...props} />\n    if (type === 'dependency') return <DependencyDiagram {...props} />\n    if (type === 'sequence') return <SequenceDiagram {...props} />\n    if (type === 'flow') return <FlowDiagram {...props} />\n\n    return <EntityDiagram {...props} />\n}\n=====COORD\nexport interface DiagramClientPoint {\n    clientX: number;\n    clientY: number;\n}\n\nexport interface DiagramViewportMetrics {\n    bounds: {\n        left: number;\n        top: number;\n    };\n    scrollLeft: number;\n    scrollTop: number;\n}\n\nexport interface DiagramPoint {\n    x: number;\n    y: number;\n}\n\nexport interface DiagramCoordinateConversion {\n    diagramPoint: DiagramPoint;\n    viewportPoint: DiagramPoint;\n}\n\nfunction requireFiniteCoordinate(value: number, name: string) {\n    if (!Number.isFinite(value)) throw new Error(`${name} must be finite`);\n}\n\n/** Converts one client-space pointer through its viewport into canonical diagram coordinates. */\nexport function convertClientToDiagramCoordinates(\n    clientPoint: DiagramClientPoint,\n    viewportMetrics: DiagramViewportMetrics,\n    viewportScale: number,\n): DiagramCoordinateConversion {\n    requireFiniteCoordinate(clientPoint.clientX, 'Client x');\n    requireFiniteCoordinate(clientPoint.clientY, 'Client y');\n    requireFiniteCoordinate(viewportMetrics.bounds.left, 'Viewport left');\n    requireFiniteCoordinate(viewportMetrics.bounds.top, 'Viewport top');\n    requireFiniteCoordinate(viewportMetrics.scrollLeft, 'Viewport scroll left');\n    requireFiniteCoordinate(viewportMetrics.scrollTop, 'Viewport scroll top');\n    if (!Number.isFinite(viewportScale) || viewportScale <= 0) throw new Error('Viewport scale must be positive and finite');\n\n    const viewportPoint = {\n        x: clientPoint.clientX - viewportMetrics.bounds.left + viewportMetrics.scrollLeft,\n        y: clientPoint.clientY - viewportMetrics.bounds.top + viewportMetrics.scrollTop,\n    };\n    const diagramPoint = {\n        x: viewportPoint.x / viewportScale,\n        y: viewportPoint.y / viewportScale,\n    };\n\n    return { diagramPoint, viewportPoint };\n}\n=====PRESERVE\nimport { useLayoutEffect, useRef, type RefObject } from 'react'\n\nfunction scaledCenterOffset(offset: number, viewportSize: number, previousScale: number, scale: number) {\n    return (offset + viewportSize / 2) * scale / previousScale - viewportSize / 2\n}\n\n/** Keeps viewport's visible diagram center stable across visual scale changes. */\nexport function usePreserveDiagramZoomCenter(scrollerRef: RefObject<HTMLElement | null>, scale: number) {\n    const previousScaleRef = useRef(scale)\n\n    useLayoutEffect(() => {\n        const previousScale = previousScaleRef.current\n        previousScaleRef.current = scale\n        if (previousScale === scale) return\n\n        const scroller = scrollerRef.current\n        if (!scroller) return\n\n        scroller.scrollLeft = scaledCenterOffset(scroller.scrollLeft, scroller.clientWidth, previousScale, scale)\n        scroller.scrollTop = scaledCenterOffset(scroller.scrollTop, scroller.clientHeight, previousScale, scale)\n    }, [scale, scrollerRef])\n}",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-10",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; cat diagram_view.tsx; echo \"=====DIAGRAM.TSX\"; cat diagram.tsx; echo \"=====RENDERER\"; cat diagram_renderer.tsx; echo \"=====COORD\"; cat diagram_coordinate_conversion.ts; echo \"=====PRESERVE\"; cat use_preserve_diagram_zoom_center.ts",
+          "providerItemId": "toolu_01ToEG7baMdnEASEE7M3G5PB",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:41:02.038Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer4tWCXk5utjBat6dJ1h:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:41:05.109Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; cat diagram_current_viewport.tsx; echo \"=====TOOL\"; cat use_diagram_tool.ts; echo \"=====LEGEND\"; sed -n 1,120p diagram_legend.tsx",
+          "content": "import { Box } from '@mui/material'\nimport { memo, useRef, useSyncExternalStore } from 'react'\nimport type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'\nimport { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'\nimport { DiagramRenderer } from './diagram_renderer'\nimport type { DiagramSelection } from './diagram_selection'\nimport { DiagramZoomSlider } from './diagram_zoom_slider'\nimport { usePreserveDiagramZoomCenter } from './use_preserve_diagram_zoom_center'\n\ninterface DiagramCurrentViewportProps {\n    data: PositionedDiagramData\n    onSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void\n    service?: Pick<DiagramViewService,\n        'getViewportScaleSnapshot' | 'setViewportScale' | 'subscribeViewportScale'>\n}\n\nconst CurrentDiagram = memo(DiagramRenderer)\n\n/** Scrollable Current viewport with service-owned visual scale and fixed zoom control. */\nexport function DiagramCurrentViewport({ data, onSelect, service = diagramViewService }: DiagramCurrentViewportProps) {\n    const scrollerRef = useRef<HTMLDivElement>(null)\n    const scale = useSyncExternalStore(\n        service.subscribeViewportScale,\n        service.getViewportScaleSnapshot,\n        service.getViewportScaleSnapshot,\n    )\n    usePreserveDiagramZoomCenter(scrollerRef, scale)\n\n    return (\n        <Box sx={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', position: 'relative' }}>\n            <Box\n                aria-label=\"Current diagram scroller\"\n                ref={scrollerRef}\n                sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', p: 2 }}\n            >\n                <Box data-testid=\"current-diagram-zoom-surface\" sx={{ transformOrigin: 'top left', zoom: scale }}>\n                    <CurrentDiagram data={data} onSelect={onSelect} />\n                </Box>\n            </Box>\n            <DiagramZoomSlider diagramIdentity=\"Current\" store={service} />\n        </Box>\n    )\n}\n=====TOOL\nimport { useCallback, useEffect, useSyncExternalStore } from 'react'\nimport {\n    diagramEditSessionService,\n    type DiagramPersistentTool,\n    type DiagramTransientGesture,\n} from '../../services/diagrams/diagram_edit_session_service'\n\nexport interface DiagramActiveToolStore {\n    getActiveToolSnapshot: () => DiagramPersistentTool\n    subscribeActiveTool: (listener: () => void) => () => void\n}\n\nexport interface DiagramTransientGestureStore {\n    getTransientGestureSnapshot: () => DiagramTransientGesture | null\n    subscribeTransientGesture: (listener: () => void) => () => void\n}\n\nexport interface DiagramInteractionCancellation {\n    cancelActiveInteraction: () => boolean\n}\n\n/** Subscribes either an active-tool reader or one tool button to its selected boolean. */\nexport function useActiveDiagramTool(service?: DiagramActiveToolStore): DiagramPersistentTool\nexport function useActiveDiagramTool(service: DiagramActiveToolStore | undefined, tool: DiagramPersistentTool): boolean\nexport function useActiveDiagramTool(\n    service: DiagramActiveToolStore = diagramEditSessionService,\n    tool?: DiagramPersistentTool,\n) {\n    const getSnapshot = useCallback(\n        () => tool ? service.getActiveToolSnapshot() === tool : service.getActiveToolSnapshot(),\n        [service, tool],\n    )\n\n    return useSyncExternalStore(\n        service.subscribeActiveTool,\n        getSnapshot,\n        getSnapshot,\n    )\n}\n\n/** Subscribes one leaf to temporary placement, edge, or move gesture state. */\nexport function useDiagramTransientGesture(service: DiagramTransientGestureStore = diagramEditSessionService) {\n    return useSyncExternalStore(\n        service.subscribeTransientGesture,\n        service.getTransientGestureSnapshot,\n        service.getTransientGestureSnapshot,\n    )\n}\n\n/** Cancels active diagram interaction from Escape while editor UI is mounted. */\nexport function useCancelDiagramInteractionOnEscape(\n    service: DiagramInteractionCancellation = diagramEditSessionService,\n) {\n    const handleKeyDown = useCallback((event: KeyboardEvent) => \n[1648 characters omitted]\nSessionLegendSource | null\n}\n\ninterface LegendDrag {\n    moved: boolean\n    pointerId: number\n    pointerX: number\n    pointerY: number\n    startLeft: number\n    startTop: number\n}\n\nfunction samePosition(first: DiagramLegendPosition, second: DiagramLegendPosition) {\n    return first.left === second.left && first.top === second.top\n}\n\n/** Floating legend derived from active diagram semantics. */\nexport function DiagramLegend({ collapsed, data, onCollapse, onExpand, onMove, position, session = null }: DiagramLegendProps) {\n    const panelRef = useRef<HTMLDivElement>(null)\n    const dragRef = useRef<LegendDrag | null>(null)\n    const suppressClickRef = useRef(false)\n    const tabsId = useId()\n    const [activeTab, setActiveTab] = useState<DiagramLegendTab>('new')\n    const entries = diagramLegendEntries(data)\n    const handleTabChange = (_event: SyntheticEvent, tab: DiagramLegendTab) => setActiveTab(tab)\n    const currentTabActive = !session || activeTab === 'current'\n    const clampCurrentPosition = useCallback(() => {\n        const panel = panelRef.current\n        const viewport = panel?.parentElement\n        if (!panel || !viewport || !position) return\n        const clamped = clampLegendPosition(position, viewport.clientWidth, viewport.clientHeight, panel.offsetWidth, panel.offsetHeight)\n        if (!samePosition(position, clamped)) onMove(clamped)\n    }, [onMove, position])\n\n    useLayoutEffect(() => {\n        clampCurrentPosition()\n        const panel = panelRef.current\n        const viewport = panel?.parentElement\n        if (!panel || !viewport) return\n        if (typeof ResizeObserver === 'undefined') return\n        const observer = new ResizeObserver(clampCurrentPosition)\n        observer.observe(panel)\n        observer.observe(viewport)\n\n        return () => observer.disconnect()\n    }, [clampCurrentPosition, collapsed, currentTabActive])\n\n    const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {\n        if ((event.target as Element).closest('button')) return\n        const panel = panelRef.current\n        const viewport = panel?.parentElement\n        if (!panel || !viewport) return\n        event.preventDefault()\n        event.stopPropagation()\n        event.currentTarget.setPointerCapture(event.pointerId)\n        const panelBounds = panel.getBoundingClientRect()\n        const viewportBounds = viewport.getBoundingClientRect()\n        dragRef.current = {\n            moved: false,\n            pointerId: event.pointerId,\n            pointerX: event.clientX,\n            pointerY: event.clientY,\n            startLeft: panelBounds.left - viewportBounds.left,\n            startTop: panelBounds.top - viewportBounds.top,\n        }\n    }\n    const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {\n        const drag = dragRef.current\n        const panel = panelRef.current\n        const viewport = panel?.parentElement\n        if (!drag || drag.pointerId !== event.pointerId || !panel || !viewport) return\n        event.preventDefault()\n        event.stopPropagation()\n        const leftDelta = event.clientX - drag.pointerX\n        const topDelta = event.clientY - drag.pointerY\n        if (Math.abs(leftDelta) >= DRAG_THRESHOLD || Math.abs(topDelta) >= DRAG_THRESHOLD) drag.moved = true\n        const nextPosition = { left: drag.startLeft + leftDelta, top: drag.startTop + topDelta }\n        onMove(clampLegendPosition(nextPosition, viewport.clientWidth, viewport.clientHeight, panel.offsetWidth, panel.offsetHeight))\n    }\n    const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {\n        const drag = dragRef.current\n        if (!drag || drag.pointerId !== event.pointerId) return\n        event.preventDefault()\n        event.stopPropagation()\n        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)\n        suppressClickRef.current = drag.moved\n        dragRef.current = null\n    }\n    const handleClick = (event: MouseEvent<HTMLElement>) => {\n        event.stopPropagation()\n        if (!suppressClickRef.current) return",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-12",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; cat diagram_current_viewport.tsx; echo \"=====TOOL\"; cat use_diagram_tool.ts; echo \"=====LEGEND\"; sed -n 1,120p diagram_legend.tsx",
+          "providerItemId": "toolu_01Tx99aE3HFM28jDashRfg7F",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:41:06.721Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer4tr5N255zVpk1tKw2G:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:41:10.461Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; ls design/feature_descriptions | tail -30; echo ===; grep -n \"PersistentTool\\|TransientGesture =\" app/src/services/diagrams/diagram_edit_session_service.ts | head -20",
+          "content": "F_323_add_diagram_change_review.md\nF_324_pass_diagram_changes_to_an_agent.md\nF_325_handle_diagram_implementation_runs.md\nF_326_integrate_diagram_editor.md\nF_327_save_edited_diagram_as_copy.md\nF_328_better_show_state_of_project_agent.md\nF_329_make_diagram_edit_updates_granular.md\nF_330_shorten_token_count.md\nF_331_improve_schedule_action.md\nF_332_delete_conversations.md\nF_333_bad_error_diagram_action.md\nF_334_remove_5_hourly_account_usage.md\nF_335_include_cost_per_release.md\nF_336_add_docs_for_diagrams.md\nF_337_handle_back_button_when_on_mobile.md\nF_338_show_questions_after_agent_closed.md\nF_339_improve_time_reporting.md\nF_340_diagram_drag_surface.md\nF_94_no_prefill_prompt_running_conv.md.bak\nJ_28_finishing_action_very_slow.md\nJ_39_size_of_questions_box.md\nJ_40_other_option_for_questions.md\nJ_42_run_history_command_actions_order.md\nJ_43_code_blocks_in_read_only_markdown.md\nJ_44_verify_claude_token_count.md\nJ_45_use_dagre_for_layered_diagram_layout.md\nJ_46_detect_claude_ready_prompt.md\nJ_47_fix_failing_tests.md\nJ_48_diagram_zoom.md\nreadonlymarkdown.jpg\n===\n57:export type DiagramPersistentTool = 'select' | 'group' | `node:${DiagramNodeKind}` | `edge:${DiagramEdgeKind}`\n58:export type DiagramTransientGesture = 'placement' | 'edge' | 'group' | 'move' | 'resize'\n360:    private activeTool: DiagramPersistentTool = 'select'\n572:    subscribeTransientGesture = (listener: () => void) => this.subscribe(TRANSIENT_GESTURE_CHANGED_EVENT, listener)\n767:    setActiveTool(tool: DiagramPersistentTool) {",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-14",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; ls design/feature_descriptions | tail -30; echo ===; grep -n \"PersistentTool\\|TransientGesture =\" app/src/services/diagrams/diagram_edit_session_service.ts | head -20",
+          "providerItemId": "toolu_01KkuiLme5Tg9irEjFVHDu6o",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:41:12.040Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; cat design/feature_descriptions/J_48_diagram_zoom.md",
+          "content": "---\nauthor: \nid: J_48\ninternalId: 3e78e609-b7b9-496d-bc72-0826743d5d65\ntitle: diagram zoom\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__3e78e609-b7b9-496d-bc72-0826743d5d65.json\npolicy:\nchangedFiles:\n  - app/src/components/diagram_view/diagram_comparison.test.tsx\n  - app/src/components/diagram_view/diagram_comparison.tsx\n  - app/src/components/diagram_view/diagram_current_viewport.test.tsx\n  - app/src/components/diagram_view/diagram_current_viewport.tsx\n  - app/src/components/diagram_view/diagram_editor_rendering.test.tsx\n  - app/src/components/diagram_view/diagram_new_pane.tsx\n  - app/src/components/diagram_view/diagram_toolbox.test.tsx\n  - app/src/components/diagram_view/diagram_toolbox.tsx\n  - app/src/components/diagram_view/diagram_view.test.tsx\n  - app/src/components/diagram_view/diagram_view.tsx\n  - app/src/components/diagram_view/diagram_zoom_in_button.tsx\n  - app/src/components/diagram_view/diagram_zoom_out_button.tsx\n  - app/src/components/diagram_view/diagram_zoom_slider.test.tsx\n  - app/src/components/diagram_view/diagram_zoom_slider.tsx\n  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx\n  - app/src/components/diagram_view/diagram_zoom_viewport.tsx\n  - app/src/components/diagram_view/tabbed_diagram_comparison.test.tsx\n  - app/src/components/diagram_view/tabbed_diagram_comparison.tsx\n  - app/src/components/diagram_view/use_preserve_diagram_zoom_center.ts\n  - app/src/components/diagram_view/vertical_diagram_comparison.test.tsx\n  - app/src/components/diagram_view/vertical_diagram_comparison.tsx\n  - app/src/services/diagrams/diagram_edit_session_service.test.ts\n  - app/src/services/diagrams/diagram_edit_session_service.ts\n  - app/src/services/diagrams/diagram_view_service.test.ts\n  - app/src/services/diagrams/diagram_view_service.ts\n  - app/src/services/diagrams/diagram_zoom.ts\n---\n\nwe already have a diagram zoom for the editable part of the diagram. we don't yet allow zooming for the non-editable (current-state) version of the diagram. this is annoying. also, the zoom in\\&out buttons are not convenient.\n\nwe need to refactor the zoom feature:\n\n* allow for both editable as non-editable version. when both are shown, each gets it's own zoom\n* zooming is done with a horizontal slider, put slider floating in lower left corner of the diagram\n\n## Current state\n\n`Current` means the saved read-only diagram; `New` means the editable copy. New alone supports zoom: `DiagramEditSessionService` owns one scale from 50% through 200% in 25-percentage-point steps, and `DiagramZoomViewport` applies it without changing diagram coordinates. Zoom In and Zoom Out buttons live in the floating New toolbox. Current renders directly through `DiagramRenderer`, so it has no scale state or zoom control. During comparison, Current and New use separate scroll containers, but only New can zoom.\n\n## implementation details\n\n* Replace Zoom In and Zoom Out toolbox buttons with one reusable horizontal MUI slider floating above the lower-left corner of each diagram viewport. Keep it outside scrolling content so scrolling or scaling does not move the control. Give it a theme-based floating surface, an accessible name identifying Current or New, and percentage value text.\n* Use 10% minimum, 250% maximum, 100% default, and existing 25-percentage-point steps. Treat 10% as an explicit endpoint below 25%. Slider input sets scale directly; keyboard input uses the same values.\n* Keep Current and New scale as separate service-owned primitives. `DiagramViewService` owns Current scale and publishes a granular scale event; `DiagramEditSessionService` continues to own New scale. Slider and matching viewport subscribe with `useSyncExternalStore`; diagram, comparison, and toolbox roots do not subscribe to scale.\n* Reset Current to 100% when active saved diagram changes. Reset New to 100% when an edit session starts or ends, as today. Preserve both values when comparison layout or active comparison tab changes.\n* Apply same zoomed-surface and center-preserving scroll calculation to Current and New. Scaling remains visual only: positioned data, editable model data, selection, and change set remain unchanged. New pointer coordinate conversion continues using New scale only.\n* Refactor repeated Current panes in horizontal, vertical, and tabbed comparison layouts to use one Current viewport component. Use same component for non-edit mode so Current behavior stays consistent.\n* Remove obsolete zoom button components and their toolbox wiring. Add focused service and component tests for direct slider changes, keyboard use, bounds, resets, independent scales, center preservation, comparison layouts, read-only mode, and unchanged pointer hit testing in New.\n\n## acceptance criteria\n\n* Every visible Current or New diagram has one horizontal zoom slider floating in its lower-left corner; no Zoom In or Zoom Out toolbox buttons remain.\n* Current can zoom in normal read-only mode and in every comparison layout.\n* When Current and New are both shown, changing one slider changes only its own viewport. Each scale remains unchanged when user switches comparison layout or tab.\n* Each slider ranges from 10% through 250%, starts at 100%, moves in 25-percentage-point steps except for the 10% endpoint, supports keyboard operation, and exposes diagram identity plus current percentage to assistive technology.\n* Navigating to another saved diagram resets Current to 100%. Starting or ending an edit session resets New to 100%.\n* Zoom keeps visible viewport center stable where available and never changes diagram coordinates, editable data, selection, dirty state, or change set.\n* Selection and Current item activation remain usable at every scale. New selection, placement, edge and group drawing, moving, and resizing remain accurate at every scale.\n* Focused diagram zoom, view, comparison, toolbox, and edit-session tests pass; app lint passes.",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-15",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; cat design/feature_descriptions/J_48_diagram_zoom.md",
+          "providerItemId": "toolu_01Gu17ug7qkR1k5JqD4Zkoju",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:41:14.017Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer4uPT14pHQQgKZHJUyb:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:41:18.776Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; cat diagram_selection_rectangle.tsx; echo ==NEWPANE; cat diagram_new_pane.tsx; echo ==COMPARISON; sed -n 1,120p diagram_comparison.tsx",
+          "content": "import { Box } from '@mui/material';\nimport { useSyncExternalStore } from 'react';\nimport {\n    diagramSelectionService,\n    type DiagramSelectionService,\n} from '../../services/diagrams/diagram_selection_service';\n\ninterface DiagramSelectionRectangleProps {\n    selection?: DiagramSelectionService;\n}\n\n/** Renders only transient rectangle view state and observes no selection membership or diagram data. */\nexport function DiagramSelectionRectangle({selection = diagramSelectionService}: DiagramSelectionRectangleProps) {\n    const rectangle = useSyncExternalStore(\n        selection.subscribeRectangle,\n        selection.getRectangleSnapshot,\n        selection.getRectangleSnapshot,\n    );\n    if (!rectangle) return null;\n\n    return (\n        <Box\n            aria-hidden=\"true\"\n            data-testid=\"diagram-selection-rectangle\"\n            sx={{\n                bgcolor: 'custom.primaryBg',\n                border: '1px dashed',\n                borderColor: 'primary.main',\n                boxSizing: 'border-box',\n                height: rectangle.height,\n                left: rectangle.x,\n                pointerEvents: 'none',\n                position: 'absolute',\n                top: rectangle.y,\n                width: rectangle.width,\n                zIndex: 3,\n            }}\n        />\n    );\n}\n==NEWPANE\nimport { Box } from '@mui/material'\nimport { useState } from 'react'\nimport {\n    diagramEditSessionService, type DiagramEditSessionService,\n} from '../../services/diagrams/diagram_edit_session_service'\nimport {\n    diagramEdgeDrawingService, type DiagramEdgeDrawingService,\n} from '../../services/diagrams/diagram_edge_drawing_service'\nimport { diagramGeometryService, type DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'\nimport {\n    diagramGroupDrawingService, type DiagramGroupDrawingService,\n} from '../../services/diagrams/diagram_group_drawing_service'\nimport { diagramMoveService, type DiagramMoveService } from '../../services/diagrams/diagram_move_service'\nimport {\n    diagramNodePlacementService, type DiagramNodePlacementService,\n} from '../../services/diagrams/diagram_node_placement_service'\nimport { diagramResizeService, type DiagramResizeService } from '../../services/diagrams/diagram_resize_service'\nimport {\n    diagramSelectionService, type DiagramSelectionService,\n} from '../../services/diagrams/diagram_selection_service'\nimport {\n    diagramChangeReviewService, type DiagramChangeReviewService,\n} from './diagram_change_review_service'\nimport {\n    diagramObjectDetailsService, type DiagramObjectDetailsService,\n} from './diagram_object_details_service'\nimport { DiagramToolbox } from './diagram_toolbox'\nimport { DiagramZoomViewport } from './diagram_zoom_viewport'\nimport { DiagramZoomSlider } from './diagram_zoom_slider'\n\ninterface DiagramNewPaneProps {\n    details?: DiagramObjectDetailsService\n    drawing?: DiagramEdgeDrawingService\n    geometry?: DiagramGeometryService\n    groupDrawing?: DiagramGroupDrawingService\n    movement?: DiagramMoveService\n    placement?: DiagramNodePlacementService\n    resize?: DiagramResizeService\n    review?: DiagramChangeReviewService\n    selection?: DiagramSelectionService\n    session?: DiagramEditSessionService\n    toolboxVisible?: boolean\n}\n\n/** Owns New viewport and its floating tools so every comparison mode exposes one complete editor. */\nexport function DiagramNewPane({\n    details = diagramObjectDetailsService,\n    drawing = diagramEdgeDrawingService,\n    geometry = diagramGeometryService,\n    groupDrawing = diagramGroupDrawingService,\n    movement = diagramMoveService,\n    placement = diagramNodePlacementService,\n    resize = diagramResizeService,\n    review = diagramChangeReviewService,\n    selection = diagramSelectionService,\n    session = diagramEditSessionService,\n    toolboxVisible = true,\n}: DiagramNewPaneProps) {\n    const [boundaryElement, setBoundaryElement] = useState<HTMLDivElement | null>(null)\n\n    return (\n        <Box ref={setBoundaryElement} sx={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden\n[2052 characters omitted]\nce,\n} from '../../services/diagrams/diagram_selection_service'\nimport {\n    diagramGroupDrawingService, type DiagramGroupDrawingService,\n} from '../../services/diagrams/diagram_group_drawing_service'\nimport {\n    diagramComparisonLayoutService, type DiagramComparisonLayoutService,\n} from './diagram_comparison_layout_service'\nimport {\n    diagramObjectDetailsService, type DiagramObjectDetailsService,\n} from './diagram_object_details_service'\nimport type { DiagramSelection } from './diagram_selection'\nimport { DiagramNewPane } from './diagram_new_pane'\nimport {\n    diagramChangeReviewService, type DiagramChangeReviewService,\n} from './diagram_change_review_service'\nimport { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'\nimport { DiagramCurrentViewport } from './diagram_current_viewport'\n\nconst MINIMUM_PANE_HEIGHT = 160\nconst SEPARATOR_HEIGHT = 6\nconst KEYBOARD_RESIZE_STEP = 24\nconst MINIMUM_COMPARISON_HEIGHT = MINIMUM_PANE_HEIGHT * 2 + SEPARATOR_HEIGHT\n\ninterface DiagramComparisonProps {\n    currentDiagram: PositionedDiagramData\n    details?: DiagramObjectDetailsService\n    drawing?: DiagramEdgeDrawingService\n    geometry?: DiagramGeometryService\n    groupDrawing?: DiagramGroupDrawingService\n    layoutService?: DiagramComparisonLayoutService\n    movement?: DiagramMoveService\n    onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void\n    placement?: DiagramNodePlacementService\n    resize?: DiagramResizeService\n    review?: DiagramChangeReviewService\n    selection?: DiagramSelectionService\n    session?: DiagramEditSessionService\n    viewService?: DiagramViewService\n}\n\nfunction availablePaneHeight(containerHeight: number) {\n    return Math.max(containerHeight - SEPARATOR_HEIGHT, 0)\n}\n\nfunction clampTopPaneHeight(proposedHeight: number, availableHeight: number) {\n    const minimumHeight = Math.min(MINIMUM_PANE_HEIGHT, availableHeight / 2)\n\n    return Math.min(Math.max(proposedHeight, minimumHeight), availableHeight - minimumHeight)\n}\n\nfunction dividerRatioForHeight(proposedHeight: number, availableHeight: number) {\n    if (availableHeight === 0) return 0.5\n\n    return clampTopPaneHeight(proposedHeight, availableHeight) / availableHeight\n}\n\n/** Layout-only comparison root. Diagram changes remain inside New service-bound leaves. */\nexport function DiagramComparison({\n    currentDiagram,\n    details = diagramObjectDetailsService,\n    drawing = diagramEdgeDrawingService,\n    geometry = diagramGeometryService,\n    groupDrawing = diagramGroupDrawingService,\n    layoutService = diagramComparisonLayoutService,\n    movement = diagramMoveService,\n    onCurrentSelect,\n    placement = diagramNodePlacementService,\n    resize = diagramResizeService,\n    review = diagramChangeReviewService,\n    selection = diagramSelectionService,\n    session = diagramEditSessionService,\n    viewService = diagramViewService,\n}: DiagramComparisonProps) {\n    const containerRef = useRef<HTMLDivElement>(null)\n    const activePointerIdRef = useRef<number | null>(null)\n    const dividerRatio = useSyncExternalStore(\n        layoutService.subscribeHorizontalDivider,\n        layoutService.getHorizontalDividerSnapshot,\n        layoutService.getHorizontalDividerSnapshot,\n    )\n\n    const setDividerFromClientY = useCallback((clientY: number) => {\n        const container = containerRef.current\n        if (!container) return\n\n        const bounds = container.getBoundingClientRect()\n        const availableHeight = availablePaneHeight(bounds.height)\n        layoutService.setHorizontalDividerRatio(dividerRatioForHeight(clientY - bounds.top, availableHeight))\n    }, [layoutService])\n\n    const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {\n        event.preventDefault()\n        activePointerIdRef.current = event.pointerId\n        event.currentTarget.setPointerCapture?.(event.pointerId)\n    }, [])\n\n    const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {\n        if (activePointerIdRef.current !== event.pointerId) return",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-17",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; cat diagram_selection_rectangle.tsx; echo ==NEWPANE; cat diagram_new_pane.tsx; echo ==COMPARISON; sed -n 1,120p diagram_comparison.tsx",
+          "providerItemId": "toolu_017GFG7dddKqtSjMzo6JiLha",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:41:20.144Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer4uqg5jRnuvKkibvBMp:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:41:22.805Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src; grep -rn \"Rectangle\" --include=*.tsx --include=*.ts -l | head; echo ==; grep -rn \"beginRectangle\\|updateRectangle\\|completeRectangle\" --include=*.tsx components | head -20",
+          "content": "components/diagram_view/diagram_selection_rectangle.tsx\ncomponents/diagram_view/editable_diagram.tsx\ncomponents/diagram_view/editable_diagram_leaves.test.tsx\ncomponents/diagram_view/editable_diagram_selection.test.tsx\nservices/diagrams/diagram_rectangle_selection.test.ts\nservices/diagrams/diagram_rectangle_selection.ts\nservices/diagrams/diagram_selection_service.test.ts\nservices/diagrams/diagram_selection_service.ts\n==\ncomponents/diagram_view/editable_diagram.tsx:113:        selection.beginRectangleSelection(diagramPointFromPointer(event))\ncomponents/diagram_view/editable_diagram.tsx:119:        selection.updateRectangleSelection(diagramPointFromPointer(event))\ncomponents/diagram_view/editable_diagram.tsx:130:        selection.completeRectangleSelection(diagramPointFromPointer(event))\ncomponents/diagram_view/editable_diagram_leaves.test.tsx:254:            selection.beginRectangleSelection({ x: 10, y: 10 })\ncomponents/diagram_view/editable_diagram_leaves.test.tsx:255:            selection.updateRectangleSelection({ x: 80, y: 90 })",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-19",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src; grep -rn \"Rectangle\" --include=*.tsx --include=*.ts -l | head; echo ==; grep -rn \"beginRectangle\\|updateRectangle\\|completeRectangle\" --include=*.tsx components | head -20",
+          "providerItemId": "toolu_01RiiiEnXYrZj8xsHDC5Hv4h",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:41:24.953Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; sed -n 80,215p editable_diagram.tsx",
+          "content": "/**\n * Sizes the New drawing surface. Its children arrive as an element through `children`, so a surface bound change\n * resizes the box without rerendering the collection hosts inside it.\n */\nexport function EditableDiagramSurface({\n    children,\n    geometry = diagramGeometryService,\n    selection = diagramSelectionService,\n    session = diagramEditSessionService,\n}: {\n    children: ReactNode,\n    geometry?: DiagramGeometryService,\n    selection?: DiagramSelectionService,\n    session?: DiagramEditSessionService,\n}) {\n    const height = useDiagramSurfaceField('height', geometry)\n    const width = useDiagramSurfaceField('width', geometry)\n    const activePointerIdRef = useRef<number | null>(null)\n    const suppressNextClickRef = useRef(false)\n    const diagramPointFromPointer = (event: PointerEvent<HTMLDivElement>) => {\n        const bounds = event.currentTarget.getBoundingClientRect()\n        const viewportMetrics = { bounds: { left: bounds.left, top: bounds.top }, scrollLeft: 0, scrollTop: 0 }\n\n        return convertClientToDiagramCoordinates(event, viewportMetrics, session.getViewportScaleSnapshot()).diagramPoint\n    }\n    const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {\n        if (event.button !== 0 || session.getActiveToolSnapshot() !== 'select') return\n        if ((event.target as Element).closest('[data-diagram-id], [data-diagram-resize-handle]')) return\n\n        event.preventDefault()\n        activePointerIdRef.current = event.pointerId\n        suppressNextClickRef.current = false\n        selection.beginRectangleSelection(diagramPointFromPointer(event))\n        event.currentTarget.setPointerCapture?.(event.pointerId)\n    }\n    const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {\n        if (activePointerIdRef.current !== event.pointerId) return\n\n        selection.updateRectangleSelection(diagramPointFromPointer(event))\n    }\n    const releasePointer = (event: PointerEvent<HTMLDivElement>) => {\n        if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {\n            event.currentTarget.releasePointerCapture?.(event.pointerId)\n        }\n        activePointerIdRef.current = null\n    }\n    const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {\n        if (activePointerIdRef.current !== event.pointerId) return\n\n        selection.completeRectangleSelection(diagramPointFromPointer(event))\n        suppressNextClickRef.current = true\n        releasePointer(event)\n    }\n    const handlePointerCancel = (event: PointerEvent<HTMLDivElement>) => {\n        if (activePointerIdRef.current !== event.pointerId) return\n\n        selection.cancelRectangleSelection()\n        releasePointer(event)\n    }\n    const handleClick = (event: MouseEvent<HTMLDivElement>) => {\n        if (suppressNextClickRef.current) {\n            suppressNextClickRef.current = false\n\n            return\n        }\n        if (session.getActiveToolSnapshot() !== 'select') return\n        if ((event.target as Element).closest('[data-diagram-id], [data-diagram-resize-handle]')) return\n\n        selection.clear()\n    }\n\n    return (\n        <Box\n            aria-label=\"New diagram\"\n            onClick={handleClick}\n            onPointerCancel={handlePointerCancel}\n            onPointerDown={handlePointerDown}\n            onPointerMove={handlePointerMove}\n            onPointerUp={handlePointerUp}\n            sx={{ height, position: 'relative', touchAction: 'none', width }}\n        >\n            {children}\n        </Box>\n    )\n}\n\n/**\n * Root of the New diagram. It composes stable hosts and leaves and subscribes to no diagram state itself, so no\n * edit inside the diagram can rerender it.\n */\nexport function EditableDiagram({\n    details = diagramObjectDetailsService,\n    drawing = diagramEdgeDrawingService,\n    fragmentDialog = diagramFragmentDialogService,\n    geometry = diagramGeometryService,\n    groupDrawing = diagramGroupDrawingService,\n    placement = diagramNodePlacementService,\n    review = diagramChangeReviewService,\n    selection = diagramSelectionService,\n    session = diagramEditSessionService,\n}: EditableDiagramProps) {\n    useDeleteDiagramSelectionOnDeleteKey(selection)\n\n    return (\n        <Box\n            {...{ [DIAGRAM_EDITOR_ROOT_ATTRIBUTE]: 'true' }}\n            aria-label=\"New diagram editor\"\n            sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}\n            tabIndex={-1}\n        >\n            <Box>\n                <EditableDiagramTitle session={session} />\n                <EditableDiagramDescription session={session} />\n            </Box>\n            <EditableDiagramSurface geometry={geometry} selection={selection} session={session}>\n                <EditableDiagramGroups details={details} geometry={geometry} selection={selection} session={session} />\n                <DiagramGroupDrawingPreview drawing={groupDrawing} />\n                <EditableDiagramFragments fragmentDialog={fragmentDialog} geometry={geometry} session={session} />\n                <EditableDiagramLifelines geometry={geometry} session={session} />\n                <EditableDiagramActivations geometry={geometry} session={session} />\n                <EditableDiagramEdges details={details} geometry={geometry} selection={selection} session={session} />\n                <DiagramEdgeDrawingPreview drawing={drawing} />\n                <EditableDiagramNodes details={details} geometry={geometry} selection={selection} session={session} />\n                <DiagramNodePlacementPreview placement={placement} />\n                <DiagramResizeHandles geometry={geometry} selection={selection} session={session} />\n                <DiagramSelectionRectangle selection={selection} />\n            </EditableDiagramSurface>\n            <DiagramObjectDetailsDialog details={details} session={session} />\n            <DiagramGroupLabelDialog drawing={groupDrawing} />\n            <DiagramFragmentDialog dialog={fragmentDialog} session={session} />\n            <DiagramChangeReviewDialog review={review} session={session} />\n            <DiagramChangeActionPopup review={review} />\n        </Box>\n    )\n}",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-20",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; sed -n 80,215p editable_diagram.tsx",
+          "providerItemId": "toolu_01U77djCBp2L1wh16ku8YaEv",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:41:27.178Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer4vNbhDCbPYeSBbUeQ4:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:41:34.254Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRead code. One real ambiguity: in editable (New) diagram, plain left-drag on empty surface already does rubber-band selection (`editable_diagram.tsx:105`). Pan needs distinct trigger there.",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 22,
+          "timestamp": "2026-09-08T13:41:35.384Z"
+        },
+        {
+          "content": "{\"questions\":[{\"question\":\"Which gesture starts surface panning in the editable (New) diagram, where left-drag on empty space is already rubber-band selection?\",\"header\":\"Pan gesture\",\"multiSelect\":true,\"options\":[{\"label\":\"Middle-button drag (Recommended)\",\"description\":\"Middle mouse button drag pans anywhere, in both editable and read-only diagrams. Left-drag keeps rubber-band selection in New. No toolbox change, no keyboard state.\"},{\"label\":\"Space held + left drag\",\"description\":\"Holding Space turns left-drag into pan (Figma style). Needs global key state + cursor feedback; fails when focus sits in a text field.\"},{\"label\":\"Hand tool in toolbox\",\"description\":\"New persistent tool 'pan' next to select. Explicit and discoverable, but a mode switch each time; read-only has no toolbox, so it needs a separate rule there.\"}]},{\"question\":\"In read-only (Current) diagram, may left-drag pan too?\",\"header\":\"Read-only left\",\"multiSelect\":false,\"options\":[{\"label\":\"Yes, drag anywhere (Recommended)\",\"description\":\"Left-drag anywhere pans Current, including over nodes/edges. Click still selects when pointer moved less than the drag threshold (~3px), same suppression pattern the legend uses.\"},{\"label\":\"Yes, empty space only\",\"description\":\"Left-drag pans only when the gesture starts on empty diagram background; drag starting on a node or edge does nothing.\"},{\"label\":\"No, middle only\",\"description\":\"Current uses the same pan trigger as New, nothing more. Fewest rules, but mouse-only users on trackpads lose the easy gesture.\"}]}]}",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-23",
+          "kind": "event",
+          "label": "AskUserQuestion",
+          "output": "The user answered: \"Which gesture starts surface panning in the editable (New) diagram, where left-drag on empty space is already rubber-band selection?\"=\"Hand tool in toolbox\", \"In read-only (Current) diagram, may left-drag pan too?\"=\"Yes, empty space only\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
+          "providerItemId": "toolu_015EUtDu3zc6t7ZknVeJ4STE",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:43:43.513Z",
+          "type": "tool.AskUserQuestion"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-question-23",
+          "kind": "event",
+          "questions": [
+            {
+              "header": "Pan gesture",
+              "id": "claude-question-0",
+              "options": [
+                {
+                  "description": "Middle mouse button drag pans anywhere, in both editable and read-only diagrams. Left-drag keeps rubber-band selection in New. No toolbox change, no keyboard state.",
+                  "label": "Middle-button drag (Recommended)"
+                },
+                {
+                  "description": "Holding Space turns left-drag into pan (Figma style). Needs global key state + cursor feedback; fails when focus sits in a text field.",
+                  "label": "Space held + left drag"
+                },
+                {
+                  "description": "New persistent tool 'pan' next to select. Explicit and discoverable, but a mode switch each time; read-only has no toolbox, so it needs a separate rule there.",
+                  "label": "Hand tool in toolbox"
+                }
+              ],
+              "question": "Which gesture starts surface panning in the editable (New) diagram, where left-drag on empty space is already rubber-band selection?"
+            },
+            {
+              "header": "Read-only left",
+              "id": "claude-question-1",
+              "options": [
+                {
+                  "description": "Left-drag anywhere pans Current, including over nodes/edges. Click still selects when pointer moved less than the drag threshold (~3px), same suppression pattern the legend uses.",
+                  "label": "Yes, drag anywhere (Recommended)"
+                },
+                {
+                  "description": "Left-drag pans only when the gesture starts on empty diagram background; drag starting on a node or edge does nothing.",
+                  "label": "Yes, empty space only"
+                },
+                {
+                  "description": "Current uses the same pan trigger as New, nothing more. Fewest rules, but mouse-only users on trackpads lose the easy gesture.",
+                  "label": "No, middle only"
+                }
+              ],
+              "question": "In read-only (Current) diagram, may left-drag pan too?"
+            }
+          ],
+          "sequence": 24,
+          "timestamp": "2026-09-08T13:41:43.001Z",
+          "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Hand tool in toolbox\nclaude-question-1: Yes, empty space only",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-answer-24",
+          "kind": "message",
+          "role": "user",
+          "sequence": 25,
+          "timestamp": "2026-09-08T13:43:43.500Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer56QfjMSbizD61xVBtn:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:43:48.680Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; sed -n 1,200p diagram_toolbox.tsx; echo ==TOOLBTN; cat diagram_toolbox_tool_button.tsx",
+          "content": "import { Box, Tab, Tabs, Tooltip, Typography } from '@mui/material';\nimport {\n    useCallback, useId, useState, useSyncExternalStore,\n    type SyntheticEvent,\n} from 'react';\nimport {\n    diagramEditSessionService,\n    type DiagramPersistentTool,\n    type DiagramToolboxSection,\n} from '../../services/diagrams/diagram_edit_session_service';\nimport {\n    diagramNodePlacementService,\n} from '../../services/diagrams/diagram_node_placement_service';\nimport {\n    diagramGroupDrawingService,\n    type DiagramGroupDrawingService,\n} from '../../services/diagrams/diagram_group_drawing_service';\nimport { ResizablePopper } from '../resizable_popper';\nimport {\n    DiagramArchitectureEdgeButton,\n    type DiagramArchitectureEdgeDrawing,\n} from './diagram_architecture_edge_button';\nimport { DiagramDependencyEdgeButton } from './diagram_dependency_edge_button';\nimport { DiagramEntityRelationshipButton } from './diagram_entity_relationship_button';\nimport { DiagramFlowEdgeButton } from './diagram_flow_edge_button';\nimport { DiagramGroupButton } from './diagram_group_button';\nimport { DiagramLegendButton } from './diagram_legend_button';\nimport { DiagramMetadataButton } from './diagram_metadata_button';\nimport {\n    diagramObjectDetailsService,\n    type DiagramObjectDetailsService,\n} from './diagram_object_details_service';\nimport { DiagramSequenceEdgeButton } from './diagram_sequence_edge_button';\nimport { DiagramFragmentButton } from './diagram_fragment_button';\nimport {\n    DiagramComponentNodeButton,\n    type DiagramComponentNodePlacement,\n    type DiagramComponentNodeSession,\n} from './diagram_component_node_button';\nimport {\n    DiagramDecisionNodeButton,\n} from './diagram_decision_node_button';\nimport {\n    DiagramEndNodeButton,\n    type DiagramEndNodePlacement,\n    type DiagramEndNodeSession,\n} from './diagram_end_node_button';\nimport {\n    DiagramEntityNodeButton,\n    type DiagramEntityNodePlacement,\n    type DiagramEntityNodeSession,\n} from './diagram_entity_node_button';\nimport { DiagramCopyButton } from './diagram_copy_button';\nimport { DiagramCutButton } from './diagram_cut_button';\nimport { DiagramDeleteButton } from './diagram_delete_button';\nimport { DiagramPasteButton } from './diagram_paste_button';\nimport {\n    DiagramParticipantButton,\n} from './diagram_participant_button';\nimport {\n    DiagramStartNodeButton,\n    type DiagramStartNodePlacement,\n    type DiagramStartNodeSession,\n} from './diagram_start_node_button';\nimport {\n    DiagramStateNodeButton,\n    type DiagramStateNodePlacement,\n    type DiagramStateNodeSession,\n} from './diagram_state_node_button';\nimport {\n    DiagramStepNodeButton,\n    type DiagramStepNodePlacement,\n    type DiagramStepNodeSession,\n} from './diagram_step_node_button';\nimport { DiagramToolboxToolButton } from './diagram_toolbox_tool_button';\nimport { useCancelDiagramInteractionOnEscape } from './use_diagram_tool';\nimport { DiagramChangeReviewButton } from './diagram_change_review_button';\nimport {\n    diagramChangeReviewService, type DiagramChangeReviewService,\n} from './diagram_change_review_service';\n\nconst DIAGRAM_TOOLBOX_SIZE_STORAGE_KEY = 'md2.diagramToolboxSize';\nconst TOOLBOX_SECTIONS: readonly { id: DiagramToolboxSection, label: string }[] = [\n    { id: 'edit', label: 'Edit' },\n    { id: 'nodes', label: 'Nodes' },\n    { id: 'edges', label: 'Edges' },\n    { id: 'groups', label: 'Groups' },\n    { id: 'others', label: 'Others' },\n];\nconst INITIAL_TOOLBOX_SIZE = { height: 200, width: 360 };\nconst MINIMUM_TOOLBOX_SIZE = { height: 120, width: 280 };\n\ninterface DiagramToolboxProps {\n    boundaryElement: HTMLElement | null;\n    details?: Pick<DiagramObjectDetailsService, 'open'>;\n    drawing?: DiagramArchitectureEdgeDrawing;\n    groupDrawing?: Pick<DiagramGroupDrawingService, 'activate'>;\n    placement?: DiagramComponentNodePlacement & DiagramEndNodePlacement & DiagramEntityNodePlacement & DiagramStartNodePlacement\n    & DiagramStateNodePlacement & DiagramStepNodePlacement;\n    review?: Pick<DiagramChangeReviewService, 'open'>;\n    session?: Omit<DiagramComponentNodeSession, 'getM\n[1584 characters omitted]\n, [session]);\n\n    return (\n        <>\n            <Box\n                aria-hidden=\"true\"\n                ref={setAnchorElement}\n                sx={{ height: 0, position: 'absolute', right: 2, top: 5, width: 0 }}\n            />\n            <ResizablePopper\n                anchorElement={anchorElement}\n                boundaryElement={boundaryElement}\n                closeOnEscape={false}\n                focusOnMount={false}\n                initialSize={INITIAL_TOOLBOX_SIZE}\n                labelId={titleId}\n                minimumSize={MINIMUM_TOOLBOX_SIZE}\n                open={!!anchorElement && !!boundaryElement}\n                paperSx={{\n                    bgcolor: 'background.paper',\n                    border: 1,\n                    borderColor: 'divider',\n                    borderRadius: 1.75,\n                    boxShadow: 8,\n                    flexDirection: 'column',\n                }}\n                placement=\"bottom-end\"\n                resizeFromAllSides\n                resizeLabel=\"Resize diagram toolbox\"\n                storageKey={DIAGRAM_TOOLBOX_SIZE_STORAGE_KEY}\n            >\n                <Typography id={titleId} sx={{ px: 1.5, pt: 1.25 }} variant=\"subtitle2\">\n                    Diagram tools\n                </Typography>\n                <Tabs\n                    aria-label=\"Diagram tool sections\"\n                    onChange={handleSectionChange}\n                    scrollButtons=\"auto\"\n                    value={activeSection}\n                    variant=\"scrollable\"\n                >\n                    {TOOLBOX_SECTIONS.map(({ id, label }) => (\n                        <Tab\n                            aria-controls={`${titleId}-${id}-panel`}\n                            id={`${titleId}-${id}-tab`}\n                            key={id}\n                            label={<Tooltip title={label}><Box component=\"span\">{label}</Box></Tooltip>}\n                            value={id}\n                        />\n                    ))}\n                </Tabs>\n                <Box\n                    aria-labelledby={`${titleId}-${activeSection}-tab`}\n                    id={`${titleId}-${activeSection}-panel`}\n                    role=\"tabpanel\"\n                    sx={{ alignContent: 'flex-start', display: 'flex', flex: 1, flexWrap: 'wrap', gap: 1, overflow: 'auto', p: 1.5 }}\n                >\n                    {activeSection === 'edit' && (\n                        <>\n                            <DiagramToolboxToolButton\n                                label=\"Select\"\n                                session={session}\n                                tool=\"select\"\n                                tooltip=\"Select diagram objects\"\n                            />\n                            <DiagramCopyButton />\n                            <DiagramPasteButton />\n                            <DiagramCutButton />\n==TOOLBTN\nimport { useCallback } from 'react';\nimport type {\n    DiagramPersistentTool,\n    DiagramEditSessionService,\n} from '../../services/diagrams/diagram_edit_session_service';\nimport { diagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service';\nimport { DiagramToolboxButton } from './diagram_toolbox_button';\nimport { useActiveDiagramTool } from './use_diagram_tool';\n\ninterface DiagramToolboxToolButtonProps {\n    label: string;\n    session?: Pick<DiagramEditSessionService, 'getActiveToolSnapshot' | 'setActiveTool' | 'subscribeActiveTool'>;\n    tool: DiagramPersistentTool;\n    tooltip: string;\n}\n\n/** Persistent diagram mode button bound only to active tool state. */\nexport function DiagramToolboxToolButton({\n    label,\n    session = diagramEditSessionService,\n    tool,\n    tooltip,\n}: DiagramToolboxToolButtonProps) {\n    const activeTool = useActiveDiagramTool(session, tool);\n    const handleActivate = useCallback(() => session.setActiveTool(tool), [session, tool]);\n\n    return (\n        <DiagramToolboxButton\n            active={activeTool}\n            label={label}\n            onActivate={handleActivate}\n            tooltip={tooltip}\n        />\n    );\n}",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-27",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; sed -n 1,200p diagram_toolbox.tsx; echo ==TOOLBTN; cat diagram_toolbox_tool_button.tsx",
+          "providerItemId": "toolu_019ivNUkxMyNRFrCN6S8dq9N",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:43:50.145Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-28",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer56uHvafJ5s63pJ1qaj:thinking:0",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:43:52.582Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/services/diagrams; sed -n 755,800p diagram_edit_session_service.ts; echo ==CANCEL; grep -n \"cancelActiveInteraction\" -A 20 diagram_edit_session_service.ts | head -40",
+          "content": "        return true\n    }\n\n    setActiveToolboxSection(section: DiagramToolboxSection) {\n        if (!this.session) throw new Error('Cannot select a diagram toolbox section without an active edit session')\n        if (section === this.activeToolboxSection) return\n\n        this.activeToolboxSection = section\n        this.dispatchEvent(new Event(TOOLBOX_SECTION_CHANGED_EVENT))\n    }\n\n    setActiveTool(tool: DiagramPersistentTool) {\n        if (!this.session) throw new Error('Cannot select a diagram tool without an active edit session')\n        const gestureChanged = this.transientGesture !== null\n        const toolChanged = tool !== this.activeTool\n        if (!gestureChanged && !toolChanged) return\n\n        this.activeTool = tool\n        this.transientGesture = null\n        if (gestureChanged) this.dispatchEvent(new Event(TRANSIENT_GESTURE_CHANGED_EVENT))\n        if (toolChanged) this.dispatchEvent(new Event(ACTIVE_TOOL_CHANGED_EVENT))\n    }\n\n    beginTransientGesture(gesture: DiagramTransientGesture) {\n        if (!this.session) throw new Error('Cannot begin a diagram gesture without an active edit session')\n        if (gesture === this.transientGesture) return\n\n        this.transientGesture = gesture\n        this.dispatchEvent(new Event(TRANSIENT_GESTURE_CHANGED_EVENT))\n    }\n\n    completeTransientGesture() {\n        if (!this.transientGesture) return\n\n        this.transientGesture = null\n        this.dispatchEvent(new Event(TRANSIENT_GESTURE_CHANGED_EVENT))\n    }\n\n    cancelActiveInteraction() {\n        if (!this.session) return false\n\n        return this.resetActiveInteraction()\n    }\n\n    setViewportScale(scale: number) {\n==CANCEL\n794:    cancelActiveInteraction() {\n795-        if (!this.session) return false\n796-\n797-        return this.resetActiveInteraction()\n798-    }\n799-\n800-    setViewportScale(scale: number) {\n801-        if (!this.session) throw new Error('Cannot zoom diagram without an active edit session')\n802-        requireDiagramZoom(scale)\n803-        if (scale === this.viewportScale) return false\n804-\n805-        this.viewportScale = scale\n806-        this.dispatchEvent(new Event(VIEWPORT_SCALE_CHANGED_EVENT))\n807-\n808-        return true\n809-    }\n810-\n811-    setMetadataField<Field extends MutableDiagramMetaField>(field: Field, value: DiagramMeta[Field]) {\n812-        const diagram = this.requireEditableDiagram()\n813-        const previousValue = diagram.meta[field]\n814-        const trimmedValue = value.trim()",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-29",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/services/diagrams; sed -n 755,800p diagram_edit_session_service.ts; echo ==CANCEL; grep -n \"cancelActiveInteraction\" -A 20 diagram_edit_session_service.ts | head -40",
+          "providerItemId": "toolu_01VniMDjtCyCBbDZGh8gpxVU",
+          "sequence": 29,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:43:54.105Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-30",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer57BhQrckmZmiPEWnVs:thinking:0",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:44:03.272Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; grep -n \"data-diagram\\|onSelect\\|onClick\" diagram_node.tsx diagram_edge.tsx diagram_group.tsx | head -30; echo ==RESET; grep -n \"resetActiveInteraction\" -A 15 ../../services/diagrams/diagram_edit_session_service.ts | head -25",
+          "content": "diagram_node.tsx:22:    onSelect: DiagramSelectHandler\ndiagram_node.tsx:50:export function DiagramNode({diagramType, entityFieldSource, flowPreset, node, onOpenDetails, onSelect, selected}: DiagramNodeProps) {\ndiagram_node.tsx:58:        onSelect({ id: node.id, label: node.label, left, top }, ctrlKey)\ndiagram_node.tsx:85:            data-diagram-connection-target={node.id}\ndiagram_node.tsx:86:            data-diagram-id={node.id}\ndiagram_node.tsx:87:            data-diagram-kind=\"node\"\ndiagram_node.tsx:88:            onClick={interactive ? handleClick : undefined}\ndiagram_node.tsx:108:                    data-diagram-node-shape=\"decision\"\ndiagram_node.tsx:130:                    data-diagram-scroll=\"content\"\ndiagram_edge.tsx:14:    onSelect: DiagramSelectHandler\ndiagram_edge.tsx:26:export function DiagramEdge({ edge, nodeLabels, onOpenDetails, onSelect, selected }: DiagramEdgeProps) {\ndiagram_edge.tsx:35:        onSelect({ id: edge.id, label, left, top }, ctrlKey)\ndiagram_edge.tsx:59:            data-diagram-id={edge.id}\ndiagram_edge.tsx:60:            data-diagram-kind=\"edge\"\ndiagram_edge.tsx:62:            onClick={handleClick}\ndiagram_group.tsx:8:    onSelect?: (ctrlKey: boolean) => void\ndiagram_group.tsx:13:export function DiagramGroup({ group, onOpenDetails, onSelect, selected = false }: DiagramGroupProps) {\ndiagram_group.tsx:14:    const interactive = !!onSelect\ndiagram_group.tsx:15:    const handleClick = (event: MouseEvent<HTMLButtonElement>) => onSelect?.(event.ctrlKey)\ndiagram_group.tsx:19:        onSelect?.(false)\ndiagram_group.tsx:34:            data-diagram-id={interactive ? group.id : undefined}\ndiagram_group.tsx:35:            data-diagram-kind={interactive ? 'group' : undefined}\ndiagram_group.tsx:36:            onClick={interactive ? handleClick : undefined}\n==RESET\n683:        this.resetActiveInteraction()\n684-        this.resetViewportScale()\n685-        this.edgesById = indexById(editableDiagram.edges)\n686-        this.fragmentsById = indexById(editableDiagram.fragments ?? [])\n687-        this.groupsById = indexById(editableDiagram.groups)\n688-        this.nodesById = indexById(editableDiagram.nodes)\n689-        this.entityFieldIndexesByNodeId = new Map(editableDiagram.nodes.map((node) => (\n690-            [node.id, DiagramEditSessionService.entityFieldIndexes(node)]\n691-        )))\n692-        this.legendEntryKeys = Object.freeze((editableDiagram.meta.legend ?? []).map(diagramLegendEntryKey))\n693-        this.setChangeBaseline(source.diagram)\n694-        this.edgeIds = Object.freeze(editableDiagram.edges.map(({ id }) => id))\n695-        this.fragmentIds = Object.freeze((editableDiagram.fragments ?? []).map(({ id }) => id))\n696-        this.groupIds = Object.freeze(editableDiagram.groups.map(({ id }) => id))\n697-        this.nodeIds = Object.freeze(editableDiagram.nodes.map(({ id }) => id))\n698-        this.groupNodeIdsById = new Map(editableDiagram.groups.map((group) => [group.id, Object.freeze([...group.nodeIds])]))\n--\n713:        this.resetActiveInteraction()\n714-        this.resetViewportScale()\n715-        this.edgesById.clear()\n716-        this.fragmentsById.clear()\n717-        this.groupsById.clear()\n718-        this.nodesById.clear()\n719-        this.entityFieldIndexesByNodeId.clear()\n720-        this.originalEdgesById.clear()",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-31",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/diagram_view; grep -n \"data-diagram\\|onSelect\\|onClick\" diagram_node.tsx diagram_edge.tsx diagram_group.tsx | head -30; echo ==RESET; grep -n \"resetActiveInteraction\" -A 15 ../../services/diagrams/diagram_edit_session_service.ts | head -25",
+          "providerItemId": "toolu_01X4YBAJoAkwYebM5xneCS4B",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:44:05.116Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-32",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer5814E1Ha6P1LVLFj7M:thinking:0",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:44:25.179Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2 && cat >> design/feature_descriptions/F_340_diagram_drag_surface.md <<'EOF'\n\n## Current state\n\n`Current` means the saved read-only diagram; `New` means the editable copy shown during an edit session. Neither one can be panned, where \"pan\" means dragging the visible content so the scroll container moves, without changing any diagram coordinate.\n\n`DiagramCurrentViewport` renders Current inside a scroll container (`overflow: auto`) and installs no pointer handlers, so scrolling is only possible through the wheel, the scrollbars, or the keyboard. Clicks on a node, edge, or group open the item menu.\n\n`DiagramZoomViewport` owns every New pointer gesture: node placement, edge drawing, group drawing, moving, and resizing. A left-drag that starts on empty New background is already taken: `EditableDiagramSurface` begins a rubber-band rectangle selection there, but only while the active persistent tool is `select`. `DiagramEditSessionService` owns the persistent tool (`select`, `group`, `node:*`, `edge:*`) and the transient gesture (`placement`, `edge`, `group`, `move`, `resize`), and it cancels the transient gesture on Escape and on tool changes.\n\nBoth viewports apply zoom as a visual `zoom` scale on an inner surface, and `usePreserveDiagramZoomCenter` writes scroll offsets directly on the scroll container when the scale changes.\n\n## implementation details\n\n* Add a persistent `pan` tool to `DiagramPersistentTool` and a `pan` transient gesture to `DiagramTransientGesture` in `DiagramEditSessionService`. Add one `DiagramToolboxToolButton` for it in the toolbox `Edit` section next to `Select`, so New pan is an explicit mode the user switches into and out of.\n* Extract the drag itself into one shared hook, for example `use_diagram_surface_pan.ts`, used by both viewports. On pointer down it records the client point plus the scroll container's `scrollLeft` and `scrollTop`; on pointer move it writes `start - delta` back onto those two properties directly on the DOM element. Deltas are viewport pixels, so no diagram-coordinate conversion and no zoom scale enter the calculation.\n* Keep pan out of React state and out of service state. The hook must never trigger a rerender of the diagram, its nodes, or the legend, because a pan repaints far more often than a legend move (see B_227).\n* In New, handle pan in `DiagramZoomViewport` pointer handlers ahead of the resize, move, drawing, and placement branches, gated on the active tool being `pan` and on the primary left button. Report the drag through `session.beginTransientGesture('pan')` and `completeTransientGesture()`, so the existing Escape handling, `cancelActiveInteraction`, and `handleTransientGestureChanged` paths already cover it. `EditableDiagramSurface` needs no change: its rubber-band start already returns early unless the active tool is `select`.\n* In Current, add pointer handlers to the `DiagramCurrentViewport` scroll container. Start a pan only when the primary left button goes down on empty background, meaning the event target has no `[data-diagram-id]` ancestor. Current has no edit session, so gesture state stays in refs inside the hook.\n* Cancelling a pan restores the scroll offsets recorded at pointer down. Cancellation means Escape, `pointercancel`, or `lostpointercapture` in New, and Escape or `pointercancel` in Current.\n* Suppress the click that follows a pan once the pointer moved past a small threshold (3 pixels, the threshold the legend drag uses), so a pan that starts on Current background never clears or opens anything, and a short click still behaves as before.\n* Show `grab` and `grabbing` cursors on the scroll container while pan is available and while a pan runs. Set them on the container only, never on diagram children.\n* Handle the primary pointer only, and do not call `preventDefault` for touch pointers in Current, so native touch scrolling keeps working there.\n* Pan changes no diagram data: positioned data, editable model data, selection, dirty state, and the change set stay untouched, and zoom scale stays untouched.\n* Add focused tests for: pan in Current and in New, the empty-background restriction in Current, no rubber-band selection while the pan tool is active, click suppression after a drag, restore-on-cancel, pan being unaffected by zoom scale, and the toolbox pan button toggling the tool.\n\n## acceptance criteria\n\n* In the read-only Current diagram, dragging from empty diagram background with the left button scrolls the diagram content with the pointer, in both axes, in normal read-only mode and in every comparison layout.\n* In the Current diagram, a drag that starts on a node, edge, or group does nothing, and a click on those items still opens the item menu.\n* The New toolbox `Edit` section offers a `Pan` tool next to `Select`. While `Pan` is active, dragging anywhere in the New viewport scrolls it, and no rubber-band selection, move, resize, or drawing starts.\n* Switching back to `Select` restores the previous New behaviour, including rubber-band selection from empty background.\n* Escape, or a cancelled pointer, during a pan returns the scroll position to where the drag started.\n* A pan that moved more than the drag threshold does not produce a click: nothing gets selected, cleared, or opened when the pointer is released.\n* Panning changes no diagram coordinates, no editable data, no selection, no dirty state, no change set, and no zoom scale, and works the same at every zoom level.\n* Panning does not rerender the diagram, its objects, or the legend.\n* Focused diagram viewport, toolbox, edit-session, and pan-hook tests pass; app lint and typecheck pass.\nEOF\nsed -i 's/^status: design$/status: ready for implementation/' design/feature_descriptions/F_340_diagram_drag_surface.md\nsed -n 1,15p design/feature_descriptions/F_340_diagram_drag_surface.md",
+          "content": "---\nauthor: \nid: F_340\ninternalId: 5fdacfce-a360-41f7-a964-343f37edd94e\ntitle: diagram drag surface\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__5fdacfce-a360-41f7-a964-343f37edd94e.json\npolicy:\n---\nuser should be able to drag the diagram surface around both in editable and non-editable diagrams. this should move the scroll position.\n## Current state",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-33",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2 && cat >> design/feature_descriptions/F_340_diagram_drag_surface.md <<'EOF'\n\n## Current state\n\n`Current` means the saved read-only diagram; `New` means the editable copy shown during an edit session. Neither one can be panned, where \"pan\" means dragging the visible content so the scroll container moves, without changing any diagram coordinate.\n\n`DiagramCurrentViewport` renders Current inside a scroll container (`overflow: auto`) and installs no pointer handlers, so scrolling is only possible through the wheel, the scrollbars, or the keyboard. Clicks on a node, edge, or group open the item menu.\n\n`DiagramZoomViewport` owns every New pointer gesture: node placement, edge drawing, group drawing, moving, and resizing. A left-drag that starts on empty New background is already taken: `EditableDiagramSurface` begins a rubber-band rectangle selection there, but only while the active persistent tool is `select`. `DiagramEditSessionService` owns the persistent tool (`select`, `group`, `node:*`, `edge:*`) and the transient gesture (`placement`, `edge`, `group`, `move`, `resize`), and it cancels the transient gesture on Escape and on tool changes.\n\nBoth viewports apply zoom as a visual `zoom` scale on an inner surface, and `usePreserveDiagramZoomCenter` writes scroll offsets directly on the scroll container when the scale changes.\n\n## implementation details\n\n* Add a persistent `pan` tool to `DiagramPersistentTool` and a `pan` transient gesture to `DiagramTransientGesture` in `DiagramEditSessionService`. Add one `DiagramToolboxToolButton` for it in the toolbox `Edit` section next to `Select`, so New pan is an explicit mode the user switches into and out of.\n* Extract the drag itself into one shared hook, for example `use_diagram_surface_pan.ts`, used by both viewports. On pointer down it records the client point plus the scroll container's `scrollLeft` and `scrollTop`; on pointer move it writes `start - delta` back onto those two properties directly on the DOM element. Deltas are viewport pixels, so no diagram-coordinate conversion and no zoom scale enter the calculation.\n* Keep pan out of React state and out of service state. The hook must never trigger a rerender of the diagram, its nodes, or the legend, because a pan repaints far more often than a legend move (see B_227).\n* In New, handle pan in `DiagramZoomViewport` pointer handlers ahead of the resize, move, drawing, and placement branches, gated on the active tool being `pan` and on the primary left button. Report the drag through `session.beginTransientGesture('pan')` and `completeTransientGesture()`, so the existing Escape handling, `cancelActiveInteraction`, and `handleTransientGestureChanged` paths already cover it. `EditableDiagramSurface` needs no change: its rubber-band start already returns early unless the active tool is `select`.\n* In Current, add pointer handlers to the `DiagramCurrentViewport` scroll container. Start a pan only when the primary left button goes down on empty background, meaning the event target has no `[data-diagram-id]` ancestor. Current has no edit session, so gesture state stays in refs inside the hook.\n* Cancelling a pan restores the scroll offsets recorded at pointer down. Cancellation means Escape, `pointercancel`, or `lostpointercapture` in New, and Escape or `pointercancel` in Current.\n* Suppress the click that follows a pan once the pointer moved past a small threshold (3 pixels, the threshold the legend drag uses), so a pan that starts on Current background never clears or opens anything, and a short click still behaves as before.\n* Show `grab` and `grabbing` cursors on the scroll container while pan is available and while a pan runs. Set them on the container only, never on diagram children.\n* Handle the primary pointer only, and do not call `preventDefault` for touch pointers in Current, so native touch scrolling keeps working there.\n* Pan changes no diagram data: positioned data, editable model data, selection, dirty state, and the change set stay untouched, and zoom scale stays untouched.\n* Add focused tests for: pan in Current and in New, the empty-background restriction in Current, no rubber-band selection while the pan tool is active, click suppression after a drag, restore-on-cancel, pan being unaffected by zoom scale, and the toolbox pan button toggling the tool.\n\n## acceptance criteria\n\n* In the read-only Current diagram, dragging from empty diagram background with the left button scrolls the diagram content with the pointer, in both axes, in normal read-only mode and in every comparison layout.\n* In the Current diagram, a drag that starts on a node, edge, or group does nothing, and a click on those items still opens the item menu.\n* The New toolbox `Edit` section offers a `Pan` tool next to `Select`. While `Pan` is active, dragging anywhere in the New viewport scrolls it, and no rubber-band selection, move, resize, or drawing starts.\n* Switching back to `Select` restores the previous New behaviour, including rubber-band selection from empty background.\n* Escape, or a cancelled pointer, during a pan returns the scroll position to where the drag started.\n* A pan that moved more than the drag threshold does not produce a click: nothing gets selected, cleared, or opened when the pointer is released.\n* Panning changes no diagram coordinates, no editable data, no selection, no dirty state, no change set, and no zoom scale, and works the same at every zoom level.\n* Panning does not rerender the diagram, its objects, or the legend.\n* Focused diagram viewport, toolbox, edit-session, and pan-hook tests pass; app lint and typecheck pass.\nEOF\nsed -i 's/^status: design$/status: ready for implementation/' design/feature_descriptions/F_340_diagram_drag_surface.md\nsed -n 1,15p design/feature_descriptions/F_340_diagram_drag_surface.md",
+          "providerItemId": "toolu_017EMLckwapo8VcWRCnNoEEb",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:44:52.208Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-34",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer5BUQrByUaqp8gDU6Ew:thinking:0",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:44:54.644Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "sed -i '13a\\\\' design/feature_descriptions/F_340_diagram_drag_surface.md && sed -n 12,16p design/feature_descriptions/F_340_diagram_drag_surface.md",
+          "content": "---\nuser should be able to drag the diagram surface around both in editable and non-editable diagrams. this should move the scroll position.\n## Current state\n\n`Current` means the saved read-only diagram; `New` means the editable copy shown during an edit session. Neither one can be panned, where \"pan\" means dragging the visible content so the scroll container moves, without changing any diagram coordinate.",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-35",
+          "kind": "event",
+          "label": "sed -i '13a\\\\' design/feature_descriptions/F_340_diagram_drag_surface.md && sed -n 12,16p design/feature_descriptions/F_340_diagram_drag_surface.md",
+          "providerItemId": "toolu_01SXeBAyKDCeiLDNcWG1wyhJ",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:44:58.382Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-36",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cer5BvTWk1zymQxXobQ8f:thinking:0",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T13:45:01.653Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "sed -i '0,/^## Current state$/s//\\n## Current state/' design/feature_descriptions/F_340_diagram_drag_surface.md && sed -n 12,16p design/feature_descriptions/F_340_diagram_drag_surface.md",
+          "content": "---\nuser should be able to drag the diagram surface around both in editable and non-editable diagrams. this should move the scroll position.\n\n## Current state",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-event-37",
+          "kind": "event",
+          "label": "sed -i '0,/^## Current state$/s//\\n## Current state/' design/feature_descriptions/F_340_diagram_drag_surface.md && sed -n 12,16p design/feature_descriptions/F_340_diagram_drag_surface.md",
+          "providerItemId": "toolu_01Mxgp6moBkBYW6Wud1KSeZV",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-09-08T13:45:04.831Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. `F_340_diagram_drag_surface.md` now has three new sections; status → `ready for implementation`. No staging, no commit.\n\nKey decisions baked in, per your answers:\n\n- **New (editable)**: new persistent `pan` tool in toolbox `Edit` section next to `Select`. Pan drag lives in `DiagramZoomViewport`, reported as a new `pan` transient gesture, so existing Escape/cancel plumbing covers it. `EditableDiagramSurface` needs no change — its rubber-band start already requires `select`.\n- **Current (read-only)**: left-drag pans only when the gesture starts on empty background (no `[data-diagram-id]` ancestor); drag on node/edge/group does nothing.\n- **Shared**: one hook writing `scrollLeft`/`scrollTop` straight to the DOM, no React or service state — pan repaints often, so no diagram/legend rerender (ties to B_227).\n- Deltas are viewport pixels, so zoom scale never enters the math; cancel restores start offsets; 3px threshold suppresses the trailing click.\n\nTwo things I decided rather than asked, flag if wrong: cancel **restores** the start scroll position (matches move/resize cancel semantics) rather than leaving it where dropped, and Current keeps native touch scrolling (no `preventDefault` on touch pointers).",
+          "id": "agent-turn-fff4c8cd-936d-49e1-866d-afab0830f086-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 38,
+          "timestamp": "2026-09-08T13:45:13.097Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-08074ce2-5dae-42f2-b57e-89bad288c0ff",
+      "providerSessions": [],
+      "startedAt": "2026-09-08T13:40:43.192Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 59809,
+        "runningStartedAt": "2026-09-08T13:43:43.500Z"
+      },
+      "title": "complete",
+      "usage": {
+        "cachedInputTokens": 1061127,
+        "inputTokens": 38,
+        "outputTokens": 9488,
+        "reasoningTokens": 0,
+        "totalTokens": 1070653,
+        "costUsd": 1.376343
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "5fdacfce-a360-41f7-a964-343f37edd94e",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
