@@ -12,6 +12,8 @@ policy:
 * clicking outside of the dialog should not close it. to cancel, user needs to explicitly click on cancel
 * We need to improve the style of the dialog: currently, the folder is not really easy to overview, its just a list of texts.
 
+make a proposal on how we can improve the dialog & content style and such. check other dialogs and so. also check [STYLE\_GUIDE.md](design/STYLE_GUIDE.md)
+
 perhaps we can give some structure:
 
 * design at top
