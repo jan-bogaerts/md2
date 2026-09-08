@@ -3,12 +3,18 @@ author:
 id: F_337
 internalId: 78a34547-ca4b-47ac-97cf-78b33da210e9
 title: Handle back button when on mobile
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__78a34547-ca4b-47ac-97cf-78b33da210e9.json
 policy:
+changedFiles:
+  - app/src/components/hooks/use_card_popup_back_dismiss.test.tsx
+  - app/src/components/hooks/use_card_popup_back_dismiss.ts
+  - app/src/components/shell/project/new_card_dialog_back_dismiss.grouped.test.tsx
+  - app/src/services/mobile_back_dismiss_service.node.test.ts
+  - app/src/services/mobile_back_dismiss_service.ts
 ---
 
 When the app is on a small screen and running in a browser, so not in electron. And a popup is open, which will be full screen in this situation, then the browser´s back button should close the popup.
