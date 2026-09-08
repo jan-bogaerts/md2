@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__b1dd875a-96b4-41c1-8e3c-7a1ce548877d.json
 policy:
 ---
 * clicking outside of the dialog should not close it. to cancel, user needs to explicitly click on cancel
