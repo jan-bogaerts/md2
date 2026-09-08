@@ -3,12 +3,14 @@ author:
 id: B_219
 internalId: 30a808a9-ebec-4f4e-835b-dfb089c714ef
 title: copy relative path from remote
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__30a808a9-ebec-4f4e-835b-dfb089c714ef.json
 policy:
+changedFiles:
+  - app/src/services/clipboard_text.test.ts
 ---
 When the react app is connected to the electron app through a websocket, we don't correctly handle the commands 'copy path' an 'copy relative path': they give an error.
 
