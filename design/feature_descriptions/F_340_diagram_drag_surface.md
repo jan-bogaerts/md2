@@ -3,7 +3,7 @@ author:
 id: F_340
 internalId: 5fdacfce-a360-41f7-a964-343f37edd94e
 title: diagram drag surface
-status: new
+status: design
 owner: 
 affects:
 agents:
