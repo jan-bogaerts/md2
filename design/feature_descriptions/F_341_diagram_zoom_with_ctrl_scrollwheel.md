@@ -3,12 +3,19 @@ author:
 id: F_341
 internalId: 1c4b8e5f-d13a-4c28-aa5a-b6724f3b6f1b
 title: diagram zoom with ctrl scrollwheel
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__1c4b8e5f-d13a-4c28-aa5a-b6724f3b6f1b.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_comparison.test.tsx
+  - app/src/components/diagram_view/diagram_current_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_current_viewport.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/use_diagram_ctrl_wheel_zoom.ts
 ---
 
 on the diagram view, we currently support zooming .we should allow the user to zoom with the mouse : when ctrl is pressed, the scroll-wheel should zoom in and out.
