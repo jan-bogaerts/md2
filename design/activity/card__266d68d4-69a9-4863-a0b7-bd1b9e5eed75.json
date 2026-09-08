@@ -955,6 +955,30 @@
       "startedAt": "2026-09-08T09:00:33.518Z",
       "status": "cancelled",
       "rootConversationId": "agent-4a440145-5b48-408a-be30-a3dc292b3fa6"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-09-08T09:14:42.719Z",
+      "conversationIds": [
+        "agent-f20d9744-dabd-4717-b994-10383987701e"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-terra",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-38bcb594-3e61-4f36-9767-ff1f56386137",
+      "origin": {
+        "cardInternalId": "266d68d4-69a9-4863-a0b7-bd1b9e5eed75",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "agent-f20d9744-dabd-4717-b994-10383987701e",
+      "startedAt": "2026-09-08T09:00:54.808Z",
+      "status": "completed"
     }
   ],
   "version": 5
