@@ -3,12 +3,19 @@ author:
 id: B_226
 internalId: cd3e256b-4d1e-433f-97b9-a662110f1596
 title: project agent action buttons no state
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__cd3e256b-4d1e-433f-97b9-a662110f1596.json
 policy:
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup.tsx
+  - app/src/components/actions/run/popup/action_selector.test.tsx
+  - app/src/components/actions/run/popup/action_selector_button.tsx
+  - app/src/components/hooks/use_card_action_agent_state.ts
+  - app/src/components/hooks/use_context_action_agent_state.ts
 ---
 
 the project agent has an action that is waiting for a response. the FAB button correctly shows the state, but then when you open the action popup, no action button shows the same state, so it is confusing. after some digging, one of the actions indeed had a conversation that was 'waitingForInput'.
