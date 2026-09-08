@@ -20,6 +20,7 @@ changedFiles:
   - desktop/src/shell/local_bridge_dispatch.test.mjs
   - desktop/src/shell/preload.test.mjs
   - shared/agent_conversations.mjs
+after: 9d5878e6-2d20-4574-971d-57dbd82eb389
 ---
 When an agent asked a question, we show a box with the questions. this works ok. only problem, when we close the application and open it again (so the agent has stopped), we don't show the questions anymore.
 

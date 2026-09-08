@@ -3,7 +3,7 @@ author:
 id: B_225
 internalId: ad96a8b4-de34-44c9-9761-c2834fd8710a
 title: polling claude not working correctly
-status: design
+status: ready
 owner: 
 affects:
 agents:
