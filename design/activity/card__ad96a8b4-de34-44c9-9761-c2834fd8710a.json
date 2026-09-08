@@ -1,0 +1,446 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    },
+    "md2.custom-prompt": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "ad96a8b4-de34-44c9-9761-c2834fd8710a",
+      "cardPath": "design/feature_descriptions/B_225_polling_claude_not_working_correctly.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 64894
+      },
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_225_polling_claude_not_working_correctly.md. report your findings",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-08T08:33:58.589Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the file.",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-09-08T08:34:01.787Z"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_225_polling_claude_not_working_correctly.md\"",
+          "content": "---\r\nauthor: \r\nid: B_225\r\ninternalId: ad96a8b4-de34-44c9-9761-c2834fd8710a\r\ntitle: polling claude not working correctly\r\nstatus: design\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__ad96a8b4-de34-44c9-9761-c2834fd8710a.json\r\npolicy:\r\n---\r\n\nhere are the logs we got from claude usage polling:\n\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2514,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:04:27.472Z',\r\n> screenExcerpt: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57529,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:05:22.487Z'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2213,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:06:27.181Z',\r\n> screenExcerpt: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 7pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57215,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:07:22.183Z'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2232,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:08:27.211Z',\r\n> screenExcerpt: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57234,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:09:22.213Z'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2245,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:10:27.238Z',\r\n> screenExcerpt: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 7pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57248,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:11:22.241Z'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2191,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:12:27.195Z',\r\n> screenExcerpt: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 7pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57199,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:13:22.204Z'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2273,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:14:27.291Z',\r\n> screenExcerpt: 'You are currently using your subscription to power\n[2036 characters omitted]\nou are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57247,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:21:22.303Z'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2477,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:22:27.542Z',\r\n> screenExcerpt: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57483,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:23:22.548Z'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2172,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:24:27.250Z',\r\n> screenExcerpt: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57182,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:25:22.260Z'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2205,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:26:27.295Z',\r\n> screenExcerpt: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57216,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:27:22.306Z'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2323,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:28:27.429Z',\r\n> screenExcerpt: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57329,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:29:22.435Z'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'stdout',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 2299,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'stdout-unparsed',\r\n> timestamp: '2026-09-08T08:30:27.417Z',\r\n> screenExcerpt: 'You are currently using your subscription to power your Claude Code usage\\n' +\r\n> 'Current session: 0% used\\n' +\r\n> 'Current week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)'\r\n> }\r\n> \\[claude:usage-poll] {\r\n> attempt: 'pty',\r\n> cwd: 'C:\\Users\\janbo\\Documents\\dev\\md2',\r\n> elapsedMs: 57302,\r\n> executable: 'C:\\Program Files\\nodejs\\claude.cmd',\r\n> reason: 'pty-host-deadline',\r\n> timestamp: '2026-09-08T08:31:22.420Z'\r\n> }\n\nwe are clearly getting the proper response but our parser isn't finding it. investigate the problem, report how it works currently and how you would fix it.",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-3",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_225_polling_claude_not_working_correctly.md\"",
+          "providerItemId": "toolu_01FZMBBNFq5YrsUQJ15PSyMg",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:34:03.235Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfUiFy18phhJiiTcfGW:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:34:07.835Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rl \"usage-poll\\|stdout-unparsed\\|pty-host-deadline\" --include=*.mjs --include=*.ts --include=*.tsx --include=*.js . | head -50",
+          "content": "./desktop/src/actions/agent/claude_usage_diagnostics.js",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-5",
+          "kind": "event",
+          "label": "grep -rl \"usage-poll\\|stdout-unparsed\\|pty-host-deadline\" --include=*.mjs --include=*.ts --include=*.tsx --include=*.js . | head -50",
+          "providerItemId": "toolu_01JqdrQt6DXdcTx63UdJZG7A",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:34:32.996Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "ls desktop/src/actions/agent/ | grep -i usage",
+          "content": "claude_usage_diagnostics.js\nclaude_usage_diagnostics.test.mjs\nclaude_usage_parsing.js\nclaude_usage_parsing.test.mjs\nclaude_usage_poller.js\nclaude_usage_poller.test.mjs\nclaude_usage_terminal.js\nclaude_usage_terminal.test.mjs\nclaude_usage_terminal_host.js\nclaude_usage_terminal_host.test.mjs\nclaude_usage_terminal_worker.js\ncodex_usage_poller.js\ncodex_usage_poller.test.mjs\nproject_agent_token_usage.js\nproject_agent_token_usage.test.mjs\nusage_metrics_service.js\nusage_metrics_service.test.mjs",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-6",
+          "kind": "event",
+          "label": "ls desktop/src/actions/agent/ | grep -i usage",
+          "providerItemId": "toolu_01MzEZkDvTodqEqXDdS9D2K3",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:34:34.476Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd desktop/src/actions/agent && wc -l claude_usage_parsing.js claude_usage_poller.js claude_usage_terminal.js claude_usage_terminal_host.js claude_usage_diagnostics.js && cat claude_usage_parsing.js",
+          "content": "  159 claude_usage_parsing.js\n  248 claude_usage_poller.js\n  281 claude_usage_terminal.js\n   74 claude_usage_terminal_host.js\n   73 claude_usage_diagnostics.js\n  835 total\nconst RESET_CLOCK_TOLERANCE_MS = 60_000;\nconst MONTHS = new Map([\n    ['jan', 0], ['feb', 1], ['mar', 2], ['apr', 3], ['may', 4], ['jun', 5],\n    ['jul', 6], ['aug', 7], ['sep', 8], ['oct', 9], ['nov', 10], ['dec', 11],\n]);\nconst WINDOW_PATTERNS = [\n    // Claude omits the minutes on a whole hour (\"7pm\"), so they are optional here.\n    { id: 'five_hour', pattern: /^Current session:\\s*(\\d{1,3})% used\\s*·\\s*resets\\s+([A-Za-z]{3})\\s+(\\d{1,2}),\\s+(\\d{1,2})(?::(\\d{2}))?(am|pm)\\s+\\(([^)]+)\\)\\s*$/iu },\n    { id: 'weekly', pattern: /^Current week \\(all models\\):\\s*(\\d{1,3})% used\\s*·\\s*resets\\s+([A-Za-z]{3})\\s+(\\d{1,2}),\\s+(\\d{1,2})(?::(\\d{2}))?(am|pm)\\s+\\(([^)]+)\\)\\s*$/iu },\n];\nconst TERMINAL_WINDOW_DEFINITIONS = [\n    { heading: 'Current session', id: 'five_hour' },\n    { heading: 'Current week (all models)', id: 'weekly' },\n];\nconst TERMINAL_RESET_PATTERN = /^(?:([A-Za-z]{3})\\s+(\\d{1,2}),\\s+)?(\\d{1,2})(?::(\\d{2}))?(am|pm)\\s+\\(([^)]+)\\)$/iu;\n\nfunction datePartsInTimeZone(timestamp, timeZone) {\n    const formatter = new Intl.DateTimeFormat('en-US', {\n        day: '2-digit',\n        hour: '2-digit',\n        hourCycle: 'h23',\n        minute: '2-digit',\n        month: '2-digit',\n        second: '2-digit',\n        timeZone,\n        year: 'numeric',\n    });\n    const parts = Object.fromEntries(formatter.formatToParts(new Date(timestamp)).map(({ type, value }) => [type, value]));\n\n    return {\n        day: Number(parts.day),\n        hour: Number(parts.hour),\n        minute: Number(parts.minute),\n        month: Number(parts.month) - 1,\n        second: Number(parts.second),\n        year: Number(parts.year),\n    };\n}\n\nfunction matchingDateParts(left, right) {\n    return left.day === right.day\n        && left.hour === right.hour\n        && left.minute === right.minute\n        && left.month === right.month\n        && left.year === right.year;\n}\n\nfunction localDateTimeToUnixMs(parts, timeZone) {\n    const targetAsUtc = Date.UTC(parts.year, parts.month, parts.day, parts.hour, parts.minute);\n    let timestamp = targetAsUtc;\n    for (let index = 0; index < 3; index += 1) {\n        const zoned = datePartsInTimeZone(timestamp, timeZone);\n        const representedAsUtc = Date.UTC(zoned.year, zoned.month, zoned.day, zoned.hour, zoned.minute, zoned.second);\n        timestamp = targetAsUtc - (representedAsUtc - timestamp);\n    }\n    if (!matchingDateParts(datePartsInTimeZone(timestamp, timeZone), parts)) throw new Error('Invalid Claude reset time');\n\n    return timestamp;\n}\n\nfunction resetTimestamp(match, observedAt) {\n    const [, , monthName, dayText, hourText, minuteText, meridiem, timeZone] = match;\n    const month = MONTHS.get(monthName.toLowerCase());\n    if (month === undefined) throw new Error('Invalid Claude reset month');\n    const observedYear = datePartsInTimeZone(observedAt, timeZone).year;\n    const hourValue = Number(hourText);\n    if (hourValue < 1 || hourValue > 12) throw new Error('Invalid Claude reset hour');\n    const hour = (hourValue % 12) + (meridiem.toLowerCase() === 'pm' ? 12 : 0);\n    const baseParts = { day: Number(dayText), hour, minute: Number(minuteText ?? 0), month };\n    const candidates = [observedYear - 1, observedYear, observedYear + 1].map((year) => (\n        localDateTimeToUnixMs({ ...baseParts, year }, timeZone)\n    ));\n\n    return candidates.reduce((nearest, candidate) => (\n        Math.abs(candidate - observedAt) < Math.abs(nearest - observedAt) ? candidate : nearest\n    ));\n}\n\nfunction terminalResetTimestamp(resetText, observedAt) {\n    const match = TERMINAL_RESET_PATTERN.exec(resetText);\n    if (!match) throw new Error('Invalid Claude reset time');\n    const [, monthName, dayText, hourText, minuteText, meridiem, timeZone] = match;\n    const observedParts = datePartsInTimeZone(observedAt, timeZone);\n    const hourValue = Number(hourText);\n    if (hourValue < 1 || hourValue > 12) throw new Error('Invalid Claude reset hour');\n    const hour = (hourValue % 12) + (meridiem.toLowerCase() === 'pm' ? 12 : 0);\n    const minute = Number(minuteText ?? 0);\n    if (!monthName) {\n        const baseParts = { day: observedParts.day, hour, minute, month: observedParts.month, year: observedParts.year };\n        const sameDay = localDateTimeToUnixMs(baseParts, timeZone);\n        if (sameDay >= observedAt - RESET_CLOCK_TOLERANCE_MS) return sameDay;\n        const nextDate = new Date(Date.UTC(baseParts.year, baseParts.month, baseParts.day + 1));\n\n        return localDateTimeToUnixMs({\n            day: nextDate.getUTCDate(),\n            hour,\n            minute,\n            month: nextDate.getUTCMonth(),\n            year: nextDate.getUTCFullYear(),\n        }, timeZone);\n    }\n    const month = MONTHS.get(monthName.toLowerCase());\n    if (month === undefined) throw new Error('Invalid Claude reset month');\n    const baseParts = { day: Number(dayText), hour, minute, month };\n    const candidates = [observedParts.year - 1, observedParts.year, observedParts.year + 1].map((year) => (\n        localDateTimeToUnixMs({ ...baseParts, year }, timeZone)\n    ));\n\n    return candidates.reduce((nearest, candidate) => (\n        Math.abs(candidate - observedAt) < Math.abs(nearest - observedAt) ? candidate : nearest\n    ));\n}\n\nfunction parseTerminalWindow(lines, definition, observedAt) {\n    const headingIndex = lines.findLastIndex((line) => line === definition.heading);\n    if (headingIndex < 0) return null;\n    const windowLines = lines.slice(headingIndex + 1, headingIndex + 5);\n    const percentMatch = windowLines.map((line) => /(\\d{1,3})% used\\s*$/iu.exec(line)).find((match) => match !== null);\n    const resetMatch = windowLines.map((line) => /^Resets\\s+(.+)$/iu.exec(line)).find((match) => match !== null);\n    if (!percentMatch || !resetMatch) return null;\n    const usedPercent = Number(percentMatch[1]);\n    if (!Number.isInteger(usedPercent) || usedPercent < 0 || usedPercent > 100) throw new Error('Invalid Claude usage percent');\n\n    return { id: definition.id, resetsAt: terminalResetTimestamp(resetMatch[1], observedAt), usedPercent };\n}\n\nfunction parseTerminalUsageOutput(lines, observedAt) {\n    const windows = TERMINAL_WINDOW_DEFINITIONS.map((definition) => parseTerminalWindow(lines, definition, observedAt));\n    if (windows.some((window) => window === null)) return null;\n\n    return { windows };\n}\n\nfunction parseClaudeUsageOutput(output, observedAt) {\n    if (typeof output !== 'string' || !Number.isFinite(observedAt)) return null;\n    const lines = output.split(/\\r?\\n/u).map((line) => line.trim()).filter((line) => line.length > 0);\n    const legacyLines = lines.map((line) => line.replace(/\\u00C2\\u00B7/gu, '\\u00B7'));\n    try {\n        const windows = WINDOW_PATTERNS.map(({ id, pattern }) => {\n            // A redrawn or repeated report restates the same window; the first line reported wins.\n            const match = legacyLines.map((line) => pattern.exec(line)).find((candidate) => candidate !== null);\n            if (!match) throw new Error('Missing Claude usage window');\n            const usedPercent = Number(match[1]);\n            if (!Number.isInteger(usedPercent) || usedPercent < 0 || usedPercent > 100) throw new Error('Invalid Claude usage percent');\n\n            return { id, resetsAt: resetTimestamp(match, observedAt), usedPercent };\n        });\n\n        return { windows };\n    } catch {\n        try {\n            return parseTerminalUsageOutput(lines, observedAt);\n        } catch {\n            return null;\n        }\n    }\n}\n\nmodule.exports = { parseClaudeUsageOutput };",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-7",
+          "kind": "event",
+          "label": "cd desktop/src/actions/agent && wc -l claude_usage_parsing.js claude_usage_poller.js claude_usage_terminal.js claude_usage_terminal_host.js claude_usage_diagnostics.js && cat claude_usage_parsing.js",
+          "providerItemId": "toolu_01VQeav8VKkKv1q8LX2cFLTi",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:34:36.715Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfXBWs2HbnxK3F6GTbb:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:34:43.898Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat claude_usage_diagnostics.js",
+          "content": "const CLAUDE_USAGE_EXCERPT_MAX_CHARS = 600;\nconst CLAUDE_USAGE_EXCERPT_MAX_LINES = 12;\nconst CLAUDE_USAGE_LOG_TAG = '[claude:usage-poll]';\n\n/**\n * Why a `/usage` poll produced no report. Each value names one failure path, so a console record\n * identifies which of them ran without needing the surrounding code.\n */\nconst CLAUDE_USAGE_POLL_REASONS = Object.freeze({\n    hostDeadline: 'pty-host-deadline',\n    ptyExitedWithoutReport: 'pty-exited-without-report',\n    ptyFailed: 'pty-claude-failed',\n    ptyLoginRequired: 'pty-login-required',\n    ptyNoReadyMarker: 'pty-no-ready-marker',\n    ptyOnboardingRequired: 'pty-onboarding-required',\n    ptyReportTimeout: 'pty-report-timeout',\n    ptyTrustScreenUnanswered: 'pty-trust-screen-unanswered',\n    pollAborted: 'poll-aborted',\n    runtimeListenerFailed: 'runtime-listener-failed',\n    stdoutSpawnFailed: 'stdout-spawn-failed',\n    stdoutUnparsed: 'stdout-unparsed',\n    workerExitedWithoutReply: 'pty-worker-exited-without-reply',\n    workerForkFailed: 'pty-worker-fork-failed',\n});\n\n// A failed poll repeats on an interval, so these reasons say \"this run is broken\" rather than \"this\n// attempt found nothing\", and are the only ones worth an error-level record.\nconst CLAUDE_USAGE_ERROR_REASONS = new Set([\n    CLAUDE_USAGE_POLL_REASONS.ptyFailed,\n    CLAUDE_USAGE_POLL_REASONS.ptyLoginRequired,\n    CLAUDE_USAGE_POLL_REASONS.ptyOnboardingRequired,\n    CLAUDE_USAGE_POLL_REASONS.stdoutSpawnFailed,\n    CLAUDE_USAGE_POLL_REASONS.runtimeListenerFailed,\n    CLAUDE_USAGE_POLL_REASONS.workerForkFailed,\n]);\n\n/**\n * Keeps the tail of what Claude last showed, which is the part that says why a screen went\n * unrecognised. Bounded in both lines and characters: this runs on a repeating interval, and a full\n * screen dump per poll would bury the console.\n */\nfunction usageScreenExcerpt(text) {\n    if (typeof text !== 'string' || text.length === 0) return '';\n    const lines = text.split('\\n').filter((line) => line.trim().length > 0);\n    const tail = lines.slice(-CLAUDE_USAGE_EXCERPT_MAX_LINES).join('\\n');\n    if (tail.length <= CLAUDE_USAGE_EXCERPT_MAX_CHARS) return tail;\n\n    return `…${tail.slice(-CLAUDE_USAGE_EXCERPT_MAX_CHARS)}`;\n}\n\n/** Writes exactly one console record per failed attempt; callers log at most one per attempt. */\nfunction logUsagePollFailure({ attempt, cwd, elapsedMs, error, executable, reason, screenExcerpt }) {\n    const record = {\n        attempt,\n        cwd,\n        elapsedMs,\n        executable,\n        reason,\n        timestamp: new Date().toISOString(),\n    };\n    if (error) record.error = error instanceof Error ? error.message : String(error);\n    if (screenExcerpt) record.screenExcerpt = screenExcerpt;\n    if (CLAUDE_USAGE_ERROR_REASONS.has(reason)) console.error(CLAUDE_USAGE_LOG_TAG, record);\n    else console.warn(CLAUDE_USAGE_LOG_TAG, record);\n}\n\nmodule.exports = {\n    CLAUDE_USAGE_EXCERPT_MAX_CHARS,\n    CLAUDE_USAGE_LOG_TAG,\n    CLAUDE_USAGE_POLL_REASONS,\n    logUsagePollFailure,\n    usageScreenExcerpt,\n};",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-9",
+          "kind": "event",
+          "label": "cat claude_usage_diagnostics.js",
+          "providerItemId": "toolu_01VXuY5K4cqrV9ygEkACE3mH",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:34:44.009Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-10",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfXiUTadTXCWgnJVuoJ:thinking:0",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:34:47.127Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat claude_usage_poller.js; echo ===; cat claude_usage_terminal_host.js",
+          "content": "const crossSpawn = require('cross-spawn');\nconst { CLAUDE_USAGE_POLL_REASONS, logUsagePollFailure, usageScreenExcerpt } = require('./claude_usage_diagnostics');\nconst { parseClaudeUsageOutput } = require('./claude_usage_parsing');\nconst { createUtilityProcessTerminalPoll } = require('./claude_usage_terminal_host');\n\nconst CLAUDE_USAGE_POLL_COOLDOWN_MS = 120_000;\nconst CLAUDE_USAGE_MAX_OUTPUT_CHARS = 1_000_000;\n// Claude with piped, non-TTY stdin does not run a slash command the way an interactive session\n// does, so this attempt is a cheap long shot and gets a budget to match. The pty fallback carries\n// the poll and must not have to share it: a cold Claude start alone can outlast this whole window.\nconst CLAUDE_USAGE_PROCESS_TIMEOUT_MS = 5_000;\nconst CLAUDE_USAGE_READY_TIMEOUT_MS = 30_000;\nconst CLAUDE_USAGE_REPORT_TIMEOUT_MS = 20_000;\n\nfunction collectProcessOutput(child, dependencies) {\n    const { clearTimeout: clearPollTimeout, setTimeout: setPollTimeout, timeoutMs } = dependencies;\n\n    return new Promise((resolve, reject) => {\n        let stdout = '';\n        let settled = false;\n        let timeout;\n        const finish = (result, error = null) => {\n            if (settled) return;\n            settled = true;\n            clearPollTimeout(timeout);\n            if (error) reject(error);\n            else resolve(result);\n        };\n        // Pipe errors (EPIPE when Claude exits before reading stdin) reach no listener otherwise,\n        // and an unhandled stream error takes the Electron main process down.\n        const ignoreStreamError = () => {};\n        child.stdin?.on('error', ignoreStreamError);\n        child.stdout?.on('error', ignoreStreamError);\n        child.stderr?.on('error', ignoreStreamError);\n        child.stdout?.on('data', (chunk) => {\n            if (stdout.length >= CLAUDE_USAGE_MAX_OUTPUT_CHARS) return;\n            stdout += chunk.toString();\n        });\n        child.stderr?.resume(); // Unread stderr fills its pipe buffer and blocks Claude forever.\n        child.on('error', (error) => finish(null, error));\n        child.on('close', (exitCode) => finish({ exitCode: exitCode ?? 1, stdout }));\n        timeout = setPollTimeout(() => {\n            try {\n                child.kill();\n            } catch {\n                // The child is already gone.\n            }\n            finish({ exitCode: 1, stdout });\n        }, timeoutMs);\n        child.stdin?.end('/usage\\n');\n    });\n}\n\n/**\n * Runs Claude `/usage` after Claude output, with a two-minute maximum frequency.\n *\n * The plain-stdout attempt runs here; the pty fallback runs in a worker process, because node-pty\n * cannot be hosted in the main process without risking a native crash that ends the application.\n *\n * Every outcome without a usage report is written to the console exactly once, with the reason that\n * separates it from the other failure paths. A poll that says nothing is the outcome the user feels\n * as an account usage display that simply never fills in.\n */\nclass ClaudeUsagePoller {\n    constructor(dependencies = {}) {\n        this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;\n        this.cooldownMs = dependencies.cooldownMs ?? CLAUDE_USAGE_POLL_COOLDOWN_MS;\n        this.logFailure = dependencies.logFailure ?? logUsagePollFailure;\n        this.now = dependencies.now ?? Date.now;\n        this.onRuntimeEvent = dependencies.onRuntimeEvent;\n        this.setTimeout = dependencies.setTimeout ?? setTimeout;\n        this.spawn = dependencies.spawn ?? crossSpawn;\n        this.terminalPoll = dependencies.terminalPoll ?? createUtilityProcessTerminalPoll();\n        this.readyTimeoutMs = dependencies.readyTimeoutMs ?? CLAUDE_USAGE_READY_TIMEOUT_MS;\n        this.reportTimeoutMs = dependencies.reportTimeoutMs ?? CLAUDE_USAGE_REPORT_TIMEOUT_MS;\n        this.processTimeoutMs = dependencies.processTimeoutMs ?? CLAUDE_USAGE_PROCESS_TIMEOUT_MS;\n        this.abortTerminalPoll = null;\n        this.activePoll = null;\n        this.lastPollStartedAt = Number.NEGATIVE_INFINITY;\n        this.pendingRequest = null;\n        this.pendingTi\n[5962 characters omitted]\nutable,\n            observedAt,\n            readyTimeoutMs: this.readyTimeoutMs,\n            reportTimeoutMs: this.reportTimeoutMs,\n            timeoutMs: this.readyTimeoutMs + this.reportTimeoutMs,\n        };\n\n        return this.terminalPoll(request, {\n            registerAbort: (abort) => {\n                this.abortTerminalPoll = abort;\n            },\n        });\n    }\n}\n\nmodule.exports = {\n    CLAUDE_USAGE_POLL_COOLDOWN_MS,\n    CLAUDE_USAGE_PROCESS_TIMEOUT_MS,\n    CLAUDE_USAGE_READY_TIMEOUT_MS,\n    CLAUDE_USAGE_REPORT_TIMEOUT_MS,\n    ClaudeUsagePoller,\n};\n===\nconst { CLAUDE_USAGE_POLL_REASONS } = require('./claude_usage_diagnostics');\n\nconst CLAUDE_USAGE_SERVICE_NAME = 'claude-usage';\nconst CLAUDE_USAGE_WORKER_GRACE_MS = 5_000;\n\n/**\n * A worker that dies, hangs or is aborted says nothing about Claude itself, so it reports neither\n * usage nor unavailability. The reason still separates those cases: without it, a fork failure, a\n * native ConPTY fault and a shutdown abort all look identical downstream.\n */\nfunction inconclusiveResult(reason, error = null) {\n    return {\n        error: error instanceof Error ? error.message : undefined,\n        payload: null,\n        reason,\n        screenExcerpt: '',\n        unavailable: false,\n    };\n}\n\n/**\n * Runs one pty-backed `/usage` poll in an Electron utility process and resolves with the worker's\n * `{ payload, reason, screenExcerpt, unavailable }` result, or an inconclusive one carrying the\n * reason the worker never reported back.\n *\n * The pty is hosted out of process because node-pty's ConPTY layer faults natively on teardown\n * races: a native fault cannot be caught in JavaScript, so in the main process it would take\n * Electron down. Here the worst case is a lost poll, and the next one starts from a clean process.\n */\nfunction createUtilityProcessTerminalPoll(dependencies = {}) {\n    const clearPollTimeout = dependencies.clearTimeout ?? clearTimeout;\n    const loadUtilityProcess = dependencies.loadUtilityProcess ?? (() => require('electron').utilityProcess);\n    const setPollTimeout = dependencies.setTimeout ?? setTimeout;\n    const workerPath = dependencies.workerPath ?? require.resolve('./claude_usage_terminal_worker');\n\n    return (request, { registerAbort } = {}) => new Promise((resolve) => {\n        let worker = null;\n        let settled = false;\n        let timeout = null;\n        const finish = (result) => {\n            if (settled) return;\n            settled = true;\n            clearPollTimeout(timeout);\n            registerAbort?.(null);\n            try {\n                worker?.kill();\n            } catch {\n                // The worker is already gone.\n            }\n            resolve(result);\n        };\n        try {\n            // Claude's own output travels over the pty, so inherited stdio carries only worker faults worth seeing.\n            worker = loadUtilityProcess().fork(workerPath, [], { serviceName: CLAUDE_USAGE_SERVICE_NAME, stdio: 'inherit' });\n        } catch (error) {\n            finish(inconclusiveResult(CLAUDE_USAGE_POLL_REASONS.workerForkFailed, error));\n\n            return;\n        }\n        registerAbort?.(() => finish(inconclusiveResult(CLAUDE_USAGE_POLL_REASONS.pollAborted)));\n        worker.on('message', (message) => finish(message?.result\n            ?? inconclusiveResult(CLAUDE_USAGE_POLL_REASONS.workerExitedWithoutReply)));\n        // A native ConPTY fault reaches the parent as an exit without a reply, so it costs one poll and nothing more.\n        worker.on('exit', () => finish(inconclusiveResult(CLAUDE_USAGE_POLL_REASONS.workerExitedWithoutReply)));\n        worker.on('spawn', () => worker.postMessage(request));\n        // The worker enforces its own deadlines; this one only covers a worker that never reports back.\n        timeout = setPollTimeout(\n            () => finish(inconclusiveResult(CLAUDE_USAGE_POLL_REASONS.hostDeadline)),\n            request.timeoutMs + CLAUDE_USAGE_WORKER_GRACE_MS,\n        );\n    });\n}\n\nmodule.exports = { CLAUDE_USAGE_WORKER_GRACE_MS, createUtilityProcessTerminalPoll, inconclusiveResult };",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-11",
+          "kind": "event",
+          "label": "cat claude_usage_poller.js; echo ===; cat claude_usage_terminal_host.js",
+          "providerItemId": "toolu_01EvVjTx4g4yQvzt5kkcWqWW",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:34:47.728Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfXzaL6N6aXhwSEFmdr:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:34:51.677Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat claude_usage_terminal_worker.js; echo =====; cat claude_usage_terminal.js",
+          "content": "const { CLAUDE_USAGE_POLL_REASONS } = require('./claude_usage_diagnostics');\nconst { runTerminalUsagePoll } = require('./claude_usage_terminal');\n\n/**\n * Electron utility-process entry for a single pty-backed `/usage` poll.\n *\n * node-pty drives Claude through a real ConPTY, whose native layer faults on teardown races that\n * no JavaScript guard can intercept. Run in the main process that fault ends the application; run\n * here it ends a disposable worker, and the parent reads the silent exit as a failed poll.\n */\nasync function pollUsage(request) {\n    try {\n        const { payload, reason, screenExcerpt } = await runTerminalUsagePoll(request);\n\n        return { payload, reason, screenExcerpt, unavailable: false };\n    } catch (error) {\n        // Claude could not be started or ended in failure, which is the parent's cue to mark it\n        // unavailable. The reason and screen travel with it so the parent can say which it was.\n        return {\n            error: error?.message,\n            payload: null,\n            reason: error?.reason ?? CLAUDE_USAGE_POLL_REASONS.ptyFailed,\n            screenExcerpt: error?.screenExcerpt ?? '',\n            unavailable: true,\n        };\n    }\n}\n\nfunction listenForPollRequests(parentPort) {\n    if (!parentPort) return;\n    parentPort.on('message', async ({ data }) => {\n        const result = await pollUsage(data);\n        try {\n            parentPort.postMessage({ result });\n        } catch {\n            // The parent stopped waiting and tore this worker down.\n        }\n    });\n}\n\nlistenForPollRequests(process.parentPort);\n\nmodule.exports = { listenForPollRequests, pollUsage };\n=====\nconst nodePty = require('node-pty');\nconst { Terminal } = require('@xterm/headless');\nconst { CLAUDE_USAGE_POLL_REASONS, usageScreenExcerpt } = require('./claude_usage_diagnostics');\nconst { parseClaudeUsageOutput } = require('./claude_usage_parsing');\n\nconst CLAUDE_USAGE_TERMINAL_COLUMNS = 140;\nconst CLAUDE_USAGE_TERMINAL_ROWS = 45;\n// Verified against Claude Code 2.1.238 by running it under a pty in a folder it had never seen.\n// The affirmative option is preselected, so a carriage return answers it; sending the digit instead\n// would type a stray character into the prompt on any screen that only looked like this one.\nconst CLAUDE_USAGE_TRUST_MARKERS = ['Yes, I trust this folder', 'Accessing workspace:'];\nconst CLAUDE_USAGE_TRUST_ANSWER = '\\r';\n// Neither of these can be answered by a poller, so they end the poll instead of waiting out the deadline.\nconst CLAUDE_USAGE_LOGIN_MARKERS = ['Select login method:', 'Paste code here if prompted'];\nconst CLAUDE_USAGE_ONBOARDING_MARKERS = ['Choose the text style that looks best with your terminal'];\n\n/** Reads the visible screen only; scanning the whole scrollback on every redraw stalls the host process. */\nfunction terminalScreenText(terminal) {\n    const lines = [];\n    const { active } = terminal.buffer;\n    const start = Math.max(0, active.baseY);\n    const end = Math.min(active.length, start + (terminal.rows ?? CLAUDE_USAGE_TERMINAL_ROWS));\n    for (let index = start; index < end; index += 1) {\n        const line = active.getLine(index)?.translateToString(true);\n        if (line) lines.push(line);\n    }\n\n    return lines.join('\\n');\n}\n\n/** The line the cursor sits on; that is the only line an input prompt can be drawn on. */\nfunction activeCursorLine(terminal) {\n    const { active } = terminal.buffer;\n\n    return active.getLine(active.baseY + active.cursorY)?.translateToString(true) ?? '';\n}\n\n// A settled Claude Code 2.1.241 prompt is an otherwise empty `> ` line under the cursor. A prompt\n// holding typed text does not qualify: this poll owns a fresh Claude and expects an empty one.\nfunction showsEmptyPrompt(terminal) {\n    return activeCursorLine(terminal).trim() === '>';\n}\n\n// The phrases are kept as a secondary signal for Claude versions that print their welcome hint\n// before the input prompt is drawn.\nfunction terminalReady(terminal, output) {\n    return showsEmptyPrompt(terminal) || output.includes('? for shortcuts') || output.includes('Tr\n[5261 characters omitted]\n once they land.\n        const settleExit = (exitCode) => {\n            if (settled) return;\n            if (pendingWrites > 0) {\n                pendingExitCode = exitCode;\n                return;\n            }\n            const screen = terminalScreenText(terminal);\n            // A failed exit still counts when the screen holds a complete report; only a screen without one is a failure.\n            const payload = parseClaudeUsageOutput(screen, observedAt);\n            if (!payload && exitCode !== 0) {\n                const error = new Error('Claude usage terminal failed');\n                error.reason = CLAUDE_USAGE_POLL_REASONS.ptyFailed;\n                error.screenExcerpt = usageScreenExcerpt(screen);\n                finish(null, error);\n                return;\n            }\n            if (payload) {\n                finish({ payload, reason: null, screenExcerpt: '' });\n                return;\n            }\n            // Claude ending on its own is a different fault before and after `/usage` went out.\n            finishWithoutUsage(\n                commandSent ? CLAUDE_USAGE_POLL_REASONS.ptyExitedWithoutReport : CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker,\n                screen,\n            );\n        };\n        registerAbort?.(() => {\n            const screen = settled ? '' : terminalScreenText(terminal);\n            killProcess();\n            finishWithoutUsage(CLAUDE_USAGE_POLL_REASONS.pollAborted, screen);\n        });\n        dataSubscription = processHandle.onData((data) => {\n            if (settled) return;\n            pendingWrites += 1;\n            terminal.write(data, () => {\n                pendingWrites -= 1;\n                inspectScreen();\n                if (pendingExitCode !== null) settleExit(pendingExitCode);\n                if (settled) disposeTerminal();\n            });\n        });\n        exitSubscription = processHandle.onExit(({ exitCode }) => {\n            exited = true;\n            settleExit(exitCode);\n        });\n        timeout = setPollTimeout(() => {\n            const screen = terminalScreenText(terminal);\n            killProcess();\n            // Answering trust and still not becoming ready is a different fault from never seeing the\n            // screen at all, so it never triggers a second keystroke and never shares a reason.\n            const reason = trustAnswered && showsTrustScreen(screen)\n                ? CLAUDE_USAGE_POLL_REASONS.ptyTrustScreenUnanswered\n                : CLAUDE_USAGE_POLL_REASONS.ptyNoReadyMarker;\n            finishWithoutUsage(reason, screen);\n        }, readyTimeoutMs);\n    });\n}\n\nfunction createHeadlessTerminal() {\n    return new Terminal({\n        allowProposedApi: true,\n        cols: CLAUDE_USAGE_TERMINAL_COLUMNS,\n        rows: CLAUDE_USAGE_TERMINAL_ROWS,\n    });\n}\n\n/**\n * Drives one `/usage` poll through a real pty and resolves with `{ payload, reason, screenExcerpt }`.\n * Only the usage worker may call this: node-pty's ConPTY layer can fault natively, which would end\n * whichever process hosts it.\n */\nfunction runTerminalUsagePoll(request, dependencies = {}) {\n    const {\n        clearTimeout: clearPollTimeout = clearTimeout,\n        ptySpawn = nodePty.spawn,\n        registerAbort,\n        setTimeout: setPollTimeout = setTimeout,\n        terminalFactory = createHeadlessTerminal,\n    } = dependencies;\n    const processHandle = ptySpawn(request.executable, [], {\n        cols: CLAUDE_USAGE_TERMINAL_COLUMNS,\n        cwd: request.cwd,\n        env: request.env,\n        rows: CLAUDE_USAGE_TERMINAL_ROWS,\n    });\n\n    return collectTerminalUsage(processHandle, terminalFactory(), request.observedAt, {\n        clearTimeout: clearPollTimeout,\n        readyTimeoutMs: request.readyTimeoutMs,\n        registerAbort,\n        reportTimeoutMs: request.reportTimeoutMs,\n        setTimeout: setPollTimeout,\n    });\n}\n\nmodule.exports = {\n    CLAUDE_USAGE_LOGIN_MARKERS,\n    CLAUDE_USAGE_ONBOARDING_MARKERS,\n    CLAUDE_USAGE_TERMINAL_COLUMNS,\n    CLAUDE_USAGE_TERMINAL_ROWS,\n    CLAUDE_USAGE_TRUST_ANSWER,\n    CLAUDE_USAGE_TRUST_MARKERS,\n    runTerminalUsagePoll,\n};",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-13",
+          "kind": "event",
+          "label": "cat claude_usage_terminal_worker.js; echo =====; cat claude_usage_terminal.js",
+          "providerItemId": "toolu_01KcnXf95z4mWBjDy3omTx3j",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:34:52.312Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-14",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfYL9Z342j1VHwHJhXK:thinking:0",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:35:16.078Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "node -e \"\nconst {parseClaudeUsageOutput}=require('./claude_usage_parsing');\nconst t='You are currently using your subscription to power your Claude Code usage\\nCurrent session: 0% used\\nCurrent week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)';\nconsole.log('as-logged:',JSON.stringify(parseClaudeUsageOutput(t,Date.parse('2026-09-08T08:04:27Z'))));\nconst t2=t.replace('Current session: 0% used','Current session: 0% used · resets Sep 8, 11am (Europe/Brussels)');\nconsole.log('with-reset:',JSON.stringify(parseClaudeUsageOutput(t2,Date.parse('2026-09-08T08:04:27Z'))));\n\"",
+          "content": "as-logged: null\nwith-reset: {\"windows\":[{\"id\":\"five_hour\",\"resetsAt\":1788858000000,\"usedPercent\":0},{\"id\":\"weekly\",\"resetsAt\":1789318740000,\"usedPercent\":1}]}",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-15",
+          "kind": "event",
+          "label": "node -e \"\nconst {parseClaudeUsageOutput}=require('./claude_usage_parsing');\nconst t='You are currently using your subscription to power your Claude Code usage\\nCurrent session: 0% used\\nCurrent week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)';\nconsole.log('as-logged:',JSON.stringify(parseClaudeUsageOutput(t,Date.parse('2026-09-08T08:04:27Z'))));\nconst t2=t.replace('Current session: 0% used','Current session: 0% used · resets Sep 8, 11am (Europe/Brussels)');\nconsole.log('with-reset:',JSON.stringify(parseClaudeUsageOutput(t2,Date.parse('2026-09-08T08:04:27Z'))));\n\"",
+          "providerItemId": "toolu_01L8btTEycRf6CRnE888eaQy",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:35:21.627Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfaVbdbeEJbgfVChELv:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:35:23.993Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rn \"resetsAt\" --include=*.js --include=*.mjs --include=*.ts --include=*.tsx /c/Users/janbo/Documents/dev/md2 --exclude=*test* | grep -v node_modules | head -40",
+          "content": "Binary file /c/Users/janbo/Documents/dev/md2/app/dist/assets/index-nhP_JiBP.js matches\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx:26:    return `${WINDOW_LABELS[window.id]}: ${Math.round(window.usedPercent)}% used · ${formatReset(window.resetsAt, observedAt, receivedAt, currentTime)}`\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx:51:    const reset = formatReset(window.resetsAt, observedAt, receivedAt, currentTime)\n/c/Users/janbo/Documents/dev/md2/app/src/data/electron_claude_runtime_bridge.ts:5:    resetsAt: number\n/c/Users/janbo/Documents/dev/md2/app/src/data/electron_codex_runtime_bridge.ts:2:    resetsAt: number | null\n/c/Users/janbo/Documents/dev/md2/app/src/data/electron_codex_runtime_bridge.ts:16:    resetsAt: number\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/claude_rate_limit_service.ts:18:    return snapshot.windows.length > 0 ? Math.min(...snapshot.windows.map(({ resetsAt }) => resetsAt)) : null\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/claude_rate_limit_service.ts:27:    return snapshot.windows.every(({ id, resetsAt, usedPercent }) => (\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/claude_rate_limit_service.ts:29:            && Number.isFinite(resetsAt)\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/codex_rate_limit_service.ts:23:        [primary?.resetsAt, secondary?.resetsAt]\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/project_usage_metrics_service.ts:14:    resetsAt: string\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/project_usage_metrics_service.ts:51:    resetsAt: string\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/project_usage_metrics_service.ts:186:            const resetsAt = record.resets_at\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/project_usage_metrics_service.ts:191:            const usedPercentDelta = baseline && sameAccountWindow(baseline.resetsAt, resetsAt)\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/project_usage_metrics_service.ts:198:                resetsAt,\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/project_usage_metrics_service.ts:204:            accountBaselines.set(key, { resetsAt, usedPercent })\n/c/Users/janbo/Documents/dev/md2/app/src/services/stats/stats_usage_comparison_dataset.ts:111:    const resetTimes = [...new Set(rows.map(({ resetsAt }) => resetsAt))].sort();\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/claude_runtime_service.js:8:    if (!Number.isFinite(window.resetsAt)) return null;\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/claude_runtime_service.js:10:    return { id: window.id, resetsAt: window.resetsAt, usedPercent: window.usedPercent };\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/claude_runtime_service.js:26:        && window.resetsAt === right[index].resetsAt\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/claude_usage_parsing.js:124:    return { id: definition.id, resetsAt: terminalResetTimestamp(resetMatch[1], observedAt), usedPercent };\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/claude_usage_parsing.js:146:            return { id, resetsAt: resetTimestamp(match, observedAt), usedPercent };\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/codex_runtime_service.js:19:    if (!nullableNumber(window.windowDurationMins) || !nullableNumber(window.resetsAt)) return undefined;\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/codex_runtime_service.js:22:        resetsAt: window.resetsAt,\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/codex_runtime_service.js:48:    if (typeof individualLimit.resetsAt !== 'number' || !Number.isFinite(individualLimit.resetsAt)) return undefined;\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/codex_runtime_service.js:53:        resetsAt: individualLimit.resetsAt,\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/codex_runtime_service.js:91:        resetsAt: window.resetsAt ?? null,\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/codex_runtime_service.js:158:        resetsAt: incoming.resetsAt ?? current.resetsAt,\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/usage_metrics_service.js:184:    if (!validTimestamp(window.resetsAt)) return null;\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/usage_metrics_service.js:187:    const resetTime = isoTimestamp(resetTimestampMilliseconds(provider, window.resetsAt));\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/usage_metrics_service.js:192:        resetsAt: resetTime,\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/usage_metrics_service.js:275:        resets_at: window.resetsAt,\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/usage_metrics_service.js:304:        baselines.set(key, { resetsAt: values.resets_at, usedPercent: Number(values.used_percent) });\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/usage_metrics_service.js:373:                return !baseline || baseline.usedPercent !== window.usedPercent || baseline.resetsAt !== window.resetsAt;\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/usage_metrics_service.js:378:                const delta = !baseline ? '' : sameAccountWindow(baseline.resetsAt, window.resetsAt)\n/c/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/usage_metrics_service.js:387:                state.baselines.set(key, { resetsAt: window.resetsAt, usedPercent: window.usedPercent });",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-17",
+          "kind": "event",
+          "label": "grep -rn \"resetsAt\" --include=*.js --include=*.mjs --include=*.ts --include=*.tsx /c/Users/janbo/Documents/dev/md2 --exclude=*test* | grep -v node_modules | head -40",
+          "providerItemId": "toolu_01SgwRNRG7Rj2nRENS8fs2Lh",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:35:31.192Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfbCUGew2TZcgPshKyM:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:35:34.403Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "sed -n 1,40p claude_runtime_service.js; echo ===; sed -n 1,45p /c/Users/janbo/Documents/dev/md2/app/src/services/agents/claude_rate_limit_service.ts; echo ===; sed -n 175,200p usage_metrics_service.js",
+          "content": "const RATE_LIMIT_EVENT = 'rateLimits';\nconst WINDOW_IDS = new Set(['five_hour', 'weekly']);\n\nfunction normalizeWindow(window) {\n    if (!window || typeof window !== 'object' || Array.isArray(window)) return null;\n    if (!WINDOW_IDS.has(window.id)) return null;\n    if (!Number.isInteger(window.usedPercent) || window.usedPercent < 0 || window.usedPercent > 100) return null;\n    if (!Number.isFinite(window.resetsAt)) return null;\n\n    return { id: window.id, resetsAt: window.resetsAt, usedPercent: window.usedPercent };\n}\n\nfunction normalizeWindows(payload) {\n    if (!payload || typeof payload !== 'object' || Array.isArray(payload) || !Array.isArray(payload.windows)) return null;\n    const windows = payload.windows.map(normalizeWindow);\n    if (windows.some((window) => window === null) || windows.length !== WINDOW_IDS.size) return null;\n    if (new Set(windows.map(({ id }) => id)).size !== WINDOW_IDS.size) return null;\n    if (!windows.every(({ id }) => WINDOW_IDS.has(id))) return null;\n\n    return windows;\n}\n\nfunction sameWindows(left, right) {\n    return left.length === right.length && left.every((window, index) => (\n        window.id === right[index].id\n        && window.resetsAt === right[index].resetsAt\n        && window.usedPercent === right[index].usedPercent\n    ));\n}\n\n/** Owns latest account-wide Claude rate-limit snapshot in desktop process. */\nclass ClaudeRuntimeService {\n    constructor() {\n        this.events = new EventTarget();\n        this.snapshot = null;\n    }\n\n    getSnapshot() {\n        return this.snapshot ? structuredClone(this.snapshot) : null;\n    }\n===\nimport {\n    getElectronClaudeRuntimeBridge,\n    type ClaudeRateLimitSnapshot,\n    type ElectronClaudeRuntimeBridge,\n} from '../../data/electron_claude_runtime_bridge'\nimport { register } from '../service_injector'\n\nexport interface ClaudeRateLimitState {\n    receivedAt: number | null\n    snapshot: ClaudeRateLimitSnapshot | null\n    stale: boolean\n}\n\nconst INITIAL_STATE: ClaudeRateLimitState = { receivedAt: null, snapshot: null, stale: false }\nconst WINDOW_IDS = new Set(['five_hour', 'weekly'])\n\nfunction firstResetTime(snapshot: ClaudeRateLimitSnapshot) {\n    return snapshot.windows.length > 0 ? Math.min(...snapshot.windows.map(({ resetsAt }) => resetsAt)) : null\n}\n\nfunction validSnapshot(snapshot: ClaudeRateLimitSnapshot) {\n    if (!Number.isFinite(snapshot.observedAt)) return false\n    if (!snapshot.available) return snapshot.windows.length === 0\n    if (snapshot.windows.length !== WINDOW_IDS.size) return false\n    if (new Set(snapshot.windows.map(({ id }) => id)).size !== WINDOW_IDS.size) return false\n\n    return snapshot.windows.every(({ id, resetsAt, usedPercent }) => (\n        WINDOW_IDS.has(id)\n            && Number.isFinite(resetsAt)\n            && Number.isInteger(usedPercent)\n            && usedPercent >= 0\n            && usedPercent <= 100\n    ))\n}\n\n/** Owns current account-wide Claude rate limits for this renderer process only. */\nexport class ClaudeRateLimitService extends EventTarget {\n    private bridge: ElectronClaudeRuntimeBridge | null = null\n    private expirationTimer: ReturnType<typeof setTimeout> | null = null\n    private state: ClaudeRateLimitState = INITIAL_STATE\n    private unsubscribeConnection: (() => void) | null = null\n    private unsubscribeRateLimits: (() => void) | null = null\n\n    constructor() {\n        super()\n===\n\nfunction sameAccountWindow(leftResetTimestamp, rightResetTimestamp) {\n    return Math.abs(Date.parse(leftResetTimestamp) - Date.parse(rightResetTimestamp)) <= RESET_TIMESTAMP_TOLERANCE_MS;\n}\n\nfunction normalizeAccountWindow(provider, limitId, windowId, windowDurationMinutes, window) {\n    if (!window || typeof window !== 'object' || Array.isArray(window)) return null;\n    if (typeof limitId !== 'string' || limitId.length === 0) return null;\n    if (typeof windowId !== 'string' || windowId.length === 0) return null;\n    if (!validTimestamp(window.resetsAt)) return null;\n    if (!Number.isFinite(window.usedPercent) || window.usedPercent < 0 || window.usedPercent > 100) return null;\n    if (!Number.isFinite(windowDurationMinutes) || windowDurationMinutes <= 0) return null;\n    const resetTime = isoTimestamp(resetTimestampMilliseconds(provider, window.resetsAt));\n    if (!resetTime) return null;\n\n    return {\n        limitId,\n        resetsAt: resetTime,\n        usedPercent: window.usedPercent,\n        windowDurationMinutes,\n        windowId,\n    };\n}\n\nfunction codexAccountWindows(snapshot) {\n    if (!Array.isArray(snapshot.buckets)) return null;",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-19",
+          "kind": "event",
+          "label": "sed -n 1,40p claude_runtime_service.js; echo ===; sed -n 1,45p /c/Users/janbo/Documents/dev/md2/app/src/services/agents/claude_rate_limit_service.ts; echo ===; sed -n 175,200p usage_metrics_service.js",
+          "providerItemId": "toolu_01H5LEHmT1fCfmfa1Ptgdvwh",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:35:35.310Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfbVwFU11WVBX1MtfXs:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:35:41.960Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"claudeAccountWindows\" -A 25 usage_metrics_service.js | head -50; echo ===; sed -n 1,60p /c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx; echo ===; grep -rn \"function formatReset\" -A 20 /c/Users/janbo/Documents/dev/md2/app/src/components/shell/ | head -40",
+          "content": "223:function claudeAccountWindows(snapshot) {\n224-    if (!Array.isArray(snapshot.windows)) return null;\n225-    const windows = [];\n226-    for (const window of snapshot.windows) {\n227-        const windowDurationMinutes = CLAUDE_WINDOW_DURATIONS.get(window?.id);\n228-        if (!windowDurationMinutes) return null;\n229-        const normalized = normalizeAccountWindow(\n230-            'claude',\n231-            DEFAULT_LIMIT_ID,\n232-            window.id,\n233-            windowDurationMinutes,\n234-            window,\n235-        );\n236-        if (!normalized) return null;\n237-        if (window.id === CLAUDE_CALCULATION_WINDOW_ID) windows.push(normalized);\n238-    }\n239-\n240-    return windows;\n241-}\n242-\n243-function normalizeAccountSnapshot(provider, snapshot) {\n244-    if (!SUPPORTED_PROVIDERS.has(provider)) return null;\n245-    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null;\n246-    if (snapshot.available !== true || !validTimestamp(snapshot.observedAt)) return null;\n247-    const recordedAt = isoTimestamp(snapshot.observedAt);\n248-    if (!recordedAt) return null;\n249:    const windows = provider === 'codex' ? codexAccountWindows(snapshot) : claudeAccountWindows(snapshot);\n250-    if (!windows || windows.length === 0) return null;\n251-    if (new Set(windows.map(({ limitId, windowId }) => accountKey(provider, limitId, windowId))).size !== windows.length) return null;\n252-\n253-    return { recordedAt, windows };\n254-}\n255-\n256-function tokenRecord(provider, usage, recordedAt) {\n257-    return completeCsvRecord({\n258-        cached_input_tokens: usage.cachedInputTokens,\n259-        input_tokens: usage.inputTokens,\n260-        output_tokens: usage.outputTokens,\n261-        provider,\n262-        reasoning_tokens: usage.reasoningTokens,\n263-        recorded_at: recordedAt,\n264-        record_type: 'token_usage',\n265-        total_tokens: usage.totalTokens,\n266-    });\n267-}\n268-\n269-function accountRecord(provider, window, recordedAt, delta) {\n270-    return completeCsvRecord({\n271-        limit_id: window.limitId,\n272-        provider,\n===\nimport { Box, Divider, Stack, Typography } from '@mui/material'\nimport type {\n    ClaudeRateLimitSnapshot,\n    ClaudeRateLimitWindow,\n    ClaudeRateLimitWindowId,\n} from '../../data/electron_claude_runtime_bridge'\n\nconst POPOVER_WIDTH = 360\nconst WINDOW_LABELS: Record<ClaudeRateLimitWindowId, string> = { five_hour: 'Session', weekly: 'Weekly' }\n\nfunction formatReset(resetTime: number, observedAt: number, receivedAt: number, currentTime: number) {\n    const localResetTime = receivedAt + resetTime - observedAt\n    const remainingMilliseconds = Math.max(0, localResetTime - currentTime)\n    const remainingMinutes = Math.ceil(remainingMilliseconds / 60_000)\n    const localTime = new Date(localResetTime).toLocaleString([], {\n        day: 'numeric',\n        hour: '2-digit',\n        minute: '2-digit',\n        month: 'short',\n    })\n\n    return `Resets ${localTime} (${remainingMinutes} min)`\n}\n\nfunction windowDetail(window: ClaudeRateLimitWindow, observedAt: number, receivedAt: number, currentTime: number) {\n    return `${WINDOW_LABELS[window.id]}: ${Math.round(window.usedPercent)}% used · ${formatReset(window.resetsAt, observedAt, receivedAt, currentTime)}`\n}\n\ninterface ClaudeRateLimitDetailsProps {\n    currentTime: number\n    reached: boolean\n    receivedAt: number\n    snapshot: ClaudeRateLimitSnapshot\n}\n\n/** Claude-specific limit details shared by desktop popover and mobile dialog. */\nexport function ClaudeRateLimitDetails(props: ClaudeRateLimitDetailsProps) {\n    const { currentTime, reached, receivedAt, snapshot } = props\n\n    return (\n        <Box sx={{ maxHeight: 'calc(100vh - 16px)', maxWidth: 'calc(100vw - 16px)', overflow: 'auto', width: POPOVER_WIDTH }}>\n            <Box sx={{ p: 2 }}>\n                <Typography id=\"claude-rate-limit-title\" component=\"h2\" sx={{ color: 'text.primary', fontWeight: 700 }} variant=\"subtitle2\">\n                    Claude account limits\n                </Typography>\n                {reached ? <Typograp\n[1733 characters omitted]\ns/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-19-        month: 'short',\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-20-    })\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-21-\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-22-    return `Resets ${localTime} (${remainingMinutes} min)`\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-23-}\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-24-\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-25-function windowDetail(window: ClaudeRateLimitWindow, observedAt: number, receivedAt: number, currentTime: number) {\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-26-    return `${WINDOW_LABELS[window.id]}: ${Math.round(window.usedPercent)}% used · ${formatReset(window.resetsAt, observedAt, receivedAt, currentTime)}`\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-27-}\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-28-\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-29-interface ClaudeRateLimitDetailsProps {\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-30-    currentTime: number\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx-31-    reached: boolean\n--\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx:30:function formatReset(resetTime: number | null, observedAt: number, receivedAt: number, currentTime: number) {\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-31-    if (resetTime === null) return 'Reset unknown'\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-32-    const resetMilliseconds = resetTimeMilliseconds(resetTime)\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-33-    const localResetTime = receivedAt + resetMilliseconds - observedAt\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-34-    const remainingMilliseconds = Math.max(0, localResetTime - currentTime)\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-35-    const remainingMinutes = Math.ceil(remainingMilliseconds / 60_000)\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-36-    const localTime = new Date(localResetTime).toLocaleString([], {\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-37-        day: 'numeric',\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-38-        hour: '2-digit',\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-39-        minute: '2-digit',\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-40-        month: 'short',\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-41-    })\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-42-\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-43-    return `Resets ${localTime} (${remainingMinutes} min)`\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-44-}\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-45-\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-46-function bucketLabel(bucket: CodexRateLimitBucket, index: number) {\n/c/Users/janbo/Documents/dev/md2/app/src/components/shell/codex_rate_limit_details.tsx-47-    return bucket.limitName?.trim() || bucket.limitId.trim() || `Limit ${index + 1}`",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-21",
+          "kind": "event",
+          "label": "grep -n \"claudeAccountWindows\" -A 25 usage_metrics_service.js | head -50; echo ===; sed -n 1,60p /c/Users/janbo/Documents/dev/md2/app/src/components/shell/claude_rate_limit_details.tsx; echo ===; grep -rn \"function formatReset\" -A 20 /c/Users/janbo/Documents/dev/md2/app/src/components/shell/ | head -40",
+          "providerItemId": "toolu_018mZc9nj5VJSj9yeDW7NiYo",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:35:43.409Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-22",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Ceqfc6Y7ZvAzMWkBPpYMV:thinking:0",
+          "sequence": 22,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:35:45.868Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"CLAUDE_CALCULATION_WINDOW_ID\\|CLAUDE_WINDOW_DURATIONS\" usage_metrics_service.js | head",
+          "content": "27:const CLAUDE_CALCULATION_WINDOW_ID = 'weekly';\n29:const CLAUDE_WINDOW_DURATIONS = new Map([\n227:        const windowDurationMinutes = CLAUDE_WINDOW_DURATIONS.get(window?.id);\n237:        if (window.id === CLAUDE_CALCULATION_WINDOW_ID) windows.push(normalized);",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-23",
+          "kind": "event",
+          "label": "grep -n \"CLAUDE_CALCULATION_WINDOW_ID\\|CLAUDE_WINDOW_DURATIONS\" usage_metrics_service.js | head",
+          "providerItemId": "toolu_01VKiQEBk7NMWHrMNc79Vxgz",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:35:46.053Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-24",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfcJTTwafpAF5EtMQZa:thinking:0",
+          "sequence": 24,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:35:50.320Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"Current session\" claude_usage_parsing.test.mjs | head -20",
+          "content": "9:Current session: 17% used · resets Aug 15, 9:49pm (Europe/Brussels)\n15:Current session",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-25",
+          "kind": "event",
+          "label": "grep -n \"Current session\" claude_usage_parsing.test.mjs | head -20",
+          "providerItemId": "toolu_011cQR4TAiqF5CTw2Kx2SBB6",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:35:50.415Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfccbNdqLH9pwSrDQRb:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:35:53.545Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -n \"RESET_TIMESTAMP_TOLERANCE_MS\\s*=\" usage_metrics_service.js /c/Users/janbo/Documents/dev/md2/app/src/services/agents/project_usage_metrics_service.ts",
+          "content": "usage_metrics_service.js:28:const RESET_TIMESTAMP_TOLERANCE_MS = 60_000;\n/c/Users/janbo/Documents/dev/md2/app/src/services/agents/project_usage_metrics_service.ts:29:const RESET_TIMESTAMP_TOLERANCE_MS = 60_000",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-27",
+          "kind": "event",
+          "label": "grep -n \"RESET_TIMESTAMP_TOLERANCE_MS\\s*=\" usage_metrics_service.js /c/Users/janbo/Documents/dev/md2/app/src/services/agents/project_usage_metrics_service.ts",
+          "providerItemId": "toolu_01WCqGuJGEu8mh9pezsVkRej",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-09-08T08:35:54.277Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-event-28",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CeqfcuEFHNVWFNT3gtmYk:thinking:0",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T08:35:57.527Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRead the file and traced the poller. No code changed.\n\n## Findings\n\n**Root cause: the session line in the log has no reset clause, and the parser requires one.**\n\nThe logged screen is complete (the excerpt in `desktop/src/actions/agent/claude_usage_diagnostics.js` keeps the last 12 lines / 600 chars and prefixes `…` when it truncates — there is no `…`, so those three lines are all Claude printed):\n\n```\nCurrent session: 0% used\nCurrent week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)\n```\n\nClaude omits `· resets …` for the session window when the session is at 0%. Both `WINDOW_PATTERNS` entries in `desktop/src/actions/agent/claude_usage_parsing.js:7` make everything from `·` onward mandatory, so the `five_hour` pattern misses, `parseClaudeUsageOutput` throws `Missing Claude usage window`, and the fallback `parseTerminalUsageOutput` also misses because it wants the boxed layout (heading `Current session` on its own line, then a `Resets …` line). Result is `null` → `stdout-unparsed`. I confirmed this by running the parser on the exact logged text: it returns `null`, and returns a full two-window payload as soon as a reset clause is added to the session line.\n\n**Second, independent fault: the pty fallback never answers.**\n\nEvery `pty` record is `pty-host-deadline` at ~57.2 s, which is exactly the stdout attempt (~2.2 s) plus the host budget in `claude_usage_terminal_host.js` (30 s ready + 20 s report + 5 s grace). The worker has its own earlier deadlines in `claude_usage_terminal.js` — 30 s ready, then 20 s report — so it should always reply at ~30 s or ~50 s with `pty-no-ready-marker` or `pty-report-timeout`, and never let the host deadline win. It never does, on any of the twelve polls. The screen it saw is lost too, because `hostDeadline` is built by `inconclusiveResult`, which carries an empty `screenExcerpt`. Most likely the worker blocks inside `killProcess()` → node-pty's ConPTY teardown on Windows, which is exactly the native hazard the out-of-process design was built for, but I cannot confirm that from the logs alone — the excerpt is empty precisely where the evidence would be.\n\n**Downstream constraint that shapes the fix.** A parsed window with no reset time cannot simply be passed through: `claude_runtime_service.js:8` drops any window whose `resetsAt` is not finite, `normalizeWindows` then rejects the whole payload; `app/src/services/agents/claude_rate_limit_service.ts:29` rejects it again in the renderer; and `usage_metrics_service.js:236` returns `null` for the *entire* snapshot if any window fails, including the `five_hour` one it goes on to discard (only `weekly` is recorded).\n\n**Minor:** the reset time alternates between `6:59pm` and `7pm` across polls, so `resetsAt` jitters by 60 s. `sameWindows` treats that as a change and republishes the snapshot; `sameAccountWindow`'s tolerance is `<= 60_000`, so it holds — but only exactly.\n\n## How I'd fix it\n\n1. Make the reset clause optional in both `WINDOW_PATTERNS` entries (`(?:\\s*·\\s*resets …)?`), and have `parseClaudeUsageOutput` yield `resetsAt: null` when the clause is absent instead of throwing. Same for `parseTerminalWindow`, which currently requires a `Resets` line.\n2. Carry nullable `resetsAt` through the Claude path the way the Codex path already does: `codex_runtime_service.js` uses `window.resetsAt ?? null`, `electron_codex_runtime_bridge.ts` types it `number | null`, and `codex_rate_limit_details.tsx:31` renders `Reset unknown`. So: allow `null` in `claude_runtime_service.normalizeWindow`, in `electron_claude_runtime_bridge`'s type, in `claude_rate_limit_service.validSnapshot` and `firstResetTime` (skip nulls when taking the minimum), and in `claude_rate_limit_details.tsx`'s `formatReset`.\n3. In `usage_metrics_service.claudeAccountWindows`, normalize only the `weekly` calculation window rather than every window, so a session window without a reset time no longer discards the whole snapshot.\n4. Separately, for the pty path: instrument the worker before changing it — log a record when each worker-side deadline fires and attach the screen to `hostDeadline` — so the next run says whether the worker is hanging in teardown or never getting that far. If it is the ConPTY kill, the fix is to resolve the promise before killing rather than after.\n\nTests to add alongside: a `claude_usage_parsing.test.mjs` case with the exact three-line screen from this report, and a `usage_metrics_service` case where the session window has a null reset and the weekly row is still recorded.\n\nWant me to implement this?",
+          "id": "agent-turn-3b8e53e0-9f39-4421-8395-cb9705b445c6-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 29,
+          "timestamp": "2026-09-08T08:36:19.771Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-0739adb1-6234-4969-873f-a2c0a04a8acb",
+      "providerSessions": [],
+      "startedAt": "2026-09-08T08:33:58.589Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-08T08:33:58.589Z"
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 734118,
+        "inputTokens": 30,
+        "outputTokens": 7229,
+        "reasoningTokens": 0,
+        "totalTokens": 741377,
+        "costUsd": 1.023789
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "ad96a8b4-de34-44c9-9761-c2834fd8710a",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
