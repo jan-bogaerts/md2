@@ -3,7 +3,7 @@ author:
 id: J_48
 internalId: 3e78e609-b7b9-496d-bc72-0826743d5d65
 title: diagram zoom
-status: new
+status: design
 owner: 
 affects:
 agents:
