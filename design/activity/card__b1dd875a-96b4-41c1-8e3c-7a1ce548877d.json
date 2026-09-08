@@ -13,6 +13,20 @@
           "thinkingLevel": "medium"
         }
       }
+    },
+    "47dafdc7-0be7-4d56-bb5a-07c813906416": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
     }
   },
   "conversations": [
@@ -500,6 +514,340 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "b1dd875a-96b4-41c1-8e3c-7a1ce548877d",
+      "cardPath": "design/feature_descriptions/J_49_project_folders_dialog_improvements.md",
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 59863
+      },
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/J_49_project_folders_dialog_improvements.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/J_49_project_folders_dialog_improvements.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-08T15:17:06.097Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the spec first.",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-09-08T15:17:08.995Z"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_49_project_folders_dialog_improvements.md\"",
+          "content": "---\nauthor: \nid: J_49\ninternalId: b1dd875a-96b4-41c1-8e3c-7a1ce548877d\ntitle: project folders dialog improvements\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__b1dd875a-96b4-41c1-8e3c-7a1ce548877d.json\npolicy:\n---\n* clicking outside of the dialog should not close it. to cancel, user needs to explicitly click on cancel\n* We need to improve the style of the dialog: currently, the folder is not really easy to overview, its just a list of texts.\n\nmake a proposal on how we can improve the dialog & content style and such. check other dialogs and so. also check [STYLE\\_GUIDE.md](design/STYLE_GUIDE.md)\n\nperhaps we can give some structure:\n\n* design at top\n* active, diagrams, actions are at the same level\n* history, archived\n\nSee image:\n\n<img height=\"349\" width=\"312\" alt=\"Screenshot 2026-09-08 170205.jpg\" src=\"file:///C:/Users/janbo/Pictures/temp/Screenshot%202026-09-08%20170205.jpg\" />\n\n## Current state\n\n`ProjectOpenDialog` (`app/src/components/shell/project/project_open_dialog.tsx`) is one MUI `Dialog` that renders two different steps. The **source step** picks Repository / Folder / GitHub / remote. The **folder-setup step** appears instead when `projectOpenResolution.kind === 'project-folder-setup'` and the storage type is not `github-readonly`; it is titled `Project folders` and renders `ProjectFolderSetupFields`.\n\nDismissal today: the dialog passes `onClose={handleClose}` with no `reason` inspection, so MUI calls it for both `escapeKeyDown` and `backdropClick`. A **backdrop click** — a click on the dimmed scrim outside the dialog paper — therefore throws away every folder value the user typed, in both steps.\n\nContent today: `ProjectFolderSetupFields` renders one flat `Stack spacing={2}` of six equal `Autocomplete` + `TextField` rows, driven by the `FOLDER_FIELDS` array (project, working, archived, actions, releases, diagrams). Each row uses a floating MUI `label` plus a full-sentence `helperText`, and appends `Will be created.` to that sentence when the resolved path is absent from `resolution.existingFolderPaths`. Consequences: nothing shows that the five sub-folders live *inside* the project folder; the \"will be created\" state is buried in prose rather than carried by a visible marker; the floating labels contradict `STYLE_GUIDE.md` §6, which requires a plain 12px/600 `text.secondary` label placed above the control; and the rows read as an undifferentiated wall of text, which is the complaint in the screenshot.\n\nResolved paths come from `resolvedSetupFolders` in `app/src/services/project/project_session_service.ts`; validation comes from `requireProjectFolderValues`. Neither changes here.\n\n## implementation details\n\n* Block backdrop dismissal **only while the folder-setup step is showing**. Give `ProjectOpenDialog` an `onClose(event, reason)` handler that returns early when `projectFolderSetup !== null && reason === 'backdropClick'`. Escape (`escapeKeyDown`) keeps closing, and Cancel keeps closing, in both steps. The source step keeps today's close-on-backdrop behaviour, because nothing typed there is lost work of the same weight.\n* Because `DialogActions` Cancel is now the only pointer-driven exit from the folder-setup step, keep it visible and enabled at all times, including while `isLoading`.\n* Restructure `ProjectFolderSetupFields` into a **root + two labelled groups** hierarchy that mirrors the on-disk nesting:\n  * Root row: `Project folder` (e.g. `design`), rendered as the parent, visually distinct (heavier weight, own row, no indent).\n  * Indented under it, group **Live** (`custom.colHead` overline header per `STYLE_GUIDE.md` §6): `Working folder` (active), `Diagrams folder`, `Actions folder`.\n  * Indented under it, group **History** (same overline treatment): `Releases folder` (history), `Archived folder`.\n  * Indentation is a single left inset plus a 1px `divider` guide rail on the group container, so the parent/child relation is readable without a real tree widget. Do not add a `TreeView`; the depth is fixed at one level.\n* Rewrite each row to the `STYLE_GUIDE.md` field pattern: plain `Typography` label above the control (12px/600, `text.secondary`), the `Autocomplete`/`TextField` below it, `FolderOpen` browse `IconButton` as end adornment with tooltip and `aria-label` (desktop only, i.e. when `onBrowseProjectSubFolder` is non-null — unchanged). Remove the floating MUI labels.\n* Replace the per-row helper sentence with two lighter signals: the **resolved repository path** as `custom.text3` meta under the control, and a status marker on the row — a `Will be created` count-style chip (`background.paper`, 1px `divider`, `custom.text3`) when the resolved path is missing from `existingFolderPaths`, and nothing when the folder already exists. Keep one short explanatory sentence at the top of the panel, as today, covering both the `hasProjectConfig` and the fresh-project wording.\n* Keep the descriptor-driven structure: extend `FOLDER_FIELDS` with a `group` discriminator (`'root' | 'live' | 'history'`) and render by grouping over it, rather than hand-writing six rows. Field order inside a group follows the sketch.\n* Every colour, radius and spacing value comes from the theme (`STYLE_GUIDE.md` §1). No raw hex, no raw px colours. Verify light and dark mode.\n* No change to `ProjectFolderValues`, `resolvedSetupFolders`, `requireProjectFolderValues`, browse wiring, or the confirm path. This feature is dismissal behaviour plus presentation.\n* Record the new dismissal rule in `design/STYLE_GUIDE.md` §8, which currently says dialogs \"close on `Esc`/backdrop\": state that a dialog holding unsaved multi-field input may refuse `backdropClick` while `Esc` and Cancel still close.\n* Tests, extending `app/src/components/shell/project/project_dialogs.test.tsx`: backdrop click during folder setup keeps the dialog open and preserves typed values; backdrop click on the source step still closes; Escape closes during folder setup; Cancel closes; the six fields render under the expected group headers in the expected order; a missing folder shows the created marker and an existing one does not; browse buttons remain desktop-only.\n\n## acceptance criteria\n\n* Clicking the scrim outside the dialog while the `Project folders` step is showing leaves the dialog open with every typed folder value intact.\n* Escape and the Cancel button both still close the dialog from the `Project folders` step.\n* Clicking the scrim on the source-picker step still closes the dialog, as before.\n* Cancel stays visible and clickable on the `Project folders` step, including while loading.\n* The `Project folders` step shows `Project folder` as a single parent row, with the five sub-folders indented beneath it under the `Live` (working, diagrams, actions) and `History` (releases, archived) headers, in that order.\n* Each folder row shows a plain label above its input, its resolved repository path as meta text, and a `Will be created` marker only when that resolved path does not exist on disk.\n* No floating MUI input labels and no per-row helper sentences remain in `ProjectFolderSetupFields`.\n* The dialog contains no hardcoded hex or raw px colour values, and renders correctly in dark mode.\n* Folder editing, folder browsing, validation errors, and the confirm/open action behave exactly as before.\n* `design/STYLE_GUIDE.md` §8 documents the conditional backdrop-dismissal rule.\n* `project_dialogs.test.tsx` passes, `npm run typecheck` passes, and lint passes.",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-3",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_49_project_folders_dialog_improvements.md\"",
+          "providerItemId": "toolu_01HrFAuq76XgS257stWWJtVM",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:10.681Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CerCDkZpQ6fkzmXCfZpPx:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T15:17:12.065Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app/src/components/shell/project\" && ls && wc -l project_open_dialog.tsx project_folder_setup_fields.tsx project_dialogs.test.tsx 2>/dev/null",
+          "content": "branch_switch_dialog.tsx\ncard_type_pill_group.tsx\ncomplete_release_dialog.tsx\nnew_card_column_picker.tsx\nnew_card_dialog.tsx\nnew_card_dialog_attachment.grouped.test.tsx\nnew_card_dialog_back_dismiss.grouped.test.tsx\nnew_card_dialog_render.test.tsx\nnew_card_markdown_editor.grouped.test.tsx\nnew_card_markdown_editor.tsx\nnew_card_no_mock.test.tsx\nproject_dialogs.test.tsx\nproject_folder_setup_fields.tsx\nproject_open_dialog.tsx\nrelease_branch_checkbox.tsx\nuse_project_toolbar_menu_actions.ts\n  517 project_open_dialog.tsx\n  133 project_folder_setup_fields.tsx\n 1308 project_dialogs.test.tsx\n 1958 total",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-5",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app/src/components/shell/project\" && ls && wc -l project_open_dialog.tsx project_folder_setup_fields.tsx project_dialogs.test.tsx 2>/dev/null",
+          "providerItemId": "toolu_015iSDH3TETRRy8zG9p73sbr",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:13.415Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-6",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CerCDxZPNUcM4Jkc7AJYw:thinking:0",
+          "sequence": 6,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T15:17:15.059Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/project/project_folder_setup_fields.tsx",
+          "content": "import { Autocomplete, IconButton, InputAdornment, Stack, TextField, Tooltip, Typography } from '@mui/material'\nimport type { AutocompleteRenderInputParams } from '@mui/material'\nimport { FolderOpen } from 'mdi-material-ui'\nimport type { MouseEvent, SyntheticEvent } from 'react'\nimport { DEFAULT_PROJECT_CONFIG } from '../../../data/data_types'\nimport {\n    resolvedSetupFolders,\n    type ProjectFolderSetupResolution,\n    type ProjectFolderValues,\n} from '../../../services/project/project_session_service'\n\ntype FolderField = keyof ProjectFolderValues\n\ninterface FolderFieldDescriptor {\n    field: FolderField\n    helperText: string\n    label: string\n}\n\ninterface ProjectFolderSetupFieldsProps {\n    isLoading: boolean\n    resolution: ProjectFolderSetupResolution\n    values: ProjectFolderValues\n    onBrowseFolder: ((field: FolderField) => void) | null\n    onValuesChange: (values: ProjectFolderValues) => void\n}\n\nconst FOLDER_FIELDS: FolderFieldDescriptor[] = [\n    { field: 'projectFolder', helperText: 'Repository-root folder holding everything MD² owns.', label: 'Project folder' },\n    { field: 'workingFolder', helperText: 'Active cards, inside the project folder.', label: 'Working folder' },\n    { field: 'archivedFolder', helperText: 'Archived cards, inside the project folder.', label: 'Archived folder' },\n    { field: 'actionsFolder', helperText: 'Action definitions, inside the project folder.', label: 'Actions folder' },\n    { field: 'releasesFolder', helperText: 'Release history, inside the project folder.', label: 'Releases folder' },\n    { field: 'diagramsFolder', helperText: 'Generated JSON diagram data, inside the project folder.', label: 'Diagrams folder' },\n]\n\n/** Resolved repository path of one field, so the form can show what will be created. */\nfunction resolvedFolderPath(values: ProjectFolderValues, field: FolderField) {\n    const config = { ...DEFAULT_PROJECT_CONFIG, ...values }\n    if (field === 'projectFolder') return values.projectFolder.trim()\n\n    const [workingFolder, archivedFolder, actionsFolder, releasesFolder, diagramsFolder] = resolvedSetupFolders(config)\n    if (field === 'workingFolder') return workingFolder\n    if (field === 'archivedFolder') return archivedFolder\n    if (field === 'actionsFolder') return actionsFolder\n    if (field === 'diagramsFolder') return diagramsFolder\n\n    return releasesFolder\n}\n\n/** Five editable folder fields, marking the ones that MD² will create on confirm. */\nexport function ProjectFolderSetupFields(props: ProjectFolderSetupFieldsProps) {\n    const { isLoading, onBrowseFolder, onValuesChange, resolution, values } = props\n    const existingFolders = new Set(resolution.existingFolderPaths)\n    const topLevelFolderOptions = resolution.folders.map(({ path }) => path)\n    const projectFolderPrefix = `${values.projectFolder.trim().replace(/\\/+$/u, '')}/`\n    const subFolderOptions = resolution.existingFolderPaths\n        .filter((folderPath) => folderPath.startsWith(projectFolderPrefix))\n        .map((folderPath) => folderPath.slice(projectFolderPrefix.length))\n\n    const handleBrowseClick = (event: MouseEvent<HTMLButtonElement>) => {\n        if (!onBrowseFolder) return\n\n        onBrowseFolder(event.currentTarget.value as FolderField)\n    }\n\n    const renderFolderInput = (descriptor: FolderFieldDescriptor, isMissing: boolean) => {\n        function renderInput(params: AutocompleteRenderInputParams) {\n            return (\n                <TextField\n                    {...params}\n                    helperText={isMissing ? `${descriptor.helperText} Will be created.` : descriptor.helperText}\n                    label={descriptor.label}\n                    size=\"small\"\n                    slotProps={{\n                        ...params.slotProps,\n                        input: {\n                            ...params.slotProps.input,\n                            endAdornment: onBrowseFolder ? (\n                                <InputAdornment position=\"end\">\n                                    <Tooltip title={`Choose ${descriptor.label.toLowerCase()}`}>\n                                        <span>\n                                            <IconButton\n                                                aria-label={`Choose ${descriptor.label.toLowerCase()}`}\n                                                disabled={isLoading}\n                                                edge=\"end\"\n                                                onClick={handleBrowseClick}\n                                                value={descriptor.field}\n                                            >\n                                                <FolderOpen />\n                                            </IconButton>\n                                        </span>\n                                    </Tooltip>\n                                </InputAdornment>\n                            ) : params.slotProps.input.endAdornment,\n                        },\n                    }}\n                />\n            )\n        }\n\n        return renderInput\n    }\n\n    return (\n        <Stack spacing={2}>\n            <Typography variant=\"body2\">\n                {resolution.hasProjectConfig\n                    ? 'Check where this project keeps its folders. Missing folders are created when you confirm.'\n                    : 'Choose where MD² should keep this project. Missing folders are created when you confirm.'}\n            </Typography>\n            {FOLDER_FIELDS.map((descriptor) => {\n                const resolvedPath = resolvedFolderPath(values, descriptor.field)\n                const isMissing = resolvedPath.length > 0 && !existingFolders.has(resolvedPath)\n                const handleInputChange = (_event: SyntheticEvent, value: string) => {\n                    onValuesChange({ ...values, [descriptor.field]: value })\n                }\n\n                return (\n                    <Autocomplete\n                        disabled={isLoading}\n                        freeSolo\n                        inputValue={values[descriptor.field]}\n                        key={descriptor.field}\n                        onInputChange={handleInputChange}\n                        options={descriptor.field === 'projectFolder' ? topLevelFolderOptions : subFolderOptions}\n                        renderInput={renderFolderInput(descriptor, isMissing)}\n                    />\n                )\n            })}\n        </Stack>\n    )\n}",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-7",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/project/project_folder_setup_fields.tsx",
+          "providerItemId": "toolu_01HG8EW1AByaQPjMoLE4MhZJ",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:15.596Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CerCE7c6mKAFm5nGNGTy4:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T15:17:17.390Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/project/project_open_dialog.tsx",
+          "content": "import {\n    Button,\n    Dialog,\n    DialogActions,\n    DialogContent,\n    DialogTitle,\n    Divider,\n    FormControl,\n    IconButton,\n    InputLabel,\n    InputAdornment,\n    List,\n    ListItemButton,\n    ListItemText,\n    MenuItem,\n    Select,\n    Stack,\n    TextField,\n    ToggleButton,\n    ToggleButtonGroup,\n    Tooltip,\n    Typography,\n} from '@mui/material'\nimport { FolderOpen, SourceRepository } from 'mdi-material-ui'\nimport type { SelectChangeEvent } from '@mui/material'\nimport type { ChangeEvent, MouseEvent } from 'react'\nimport { useState } from 'react'\nimport { DEFAULT_PROJECT_CONFIG, type BranchReference, type ProjectReference, type RepositoryReference } from '../../../data/data_types'\nimport { tryReadRemoteControlConnection } from '../../../data/remote_control_connection'\nimport {\n    folderValuesOf,\n    requireProjectFolderValues,\n    type ProjectFolderValues,\n    type ProjectOpenResolution,\n} from '../../../services/project/project_session_service'\nimport { ProjectFolderSetupFields } from './project_folder_setup_fields'\n\ntype ProjectSource = 'local' | 'personal' | 'public' | 'remote'\ntype ProjectKind = 'folder' | 'repository'\n\ninterface GithubBranchesResult {\n    branches: BranchReference[]\n    repository: RepositoryReference\n}\n\ninterface FolderSetupState {\n    resolution: ProjectOpenResolution | null\n    values: ProjectFolderValues\n}\n\ninterface ProjectOpenDialogProps {\n    branches: BranchReference[]\n    initialRemoteProject?: ProjectReference | null\n    initialSource?: ProjectSource | null\n    isDesktopMode: boolean\n    isGithubAuthenticated: boolean\n    isLoading: boolean\n    projectOpenResolution: ProjectOpenResolution | null\n    open: boolean\n    pendingGithubConflictProject: ProjectReference | null\n    recentLocalRepositories: string[]\n    repositories: RepositoryReference[]\n    onBranchChange: (branch: string) => void\n    onBrowseProjectSubFolder: ((currentValue: string, projectFolder: string, isProjectFolder: boolean) => Promise<string | null>) | null\n    onClose: () => void\n    onConfirmProjectFolderSetup: (values: ProjectFolderValues) => void\n    onCreateRemoteProject: (rootPath: string, branch: string) => ProjectReference | null\n    onDiscardGithubPendingCommits: () => void\n    onChooseLocalFolder: () => Promise<void>\n    onLoadManualBranches: (owner: string, repository: string, isPublic: boolean) => Promise<GithubBranchesResult | null>\n    onLoadRemoteBranches: (endpoint: string, rootPath: string, branch: string) => Promise<BranchReference[]>\n    onOpenGithub: (owner: string, repository: string, branch: string, isPublic: boolean) => Promise<void>\n    onOpenLocal: (rootPath: string) => Promise<void>\n    onOpenRemote: (endpoint: string, project: ProjectReference) => Promise<void>\n    onRepositoryChange: (repository: RepositoryReference) => Promise<BranchReference[]>\n    onSourceChange: () => void\n}\n\nfunction folderValuesError(values: ProjectFolderValues) {\n    try {\n        requireProjectFolderValues(values)\n\n        return null\n    } catch (error) {\n        return error instanceof Error ? error.message : 'Folder values are invalid'\n    }\n}\n\nfunction branchExists(branches: BranchReference[], branchName: string) {\n    return branches.some(({ name }) => name === branchName)\n}\n\nfunction branchValue(branches: BranchReference[], preferredBranch: string) {\n    if (branchExists(branches, preferredBranch)) return preferredBranch\n\n    return branches[0]?.name ?? ''\n}\n\nfunction selectValueExists(options: string[], value: string) {\n    return options.some((option) => option === value)\n}\n\nfunction repositoryMatchesFilter(repository: RepositoryReference, filter: string) {\n    const normalizedFilter = filter.trim().toLowerCase()\n    if (normalizedFilter.length === 0) return true\n\n    return repository.id.toLowerCase().includes(normalizedFilter)\n}\n\nfunction projectKind(source: ProjectSource): ProjectKind {\n    return source === 'personal' || source === 'public' ? 'repository' : 'folder'\n}\n\n/** Project open dialog for GitHub, local and remote project sources. */\nexport function ProjectOpenDialog(props\n[16240 characters omitted]\n>\n                                                        </IconButton>\n                                                    </span>\n                                                </Tooltip>\n                                            </InputAdornment>\n                                        ),\n                                    },\n                                    inputLabel: { shrink: true },\n                                }}\n                                sx={isLocalRootPathEmpty ? {\n                                    '& .MuiOutlinedInput-root': {\n                                        boxShadow: (theme) => `0 0 0 3px ${theme.palette.custom.primaryBg}`,\n                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },\n                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.main' },\n                                    },\n                                } : undefined}\n                                value={localRootPath}\n                            />\n                            {recentLocalRepositories.length > 0 ? (\n                                <>\n                                    <Typography variant=\"subtitle2\">Recent folders</Typography>\n                                    <List dense disablePadding>\n                                        {recentLocalRepositories.map((rootPath) => (\n                                            <ListItemButton\n                                                data-root-path={rootPath}\n                                                key={rootPath.toLowerCase()}\n                                                onClick={handleRecentLocalRepositoryClick}\n                                            >\n                                                <ListItemText primary={rootPath} />\n                                            </ListItemButton>\n                                        ))}\n                                    </List>\n                                </>\n                            ) : null}\n                        </>\n                    ) : null}\n                    {!projectOpenResolution && (source === 'personal' || source === 'public') ? (\n                        branches.length > 0 ? (\n                            <FormControl size=\"small\">\n                                <InputLabel id=\"open-branch-label\">Branch</InputLabel>\n                                <Select label=\"Branch\" labelId=\"open-branch-label\" onChange={handleBranchChange} value={branchSelectValue}>\n                                    {branches.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}\n                                </Select>\n                            </FormControl>\n                        ) : (\n                            <TextField label=\"Branch\" onChange={handleBranchTextChange} size=\"small\" value={selectedBranch} />\n                        )\n                    ) : null}\n                    {projectFolderSetup ? (\n                        <ProjectFolderSetupFields\n                            isLoading={isLoading}\n                            onBrowseFolder={onBrowseProjectSubFolder ? handleBrowseFolder : null}\n                            onValuesChange={handleFolderValuesChange}\n                            resolution={projectFolderSetup}\n                            values={folderValues}\n                        />\n                    ) : null}\n                    {folderValuesMessage ? (\n                        <Typography color=\"error\" variant=\"body2\">{folderValuesMessage}</Typography>\n                    ) : null}\n                </Stack>\n            </DialogContent>\n            <DialogActions>\n                <Button onClick={handleClose}>Cancel</Button>\n                {projectFolderSetup || !projectOpenResolution ? (\n                    <Button disabled={isOpenDisabled} onClick={handleOpenClick} variant=\"contained\">\n                        Open\n                    </Button>\n                ) : null}\n            </DialogActions>\n        </Dialog>\n    )\n}",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-9",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/project/project_open_dialog.tsx",
+          "providerItemId": "toolu_01EL5qrApJo7EHK5Uqc1FUa6",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:18.245Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-10",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CerCEJtkY1oU8mMpivdDn:thinking:0",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T15:17:19.823Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"^## \\|^### \" design/STYLE_GUIDE.md | head -60",
+          "content": "15:## 1. How to consume the theme\n25:## 2. Role → theme slot\n55:## 3. Layout\n66:## 4. Spacing, margin & size conventions\n76:## 5. Borders & elevation\n86:## 6. Typography usage\n98:## 7. Interaction states\n113:## 8. Component conventions (MUI primitives)\n129:## 9. Definition of done for a new component",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-11",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"^## \\|^### \" design/STYLE_GUIDE.md | head -60",
+          "providerItemId": "toolu_01NbNqTwxXEE1CK82w4zn1UZ",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:21.097Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,140p' design/STYLE_GUIDE.md",
+          "content": "---\ninternalId: f2ec9e28-8064-4707-bce9-b62f24d57524\n---\n\n# App Style Guide — Kanban / MD² (React + MUI)\n\nHow to build **any new component** so it matches the app. This is written for **Material UI v5+** components.\n\n**The theme is the source of truth.** All color, radius, base typography, and spacing units live in the single `createTheme` (defined in `GUIDANCE.md` §1/§9). This guide does **not** define colors — it tells you **which theme value to use for which role**, and covers the things the theme can't encode: layout, spacing/margins, borders, elevation, and component conventions.\n\n**The one rule that matters:** never write a raw hex, px radius, or magic color into a component. Read it from the theme (`theme.palette.*`, `theme.shape`, `theme.typography`, `theme.spacing`). If a component has a hardcoded hex in its `sx`/styled, it's wrong — that's exactly where the look drifts and where dark mode breaks.\n\n---\n\n## 1. How to consume the theme\n\n- **Colors:** `sx={{ color: 'text.secondary', bgcolor: 'background.paper', borderColor: 'divider' }}` — MUI resolves dotted palette paths automatically in `sx`. In `styled`/JS use the callback form: `styled(Box)(({ theme }) => ({ color: theme.palette.text.secondary }))`.\n- **Spacing:** use the 8px unit via the spacing scale — `sx={{ p: 2, gap: 1, mt: 1.5 }}` (`2` = 16px, `1` = 8px). Don't write `padding: '16px'`.\n- **Radius:** `borderRadius: 1` (= `theme.shape.borderRadius` = 8) and multiples; for the fixed non-8 radii see §4.\n- **Typography:** prefer `Typography variant=...` and `theme.typography.*` over ad-hoc `fontSize`.\n- **Custom tokens:** roles the default MUI palette doesn't cover (column/track surfaces, the strong/hover border steps, `text-3/4`, section-header color, `primary-bg` tint, status colors) must exist in the theme under a namespace (e.g. `theme.palette.custom.*`) with light + dark values. Consume them the same way — `bgcolor: 'custom.column'`. **Never inline their hex.** If a needed token doesn't exist yet, add it to the theme, don't hardcode it in the component.\n\n---\n\n## 2. Role → theme slot\n\nPick the slot by the element's **role**, not by how it looks in one mode:\n\n| Role | Theme slot |\n|---|---|\n| App background; tinted footer/action bars | `background.default` |\n| Column & sidebar surface | `custom.column` |\n| Segmented-control / toolbar track, hover fill | `custom.track` |\n| Card, dialog, popup, input surface | `background.paper` |\n| Hairlines, resting borders | `divider` |\n| Input borders, vertical separators | `custom.borderStrong` |\n| Border on hover | `custom.borderHover` |\n| Titles, values, headings | `text.primary` |\n| Body copy, field labels | `text.secondary` |\n| Meta, captions, resting icons | `custom.text3` |\n| Muted / placeholder / disabled | `custom.text4` |\n| Uppercase section/column headers | `custom.colHead` |\n| The one CTA, selection, focus, links, icon-hover | `primary.main` |\n| Contained-button hover | `primary.dark` |\n| Selected/tinted bg, focus ring, ID-chip bg | `custom.primaryBg` |\n| Text/icon on a primary fill | `primary.contrastText` |\n| Active / saved / online dot | `success.main` |\n| Destructive action | `error.main` |\n| Status swatch dots & ID-chip tints (decorative only) | `custom.status.*` |\n\nRules: **one** `primary` per surface (the CTA/selection accent) — everything else is `text-*`/`divider`. Status colors are **decoration only** (dots, chip tints), never interactive color. Dark-mode brightness/tinting is handled inside the theme's two palettes, so a correctly-sloted component needs zero per-mode code.\n\n---\n\n## 3. Layout\n\n- **Full-height app:** column flex — menu row / ribbon / content (`flex: 1; minHeight: 0`) / status bar. Fixed bands `flexShrink: 0`.\n- **Board:** horizontal-scroll flex row, `gap: 2` (16px), page padding `p: 2.5` (20px); columns `width: 296, flexShrink: 0`, internal column flex `gap: 1`.\n- **List view:** two-pane flex row filling the space between ribbon and status bar — sidebar `width: 280, flexShrink: 0`, editor pane `flex: 1, minWidth: 0` (the `minWidth: 0` is required so long content ellipsiz\n[3329 characters omitted]\nraction states\n\nConsistent across all components; all colors from the theme:\n\n- **Ghost icon button** (`IconButton`): transparent → hover `bgcolor: track` (or `background.paper` on a colored panel) + `color: primary.main`. Override MUI's default circular hover tint via `sx`.\n- **Outlined button:** `divider` border, `text.secondary` → hover `borderColor/color: primary.main`. Destructive: hover `borderColor: error.main` + `bgcolor: custom.dangerBg`.\n- **Contained (primary) CTA:** `primary.main` + small shadow → hover `primary.dark`.\n- **Input/field focus:** `borderColor: primary.main` + `boxShadow: 0 0 0 3px` in `custom.primaryBg` (the soft halo). Unfocused hover: `borderColor: custom.borderHover`.\n- **List/tree row:** hover `bgcolor: track`; selected `bgcolor: custom.primaryBg` + title `text.primary`.\n- **Row-level actions** (delete, ⋮): hidden at rest, shown on `:hover`/`:focus-within` via **opacity** (keep in DOM so width doesn't jump).\n- **Active tab/menu item:** 2px `primary.main` bottom border + `primary.main` text.\n- Every icon-only control gets a `Tooltip` (theme sets `arrow: true`) **and** an `aria-label`.\n\n---\n\n## 8. Component conventions (MUI primitives)\n\n- **Buttons:** `Button variant=\"contained\"` = the single CTA per surface; `variant=\"outlined\"` = secondary; `variant=\"text\"` = tertiary. Icon-only → `IconButton` in a `Tooltip`. Don't use `Link` or text `Button` where an action button belongs (that reproduces the old text-link look).\n- **Icons:** `@mui/icons-material` **Outlined** variants; `fontSize: 18` in 34px buttons, `16` in dense, `13–15` inline. Don't hand-draw SVG.\n- **ID chip:** monospace, accent text on `custom.primaryBg`/status tint, `radius 5, flexShrink: 0`.\n- **Count chip:** `background.paper` bg, 1px `divider`, radius 9–10, `custom.text3`.\n- **State dot:** 7–8px circle + `text-3` label; green (`success.main`) = active/saved/online.\n- **Search:** pill `TextField` (`borderRadius: 99`, `bgcolor: background.default`), search start-adornment, `⌘K` keycap end-adornment.\n- **Select:** `size=\"small\"`, optional dot+name via `renderValue`; 42px / radius-9 frame. When a select has a tooltip, keep the tooltip available while the select is closed and explicitly hide it for the entire time the select menu is open so it cannot cover the first option.\n- **Menu / context menu:** all `Menu` / `MenuItem` dropdowns and right-click context menus are dense by default through the theme. Call sites must not set density; `Select` option lists inherit the same density.\n- **Segmented control** (view switch, formatting toolbar): `ToggleButtonGroup` on a `custom.track` background; selected segment `background.paper` + `0 1px 2px` shadow + `primary` text.\n- **Dialog / popup:** `Dialog`/`Popover` with `PaperProps` → `background.paper`, 1px `divider`, radius 14, big shadow; scrim via `slotProps.backdrop` (blur + tint). Bands separated by hairlines; footer on a `background.default` bar with top hairline; actions right-aligned (outlined Cancel + contained CTA). `autoFocus` first field; submit on `Enter` (`⌘/Ctrl+Enter` in a textarea); close on `Esc`/backdrop.\n- **Empty state:** dashed target — `1.5px dashed custom.borderStrong`, radius 10, centered icon + `custom.text4` label. No \"click to add\" placeholder blocks.\n\n---\n\n## 9. Definition of done for a new component\n\n1. Zero hardcoded hex / raw px colors — every value comes from `theme.palette` / `theme.shape` / `theme.spacing` / `theme.typography`.\n2. Correct role→slot mapping (§2); at most one `primary` CTA on the surface.\n3. Borders at rest, shadow only when floating (§5); bands split by a single hairline.\n4. Hover **and** focus states on every interactive element (§7); icon buttons have tooltip + `aria-label`.\n5. Body scrolls, header/footer pinned; `minWidth: 0` on flex children that hold long text.\n6. Toggle to dark mode and confirm nothing breaks — if it does, you hardcoded a color somewhere (§1).\n\nComponent-specific detail lives in `GUIDANCE.md` (theme definition + board/list/dialog), `CARD_POPUP_GUIDE.md`, `RUN_DIALOG_GUIDE.md`, and `SIDEBAR_ACTIONS_GUIDE.md`.",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-12",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,140p' design/STYLE_GUIDE.md",
+          "providerItemId": "toolu_01Q8VRRjPUCjR5nhC73z6j7j",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:22.849Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CerCEebfjhRK2yu2oybir:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T15:17:24.577Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"folder\\|Folder\\|backdrop\\|describe(\" app/src/components/shell/project/project_dialogs.test.tsx | head -80",
+          "content": "38:        onChooseLocalFolder: vi.fn(async () => undefined),\n39:        onBrowseProjectSubFolder: null,\n41:        onConfirmProjectFolderSetup: vi.fn(),\n79:    const backdrop = dialog.closest('.MuiDialog-root')?.querySelector('.MuiBackdrop-root')\n80:    if (!backdrop) throw new Error('Missing new-card dialog backdrop')\n82:    fireEvent.mouseDown(backdrop)\n83:    fireEvent.click(backdrop)\n94:describe('project dialog components', () => {\n112:                onChooseLocalFolder={vi.fn(async () => undefined)}\n116:                onBrowseProjectSubFolder={null}\n117:                onConfirmProjectFolderSetup={vi.fn()}\n138:    it('offers repository access choices and maps Folder to Remote in browser mode', async () => {\n146:                onChooseLocalFolder={vi.fn(async () => undefined)}\n148:                onBrowseProjectSubFolder={null}\n149:                onConfirmProjectFolderSetup={vi.fn()}\n169:        expect(within(projectKind).getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'false')\n174:        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))\n176:        expect(screen.queryByLabelText('Local repository folder')).toBeNull()\n190:                onChooseLocalFolder={vi.fn(async () => undefined)}\n192:                onBrowseProjectSubFolder={null}\n193:                onConfirmProjectFolderSetup={vi.fn()}\n220:        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))\n227:    it('selects Folder by default in Electron and Repository by default in the browser', () => {\n234:        expect(within(desktopProjectKind).getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'true')\n236:        expect(screen.getByLabelText('Local repository folder')).toBeInTheDocument()\n248:        expect(screen.queryByLabelText('Local repository folder')).toBeNull()\n260:        expect(screen.queryByLabelText('Local repository folder')).toBeNull()\n276:        expect(within(projectKind).getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'true')\n277:        expect(screen.getByLabelText('Local repository folder')).toBeInTheDocument()\n280:    it('opens typed, picked, and recent local folders only after Folder is selected', () => {\n281:        const chooseLocalFolder = vi.fn(async () => undefined)\n290:                onChooseLocalFolder={chooseLocalFolder}\n292:                onBrowseProjectSubFolder={null}\n293:                onConfirmProjectFolderSetup={vi.fn()}\n313:        expect(screen.queryByLabelText('Local repository folder')).toBeNull()\n314:        fireEvent.click(screen.getByRole('button', { name: 'Folder' }))\n316:        const localFolderInput = screen.getByLabelText('Local repository folder')\n317:        expect(localFolderInput).toHaveAttribute('placeholder', 'Choose or enter a local folder')\n318:        expect(screen.getByText('Local repository folder')).toHaveAttribute('data-shrink', 'true')\n320:        fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))\n321:        expect(chooseLocalFolder).toHaveBeenCalledOnce()\n322:        expect(localFolderInput).toHaveValue('')\n325:        fireEvent.change(localFolderInput, { target: { value: 'C:/typed' } })\n331:        expect(localFolderInput).toHaveValue('C:/recent')\n340:    it('disables local open and folder picker while loading', () => {\n349:                onChooseLocalFolder={vi.fn(async () => undefined)}\n351:                onBrowseProjectSubFolder={null}\n352:                onConfirmProjectFolderSetup={vi.fn()}\n371:        fireEvent.change(screen.getByLabelText('Local repository folder'), { target: { value: 'C:/typed' } })\n372:        expect(screen.getByRole('button', { name: 'Choose local repository folder' })).toBeDisabled()\n386:                onChooseLocalFolder={vi.fn(async () => undefined)}\n388:                onBrowseProjectSubFolder={null}\n389:                onConfirmProjectFolderSetup={vi.fn()}\n426:                onChooseLocalFolder={vi.fn(async () => undefined)}\n430:                onBrowseProjectSubFolder={null}\n431:                onConfirmProjectFolderSetup={vi.fn()}\n466:                onChooseLocalFolder={vi.fn(async () => undefined)}\n470:                onBrowseProjectSubFolder={null}\n471:                onConfirmProjectFolderSetup={vi.fn()}\n490:        expect(screen.getByRole('button', { name: 'Folder' })).toHaveAttribute('aria-pressed', 'true')\n502:                onChooseLocalFolder={vi.fn(async () => undefined)}\n506:                onBrowseProjectSubFolder={null}\n507:                onConfirmProjectFolderSetup={vi.fn()}\n529:    it('shows the folder setup fields when project loading needs a folder choice', () => {\n535:                        existingFolderPaths: ['design', 'design/archived'],\n536:                        folders: [{ name: 'design', path: 'design' }],\n538:                        kind: 'project-folder-setup',\n542:                            actionsFolder: 'actions',\n543:                            archivedFolder: 'archived',\n544:                            diagramsFolder: 'diagrams',\n545:                            projectFolder: 'design',\n546:                            releasesFolder: 'history',\n547:                            workingFolder: 'feature_descriptions',\n554:        expect(screen.getByLabelText('Working folder')).toHaveValue('feature_descriptions')\n555:        expect(screen.getByLabelText('Archived folder')).toHaveValue('archived')\n556:        expect(screen.getByText('Active cards, inside the project folder. Will be created.')).toBeInTheDocument()\n557:        expect(screen.getByText('Archived cards, inside the project folder.')).toBeInTheDocument()\n562:    it('confirms all folder values for a project without md2.config.json', async () => {\n563:        const confirmProjectFolderSetup = vi.fn()\n568:                    onConfirmProjectFolderSetup: confirmProjectFolderSetup,",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-14",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"folder\\|Folder\\|backdrop\\|describe(\" app/src/components/shell/project/project_dialogs.test.tsx | head -80",
+          "providerItemId": "toolu_01N6BTt2YYouKouNoMfavgUE",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:25.982Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,100p' app/src/components/shell/project/project_dialogs.test.tsx && echo ===== && sed -n '520,700p' app/src/components/shell/project/project_dialogs.test.tsx",
+          "content": "import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'\nimport userEvent from '@testing-library/user-event'\nimport type { ComponentProps } from 'react'\nimport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\nimport {\n    DEFAULT_CARD_TYPES,\n    DEFAULT_STATES,\n    type BranchReference,\n    type ProjectReference,\n    type RepositoryReference,\n} from '../../../data/data_types'\nimport {\n    configureRemoteControlConnection,\n    REMOTE_CONTROL_ENDPOINT_KEY,\n} from '../../../data/remote_control_connection'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { dialogService } from '../../../services/dialog_service'\nimport { projectSessionService } from '../../../services/project/project_session_service'\nimport { createDeferred } from '../../../services/test_support/data_service_test_support'\nimport { BranchSwitchDialog } from './branch_switch_dialog'\nimport { CompleteReleaseDialog } from './complete_release_dialog'\nimport { NewCardDialog } from './new_card_dialog'\nimport { ProjectOpenDialog } from './project_open_dialog'\n\nconst BRANCHES: BranchReference[] = [{ name: 'main' }]\nconst PROJECT: ProjectReference = { branch: 'main', id: 'local', rootPath: 'C:/repo' }\nconst REPOSITORIES: RepositoryReference[] = [{ branch: 'main', id: 'octo/demo', owner: 'octo', repository: 'demo' }]\n\ntype ProjectOpenDialogProps = ComponentProps<typeof ProjectOpenDialog>\n\nfunction projectOpenDialogProps(overrides: Partial<ProjectOpenDialogProps>): ProjectOpenDialogProps {\n    return {\n        branches: [],\n        isDesktopMode: false,\n        isGithubAuthenticated: true,\n        isLoading: false,\n        onBranchChange: vi.fn(),\n        onChooseLocalFolder: vi.fn(async () => undefined),\n        onBrowseProjectSubFolder: null,\n        onClose: vi.fn(),\n        onConfirmProjectFolderSetup: vi.fn(),\n        onCreateRemoteProject: vi.fn(),\n        onDiscardGithubPendingCommits: vi.fn(),\n        onLoadManualBranches: vi.fn(async () => null),\n        onLoadRemoteBranches: vi.fn(async () => []),\n        onOpenGithub: vi.fn(async () => undefined),\n        onOpenLocal: vi.fn(async () => undefined),\n        onOpenRemote: vi.fn(async () => undefined),\n        onRepositoryChange: vi.fn(async () => []),\n        onSourceChange: vi.fn(),\n        open: true,\n        pendingGithubConflictProject: null,\n        projectOpenResolution: null,\n        recentLocalRepositories: [],\n        repositories: [],\n        ...overrides,\n    }\n}\n\nfunction mockMatchMedia(matches: boolean) {\n    window.matchMedia = ((query: string) => ({\n        addEventListener: () => {},\n        addListener: () => {},\n        dispatchEvent: () => false,\n        matches,\n        media: query,\n        onchange: null,\n        removeEventListener: () => {},\n        removeListener: () => {},\n    })) as unknown as typeof window.matchMedia\n}\n\nfunction getDescriptionEditor() {\n    return within(screen.getByRole('group', { name: 'Description' })).getByRole('textbox')\n}\n\nfunction dismissThroughBackdrop() {\n    const dialog = screen.getByRole('dialog', { name: 'New card' })\n    const backdrop = dialog.closest('.MuiDialog-root')?.querySelector('.MuiBackdrop-root')\n    if (!backdrop) throw new Error('Missing new-card dialog backdrop')\n\n    fireEvent.mouseDown(backdrop)\n    fireEvent.click(backdrop)\n}\n\nfunction insertEditorNewline(event: Event) {\n    const keyboardEvent = event as globalThis.KeyboardEvent\n    if (keyboardEvent.key !== 'Enter') return\n\n    const editor = event.currentTarget as HTMLTextAreaElement\n    fireEvent.change(editor, { target: { value: `${editor.value}\\n` } })\n}\n\ndescribe('project dialog components', () => {\n    beforeEach(() => {\n        mockMatchMedia(false)\n    })\n\n    afterEach(() => {\n        cleanup()\n=====\n                repositories={[]}\n            />,\n        )\n\n        expect(screen.getByLabelText('Endpoint')).toHaveValue('')\n        expect(screen.queryByLabelText('Token')).not.toBeInTheDocument()\n    })\n\n\n    it('shows the folder setup fields when project loading needs a folder choice', () =\n[3280 characters omitted]\ntup).toHaveBeenCalledWith({\n            actionsFolder: 'actions',\n            archivedFolder: 'archived',\n            diagramsFolder: 'diagrams',\n            projectFolder: 'docs',\n            releasesFolder: 'history',\n            workingFolder: 'cards',\n        }))\n    })\n\n    it('disables confirm while a folder value is empty', () => {\n        render(\n            <ProjectOpenDialog\n                {...projectOpenDialogProps({\n                    projectOpenResolution: {\n                        existingFolderPaths: [],\n                        folders: [],\n                        hasProjectConfig: false,\n                        kind: 'project-folder-setup',\n                        project: PROJECT,\n                        storageType: 'local',\n                        values: {\n                            actionsFolder: 'actions',\n                            archivedFolder: 'archived',\n                            diagramsFolder: 'diagrams',\n                            projectFolder: 'design',\n                            releasesFolder: 'history',\n                            workingFolder: 'active',\n                        },\n                    },\n                })}\n            />,\n        )\n\n        fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: '' } })\n\n        expect(screen.getByRole('button', { name: 'Open' })).toBeDisabled()\n        expect(screen.getByText('Working folder is required')).toBeInTheDocument()\n    })\n\n    it('does not offer folder setup for a read-only project', () => {\n        render(\n            <ProjectOpenDialog\n                {...projectOpenDialogProps({\n                    projectOpenResolution: {\n                        existingFolderPaths: [],\n                        folders: [],\n                        hasProjectConfig: true,\n                        kind: 'project-folder-setup',\n                        project: PROJECT,\n                        storageType: 'github-readonly',\n                        values: {\n                            actionsFolder: 'actions',\n                            archivedFolder: 'archived',\n                            diagramsFolder: 'diagrams',\n                            projectFolder: 'design',\n                            releasesFolder: 'history',\n                            workingFolder: 'active',\n                        },\n                    },\n                })}\n            />,\n        )\n\n        expect(screen.queryByLabelText('Project folder')).toBeNull()\n        expect(screen.queryByRole('button', { name: 'Open' })).toBeNull()\n    })\n\n    it('rejects a folder value that escapes the project folder', () => {\n        render(\n            <ProjectOpenDialog\n                {...projectOpenDialogProps({\n                    projectOpenResolution: {\n                        existingFolderPaths: [],\n                        folders: [],\n                        hasProjectConfig: false,\n                        kind: 'project-folder-setup',\n                        project: PROJECT,\n                        storageType: 'local',\n                        values: {\n                            actionsFolder: 'actions',\n                            archivedFolder: 'archived',\n                            diagramsFolder: 'diagrams',\n                            projectFolder: 'design',\n                            releasesFolder: 'history',\n                            workingFolder: 'active',\n                        },\n                    },\n                })}\n            />,\n        )\n\n        fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: '../outside' } })\n\n        expect(screen.getByRole('button', { name: 'Open' })).toBeDisabled()\n        expect(screen.getByText('Working folder must stay inside the project folder')).toBeInTheDocument()\n    })\n\n    it('offers a browse button per folder on the desktop only', () => {\n        const browseProjectSubFolder = vi.fn(async () => 'chosen')\n        const resolution = {\n            existingFolderPaths: [],\n            folders: [],\n            hasProjectConfig: false,",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-15",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,100p' app/src/components/shell/project/project_dialogs.test.tsx && echo ===== && sed -n '520,700p' app/src/components/shell/project/project_dialogs.test.tsx",
+          "providerItemId": "toolu_01GJxEvkagoSP1awVDwxLocF",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:29.107Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '700,800p' app/src/components/shell/project/project_dialogs.test.tsx",
+          "content": "            hasProjectConfig: false,\n            kind: 'project-folder-setup' as const,\n            project: PROJECT,\n            storageType: 'local' as const,\n            values: {\n                actionsFolder: 'actions',\n                archivedFolder: 'archived',\n                diagramsFolder: 'diagrams',\n                projectFolder: 'design',\n                releasesFolder: 'history',\n                workingFolder: 'active',\n            },\n        }\n        const { unmount } = render(\n            <ProjectOpenDialog {...projectOpenDialogProps({ projectOpenResolution: resolution })} />,\n        )\n\n        expect(screen.queryByRole('button', { name: 'Choose working folder' })).toBeNull()\n        unmount()\n\n        render(\n            <ProjectOpenDialog\n                {...projectOpenDialogProps({\n                    isDesktopMode: true,\n                    onBrowseProjectSubFolder: browseProjectSubFolder,\n                    projectOpenResolution: resolution,\n                })}\n            />,\n        )\n\n        fireEvent.click(screen.getByRole('button', { name: 'Choose working folder' }))\n\n        expect(browseProjectSubFolder).toHaveBeenCalledWith('active', 'design', false)\n    })\n\n    it('opens the new card dialog with empty focused title-first fields and dynamic type pills', async () => {\n        const createCard = vi.fn(async () => undefined)\n        const cardTypes = [\n            { color: '#123456', idPrefix: 'A', label: 'Architecture', type: 'architecture' },\n            { color: '#654321', idPrefix: 'R', label: 'Research', type: 'research' },\n        ]\n\n        render(\n            <NewCardDialog\n                cardTypes={cardTypes}\n                initialTargetStatus=\"new\"\n                isLoading={false}\n                isProjectOpen\n                onClose={vi.fn()}\n                onCreateCard={createCard}\n                open\n                states={DEFAULT_STATES}\n            />,\n            { wrapper: AppThemeProvider },\n        )\n\n        const title = screen.getByRole('textbox', { name: 'Title' })\n        expect(title).toHaveAttribute('placeholder', 'Card title…')\n        await waitFor(() => expect(title).toHaveFocus())\n        expect(getDescriptionEditor()).toHaveValue('')\n        expect(screen.queryByTestId('mdx-editor-toolbar')).not.toBeInTheDocument()\n        expect(screen.getByRole('button', { name: 'Create card' })).toBeDisabled()\n        expect(screen.getByRole('radiogroup', { name: 'Type' })).toBeInTheDocument()\n        expect(screen.getAllByRole('radio').map((radio) => radio.textContent)).toEqual(['Architecture', 'Research'])\n        expect(screen.getByRole('radio', { name: 'Architecture' })).toHaveAttribute('aria-checked', 'true')\n        expect(screen.getByRole('radio', { name: 'Architecture' }).querySelector('div')).toHaveStyle({ backgroundColor: '#123456' })\n    })\n\n    it('shows directly named type and description controls without visible labels or template actions', () => {\n        render(\n            <NewCardDialog\n                cardTypes={DEFAULT_CARD_TYPES}\n                initialTargetStatus=\"new\"\n                isLoading={false}\n                isProjectOpen\n                onClose={vi.fn()}\n                onCreateCard={vi.fn(async () => undefined)}\n                open\n                states={DEFAULT_STATES}\n            />,\n            { wrapper: AppThemeProvider },\n        )\n\n        expect(screen.getByRole('radiogroup', { name: 'Type' })).toBeInTheDocument()\n        expect(screen.getByRole('group', { name: 'Description' })).toBeInTheDocument()\n        expect(screen.queryByText('Type')).toBeNull()\n        expect(screen.queryByText('Description')).toBeNull()\n        expect(screen.queryByRole('button', { name: 'Template' })).toBeNull()\n        expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull()\n        expect(getDescriptionEditor()).toHaveValue('')\n    })\n\n    it('selects dynamic types by click and keyboard radiogroup controls', () => {\n        const createCard = vi.fn(async () => undefined)\n        const cardTypes = [\n            { color: '#123456', idPrefix: 'A', label: 'Architecture', type: 'architecture' },\n            { color: '#654321', idPrefix: 'R', label: 'Research', type: 'research' },\n        ]\n\n        render(\n            <NewCardDialog",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-16",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '700,800p' app/src/components/shell/project/project_dialogs.test.tsx",
+          "providerItemId": "toolu_01RBLsBsVTbut3rQ66t7i2af",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:31.735Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-17",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CerCFJjbyiAjQcxLPpkyd:thinking:0",
+          "sequence": 17,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T15:17:41.851Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && cat vitest.config.ts 2>/dev/null | head -40 && ls src/test_setup* src/**/setup* 2>/dev/null",
+          "content": "Exit code 2\nsrc/test/setup.ts",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-18",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && cat vitest.config.ts 2>/dev/null | head -40 && ls src/test_setup* src/**/setup* 2>/dev/null",
+          "providerItemId": "toolu_01HsJXbh6SBMq6GMYfrqdCjT",
+          "sequence": 18,
+          "status": "failed",
+          "timestamp": "2026-09-08T15:17:43.510Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && cat src/test/setup.ts | head -60 && grep -rn \"setupFiles\\|environment\" vite.config.ts vitest.workspace.ts 2>/dev/null | head",
+          "content": "import '@testing-library/jest-dom/vitest'\nimport { vi } from 'vitest'\n\nif (!globalThis.ResizeObserver) {\n    globalThis.ResizeObserver = class ResizeObserver {\n        private readonly observedElements = new Set<Element>()\n\n        disconnect() {\n            this.observedElements.clear()\n        }\n\n        observe(target: Element) {\n            this.observedElements.add(target)\n        }\n\n        unobserve(target: Element) {\n            this.observedElements.delete(target)\n        }\n    }\n}\n\n// MDXEditor is Lexical/contenteditable-based and does not render in jsdom, so\n// swap it for a textarea stub with the same markdown/onChange contract.\nvi.mock('@mdxeditor/editor', () => import('./mdx_editor_stub'))\nvi.mock('@mdxeditor/editor/style.css', () => ({}))\nvi.mock('@lexical/react/LexicalComposerContext', async () => {\n    const { useLexicalComposerContextStub } = await import('./lexical_composer_context_stub')\n\n    return { useLexicalComposerContext: useLexicalComposerContextStub }\n})\n\nif (!window.matchMedia) {\n    window.matchMedia = (query: string) => ({\n        addEventListener: () => {},\n        addListener: () => {},\n        dispatchEvent: () => false,\n        matches: false,\n        media: query,\n        onchange: null,\n        removeEventListener: () => {},\n        removeListener: () => {},\n    }) as unknown as MediaQueryList\n}\nvite.config.ts:129:                    environment: 'node',\nvite.config.ts:136:                    setupFiles: './src/test/node_setup.ts',\nvite.config.ts:142:                    environment: 'node',\nvite.config.ts:149:                    setupFiles: './src/test/service_setup.ts',\nvite.config.ts:155:                    environment: 'jsdom',\nvite.config.ts:163:                    setupFiles: './src/test/setup.ts',\nvite.config.ts:169:                    environment: 'jsdom',\nvite.config.ts:176:                    setupFiles: './src/test/real_editor_setup.ts',",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-19",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && cat src/test/setup.ts | head -60 && grep -rn \"setupFiles\\|environment\" vite.config.ts vitest.workspace.ts 2>/dev/null | head",
+          "providerItemId": "toolu_01BShBdMBxBVEx2f5TwqANCF",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:45.934Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-20",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CerCGMSbwhiTjKtQ3fnbS:thinking:0",
+          "sequence": 20,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T15:17:49.793Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && grep -rln \"custom.colHead\" src/components | head -10",
+          "content": "src/components/actions/shared/action_section_label.tsx\nsrc/components/diagram_view/diagram_change_review_list.tsx\nsrc/components/diagram_view/diagram_change_review_report.tsx\nsrc/components/diagram_view/diagram_comparison.tsx\nsrc/components/diagram_view/tabbed_diagram_comparison.tsx\nsrc/components/diagram_view/vertical_diagram_comparison.tsx\nsrc/components/shell/mobile_project_status.tsx\nsrc/components/text_view/card_properties_panel.tsx",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-21",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && grep -rln \"custom.colHead\" src/components | head -10",
+          "providerItemId": "toolu_01MzgsGRHGkmoYttMrAUNdRm",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:50.712Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && cat src/components/actions/shared/action_section_label.tsx && grep -rn \"fontSize: 12\" src/components/text_view/card_properties_panel.tsx | head -5",
+          "content": "import { Typography } from '@mui/material'\nimport type { ElementType, ReactNode } from 'react'\n\ninterface ActionSectionLabelProps {\n    children: ReactNode\n    component?: ElementType\n    id?: string\n}\n\n/** Uppercase section header shared by the action editor sections, per the app style guide. */\nexport function ActionSectionLabel(props: ActionSectionLabelProps) {\n    const { children, component = 'h3', id } = props\n\n    return (\n        <Typography\n            component={component}\n            id={id}\n            sx={{ color: 'custom.colHead', fontSize: 11, fontWeight: 700, letterSpacing: '0.7px', lineHeight: 1.4 }}\n            variant=\"overline\"\n        >\n            {children}\n        </Typography>\n    )\n}\n195:                            borderRadius: 99, color: 'text.secondary', display: 'inline-flex', fontSize: 12,",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-22",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && cat src/components/actions/shared/action_section_label.tsx && grep -rn \"fontSize: 12\" src/components/text_view/card_properties_panel.tsx | head -5",
+          "providerItemId": "toolu_01CdzB1GSDEcELEsXtyWUMPY",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-09-08T15:17:53.004Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-event-23",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CerCGsWrmcn2r1MYM7r5y:thinking:0",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-08T15:18:00.649Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRead spec + code. Plan below. **No edits yet.**\n\n## Findings\n\n- `project_open_dialog.tsx:379` — `onClose={handleClose}` ignores MUI's `reason`, so backdrop click nukes typed folder values.\n- Cancel button (`:496`) has no `disabled` prop already — stays clickable while loading. Only needs to stay that way.\n- `project_folder_setup_fields.tsx` — flat `Stack` of 6 `Autocomplete` rows, floating MUI labels + helper sentences. Spec calls prop `onBrowseProjectSubFolder`; real prop on the fields component is `onBrowseFolder` (dialog owns `onBrowseProjectSubFolder`). Same thing, no rename.\n- Existing tests query `getByLabelText('Working folder')`. Removing floating labels breaks that unless each input gets `aria-label`. Plan keeps `aria-label` = field label, so queries keep working.\n- Folder tests render without `AppThemeProvider`, so all styling must go through `sx` string tokens (`'custom.colHead'`), never `theme.palette.custom.*` callbacks — those are `undefined` in unwrapped renders.\n\n## Change Plan — blocks\n\n**Block 1 — conditional backdrop dismissal** (`project_open_dialog.tsx`)\n`handleDialogClose(_event, reason)`: return early when `projectFolderSetup !== null && reason === 'backdropClick'`. Escape and Cancel keep calling `handleClose`. Source step unchanged. Cancel stays enabled/visible (verify no `disabled` creeps in).\n\n**Block 2 — grouped folder panel** (`project_folder_setup_fields.tsx`)\n- `FolderFieldDescriptor` gains `group: 'root' | 'live' | 'history'`; drop `helperText`. Order: root `projectFolder`; live `workingFolder`, `diagramsFolder`, `actionsFolder`; history `releasesFolder`, `archivedFolder`.\n- Render: intro sentence (unchanged wording), root row, then two indented group blocks (`pl: 2`, `borderLeft: '1px solid'`, `borderColor: 'divider'`) each headed by an overline `Typography` (`custom.colHead`, 11px/700) reading `Live` / `History`.\n- Row = plain 12px/600 `text.secondary` `Typography` label above the control, `Autocomplete`+`TextField` (no `label`, `aria-label` on input), browse `IconButton` end adornment with tooltip + `aria-label` (desktop only), then a meta line: resolved path as `custom.text3` 12px, plus a `Will be created` count-style chip (`background.paper`, 1px `divider`, radius 9px, `custom.text3`) only when the resolved path is missing from `existingFolderPaths`.\n- Root row heavier weight, no indent. All values via theme tokens.\n\n**Block 3 — style guide** (`design/STYLE_GUIDE.md` §8)\nAmend the dialog bullet's `close on Esc/backdrop` clause: a dialog holding unsaved multi-field input may refuse `backdropClick`; `Esc` and Cancel still close. One clause edit, no rewrite. *(Flagging per your \"no doc rewrites without approval\" rule — spec mandates it; approve with the plan.)*\n\n**Block 4 — tests** (`project_dialogs.test.tsx`)\nUpdate the two helper-sentence assertions in `shows the folder setup fields…` to the new marker/meta signals. Add: backdrop click during folder setup keeps dialog open + preserves a typed value; backdrop click on source step still closes; Escape closes during setup; Cancel closes during setup; group headers `Live`/`History` present with fields in the sketch order; missing folder shows `Will be created`, existing one does not; browse buttons desktop-only (already covered — keep).\n\n**Block 5 — verify + finish**\n`npx vitest run src/components/shell/project/project_dialogs.test.tsx`, `npm run typecheck`, lint. Then set `status: ready` in `J_49_project_folders_dialog_improvements.md`.\n\nApprove and I start at Block 1.",
+          "id": "agent-turn-0fe4efbf-1346-4cef-830b-8ddea1944544-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 24,
+          "timestamp": "2026-09-08T15:18:18.338Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-62cc7bbf-5194-4124-994b-69ca239e5a3b",
+      "providerSessions": [],
+      "startedAt": "2026-09-08T15:17:06.097Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-08T15:17:06.097Z"
+      },
+      "title": "implement",
+      "usage": {
+        "cachedInputTokens": 663534,
+        "inputTokens": 28,
+        "outputTokens": 4660,
+        "reasoningTokens": 0,
+        "totalTokens": 668222,
+        "costUsd": 0.8509789999999999
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -514,11 +862,11 @@
         "agent-73b7f3eb-2891-44eb-9242-642f57db1b7d"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-971f98e4-3925-4b95-8752-7f62e89d9863",
       "origin": {
@@ -527,9 +875,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-73b7f3eb-2891-44eb-9242-642f57db1b7d",
       "startedAt": "2026-09-08T15:08:52.898Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-73b7f3eb-2891-44eb-9242-642f57db1b7d"
     }
   ],
   "version": 5
