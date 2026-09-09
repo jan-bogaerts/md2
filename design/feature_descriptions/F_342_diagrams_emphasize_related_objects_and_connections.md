@@ -11,7 +11,6 @@ agents:
 policy:
 after: 2f6108ac-7b47-4374-a2c6-292b5871b064
 ---
-
 we need to improve the diagrams a little bit:
 
 * first, for both static and editable diagrams, when clicking on an item: it should select it. for editable diagrams, this is already ok I think, but static diagrams open the context menu. instead, a click should select it, a right click opens the context menu
@@ -33,7 +32,7 @@ we need to improve the diagrams a little bit:
 * In this feature, **directly related** means one graph hop, never a transitive walk. Emphasizing a node keeps that node, every edge whose `from` or `to` equals its ID, and each opposite endpoint node at normal opacity. Emphasizing an edge keeps that edge plus its `from` and `to` nodes. Self-loops and duplicate endpoints appear once.
 * Keep Current selection as service-owned view state and retain `DiagramSelectionService` for New. Use stable `{ objectKind: 'node' | 'edge', objectId }` identities. Do not use labels or paths as identity, and do not add groups to emphasis scope.
 * Split shared node/edge interaction into plain selection and context-menu activation. Current plain click, Enter, or Space selects without opening a menu. New keeps existing Select-tool, Ctrl-click, group-selection, and blank-surface behavior. Right-click prevents the browser menu and opens the application menu for the target node or edge on either surface.
-* Extend diagram-menu state with object kind and surface. Add top-level `Emphasize`; Current keeps the existing `Actions` and `Saved diagrams` submenus, while New exposes `Emphasize` only. This intentionally changes F_343's Current top-level menu from two items to three. Choosing it closes the menu and starts or replaces emphasis for its context target.
+* Extend diagram-menu state with object kind and surface. Add top-level `Emphasize`; Current keeps the existing `Actions` and `Saved diagrams` submenus, while New exposes `Emphasize` only. This intentionally changes F\_343's Current top-level menu from two items to three. Choosing it closes the menu and starts or replaces emphasis for its context target.
 * Add an `EventTarget`-based emphasis service owning one active `{ diagramId, surface, objectKind, objectId }` target. Derive retained node and edge IDs from Current `PositionedDiagramData` or New service-owned `DiagramData`. Recompute after relevant New edge endpoint or collection changes; clear if the target disappears, the source diagram changes, navigation leaves it, or the edit session ends.
 * While emphasis is active, activating another node or edge moves the emphasis target and recomputes its one-hop set without leaving the mode. Selection and emphasis remain view data: neither changes `DiagramData`, geometry, dirty state, change descriptions, zoom, pan, or comparison layout.
 * **Almost fully transparent** means opacity `0.08`, stored in a named presentation constant. Nodes and edges outside the retained set, plus group boxes and sequence-only diagram decorations, use that opacity. Retained nodes and edges, diagram text outside the drawing surface, legend, menus, selection/focus indicators, and controls remain normal. Dimmed content stays pointer- and keyboard-operable.
