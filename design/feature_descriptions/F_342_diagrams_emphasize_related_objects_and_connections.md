@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__6a4ede44-a6e7-44d0-afdc-3230b6595822.json
 policy:
+after: 2f6108ac-7b47-4374-a2c6-292b5871b064
 ---
 
 we need to improve the diagrams a little bit:

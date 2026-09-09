@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: c6100c77-b4ed-44ab-b53d-7770c01b8656
 ---
 
 * double click on a folder also opens it immediately
