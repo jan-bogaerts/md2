@@ -17,4 +17,4 @@ in the action popup's chatlog, we currently show the total time that the convers
 in the stats:
 
 * agent/model performance, measured duration: each bar should be a stack of it's individual time-duration components. Each component its own color, include details in the legend. don't randomly pick colors, but be smart about it, user sees 2 bars per day: 1 for each agent. blocks should be easy to compare, so for instance one agent has a lighter shade of colors then the other agent
-* totals by card: again a stack
+* totals by card: again a stack of duration blocks. put colors in legend (each type of duration gets it's own color)
