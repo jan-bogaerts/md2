@@ -16,4 +16,4 @@ in the action popup's chatlog, we currently show the total time that the convers
 
 in the stats:
 
-* agent/model performance
+* agent/model performance, measured duration: each bar should be a stack of it's individual time-duration components
