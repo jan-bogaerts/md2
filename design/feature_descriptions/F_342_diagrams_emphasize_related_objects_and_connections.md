@@ -3,13 +3,52 @@ author:
 id: F_342
 internalId: 6a4ede44-a6e7-44d0-afdc-3230b6595822
 title: diagrams emphasize related objects and connections
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__6a4ede44-a6e7-44d0-afdc-3230b6595822.json
 policy:
 after: 2f6108ac-7b47-4374-a2c6-292b5871b064
+changedFiles:
+  - app/src/components/diagram_view/current_diagram_edge.tsx
+  - app/src/components/diagram_view/current_diagram_node.tsx
+  - app/src/components/diagram_view/diagram.tsx
+  - app/src/components/diagram_view/diagram_comparison.tsx
+  - app/src/components/diagram_view/diagram_current_viewport.tsx
+  - app/src/components/diagram_view/diagram_edge.tsx
+  - app/src/components/diagram_view/diagram_emphasis_exit_button.tsx
+  - app/src/components/diagram_view/diagram_emphasis_presentation.test.tsx
+  - app/src/components/diagram_view/diagram_emphasis_presentation.ts
+  - app/src/components/diagram_view/diagram_group.tsx
+  - app/src/components/diagram_view/diagram_item_menu.tsx
+  - app/src/components/diagram_view/diagram_new_pane.tsx
+  - app/src/components/diagram_view/diagram_node.test.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_renderer.test.tsx
+  - app/src/components/diagram_view/diagram_selection.ts
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/components/diagram_view/editable_diagram_activation.tsx
+  - app/src/components/diagram_view/editable_diagram_collections.tsx
+  - app/src/components/diagram_view/editable_diagram_edge.tsx
+  - app/src/components/diagram_view/editable_diagram_fragment.tsx
+  - app/src/components/diagram_view/editable_diagram_group.tsx
+  - app/src/components/diagram_view/editable_diagram_leaves.test.tsx
+  - app/src/components/diagram_view/editable_diagram_lifeline.tsx
+  - app/src/components/diagram_view/editable_diagram_node.tsx
+  - app/src/components/diagram_view/sequence_activation.tsx
+  - app/src/components/diagram_view/sequence_fragment.tsx
+  - app/src/components/diagram_view/sequence_lifeline.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.tsx
+  - app/src/components/diagram_view/use_diagram_emphasis.ts
+  - app/src/components/diagram_view/vertical_diagram_comparison.tsx
+  - app/src/services/diagrams/diagram_emphasis_service.test.ts
+  - app/src/services/diagrams/diagram_emphasis_service.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
 ---
 we need to improve the diagrams a little bit:
 
