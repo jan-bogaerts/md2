@@ -942,13 +942,50 @@
         "costUsd": 2.9831149999999997
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "2f6108ac-7b47-4374-a2c6-292b5871b064",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "cf90a7c18d1e7a2c2659afcb2b81add8e39d918b",
+          "committedAt": "2026-09-09T15:54:40+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_339_improve_time_reporting.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 61
+        }
+      ],
+      "completedAt": "2026-09-09T13:54:40.612Z",
+      "conversationIds": [
+        "agent-7189d904-6aa3-4403-91a0-5b31dc69435b"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-ca514e27-68f0-4243-8f12-579a84c2bf7d",
+      "origin": {
+        "cardInternalId": "2f6108ac-7b47-4374-a2c6-292b5871b064",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-7189d904-6aa3-4403-91a0-5b31dc69435b",
+      "startedAt": "2026-09-09T13:41:22.631Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
