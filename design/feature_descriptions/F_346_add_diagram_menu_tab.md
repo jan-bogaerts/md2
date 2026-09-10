@@ -7,6 +7,7 @@ status: new
 owner: 
 affects:
 agents:
+  - design/activity/card__38518a81-c62a-4c06-a5fb-677f1753b2dd.json
 policy:
 ---
 * Visible when in diagram view
