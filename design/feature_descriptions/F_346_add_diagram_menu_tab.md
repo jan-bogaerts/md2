@@ -3,12 +3,48 @@ author:
 id: F_346
 internalId: 38518a81-c62a-4c06-a5fb-677f1753b2dd
 title: Add diagram menu tab
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__38518a81-c62a-4c06-a5fb-677f1753b2dd.json
 policy:
+changedFiles:
+  - app/src/components/diagram_view/diagram_add_control.test.tsx
+  - app/src/components/diagram_view/diagram_add_control.tsx
+  - app/src/components/diagram_view/diagram_change_review_button.tsx
+  - app/src/components/diagram_view/diagram_comparison.test.tsx
+  - app/src/components/diagram_view/diagram_comparison_layout.test.tsx
+  - app/src/components/diagram_view/diagram_comparison_layout.tsx
+  - app/src/components/diagram_view/diagram_comparison_menu_control.test.tsx
+  - app/src/components/diagram_view/diagram_comparison_menu_control.tsx
+  - app/src/components/diagram_view/diagram_copy_button.tsx
+  - app/src/components/diagram_view/diagram_creation_tool_sample.tsx
+  - app/src/components/diagram_view/diagram_creation_tools.ts
+  - app/src/components/diagram_view/diagram_cut_button.tsx
+  - app/src/components/diagram_view/diagram_delete_button.tsx
+  - app/src/components/diagram_view/diagram_edit_button.tsx
+  - app/src/components/diagram_view/diagram_fragment_button.tsx
+  - app/src/components/diagram_view/diagram_legend_button.tsx
+  - app/src/components/diagram_view/diagram_menu_tab.test.tsx
+  - app/src/components/diagram_view/diagram_menu_tab.tsx
+  - app/src/components/diagram_view/diagram_menu_tool_button.tsx
+  - app/src/components/diagram_view/diagram_metadata_button.tsx
+  - app/src/components/diagram_view/diagram_new_pane.tsx
+  - app/src/components/diagram_view/diagram_paste_button.tsx
+  - app/src/components/diagram_view/diagram_toolbox.test.tsx
+  - app/src/components/diagram_view/diagram_toolbox.tsx
+  - app/src/components/diagram_view/diagram_toolbox_action_button.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.test.tsx
+  - app/src/components/diagram_view/tabbed_diagram_comparison.tsx
+  - app/src/components/diagram_view/vertical_diagram_comparison.test.tsx
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/components/shell/menu/menu_icon_button.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
 ---
 * Visible when in diagram view
 * Contains:
