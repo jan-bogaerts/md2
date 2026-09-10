@@ -9,4 +9,9 @@ affects:
 agents:
 policy:
 ---
-
+* Visible when in diagram view
+* Contains:
+  * The edit button
+  * the 3 buttons to select the view
+  * The edit functions: select, cut, copy, delete,...
+  * A bu
