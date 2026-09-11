@@ -869,7 +869,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "526d5eb3-f1f1-4d3e-a65f-a5721d69a23c",
       "cardPath": "design/feature_descriptions/F_252_add_support_to_insert_special_chars_like_emojis.md",
-      "completedAt": null,
+      "completedAt": "2026-09-11T08:49:44.153Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 113983
@@ -2058,17 +2058,25 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 89,
-          "timestamp": "2026-09-11T08:49:43.551Z"
+          "timestamp": "2026-09-11T08:49:44.153Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-7217c4d6-d6a5-4909-8974-45d550ebd551",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "7aa8be86-000a-44e5-8dfe-c36dd6549648",
+          "createdAt": "2026-09-11T08:49:44.153Z",
+          "lastUsedAt": "2026-09-11T08:49:44.153Z",
+          "synchronizedThroughMessageId": "agent-turn-c40a3f4a-17f3-4f73-b8f4-4d6d7e2f279a-turn-1-assistant-1"
+        }
+      ],
       "startedAt": "2026-09-10T18:30:26.963Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 57868,
-        "runningStartedAt": "2026-09-11T08:37:08.810Z"
+        "elapsedMs": 813211,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
