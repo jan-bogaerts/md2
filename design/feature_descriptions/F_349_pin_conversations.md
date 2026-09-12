@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 7587f168-1106-4f87-b705-a38eab8717f4
 ---
 
 some conversations can remain valid for longer time. user should be able to find them fast. So user can 'pin a conversation: put a 'pin' / 'unpin' icon next to the 'conversation selector' at the top row of the action popup. Also, in the selection list, put a pin after all pinned conversations so the user can easily spot a pinned conversation in the list.
