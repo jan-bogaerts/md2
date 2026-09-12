@@ -728,16 +728,32 @@
           "role": "assistant",
           "sequence": 51,
           "timestamp": "2026-09-12T18:09:43.557Z"
+        },
+        {
+          "content": "All nodes sharing role\n\nImmutable only relates to nodes and lzaves, not formatting or layout info.\n\nFull 3x3",
+          "id": "agent-turn-5865b34a-0de2-4de4-bf37-28088c156734-user-51",
+          "kind": "message",
+          "role": "user",
+          "sequence": 52,
+          "timestamp": "2026-09-12T18:12:18.582Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-3565fdc9-63aa-4012-9d2a-c276c014a17d",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a096ce-7511-7f90-92b0-cf8e27b47a8c",
+          "createdAt": "2026-09-12T18:09:43.557Z",
+          "lastUsedAt": "2026-09-12T18:09:43.557Z",
+          "synchronizedThroughMessageId": "agent-turn-5865b34a-0de2-4de4-bf37-28088c156734-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-12T18:08:27.229Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-12T18:08:27.229Z"
+        "elapsedMs": 76328,
+        "runningStartedAt": "2026-09-12T18:12:18.582Z"
       },
       "title": "complete",
       "usage": {
@@ -748,7 +764,7 @@
         "totalTokens": 550430
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {

@@ -1170,12 +1170,20 @@
       ],
       "hasExplicitTitle": true,
       "id": "agent-38012b7a-7854-4061-b621-10b017a2f06e",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a096ce-f2e5-78d0-8771-cc0523d82e7c",
+          "createdAt": "2026-09-12T18:09:55.793Z",
+          "lastUsedAt": "2026-09-12T18:09:55.793Z",
+          "synchronizedThroughMessageId": "agent-turn-ce14a143-eaf7-4fad-87d3-8b32a85de520-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-09-12T18:08:59.959Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-12T18:08:59.959Z"
+        "elapsedMs": 55834,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
@@ -1186,7 +1194,7 @@
         "totalTokens": 347176
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
