@@ -2323,6 +2323,31 @@
       "startedAt": "2026-09-12T17:24:43.832Z",
       "status": "completed",
       "rootConversationId": "agent-6ef371d9-046f-4a75-bdf9-7e6637269227"
+    },
+    {
+      "commits": [
+        {
+          "commit": "b72130db4bdaedeea5ef04fa07aa18f2cce7e905",
+          "committedAt": "2026-09-12T19:51:05+02:00",
+          "deletions": 3,
+          "filePaths": [
+            "app/src/components/card_view/card_body_editor.grouped.test.tsx",
+            "app/src/components/editor/markdown_editor_local_text_search.grouped.test.tsx",
+            "app/src/components/editor/markdown_local_text_search_plugin.tsx",
+            "app/src/test/mdx_editor_stub.tsx"
+          ],
+          "filesChanged": 4,
+          "insertions": 101,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-12T19:51:05+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "0be5ec62-c3e8-4d20-8b15-fd81f2636fc9",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
