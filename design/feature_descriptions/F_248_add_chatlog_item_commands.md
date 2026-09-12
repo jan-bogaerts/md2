@@ -5,6 +5,8 @@ status: ready for implementation
 title: add chatlog item commands
 agents:
   - design/activity/card__3ca60eff-65bc-44d0-929f-451e034102c4.json
+branch: f_248_add_chatlog_item_commands
+worktree: 2
 ---
 for chatlogs items, add buttons that allow:
 

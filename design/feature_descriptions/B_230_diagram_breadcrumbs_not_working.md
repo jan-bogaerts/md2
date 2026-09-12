@@ -10,6 +10,8 @@ agents:
   - design/activity/card__02127bb8-87e9-4515-89b9-103550e2d125.json
 policy:
 after: 3ca60eff-65bc-44d0-929f-451e034102c4
+branch: b_230_diagram_breadcrumbs_not_working
+worktree: 1
 ---
 The breadcrumbs bar on the diagram view needs fixing:
 

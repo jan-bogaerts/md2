@@ -10,6 +10,8 @@ agents:
   - design/activity/card__0be5ec62-c3e8-4d20-8b15-fd81f2636fc9.json
 policy:
 after: 3ca60eff-65bc-44d0-929f-451e034102c4
+branch: b_229_position_of_local_search
+worktree: 3
 ---
 
 The local search box that we show in the card popup should be sticky to the top and positioned below the toolbar.
