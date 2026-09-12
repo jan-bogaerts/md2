@@ -10,8 +10,6 @@ agents:
   - design/activity/card__0be5ec62-c3e8-4d20-8b15-fd81f2636fc9.json
 policy:
 after: 3ca60eff-65bc-44d0-929f-451e034102c4
-branch: b_229_position_of_local_search
-worktree: 3
 changedFiles:
   - app/src/components/card_view/card_body_editor.grouped.test.tsx
   - app/src/components/editor/markdown_editor_local_text_search.grouped.test.tsx
