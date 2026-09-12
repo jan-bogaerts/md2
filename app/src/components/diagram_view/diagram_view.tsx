@@ -1,8 +1,7 @@
 import {
-    Alert, Box, Breadcrumbs, Button, CircularProgress, Paper, Tooltip, Typography,
+    Alert, Box, Button, CircularProgress, Paper, Typography,
 } from '@mui/material'
 import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
-import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined'
 import type { MouseEvent } from 'react'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { actionsForContext, diagramContext } from '../../data/action_context'
@@ -34,6 +33,7 @@ import type { DiagramSelection } from './diagram_selection'
 import { TabbedDiagramComparison } from './tabbed_diagram_comparison'
 import { VerticalDiagramComparison } from './vertical_diagram_comparison'
 import { DiagramCurrentViewport } from './diagram_current_viewport'
+import { DiagramBreadcrumbBar } from './diagram_breadcrumb_bar'
 
 const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
 
@@ -80,7 +80,6 @@ export function DiagramView({
     )
     const { actions } = useActions()
     const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions])
-    const activeRecords = index.activePath.map((id) => index.diagrams[id])
     const rootDiagrams = index.activePath.length === 0 ? service.getRootDiagrams() : []
     const diagramTitle = (record: DiagramRecord) => {
         const label = actions.find(({ id }) => id === record.actionId)?.label ?? record.label
@@ -99,9 +98,9 @@ export function DiagramView({
     const handleDiagramSelect = (_anchorElement: HTMLElement, selection: DiagramSelection) => {
         const diagramId = index.activePath.at(-1)
         if (!diagramId) return
-        const { id: objectId, objectKind } = selection
-        service.selectCurrentObject({ objectId, objectKind })
-        emphasis.moveTargetIfActive({ diagramId, objectId, objectKind, surface: 'current' })
+        const { id: itemId, label: itemLabel, objectKind } = selection
+        service.selectCurrentObject({ activeDiagramId: diagramId, itemId, itemLabel, objectKind })
+        emphasis.moveTargetIfActive({ diagramId, objectId: itemId, objectKind, surface: 'current' })
     }
 
     const handleDiagramContextMenu = (anchorElement: HTMLElement, selection: DiagramSelection) => {
@@ -111,14 +110,6 @@ export function DiagramView({
         service.openItemMenu({ anchorElement, diagramId, itemId, itemLabel, left, objectKind, surface: 'current', top })
     }
 
-    const handleBreadcrumbClick = (event: MouseEvent<HTMLElement>) => {
-        const item = (event.target as Element).closest<HTMLElement>('[data-diagram-breadcrumb-index]')
-        if (!item) return
-        const index = Number(item.dataset.diagramBreadcrumbIndex)
-        void service.navigateToCrumb(index).catch(reportNavigationFailure)
-    }
-
-    const handleBack = () => void service.navigateBack().catch(reportNavigationFailure)
     const handleRetry = () => void service.open().catch((error: unknown) => {
         dialogService.error(error, { fallbackMessage: 'Diagram view could not be opened' })
     })
@@ -215,6 +206,7 @@ export function DiagramView({
                     session={editSessionSnapshot ? editSession : null}
                 />
             ) : null}
+            <DiagramBreadcrumbBar service={service} />
         </Box>
     )
 
@@ -223,34 +215,6 @@ export function DiagramView({
             aria-label="Diagram view"
             sx={{ bgcolor: 'background.default', display: viewMode === 'diagrams' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
         >
-            <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, flexWrap: 'wrap', gap: 1, p: 1, minWidth: 0 }}>
-                <Tooltip title="Back">
-                    <span>
-                        <Button
-                            aria-label="Back"
-                            disabled={index.activePath.length <= 1}
-                            onClick={handleBack}
-                            startIcon={<ArrowBackOutlined />}
-                            variant="outlined"
-                        >
-                            Back
-                        </Button>
-                    </span>
-                </Tooltip>
-                <Breadcrumbs aria-label="Diagram breadcrumb" onClick={handleBreadcrumbClick}>
-                    {activeRecords.map((record, index) => (
-                        <Button
-                            data-diagram-breadcrumb-index={index}
-                            disabled={index === activeRecords.length - 1}
-                            key={record.id}
-                            size="small"
-                            variant="text"
-                        >
-                            {record.label}
-                        </Button>
-                    ))}
-                </Breadcrumbs>
-            </Box>
             {content}
             {status === 'ready' ? (
                 <MovableFab

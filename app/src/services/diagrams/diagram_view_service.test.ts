@@ -37,8 +37,9 @@ function createHarness(repositoryFiles: string[] = []) {
         createTimestamp: () => '2026-09-01T10:00:00.000Z',
         flushCommits,
         loadActions: () => [
-            { id: 'overview', label: 'Overview' },
-            { id: 'detail', label: 'Detail' },
+            { appliesTo: { kind: 'diagram', type: 'root' }, builtin: false, id: 'overview', label: 'Overview' },
+            { appliesTo: { kind: 'diagram', type: 'root' }, builtin: false, id: 'dependencies', label: 'Dependencies' },
+            { appliesTo: { kind: 'diagram', type: 'child' }, builtin: false, id: 'detail', label: 'Detail' },
         ] as ActionDefinition[],
         reportError,
         scheduleCommit,
@@ -119,6 +120,45 @@ describe('DiagramViewService', () => {
         })
     })
 
+    it('owns root menu and preselects first root action without a saved diagram', async () => {
+        const { run, service } = createHarness()
+        const menuChanged = vi.fn()
+        const menuAnchor = document.createElement('button')
+        const newAnchor = document.createElement('button')
+        await service.open()
+        service.subscribeRootMenu(menuChanged)
+
+        service.openRootMenu(menuAnchor)
+        expect(service.getRootMenuSnapshot()).toEqual({ anchorElement: menuAnchor })
+
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSnapshot().index.roots.overview).toEqual(['root-1']))
+        service.openRootMenu(menuAnchor)
+        service.openNewRootPopup(newAnchor)
+
+        expect(service.getRootMenuSnapshot()).toBeNull()
+        expect(service.getPopupSnapshot()).toMatchObject({
+            anchorElement: newAnchor,
+            context: { kind: 'diagram', type: 'root' },
+            initialActionId: 'dependencies',
+        })
+        expect(menuChanged).toHaveBeenCalledTimes(3)
+    })
+
+    it('omits root popup preselection after every root action has a saved diagram', async () => {
+        const { run, service } = createHarness()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSnapshot().index.roots.overview).toEqual(['root-1']))
+        run(completedEvent({ actionId: 'dependencies', diagramPath: 'design/diagrams/dependencies.json', rootActionId: 'dependencies', runId: 'run-2' }))
+        await vi.waitFor(() => expect(service.getSnapshot().index.roots.dependencies).toEqual(['root-2']))
+
+        service.openNewRootPopup(document.createElement('button'))
+
+        expect(service.getPopupSnapshot()).toEqual(expect.objectContaining({ context: { kind: 'diagram', type: 'root' } }))
+        expect(service.getPopupSnapshot()).not.toHaveProperty('initialActionId')
+    })
+
     it('owns one item submenu and clears it with its parent menu', async () => {
         const { service } = createHarness()
         const itemAnchor = document.createElement('button')
@@ -146,18 +186,54 @@ describe('DiagramViewService', () => {
     it('owns granular Current selection', async () => {
         const { run, service } = createHarness()
         const selectedChanged = vi.fn()
+        const selectedItemChanged = vi.fn()
         await service.open()
         run(completedEvent())
         await vi.waitFor(() => expect(service.getCurrentDiagramSnapshot()).not.toBeNull())
         const unsubscribe = service.subscribeCurrentSelection('node', 'orders', selectedChanged)
+        service.subscribeCurrentSelectedItem(selectedItemChanged)
 
-        service.selectCurrentObject({ objectId: 'orders', objectKind: 'node' })
+        const selection = { activeDiagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node' } as const
+        service.selectCurrentObject(selection)
 
         expect(service.getCurrentSelectionSnapshot('node', 'orders')).toBe(true)
+        const selectedItemSnapshot = service.getCurrentSelectedItemSnapshot()
+        expect(selectedItemSnapshot).toEqual({activeDiagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node'})
         expect(selectedChanged).toHaveBeenCalledOnce()
+        expect(selectedItemChanged).toHaveBeenCalledOnce()
+        service.selectCurrentObject({ ...selection })
+        expect(service.getCurrentSelectedItemSnapshot()).toBe(selectedItemSnapshot)
+        expect(selectedItemChanged).toHaveBeenCalledOnce()
         run(completedEvent({ diagramPath: 'design/diagrams/overview-2.json', runId: 'run-2' }))
         await vi.waitFor(() => expect(service.getCurrentSelectionSnapshot('node', 'orders')).toBe(false))
+        expect(service.getCurrentSelectedItemSnapshot()).toBeNull()
+        expect(selectedItemChanged).toHaveBeenCalledTimes(2)
         unsubscribe()
+    })
+
+    it('opens child popup from selected Current item and clears selection after navigation', async () => {
+        const { run, service } = createHarness()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+        service.selectCurrentObject({ activeDiagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node' })
+        const anchorElement = document.createElement('button')
+
+        service.openSelectedItemPopup(anchorElement)
+
+        expect(service.getPopupSnapshot()).toEqual({
+            anchorElement,
+            context: { diagramId: 'root-1', diagramItemId: 'orders', kind: 'diagram', parentNode: 'Orders', type: 'child' },
+        })
+
+        run(completedEvent({ diagramPath: 'design/diagrams/overview-2.json', runId: 'run-2' }))
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-2'))
+        service.selectCurrentObject({ activeDiagramId: 'root-2', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node' })
+
+        await service.navigateToSavedDiagram('root-1')
+
+        expect(service.getCurrentSelectedItemSnapshot()).toBeNull()
+        expect(() => service.openSelectedItemPopup(anchorElement)).toThrow('without a selected Current item')
     })
 
     it('owns transient legend state and resets it only when project changes or service clears', async () => {

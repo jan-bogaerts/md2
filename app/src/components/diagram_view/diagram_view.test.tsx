@@ -77,8 +77,9 @@ function initialSnapshot(): DiagramViewSnapshot {
                     path: 'design/diagrams/child.json',
                 },
                 'root-1': { actionId: 'overview', id: 'root-1', label: 'Overview', path: 'design/diagrams/root.json' },
+                'root-2': { actionId: 'dependencies', id: 'root-2', label: 'Dependencies', path: 'design/diagrams/dependencies.json' },
             },
-            roots: { overview: ['root-1'] },
+            roots: { dependencies: ['root-2'], overview: ['root-1'] },
             version: 1,
         },
         legend: { collapsed: false, position: null },
@@ -113,9 +114,12 @@ function createEditHarness(start = true) {
     return { editSession, geometry, selection: new DiagramSelectionService(editSession, geometry) }
 }
 
-function createService() {
-    let currentSelection: { objectId: string, objectKind: 'edge' | 'node' } | null = null
-    let snapshot = initialSnapshot()
+function createService(initial = initialSnapshot()) {
+    let currentSelection: {
+        activeDiagramId: string, itemId: string, itemLabel: string, objectKind: 'edge' | 'node',
+    } | null = null
+    let rootMenu: { anchorElement: HTMLElement } | null = null
+    let snapshot = initial
     let viewportScale = DEFAULT_DIAGRAM_ZOOM
     const snapshotEvents = new EventTarget()
     const viewportScaleEvents = new EventTarget()
@@ -140,25 +144,36 @@ function createService() {
             publish({ ...snapshot, menu: { ...snapshot.menu, submenu: null } })
         }),
         closePopup: vi.fn(() => publish({ ...snapshot, popup: null })),
+        closeRootMenu: vi.fn(() => {
+            rootMenu = null
+            snapshotEvents.dispatchEvent(new Event('rootMenu'))
+        }),
         expandLegend: vi.fn(() => publish({ ...snapshot, legend: { ...snapshot.legend, collapsed: false } })),
         getCurrentDiagramErrorSnapshot: () => snapshot.currentDiagramError,
         getCurrentDiagramSnapshot: () => snapshot.currentDiagram,
         getCurrentSelectionSnapshot: (objectKind: 'edge' | 'node', objectId: string) => (
-            currentSelection?.objectKind === objectKind && currentSelection.objectId === objectId
+            currentSelection?.objectKind === objectKind && currentSelection.itemId === objectId
         ),
+        getCurrentSelectedItemSnapshot: () => currentSelection,
         getErrorSnapshot: () => snapshot.error,
         getIndexSnapshot: () => snapshot.index,
         getLegendCollapsedSnapshot: () => snapshot.legend.collapsed,
         getLegendPositionSnapshot: () => snapshot.legend.position,
         getMenuSnapshot: () => snapshot.menu,
         getPopupSnapshot: () => snapshot.popup,
+        getRootDiagrams: () => Object.values(snapshot.index.roots).flat().map((id) => snapshot.index.diagrams[id]),
+        getRootMenuSnapshot: () => rootMenu,
         getSavedChildren: vi.fn(() => [{ actionId: 'saved-action', id: 'saved-1', label: 'Saved Orders', path: 'design/diagrams/saved.json' }]),
         getSnapshot: () => snapshot,
         getStatusSnapshot: () => snapshot.status,
         getViewportScaleSnapshot: () => viewportScale,
         navigateBack: vi.fn(async () => undefined),
         navigateToCrumb: vi.fn(async () => undefined),
-        navigateToSavedDiagram: vi.fn(async () => publish({ ...snapshot, menu: null })),
+        navigateToSavedDiagram: vi.fn(async () => {
+            rootMenu = null
+            snapshotEvents.dispatchEvent(new Event('rootMenu'))
+            publish({ ...snapshot, menu: null })
+        }),
         moveLegend: vi.fn((position: DiagramLegendPosition) => publish({ ...snapshot, legend: { ...snapshot.legend, position } })),
         open: vi.fn(async () => undefined),
         openChildPopup: vi.fn((actionId: string) => {
@@ -180,6 +195,14 @@ function createService() {
                 },
             })
         }),
+        openNewRootPopup: vi.fn((anchorElement: HTMLElement) => {
+            rootMenu = null
+            snapshotEvents.dispatchEvent(new Event('rootMenu'))
+            publish({
+                ...snapshot,
+                popup: { anchorElement, context: { kind: 'diagram', type: 'root' } },
+            })
+        }),
         openItemMenu: vi.fn((menu: DiagramItemMenuRequest) => publish({ ...snapshot, menu: { ...menu, submenu: null } })),
         openItemSubmenu: vi.fn((kind: DiagramItemSubmenuKind, anchorElement: HTMLElement) => {
             if (!snapshot.menu) return
@@ -191,6 +214,26 @@ function createService() {
                 ? null
                 : { anchorElement, context: { kind: 'diagram', type: 'root' } },
         })),
+        openRootMenu: vi.fn((anchorElement: HTMLElement) => {
+            rootMenu = { anchorElement }
+            snapshotEvents.dispatchEvent(new Event('rootMenu'))
+        }),
+        openSelectedItemPopup: vi.fn((anchorElement: HTMLElement) => {
+            if (!currentSelection) return
+            publish({
+                ...snapshot,
+                popup: {
+                    anchorElement,
+                    context: {
+                        diagramId: currentSelection.activeDiagramId,
+                        diagramItemId: currentSelection.itemId,
+                        kind: 'diagram',
+                        parentNode: currentSelection.itemLabel,
+                        type: 'child',
+                    },
+                },
+            })
+        }),
         setViewportScale: vi.fn((scale: number) => {
             if (scale === viewportScale) return false
             viewportScale = scale
@@ -198,11 +241,14 @@ function createService() {
 
             return true
         }),
-        selectCurrentObject: vi.fn((selection: { objectId: string, objectKind: 'edge' | 'node' }) => {
+        selectCurrentObject: vi.fn((selection: {
+            activeDiagramId: string, itemId: string, itemLabel: string, objectKind: 'edge' | 'node',
+        }) => {
             const previous = currentSelection
             currentSelection = selection
-            if (previous) snapshotEvents.dispatchEvent(new Event(`selection:${previous.objectKind}:${previous.objectId}`))
-            snapshotEvents.dispatchEvent(new Event(`selection:${selection.objectKind}:${selection.objectId}`))
+            if (previous) snapshotEvents.dispatchEvent(new Event(`selection:${previous.objectKind}:${previous.itemId}`))
+            snapshotEvents.dispatchEvent(new Event(`selection:${selection.objectKind}:${selection.itemId}`))
+            snapshotEvents.dispatchEvent(new Event('selectedItem'))
         }),
         subscribeCurrentDiagram: (listener: () => void) => {
             snapshotEvents.addEventListener('currentDiagram', listener)
@@ -219,6 +265,11 @@ function createService() {
             snapshotEvents.addEventListener(eventType, listener)
 
             return () => snapshotEvents.removeEventListener(eventType, listener)
+        },
+        subscribeCurrentSelectedItem: (listener: () => void) => {
+            snapshotEvents.addEventListener('selectedItem', listener)
+
+            return () => snapshotEvents.removeEventListener('selectedItem', listener)
         },
         subscribeError: (listener: () => void) => {
             snapshotEvents.addEventListener('error', listener)
@@ -250,6 +301,11 @@ function createService() {
 
             return () => snapshotEvents.removeEventListener('popup', listener)
         },
+        subscribeRootMenu: (listener: () => void) => {
+            snapshotEvents.addEventListener('rootMenu', listener)
+
+            return () => snapshotEvents.removeEventListener('rootMenu', listener)
+        },
         subscribeStatus: (listener: () => void) => {
             snapshotEvents.addEventListener('status', listener)
 
@@ -270,7 +326,10 @@ function createService() {
         closeItemSubmenu: ReturnType<typeof vi.fn>
         openItemMenu: ReturnType<typeof vi.fn>
         openItemSubmenu: ReturnType<typeof vi.fn>
+        openNewRootPopup: ReturnType<typeof vi.fn>
         openRootPopup: ReturnType<typeof vi.fn>
+        openRootMenu: ReturnType<typeof vi.fn>
+        openSelectedItemPopup: ReturnType<typeof vi.fn>
     }
 }
 
@@ -285,6 +344,83 @@ describe('DiagramView', () => {
         Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 })
     })
     afterEach(cleanup)
+
+    it('renders icon-only Back and transparent breadcrumb bar over active diagram', async () => {
+        const service = createService()
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+        const activeDiagram = screen.getByLabelText('Active diagram')
+        const breadcrumbBar = screen.getByLabelText('Diagram breadcrumb bar')
+        const back = screen.getByRole('button', { name: 'Back' })
+
+        expect(activeDiagram).toContainElement(breadcrumbBar)
+        expect(breadcrumbBar).toHaveStyle({ position: 'absolute' })
+        expect(back).toHaveTextContent('')
+        await user.hover(back)
+        expect(await screen.findByRole('tooltip', { name: 'Back' })).toBeInTheDocument()
+    })
+
+    it('keeps root crumb enabled at root and opens all saved roots plus New', async () => {
+        const snapshot = initialSnapshot()
+        snapshot.index = { ...snapshot.index, activePath: ['root-1'] }
+        const service = createService(snapshot)
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+        const rootCrumb = screen.getByRole('button', { name: 'Overview' })
+
+        expect(rootCrumb).toBeEnabled()
+        expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled()
+        await user.click(rootCrumb)
+
+        const rootMenu = screen.getByRole('menu', { name: 'Root diagrams' })
+        expect(within(rootMenu).getByRole('menuitem', { name: 'Overview' })).toBeInTheDocument()
+        expect(within(rootMenu).getByRole('menuitem', { name: 'Dependencies' })).toBeInTheDocument()
+        await user.click(within(rootMenu).getByRole('menuitem', { name: 'New' }))
+        expect(service.openNewRootPopup).toHaveBeenCalledOnce()
+        expect(screen.getByRole('dialog')).toHaveAttribute('data-context', '{"kind":"diagram","type":"root"}')
+    })
+
+    it('enables Add after Current selection and opens child popup for selected item', async () => {
+        const service = createService()
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+        const add = screen.getByRole('button', { name: 'Add child diagram' })
+
+        expect(add).toBeDisabled()
+        await user.click(screen.getByRole('button', { name: 'Customer' }))
+        expect(add).toBeEnabled()
+        await user.click(add)
+
+        expect(service.openSelectedItemPopup).toHaveBeenCalledOnce()
+        expect(screen.getByRole('dialog')).toHaveAttribute(
+            'data-context',
+            '{"diagramId":"child-1","diagramItemId":"customer","kind":"diagram","parentNode":"Customer","type":"child"}',
+        )
+    })
+
+    it('keeps non-current later crumb navigation', async () => {
+        const snapshot = initialSnapshot()
+        snapshot.index = {
+            ...snapshot.index,
+            activePath: ['root-1', 'child-1', 'child-2'],
+            diagrams: {
+                ...snapshot.index.diagrams,
+                'child-2': {
+                    actionId: 'detail', id: 'child-2', label: 'Leaf',
+                    parent: { diagramId: 'child-1', itemId: 'customer', itemLabel: 'Customer' },
+                    path: 'design/diagrams/leaf.json',
+                },
+            },
+        }
+        const service = createService(snapshot)
+        const user = userEvent.setup()
+        render(<DiagramView service={service} />)
+
+        await user.click(within(screen.getByLabelText('Diagram breadcrumb')).getByRole('button', { name: 'Orders' }))
+
+        expect(service.navigateToCrumb).toHaveBeenCalledWith(1)
+        expect(screen.getByRole('button', { name: 'Leaf' })).toBeDisabled()
+    })
 
     it('overlays derived legend outside scroller and provides collapse and expand controls', async () => {
         const service = createService()
@@ -355,7 +491,7 @@ describe('DiagramView', () => {
         await user.keyboard(' ')
 
         expect(service.selectCurrentObject).toHaveBeenCalledTimes(3)
-        expect(service.selectCurrentObject).toHaveBeenLastCalledWith({ objectId: 'customer', objectKind: 'node' })
+        expect(service.selectCurrentObject).toHaveBeenLastCalledWith({activeDiagramId: 'child-1', itemId: 'customer', itemLabel: 'Customer', objectKind: 'node'})
         expect(customer).toHaveAttribute('aria-pressed', 'true')
         expect(service.openItemMenu).not.toHaveBeenCalled()
     })
@@ -520,13 +656,14 @@ describe('DiagramView', () => {
 
         await user.click(screen.getByRole('button', { name: 'Back' }))
         await user.click(screen.getByRole('button', { name: 'Overview' }))
+        await user.click(screen.getByRole('menuitem', { name: 'Overview' }))
         fireEvent.contextMenu(screen.getByRole('button', { name: 'Customer' }))
         await user.click(screen.getByRole('menuitem', { name: 'Saved diagrams' }))
         await user.click(screen.getByRole('menuitem', { name: 'Saved Orders' }))
 
         expect(service.navigateBack).toHaveBeenCalledTimes(1)
-        expect(service.navigateToCrumb).toHaveBeenCalledWith(0)
-        expect(service.navigateToSavedDiagram).toHaveBeenCalledWith('saved-1')
+        expect(service.navigateToSavedDiagram).toHaveBeenNthCalledWith(1, 'root-1')
+        expect(service.navigateToSavedDiagram).toHaveBeenNthCalledWith(2, 'saved-1')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         expect(screen.queryByRole('menu', { name: 'Diagram item' })).not.toBeInTheDocument()
     })
@@ -603,9 +740,10 @@ describe('DiagramView', () => {
 
         await user.click(screen.getByRole('button', { name: 'Back' }))
         await user.click(screen.getByRole('button', { name: 'Overview' }))
+        await user.click(screen.getByRole('menuitem', { name: 'Overview' }))
 
         expect(service.navigateBack).toHaveBeenCalledTimes(1)
-        expect(service.navigateToCrumb).toHaveBeenCalledWith(0)
+        expect(service.navigateToSavedDiagram).toHaveBeenCalledWith('root-1')
         expect(layoutService.getComparisonModeSnapshot()).toBe('tabbed')
         expect(screen.getAllByRole('tab', { name: 'Current' }).length).toBeGreaterThan(0)
     })

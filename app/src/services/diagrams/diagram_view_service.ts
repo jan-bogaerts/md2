@@ -1,4 +1,4 @@
-import { diagramContext, type ActionContext } from '../../data/action_context'
+import { actionsForContext, diagramContext, type ActionContext } from '../../data/action_context'
 import type { ActionRunEvent } from '../../data/action_run_types'
 import type { MarkdownFile, ProjectConfig, ProjectReference, StorageService } from '../../data/data_types'
 import { generateUuid } from '../../data/uuid'
@@ -26,12 +26,14 @@ const MAXIMUM_COPY_PATH_ATTEMPTS = 100
 const CURRENT_DIAGRAM_CHANGED_EVENT = 'currentDiagramChanged'
 const CURRENT_DIAGRAM_ERROR_CHANGED_EVENT = 'currentDiagramErrorChanged'
 const CURRENT_SELECTION_CHANGED_EVENT_PREFIX = 'currentSelectionChanged'
+const CURRENT_SELECTED_ITEM_CHANGED_EVENT = 'currentSelectedItemChanged'
 const ERROR_CHANGED_EVENT = 'errorChanged'
 const INDEX_CHANGED_EVENT = 'indexChanged'
 const LEGEND_COLLAPSED_CHANGED_EVENT = 'legendCollapsedChanged'
 const LEGEND_POSITION_CHANGED_EVENT = 'legendPositionChanged'
 const MENU_CHANGED_EVENT = 'menuChanged'
 const POPUP_CHANGED_EVENT = 'popupChanged'
+const ROOT_MENU_CHANGED_EVENT = 'rootMenuChanged'
 const STATUS_CHANGED_EVENT = 'statusChanged'
 const VIEWPORT_SCALE_CHANGED_EVENT = 'viewportScaleChanged'
 
@@ -39,6 +41,10 @@ export interface DiagramPopupState {
     anchorElement: HTMLElement
     context: ActionContext
     initialActionId?: string
+}
+
+export interface DiagramRootMenuState {
+    anchorElement: HTMLElement
 }
 
 export interface DiagramMenuState {
@@ -63,7 +69,9 @@ export interface DiagramItemSubmenuState {
 export type DiagramItemMenuRequest = Omit<DiagramMenuState, 'submenu'>
 
 export interface CurrentDiagramSelection {
-    objectId: string
+    activeDiagramId: string
+    itemId: string
+    itemLabel: string
     objectKind: 'edge' | 'node'
 }
 
@@ -136,8 +144,8 @@ function normalizedPathKey(path: string) {
     return normalizeSlashes(path).toLowerCase()
 }
 
-function currentSelectionChangedEvent(objectKind: CurrentDiagramSelection['objectKind'], objectId: string) {
-    return `${CURRENT_SELECTION_CHANGED_EVENT_PREFIX}:${objectKind}:${objectId}`
+function currentSelectionChangedEvent(objectKind: CurrentDiagramSelection['objectKind'], itemId: string) {
+    return `${CURRENT_SELECTION_CHANGED_EVENT_PREFIX}:${objectKind}:${itemId}`
 }
 
 function insertAfter(values: readonly string[], existingValue: string, value: string) {
@@ -294,6 +302,7 @@ export class DiagramViewService extends EventTarget {
     private processedRunIds = new Set<string>()
     private readonly pendingCopyRecordsBySourceId = new Map<string, DiagramRecord>()
     private projectKey: string | null = null
+    private rootMenu: DiagramRootMenuState | null = null
     private snapshot = initialSnapshot()
     private sourceSnapshot: DiagramViewSourceSnapshot | null = null
     private unsubscribeRunEvents: (() => void) | null = null
@@ -309,8 +318,10 @@ export class DiagramViewService extends EventTarget {
     getCurrentDiagramSnapshot = () => this.snapshot.currentDiagram
 
     getCurrentSelectionSnapshot = (objectKind: CurrentDiagramSelection['objectKind'], objectId: string) => (
-        this.currentSelection?.objectKind === objectKind && this.currentSelection.objectId === objectId
+        this.currentSelection?.objectKind === objectKind && this.currentSelection.itemId === objectId
     )
+
+    getCurrentSelectedItemSnapshot = () => this.currentSelection
 
     getCurrentDiagramErrorSnapshot = () => this.snapshot.currentDiagramError
 
@@ -325,6 +336,8 @@ export class DiagramViewService extends EventTarget {
     getMenuSnapshot = () => this.snapshot.menu
 
     getPopupSnapshot = () => this.snapshot.popup
+
+    getRootMenuSnapshot = () => this.rootMenu
 
     getSourceSnapshot = () => this.sourceSnapshot
 
@@ -353,6 +366,12 @@ export class DiagramViewService extends EventTarget {
         this.addEventListener(eventType, listener)
 
         return () => this.removeEventListener(eventType, listener)
+    }
+
+    subscribeCurrentSelectedItem = (listener: () => void) => {
+        this.addEventListener(CURRENT_SELECTED_ITEM_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(CURRENT_SELECTED_ITEM_CHANGED_EVENT, listener)
     }
 
     subscribeError = (listener: () => void) => {
@@ -389,6 +408,12 @@ export class DiagramViewService extends EventTarget {
         this.addEventListener(POPUP_CHANGED_EVENT, listener)
 
         return () => this.removeEventListener(POPUP_CHANGED_EVENT, listener)
+    }
+
+    subscribeRootMenu = (listener: () => void) => {
+        this.addEventListener(ROOT_MENU_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(ROOT_MENU_CHANGED_EVENT, listener)
     }
 
     subscribeSource = (listener: () => void) => {
@@ -430,6 +455,7 @@ export class DiagramViewService extends EventTarget {
         this.setCurrentSelection(null)
         this.setMenu(null)
         this.setPopup(null)
+        this.setRootMenu(null)
         this.applySnapshot(initialSnapshot(), null)
     }
 
@@ -449,7 +475,29 @@ export class DiagramViewService extends EventTarget {
             return
         }
         this.setMenu(null)
+        this.setRootMenu(null)
         this.setPopup({ anchorElement, context: diagramContext('root') })
+    }
+
+    openRootMenu(anchorElement: HTMLElement) {
+        this.requireReady()
+        this.setMenu(null)
+        this.setPopup(null)
+        this.setRootMenu({ anchorElement })
+    }
+
+    closeRootMenu() {
+        this.setRootMenu(null)
+    }
+
+    openNewRootPopup(anchorElement: HTMLElement) {
+        this.requireReady()
+        const context = diagramContext('root')
+        const rootActions = actionsForContext(this.dependencies.loadActions(), context)
+        if (rootActions.length === 0) throw new Error('Cannot open a root diagram action without a configured root action')
+        const initialActionId = rootActions.find(({ id }) => (this.snapshot.index.roots[id]?.length ?? 0) === 0)?.id
+        this.setRootMenu(null)
+        this.setPopup({ anchorElement, context, ...(initialActionId ? { initialActionId } : {}) })
     }
 
     openChildPopup(actionId: string) {
@@ -459,6 +507,20 @@ export class DiagramViewService extends EventTarget {
         const context = diagramContext('child', menu.diagramId, menu.itemId, menu.itemLabel)
         this.setMenu(null)
         this.setPopup({ anchorElement: menu.anchorElement, context, initialActionId: actionId })
+    }
+
+    openSelectedItemPopup(anchorElement: HTMLElement) {
+        this.requireReady()
+        const selection = this.currentSelection
+        if (!selection) throw new Error('Cannot open a child diagram action without a selected Current item')
+        const activeDiagramId = this.snapshot.index.activePath.at(-1)
+        if (selection.activeDiagramId !== activeDiagramId) {
+            throw new Error('Cannot open a child diagram action for a stale Current selection')
+        }
+        const context = diagramContext('child', selection.activeDiagramId, selection.itemId, selection.itemLabel)
+        this.setMenu(null)
+        this.setRootMenu(null)
+        this.setPopup({ anchorElement, context })
     }
 
     closePopup() {
@@ -485,9 +547,13 @@ export class DiagramViewService extends EventTarget {
     selectCurrentObject(selection: CurrentDiagramSelection) {
         const diagram = this.snapshot.currentDiagram
         if (!diagram) throw new Error('Cannot select a Current object without an active diagram')
+        const activeDiagramId = this.snapshot.index.activePath.at(-1)
+        if (selection.activeDiagramId !== activeDiagramId) {
+            throw new Error(`Cannot select an object outside the active diagram: ${selection.activeDiagramId}`)
+        }
         const collection = selection.objectKind === 'node' ? diagram.nodes : diagram.edges
-        if (!collection.some(({ id }) => id === selection.objectId)) {
-            throw new Error(`Cannot select missing Current diagram ${selection.objectKind}: ${selection.objectId}`)
+        if (!collection.some(({ id }) => id === selection.itemId)) {
+            throw new Error(`Cannot select missing Current diagram ${selection.objectKind}: ${selection.itemId}`)
         }
         this.setCurrentSelection(selection)
     }
@@ -534,6 +600,7 @@ export class DiagramViewService extends EventTarget {
     async navigateToSavedDiagram(diagramId: string) {
         this.requireReady()
         if (!this.snapshot.index.diagrams[diagramId]) throw new Error(`Unknown diagram: ${diagramId}`)
+        this.setRootMenu(null)
         await this.applyActivePath(pathToDiagram(this.snapshot.index, diagramId))
     }
 
@@ -727,13 +794,16 @@ export class DiagramViewService extends EventTarget {
         const previousSelection = this.currentSelection
         if (
             previousSelection?.objectKind === selection?.objectKind
-            && previousSelection?.objectId === selection?.objectId
+            && previousSelection?.activeDiagramId === selection?.activeDiagramId
+            && previousSelection?.itemId === selection?.itemId
+            && previousSelection?.itemLabel === selection?.itemLabel
         ) return
         this.currentSelection = selection
         if (previousSelection) {
-            this.dispatchEvent(new Event(currentSelectionChangedEvent(previousSelection.objectKind, previousSelection.objectId)))
+            this.dispatchEvent(new Event(currentSelectionChangedEvent(previousSelection.objectKind, previousSelection.itemId)))
         }
-        if (selection) this.dispatchEvent(new Event(currentSelectionChangedEvent(selection.objectKind, selection.objectId)))
+        if (selection) this.dispatchEvent(new Event(currentSelectionChangedEvent(selection.objectKind, selection.itemId)))
+        this.dispatchEvent(new Event(CURRENT_SELECTED_ITEM_CHANGED_EVENT))
     }
 
     private setCurrentDiagramError(currentDiagramError: string | null) {
@@ -785,6 +855,13 @@ export class DiagramViewService extends EventTarget {
 
         this.snapshot.popup = popup
         this.dispatchEvent(new Event(POPUP_CHANGED_EVENT))
+    }
+
+    private setRootMenu(rootMenu: DiagramRootMenuState | null) {
+        if (this.rootMenu === rootMenu) return
+
+        this.rootMenu = rootMenu
+        this.dispatchEvent(new Event(ROOT_MENU_CHANGED_EVENT))
     }
 
     private setStatus(status: DiagramViewSnapshot['status']) {
