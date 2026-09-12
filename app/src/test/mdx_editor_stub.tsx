@@ -307,6 +307,7 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
 
         const handleTextareaRef = useCallback((textarea: HTMLTextAreaElement | null) => {
             textareaRef.current = textarea
+            testLexicalEditor.setRootElement(textarea)
             if (!textarea) return
 
             suppressSelectionMirrorRef.current = true
@@ -363,7 +364,9 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
         return (
             <StubRealmContext.Provider value={realm}>
                 <div className={className} data-testid="mdx-editor">
-                    {toolbar?.toolbarContents ? <div data-testid="mdx-editor-toolbar">{toolbar.toolbarContents()}</div> : null}
+                    {toolbar?.toolbarContents ? (
+                        <div className="mdxeditor-toolbar" data-testid="mdx-editor-toolbar">{toolbar.toolbarContents()}</div>
+                    ) : null}
                     {overlayContainer ? createPortal(<div data-testid="mdx-editor-overlay" />, overlayContainer) : null}
                     <textarea
                         onChange={handleChange}

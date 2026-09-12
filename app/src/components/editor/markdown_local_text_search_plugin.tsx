@@ -38,6 +38,12 @@ export function MarkdownLocalTextSearchPlugin() {
     const [resultCount, setResultCount] = useState<number | null>(null)
     const [searchOrigin, setSearchOrigin] = useState(0)
     const rootElement = editor.getRootElement()
+    const editorContainer = rootElement?.closest('[data-sticky-toolbar]')
+    const toolbarElement = editorContainer?.querySelector<HTMLElement>('.mdxeditor-toolbar') ?? null
+    const toolbarStyle = toolbarElement ? window.getComputedStyle(toolbarElement) : null
+    const toolbarVisible = !!toolbarElement && toolbarStyle?.display !== 'none' && toolbarStyle?.visibility !== 'hidden'
+    const anchorElement = toolbarVisible ? toolbarElement : rootElement
+    const placement = toolbarVisible ? 'bottom-end' : 'top-end'
     const configError = config ? null : new Error('Cannot register Markdown local text search without configuration')
     useDialogError(configError, 'Local text search is unavailable')
 
@@ -139,10 +145,10 @@ export function MarkdownLocalTextSearchPlugin() {
 
     return (
         <Popper
-            anchorEl={rootElement}
+            anchorEl={anchorElement}
             container={config?.overlayContainer ?? undefined}
             open={open}
-            placement="top-end"
+            placement={placement}
             role="dialog"
             sx={{ zIndex: 'modal' }}
         >

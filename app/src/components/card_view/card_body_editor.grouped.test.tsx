@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { DEFAULT_CARD_TYPES } from '../../data/data_types'
@@ -6,6 +7,23 @@ import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import type { MarkdownDocumentTarget } from '../editor/markdown_data_source'
 import { CardBodyEditor } from './card_body_editor'
+
+type CapturedPopperProps = ComponentProps<(typeof import('@mui/material'))['Popper']>
+
+const popperPropsSpy = vi.hoisted(() => vi.fn<(props: CapturedPopperProps) => void>())
+
+vi.mock('@mui/material', async (importOriginal) => {
+    const material = await importOriginal<typeof import('@mui/material')>()
+    const MaterialPopper = material.Popper
+
+    return {
+        ...material,
+        Popper: (props: ComponentProps<typeof MaterialPopper>) => {
+            popperPropsSpy(props)
+            return <MaterialPopper {...props} />
+        },
+    }
+})
 
 function renderCardBodyEditor(props: Parameters<typeof CardBodyEditor>[0]) {
     return render(
@@ -25,6 +43,14 @@ function editorProps(overrides: Partial<Parameters<typeof CardBodyEditor>[0]> = 
         statusColors: new Map(),
         ...overrides,
     }
+}
+
+function capturedSearchPopperProps() {
+    const calls = popperPropsSpy.mock.calls.filter(([props]) => props.role === 'dialog')
+    const call = calls[calls.length - 1]
+    if (!call) throw new Error('Expected local-search Popper props')
+
+    return call[0]
 }
 
 describe('CardBodyEditor', () => {
@@ -68,6 +94,18 @@ describe('CardBodyEditor', () => {
         const { container } = renderCardBodyEditor(editorProps({ isMobile }))
 
         expect(container.querySelector('[data-sticky-toolbar="true"]')).not.toBeNull()
+    })
+
+    it('anchors local search below its sticky toolbar', () => {
+        const { container } = renderCardBodyEditor(editorProps())
+        const toolbar = container.querySelector<HTMLElement>('.mdxeditor-toolbar')
+        if (!toolbar) throw new Error('Expected sticky card Markdown toolbar')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Find text' }))
+
+        const popperProps = capturedSearchPopperProps()
+        expect(popperProps.anchorEl).toBe(toolbar)
+        expect(popperProps.placement).toBe('bottom-end')
     })
 
     it('hides fullscreen control on mobile', () => {

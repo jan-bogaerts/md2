@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import type { CardOpenDocument } from '../../services/open_files_service'
@@ -9,6 +10,23 @@ import {
     type MarkdownDataSource,
     type MarkdownDocumentTarget,
 } from './markdown_data_source'
+
+type CapturedPopperProps = ComponentProps<(typeof import('@mui/material'))['Popper']>
+
+const popperPropsSpy = vi.hoisted(() => vi.fn<(props: CapturedPopperProps) => void>())
+
+vi.mock('@mui/material', async (importOriginal) => {
+    const material = await importOriginal<typeof import('@mui/material')>()
+    const MaterialPopper = material.Popper
+
+    return {
+        ...material,
+        Popper: (props: ComponentProps<typeof MaterialPopper>) => {
+            popperPropsSpy(props)
+            return <MaterialPopper {...props} />
+        },
+    }
+})
 
 class SearchTestDataSource extends MarkdownDataSourceBase {
     readonly commit = vi.fn<MarkdownDataSource['commit']>(() => true)
@@ -62,6 +80,14 @@ function selectText(textbox: HTMLTextAreaElement, start: number, end = start) {
     fireEvent.select(textbox)
 }
 
+function capturedSearchPopperProps() {
+    const calls = popperPropsSpy.mock.calls.filter(([props]) => props.role === 'dialog')
+    const call = calls[calls.length - 1]
+    if (!call) throw new Error('Expected local-search Popper props')
+
+    return call[0]
+}
+
 describe('MarkdownEditor local text search', () => {
     afterEach(cleanup)
 
@@ -71,6 +97,20 @@ describe('MarkdownEditor local text search', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Find text' }))
 
         expect(screen.getByRole('textbox', { name: 'Find text' })).toHaveFocus()
+    })
+
+    it('anchors below the visible formatting toolbar', () => {
+        const { container } = renderSearchEditor('Find this')
+        const toolbar = container.querySelector<HTMLElement>('.mdxeditor-toolbar')
+        if (!toolbar) throw new Error('Expected visible Markdown toolbar')
+        const editor = screen.getByRole('textbox')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Find text' }))
+
+        const popperProps = capturedSearchPopperProps()
+        expect(popperProps.anchorEl).toBe(toolbar)
+        expect(popperProps.anchorEl).not.toBe(editor)
+        expect(popperProps.placement).toBe('bottom-end')
     })
 
     it('opens with Ctrl+F without a toolbar and prevents browser find', () => {
@@ -83,6 +123,17 @@ describe('MarkdownEditor local text search', () => {
         expect(browserEventAllowed).toBe(false)
         expect(screen.getByRole('textbox', { name: 'Find text' })).toHaveValue('Bold')
         expect(screen.getByRole('textbox', { name: 'Find text' })).toHaveFocus()
+    })
+
+    it('anchors above the editor root when the toolbar is hidden', () => {
+        renderSearchEditor('Find this', { hideToolbar: true })
+        const editor = screen.getByRole('textbox')
+
+        fireEvent.keyDown(editor, { ctrlKey: true, key: 'f' })
+
+        const popperProps = capturedSearchPopperProps()
+        expect(popperProps.anchorEl).toBe(editor)
+        expect(popperProps.placement).toBe('top-end')
     })
 
     it('keeps typed search text as a focused draft until Enter submits it', async () => {
