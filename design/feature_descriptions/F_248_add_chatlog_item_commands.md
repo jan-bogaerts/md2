@@ -1,12 +1,47 @@
 ---
 internalId: 3ca60eff-65bc-44d0-929f-451e034102c4
 id: F_248
-status: ready for implementation
+status: ready
 title: add chatlog item commands
 agents:
   - design/activity/card__3ca60eff-65bc-44d0-929f-451e034102c4.json
 branch: f_248_add_chatlog_item_commands
 worktree: 2
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
+  - app/src/components/actions/conversation/action_conversation_chat.tsx
+  - app/src/components/actions/conversation/action_conversation_chatlog_tracker.ts
+  - app/src/components/actions/conversation/action_conversation_command_service.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_command_service.ts
+  - app/src/components/actions/conversation/action_conversation_copy_button.tsx
+  - app/src/components/actions/conversation/action_conversation_event_markdown.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_event_markdown.ts
+  - app/src/components/actions/conversation/action_conversation_event_row.tsx
+  - app/src/components/actions/conversation/action_conversation_evolving_groups.tsx
+  - app/src/components/actions/conversation/action_conversation_group_list.tsx
+  - app/src/components/actions/conversation/action_conversation_history.tsx
+  - app/src/components/actions/conversation/action_conversation_item_commands.grouped.test.tsx
+  - app/src/components/actions/conversation/action_conversation_item_commands.test.tsx
+  - app/src/components/actions/conversation/action_conversation_message.tsx
+  - app/src/components/actions/conversation/action_conversation_message_commands.tsx
+  - app/src/components/actions/conversation/action_conversation_rendering.test.tsx
+  - app/src/components/actions/conversation/action_conversation_store.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_store.ts
+  - app/src/components/actions/conversation/action_conversation_transcript.tsx
+  - app/src/components/actions/run/popup/action_popup_defaults.ts
+  - app/src/data/electron_action_bridge.ts
+  - app/src/services/actions/action_definition_writer.node.test.ts
+  - app/src/services/actions/action_definition_writer.ts
+  - app/src/services/actions/action_service.node.test.ts
+  - app/src/services/actions/action_service.ts
+  - app/src/services/data/remote_control_storage_service.node.test.ts
+  - app/src/services/data/remote_control_storage_service.ts
+  - desktop/src/actions/activity/activity_files.js
+  - desktop/src/actions/activity/activity_files.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
 ---
 for chatlogs items, add buttons that allow:
 
