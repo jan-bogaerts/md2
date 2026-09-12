@@ -26,6 +26,7 @@ export function emptyTimeRow(
         agent: null,
         available: true,
         chartRole,
+        colorGroup: null,
         displayLabel: context.displayLabel,
         grouping: granularity,
         identity: context.start,

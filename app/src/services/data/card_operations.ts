@@ -28,6 +28,7 @@ import {
     toggleCardPolicy,
 } from './card_mutations'
 import { buildSentryIssueMarkdown } from '../sentry/sentry_issue_markdown'
+import { compactSentryCardTitle } from '../sentry/sentry_card_title';
 import { normalizeSentryBaseUrl, sentryIdentityKey, type SentryIssueImport } from '../sentry/sentry_types'
 import { activityPathForCardReference } from '../agents/agent_reference_migration'
 
@@ -135,9 +136,10 @@ export class CardOperations {
             const identity = sentryIdentityKey(normalizedBaseUrl, request.organization, importedIssue.issue.id)
             if (identities.has(identity)) continue
 
+            const compactTitle = compactSentryCardTitle(importedIssue.issue.title);
             const draft = {
                 body: buildSentryIssueMarkdown(importedIssue),
-                title: importedIssue.issue.title,
+                title: compactTitle,
                 type: request.cardType,
             }
             const file = createCardFile(

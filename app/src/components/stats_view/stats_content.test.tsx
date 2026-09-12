@@ -244,4 +244,40 @@ describe('StatsContent', () => {
 
         expect(screen.getByText(/1 sample excluded: 1 missing measured timer/u)).toBeInTheDocument()
     })
+
+    it('stacks duration bars per agent and per card, and keeps other duration aggregations unstacked', async () => {
+        const origin = { cardInternalId: 'card-1', kind: 'card' }
+        const storedConversation = {
+            actionId: 'review', cardInternalId: 'card-1', cardPath: 'design/F_1.md', completedAt: '2026-08-12T10:00:00.000Z',
+            entries: [], id: 'conversation-1', providerSessions: [], startedAt: '2026-08-12T09:00:00.000Z',
+            status: 'completed', timer: { breakdown: { reasoningMs: 20_000, toolMs: 50_000 }, elapsedMs: 100_000, runningStartedAt: null },
+            title: 'Review', viewed: true,
+        }
+        const record = {
+            commits: [], completedAt: '2026-08-12T10:00:00.000Z', conversationIds: ['conversation-1'],
+            details: { agent: 'codex', model: 'gpt-5', type: 'agent' }, origin, rootActionId: 'review',
+            rootActionLabel: 'Review', rootConversationId: 'conversation-1', runId: 'run-1',
+            startedAt: '2026-08-12T09:00:00.000Z', status: 'completed',
+        }
+        const activity = JSON.stringify({ actionSettings: {}, conversations: [storedConversation], origin, records: [record], version: 4 })
+        projectStatsService.setControls({ dataset: 'agentPerformance', performanceAggregation: 'sum', performanceMetric: 'duration' })
+        projectStatsService.bindProject({
+            config,
+            project: { branch: 'main', id: 'stacked' },
+            storage: storage({ 'design/activity/card__card-1.json': activity }),
+        })
+        await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
+        renderContent()
+
+        await waitFor(() => expect(screen.getByRole('list')).toHaveAttribute('data-chart-mode', 'groupedStacked'))
+        expect(screen.getAllByTestId('stats-legend-swatch')).toHaveLength(4)
+
+        projectStatsService.setControls({ performanceAggregation: 'median' })
+        await waitFor(() => expect(screen.getByRole('list')).toHaveAttribute('data-chart-mode', 'grouped'))
+
+        projectStatsService.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'duration' })
+        await waitFor(() => expect(screen.getByRole('list')).toHaveAttribute('data-chart-mode', 'stacked'))
+        expect(screen.getAllByTestId('stats-legend-swatch').map((swatch) => swatch.getAttribute('data-series-identity')))
+            .toEqual(['tool', 'reasoning', 'agent', 'unmeasured'])
+    })
 })

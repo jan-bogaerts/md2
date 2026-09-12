@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import RateReviewOutlined from '@mui/icons-material/RateReviewOutlined'
 import {
     diagramChangeReviewService, type DiagramChangeReviewService,
 } from './diagram_change_review_service'
@@ -15,6 +16,6 @@ export function DiagramChangeReviewButton({review = diagramChangeReviewService}:
             label="Review"
             onActivate={handleActivate}
             tooltip="Review diagram changes"
-        />
+        ><RateReviewOutlined fontSize="small" /></DiagramToolboxActionButton>
     )
 }

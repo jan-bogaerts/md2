@@ -74,8 +74,9 @@ import { MenuSelect } from './menu_select'
 import { MobileCreateMenu } from './mobile_create_menu'
 import { Section } from './section'
 import { Tab } from './tab'
+import { DiagramMenuTab } from '../../diagram_view/diagram_menu_tab'
 
-type AppMenuTab = 'home' | 'agents'
+type AppMenuTab = 'home' | 'agents' | 'diagram'
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
 
 interface AppMenuProps {
@@ -94,6 +95,7 @@ const MENU_TABS: { label: string; value: AppMenuTab }[] = [
     { label: 'Home', value: 'home' },
     { label: 'Run', value: 'agents' },
 ]
+const DIAGRAM_MENU_TAB: { label: string; value: AppMenuTab } = { label: 'Diagram', value: 'diagram' }
 const PROJECT_CONTEXT = projectContext()
 
 function desktopSelectionError(
@@ -155,6 +157,14 @@ export function AppMenu(props: AppMenuProps) {
     const canShowSentryImport = !!project
         && sentryConnection.isAuthenticated
         && isSentryConfigurationComplete(sentryConnection.settings)
+    const visibleCurrentTab = currentTab === 'diagram' && viewMode !== 'diagrams' ? 'home' : currentTab
+    const availableMenuTabs = viewMode === 'diagrams' ? [...MENU_TABS, DIAGRAM_MENU_TAB] : MENU_TABS
+
+    useEffect(() => {
+        if (currentTab !== 'diagram' || viewMode === 'diagrams') return
+
+        queueMicrotask(() => setCurrentTab('home'))
+    }, [currentTab, viewMode])
 
     useEffect(() => {
         if (!hasActiveAgentSettings) {
@@ -315,10 +325,10 @@ export function AppMenu(props: AppMenuProps) {
                 minHeight: 44,
                 '& .MuiTabs-indicator': { height: 2 },
             }}
-            value={currentTab}
+            value={visibleCurrentTab}
             variant="scrollable"
         >
-            {MENU_TABS.map((tab) => (
+            {availableMenuTabs.map((tab) => (
                 <MuiTab
                     key={tab.value}
                     label={tab.label}
@@ -375,7 +385,7 @@ export function AppMenu(props: AppMenuProps) {
 
     const menuPanel = (
         <Menu>
-            <Box role="tabpanel" sx={{ display: currentTab === 'home' ? 'block' : 'none' }}>
+            <Box role="tabpanel" sx={{ display: visibleCurrentTab === 'home' ? 'block' : 'none' }}>
                 <Tab>
                     {isMobile ? (
                         <>
@@ -463,7 +473,7 @@ export function AppMenu(props: AppMenuProps) {
                     ) : null}
                 </Tab>
             </Box>
-            <Box role="tabpanel" sx={{ display: currentTab === 'agents' ? 'block' : 'none' }}>
+            <Box role="tabpanel" sx={{ display: visibleCurrentTab === 'agents' ? 'block' : 'none' }}>
                 <Tab>
                     <Section label="Setup">
                         <MenuSelect
@@ -563,6 +573,11 @@ export function AppMenu(props: AppMenuProps) {
                     </Section>
                 </Tab>
             </Box>
+            {viewMode === 'diagrams' ? (
+                <Box role="tabpanel" sx={{ display: visibleCurrentTab === 'diagram' ? 'block' : 'none' }}>
+                    <DiagramMenuTab />
+                </Box>
+            ) : null}
             <ProjectOpenDialog
                 branches={actions.branches}
                 initialSource={actions.initialProjectSource}

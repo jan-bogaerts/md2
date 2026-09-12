@@ -1,4 +1,4 @@
-const { CLAUDE_USAGE_POLL_REASONS } = require('./claude_usage_diagnostics');
+const { CLAUDE_USAGE_POLL_REASONS, logUsagePollStage } = require('./claude_usage_diagnostics');
 const { runTerminalUsagePoll } = require('./claude_usage_terminal');
 
 /**
@@ -30,8 +30,12 @@ function listenForPollRequests(parentPort) {
     if (!parentPort) return;
     parentPort.on('message', async ({ data }) => {
         const result = await pollUsage(data);
+        // A poll that found nothing is the one the parent may never hear about, so its reply is traced
+        // on both sides of the send: a stage without its follow-up says the send itself never returned.
+        if (!result.payload) logUsagePollStage('worker-reply', { reason: result.reason });
         try {
             parentPort.postMessage({ result });
+            if (!result.payload) logUsagePollStage('worker-reply-sent');
         } catch {
             // The parent stopped waiting and tore this worker down.
         }

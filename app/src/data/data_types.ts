@@ -371,7 +371,14 @@ export interface AgentContextWindowUsage {
     usedTokens: number
 }
 
+/** Duration components of the measured total; absent on a conversation recorded before they existed. */
+export interface AgentConversationTimerBreakdown {
+    reasoningMs: number
+    toolMs: number
+}
+
 export interface AgentConversationTimer {
+    breakdown?: AgentConversationTimerBreakdown
     elapsedMs: number
     runningStartedAt: string | null
 }

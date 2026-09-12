@@ -3,6 +3,7 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { dialogService } from '../../services/dialog_service';
 import { projectStatsService } from '../../services/stats/project_stats_service';
 import type { StatsExclusionReason } from '../../services/stats/project_stats_types';
+import { isStackedDurationPerformance } from '../../services/stats/stats_performance_dataset';
 import { StatsBarChart, type StatsBarMode } from './stats_bar_chart';
 import { StatsControls } from './stats_controls';
 import { StatsUsageComparisonCharts } from './stats_usage_comparison_charts';
@@ -52,8 +53,10 @@ export function StatsContent() {
         && controls.activityMetric === 'tokens'
         && !snapshot.tokenTimeAvailable;
     const chartMode: StatsBarMode = controls.dataset === 'agentPerformance'
-        ? 'grouped'
-        : controls.dataset === 'activityOverTime' && controls.activityMetric === 'actions' ? 'stacked' : 'single';
+        ? isStackedDurationPerformance(controls) ? 'groupedStacked' : 'grouped'
+        : controls.dataset === 'totals' && controls.totalsMetric === 'duration'
+            ? 'stacked'
+            : controls.dataset === 'activityOverTime' && controls.activityMetric === 'actions' ? 'stacked' : 'single';
     const exclusions = Object.entries(snapshot.exclusionCounts) as Array<[StatsExclusionReason, number]>;
 
     return (

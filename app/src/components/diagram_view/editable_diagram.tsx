@@ -42,6 +42,8 @@ import {
 import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE, useDeleteDiagramSelectionOnDeleteKey } from './use_diagram_delete_key'
 import { useDiagramSurfaceField } from './use_diagram_geometry'
 import { useEditableDiagramMetadataField } from './use_editable_diagram'
+import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 import { DiagramChangeReviewDialog } from './diagram_change_review_dialog'
 import {
     diagramChangeReviewService, type DiagramChangeReviewService,
@@ -51,6 +53,7 @@ import { DiagramChangeActionPopup } from './diagram_change_action_popup'
 interface EditableDiagramProps {
     details?: DiagramObjectDetailsService
     drawing?: DiagramEdgeDrawingService
+    emphasis?: DiagramEmphasisService
     fragmentDialog?: DiagramFragmentDialogService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
@@ -58,6 +61,7 @@ interface EditableDiagramProps {
     review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
+    viewService?: DiagramViewService
 }
 
 interface MetadataLeafProps {
@@ -87,11 +91,13 @@ export function EditableDiagramSurface({
     geometry = diagramGeometryService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
+    viewService = diagramViewService,
 }: {
     children: ReactNode,
     geometry?: DiagramGeometryService,
     selection?: DiagramSelectionService,
     session?: DiagramEditSessionService,
+    viewService?: DiagramViewService,
 }) {
     const height = useDiagramSurfaceField('height', geometry)
     const width = useDiagramSurfaceField('width', geometry)
@@ -148,11 +154,32 @@ export function EditableDiagramSurface({
 
         selection.clear()
     }
+    const handleContextMenu = (event: MouseEvent<HTMLDivElement>) => {
+        const objectElement = (event.target as Element).closest<HTMLElement>('[data-diagram-id][data-diagram-kind]')
+        const objectKind = objectElement?.dataset.diagramKind
+        if (!objectElement || (objectKind !== 'edge' && objectKind !== 'node')) return
+        event.preventDefault()
+        const sessionSnapshot = session.getSessionSnapshot()
+        const itemId = objectElement.dataset.diagramId
+        const itemLabel = objectElement.getAttribute('aria-label')
+        if (!sessionSnapshot || !itemId || !itemLabel) throw new Error('New diagram context target is missing identity or session')
+        viewService.openItemMenu({
+            anchorElement: event.currentTarget,
+            diagramId: sessionSnapshot.sourceDiagramId,
+            itemId,
+            itemLabel,
+            left: event.clientX,
+            objectKind,
+            surface: 'new',
+            top: event.clientY,
+        })
+    }
 
     return (
         <Box
             aria-label="New diagram"
             onClick={handleClick}
+            onContextMenu={handleContextMenu}
             onPointerCancel={handlePointerCancel}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -171,6 +198,7 @@ export function EditableDiagramSurface({
 export function EditableDiagram({
     details = diagramObjectDetailsService,
     drawing = diagramEdgeDrawingService,
+    emphasis = diagramEmphasisService,
     fragmentDialog = diagramFragmentDialogService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
@@ -178,6 +206,7 @@ export function EditableDiagram({
     review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
+    viewService = diagramViewService,
 }: EditableDiagramProps) {
     useDeleteDiagramSelectionOnDeleteKey(selection)
 
@@ -192,15 +221,15 @@ export function EditableDiagram({
                 <EditableDiagramTitle session={session} />
                 <EditableDiagramDescription session={session} />
             </Box>
-            <EditableDiagramSurface geometry={geometry} selection={selection} session={session}>
-                <EditableDiagramGroups details={details} geometry={geometry} selection={selection} session={session} />
+            <EditableDiagramSurface geometry={geometry} selection={selection} session={session} viewService={viewService}>
+                <EditableDiagramGroups details={details} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
                 <DiagramGroupDrawingPreview drawing={groupDrawing} />
-                <EditableDiagramFragments fragmentDialog={fragmentDialog} geometry={geometry} session={session} />
-                <EditableDiagramLifelines geometry={geometry} session={session} />
-                <EditableDiagramActivations geometry={geometry} session={session} />
-                <EditableDiagramEdges details={details} geometry={geometry} selection={selection} session={session} />
+                <EditableDiagramFragments emphasis={emphasis} fragmentDialog={fragmentDialog} geometry={geometry} session={session} />
+                <EditableDiagramLifelines emphasis={emphasis} geometry={geometry} session={session} />
+                <EditableDiagramActivations emphasis={emphasis} geometry={geometry} session={session} />
+                <EditableDiagramEdges details={details} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
                 <DiagramEdgeDrawingPreview drawing={drawing} />
-                <EditableDiagramNodes details={details} geometry={geometry} selection={selection} session={session} />
+                <EditableDiagramNodes details={details} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
                 <DiagramNodePlacementPreview placement={placement} />
                 <DiagramResizeHandles geometry={geometry} selection={selection} session={session} />
                 <DiagramSelectionRectangle selection={selection} />

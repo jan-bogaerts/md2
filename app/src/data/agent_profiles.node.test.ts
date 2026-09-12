@@ -4,8 +4,18 @@ import { BUILTIN_AGENT_PROFILES, buildResumeAgentCommand, migrateAgentProfiles, 
 describe('agent profile validation', () => {
     it('provides configured models for built-in profiles', () => {
         expect(BUILTIN_AGENT_PROFILES).toEqual([
-            expect.objectContaining({ defaultThinkingLevel: 'none', models: ['gpt-5.5', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'], name: 'codex' }),
-            expect.objectContaining({ defaultThinkingLevel: 'none', models: ['default', 'sonnet', 'fable', 'opus', 'haiku'], name: 'claude' }),
+            expect.objectContaining({
+                defaultModel: 'gpt-5.6-sol',
+                defaultThinkingLevel: 'medium',
+                models: ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5'],
+                name: 'codex',
+            }),
+            expect.objectContaining({
+                defaultModel: 'default',
+                defaultThinkingLevel: 'medium',
+                models: ['default', 'sonnet', 'fable', 'opus', 'haiku'],
+                name: 'claude',
+            }),
         ])
     })
 

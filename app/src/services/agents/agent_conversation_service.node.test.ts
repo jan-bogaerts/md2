@@ -63,6 +63,40 @@ describe('parseAgentConversationLog', () => {
             .toEqual(parseAgentConversation(JSON.stringify(source), 'design/logs/one.json'))
     })
 
+    it('round trips a timer with and without a duration breakdown', () => {
+        const base = {
+            completedAt: null,
+            entries: [],
+            id: 'agent-1',
+            startedAt: '2026-01-01T00:00:00.000Z',
+            status: 'completed',
+        }
+        const legacy = parseAgentConversationValue(
+            { ...base, timer: { elapsedMs: 1_000, runningStartedAt: null } },
+            'design/logs/one.json',
+        )
+        const measured = parseAgentConversationValue(
+            { ...base, timer: { breakdown: { reasoningMs: 200, toolMs: 300 }, elapsedMs: 1_000, runningStartedAt: null } },
+            'design/logs/one.json',
+        )
+
+        expect(legacy.timer).toEqual({ elapsedMs: 1_000, runningStartedAt: null })
+        expect(legacy.timer).not.toHaveProperty('breakdown')
+        expect(measured.timer).toEqual({ breakdown: { reasoningMs: 200, toolMs: 300 }, elapsedMs: 1_000, runningStartedAt: null })
+    })
+
+    it.each([
+        ['a breakdown summing above the total', { breakdown: { reasoningMs: 700, toolMs: 400 }, elapsedMs: 1_000, runningStartedAt: null }],
+        ['a negative component', { breakdown: { reasoningMs: -1, toolMs: 0 }, elapsedMs: 1_000, runningStartedAt: null }],
+        ['a non-finite component', { breakdown: { reasoningMs: 0, toolMs: Number.POSITIVE_INFINITY }, elapsedMs: 1_000, runningStartedAt: null }],
+        ['a missing component', { breakdown: { toolMs: 10 }, elapsedMs: 1_000, runningStartedAt: null }],
+    ])('rejects %s', (_label, timer) => {
+        expect(() => parseAgentConversationValue(
+            { completedAt: null, entries: [], id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed', timer },
+            'design/logs/one.json',
+        )).toThrow(/timer\.breakdown/u)
+    })
+
     it('keeps sub-agent nesting across a persist and reload round trip', () => {
         const source = {
             completedAt: null,

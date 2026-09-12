@@ -8,6 +8,15 @@ import {
     type StatsDatasetSource,
     type StatsUnit,
 } from './project_stats_types';
+import {
+    DURATION_COMPONENTS,
+    addDurationComponents,
+    durationComponentShare,
+    durationComponents,
+    emptyDurationComponents,
+    totalDurationComponents,
+    type StatsDurationComponents,
+} from './stats_duration_components';
 import { accountSeriesIdentity, actionLabel, cardDisplay } from './stats_identities';
 import { inRange } from './stats_time_buckets';
 import { accessibleStatsTooltip, formatCount, formatDollars, formatDurationHms, statsTooltip, type StatsTooltipLine } from './stats_tooltip';
@@ -90,6 +99,7 @@ function totalRow(
         agent: null,
         available: true,
         chartRole: 'primary',
+        colorGroup: null,
         displayLabel: label,
         grouping: controls.totalsGrouping,
         identity,
@@ -137,14 +147,72 @@ function basicTotalsRows(source: StatsDatasetSource, controls: StatsControls, co
         const identity = controls.totalsGrouping === 'card' ? conversation.cardInternalId : conversation.actionId;
         if (!identity) continue;
         const display = displayFor(controls, conversation, identity, cardsById);
-        const value = controls.totalsMetric === 'duration' ? conversation.elapsedMs : conversation.totalTokens;
-        if (value === null) continue;
+        const value = conversation.totalTokens;
         const current = totals.get(identity);
         totals.set(identity, { label: display.label, title: display.title, value: (current?.value ?? 0) + value });
     }
-    const unit: StatsUnit = controls.totalsMetric === 'duration' ? 'milliseconds' : 'tokens';
 
-    return [...totals.entries()].map(([identity, entry]) => totalRow(controls, identity, entry, unit));
+    return [...totals.entries()].map(([identity, entry]) => totalRow(controls, identity, entry, 'tokens'));
+}
+
+interface DurationGroup {
+    components: StatsDurationComponents;
+    label: string;
+    title: string;
+}
+
+/**
+ * One stack per card or action: the same four duration components as the performance chart, in the
+ * same fixed order. Legend entries are per component only, because a card's runs may mix agents.
+ */
+function durationTotalsRows(source: StatsDatasetSource, controls: StatsControls, conversations: StatsConversationFact[]) {
+    const cardsById = cardsIndex(source);
+    const groups = new Map<string, DurationGroup>();
+    for (const conversation of conversations) {
+        const identity = controls.totalsGrouping === 'card' ? conversation.cardInternalId : conversation.actionId;
+        if (!identity || conversation.elapsedMs === null) continue;
+        const display = displayFor(controls, conversation, identity, cardsById);
+        const group = groups.get(identity) ?? { components: emptyDurationComponents(), label: display.label, title: display.title };
+        group.components = addDurationComponents(
+            group.components,
+            durationComponents(conversation.elapsedMs, conversation.reasoningMs, conversation.toolMs),
+        );
+        groups.set(identity, group);
+    }
+
+    return [...groups.entries()].flatMap(([identity, group]) => {
+        const barTotal = totalDurationComponents(group.components);
+
+        return DURATION_COMPONENTS.map((component) => {
+            const value = group.components[component.key];
+            const row = totalRow(controls, identity, { label: group.label, title: group.title, value }, 'milliseconds', [
+                { label: 'Duration type', value: component.label },
+                { label: 'Share', value: `${durationComponentShare(value, barTotal)} of ${formatDurationHms(barTotal)}` },
+            ]);
+
+            return {
+                ...row,
+                colorGroup: component.colorGroup,
+                seriesIdentity: component.key,
+                seriesLabel: component.label,
+                stackIdentity: identity,
+            } satisfies StatsChartRow;
+        });
+    });
+}
+
+/** Sorts whole stacks by their total while keeping the fixed component order inside each bar. */
+function sortedStackedRows(rows: StatsChartRow[]) {
+    const totalsByStack = new Map<string, number>();
+    for (const row of rows) {
+        const identity = row.stackIdentity ?? row.identity;
+        totalsByStack.set(identity, (totalsByStack.get(identity) ?? 0) + Math.max(row.value, 0));
+    }
+    const bars = [...new Map(rows.map((row) => [row.stackIdentity ?? row.identity, row])).keys()]
+        .sort((left, right) => (totalsByStack.get(right)! - totalsByStack.get(left)!)
+            || left.localeCompare(right));
+
+    return bars.flatMap((identity) => rows.filter((row) => (row.stackIdentity ?? row.identity) === identity));
 }
 
 function conversationGroups(source: StatsDatasetSource, controls: StatsControls, conversations: StatsConversationFact[]) {
@@ -291,6 +359,7 @@ function costTotalsRows(source: StatsDatasetSource, controls: StatsControls, con
 /** One bar per card or action; cost prices every run at the rate of the agent that ran it. */
 export function totalsRows(source: StatsDatasetSource, controls: StatsControls): StatsChartRow[] {
     const conversations = source.stats.conversations.filter((fact) => isCountedConversation(fact, controls));
+    if (controls.totalsMetric === 'duration') return sortedStackedRows(durationTotalsRows(source, controls, conversations));
     const rows = controls.totalsMetric === 'cost'
         ? costTotalsRows(source, controls, conversations)
         : basicTotalsRows(source, controls, conversations);

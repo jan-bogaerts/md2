@@ -5,7 +5,7 @@
       "actionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-08T12:06:14.963Z",
       "entries": [
         {
           "content": "You are tasked to generate release notes for this app.\n\n* these release notes should be directed towards the end user:\n  * keep it simple and very short, no details\n  * never mention anything about internal workings, nothing about release methods, internal scripts,...\n* &#x20;Before you can render these notes, you need to know the current version. This can be read from the file \\`C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\package.json\\`.\n* all features descriptions jobs, and bug fixes that need to be included in the release, can be found at \\`releases\\\\{VERSION}\\`, where version is read from package.json, dots (.) replaced with lines (\\_)\n* &#x20;The release note should be saved at \\`releases\\\\{VERSION}\\release\\_notes.md\\`, where version is read from package.json, dots (.) replaced with lines (\\_).&#x20;\n* the release note is a markdown file that will be used to publish the app on github\n* use single bullet points to describe each new feature. keep it short no detailed explanation needed.\n* don't mention technical details of the models like architecture.",
@@ -323,7 +323,7 @@
         }
       ],
       "startedAt": "2026-08-01T17:18:56.839Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "write release note",
       "usage": {
         "cachedInputTokens": 78336,
@@ -338,7 +338,7 @@
       "actionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-08T12:06:07.741Z",
       "entries": [
         {
           "content": "You are tasked to generate release notes for this app.\n\n* these release notes should be directed towards the end user:\n  * keep it simple and very short, no details\n  * never mention anything about internal workings, nothing about release methods, internal scripts,...\n* &#x20;Before you can render these notes, you need to know the current version. This can be read from the file \\`C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\package.json\\`.\n* all features descriptions jobs, and bug fixes that need to be included in the release, can be found at \\`releases\\\\{VERSION}\\`, where version is read from package.json, dots (.) replaced with lines (\\_)\n* &#x20;The release note should be saved at \\`releases\\\\{VERSION}\\release\\_notes.md\\`, where version is read from package.json, dots (.) replaced with lines (\\_).&#x20;\n* the release note is a markdown file that will be used to publish the app on github\n* use single bullet points to describe each new feature. keep it short no detailed explanation needed.\n* don't mention technical details of the models like architecture.",
@@ -658,7 +658,7 @@
         }
       ],
       "startedAt": "2026-08-03T12:14:00.332Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "write release note",
       "usage": {
         "cachedInputTokens": 26368,
@@ -3165,7 +3165,7 @@
       "actionId": "65ad68d5-4ad3-4afe-b861-0bbb00d2505e",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-08T12:05:49.552Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 45137
@@ -3747,7 +3747,7 @@
         }
       ],
       "startedAt": "2026-08-14T11:50:18.879Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "title": "write release note",
       "usage": {
         "cachedInputTokens": 43776,
@@ -17569,7 +17569,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-08T12:05:57.491Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 81312
@@ -18453,7 +18453,7 @@
         }
       ],
       "startedAt": "2026-09-04T11:21:36.178Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "elapsedMs": 227440,
         "runningStartedAt": null
@@ -26965,11 +26965,11 @@
         "agent-b687b7cd-7a34-4237-8f18-3c1f3045d43d"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-56ac8c59-7ff0-471c-8859-3744b55cca77",
       "origin": {
@@ -26977,9 +26977,9 @@
       },
       "rootActionId": "a7e1e1cd-c2d5-4b5e-8ea8-bb34cc058ad9",
       "rootActionLabel": "dependency",
-      "rootConversationId": "agent-b687b7cd-7a34-4237-8f18-3c1f3045d43d",
       "startedAt": "2026-09-05T17:15:14.283Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-b687b7cd-7a34-4237-8f18-3c1f3045d43d"
     }
   ],
   "version": 5

@@ -3,15 +3,18 @@ const MONTHS = new Map([
     ['jan', 0], ['feb', 1], ['mar', 2], ['apr', 3], ['may', 4], ['jun', 5],
     ['jul', 6], ['aug', 7], ['sep', 8], ['oct', 9], ['nov', 10], ['dec', 11],
 ]);
+// Claude omits the minutes on a whole hour ("7pm"), so they are optional here. The whole reset
+// clause is optional too: a window Claude has not started yet reports "0% used" and nothing more.
+const RESET_CLAUSE_SOURCE = String.raw`(?:\s*·\s*resets\s+([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{1,2})(?::(\d{2}))?(am|pm)\s+\(([^)]+)\))?`;
 const WINDOW_PATTERNS = [
-    // Claude omits the minutes on a whole hour ("7pm"), so they are optional here.
-    { id: 'five_hour', pattern: /^Current session:\s*(\d{1,3})% used\s*·\s*resets\s+([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{1,2})(?::(\d{2}))?(am|pm)\s+\(([^)]+)\)\s*$/iu },
-    { id: 'weekly', pattern: /^Current week \(all models\):\s*(\d{1,3})% used\s*·\s*resets\s+([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{1,2})(?::(\d{2}))?(am|pm)\s+\(([^)]+)\)\s*$/iu },
+    { id: 'five_hour', pattern: new RegExp(String.raw`^Current session:\s*(\d{1,3})% used${RESET_CLAUSE_SOURCE}\s*$`, 'iu') },
+    { id: 'weekly', pattern: new RegExp(String.raw`^Current week \(all models\):\s*(\d{1,3})% used${RESET_CLAUSE_SOURCE}\s*$`, 'iu') },
 ];
 const TERMINAL_WINDOW_DEFINITIONS = [
     { heading: 'Current session', id: 'five_hour' },
     { heading: 'Current week (all models)', id: 'weekly' },
 ];
+const TERMINAL_HEADINGS = new Set(TERMINAL_WINDOW_DEFINITIONS.map(({ heading }) => heading));
 const TERMINAL_RESET_PATTERN = /^(?:([A-Za-z]{3})\s+(\d{1,2}),\s+)?(\d{1,2})(?::(\d{2}))?(am|pm)\s+\(([^)]+)\)$/iu;
 
 function datePartsInTimeZone(timestamp, timeZone) {
@@ -60,6 +63,8 @@ function localDateTimeToUnixMs(parts, timeZone) {
 
 function resetTimestamp(match, observedAt) {
     const [, , monthName, dayText, hourText, minuteText, meridiem, timeZone] = match;
+    // A window without a reset clause still reports its percentage; the reset time is simply unknown.
+    if (!monthName) return null;
     const month = MONTHS.get(monthName.toLowerCase());
     if (month === undefined) throw new Error('Invalid Claude reset month');
     const observedYear = datePartsInTimeZone(observedAt, timeZone).year;
@@ -114,14 +119,19 @@ function terminalResetTimestamp(resetText, observedAt) {
 function parseTerminalWindow(lines, definition, observedAt) {
     const headingIndex = lines.findLastIndex((line) => line === definition.heading);
     if (headingIndex < 0) return null;
-    const windowLines = lines.slice(headingIndex + 1, headingIndex + 5);
+    // A window without a reset line must not read the next window's, so the search stops at the next heading.
+    const followingHeading = lines.findIndex((line, index) => index > headingIndex && TERMINAL_HEADINGS.has(line));
+    const windowEnd = followingHeading < 0 ? headingIndex + 5 : Math.min(headingIndex + 5, followingHeading);
+    const windowLines = lines.slice(headingIndex + 1, windowEnd);
     const percentMatch = windowLines.map((line) => /(\d{1,3})% used\s*$/iu.exec(line)).find((match) => match !== null);
     const resetMatch = windowLines.map((line) => /^Resets\s+(.+)$/iu.exec(line)).find((match) => match !== null);
-    if (!percentMatch || !resetMatch) return null;
+    if (!percentMatch) return null;
     const usedPercent = Number(percentMatch[1]);
     if (!Number.isInteger(usedPercent) || usedPercent < 0 || usedPercent > 100) throw new Error('Invalid Claude usage percent');
+    // The boxed report drops the reset line for a window that has not started, exactly as the plain one does.
+    const resetsAt = resetMatch ? terminalResetTimestamp(resetMatch[1], observedAt) : null;
 
-    return { id: definition.id, resetsAt: terminalResetTimestamp(resetMatch[1], observedAt), usedPercent };
+    return { id: definition.id, resetsAt, usedPercent };
 }
 
 function parseTerminalUsageOutput(lines, observedAt) {
@@ -137,8 +147,10 @@ function parseClaudeUsageOutput(output, observedAt) {
     const legacyLines = lines.map((line) => line.replace(/\u00C2\u00B7/gu, '\u00B7'));
     try {
         const windows = WINDOW_PATTERNS.map(({ id, pattern }) => {
-            // A redrawn or repeated report restates the same window; the first line reported wins.
-            const match = legacyLines.map((line) => pattern.exec(line)).find((candidate) => candidate !== null);
+            // A redrawn or repeated report restates the same window; the first line reported wins,
+            // except that a line carrying a reset clause beats a bare one for the same window.
+            const candidates = legacyLines.map((line) => pattern.exec(line)).filter((candidate) => candidate !== null);
+            const match = candidates.find((candidate) => candidate[2] !== undefined) ?? candidates[0];
             if (!match) throw new Error('Missing Claude usage window');
             const usedPercent = Number(match[1]);
             if (!Number.isInteger(usedPercent) || usedPercent < 0 || usedPercent > 100) throw new Error('Invalid Claude usage percent');

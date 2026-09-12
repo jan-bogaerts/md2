@@ -941,6 +941,68 @@ describe('AgentRunnerService state handling', () => {
         expect(JSON.stringify(run.onEvent.mock.calls)).not.toContain('top-secret');
     });
 
+    it('records the pending question as a transcript entry so a restart can restore it', async () => {
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const questions = [{
+            header: 'Scope',
+            id: 'choice',
+            isSecret: false,
+            options: [{ description: 'only the failing test', label: 'Narrow' }],
+            question: 'How wide should the fix be?',
+        }];
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'running' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestions: [],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: {},
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { questions, requestId: 7, type: 'question' });
+
+        expect(run.conversation.entries).toEqual([
+            expect.objectContaining({ kind: 'event', questions, type: 'agentQuestion' }),
+        ]);
+        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                entries: [expect.objectContaining({ questions, type: 'agentQuestion' })],
+                status: 'waitingForInput',
+            }),
+        }));
+    });
+
+    it('orders the dismissal entry after the recorded question entry', async () => {
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const questions = [{ header: 'Scope', id: 'choice', question: 'How wide?' }];
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'running' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestions: [],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { dismissQuestion: vi.fn(async () => undefined) },
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { questions, requestId: 7, type: 'question' });
+        await service.dismissQuestions('run-1', 7);
+
+        expect(run.conversation.entries.map(({ type }) => type)).toEqual(['agentQuestion', 'questionsDismissed']);
+    });
+
     it('dismisses questions after provider resolution and persists one transcript event', async () => {
         const persistConversationCheckpoint = vi.fn(async () => undefined);
         const dismissQuestion = vi.fn(async () => undefined);

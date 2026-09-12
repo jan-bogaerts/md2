@@ -26,7 +26,6 @@ import {
 import {
     diagramComparisonLayoutService, type DiagramComparisonLayoutService,
 } from './diagram_comparison_layout_service'
-import { DiagramRenderer } from './diagram_renderer'
 import type { DiagramSelection } from './diagram_selection'
 import { DiagramNewPane } from './diagram_new_pane'
 import {
@@ -35,6 +34,9 @@ import {
 import {
     diagramChangeReviewService, type DiagramChangeReviewService,
 } from './diagram_change_review_service'
+import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
+import { DiagramCurrentViewport } from './diagram_current_viewport'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 
 const MINIMUM_PANE_WIDTH = 240
 const SEPARATOR_WIDTH = 6
@@ -45,26 +47,33 @@ interface VerticalDiagramComparisonProps {
     currentDiagram: PositionedDiagramData
     details?: DiagramObjectDetailsService
     drawing?: DiagramEdgeDrawingService
+    emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
     layoutService?: DiagramComparisonLayoutService
     movement?: DiagramMoveService
+    onCurrentContextMenu?: (anchorElement: HTMLElement, selection: DiagramSelection) => void
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
     placement?: DiagramNodePlacementService
     resize?: DiagramResizeService
     review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
+    viewService?: DiagramViewService
 }
 
 interface CurrentDiagramPaneProps {
     currentDiagram: PositionedDiagramData
+    emphasis: DiagramEmphasisService
+    onCurrentContextMenu: (anchorElement: HTMLElement, selection: DiagramSelection) => void
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
+    viewService: DiagramViewService
 }
 
 interface NewDiagramPaneProps {
     details: DiagramObjectDetailsService
     drawing: DiagramEdgeDrawingService
+    emphasis: DiagramEmphasisService
     geometry: DiagramGeometryService
     groupDrawing: DiagramGroupDrawingService
     movement: DiagramMoveService
@@ -73,25 +82,33 @@ interface NewDiagramPaneProps {
     review: DiagramChangeReviewService
     selection: DiagramSelectionService
     session: DiagramEditSessionService
+    viewService: DiagramViewService
 }
 
-const CurrentDiagramPane = memo(function CurrentDiagramPane({ currentDiagram, onCurrentSelect }: CurrentDiagramPaneProps) {
+const CurrentDiagramPane = memo(function CurrentDiagramPane(props: CurrentDiagramPaneProps) {
+    const {currentDiagram, emphasis, onCurrentContextMenu, onCurrentSelect, viewService} = props
     return (
         <Paper
             aria-label="Current"
             elevation={0}
             role="region"
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, minWidth: 0, overflow: 'auto', p: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}
         >
-            <Typography color="custom.colHead" sx={{ mb: 1 }} variant="overline">Current</Typography>
-            <DiagramRenderer data={currentDiagram} onSelect={onCurrentSelect} />
+            <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">Current</Typography>
+            <DiagramCurrentViewport
+                data={currentDiagram}
+                emphasis={emphasis}
+                onContextMenu={onCurrentContextMenu}
+                onSelect={onCurrentSelect}
+                service={viewService}
+            />
         </Paper>
     )
 })
 
 const NewDiagramPane = memo(function NewDiagramPane(props: NewDiagramPaneProps) {
-    const {details, drawing, geometry, groupDrawing, movement} = props
-    const {placement, resize, review, selection, session} = props
+    const {details, drawing, emphasis, geometry, groupDrawing, movement} = props
+    const {placement, resize, review, selection, session, viewService} = props
     return (
         <Paper
             aria-label="New"
@@ -103,6 +120,7 @@ const NewDiagramPane = memo(function NewDiagramPane(props: NewDiagramPaneProps) 
             <DiagramNewPane
                 details={details}
                 drawing={drawing}
+                emphasis={emphasis}
                 geometry={geometry}
                 groupDrawing={groupDrawing}
                 movement={movement}
@@ -111,6 +129,7 @@ const NewDiagramPane = memo(function NewDiagramPane(props: NewDiagramPaneProps) 
                 review={review}
                 selection={selection}
                 session={session}
+                viewService={viewService}
             />
         </Paper>
     )
@@ -132,21 +151,26 @@ function dividerRatioForWidth(proposedWidth: number, availableWidth: number) {
     return clampLeftPaneWidth(proposedWidth, availableWidth) / availableWidth
 }
 
+function ignoreCurrentContextMenu() {}
+
 /** Side-by-side comparison layout. Diagram changes remain inside New service-bound leaves. */
 export function VerticalDiagramComparison({
     currentDiagram,
     details = diagramObjectDetailsService,
     drawing = diagramEdgeDrawingService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
     layoutService = diagramComparisonLayoutService,
     movement = diagramMoveService,
+    onCurrentContextMenu = ignoreCurrentContextMenu,
     onCurrentSelect,
     placement = diagramNodePlacementService,
     resize = diagramResizeService,
     review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
+    viewService = diagramViewService,
 }: VerticalDiagramComparisonProps) {
     const containerRef = useRef<HTMLDivElement>(null)
     const activePointerIdRef = useRef<number | null>(null)
@@ -216,7 +240,13 @@ export function VerticalDiagramComparison({
                 overflow: 'hidden',
             }}
         >
-            <CurrentDiagramPane currentDiagram={currentDiagram} onCurrentSelect={onCurrentSelect} />
+            <CurrentDiagramPane
+                currentDiagram={currentDiagram}
+                emphasis={emphasis}
+                onCurrentContextMenu={onCurrentContextMenu}
+                onCurrentSelect={onCurrentSelect}
+                viewService={viewService}
+            />
             <Box
                 aria-label="Resize Current and New diagrams horizontally"
                 aria-orientation="vertical"
@@ -242,6 +272,7 @@ export function VerticalDiagramComparison({
             <NewDiagramPane
                 details={details}
                 drawing={drawing}
+                emphasis={emphasis}
                 geometry={geometry}
                 groupDrawing={groupDrawing}
                 movement={movement}
@@ -250,6 +281,7 @@ export function VerticalDiagramComparison({
                 review={review}
                 selection={selection}
                 session={session}
+                viewService={viewService}
             />
         </Box>
     )

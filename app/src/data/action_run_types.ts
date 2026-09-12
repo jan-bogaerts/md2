@@ -227,6 +227,8 @@ export type ActionRunEvent =
     }
     | ActionRunEventBase & {
         status: ActionRunStatus
+        /** Present on `agentEvent` updates so a long uninterrupted run keeps the timer breakdown fresh. */
+        timer?: AgentConversationTimer
         type: 'update'
         update: ActionRunUpdate
     }

@@ -1,14 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseDiagramData, serializeDiagramData, type DiagramData } from './diagram_data'
 import type { DiagramRecord } from './diagram_index'
-import {
-    DEFAULT_DIAGRAM_ZOOM,
-    DIAGRAM_ZOOM_STEP,
-    DiagramEditSessionService,
-    MAXIMUM_DIAGRAM_ZOOM,
-    MINIMUM_DIAGRAM_ZOOM,
-} from './diagram_edit_session_service'
+import { DiagramEditSessionService } from './diagram_edit_session_service'
 import type { DiagramViewSourceSnapshot } from './diagram_view_service'
+import { DEFAULT_DIAGRAM_ZOOM, MAXIMUM_DIAGRAM_ZOOM, MINIMUM_DIAGRAM_ZOOM } from './diagram_zoom'
 
 const diagram: DiagramData = {
     edges: [{
@@ -125,7 +120,7 @@ function membershipDetail(listener: ReturnType<typeof vi.fn>, callIndex = 0) {
 }
 
 describe('DiagramEditSessionService', () => {
-    it('zooms only viewport scale by defined steps up to named maximum', () => {
+    it('sets viewport scale directly without changing editable model state', () => {
         const { service } = createHarness()
         const viewportScaleChanged = vi.fn()
         const dirtyChanged = vi.fn()
@@ -140,8 +135,8 @@ describe('DiagramEditSessionService', () => {
         const editableDiagram = service.getEditableDiagram()
         const changeIds = service.getChangeIdsSnapshot()
 
-        expect(service.zoomIn()).toBe(true)
-        expect(service.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM + DIAGRAM_ZOOM_STEP)
+        expect(service.setViewportScale(MAXIMUM_DIAGRAM_ZOOM)).toBe(true)
+        expect(service.getViewportScaleSnapshot()).toBe(MAXIMUM_DIAGRAM_ZOOM)
         expect(service.getEditableDiagram()).toBe(editableDiagram)
         expect(service.getChangeIdsSnapshot()).toBe(changeIds)
         expect(service.getDirtySnapshot()).toBe(false)
@@ -150,43 +145,19 @@ describe('DiagramEditSessionService', () => {
         expect(changeIdsChanged).not.toHaveBeenCalled()
         expect(sessionChanged).not.toHaveBeenCalled()
 
-        const remainingSteps = (MAXIMUM_DIAGRAM_ZOOM - service.getViewportScaleSnapshot()) / DIAGRAM_ZOOM_STEP
-        Array.from({ length: remainingSteps }).forEach(() => service.zoomIn())
-        expect(service.getViewportScaleSnapshot()).toBe(MAXIMUM_DIAGRAM_ZOOM)
-        expect(service.zoomIn()).toBe(false)
-        expect(viewportScaleChanged).toHaveBeenCalledTimes(remainingSteps + 1)
+        expect(service.setViewportScale(MAXIMUM_DIAGRAM_ZOOM)).toBe(false)
+        expect(viewportScaleChanged).toHaveBeenCalledOnce()
     })
 
-    it('zooms out only viewport scale by defined steps down to named minimum', () => {
+    it('accepts the minimum viewport scale', () => {
         const { service } = createHarness()
         const viewportScaleChanged = vi.fn()
-        const dirtyChanged = vi.fn()
-        const changeIdsChanged = vi.fn()
-        const sessionChanged = vi.fn()
         service.subscribeViewportScale(viewportScaleChanged)
-        service.subscribeDirty(dirtyChanged)
-        service.subscribeChangeIds(changeIdsChanged)
-        service.subscribeSession(sessionChanged)
         service.start()
-        sessionChanged.mockClear()
-        const editableDiagram = service.getEditableDiagram()
-        const changeIds = service.getChangeIdsSnapshot()
 
-        expect(service.zoomOut()).toBe(true)
-        expect(service.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)
-        expect(service.getEditableDiagram()).toBe(editableDiagram)
-        expect(service.getChangeIdsSnapshot()).toBe(changeIds)
-        expect(service.getDirtySnapshot()).toBe(false)
-        expect(viewportScaleChanged).toHaveBeenCalledOnce()
-        expect(dirtyChanged).not.toHaveBeenCalled()
-        expect(changeIdsChanged).not.toHaveBeenCalled()
-        expect(sessionChanged).not.toHaveBeenCalled()
-
-        const remainingSteps = (service.getViewportScaleSnapshot() - MINIMUM_DIAGRAM_ZOOM) / DIAGRAM_ZOOM_STEP
-        Array.from({ length: remainingSteps }).forEach(() => service.zoomOut())
+        service.setViewportScale(MINIMUM_DIAGRAM_ZOOM)
         expect(service.getViewportScaleSnapshot()).toBe(MINIMUM_DIAGRAM_ZOOM)
-        expect(service.zoomOut()).toBe(false)
-        expect(viewportScaleChanged).toHaveBeenCalledTimes(remainingSteps + 1)
+        expect(viewportScaleChanged).toHaveBeenCalledOnce()
     })
 
     it('resets viewport scale on fresh session and discard', () => {
@@ -194,13 +165,13 @@ describe('DiagramEditSessionService', () => {
         const viewportScaleChanged = vi.fn()
         service.subscribeViewportScale(viewportScaleChanged)
         service.start()
-        service.zoomIn()
+        service.setViewportScale(MAXIMUM_DIAGRAM_ZOOM)
 
         service.start()
         expect(service.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
         expect(viewportScaleChanged).toHaveBeenCalledTimes(2)
 
-        service.zoomIn()
+        service.setViewportScale(MINIMUM_DIAGRAM_ZOOM)
         service.discard()
         expect(service.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
         expect(viewportScaleChanged).toHaveBeenCalledTimes(4)
@@ -209,19 +180,18 @@ describe('DiagramEditSessionService', () => {
     it('rejects zoom without an active edit session', () => {
         const { service } = createHarness()
 
-        expect(() => service.zoomIn()).toThrow('Cannot zoom diagram without an active edit session')
-        expect(() => service.zoomOut()).toThrow('Cannot zoom diagram without an active edit session')
+        expect(() => service.setViewportScale(MAXIMUM_DIAGRAM_ZOOM)).toThrow('Cannot zoom diagram without an active edit session')
     })
 
     it('publishes active tool and transient gesture independently', () => {
         const { service } = createHarness()
         const toolChanged = vi.fn()
         const gestureChanged = vi.fn()
-        const sectionChanged = vi.fn()
+        const creationToolChanged = vi.fn()
         const sessionChanged = vi.fn()
         service.subscribeActiveTool(toolChanged)
         service.subscribeTransientGesture(gestureChanged)
-        service.subscribeActiveToolboxSection(sectionChanged)
+        service.subscribeLastSelectedCreationTool(creationToolChanged)
         service.subscribeSession(sessionChanged)
         service.start()
         sessionChanged.mockClear()
@@ -236,7 +206,7 @@ describe('DiagramEditSessionService', () => {
         expect(service.getTransientGestureSnapshot()).toBe('placement')
         expect(gestureChanged).toHaveBeenCalledOnce()
         expect(toolChanged).toHaveBeenCalledOnce()
-        expect(sectionChanged).not.toHaveBeenCalled()
+        expect(creationToolChanged).toHaveBeenCalledOnce()
         expect(sessionChanged).not.toHaveBeenCalled()
     })
 
@@ -270,6 +240,41 @@ describe('DiagramEditSessionService', () => {
         expect(service.getActiveToolSnapshot()).toBe('select')
         expect(service.getTransientGestureSnapshot()).toBeNull()
         expect(service.cancelActiveInteraction()).toBe(false)
+    })
+
+    it('carries the pan tool and its pan gesture through cancellation back to Select', () => {
+        const { service } = createHarness()
+        const toolChanged = vi.fn()
+        const gestureChanged = vi.fn()
+        service.subscribeActiveTool(toolChanged)
+        service.subscribeTransientGesture(gestureChanged)
+        service.start()
+
+        service.setActiveTool('pan')
+        service.beginTransientGesture('pan')
+
+        expect(service.getActiveToolSnapshot()).toBe('pan')
+        expect(service.getTransientGestureSnapshot()).toBe('pan')
+        expect(toolChanged).toHaveBeenCalledOnce()
+        expect(gestureChanged).toHaveBeenCalledOnce()
+
+        expect(service.cancelActiveInteraction()).toBe(true)
+        expect(service.getActiveToolSnapshot()).toBe('select')
+        expect(service.getTransientGestureSnapshot()).toBeNull()
+        expect(toolChanged).toHaveBeenCalledTimes(2)
+        expect(gestureChanged).toHaveBeenCalledTimes(2)
+    })
+
+    it('completes a pan gesture without leaving the pan tool', () => {
+        const { service } = createHarness()
+        service.start()
+        service.setActiveTool('pan')
+        service.beginTransientGesture('pan')
+
+        service.completeTransientGesture()
+
+        expect(service.getActiveToolSnapshot()).toBe('pan')
+        expect(service.getTransientGestureSnapshot()).toBeNull()
     })
 
     it('resets active interaction on fresh session, discard, source change, and project change', () => {
@@ -315,36 +320,42 @@ describe('DiagramEditSessionService', () => {
         expect(service.cancelActiveInteraction()).toBe(false)
     })
 
-    it('publishes active toolbox section independently and resets it with the session', () => {
+    it('publishes last selected creation tool independently and resets it with the session', () => {
         const { service } = createHarness()
-        const sectionChanged = vi.fn()
+        const creationToolChanged = vi.fn()
         const sessionChanged = vi.fn()
-        service.subscribeActiveToolboxSection(sectionChanged)
+        service.subscribeLastSelectedCreationTool(creationToolChanged)
         service.subscribeSession(sessionChanged)
         service.start()
         const session = service.getSessionSnapshot()
         const editable = service.getEditableDiagram()
 
-        service.setActiveToolboxSection('nodes')
+        service.setActiveTool('node:component')
+        service.setActiveTool('select')
+        service.setActiveTool('pan')
 
-        expect(service.getActiveToolboxSectionSnapshot()).toBe('nodes')
-        expect(sectionChanged).toHaveBeenCalledOnce()
+        expect(service.getLastSelectedCreationToolSnapshot()).toBe('node:component')
+        expect(creationToolChanged).toHaveBeenCalledOnce()
         expect(sessionChanged).toHaveBeenCalledOnce()
         expect(service.getSessionSnapshot()).toBe(session)
         expect(service.getEditableDiagram()).toBe(editable)
 
+        service.setLastSelectedCreationTool('fragment')
+        expect(service.getLastSelectedCreationToolSnapshot()).toBe('fragment')
+        expect(creationToolChanged).toHaveBeenCalledTimes(2)
+
         service.discard()
 
-        expect(service.getActiveToolboxSectionSnapshot()).toBe('edit')
-        expect(sectionChanged).toHaveBeenCalledTimes(2)
+        expect(service.getLastSelectedCreationToolSnapshot()).toBeNull()
+        expect(creationToolChanged).toHaveBeenCalledTimes(3)
         expect(sessionChanged).toHaveBeenCalledTimes(2)
     })
 
-    it('rejects toolbox section changes without an active edit session', () => {
+    it('rejects creation-tool memory changes without an active edit session', () => {
         const { service } = createHarness()
 
-        expect(() => service.setActiveToolboxSection('others')).toThrow(
-            'Cannot select a diagram toolbox section without an active edit session',
+        expect(() => service.setLastSelectedCreationTool('fragment')).toThrow(
+            'Cannot select a diagram creation tool without an active edit session',
         )
     })
 

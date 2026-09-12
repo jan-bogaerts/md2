@@ -95,6 +95,17 @@ describe('ClaudeRateLimitStatus', () => {
         expect(screen.getByText(/Weekly: 55% used · Resets/u)).toBeInTheDocument()
     })
 
+    it('says the reset is unknown for a window Claude reported without one', async () => {
+        const withoutSessionReset = snapshot(0, 55)
+        withoutSessionReset.windows[0].resetsAt = null
+        await renderStatus(withoutSessionReset)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Claude usage 55% used' }))
+
+        expect(screen.getByText('Session: 0% used · Reset unknown')).toBeInTheDocument()
+        expect(screen.getByText(/Weekly: 55% used · Resets/u)).toBeInTheDocument()
+    })
+
     it('announces warning and reached states accessibly', async () => {
         const runtime = await renderStatus(snapshot(85, 20))
         expect(screen.getByRole('button', { name: 'Claude usage 85% used, near limit' })).toBeInTheDocument()

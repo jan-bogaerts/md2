@@ -1,5 +1,12 @@
 const { sumAgentTokenUsage } = require('../../../../shared/agent_usage_math.mjs');
 const {
+    addTimerBreakdown,
+    foldPhases,
+    resetPhasePeriod,
+    resumePhases,
+    suspendPhases,
+} = require('./agent_conversation_phases');
+const {
     AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,
     boundedAgentResult,
 } = require('../../../../shared/agent_conversations.mjs');
@@ -68,8 +75,12 @@ function accumulateUsage(current, turn) {
     return sumAgentTokenUsage([current, turn]);
 }
 
-/** Updates conversation status and accumulates only completed running periods. */
-function transitionConversationStatus(conversation, status, transitionedAt) {
+/**
+ * Updates conversation status and accumulates only completed running periods. `phases` is optional:
+ * without it the timer keeps exactly its pre-breakdown behaviour, with it the running period that
+ * just closed is also folded into `timer.breakdown`.
+ */
+function transitionConversationStatus(conversation, status, transitionedAt, phases) {
     if (!conversation.timer) {
         conversation.status = status;
         return;
@@ -86,11 +97,18 @@ function transitionConversationStatus(conversation, status, transitionedAt) {
 
     if (isRunning) {
         conversation.timer = { ...conversation.timer, runningStartedAt: transitionedAt };
+        resumePhases(phases, transitionedAtMs);
     } else {
         const runningStartedAtMs = Date.parse(conversation.timer.runningStartedAt);
         if (Number.isNaN(runningStartedAtMs)) throw new Error('Missing agent conversation running start timestamp');
         if (transitionedAtMs < runningStartedAtMs) throw new Error('Agent conversation timer transition precedes running start');
+        suspendPhases(phases, transitionedAtMs);
+        const timer = phases
+            ? addTimerBreakdown(conversation.timer, foldPhases(phases, runningStartedAtMs, transitionedAtMs))
+            : conversation.timer;
+        resetPhasePeriod(phases);
         conversation.timer = {
+            ...timer,
             elapsedMs: conversation.timer.elapsedMs + transitionedAtMs - runningStartedAtMs,
             runningStartedAt: null,
         };

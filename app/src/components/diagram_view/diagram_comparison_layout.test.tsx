@@ -1,5 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DiagramComparisonLayout } from './diagram_comparison_layout'
 import { DiagramComparisonLayoutService } from './diagram_comparison_layout_service'
@@ -24,9 +23,8 @@ afterEach(() => {
 })
 
 describe('DiagramComparisonLayout', () => {
-    it('offers all modes and renders selected stable comparison', async () => {
+    it('renders selected stable comparison without surface controls', () => {
         const layoutService = new DiagramComparisonLayoutService()
-        const user = userEvent.setup()
         render(
             <DiagramComparisonLayout
                 horizontalComparison={<div>Horizontal comparison</div>}
@@ -36,17 +34,16 @@ describe('DiagramComparisonLayout', () => {
             />,
         )
 
-        expect(screen.getByRole('group', { name: 'Diagram comparison layout' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Vertical' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.queryByRole('group', { name: 'Diagram comparison layout' })).not.toBeInTheDocument()
         expect(screen.getByText('Vertical comparison')).toBeInTheDocument()
 
-        await user.click(screen.getByRole('button', { name: 'Horizontal' }))
+        act(() => layoutService.setComparisonMode('horizontal'))
 
         expect(layoutService.getComparisonModeSnapshot()).toBe('horizontal')
         expect(screen.getByText('Horizontal comparison')).toBeInTheDocument()
         expect(screen.queryByText('Vertical comparison')).not.toBeInTheDocument()
 
-        await user.click(screen.getByRole('button', { name: 'Tabbed' }))
+        act(() => layoutService.setComparisonMode('tabbed'))
 
         expect(layoutService.getComparisonModeSnapshot()).toBe('tabbed')
         expect(screen.getByText('Tabbed comparison')).toBeInTheDocument()
@@ -70,10 +67,10 @@ describe('DiagramComparisonLayout', () => {
         layoutService.setVerticalDividerRatio(0.25)
 
         expect(verticalComparison).toHaveBeenCalledTimes(1)
-        expect(screen.getByRole('button', { name: 'Vertical' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
     })
 
-    it('keeps all labelled controls available in a narrow workspace', () => {
+    it('keeps selected comparison available in a narrow workspace', () => {
         render(
             <div style={{ width: 320 }}>
                 <DiagramComparisonLayout
@@ -85,9 +82,6 @@ describe('DiagramComparisonLayout', () => {
             </div>,
         )
 
-        expect(screen.getByRole('button', { name: 'Vertical' })).toBeVisible()
-        expect(screen.getByRole('button', { name: 'Horizontal' })).toBeVisible()
-        expect(screen.getByRole('button', { name: 'Tabbed' })).toBeVisible()
         expect(screen.getByLabelText('Selected diagram comparison')).toBeInTheDocument()
     })
 
@@ -103,9 +97,7 @@ describe('DiagramComparisonLayout', () => {
             />,
         )
 
-        expect(screen.getByRole('button', { name: 'Vertical' })).toBeDisabled()
-        expect(screen.getByRole('button', { name: 'Horizontal' })).toBeDisabled()
-        expect(screen.getByRole('button', { name: 'Tabbed' })).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
         expect(screen.getByText('Tabbed comparison')).toBeInTheDocument()
         expect(layoutService.getComparisonModeSnapshot()).toBe('vertical')
     })

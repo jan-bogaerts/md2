@@ -1,6 +1,6 @@
 import type { MenuRenderFn } from '@lexical/react/LexicalTypeaheadMenuPlugin'
 import { createPortal } from 'react-dom'
-import { MarkdownFileSearchMenu } from './markdown_file_search_menu'
+import { MarkdownFileSearchMenuPortal } from './markdown_file_search_menu_portal'
 import type { MarkdownFileSearchOption } from './markdown_file_search_option'
 
 /**
@@ -13,8 +13,7 @@ export const renderFileSearchMenu: MenuRenderFn<MarkdownFileSearchOption> = (anc
     if (!anchorElementRef.current) return null
 
     return createPortal(
-        <MarkdownFileSearchMenu
-            anchorElement={anchorElementRef.current}
+        <MarkdownFileSearchMenuPortal
             onHighlight={itemProps.setHighlightedIndex}
             onSelect={itemProps.selectOptionAndCleanUp}
             options={itemProps.options}

@@ -18,10 +18,22 @@ import {
 } from './diagram_index'
 import { isDiagramDataPath, parseDiagramData, type DiagramData } from './diagram_data'
 import { layout, type PositionedDiagramData } from './diagram_layout'
+import { DEFAULT_DIAGRAM_ZOOM } from './diagram_zoom'
 
 const DIAGRAM_INDEX_COMMIT_MESSAGE = 'Update diagram view'
 const DIAGRAM_COPY_COMMIT_MESSAGE = 'Save edited diagram copy'
 const MAXIMUM_COPY_PATH_ATTEMPTS = 100
+const CURRENT_DIAGRAM_CHANGED_EVENT = 'currentDiagramChanged'
+const CURRENT_DIAGRAM_ERROR_CHANGED_EVENT = 'currentDiagramErrorChanged'
+const CURRENT_SELECTION_CHANGED_EVENT_PREFIX = 'currentSelectionChanged'
+const ERROR_CHANGED_EVENT = 'errorChanged'
+const INDEX_CHANGED_EVENT = 'indexChanged'
+const LEGEND_COLLAPSED_CHANGED_EVENT = 'legendCollapsedChanged'
+const LEGEND_POSITION_CHANGED_EVENT = 'legendPositionChanged'
+const MENU_CHANGED_EVENT = 'menuChanged'
+const POPUP_CHANGED_EVENT = 'popupChanged'
+const STATUS_CHANGED_EVENT = 'statusChanged'
+const VIEWPORT_SCALE_CHANGED_EVENT = 'viewportScaleChanged'
 
 export interface DiagramPopupState {
     anchorElement: HTMLElement
@@ -35,7 +47,24 @@ export interface DiagramMenuState {
     itemId: string
     itemLabel: string
     left: number
+    objectKind: 'edge' | 'node'
+    surface: 'current' | 'new'
+    submenu: DiagramItemSubmenuState | null
     top: number
+}
+
+export type DiagramItemSubmenuKind = 'actions' | 'savedDiagrams'
+
+export interface DiagramItemSubmenuState {
+    anchorElement: HTMLElement
+    kind: DiagramItemSubmenuKind
+}
+
+export type DiagramItemMenuRequest = Omit<DiagramMenuState, 'submenu'>
+
+export interface CurrentDiagramSelection {
+    objectId: string
+    objectKind: 'edge' | 'node'
 }
 
 export interface DiagramLegendPosition {
@@ -86,15 +115,17 @@ interface DiagramViewDependencies {
     subscribeRunEvents: (listener: (event: ActionRunEvent) => void) => () => void
 }
 
-const INITIAL_SNAPSHOT: DiagramViewSnapshot = {
-    currentDiagram: null,
-    currentDiagramError: null,
-    error: null,
-    index: emptyDiagramIndex(),
-    legend: { collapsed: false, position: null },
-    menu: null,
-    popup: null,
-    status: 'idle',
+function initialSnapshot(): DiagramViewSnapshot {
+    return {
+        currentDiagram: null,
+        currentDiagramError: null,
+        error: null,
+        index: emptyDiagramIndex(),
+        legend: { collapsed: false, position: null },
+        menu: null,
+        popup: null,
+        status: 'idle',
+    }
 }
 
 function normalizeSlashes(path: string) {
@@ -103,6 +134,10 @@ function normalizeSlashes(path: string) {
 
 function normalizedPathKey(path: string) {
     return normalizeSlashes(path).toLowerCase()
+}
+
+function currentSelectionChangedEvent(objectKind: CurrentDiagramSelection['objectKind'], objectId: string) {
+    return `${CURRENT_SELECTION_CHANGED_EVENT_PREFIX}:${objectKind}:${objectId}`
 }
 
 function insertAfter(values: readonly string[], existingValue: string, value: string) {
@@ -252,15 +287,17 @@ function addCopyRecord(current: DiagramIndex, sourceRecord: DiagramRecord, recor
 /** Owns diagram records, navigation, popup state, JSON loading, and persistence for one project. */
 export class DiagramViewService extends EventTarget {
     private binding: DiagramProjectBinding | null = null
+    private currentSelection: CurrentDiagramSelection | null = null
     private readonly dependencies: DiagramViewDependencies
     private loadPromise: Promise<void> | null = null
     private navigationToken = 0
     private processedRunIds = new Set<string>()
     private readonly pendingCopyRecordsBySourceId = new Map<string, DiagramRecord>()
     private projectKey: string | null = null
-    private snapshot = INITIAL_SNAPSHOT
+    private snapshot = initialSnapshot()
     private sourceSnapshot: DiagramViewSourceSnapshot | null = null
     private unsubscribeRunEvents: (() => void) | null = null
+    private viewportScale = DEFAULT_DIAGRAM_ZOOM
 
     constructor(dependencies: Partial<DiagramViewDependencies> = {}) {
         super()
@@ -269,18 +306,107 @@ export class DiagramViewService extends EventTarget {
 
     getSnapshot = () => this.snapshot
 
+    getCurrentDiagramSnapshot = () => this.snapshot.currentDiagram
+
+    getCurrentSelectionSnapshot = (objectKind: CurrentDiagramSelection['objectKind'], objectId: string) => (
+        this.currentSelection?.objectKind === objectKind && this.currentSelection.objectId === objectId
+    )
+
+    getCurrentDiagramErrorSnapshot = () => this.snapshot.currentDiagramError
+
+    getErrorSnapshot = () => this.snapshot.error
+
+    getIndexSnapshot = () => this.snapshot.index
+
+    getLegendCollapsedSnapshot = () => this.snapshot.legend.collapsed
+
+    getLegendPositionSnapshot = () => this.snapshot.legend.position
+
+    getMenuSnapshot = () => this.snapshot.menu
+
+    getPopupSnapshot = () => this.snapshot.popup
+
     getSourceSnapshot = () => this.sourceSnapshot
 
-    subscribe = (listener: () => void) => {
-        this.addEventListener('changed', listener)
+    getStatusSnapshot = () => this.snapshot.status
 
-        return () => this.removeEventListener('changed', listener)
+    getViewportScaleSnapshot = () => this.viewportScale
+
+    subscribeCurrentDiagram = (listener: () => void) => {
+        this.addEventListener(CURRENT_DIAGRAM_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(CURRENT_DIAGRAM_CHANGED_EVENT, listener)
+    }
+
+    subscribeCurrentDiagramError = (listener: () => void) => {
+        this.addEventListener(CURRENT_DIAGRAM_ERROR_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(CURRENT_DIAGRAM_ERROR_CHANGED_EVENT, listener)
+    }
+
+    subscribeCurrentSelection = (
+        objectKind: CurrentDiagramSelection['objectKind'],
+        objectId: string,
+        listener: () => void,
+    ) => {
+        const eventType = currentSelectionChangedEvent(objectKind, objectId)
+        this.addEventListener(eventType, listener)
+
+        return () => this.removeEventListener(eventType, listener)
+    }
+
+    subscribeError = (listener: () => void) => {
+        this.addEventListener(ERROR_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(ERROR_CHANGED_EVENT, listener)
+    }
+
+    subscribeIndex = (listener: () => void) => {
+        this.addEventListener(INDEX_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(INDEX_CHANGED_EVENT, listener)
+    }
+
+    subscribeLegendCollapsed = (listener: () => void) => {
+        this.addEventListener(LEGEND_COLLAPSED_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(LEGEND_COLLAPSED_CHANGED_EVENT, listener)
+    }
+
+    subscribeLegendPosition = (listener: () => void) => {
+        this.addEventListener(LEGEND_POSITION_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(LEGEND_POSITION_CHANGED_EVENT, listener)
+    }
+
+    subscribeMenu = (listener: () => void) => {
+        this.addEventListener(MENU_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(MENU_CHANGED_EVENT, listener)
+    }
+
+    subscribePopup = (listener: () => void) => {
+        this.addEventListener(POPUP_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(POPUP_CHANGED_EVENT, listener)
     }
 
     subscribeSource = (listener: () => void) => {
         this.addEventListener('sourceChanged', listener)
 
         return () => this.removeEventListener('sourceChanged', listener)
+    }
+
+    subscribeStatus = (listener: () => void) => {
+        this.addEventListener(STATUS_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(STATUS_CHANGED_EVENT, listener)
+    }
+
+    subscribeViewportScale = (listener: () => void) => {
+        this.addEventListener(VIEWPORT_SCALE_CHANGED_EVENT, listener)
+
+        return () => this.removeEventListener(VIEWPORT_SCALE_CHANGED_EVENT, listener)
     }
 
     bindProject(binding: DiagramProjectBinding) {
@@ -299,7 +425,12 @@ export class DiagramViewService extends EventTarget {
         this.projectKey = null
         this.unsubscribeRunEvents?.()
         this.unsubscribeRunEvents = null
-        this.publish(INITIAL_SNAPSHOT, null)
+        this.setLegendCollapsed(false)
+        this.setLegendPosition(null)
+        this.setCurrentSelection(null)
+        this.setMenu(null)
+        this.setPopup(null)
+        this.applySnapshot(initialSnapshot(), null)
     }
 
     /** Loads the index on first activation; a failed load is retried by the next call. */
@@ -317,7 +448,8 @@ export class DiagramViewService extends EventTarget {
 
             return
         }
-        this.publish({ ...this.snapshot, menu: null, popup: { anchorElement, context: diagramContext('root') } })
+        this.setMenu(null)
+        this.setPopup({ anchorElement, context: diagramContext('root') })
     }
 
     openChildPopup(actionId: string) {
@@ -325,40 +457,65 @@ export class DiagramViewService extends EventTarget {
         const menu = this.snapshot.menu
         if (!menu) throw new Error('Cannot open a child diagram action without a selected item')
         const context = diagramContext('child', menu.diagramId, menu.itemId, menu.itemLabel)
-        this.publish({
-            ...this.snapshot,
-            menu: null,
-            popup: { anchorElement: menu.anchorElement, context, initialActionId: actionId },
-        })
+        this.setMenu(null)
+        this.setPopup({ anchorElement: menu.anchorElement, context, initialActionId: actionId })
     }
 
     closePopup() {
-        if (!this.snapshot.popup) return
-        this.publish({ ...this.snapshot, popup: null })
+        this.setPopup(null)
     }
 
     collapseLegend() {
-        if (this.snapshot.legend.collapsed) return
-        this.publish({ ...this.snapshot, legend: { ...this.snapshot.legend, collapsed: true } })
+        this.setLegendCollapsed(true)
     }
 
     expandLegend() {
-        if (!this.snapshot.legend.collapsed) return
-        this.publish({ ...this.snapshot, legend: { ...this.snapshot.legend, collapsed: false } })
+        this.setLegendCollapsed(false)
     }
 
     moveLegend(position: DiagramLegendPosition) {
-        this.publish({ ...this.snapshot, legend: { ...this.snapshot.legend, position } })
+        this.setLegendPosition(position)
     }
 
-    openItemMenu(menu: DiagramMenuState) {
+    openItemMenu(menu: DiagramItemMenuRequest) {
         this.requireReady()
-        this.publish({ ...this.snapshot, menu })
+        this.setMenu({ ...menu, submenu: null })
+    }
+
+    selectCurrentObject(selection: CurrentDiagramSelection) {
+        const diagram = this.snapshot.currentDiagram
+        if (!diagram) throw new Error('Cannot select a Current object without an active diagram')
+        const collection = selection.objectKind === 'node' ? diagram.nodes : diagram.edges
+        if (!collection.some(({ id }) => id === selection.objectId)) {
+            throw new Error(`Cannot select missing Current diagram ${selection.objectKind}: ${selection.objectId}`)
+        }
+        this.setCurrentSelection(selection)
+    }
+
+    openItemSubmenu(kind: DiagramItemSubmenuKind, anchorElement: HTMLElement) {
+        this.requireReady()
+        const menu = this.snapshot.menu
+        if (!menu) throw new Error('Cannot open a diagram item submenu without a selected item')
+        this.setMenu({ ...menu, submenu: { anchorElement, kind } })
+    }
+
+    closeItemSubmenu() {
+        const menu = this.snapshot.menu
+        if (!menu?.submenu) return
+        this.setMenu({ ...menu, submenu: null })
     }
 
     closeItemMenu() {
-        if (!this.snapshot.menu) return
-        this.publish({ ...this.snapshot, menu: null })
+        this.setMenu(null)
+    }
+
+    setViewportScale(scale: number) {
+        if (scale === this.viewportScale) return false
+
+        this.viewportScale = scale
+        this.dispatchEvent(new Event(VIEWPORT_SCALE_CHANGED_EVENT))
+
+        return true
     }
 
     /** Root diagrams in load order, used to re-enter navigation when no active path is stored. */
@@ -416,7 +573,7 @@ export class DiagramViewService extends EventTarget {
         this.scheduleIndexCommit(index)
         await this.dependencies.flushCommits()
         this.pendingCopyRecordsBySourceId.delete(request.sourceRecord.id)
-        this.publish({ ...this.snapshot, index })
+        this.setIndex(index)
 
         return record
     }
@@ -440,18 +597,18 @@ export class DiagramViewService extends EventTarget {
 
     private async load() {
         const binding = this.requireBinding()
-        this.publish({ ...INITIAL_SNAPSHOT, legend: this.snapshot.legend, status: 'loading' })
+        this.applySnapshot({ ...initialSnapshot(), legend: this.snapshot.legend, status: 'loading' })
         try {
             const index = await loadDiagramIndex(binding)
             validateDiagramPaths(index, binding.config.diagramsFolder)
             const { sourceSnapshot, ...activeDiagram } = await loadActiveDiagram(binding, index)
-            this.publish(
+            this.applySnapshot(
                 { ...activeDiagram, error: null, index, legend: this.snapshot.legend, menu: null, popup: null, status: 'ready' },
                 sourceSnapshot,
             )
         } catch (error) {
             this.loadPromise = null
-            this.publish({ ...INITIAL_SNAPSHOT, error: errorMessage(error), legend: this.snapshot.legend, status: 'error' })
+            this.applySnapshot({ ...initialSnapshot(), error: errorMessage(error), legend: this.snapshot.legend, status: 'error' })
             this.dependencies.reportError(error, 'Diagram index could not be loaded')
         }
     }
@@ -490,7 +647,7 @@ export class DiagramViewService extends EventTarget {
         await this.persistIndex(index)
         this.navigationToken += 1
         const sourceSnapshot = { diagram, record }
-        this.publish(
+        this.applySnapshot(
             { ...this.snapshot, currentDiagram: positionedDiagram, currentDiagramError: null, index, menu: null, popup: null },
             sourceSnapshot,
         )
@@ -533,7 +690,7 @@ export class DiagramViewService extends EventTarget {
         const { sourceSnapshot, ...activeDiagram } = await loadActiveDiagram(binding, index)
         if (token !== this.navigationToken) return
 
-        this.publish({ ...this.snapshot, ...activeDiagram, index, menu: null }, sourceSnapshot)
+        this.applySnapshot({ ...this.snapshot, ...activeDiagram, index, menu: null }, sourceSnapshot)
         this.scheduleIndexCommit(index)
     }
 
@@ -559,12 +716,107 @@ export class DiagramViewService extends EventTarget {
         if (this.snapshot.status !== 'ready') throw new Error('Diagram view is not ready')
     }
 
-    private publish(snapshot: DiagramViewSnapshot, sourceSnapshot: DiagramViewSourceSnapshot | null = this.sourceSnapshot) {
+    private setCurrentDiagram(currentDiagram: PositionedDiagramData | null) {
+        if (this.snapshot.currentDiagram === currentDiagram) return
+
+        this.snapshot.currentDiagram = currentDiagram
+        this.dispatchEvent(new Event(CURRENT_DIAGRAM_CHANGED_EVENT))
+    }
+
+    private setCurrentSelection(selection: CurrentDiagramSelection | null) {
+        const previousSelection = this.currentSelection
+        if (
+            previousSelection?.objectKind === selection?.objectKind
+            && previousSelection?.objectId === selection?.objectId
+        ) return
+        this.currentSelection = selection
+        if (previousSelection) {
+            this.dispatchEvent(new Event(currentSelectionChangedEvent(previousSelection.objectKind, previousSelection.objectId)))
+        }
+        if (selection) this.dispatchEvent(new Event(currentSelectionChangedEvent(selection.objectKind, selection.objectId)))
+    }
+
+    private setCurrentDiagramError(currentDiagramError: string | null) {
+        if (this.snapshot.currentDiagramError === currentDiagramError) return
+
+        this.snapshot.currentDiagramError = currentDiagramError
+        this.dispatchEvent(new Event(CURRENT_DIAGRAM_ERROR_CHANGED_EVENT))
+    }
+
+    private setError(error: string | null) {
+        if (this.snapshot.error === error) return
+
+        this.snapshot.error = error
+        this.dispatchEvent(new Event(ERROR_CHANGED_EVENT))
+    }
+
+    private setIndex(index: DiagramIndex) {
+        if (this.snapshot.index === index) return
+
+        this.snapshot.index = index
+        this.dispatchEvent(new Event(INDEX_CHANGED_EVENT))
+    }
+
+    private setLegendCollapsed(collapsed: boolean) {
+        if (this.snapshot.legend.collapsed === collapsed) return
+
+        this.snapshot.legend.collapsed = collapsed
+        this.dispatchEvent(new Event(LEGEND_COLLAPSED_CHANGED_EVENT))
+    }
+
+    private setLegendPosition(position: DiagramLegendPosition | null) {
+        const currentPosition = this.snapshot.legend.position
+        if (currentPosition === position) return
+        if (currentPosition && position && currentPosition.left === position.left && currentPosition.top === position.top) return
+
+        this.snapshot.legend.position = position
+        this.dispatchEvent(new Event(LEGEND_POSITION_CHANGED_EVENT))
+    }
+
+    private setMenu(menu: DiagramMenuState | null) {
+        if (this.snapshot.menu === menu) return
+
+        this.snapshot.menu = menu
+        this.dispatchEvent(new Event(MENU_CHANGED_EVENT))
+    }
+
+    private setPopup(popup: DiagramPopupState | null) {
+        if (this.snapshot.popup === popup) return
+
+        this.snapshot.popup = popup
+        this.dispatchEvent(new Event(POPUP_CHANGED_EVENT))
+    }
+
+    private setStatus(status: DiagramViewSnapshot['status']) {
+        if (this.snapshot.status === status) return
+
+        this.snapshot.status = status
+        this.dispatchEvent(new Event(STATUS_CHANGED_EVENT))
+    }
+
+    private applySnapshot(snapshot: DiagramViewSnapshot, sourceSnapshot: DiagramViewSourceSnapshot | null = this.sourceSnapshot) {
+        const activeDiagramChanged = sourceSnapshot?.record.id !== this.sourceSnapshot?.record.id
         const sourceChanged = sourceSnapshot !== this.sourceSnapshot
-        this.snapshot = snapshot
         this.sourceSnapshot = sourceSnapshot
+        if (activeDiagramChanged) this.resetViewportScale()
+        if (sourceChanged) this.setCurrentSelection(null)
         if (sourceChanged) this.dispatchEvent(new Event('sourceChanged'))
-        this.dispatchEvent(new Event('changed'))
+        this.setCurrentDiagram(snapshot.currentDiagram)
+        this.setCurrentDiagramError(snapshot.currentDiagramError)
+        this.setError(snapshot.error)
+        this.setIndex(snapshot.index)
+        this.setLegendCollapsed(snapshot.legend.collapsed)
+        this.setLegendPosition(snapshot.legend.position)
+        this.setMenu(snapshot.menu)
+        this.setPopup(snapshot.popup)
+        this.setStatus(snapshot.status)
+    }
+
+    private resetViewportScale() {
+        if (this.viewportScale === DEFAULT_DIAGRAM_ZOOM) return
+
+        this.viewportScale = DEFAULT_DIAGRAM_ZOOM
+        this.dispatchEvent(new Event(VIEWPORT_SCALE_CHANGED_EVENT))
     }
 }
 

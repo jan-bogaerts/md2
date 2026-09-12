@@ -675,9 +675,9 @@ describe('CardView', () => {
 
         const dialog = screen.getByRole('dialog')
         expect(dialog).toHaveStyle({ height: '620px', width: '760px' })
-        expect(within(dialog).getByRole('button', { name: 'Delete' })).toHaveTextContent('Delete')
-        expect(within(dialog).getByRole('button', { name: 'Affects' })).toHaveTextContent('Affects')
-        expect(within(dialog).getByRole('button', { name: 'Open in file mode' })).toHaveTextContent('Open in file mode')
+        expect(within(dialog).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Affects' })).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Open in file mode' })).toBeInTheDocument()
         expect(within(dialog).getByRole('button', { name: 'Close' })).toBeInTheDocument()
         expect(within(dialog).getByRole('button', { name: 'Fullscreen' })).toBeInTheDocument()
         expect(screen.getByRole('separator', { name: 'Resize card details popup from right' })).toBeInTheDocument()

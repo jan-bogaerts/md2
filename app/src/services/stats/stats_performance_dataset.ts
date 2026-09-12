@@ -11,6 +11,16 @@ import {
     type StatsUnit,
 } from './project_stats_types';
 import { emptyTimeRow } from './stats_chart_rows';
+import {
+    DURATION_COMPONENTS,
+    addDurationComponents,
+    durationComponentShare,
+    durationComponents,
+    emptyDurationComponents,
+    scaleDurationComponents,
+    totalDurationComponents,
+    type StatsDurationComponents,
+} from './stats_duration_components';
 import { modelIdentity } from './stats_identities';
 import { bucketContexts, bucketDomain, inRange, indexByBucket, type StatsBucketContext } from './stats_time_buckets';
 import { accessibleStatsTooltip, formatBucketRange, formatCount, statsTooltip, type StatsTooltipLine } from './stats_tooltip';
@@ -19,6 +29,8 @@ export interface EligibleSample {
     actionId: string;
     agent: string;
     completedAt: string;
+    /** How this run's measured total was spent; all zero when the metric is not duration. */
+    durationSplit: StatsDurationComponents;
     metricValue: number;
     model: string;
     status: 'cancelled' | 'completed' | 'failed';
@@ -61,6 +73,9 @@ export function eligibleSamples(source: StatsDatasetSource, controls: StatsContr
             actionId: conversation.actionId!,
             agent: conversation.agent!,
             completedAt: conversation.completedAt!,
+            durationSplit: conversation.elapsedMs === null
+                ? emptyDurationComponents()
+                : durationComponents(conversation.elapsedMs, conversation.reasoningMs, conversation.toolMs),
             metricValue: performanceMetricValue(conversation, controls.performanceMetric),
             model: conversation.model!,
             status: conversation.status as EligibleSample['status'],
@@ -111,16 +126,29 @@ function formattedMetricValue(value: number, unit: StatsUnit) {
     return `${formatCount(value)} ${unit === 'toolCalls' ? 'tool calls' : unit}`;
 }
 
-function groupRow(
-    context: StatsBucketContext,
-    controls: StatsControls,
-    unit: StatsUnit,
-    identity: string,
-    groupSamples: EligibleSample[],
-): StatsChartRow {
-    const seriesLabel = controls.performanceGrouping === 'agent' ? identity : `${groupSamples[0].agent} - ${groupSamples[0].model}`;
+/**
+ * Sum and average split a duration bar into its components; median and average-with-deviation keep a
+ * single bar, because a median of the parts does not add up to the median of the total and a whisker
+ * on a stack segment has no meaning.
+ */
+export function isStackedDurationPerformance(controls: StatsControls) {
+    return controls.performanceMetric === 'duration'
+        && (controls.performanceAggregation === 'sum' || controls.performanceAggregation === 'average');
+}
+
+interface GroupAggregate {
+    componentTotals: StatsDurationComponents;
+    deviation: number | null;
+    sampleCount: number;
+    seriesLabel: string;
+    statusCounts: StatsStatusCounts;
+    value: number;
+}
+
+function groupAggregate(controls: StatsControls, identity: string, groupSamples: EligibleSample[]): GroupAggregate {
     const metricValues: number[] = [];
     const statusCounts: StatsStatusCounts = { cancelled: 0, completed: 0, failed: 0 };
+    let componentTotals = emptyDurationComponents();
     let sum = 0;
     let sumOfSquares = 0;
     for (const sample of groupSamples) {
@@ -128,24 +156,33 @@ function groupRow(
         sum += sample.metricValue;
         sumOfSquares += sample.metricValue ** 2;
         statusCounts[sample.status] += 1;
+        componentTotals = addDurationComponents(componentTotals, sample.durationSplit);
     }
     const sampleCount = groupSamples.length;
     const average = sum / sampleCount;
     const populationVariance = Math.max(0, (sumOfSquares / sampleCount) - (average ** 2));
-    const deviation = controls.performanceAggregation === 'averageWithDeviation' ? Math.sqrt(populationVariance) : null;
-    const value = controls.performanceAggregation === 'sum'
-        ? sum
-        : controls.performanceAggregation === 'median' ? median(metricValues) : average;
-    const tooltipLines: StatsTooltipLine[] = [
-        { label: null, value: formatBucketRange(context) },
-        { label: 'Series', value: seriesLabel },
-        { label: aggregationLabel(controls.performanceAggregation, controls.performanceMetric), value: formattedMetricValue(value, unit) },
-    ];
-    if (deviation !== null) tooltipLines.push({ label: 'Std dev', value: formattedMetricValue(deviation, unit) });
-    tooltipLines.push(
-        { label: 'Runs', value: formatCount(sampleCount) },
-        { label: 'Statuses', value: `${statusCounts.completed} completed · ${statusCounts.failed} failed · ${statusCounts.cancelled} cancelled` },
-    );
+
+    return {
+        componentTotals,
+        deviation: controls.performanceAggregation === 'averageWithDeviation' ? Math.sqrt(populationVariance) : null,
+        sampleCount,
+        seriesLabel: controls.performanceGrouping === 'agent' ? identity : `${groupSamples[0].agent} - ${groupSamples[0].model}`,
+        statusCounts,
+        value: controls.performanceAggregation === 'sum'
+            ? sum
+            : controls.performanceAggregation === 'median' ? median(metricValues) : average,
+    };
+}
+
+function performanceRow(
+    context: StatsBucketContext,
+    controls: StatsControls,
+    unit: StatsUnit,
+    identity: string,
+    aggregate: GroupAggregate,
+    tooltipLines: StatsTooltipLine[],
+    overrides: Partial<StatsChartRow>,
+): StatsChartRow {
     const tooltip = statsTooltip(tooltipLines);
 
     return {
@@ -156,28 +193,124 @@ function groupRow(
         agent: null,
         available: true,
         chartRole: 'primary',
+        colorGroup: null,
         displayLabel: context.displayLabel,
         grouping: controls.performanceGrouping,
         identity,
         denominator: null,
-        deviation,
+        deviation: aggregate.deviation,
         limitId: null,
         metric: controls.performanceMetric,
         numerator: null,
         provider: null,
-        sampleCount,
+        sampleCount: aggregate.sampleCount,
         seriesIdentity: identity,
-        seriesLabel,
+        seriesLabel: aggregate.seriesLabel,
         stackIdentity: null,
         stackLabel: null,
-        statusCounts,
+        statusCounts: aggregate.statusCounts,
         tooltip,
         unit,
         utcBucketEnd: context.end,
         utcBucketStart: context.start,
-        value,
+        value: aggregate.value,
         windowId: null,
+        ...overrides,
     } satisfies StatsChartRow;
+}
+
+function runCountLines(aggregate: GroupAggregate): StatsTooltipLine[] {
+    const { cancelled, completed, failed } = aggregate.statusCounts;
+
+    return [
+        { label: 'Runs', value: formatCount(aggregate.sampleCount) },
+        { label: 'Statuses', value: `${completed} completed \u00b7 ${failed} failed \u00b7 ${cancelled} cancelled` },
+    ];
+}
+
+/** Components aggregate exactly like the total, so the stack always adds up to the unsplit bar. */
+function aggregatedComponents(controls: StatsControls, aggregate: GroupAggregate) {
+    return controls.performanceAggregation === 'sum'
+        ? aggregate.componentTotals
+        : scaleDurationComponents(aggregate.componentTotals, aggregate.sampleCount);
+}
+
+function stackedGroupRows(
+    context: StatsBucketContext,
+    controls: StatsControls,
+    unit: StatsUnit,
+    identity: string,
+    aggregate: GroupAggregate,
+): StatsChartRow[] {
+    const components = aggregatedComponents(controls, aggregate);
+    const barTotal = totalDurationComponents(components);
+
+    return DURATION_COMPONENTS.map((component) => {
+        const value = components[component.key];
+        const seriesLabel = `${aggregate.seriesLabel} - ${component.label}`;
+        const tooltipLines: StatsTooltipLine[] = [
+            { label: null, value: formatBucketRange(context) },
+            { label: 'Series', value: seriesLabel },
+            {
+                label: aggregationLabel(controls.performanceAggregation, controls.performanceMetric),
+                value: formattedMetricValue(value, unit),
+            },
+            { label: 'Share', value: `${durationComponentShare(value, barTotal)} of ${formattedMetricValue(barTotal, unit)}` },
+            ...runCountLines(aggregate),
+        ];
+
+        return performanceRow(context, controls, unit, identity, aggregate, tooltipLines, {
+            colorGroup: component.colorGroup,
+            deviation: null,
+            seriesIdentity: `${identity} ${component.key}`,
+            seriesLabel,
+            stackIdentity: identity,
+            stackLabel: aggregate.seriesLabel,
+            value,
+        });
+    });
+}
+
+function singleGroupRow(
+    context: StatsBucketContext,
+    controls: StatsControls,
+    unit: StatsUnit,
+    identity: string,
+    aggregate: GroupAggregate,
+): StatsChartRow {
+    const tooltipLines: StatsTooltipLine[] = [
+        { label: null, value: formatBucketRange(context) },
+        { label: 'Series', value: aggregate.seriesLabel },
+        {
+            label: aggregationLabel(controls.performanceAggregation, controls.performanceMetric),
+            value: formattedMetricValue(aggregate.value, unit),
+        },
+    ];
+    if (aggregate.deviation !== null) tooltipLines.push({ label: 'Std dev', value: formattedMetricValue(aggregate.deviation, unit) });
+    tooltipLines.push(...runCountLines(aggregate));
+    if (controls.performanceMetric === 'duration') {
+        // This bar stays unsplit, so the split is reported per run rather than as segments.
+        const perRun = scaleDurationComponents(aggregate.componentTotals, aggregate.sampleCount);
+        tooltipLines.push({ label: null, value: 'Average split per run' });
+        for (const component of DURATION_COMPONENTS) {
+            tooltipLines.push({ label: component.label, value: formattedMetricValue(perRun[component.key], unit) });
+        }
+    }
+
+    return performanceRow(context, controls, unit, identity, aggregate, tooltipLines, {});
+}
+
+function groupRows(
+    context: StatsBucketContext,
+    controls: StatsControls,
+    unit: StatsUnit,
+    identity: string,
+    groupSamples: EligibleSample[],
+): StatsChartRow[] {
+    const aggregate = groupAggregate(controls, identity, groupSamples);
+    if (isStackedDurationPerformance(controls)) return stackedGroupRows(context, controls, unit, identity, aggregate);
+
+    return [singleGroupRow(context, controls, unit, identity, aggregate)];
 }
 
 function bucketRows(
@@ -199,7 +332,7 @@ function bucketRows(
 
     return [...groups.entries()]
         .sort(([left], [right]) => left.localeCompare(right))
-        .map(([identity, groupSamples]) => groupRow(context, controls, unit, identity, groupSamples));
+        .flatMap(([identity, groupSamples]) => groupRows(context, controls, unit, identity, groupSamples));
 }
 
 /** Aggregated agent or model performance per UTC bucket, grouped from one bucket index. */

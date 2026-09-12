@@ -67,10 +67,35 @@ describe('project stats schema', () => {
             identity: 'card:card-1:conversation-1',
             isRootConversation: true,
             model: 'gpt-5',
+            reasoningMs: null,
             toolCallCount: 1,
+            toolMs: null,
             totalTokens: 10,
         })])
         expect(facts.conversations[0]).not.toHaveProperty('entries')
+    })
+
+    it('carries the stored duration breakdown into the conversation facts', () => {
+        const source = activity()
+        source.conversations[0].timer = { breakdown: { reasoningMs: 300, toolMs: 900 }, elapsedMs: 1_500, runningStartedAt: null }
+
+        const facts = calculateActivityStats([source])
+
+        expect(facts.conversations).toEqual([expect.objectContaining({ elapsedMs: 1_500, reasoningMs: 300, toolMs: 900 })])
+    })
+
+    it('parses stats recorded before the breakdown existed as unmeasured', () => {
+        const legacy = calculateActivityStats([activity()])
+        for (const conversation of legacy.conversations) {
+            delete (conversation as unknown as Record<string, unknown>).reasoningMs
+            delete (conversation as unknown as Record<string, unknown>).toolMs
+        }
+        const content = JSON.stringify({ releases: { v1: legacy }, version: 3 })
+
+        const parsed = parseProjectStatsFile(content, 'design/project_stats.json')
+
+        expect(parsed.warnings).toEqual([])
+        expect(parsed.releases.v1.conversations[0]).toEqual(expect.objectContaining({ elapsedMs: 1_500, reasoningMs: null, toolMs: null }))
     })
 
     it('strictly validates entries while keeping valid releases', () => {

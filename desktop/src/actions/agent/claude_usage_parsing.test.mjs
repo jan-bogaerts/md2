@@ -86,6 +86,41 @@ describe('parseClaudeUsageOutput', () => {
         expect(parseClaudeUsageOutput(output, observedAt)?.windows.map(({ usedPercent }) => usedPercent)).toEqual([17, 13]);
     });
 
+    it('parses a session window Claude reported without a reset clause', () => {
+        const output = `You are currently using your subscription to power your Claude Code usage
+Current session: 0% used
+Current week (all models): 1% used · resets Sep 13, 6:59pm (Europe/Brussels)
+`;
+        const observedAt = Date.parse('2026-09-08T08:04:27.000Z');
+
+        expect(parseClaudeUsageOutput(output, observedAt)).toEqual({
+            windows: [
+                { id: 'five_hour', resetsAt: null, usedPercent: 0 },
+                { id: 'weekly', resetsAt: Date.parse('2026-09-13T16:59:00.000Z'), usedPercent: 1 },
+            ],
+        });
+    });
+
+    it('leaves a full-screen window without a reset line unset instead of reading the next one', () => {
+        const output = TERMINAL_USAGE_OUTPUT.replace('Resets 3:20pm (Europe/Brussels)', '');
+        const observedAt = Date.parse('2026-08-20T08:00:00.000Z');
+
+        expect(parseClaudeUsageOutput(output, observedAt)).toEqual({
+            windows: [
+                { id: 'five_hour', resetsAt: null, usedPercent: 1 },
+                { id: 'weekly', resetsAt: Date.parse('2026-08-23T17:00:00.000Z'), usedPercent: 12 },
+            ],
+        });
+    });
+
+    it('prefers a repeated window line that carries a reset over a bare one', () => {
+        const observedAt = Date.parse('2026-08-15T18:00:00.000Z');
+        const output = `Current session: 17% used
+${USAGE_OUTPUT}`;
+
+        expect(parseClaudeUsageOutput(output, observedAt)?.windows[0].resetsAt).toBe(Date.parse('2026-08-15T19:49:00.000Z'));
+    });
+
     it('rejects partial and malformed output', () => {
         const observedAt = Date.parse('2026-08-15T18:00:00.000Z');
 

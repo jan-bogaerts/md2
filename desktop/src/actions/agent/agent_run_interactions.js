@@ -27,7 +27,7 @@ async function sendStreamingMessage(service, run, content) {
     run.conversation.entries.push(createMessageEntry(messageId, 'user', message, timestamp, undefined, nextRunSequence(run)));
     const userMessage = lastMessageEntry(run.conversation);
     const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
-    transitionConversationStatus(run.conversation, state, timestamp);
+    transitionConversationStatus(run.conversation, state, timestamp, run.phases);
     run.turnActive = true;
     await service.persistCheckpoint(run);
     emitRunEvent(run, { type: 'userMessage', userMessage });
@@ -87,7 +87,7 @@ function answerQuestion(service, run, requestId, answers) {
             run.pendingQuestions = [];
         }
         const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
-        transitionConversationStatus(run.conversation, state, timestamp);
+        transitionConversationStatus(run.conversation, state, timestamp, run.phases);
         await service.persistCheckpoint(run);
         emitRunEvent(run, { requestId, state, type: 'questionAnswered', userMessage });
         emitRunEvent(run, { state, type: 'state' });
@@ -118,7 +118,7 @@ function dismissQuestions(service, run, requestId) {
             run.pendingQuestions = [];
         }
         const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
-        transitionConversationStatus(run.conversation, state, timestamp);
+        transitionConversationStatus(run.conversation, state, timestamp, run.phases);
         let persistenceError = null;
         try {
             await service.persistCheckpoint(run);

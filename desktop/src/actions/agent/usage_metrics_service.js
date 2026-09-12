@@ -220,12 +220,17 @@ function codexAccountWindows(snapshot) {
     return windows;
 }
 
+/**
+ * Only the calculation window is recorded, so only that one is normalized: a session window Claude
+ * reported without a reset time must not discard the weekly measurement that came with it.
+ */
 function claudeAccountWindows(snapshot) {
     if (!Array.isArray(snapshot.windows)) return null;
     const windows = [];
     for (const window of snapshot.windows) {
         const windowDurationMinutes = CLAUDE_WINDOW_DURATIONS.get(window?.id);
         if (!windowDurationMinutes) return null;
+        if (window.id !== CLAUDE_CALCULATION_WINDOW_ID) continue;
         const normalized = normalizeAccountWindow(
             'claude',
             DEFAULT_LIMIT_ID,
@@ -234,7 +239,7 @@ function claudeAccountWindows(snapshot) {
             window,
         );
         if (!normalized) return null;
-        if (window.id === CLAUDE_CALCULATION_WINDOW_ID) windows.push(normalized);
+        windows.push(normalized);
     }
 
     return windows;

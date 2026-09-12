@@ -53,6 +53,7 @@ export function CommandAction(props: CommandActionProps) {
                         conversationStore={conversationStore}
                         historyStore={historyStore}
                         inputStore={inputStore}
+                        questionsEnabled={false}
                         resultStore={resultStore}
                         runValidationError={runValidationError}
                         scheduleStore={scheduleStore}

@@ -1,4 +1,5 @@
 import { MenuItem } from '@mui/material'
+import { copyTextToClipboard } from '../../services/clipboard_text'
 import { dialogService } from '../../services/dialog_service'
 
 interface CardPathMenuItemsProps {
@@ -18,7 +19,7 @@ function absoluteCardPath(rootPath: string, cardPath: string) {
 async function copyCardPath(path: string, onSelected: () => void) {
     onSelected()
     try {
-        await navigator.clipboard.writeText(path)
+        await copyTextToClipboard(path)
     } catch (error) {
         dialogService.error(error, { fallbackMessage: 'Path could not be copied to clipboard' })
     }

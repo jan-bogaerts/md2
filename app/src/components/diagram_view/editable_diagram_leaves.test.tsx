@@ -10,6 +10,7 @@ import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_
 import { EditableDiagramEdge } from './editable_diagram_edge'
 import { EditableDiagramGroup } from './editable_diagram_group'
 import { EditableDiagramNode } from './editable_diagram_node'
+import { DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 
 const diagram: DiagramData = {
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'writes', to: 'store' }],
@@ -63,12 +64,16 @@ class DiagramSourceStub extends EventTarget {
 }
 
 function createHarness(sourceDiagram: DiagramData = diagram) {
-    const session = new DiagramEditSessionService(new DiagramSourceStub(sourceDiagram))
+    const source = new DiagramSourceStub(sourceDiagram)
+    const session = new DiagramEditSessionService(source)
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
 
-    return { geometry, selection: new DiagramSelectionService(session, geometry), session }
+    const emphasis = new DiagramEmphasisService(source, session)
+    emphasis.start()
+
+    return { emphasis, geometry, selection: new DiagramSelectionService(session, geometry), session }
 }
 
 type RenderCounts = Map<string, number>
@@ -80,8 +85,9 @@ function CountedLeaf({ children, counts, id }: { children: ReactNode, counts: Re
     return <Profiler id={id} onRender={handleRender}>{children}</Profiler>
 }
 
-function LeafTree({ counts, geometry, selection, session }: {
+function LeafTree({ counts, emphasis, geometry, selection, session }: {
     counts: RenderCounts,
+    emphasis: DiagramEmphasisService,
     geometry: DiagramGeometryService,
     selection: DiagramSelectionService,
     session: DiagramEditSessionService,
@@ -89,29 +95,29 @@ function LeafTree({ counts, geometry, selection, session }: {
     return (
         <>
             <CountedLeaf counts={counts} id="orders">
-                <EditableDiagramNode geometry={geometry} nodeId="orders" selection={selection} session={session} />
+                <EditableDiagramNode emphasis={emphasis} geometry={geometry} nodeId="orders" selection={selection} session={session} />
             </CountedLeaf>
             <CountedLeaf counts={counts} id="store">
-                <EditableDiagramNode geometry={geometry} nodeId="store" selection={selection} session={session} />
+                <EditableDiagramNode emphasis={emphasis} geometry={geometry} nodeId="store" selection={selection} session={session} />
             </CountedLeaf>
             <svg>
                 <CountedLeaf counts={counts} id="edge">
-                    <EditableDiagramEdge edgeId="orders-store" geometry={geometry} selection={selection} session={session} />
+                    <EditableDiagramEdge edgeId="orders-store" emphasis={emphasis} geometry={geometry} selection={selection} session={session} />
                 </CountedLeaf>
             </svg>
             <CountedLeaf counts={counts} id="group">
-                <EditableDiagramGroup geometry={geometry} groupId="backend" selection={selection} session={session} />
+                <EditableDiagramGroup emphasis={emphasis} geometry={geometry} groupId="backend" selection={selection} session={session} />
             </CountedLeaf>
         </>
     )
 }
 
 function renderTree(sourceDiagram: DiagramData = diagram) {
-    const { geometry, selection, session } = createHarness(sourceDiagram)
+    const { emphasis, geometry, selection, session } = createHarness(sourceDiagram)
     const counts: RenderCounts = new Map()
-    render(<LeafTree counts={counts} geometry={geometry} selection={selection} session={session} />)
+    render(<LeafTree counts={counts} emphasis={emphasis} geometry={geometry} selection={selection} session={session} />)
 
-    return { counts, geometry, selection, session }
+    return { counts, emphasis, geometry, selection, session }
 }
 
 afterEach(cleanup)
@@ -257,5 +263,25 @@ describe('editable diagram leaves', () => {
         })
 
         expect(counts).toEqual(before)
+    })
+
+    it('rerenders only leaves whose emphasis opacity changes', () => {
+        const { counts, emphasis } = renderTree(entityDiagram)
+        const beforeEmphasis = new Map(counts)
+
+        act(() => emphasis.emphasize({ diagramId: 'diagram-1', objectId: 'orders-store', objectKind: 'edge', surface: 'new' }))
+
+        expect(counts.get('orders')).toBe(beforeEmphasis.get('orders'))
+        expect(counts.get('store')).toBe(beforeEmphasis.get('store'))
+        expect(counts.get('edge')).toBe(beforeEmphasis.get('edge'))
+        expect(counts.get('group')).toBeGreaterThan(beforeEmphasis.get('group') ?? 0)
+        const beforeMove = new Map(counts)
+
+        act(() => emphasis.emphasize({ diagramId: 'diagram-1', objectId: 'archive', objectKind: 'node', surface: 'new' }))
+
+        expect(counts.get('orders')).toBeGreaterThan(beforeMove.get('orders') ?? 0)
+        expect(counts.get('store')).toBeGreaterThan(beforeMove.get('store') ?? 0)
+        expect(counts.get('edge')).toBeGreaterThan(beforeMove.get('edge') ?? 0)
+        expect(counts.get('group')).toBe(beforeMove.get('group'))
     })
 })

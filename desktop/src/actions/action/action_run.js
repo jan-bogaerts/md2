@@ -672,7 +672,11 @@ class ActionRun {
             }
             if (agentEvent.type === 'agentEvent') {
                 const update = { entryIndex: agentEvent.entryIndex, event: agentEvent.event, kind: 'agentEvent' };
-                this.publish(action, phase, 'running', { type: 'update', update });
+                this.publish(action, phase, 'running', {
+                    ...(agentEvent.timer ? { timer: agentEvent.timer } : {}),
+                    type: 'update',
+                    update,
+                });
                 return;
             }
             if (agentEvent.type === 'usage') {

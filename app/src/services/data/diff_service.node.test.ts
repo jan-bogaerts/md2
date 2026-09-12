@@ -9,7 +9,7 @@ vi.mock('../config/config_service', () => ({
     configService: {
         get: () => 'git show {{commit}}',
         getProjectConfig: () => ({
-            actionsFolder: 'actions', archivedFolder: 'archived', projectFolder: 'design',
+            actionsFolder: 'actions', archivedFolder: 'archived', diagramsFolder: 'diagrams', projectFolder: 'design',
             releasesFolder: 'delivery/releases', workingFolder: 'feature_descriptions',
         }),
     },

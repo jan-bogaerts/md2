@@ -18,7 +18,7 @@ vi.mock('../../../hooks/use_action_runs', () => ({
         status ? [{ rootActionId, runId: `${rootActionId}-run`, status }] : []
     )),
 }))
-vi.mock('../../../hooks/use_card_action_agent_state', () => ({ useCardActionAgentState: (actionId: string) => actionStates.persisted[actionId] ?? 'idle' }))
+vi.mock('../../../hooks/use_context_action_agent_state', () => ({ useContextActionAgentState: (actionId: string) => actionStates.persisted[actionId] ?? 'idle' }))
 
 const context: ActionContext = { file: 'design/F-105.md', kind: 'card', state: 'design', type: 'feature' }
 const actions: ActionDefinition[] = [
@@ -105,17 +105,25 @@ describe('ActionSelector', () => {
         }
     })
 
-    it('lets a live running state override persisted waiting state', () => {
-        actionStates.persisted = { selected: 'waiting for input' }
-        actionStates.live = { selected: 'running' }
+    it.each([
+        ['queued', 'waiting for input', 'Action is queued'],
+        ['running', 'waiting for input', 'Agent is running'],
+        ['waitingForInput', 'running', 'Agent is waiting for input'],
+    ] as const)('lets live project %s state override conflicting persisted state', (liveStatus, persistedState, description) => {
+        actionStates.persisted = { selected: persistedState }
+        actionStates.live = { selected: liveStatus }
         render(
             <ThemeProvider theme={createAppTheme('light')}>
-                <ActionSelector actions={actions} context={context} onSelect={vi.fn()} selectedAction={actions[0]} />
+                <ActionSelector actions={actions} context={{ kind: 'project' }} onSelect={vi.fn()} selectedAction={actions[0]} />
             </ThemeProvider>,
         )
 
-        const selectedButton = screen.getByRole('button', { name: /Selected action.*Agent is running/u })
-        expect(within(selectedButton).getByTestId('PlayIcon')).toBeInTheDocument()
-        expect(within(selectedButton).queryByTestId('HelpCircleOutlineIcon')).not.toBeInTheDocument()
+        const selectedButton = screen.getByRole('button', { name: new RegExp(`Selected action.*${description}`, 'u') })
+        if (liveStatus === 'running') expect(within(selectedButton).getByTestId('PlayIcon')).toBeInTheDocument()
+        if (liveStatus === 'waitingForInput') expect(within(selectedButton).getByTestId('HelpCircleOutlineIcon')).toBeInTheDocument()
+        if (liveStatus === 'queued') {
+            expect(within(selectedButton).queryByTestId('PlayIcon')).not.toBeInTheDocument()
+            expect(within(selectedButton).queryByTestId('HelpCircleOutlineIcon')).not.toBeInTheDocument()
+        }
     })
 })

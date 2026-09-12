@@ -43,6 +43,14 @@ describe('ClaudeRuntimeService', () => {
         expect(service.getSnapshot()).toMatchObject({ observedAt: 200, windows: [{ usedPercent: 70 }, { usedPercent: 40 }] });
     });
 
+    it('keeps a window Claude reported without a reset time', () => {
+        const service = new ClaudeRuntimeService();
+        const windows = [{ ...payload().windows[0], resetsAt: null }, payload().windows[1]];
+
+        expect(service.publishRateLimits({ windows }, 100)).toBe(true);
+        expect(service.getSnapshot()).toEqual({ available: true, observedAt: 100, windows });
+    });
+
     it('advances observation time without republishing unchanged usage', () => {
         const service = new ClaudeRuntimeService();
         const listener = vi.fn();

@@ -38,8 +38,10 @@ function conversationFact(overrides: Partial<StatsConversationFact> = {}): Stats
         identity: 'conversation-1',
         isRootConversation: true,
         model: 'gpt-5',
+        reasoningMs: null,
         status: 'completed',
         toolCallCount: 2,
+        toolMs: null,
         totalTokens: 10,
         ...overrides,
     }

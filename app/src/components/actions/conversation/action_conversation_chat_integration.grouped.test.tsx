@@ -250,7 +250,7 @@ describe('ActionConversationChat integration', () => {
         )
         const viewport = screen.getByLabelText('Conversation chat')
         const metadata = screen.getByLabelText('Conversation metadata')
-        const timer = screen.getByLabelText('Elapsed time')
+        const timer = screen.getByLabelText(/^Elapsed time/u)
         const usage = screen.getByRole('button', { name: 'Tokens, Action/card scope' })
         expect(viewport).not.toContainElement(metadata)
         expect(viewport.parentElement?.lastElementChild).toBe(metadata)
@@ -266,7 +266,7 @@ describe('ActionConversationChat integration', () => {
 
         act(() => selectConversation(secondConversation))
 
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('2:30')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('2:30')
         expect(screen.getByRole('progressbar', { name: 'Context usage' })).toHaveAttribute('aria-valuenow', '50')
         expect(await screen.findByText('Context usage: 50%', { selector: '.MuiTooltip-tooltip' })).toBeInTheDocument()
     })
@@ -288,7 +288,7 @@ describe('ActionConversationChat integration', () => {
         expect(metadata).toHaveStyle({ containerType: 'inline-size' })
         expect(within(metadata).getByRole('button', { name: 'Tokens, Action/card scope' })).toBeInTheDocument()
         expect(within(metadata).queryByRole('status')).not.toBeInTheDocument()
-        expect(within(metadata).queryByLabelText('Elapsed time')).not.toBeInTheDocument()
+        expect(within(metadata).queryByLabelText(/^Elapsed time/u)).not.toBeInTheDocument()
         expect(within(metadata).queryByRole('progressbar', { name: 'Context usage' })).not.toBeInTheDocument()
     })
 

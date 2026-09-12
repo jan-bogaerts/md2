@@ -8,7 +8,8 @@ import type {
 const POPOVER_WIDTH = 360
 const WINDOW_LABELS: Record<ClaudeRateLimitWindowId, string> = { five_hour: 'Session', weekly: 'Weekly' }
 
-function formatReset(resetTime: number, observedAt: number, receivedAt: number, currentTime: number) {
+function formatReset(resetTime: number | null, observedAt: number, receivedAt: number, currentTime: number) {
+    if (resetTime === null) return 'Reset unknown'
     const localResetTime = receivedAt + resetTime - observedAt
     const remainingMilliseconds = Math.max(0, localResetTime - currentTime)
     const remainingMinutes = Math.ceil(remainingMilliseconds / 60_000)

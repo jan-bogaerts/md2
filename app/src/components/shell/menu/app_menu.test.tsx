@@ -367,6 +367,21 @@ describe('AppMenu', () => {
         expect(workspaceViewService.getSnapshot().viewMode).toBe('stats')
     })
 
+    it('shows Diagram tab only in diagram view and falls back to Home when leaving', () => {
+        renderMenu()
+
+        expect(screen.queryByRole('tab', { name: 'Diagram' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Diagrams view' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Diagram' }))
+
+        expect(screen.getByRole('tab', { name: 'Diagram' })).toHaveAttribute('aria-selected', 'true')
+
+        act(() => workspaceViewService.setViewMode('cards'))
+
+        expect(screen.queryByRole('tab', { name: 'Diagram' })).not.toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Home' })).toHaveAttribute('aria-selected', 'true')
+    })
+
     it('creates a valid action and opens its text-view tab from the Home tab', async () => {
         const bridge = createBridge()
         await activateLocalProject(bridge)

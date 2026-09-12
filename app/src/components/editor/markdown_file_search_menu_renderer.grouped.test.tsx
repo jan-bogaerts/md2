@@ -6,8 +6,10 @@ import { VirtuosoMockContext } from 'react-virtuoso'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { MarkdownFileSearchOption } from './markdown_file_search_option'
 import { renderFileSearchMenu } from './markdown_file_search_menu_renderer'
+import { MarkdownFileSearchSessionProvider } from './markdown_file_search_session_provider'
 
 type MenuItemProps = Parameters<typeof renderFileSearchMenu>[1]
+const ANCHOR_RECT = { height: 18, left: 120, top: 240, width: 8 }
 
 function menuItemProps(options: MarkdownFileSearchOption[]): MenuItemProps {
     return {
@@ -18,7 +20,7 @@ function menuItemProps(options: MarkdownFileSearchOption[]): MenuItemProps {
     }
 }
 
-async function flushFrozenAnchor() {
+async function flushSessionAnchor() {
     await act(async () => {
         await new Promise((resolve) => { requestAnimationFrame(() => resolve(null)) })
     })
@@ -38,12 +40,14 @@ describe('renderFileSearchMenu', () => {
 
         render(
             <AppThemeProvider>
-                <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
-                    {renderFileSearchMenu(anchorElementRef, menuItemProps([]), '')}
-                </VirtuosoMockContext.Provider>
+                <MarkdownFileSearchSessionProvider anchorRect={ANCHOR_RECT}>
+                    <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
+                        {renderFileSearchMenu(anchorElementRef, menuItemProps([]), '')}
+                    </VirtuosoMockContext.Provider>
+                </MarkdownFileSearchSessionProvider>
             </AppThemeProvider>,
         )
-        await flushFrozenAnchor()
+        await flushSessionAnchor()
 
         expect(screen.getByRole('dialog', { name: 'Project files' })).toBeInTheDocument()
         expect(screen.getByText('No matching files')).toBeInTheDocument()

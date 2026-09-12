@@ -15,7 +15,10 @@ const INITIAL_STATE: ClaudeRateLimitState = { receivedAt: null, snapshot: null, 
 const WINDOW_IDS = new Set(['five_hour', 'weekly'])
 
 function firstResetTime(snapshot: ClaudeRateLimitSnapshot) {
-    return snapshot.windows.length > 0 ? Math.min(...snapshot.windows.map(({ resetsAt }) => resetsAt)) : null
+    // A window Claude has not started carries no reset time and cannot be the next one to reset.
+    const resetTimes = snapshot.windows.map(({ resetsAt }) => resetsAt).filter((resetsAt) => resetsAt !== null)
+
+    return resetTimes.length > 0 ? Math.min(...resetTimes) : null
 }
 
 function validSnapshot(snapshot: ClaudeRateLimitSnapshot) {
@@ -26,7 +29,7 @@ function validSnapshot(snapshot: ClaudeRateLimitSnapshot) {
 
     return snapshot.windows.every(({ id, resetsAt, usedPercent }) => (
         WINDOW_IDS.has(id)
-            && Number.isFinite(resetsAt)
+            && (resetsAt === null || Number.isFinite(resetsAt))
             && Number.isInteger(usedPercent)
             && usedPercent >= 0
             && usedPercent <= 100

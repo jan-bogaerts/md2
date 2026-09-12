@@ -252,6 +252,30 @@ describe('CardOperations', () => {
         await vi.waitFor(() => expect(storage.push).toHaveBeenCalledWith({ branch: 'main', id: 'project' }))
     })
 
+    it('uses compact Sentry title for header and configured-separator filename while retaining full body title', async () => {
+        configService.init();
+        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ cardSeparator: '_' as const, projectFolder: '', workingFolder: 'design' }))});
+        const service = createDataService();
+        service.init({ storage });
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' });
+        const fullTitle = `  Checkout   failed: ${'x'.repeat(60)} 😀  `;
+        const compactTitle = `Checkout failed: ${'x'.repeat(33)}`;
+
+        const [importedFile] = await service.cards.importSentryIssues({
+            apiBaseUrl: 'https://sentry.example.com',
+            cardState: 'to fix',
+            cardType: 'bug',
+            issues: [sentryIssue('100', fullTitle)],
+            organization: 'acme',
+            projectId: 'project',
+        });
+
+        expect(importedFile.path).toBe(`design/B_1_checkout_failed_${'x'.repeat(33)}.md`);
+        const importedCard = service.getState().snapshot?.activeCards.find(({ header }) => header.sentryIssueId === '100');
+        expect(importedCard?.header.title).toBe(compactTitle);
+        expect(importedFile.content).toContain(`**Title:** ${fullTitle}`);
+    });
+
     it('deduplicates repeated imports from current loaded card identities', async () => {
         configService.init()
         const storage = createStorage()
@@ -325,10 +349,10 @@ describe('CardOperations', () => {
             apiBaseUrl: 'https://sentry.example.com',
             cardState: 'to fix',
             cardType: 'bug',
-            issues: [sentryIssue('100'), sentryIssue('101', '')],
+            issues: [sentryIssue('100'), sentryIssue('101', ' \t\r\n ')],
             organization: 'acme',
             projectId: 'project',
-        })).rejects.toThrow('Cannot generate a card without a title')
+        })).rejects.toThrow('Cannot import a Sentry issue without a title')
 
         expect(service.getState().snapshot?.activeCards).toHaveLength(originalCount ?? 0)
         expect(storage.commit).not.toHaveBeenCalled()

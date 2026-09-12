@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react'
+import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined'
 import {
     copyDiagramSelection,
     type DiagramCopySession,
@@ -37,6 +38,6 @@ export function DiagramCopyButton({
             label="Copy"
             onActivate={handleCopy}
             tooltip="Copy selected diagram objects"
-        />
+        ><ContentCopyOutlined fontSize="small" /></DiagramToolboxActionButton>
     )
 }

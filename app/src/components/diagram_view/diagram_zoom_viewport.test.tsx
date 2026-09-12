@@ -3,11 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
 import { DiagramEdgeDrawingService } from '../../services/diagrams/diagram_edge_drawing_service'
-import {
-    DEFAULT_DIAGRAM_ZOOM,
-    DIAGRAM_ZOOM_STEP,
-    DiagramEditSessionService,
-} from '../../services/diagrams/diagram_edit_session_service'
+import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import { DiagramGroupDrawingService } from '../../services/diagrams/diagram_group_drawing_service'
 import { DiagramMoveService } from '../../services/diagrams/diagram_move_service'
@@ -16,6 +12,7 @@ import { DiagramResizeService } from '../../services/diagrams/diagram_resize_ser
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
+import { DEFAULT_DIAGRAM_ZOOM, DIAGRAM_ZOOM_STEP } from '../../services/diagrams/diagram_zoom'
 import { DiagramZoomViewport } from './diagram_zoom_viewport'
 import { DiagramObjectDetailsService } from './diagram_object_details_service'
 
@@ -86,6 +83,13 @@ function viewportClientPoint(x: number, y: number, scale: number, scrollLeft: nu
     return { clientX: x * scale - scrollLeft + 10, clientY: y * scale - scrollTop + 20 }
 }
 
+function dispatchWheel(scroller: HTMLElement, options: WheelEventInit) {
+    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, ...options })
+    act(() => { scroller.dispatchEvent(event) })
+
+    return event
+}
+
 afterEach(cleanup)
 
 describe('DiagramZoomViewport', () => {
@@ -104,7 +108,7 @@ describe('DiagramZoomViewport', () => {
         const target = screen.getByRole('button', { name: 'Store' })
         vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({bottom: 420, height: 400, left: 10, right: 810, toJSON: () => ({}), top: 20, width: 800, x: 10, y: 20})
         act(() => {
-            session.zoomOut()
+            session.setViewportScale(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)
             drawing.activate({ kind: 'data' })
         })
         scroller.scrollLeft = 20
@@ -212,7 +216,7 @@ describe('DiagramZoomViewport', () => {
         const scroller = screen.getByLabelText('New diagram scroller')
         vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({bottom: 420, height: 400, left: 10, right: 810, toJSON: () => ({}), top: 20, width: 800, x: 10, y: 20})
         act(() => {
-            session.zoomOut()
+            session.setViewportScale(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)
             placement.activate({
                 defaults: { height: 72, label: 'New component', role: 'focal', width: 160 },
                 kind: 'component',
@@ -252,7 +256,7 @@ describe('DiagramZoomViewport', () => {
         scroller.scrollLeft = 40
         scroller.scrollTop = 20
         act(() => {
-            session.zoomOut()
+            session.setViewportScale(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)
             groupDrawing.activate()
         })
         const scale = session.getViewportScaleSnapshot()
@@ -339,7 +343,7 @@ describe('DiagramZoomViewport', () => {
         scroller.scrollLeft = 100
         scroller.scrollTop = 50
 
-        act(() => { session.zoomIn() })
+        act(() => { session.setViewportScale(DEFAULT_DIAGRAM_ZOOM + DIAGRAM_ZOOM_STEP) })
 
         expect(screen.getByTestId('new-diagram-zoom-surface')).toHaveStyle({
             transformOrigin: 'top left',
@@ -361,7 +365,7 @@ describe('DiagramZoomViewport', () => {
         scroller.scrollLeft = 100
         scroller.scrollTop = 50
 
-        act(() => { session.zoomOut() })
+        act(() => { session.setViewportScale(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP) })
 
         expect(screen.getByTestId('new-diagram-zoom-surface')).toHaveStyle({
             transformOrigin: 'top left',
@@ -373,11 +377,30 @@ describe('DiagramZoomViewport', () => {
         expect(session.getEditableDiagram()?.nodes[0]).toMatchObject({ x: 240, y: 120 })
     })
 
+    it('Ctrl-wheel zooms New without changing edit, selection, tool, or gesture state', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        act(() => { session.setActiveTool('pan') })
+        const editableDiagram = session.getEditableDiagram()
+
+        const wheelEvent = dispatchWheel(scroller, { ctrlKey: true, deltaY: -50 })
+
+        expect(wheelEvent.defaultPrevented).toBe(true)
+        expect(session.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM + DIAGRAM_ZOOM_STEP)
+        expect(session.getEditableDiagram()).toBe(editableDiagram)
+        expect(selection.getSelectionSnapshot()).toEqual([])
+        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.getChangeIdsSnapshot()).toEqual([])
+        expect(session.getActiveToolSnapshot()).toBe('pan')
+        expect(session.getTransientGestureSnapshot()).toBeNull()
+    })
+
     it('keeps direct node selection working on transformed New content', () => {
         const { geometry, selection, session } = createHarness()
         render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
 
-        act(() => { session.zoomOut() })
+        act(() => { session.setViewportScale(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP) })
         fireEvent.click(screen.getByRole('button', { name: 'Orders' }), { clientX: 190, clientY: 120 })
 
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
@@ -394,7 +417,7 @@ describe('DiagramZoomViewport', () => {
         })
         scroller.scrollLeft = 40
         scroller.scrollTop = 20
-        act(() => { session.zoomOut() })
+        act(() => { session.setViewportScale(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP) })
         const scale = session.getViewportScaleSnapshot()
 
         fireEvent.pointerDown(surface, { button: 0, clientX: 95, clientY: 67.5, pointerId: 1 })
@@ -425,7 +448,7 @@ describe('DiagramZoomViewport', () => {
         scroller.scrollTop = 10
         vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({ bottom: 410, height: 400, left: 10, right: 810, toJSON: () => ({}), top: 10, width: 800, x: 10, y: 10 })
         act(() => {
-            session.zoomOut()
+            session.setViewportScale(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)
             selection.replace([
                 { objectId: 'orders', objectKind: 'node' },
                 { objectId: 'store', objectKind: 'node' },
@@ -507,7 +530,7 @@ describe('DiagramZoomViewport', () => {
         scroller.scrollTop = 10
         vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({ bottom: 410, height: 400, left: 10, right: 810, toJSON: () => ({}), top: 10, width: 800, x: 10, y: 10 })
         act(() => {
-            session.zoomOut()
+            session.setViewportScale(DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)
             selection.replace([{ objectId: 'orders', objectKind: 'node' }])
         })
         const handle = screen.getByRole('button', { name: 'Resize Orders south-east' })
@@ -545,5 +568,106 @@ describe('DiagramZoomViewport', () => {
 
         expect(session.getNodeSnapshot('orders')).toMatchObject({ height: 72, width: 164 })
         expect(resize.getResizeActiveSnapshot()).toBe(false)
+    })
+
+    it('pans New with the pointer while the pan tool is active and leaves diagram data untouched', () => {
+        const { geometry, movement, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} movement={movement} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        scroller.scrollLeft = 120
+        scroller.scrollTop = 80
+        act(() => { session.setActiveTool('pan') })
+        const ordersBefore = session.getNodeSnapshot('orders')
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 300, clientY: 200, isPrimary: true, pointerId: 1 })
+        expect(session.getTransientGestureSnapshot()).toBe('pan')
+
+        fireEvent.pointerMove(scroller, { clientX: 260, clientY: 170, pointerId: 1 })
+        fireEvent.pointerUp(scroller, { pointerId: 1 })
+
+        expect(scroller.scrollLeft).toBe(160)
+        expect(scroller.scrollTop).toBe(110)
+        expect(session.getTransientGestureSnapshot()).toBeNull()
+        expect(session.getActiveToolSnapshot()).toBe('pan')
+        expect(session.getNodeSnapshot('orders')).toEqual(ordersBefore)
+        expect(selection.getSelectionSnapshot()).toEqual([])
+        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.getChangeIdsSnapshot()).toEqual([])
+        expect(session.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
+    })
+
+    it('pans by the same viewport pixels at every zoom scale and starts no move on a node', () => {
+        const { geometry, movement, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} movement={movement} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const orders = screen.getByRole('button', { name: 'Orders' })
+        act(() => { session.setActiveTool('pan') })
+        act(() => { session.setViewportScale(DEFAULT_DIAGRAM_ZOOM + DIAGRAM_ZOOM_STEP) })
+        scroller.scrollLeft = 120
+        scroller.scrollTop = 80
+        const ordersBefore = session.getNodeSnapshot('orders')
+
+        fireEvent.pointerDown(orders, { button: 0, clientX: 300, clientY: 200, isPrimary: true, pointerId: 1 })
+        fireEvent.pointerMove(scroller, { clientX: 260, clientY: 170, pointerId: 1 })
+        fireEvent.pointerUp(scroller, { pointerId: 1 })
+
+        expect(scroller.scrollLeft).toBe(160)
+        expect(scroller.scrollTop).toBe(110)
+        expect(session.getNodeSnapshot('orders')).toEqual(ordersBefore)
+    })
+
+    it('restores the scroll position when Escape or a cancelled pointer ends a pan', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        act(() => { session.setActiveTool('pan') })
+        scroller.scrollLeft = 120
+        scroller.scrollTop = 80
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 300, clientY: 200, isPrimary: true, pointerId: 1 })
+        fireEvent.pointerMove(scroller, { clientX: 200, clientY: 100, pointerId: 1 })
+        fireEvent.keyDown(window, { key: 'Escape' })
+
+        expect(scroller.scrollLeft).toBe(120)
+        expect(scroller.scrollTop).toBe(80)
+        expect(session.getTransientGestureSnapshot()).toBeNull()
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 300, clientY: 200, isPrimary: true, pointerId: 2 })
+        fireEvent.pointerMove(scroller, { clientX: 200, clientY: 100, pointerId: 2 })
+        fireEvent.pointerCancel(scroller, { pointerId: 2 })
+
+        expect(scroller.scrollLeft).toBe(120)
+        expect(scroller.scrollTop).toBe(80)
+    })
+
+    it('restores the scroll position when another tool replaces the running pan', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        act(() => { session.setActiveTool('pan') })
+        scroller.scrollLeft = 120
+        scroller.scrollTop = 80
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 300, clientY: 200, isPrimary: true, pointerId: 1 })
+        fireEvent.pointerMove(scroller, { clientX: 200, clientY: 100, pointerId: 1 })
+        act(() => { session.cancelActiveInteraction() })
+
+        expect(scroller.scrollLeft).toBe(120)
+        expect(scroller.scrollTop).toBe(80)
+        expect(session.getActiveToolSnapshot()).toBe('select')
+    })
+
+    it('selects nothing on the click that follows a New pan past the drag threshold', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        act(() => { session.setActiveTool('pan') })
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 300, clientY: 200, isPrimary: true, pointerId: 1 })
+        fireEvent.pointerMove(scroller, { clientX: 260, clientY: 200, pointerId: 1 })
+        fireEvent.pointerUp(scroller, { pointerId: 1 })
+        fireEvent.click(screen.getByRole('button', { name: 'Orders' }))
+
+        expect(selection.getSelectionSnapshot()).toEqual([])
     })
 })

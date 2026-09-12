@@ -223,7 +223,7 @@ class AgentRunnerService {
     stop(runId) {
         const run = this.requireRun(runId);
         run.cancelled = true;
-        transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());
+        transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString(), run.phases);
         this.clearFinishTimeout(run);
 
         return this.ensureTermination(run);
@@ -299,7 +299,7 @@ class AgentRunnerService {
         const completions = [this.codexUsagePoller.stop()];
         for (const run of this.processes.values()) {
             run.cancelled = true;
-            transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString());
+            transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString(), run.phases);
             this.clearFinishTimeout(run);
             completions.push(Promise.all([this.ensureTermination(run), run.closed]));
         }
@@ -670,7 +670,7 @@ class AgentRunnerService {
         const message = redactSecrets(error.message, run.secretValues);
         const timestamp = new Date().toISOString();
         run.streamingFailure = new Error(message);
-        transitionConversationStatus(run.conversation, 'failed', timestamp);
+        transitionConversationStatus(run.conversation, 'failed', timestamp, run.phases);
         run.waitingForQuestion = false;
         run.pendingQuestionRequestId = null;
         run.pendingQuestions = [];
@@ -729,7 +729,7 @@ class AgentRunnerService {
             const status = preserveWaitingState
                 ? 'waitingForInput'
                 : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
-            transitionConversationStatus(run.conversation, status, completedAt);
+            transitionConversationStatus(run.conversation, status, completedAt, run.phases);
             const continuedTurnFailedBeforeStart = !!run.request.conversation
                 && !run.turnStarted
                 && !succeeded

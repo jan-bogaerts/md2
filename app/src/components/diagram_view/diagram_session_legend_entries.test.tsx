@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
 import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
-import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
+import { DiagramViewService, type DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { layout } from '../../services/diagrams/diagram_layout'
 import { createAppTheme } from '../../theme/app_theme'
 import { DiagramLegend } from './diagram_legend'
@@ -121,18 +121,12 @@ describe('DiagramSessionLegendEntries', () => {
 
 describe('DiagramLegend session tabs', () => {
     function renderTabbedLegend(session: DiagramEditSessionService | null) {
+        const service = new DiagramViewService()
+
         return render(
             <ThemeProvider theme={theme}>
                 <div style={{ height: 400, position: 'relative', width: 300 }}>
-                    <DiagramLegend
-                        collapsed={false}
-                        data={layout(diagram)}
-                        onCollapse={vi.fn()}
-                        onExpand={vi.fn()}
-                        onMove={vi.fn()}
-                        position={null}
-                        session={session}
-                    />
+                    <DiagramLegend data={layout(diagram)} service={service} session={session} />
                 </div>
             </ThemeProvider>,
         )

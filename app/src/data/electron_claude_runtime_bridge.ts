@@ -2,7 +2,8 @@ export type ClaudeRateLimitWindowId = 'five_hour' | 'weekly'
 
 export interface ClaudeRateLimitWindow {
     id: ClaudeRateLimitWindowId
-    resetsAt: number
+    // Claude reports no reset time for a window it has not started, so the percentage can stand alone.
+    resetsAt: number | null
     usedPercent: number
 }
 

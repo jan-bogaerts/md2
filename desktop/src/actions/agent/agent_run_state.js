@@ -1,12 +1,15 @@
 const { JsonLineBuffer } = require('./agent_event_utils');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
+const { createPhaseTracker } = require('./agent_conversation_phases');
 const { createProviderEventEntryIndexes } = require('./agent_run_transcript');
 
 function emitRunEvent(run, event) {
     if (!run.onEvent) return;
 
-    const timer = event.type === 'state' ? run.conversation.timer : undefined;
+    // `agentEvent` carries the timer too so the chat log tooltip stays fresh during a long
+    // uninterrupted run, when no status transition happens to publish it.
+    const timer = event.type === 'state' || event.type === 'agentEvent' ? run.conversation.timer : undefined;
     run.onEvent({ ...event, ...(timer ? { timer } : {}), runId: run.id });
 }
 
@@ -79,6 +82,7 @@ function createRun({
         pendingQuestions: [],
         pendingApprovals: new Map(),
         persistence: Promise.resolve(),
+        phases: createPhaseTracker(),
         providerConversationId: null,
         protocolLines: null,
         protocolHandling: Promise.resolve(),

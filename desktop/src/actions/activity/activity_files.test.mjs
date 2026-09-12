@@ -11,6 +11,7 @@ const {
     appendActionActivity,
     closeWaitingActivityConversation,
     compactActivityFiles,
+    dismissWaitingActivityConversationQuestions,
     ensureActivityFile,
     listAgentConversationReferences,
     loadActivityConversation,
@@ -118,6 +119,116 @@ describe('project activity conversations', () => {
             const [loaded] = await loadActivityConversations(project, activityPath);
 
             expect(loaded.entries).toEqual([collaborationCall, childMessage]);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('round-trips a pending agent question through the activity file', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-question-'));
+        const project = { branch: 'main', id: 'local', rootPath };
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        const questionEntry = {
+            content: '',
+            id: 'run-1-question-1',
+            kind: 'event',
+            questions: [{
+                header: 'Scope',
+                id: 'choice',
+                isSecret: false,
+                options: [{ description: 'only the failing test', label: 'Narrow' }],
+                question: 'How wide should the fix be?',
+            }],
+            timestamp: '2026-08-04T10:02:00.000Z',
+            type: 'agentQuestion',
+        };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const activityPath = await ensureActivityFile(project, 'design', origin);
+            const conversation = { ...waitingConversation(), cardInternalId: 'card-1', entries: [questionEntry] };
+            await upsertActivityConversation(project, 'design', origin, conversation);
+
+            const [loaded] = await loadActivityConversations(project, activityPath);
+
+            expect(loaded.entries).toEqual([questionEntry]);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('rejects malformed persisted agent question metadata', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-question-invalid-'));
+        const project = { branch: 'main', id: 'local', rootPath };
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        const malformedQuestionEntry = {
+            content: '',
+            id: 'run-1-question-1',
+            kind: 'event',
+            questions: [{ id: 'choice', question: 'Missing header' }],
+            timestamp: '2026-08-04T10:02:00.000Z',
+            type: 'agentQuestion',
+        };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            await ensureActivityFile(project, 'design', origin);
+            const conversation = {...waitingConversation(), cardInternalId: 'card-1', entries: [malformedQuestionEntry]};
+
+            await expect(upsertActivityConversation(project, 'design', origin, conversation))
+                .rejects.toThrow('invalid event.questions[0]');
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('dismisses a restored question by appending one dismissal entry after it', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-question-dismiss-'));
+        const project = { branch: 'main', id: 'local', rootPath };
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        const questionEntry = {
+            content: '',
+            id: 'run-1-question-1',
+            kind: 'event',
+            questions: [{ header: 'Scope', id: 'choice', question: 'How wide should the fix be?' }],
+            sequence: 4,
+            timestamp: '2026-08-04T10:02:00.000Z',
+            type: 'agentQuestion',
+        };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const activityPath = await ensureActivityFile(project, 'design', origin);
+            const conversation = { ...waitingConversation(), cardInternalId: 'card-1', entries: [questionEntry] };
+            await upsertActivityConversation(project, 'design', origin, conversation);
+            const reference = `${activityPath}#conversation=conversation-1`;
+
+            const updated = await dismissWaitingActivityConversationQuestions(project, reference);
+
+            expect(updated.entries.map(({ type }) => type)).toEqual(['agentQuestion', 'questionsDismissed']);
+            expect(updated.entries[1]).toEqual(expect.objectContaining({ label: 'Questions dismissed', sequence: 5 }));
+            const [reloaded] = await loadActivityConversations(project, activityPath);
+            expect(reloaded.entries.map(({ type }) => type)).toEqual(['agentQuestion', 'questionsDismissed']);
+        } finally {
+            await rm(rootPath, { force: true, recursive: true });
+        }
+    });
+
+    it('refuses to dismiss questions of a conversation that no longer waits for input', async () => {
+        const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-question-settled-'));
+        const project = { branch: 'main', id: 'local', rootPath };
+        const origin = { cardInternalId: 'card-1', kind: 'card' };
+        try {
+            await mkdir(join(rootPath, '.git'));
+            const activityPath = await ensureActivityFile(project, 'design', origin);
+            const conversation = {
+                ...waitingConversation(),
+                cardInternalId: 'card-1',
+                completedAt: terminalTime,
+                status: 'completed',
+            };
+            await upsertActivityConversation(project, 'design', origin, conversation);
+            const reference = `${activityPath}#conversation=conversation-1`;
+
+            await expect(dismissWaitingActivityConversationQuestions(project, reference))
+                .rejects.toThrow('no longer waiting for input');
         } finally {
             await rm(rootPath, { force: true, recursive: true });
         }

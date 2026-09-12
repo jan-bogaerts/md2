@@ -1,15 +1,23 @@
-import { useCallback, useEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { ActionDefinition } from '../../../data/action_types'
+import type { AgentQuestion } from '../../../data/data_types'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
 import { dialogService } from '../../../services/dialog_service'
 import { remoteConnectionService } from '../../../services/data/remote_connection_service'
 import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentPrompt } from './action_agent_prompt'
+import type { RestoredAgentQuestions } from './action_agent_question_owner'
 import type { ActionConversationStore } from '../conversation/action_conversation_store'
+import { pendingConversationQuestions } from '../conversation/action_conversation_chat_selectors'
 import type { ActionHistoryStore } from '../run/state/action_history_store'
-import { currentActionPromptDraft, runPopupAction } from '../run/popup/action_popup_operations'
+import {
+    answerRestoredConversationQuestions,
+    currentActionPromptDraft,
+    dismissRestoredConversationQuestions,
+    runPopupAction,
+} from '../run/popup/action_popup_operations'
 import { actionPopupRunDisabled } from '../run/popup/action_popup_run_disabled'
 import type { ActionRunInputStore } from '../run/state/action_run_input_store'
 import type { ActionRunResultStore } from '../run/state/action_run_result_store'
@@ -27,8 +35,8 @@ interface ActionPromptOwnerProps {
     conversationStore: ActionConversationStore
     historyStore: ActionHistoryStore
     inputStore: ActionRunInputStore
+    questionsEnabled: boolean
     resultStore: ActionRunResultStore
-    questionsPanel?: ReactNode
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
     settingsStore: ActionRunSettingsStore
@@ -41,7 +49,7 @@ function selectSessionActive(run: ActionRun | null) {
 /** Owns shared action-input draft binding, agent preparation, and keyboard-run behavior. */
 export function ActionPromptOwner(props: ActionPromptOwnerProps) {
     const {
-        action, bindingStore, context, conversationStore, historyStore, inputStore, questionsPanel, resultStore,
+        action, bindingStore, context, conversationStore, historyStore, inputStore, resultStore,
         runValidationError, scheduleStore, settingsStore,
     } = props
     const boundRunId = useBoundRunId(bindingStore)
@@ -61,6 +69,38 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
         remoteConnectionService.getSnapshot,
     )
     const settings = useActionRunSettings(action, settingsStore)
+    const restoredQuestions = sessionActive
+        ? null
+        : pendingConversationQuestions(conversationSnapshot.selectedConversation)
+    const operationInput = {
+        action,
+        bindingStore,
+        context,
+        conversationStore,
+        historyStore,
+        inputStore,
+        resultStore,
+        runValidationError,
+        settings,
+        settingsStore,
+    }
+    const handleRestoredAnswer = async (questions: AgentQuestion[], answers: Record<string, string[]>) => {
+        try {
+            await answerRestoredConversationQuestions(operationInput, questions, answers)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not answer the agent question' })
+        }
+    }
+    const handleRestoredDismiss = async () => {
+        try {
+            await dismissRestoredConversationQuestions(operationInput)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not dismiss the agent questions' })
+        }
+    }
+    const restored: RestoredAgentQuestions | null = restoredQuestions
+        ? { onAnswer: handleRestoredAnswer, onDismiss: handleRestoredDismiss, questions: restoredQuestions }
+        : null
     const newConversationDraft = action.type === 'agent'
         && boundRunId === null
         && !sessionActive
@@ -104,24 +144,13 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
             promptDraft.getEditorSnapshot().preparationStatus,
         )) return
 
-        const operationInput = {
-            action,
-            bindingStore,
-            context,
-            conversationStore,
-            historyStore,
-            inputStore,
-            resultStore,
-            runValidationError,
-            settings,
-            settingsStore,
-        }
         void runPopupAction(operationInput)
     }
 
     return (
         <ActionAgentPrompt
             attachmentHandler={attachmentHandler}
+            bindingStore={bindingStore}
             bottomRow={(
                 <ActionPopupBottomRow
                     action={action}
@@ -142,7 +171,8 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
             onRunShortcut={handleRunShortcut}
             plainText={action.type === 'command'}
             promptDraft={promptDraft}
-            questionsPanel={questionsPanel}
+            questionsEnabled={props.questionsEnabled}
+            restoredQuestions={restored}
             responsePrompts={action.type === 'agent' ? (
                 <ActionPhraseButtonsOwner
                     action={action}

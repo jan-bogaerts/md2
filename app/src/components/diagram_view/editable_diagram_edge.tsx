@@ -15,12 +15,15 @@ import {
 import { useDiagramEdgeLabelPlacement, useDiagramEdgeRoute } from './use_diagram_geometry'
 import { useIsDiagramObjectSelected } from './use_diagram_selection'
 import { useEditableDiagramEdgeField } from './use_editable_diagram'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
+import { useDiagramObjectDimmed } from './use_diagram_emphasis'
 
 const EMPTY_NODE_LABELS: ReadonlyMap<string, string> = new Map()
 
 interface EditableDiagramEdgeProps {
     details?: DiagramObjectDetailsService
     edgeId: string
+    emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
@@ -32,6 +35,7 @@ interface EditableDiagramEdgeProps {
 function EditableDiagramEdgeLeaf({
     details = diagramObjectDetailsService,
     edgeId,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -45,6 +49,7 @@ function EditableDiagramEdgeLeaf({
     const labelPlacement = useDiagramEdgeLabelPlacement(edgeId, geometry)
     const points = useDiagramEdgeRoute(edgeId, geometry)
     const selected = useIsDiagramObjectSelected(edgeId, 'edge', selection)
+    const dimmed = useDiagramObjectDimmed('new', 'edge', edgeId, emphasis)
     if (from === null || to === null || kind === null || points.length === 0) return null
 
     const handleSelect = (_selection: unknown, ctrlKey: boolean) => {
@@ -53,9 +58,11 @@ function EditableDiagramEdgeLeaf({
         const identity = { objectId: edgeId, objectKind: 'edge' } as const
         if (ctrlKey) {
             selection.toggle(identity)
-            return
+        } else {
+            selection.replace([identity])
         }
-        selection.replace([identity])
+        const sessionSnapshot = session.getSessionSnapshot()
+        if (sessionSnapshot) emphasis.moveTargetIfActive({diagramId: sessionSnapshot.sourceDiagramId, objectId: edgeId, objectKind: 'edge', surface: 'new'})
     }
     const handleOpenDetails = () => details.open({ objectId: edgeId, objectKind: 'edge' })
 
@@ -73,6 +80,7 @@ function EditableDiagramEdgeLeaf({
 
     return (
         <DiagramEdge
+            dimmed={dimmed}
             edge={edge}
             nodeLabels={EMPTY_NODE_LABELS}
             onOpenDetails={handleOpenDetails}

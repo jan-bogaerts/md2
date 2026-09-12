@@ -11,6 +11,7 @@ function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {
         agent: null,
         available: true,
         chartRole: 'primary',
+        colorGroup: null,
         displayLabel: 'F_1: Review, "carefully"',
         grouping: 'card',
         identity: 'card-1',

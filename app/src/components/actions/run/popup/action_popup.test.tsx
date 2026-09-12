@@ -20,6 +20,7 @@ import { worktreeService } from '../../../../services/project/worktree_service'
 import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
 import { openFilesService } from '../../../../services/open_files_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
+import { createAppTheme } from '../../../../theme/app_theme'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
 import { useMarkdownTypeaheadStackPosition } from '../../../editor/markdown_typeahead_layer_context'
 import { configService } from '../../../../services/config/config_service'
@@ -763,6 +764,57 @@ describe('ActionPopup', () => {
         expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
         expect(actionGroup.getByRole('button', { name: /Second action.*New agent result available/u }))
             .toHaveAttribute('aria-pressed', 'false')
+    })
+
+    it('selects only project action waiting for persisted input and shows its waiting signals', () => {
+        const waitingConversation = agentConversation({ actionId: 'second', cardInternalId: null, cardPath: null })
+        vi.spyOn(dataService.agents, 'getProjectAgentConversationsSnapshot').mockReturnValue([waitingConversation])
+
+        renderPopup({ kind: 'project' })
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        const waitingButton = actionGroup.getByRole('button', { name: /Second action.*Agent is waiting for input/u })
+        const unrelatedButton = actionGroup.getByRole('button', { name: 'First action' })
+        expect(waitingButton).toHaveAttribute('aria-pressed', 'true')
+        expect(waitingButton).toHaveStyle({ borderColor: createAppTheme('light').palette.warning.main })
+        expect(within(waitingButton).getByTestId('HelpCircleOutlineIcon')).toBeInTheDocument()
+        expect(unrelatedButton).toHaveAttribute('aria-pressed', 'false')
+        expect(within(unrelatedButton).queryByTestId('HelpCircleOutlineIcon')).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['running', true, 'Agent is running', 'PlayIcon'],
+        ['completed', false, 'New agent result available', 'CircleIcon'],
+    ] as const)('shows persisted project %s state without a live run', (status, viewed, description, icon) => {
+        const persistedConversation = agentConversation({
+            actionId: 'second',
+            cardInternalId: null,
+            cardPath: null,
+            status,
+            viewed,
+        })
+        vi.spyOn(dataService.agents, 'getProjectAgentConversationsSnapshot').mockReturnValue([persistedConversation])
+
+        renderPopup({ kind: 'project' })
+
+        const stateButton = screen.getByRole('button', { name: new RegExp(`Second action.*${description}`, 'u') })
+        expect(stateButton).toHaveAttribute('aria-pressed', 'true')
+        expect(within(stateButton).getByTestId(icon)).toBeInTheDocument()
+    })
+
+    it('updates matching project action when project conversations change after open', () => {
+        const waitingConversation = agentConversation({ actionId: 'second', cardInternalId: null, cardPath: null })
+        let projectConversations: AgentConversation[] = []
+        vi.spyOn(dataService.agents, 'getProjectAgentConversationsSnapshot').mockImplementation(() => projectConversations)
+
+        renderPopup({ kind: 'project' })
+        projectConversations = [waitingConversation]
+        act(() => agentAcknowledgementService.announceConversationsChanged(null, []))
+
+        const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+        expect(actionGroup.getByRole('button', { name: /Second action.*Agent is waiting for input/u }))
+            .toHaveAttribute('aria-pressed', 'false')
+        expect(actionGroup.getByRole('button', { name: 'First action' })).toHaveAttribute('aria-pressed', 'true')
     })
 
     it('does not rerender unrelated popup controls while conversation streams', async () => {
@@ -2298,6 +2350,113 @@ describe('ActionPopup', () => {
             context: persistedContext,
             runInput: expect.objectContaining({ continueFrom: 'persisted-waiting.json', prompt: 'Continue persisted work' }),
         }))
+    })
+
+    it('restores a persisted question and resumes conversation with selected answer', async () => {
+        actionRunRegistry.stop()
+        const persistedContext: ActionContext = { kind: 'project' }
+        const questionEntry = {
+            content: '',
+            id: 'question-1',
+            kind: 'event' as const,
+            questions: [{
+                header: 'Scope',
+                id: 'scope',
+                options: [{ description: 'Only affected files', label: 'Narrow' }],
+                question: 'How wide?',
+            }],
+            timestamp: '2026-08-01T12:01:00.000Z',
+            type: 'agentQuestion',
+        }
+        const waitingConversation = agentConversation({actionId: 'respond', cardInternalId: null, cardPath: null, entries: [questionEntry], path: 'persisted-waiting.json'})
+        const answeredConversation = {
+            ...waitingConversation,
+            entries: [
+                questionEntry,
+                {
+                    content: 'How wide?: Narrow', id: 'answer-1', kind: 'message' as const, role: 'user' as const,
+                    timestamp: '2026-08-01T12:02:00.000Z',
+                },
+            ],
+            status: 'completed' as const,
+        }
+        let runListener: ((event: ActionRunEvent) => void) | null = null
+        const startAction = vi.fn(async () => 'continued-run')
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => []),
+            onActionRun: vi.fn((listener) => {
+                runListener = listener
+                return vi.fn()
+            }),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        vi.spyOn(dataService, 'listAgentConversations')
+            .mockResolvedValueOnce([waitingConversation])
+            .mockResolvedValue([answeredConversation])
+        actionRunRegistry.start()
+        actionService.loadFromFiles([file(agentDefinition('respond', { label: 'Respond', streaming: true }))])
+
+        renderPopup(persistedContext)
+
+        expect(await screen.findByText('Scope')).toBeInTheDocument()
+        expect(screen.getByText('How wide?')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Narrow' }))
+        await waitFor(() => expect(startAction).toHaveBeenCalledWith({
+            actionId: 'respond',
+            context: persistedContext,
+            runInput: expect.objectContaining({ continueFrom: 'persisted-waiting.json', prompt: 'How wide?: Narrow' }),
+        }))
+
+        const eventBase = {
+            actionId: 'respond', context: persistedContext, phase: 'main' as const,
+            rootActionId: 'respond', runId: 'continued-run',
+        }
+        act(() => runListener?.({ ...eventBase, status: 'queued', type: 'run' }))
+        await waitFor(() => expect(screen.queryByText('How wide?')).not.toBeInTheDocument())
+        act(() => runListener?.({ ...eventBase, status: 'completed', type: 'run' }))
+    })
+
+    it('dismisses a restored question and clears its box without resuming agent', async () => {
+        const persistedContext: ActionContext = { kind: 'project' }
+        const questionEntry = {
+            content: '',
+            id: 'question-1',
+            kind: 'event' as const,
+            questions: [{ header: 'Scope', id: 'scope', question: 'How wide?' }],
+            timestamp: '2026-08-01T12:01:00.000Z',
+            type: 'agentQuestion',
+        }
+        const waitingConversation = agentConversation({actionId: 'respond', cardInternalId: null, cardPath: null, entries: [questionEntry], path: 'persisted-waiting.json'})
+        const dismissedConversation = {
+            ...waitingConversation,
+            entries: [
+                questionEntry,
+                { content: '', id: 'dismissed-1', kind: 'event' as const, timestamp: 'now', type: 'questionsDismissed' },
+            ],
+        }
+        const dismissWaitingActionConversationQuestions = vi.fn(async () => dismissedConversation)
+        const startAction = vi.fn(async () => 'continued-run')
+        window.md2Actions = {
+            dismissWaitingActionConversationQuestions,
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            startAction,
+        } as unknown as typeof window.md2Actions
+        mockCodexAvailable()
+        vi.spyOn(dataService.agents, 'updateAgentConversation').mockImplementation(() => undefined)
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waitingConversation])
+        actionService.loadFromFiles([file(agentDefinition('respond', { label: 'Respond', streaming: true }))])
+
+        renderPopup(persistedContext)
+        expect(await screen.findByText('How wide?')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel questions' }))
+
+        await waitFor(() => expect(dismissWaitingActionConversationQuestions)
+            .toHaveBeenCalledWith('persisted-waiting.json'))
+        await waitFor(() => expect(screen.queryByText('How wide?')).not.toBeInTheDocument())
+        expect(startAction).not.toHaveBeenCalled()
     })
 
     it('does not restore response prompts from mismatched or non-waiting persisted conversations', async () => {

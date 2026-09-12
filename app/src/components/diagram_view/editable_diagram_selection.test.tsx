@@ -233,6 +233,25 @@ describe('EditableDiagram direct selection', () => {
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'backend', objectKind: 'group' }])
     })
 
+    it('starts no rubber band while the pan tool is active and resumes it under Select', () => {
+        const { selection, session } = renderHarness()
+        const surface = screen.getByLabelText('New diagram')
+        act(() => { session.setActiveTool('pan') })
+
+        fireEvent.pointerDown(surface, { button: 0, clientX: 20, clientY: 20, pointerId: 1 })
+        fireEvent.pointerMove(surface, { clientX: 80, clientY: 80, pointerId: 1 })
+        fireEvent.pointerUp(surface, { clientX: 80, clientY: 80, pointerId: 1 })
+
+        expect(selection.getRectangleSnapshot()).toBeNull()
+        expect(selection.getSelectionSnapshot()).toEqual([])
+
+        act(() => { session.setActiveTool('select') })
+        fireEvent.pointerDown(surface, { button: 0, clientX: 20, clientY: 20, pointerId: 2 })
+        fireEvent.pointerMove(surface, { clientX: 80, clientY: 80, pointerId: 2 })
+
+        expect(selection.getRectangleSnapshot()).not.toBeNull()
+    })
+
     it('clears selection for a zero-distance surface click', () => {
         const { selection } = renderHarness()
         const surface = screen.getByLabelText('New diagram')

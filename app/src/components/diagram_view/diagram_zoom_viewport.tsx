@@ -1,6 +1,6 @@
 import { Box } from '@mui/material'
 import {
-    memo, useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore,
+    memo, useCallback, useEffect, useRef, useSyncExternalStore,
     type KeyboardEvent as ReactKeyboardEvent,
     type MouseEvent as ReactMouseEvent,
     type PointerEvent as ReactPointerEvent,
@@ -27,6 +27,8 @@ import {
 import {
     diagramSelectionService, type DiagramSelectableObjectKind, type DiagramSelectionIdentity, type DiagramSelectionService,
 } from '../../services/diagrams/diagram_selection_service'
+import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 import { convertClientToDiagramCoordinates } from './diagram_coordinate_conversion'
 import { EditableDiagram } from './editable_diagram'
 import {
@@ -35,10 +37,15 @@ import {
 import {
     diagramChangeReviewService, type DiagramChangeReviewService,
 } from './diagram_change_review_service'
+import { useDiagramCtrlWheelZoom } from './use_diagram_ctrl_wheel_zoom'
+import { usePreserveDiagramZoomCenter } from './use_preserve_diagram_zoom_center'
+import { useDiagramSurfacePan } from './use_diagram_surface_pan'
+import { useActiveDiagramTool } from './use_diagram_tool'
 
 interface DiagramZoomViewportProps {
     details?: DiagramObjectDetailsService
     drawing?: DiagramEdgeDrawingService
+    emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
     movement?: DiagramMoveService
@@ -47,6 +54,7 @@ interface DiagramZoomViewportProps {
     review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
+    viewService?: DiagramViewService
 }
 
 const NewDiagram = memo(EditableDiagram)
@@ -55,10 +63,6 @@ const KEYBOARD_RESIZE_STEP = 4
 interface DiagramResizeTarget {
     direction: DiagramResizeDirection
     identity: DiagramSelectionIdentity
-}
-
-function scaledCenterOffset(offset: number, viewportSize: number, previousScale: number, scale: number) {
-    return (offset + viewportSize / 2) * scale / previousScale - viewportSize / 2
 }
 
 function diagramIdentityFromTarget(target: EventTarget | null): DiagramSelectionIdentity | null {
@@ -100,6 +104,7 @@ function diagramResizeTargetFromTarget(target: EventTarget | null): DiagramResiz
 export function DiagramZoomViewport({
     details = diagramObjectDetailsService,
     drawing = diagramEdgeDrawingService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
     movement = diagramMoveService,
@@ -108,10 +113,11 @@ export function DiagramZoomViewport({
     review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
+    viewService = diagramViewService,
 }: DiagramZoomViewportProps) {
     const scrollerRef = useRef<HTMLDivElement>(null)
     const activePointerIdRef = useRef<number | null>(null)
-    const activePointerGestureRef = useRef<'group' | 'move' | 'placement' | 'resize' | null>(null)
+    const activePointerGestureRef = useRef<'group' | 'move' | 'pan' | 'placement' | 'resize' | null>(null)
     const completingGestureRef = useRef(false)
     const suppressClickRef = useRef(false)
     const scale = useSyncExternalStore(
@@ -119,7 +125,24 @@ export function DiagramZoomViewport({
         session.getViewportScaleSnapshot,
         session.getViewportScaleSnapshot,
     )
-    const previousScaleRef = useRef(scale)
+    usePreserveDiagramZoomCenter(scrollerRef, scale)
+    useDiagramCtrlWheelZoom(scrollerRef, session)
+    const panToolActive = useActiveDiagramTool(session, 'pan')
+    const canStartPan = useCallback(() => session.getActiveToolSnapshot() === 'pan', [session])
+    const beginPanGesture = useCallback(() => session.beginTransientGesture('pan'), [session])
+    const completePanGesture = useCallback(() => session.completeTransientGesture(), [session])
+    const pan = useDiagramSurfacePan(scrollerRef, {
+        canStartPan,
+        enabled: panToolActive,
+        onPanCancel: completePanGesture,
+        onPanComplete: completePanGesture,
+        onPanStart: beginPanGesture,
+        preventDefaultForTouch: true,
+    })
+    const endPanGesture = useCallback(() => {
+        activePointerGestureRef.current = null
+        activePointerIdRef.current = null
+    }, [])
 
     const pointerDiagramPoint = useCallback((clientX: number, clientY: number) => {
         const scroller = scrollerRef.current
@@ -146,6 +169,14 @@ export function DiagramZoomViewport({
 
     const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== null || event.button !== 0 || event.isPrimary === false) return
+        if (session.getActiveToolSnapshot() === 'pan') {
+            if (!pan.beginPan(event)) return
+
+            activePointerIdRef.current = event.pointerId
+            activePointerGestureRef.current = 'pan'
+
+            return
+        }
         const point = pointerDiagramPoint(event.clientX, event.clientY)
         if (drawing.isDrawingActive()) {
             event.preventDefault()
@@ -187,7 +218,7 @@ export function DiagramZoomViewport({
         activePointerIdRef.current = event.pointerId
         activePointerGestureRef.current = gesture
         event.currentTarget.setPointerCapture?.(event.pointerId)
-    }, [drawing, groupDrawing, movement, placement, pointerDiagramPoint, resize])
+    }, [drawing, groupDrawing, movement, pan, placement, pointerDiagramPoint, resize, session])
 
     const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current === null) {
@@ -201,6 +232,11 @@ export function DiagramZoomViewport({
             return
         }
         if (activePointerIdRef.current !== event.pointerId) return
+        if (activePointerGestureRef.current === 'pan') {
+            pan.updatePan(event)
+
+            return
+        }
 
         const point = pointerDiagramPoint(event.clientX, event.clientY)
         if (activePointerGestureRef.current === 'placement') {
@@ -217,10 +253,16 @@ export function DiagramZoomViewport({
             ? resize.updateResize(point)
             : movement.updateMove(point)
         if (changed) suppressClickRef.current = true
-    }, [drawing, groupDrawing, movement, placement, pointerDiagramPoint, resize])
+    }, [drawing, groupDrawing, movement, pan, placement, pointerDiagramPoint, resize])
 
     const handlePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== event.pointerId) return
+        if (activePointerGestureRef.current === 'pan') {
+            endPanGesture()
+            pan.completePan()
+
+            return
+        }
 
         completingGestureRef.current = true
         if (activePointerGestureRef.current === 'placement') {
@@ -234,10 +276,16 @@ export function DiagramZoomViewport({
         completingGestureRef.current = false
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [groupDrawing, movement, placement, pointerDiagramPoint, releaseActivePointer, resize])
+    }, [endPanGesture, groupDrawing, movement, pan, placement, pointerDiagramPoint, releaseActivePointer, resize])
 
     const handlePointerCancel = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== event.pointerId) return
+        if (activePointerGestureRef.current === 'pan') {
+            endPanGesture()
+            pan.cancelPan()
+
+            return
+        }
 
         suppressClickRef.current = false
         if (activePointerGestureRef.current === 'placement') placement.cancelPlacement()
@@ -246,10 +294,16 @@ export function DiagramZoomViewport({
         else movement.cancelMove()
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [groupDrawing, movement, placement, releaseActivePointer, resize])
+    }, [endPanGesture, groupDrawing, movement, pan, placement, releaseActivePointer, resize])
 
     const handleLostPointerCapture = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (activePointerIdRef.current !== event.pointerId) return
+        if (activePointerGestureRef.current === 'pan') {
+            endPanGesture()
+            pan.cancelPan()
+
+            return
+        }
 
         activePointerIdRef.current = null
         suppressClickRef.current = false
@@ -258,15 +312,16 @@ export function DiagramZoomViewport({
         else if (activePointerGestureRef.current === 'resize') resize.cancelResize()
         else movement.cancelMove()
         activePointerGestureRef.current = null
-    }, [groupDrawing, movement, placement, resize])
+    }, [endPanGesture, groupDrawing, movement, pan, placement, resize])
 
     const handleClickCapture = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
-        if (!suppressClickRef.current) return
+        const panSuppressed = pan.consumeSuppressedClick()
+        if (!panSuppressed && !suppressClickRef.current) return
 
         suppressClickRef.current = false
         event.preventDefault()
         event.stopPropagation()
-    }, [])
+    }, [pan])
 
     const handleWindowKeyDown = useCallback((event: KeyboardEvent) => {
         if (event.defaultPrevented || event.key !== 'Escape') return
@@ -295,7 +350,20 @@ export function DiagramZoomViewport({
 
             return
         }
-        if (activePointerGestureRef.current === null) return
+        if (activePointerGestureRef.current === 'pan') {
+            event.preventDefault()
+            endPanGesture()
+            pan.cancelPan()
+
+            return
+        }
+        if (activePointerGestureRef.current === null) {
+            if (emphasis.getTargetSnapshot()?.surface !== 'new') return
+            event.preventDefault()
+            emphasis.clear()
+
+            return
+        }
 
         event.preventDefault()
         suppressClickRef.current = false
@@ -303,7 +371,7 @@ export function DiagramZoomViewport({
         else movement.cancelMove()
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [drawing, groupDrawing, movement, placement, releaseActivePointer, resize])
+    }, [drawing, emphasis, endPanGesture, groupDrawing, movement, pan, placement, releaseActivePointer, resize])
 
     const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
         if (activePointerGestureRef.current !== null || !event.key.startsWith('Arrow')) return
@@ -331,11 +399,17 @@ export function DiagramZoomViewport({
             || activePointerIdRef.current === null
             || session.getTransientGestureSnapshot() === activePointerGestureRef.current
         ) return
+        if (activePointerGestureRef.current === 'pan') {
+            endPanGesture()
+            pan.cancelPan()
+
+            return
+        }
 
         suppressClickRef.current = false
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [releaseActivePointer, session])
+    }, [endPanGesture, pan, releaseActivePointer, session])
 
     useEffect(() => {
         window.addEventListener('keydown', handleWindowKeyDown)
@@ -348,18 +422,6 @@ export function DiagramZoomViewport({
         [handleTransientGestureChanged, session],
     )
 
-    useLayoutEffect(() => {
-        const previousScale = previousScaleRef.current
-        previousScaleRef.current = scale
-        if (previousScale === scale) return
-
-        const scroller = scrollerRef.current
-        if (!scroller) return
-
-        scroller.scrollLeft = scaledCenterOffset(scroller.scrollLeft, scroller.clientWidth, previousScale, scale)
-        scroller.scrollTop = scaledCenterOffset(scroller.scrollTop, scroller.clientHeight, previousScale, scale)
-    }, [scale])
-
     return (
         <Box
             aria-label="New diagram scroller"
@@ -371,18 +433,20 @@ export function DiagramZoomViewport({
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             ref={scrollerRef}
-            sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2, pb: 2, pt: 1 }}
+            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', px: 2, pb: 2, pt: 1 }}
         >
             <Box data-testid="new-diagram-zoom-surface" sx={{ transformOrigin: 'top left', zoom: scale }}>
                 <NewDiagram
                     details={details}
                     drawing={drawing}
+                    emphasis={emphasis}
                     geometry={geometry}
                     groupDrawing={groupDrawing}
                     placement={placement}
                     review={review}
                     selection={selection}
                     session={session}
+                    viewService={viewService}
                 />
             </Box>
         </Box>

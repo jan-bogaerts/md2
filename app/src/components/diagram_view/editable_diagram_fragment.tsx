@@ -10,8 +10,10 @@ import { useEditableDiagramFragmentField } from './use_editable_diagram'
 import {
     diagramFragmentDialogService, type DiagramFragmentDialogService,
 } from './diagram_fragment_dialog_service'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 
 interface EditableDiagramFragmentProps {
+    emphasis?: DiagramEmphasisService
     fragmentDialog?: DiagramFragmentDialogService
     fragmentId: string
     geometry?: DiagramGeometryService
@@ -21,6 +23,7 @@ interface EditableDiagramFragmentProps {
 /** One sequence frame of the New diagram, bound to its own operator, box, divider, and guard positions. */
 function EditableDiagramFragmentLeaf({
     fragmentDialog = diagramFragmentDialogService,
+    emphasis = diagramEmphasisService,
     fragmentId,
     geometry = diagramGeometryService,
     session = diagramEditSessionService,
@@ -47,7 +50,7 @@ function EditableDiagramFragmentLeaf({
 
     const handleOpenDetails = () => fragmentDialog.openEdit(fragmentId)
 
-    return <SequenceFragment fragment={fragment} onOpenDetails={handleOpenDetails} />
+    return <SequenceFragment emphasis={emphasis} emphasisSurface="new" fragment={fragment} onOpenDetails={handleOpenDetails} />
 }
 
 /** Memoised so a collection host rerender caused by another member cannot rerender this leaf. */

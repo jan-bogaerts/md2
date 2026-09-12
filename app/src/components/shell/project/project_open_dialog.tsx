@@ -332,8 +332,15 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         onClose()
     }
 
+    /** The folder-setup step holds unsaved multi-field input, so only Esc and Cancel may dismiss it. */
+    const handleDialogClose = (_event: object, reason: string) => {
+        if (projectFolderSetup && reason === 'backdropClick') return
+
+        handleClose()
+    }
+
     return (
-        <Dialog fullWidth maxWidth="sm" onClose={handleClose} open={open}>
+        <Dialog fullWidth maxWidth="sm" onClose={handleDialogClose} open={open}>
             <DialogTitle>{projectFolderSetup ? 'Project folders' : 'Open project'}</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ pt: 1 }}>

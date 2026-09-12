@@ -32,7 +32,7 @@ describe('agent selection', () => {
             activeAgent: 'claude',
             permissionMode: 'ask-for-approval',
             settingsByAgent: {
-                claude: { model: 'default', thinkingLevel: 'none' },
+                claude: { model: 'default', thinkingLevel: 'medium' },
                 codex: { model: 'gpt-5.5', thinkingLevel: 'high' },
             },
         })

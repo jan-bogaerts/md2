@@ -1,13 +1,21 @@
 import { Box, Typography } from '@mui/material'
 import type { PositionedSequenceFragment } from '../../services/diagrams/diagram_layout'
+import {
+    diagramEmphasisService, type DiagramEmphasisService, type DiagramSurface,
+} from '../../services/diagrams/diagram_emphasis_service'
+import { useDiagramDecorationsDimmed } from './use_diagram_emphasis'
+import { DIAGRAM_DIMMED_OPACITY } from './diagram_emphasis_presentation'
 
 interface SequenceFragmentProps {
+    emphasis?: DiagramEmphasisService
+    emphasisSurface?: DiagramSurface
     fragment: PositionedSequenceFragment
     onOpenDetails?: () => void
 }
 
 /** Sequence alt, opt, or loop frame positioned behind messages. */
-export function SequenceFragment({ fragment, onOpenDetails }: SequenceFragmentProps) {
+export function SequenceFragment({emphasis = diagramEmphasisService, emphasisSurface = 'current', fragment, onOpenDetails}: SequenceFragmentProps) {
+    const dimmed = useDiagramDecorationsDimmed(emphasisSurface, emphasis)
     return (
         <Box
             aria-label={`${fragment.operator} fragment`}
@@ -16,7 +24,7 @@ export function SequenceFragment({ fragment, onOpenDetails }: SequenceFragmentPr
             sx={{
                 bgcolor: 'action.hover', border: '1px solid', borderColor: 'custom.borderStrong', borderRadius: 0.5,
                 cursor: onOpenDetails ? 'pointer' : undefined, height: fragment.height, left: fragment.x,
-                pointerEvents: onOpenDetails ? 'auto' : 'none', position: 'absolute',
+                opacity: dimmed ? DIAGRAM_DIMMED_OPACITY : 1, pointerEvents: onOpenDetails ? 'auto' : 'none', position: 'absolute',
                 top: fragment.y, width: fragment.width, zIndex: 0,
             }}
         >

@@ -14,9 +14,11 @@ import {
 import { useDiagramGroupGeometryField } from './use_diagram_geometry'
 import { useIsDiagramObjectSelected } from './use_diagram_selection'
 import { useEditableDiagramGroupField } from './use_editable_diagram'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 
 interface EditableDiagramGroupProps {
     details?: DiagramObjectDetailsService
+    emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     groupId: string
     selection?: DiagramSelectionService
@@ -26,6 +28,7 @@ interface EditableDiagramGroupProps {
 /** One containment box of the New diagram, bound to its own label and its own derived box. */
 function EditableDiagramGroupLeaf({
     details = diagramObjectDetailsService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     groupId,
     selection = diagramSelectionService,
@@ -54,7 +57,16 @@ function EditableDiagramGroupLeaf({
     // Membership is edited elsewhere and is not rendered by the box, so this view object carries no member IDs.
     const group: PositionedDiagramGroup = { height, id: groupId, label, nodeIds: [], width, x: x ?? 0, y: y ?? 0 }
 
-    return <DiagramGroup group={group} onOpenDetails={handleOpenDetails} onSelect={handleSelect} selected={selected} />
+    return (
+        <DiagramGroup
+            emphasis={emphasis}
+            emphasisSurface="new"
+            group={group}
+            onOpenDetails={handleOpenDetails}
+            onSelect={handleSelect}
+            selected={selected}
+        />
+    )
 }
 
 /** Memoised so a collection host rerender caused by another member cannot rerender this leaf. */
