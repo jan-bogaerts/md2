@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 83192
+        "usedTokens": 84010
       },
       "entries": [
         {
@@ -623,24 +623,75 @@
           "role": "assistant",
           "sequence": 44,
           "timestamp": "2026-09-12T16:59:59.404Z"
+        },
+        {
+          "content": "Only messages. Tool and event rows only a copy",
+          "id": "agent-turn-45c6da9b-a214-47f1-84f2-96b8622f2517-user-44",
+          "kind": "message",
+          "role": "user",
+          "sequence": 45,
+          "timestamp": "2026-09-12T17:11:24.694Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-45c6da9b-a214-47f1-84f2-96b8622f2517-event-46",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0d122479d8fa3880016aa587c0bcd887d293f2cf56e8ef2ede",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-12T17:11:40.088Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-45c6da9b-a214-47f1-84f2-96b8622f2517-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0d122479d8fa3880016aa587cd49e087d29b859278095e6815",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-12T17:11:46.503Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Two details remain:\n\n- `Save`: apply only to user messages, or assistant messages too?\n- Tool/event `Copy`: copy raw `entry.content`, or Markdown containing full visible row—label, command, output, status, details?\n\nRecommended: `Save` only user messages; `Copy` full visible row.\n\n",
+          "id": "agent-turn-45c6da9b-a214-47f1-84f2-96b8622f2517-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 48,
+          "timestamp": "2026-09-12T17:11:48.250Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-2513cd73-c3f5-45e0-9979-cd6ac664fc6a",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0968e-0d24-7281-9275-aca9f2edb065",
+          "createdAt": "2026-09-12T16:59:59.404Z",
+          "lastUsedAt": "2026-09-12T16:59:59.404Z",
+          "synchronizedThroughMessageId": "agent-turn-45c6da9b-a214-47f1-84f2-96b8622f2517-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-12T16:58:06.459Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-12T16:58:06.459Z"
+        "elapsedMs": 112945,
+        "runningStartedAt": "2026-09-12T17:11:24.694Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 399744,
-        "inputTokens": 73020,
-        "outputTokens": 3094,
-        "reasoningTokens": 1323,
-        "totalTokens": 477181
+        "cachedInputTokens": 482432,
+        "inputTokens": 73540,
+        "outputTokens": 3164,
+        "reasoningTokens": 2055,
+        "totalTokens": 561191
       },
       "usageSchemaVersion": 1,
       "viewed": true
