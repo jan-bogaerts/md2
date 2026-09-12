@@ -107,6 +107,7 @@ const ACTION_METHODS = [
     'restartActionRun',
     'runSearchRegexpAgent',
     'sendActionMessage',
+    'splitActionConversation',
     'startAction',
     'startUnattendedAction',
     'updateActionConversationViewed',

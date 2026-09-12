@@ -26,6 +26,12 @@ export function actionFilePath(actionsFolder: string, label: string) {
     return `${actionsFolder}/${toActionFileName(label)}${ACTION_FILE_EXTENSION}`
 }
 
+export function actionFilePathIsOccupied(path: string, existingPaths: string[]) {
+    const normalizedPath = path.replace(/\\/gu, '/').toLowerCase()
+
+    return existingPaths.some((existingPath) => existingPath.replace(/\\/gu, '/').toLowerCase() === normalizedPath)
+}
+
 export function createActionDefinition(input: ConvertPromptToActionInput): RawActionDefinition {
     const description = input.description?.trim()
 

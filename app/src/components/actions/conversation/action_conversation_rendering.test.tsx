@@ -9,6 +9,14 @@ import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import type { ActionConversationStore } from './action_conversation_store'
 import { ActionConversationTranscript } from './action_conversation_transcript'
 import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
+import type { ActionConversationCommandOperations } from './action_conversation_command_service'
+
+const commands: ActionConversationCommandOperations = {
+    canSaveResponsePhrase: () => false,
+    saveAsNewAction: vi.fn(async () => undefined),
+    saveAsResponsePhrase: vi.fn(async () => undefined),
+    split: vi.fn(async () => undefined),
+}
 
 const renderProbes = vi.hoisted(() => ({ event: vi.fn(), markdown: vi.fn() }))
 
@@ -155,6 +163,7 @@ function ActionConversationChat({ conversation: value, status }: TranscriptTestP
 
     return <ActionConversationTranscript
         bindingStore={runtime.bindingStore as unknown as ActionRunBindingStore}
+        commands={commands}
         store={runtime.store as unknown as ActionConversationStore}
         trackerFactory={runtime.trackerFactory}
     />

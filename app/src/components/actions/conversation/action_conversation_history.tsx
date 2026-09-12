@@ -1,14 +1,16 @@
 import { memo, useSyncExternalStore } from 'react'
 import type { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
 import { ActionConversationGroupList } from './action_conversation_group_list'
+import type { ActionConversationCommandOperations } from './action_conversation_command_service'
 
 interface ActionConversationHistoryProps {
+    commands: ActionConversationCommandOperations
     tracker: ActionConversationChatlogTracker
 }
 
 /** Subscribes to and renders low-change conversation groups. */
 export const ActionConversationHistory = memo(function ActionConversationHistory(
-    { tracker }: ActionConversationHistoryProps,
+    { commands, tracker }: ActionConversationHistoryProps,
 ) {
     const groups = useSyncExternalStore(
         tracker.subscribeStableGroups,
@@ -16,5 +18,5 @@ export const ActionConversationHistory = memo(function ActionConversationHistory
         tracker.getStableGroups,
     )
 
-    return <ActionConversationGroupList cardInternalId={tracker.getCardInternalId()} groups={groups} tracker={tracker} />
+    return <ActionConversationGroupList commands={commands} groups={groups} tracker={tracker} />
 })

@@ -556,6 +556,9 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.sendAgentMessage(runId, content);
         },
+        splitActionConversation: (reference, messageId) => (
+            localGitService.splitActivityConversation(currentLocalProject, reference, messageId)
+        ),
         startAction: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 

@@ -261,4 +261,21 @@ describe('ActionConversationStore', () => {
         expect(store.getSnapshot().selectedConversation).toBe(projectOrigin)
         expect(reportError).not.toHaveBeenCalled()
     })
+
+    it('adds and selects a backend-created conversation by ID without loading its path', () => {
+        const { bindingStore, store } = createConversationStore()
+        bindingStore.setRunId('active-run')
+        const split = {
+            ...conversation('design/activity/card__card-1.json#conversation=split-1'),
+            id: 'split-1',
+        }
+        const loadConversation = vi.spyOn(dataService, 'loadAgentConversation')
+
+        store.addAndSelectConversation(split)
+
+        expect(bindingStore.getSnapshot()).toBeNull()
+        expect(store.getSnapshot().selectedConversation).toBe(split)
+        expect(store.getSnapshot().conversations).toContain(split)
+        expect(loadConversation).not.toHaveBeenCalled()
+    })
 })

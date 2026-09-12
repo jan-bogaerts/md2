@@ -271,6 +271,17 @@ export class ActionService extends EventTarget {
         return this.definitions.find(({ definition }) => definition.id === actionId) ?? null
     }
 
+    /** Appends one exact transcript message to a persisted agent action. */
+    async appendResponsePhrase(actionId: string, text: string): Promise<ActionDefinition> {
+        projectAccessService.requireWritable()
+        const entry = this.getDefinitionEntryById(actionId)
+        if (!entry) throw new Error(`Cannot save a response phrase for built-in or unknown action: ${actionId}`)
+        const phrases = [...(entry.definition.phrases ?? []), { text, title: '' }]
+        const definition = { ...entry.definition, phrases }
+
+        return this.saveDefinition(entry.path, definition)
+    }
+
     getPublicationRevision(path: string): number {
         const revision = this.publicationRevisionsByPath.get(path)
         if (revision === undefined) throw new Error(`Missing local action publication revision: ${path}`)

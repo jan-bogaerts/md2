@@ -619,6 +619,10 @@ export class RemoteControlStorageService implements
         await this.request('sendActionMessage', [runId, content])
     }
 
+    async splitActionConversation(reference: string, messageId: string): Promise<AgentConversation> {
+        return this.request<AgentConversation>('splitActionConversation', [reference, messageId])
+    }
+
     async deleteActionQueuedPrompt(runId: string, promptId: string, revision: number): Promise<{ deleted: true }> {
         return this.request('deleteActionQueuedPrompt', [runId, promptId, revision])
     }

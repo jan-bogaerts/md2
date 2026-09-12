@@ -12,6 +12,7 @@ import {
 } from './action_conversation_chat_selectors'
 import { resolveDisplayedConversation, type ActionConversationStore } from './action_conversation_store'
 import { ConversationMetaInfo } from './conversation_meta_info'
+import { ActionConversationCommandService } from './action_conversation_command_service'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import type { ActionUsageValuesService } from '../run/popup/action_usage_values_service'
 
@@ -29,6 +30,10 @@ export function ActionConversationChat(
     { actionId, bindingStore, context, popupEntryId, store, usageValuesService }: ActionConversationChatProps,
 ) {
     const selectAcknowledgementConversation = useMemo(() => createAcknowledgementConversationSelector(), [])
+    const commands = useMemo(
+        () => new ActionConversationCommandService(actionId, context, store),
+        [actionId, context, store],
+    )
     const boundRunId = useBoundRunId(bindingStore)
     const liveConversation = useRunSelector(boundRunId, selectAcknowledgementConversation)
     const { selectedConversation } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
@@ -56,6 +61,7 @@ export function ActionConversationChat(
         <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
             <ActionConversationTranscript
                 bindingStore={bindingStore}
+                commands={commands}
                 store={store}
             />
             <ConversationMetaInfo bindingStore={bindingStore} store={store} usageValuesService={usageValuesService} />

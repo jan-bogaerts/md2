@@ -24,6 +24,14 @@ import type { ActionRunBindingStore } from '../run/state/action_run_binding_stor
 import type { ActionConversationStore } from './action_conversation_store'
 import { ActionConversationTranscript } from './action_conversation_transcript'
 import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
+import type { ActionConversationCommandOperations } from './action_conversation_command_service'
+
+const commands: ActionConversationCommandOperations = {
+    canSaveResponsePhrase: () => false,
+    saveAsNewAction: vi.fn(async () => undefined),
+    saveAsResponsePhrase: vi.fn(async () => undefined),
+    split: vi.fn(async () => undefined),
+}
 
 let clientHeight = 100
 let scrollHeight = 300
@@ -247,6 +255,7 @@ function ActionConversationChat({ conversation: value, queuedPrompts = [], runId
 
     return <ActionConversationTranscript
         bindingStore={runtime.bindingStore as unknown as ActionRunBindingStore}
+        commands={commands}
         store={runtime.store as unknown as ActionConversationStore}
         trackerFactory={runtime.trackerFactory}
     />

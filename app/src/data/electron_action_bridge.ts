@@ -182,6 +182,7 @@ export interface ElectronActionBridge {
     restartActionRun?(runId: string, request: ActionStartRequest): Promise<string>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
     sendActionMessage?(runId: string, content: string): Promise<void>
+    splitActionConversation?(reference: string, messageId: string): Promise<AgentConversation>
     startAction(request: ActionStartRequest): Promise<string>
     startUnattendedAction?(request: ActionStartRequest): Promise<string>
     updateActionConversationViewed?(reference: string, viewed: boolean): Promise<AgentConversation>

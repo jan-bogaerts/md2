@@ -92,6 +92,7 @@ function createDispatch(options = {}) {
             insertions: 2,
         })),
         runCommand: vi.fn(async () => ({ exitCode: 0, stderr: '', stdout: 'ok' })),
+        splitActivityConversation: vi.fn(async (_project, reference, messageId) => ({ id: 'split-1', messageId, path: `${reference}-split` })),
         push: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
     };
@@ -773,6 +774,17 @@ describe('createLocalBridgeDispatch', () => {
         await expect(dispatch.actionBridge.updateActionConversationViewed(reference, false))
             .resolves.toEqual({ path: reference, viewed: false });
         expect(localGitService.updateActivityConversationViewed).toHaveBeenCalledWith(project, reference, false);
+    });
+
+    it('delegates conversation splits through current project', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await expect(dispatch.actionBridge.splitActionConversation(reference, 'message-2'))
+            .resolves.toEqual({ id: 'split-1', messageId: 'message-2', path: `${reference}-split` });
+        expect(localGitService.splitActivityConversation).toHaveBeenCalledWith(project, reference, 'message-2');
     });
 
     it('delegates atomic action restart with old run and new request', async () => {

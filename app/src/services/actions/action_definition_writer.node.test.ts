@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ActionContext } from '../../data/action_context'
-import { actionFilePath, createActionDefinition } from './action_definition_writer'
+import { actionFilePath, actionFilePathIsOccupied, createActionDefinition } from './action_definition_writer'
 
 const context: ActionContext = { file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' }
 
@@ -37,5 +37,10 @@ describe('action definition writer helpers', () => {
 
     it('builds action file paths', () => {
         expect(actionFilePath('actions', 'Review Feature')).toBe('actions/review-feature.json')
+    })
+
+    it('detects occupied action paths across slash and case variants', () => {
+        expect(actionFilePathIsOccupied('actions/review.json', ['ACTIONS\\REVIEW.JSON'])).toBe(true)
+        expect(actionFilePathIsOccupied('actions/review.json', ['actions/other.json'])).toBe(false)
     })
 })

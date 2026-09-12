@@ -29,6 +29,7 @@ const {
 const activityWriteQueues = new Map();
 const unwrittenActivityValues = new Map();
 const ACTIVITY_RENAME_RETRY_DELAYS_MS = [25, 50, 100, 200];
+const SPLIT_CONVERSATION_ID_ATTEMPTS = 3;
 const RETRYABLE_RENAME_ERROR_CODES = new Set(['EACCES', 'EBUSY', 'EPERM']);
 const VISIBILITY_CHECK_CONCURRENCY = 8;
 
@@ -270,6 +271,64 @@ async function updateActivityConversationViewed(project, reference, viewed) {
     });
 }
 
+function createSplitConversationId(activity) {
+    const candidates = Array.from({ length: SPLIT_CONVERSATION_ID_ATTEMPTS }, () => crypto.randomUUID());
+    const id = candidates.find((candidate) => !activity.conversations.some((conversation) => conversation.id === candidate));
+    if (!id) throw new Error('Could not generate unique split conversation ID');
+
+    return id;
+}
+
+async function splitActivityConversation(project, reference, messageId) {
+    if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');
+    if (typeof messageId !== 'string' || messageId.length === 0) throw new Error('Missing split message ID');
+
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { activityPath, conversationId } = parseConversationActivityReference(reference);
+    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
+
+    return queueActivityUpdate(absolutePath, async () => {
+        const stored = await readStoredActivity(absolutePath);
+        const activity = activityValue(stored);
+        const sourceConversation = findActivityConversation(activity, conversationId);
+        if (sourceConversation.status === 'running') {
+            throw new Error(`Cannot split a running agent conversation: ${reference}`);
+        }
+        const messageIndex = sourceConversation.entries.findIndex((entry) => (
+            entry.kind === 'message' && entry.id === messageId
+        ));
+        if (messageIndex < 0) throw new Error(`Agent conversation message not found: ${messageId}`);
+
+        const id = createSplitConversationId(activity);
+        const splitReference = conversationActivityReference(activityPath, id);
+        const startedAt = new Date().toISOString();
+        const splitConversation = {
+            actionId: sourceConversation.actionId,
+            cardInternalId: sourceConversation.cardInternalId,
+            cardPath: sourceConversation.cardPath,
+            completedAt: null,
+            entries: sourceConversation.entries.slice(0, messageIndex + 1),
+            hasExplicitTitle: true,
+            id,
+            providerSessions: [],
+            startedAt,
+            status: 'waitingForInput',
+            timer: { elapsedMs: 0, runningStartedAt: null },
+            title: `${sourceConversation.title} (split)`,
+            viewed: true,
+        };
+        const updatedActivity = parseActivityValue({
+            ...activity,
+            conversations: [...activity.conversations, splitConversation],
+        });
+        await writeActivityFile(absolutePath, updatedActivity);
+        const storedSplitConversation = findActivityConversation(updatedActivity, id);
+
+        return { ...storedSplitConversation, path: splitReference };
+    });
+}
+
 async function updateCardActionSettings(project, projectFolder, cardInternalId, actionId, settings) {
     if (typeof cardInternalId !== 'string' || cardInternalId.length === 0) throw new Error('Missing card action settings cardInternalId');
     if (typeof actionId !== 'string' || actionId.length === 0) throw new Error('Missing card action settings actionId');
@@ -476,6 +535,7 @@ module.exports = {
     queueActivityUpdate,
     readActivityFile,
     resolveActivityPath,
+    splitActivityConversation,
     upsertConversation,
     upsertAndCommitActivityConversation,
     upsertActivityConversation,

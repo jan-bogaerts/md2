@@ -47,6 +47,49 @@ describe('ActionService', () => {
         expect(notified).toBe(1)
     })
 
+    it('appends an exact response phrase while preserving unrelated action fields', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        const definition: RawActionDefinition = {
+            agent: 'codex',
+            appliesTo: { type: 'feature' },
+            description: 'Review it',
+            id: 'review',
+            label: 'Review',
+            model: 'gpt-5.5',
+            permissionMode: 'ask-for-approval',
+            phrases: [{ text: 'Existing', title: 'Existing title' }],
+            prompt: 'Review prompt',
+            type: 'agent',
+        }
+        service.loadFromFiles([file(definition)])
+
+        await service.appendResponsePhrase('review', '**Exact**\nresponse')
+
+        expect(persistActionFile).toHaveBeenCalledWith(
+            expect.objectContaining({
+                content: expect.stringContaining('"text": "**Exact**\\nresponse"'),
+                path: 'actions/action.json',
+            }),
+            'review',
+            'actions/action.json',
+            expect.any(Function),
+            undefined,
+            undefined,
+        )
+        expect(service.getDefinitionEntryById('review')?.definition).toEqual({
+            ...definition,
+            phrases: [...(definition.phrases ?? []), { text: '**Exact**\nresponse', title: '' }],
+        })
+    })
+
+    it('rejects response phrases for built-in actions', async () => {
+        const service = new ActionService()
+
+        await expect(service.appendResponsePhrase(CUSTOM_PROMPT_ACTION_ID, 'response'))
+            .rejects.toThrow(`Cannot save a response phrase for built-in or unknown action: ${CUSTOM_PROMPT_ACTION_ID}`)
+    })
+
     it('keeps temporary editor state on the action object across reloads and saves', async () => {
         const persistedFiles: ActionFile[] = []
         const persistActionFile = vi.fn(async (persistedFile: ActionFile) => { persistedFiles.push(persistedFile) })

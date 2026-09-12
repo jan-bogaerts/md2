@@ -11,7 +11,13 @@ import type { PreparedActionPrompt } from '../../../../data/action_run_types'
 import type { AgentConversation } from '../../../../data/data_types'
 import { getElectronActionBridge, type ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
 import { defaultActionHistoryLoader, loadActionHistory } from '../../../../services/actions/action_history'
-import { actionFilePath, createActionDefinition, type ConvertPromptToActionInput } from '../../../../services/actions/action_definition_writer'
+import {
+    actionFilePath,
+    actionFilePathIsOccupied,
+    createActionDefinition,
+    type ConvertPromptToActionInput,
+} from '../../../../services/actions/action_definition_writer'
+import { actionService } from '../../../../services/actions/action_service'
 import { dataService } from '../../../../services/data/data_service'
 import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
 import { RemoteControlConnectionError } from '../../../../services/data/remote_control_storage_service'
@@ -113,6 +119,11 @@ export async function defaultConvertPromptToAction(input: ConvertPromptToActionI
 
     const definition = createActionDefinition(input)
     const path = actionFilePath(actionsFolder, definition.label)
+    const snapshot = dataService.getState().snapshot
+    if (!snapshot) throw new Error('Cannot create an action before project files are loaded')
+    const existingPaths = [...actionService.getFiles().map(({ path: actionPath }) => actionPath), ...snapshot.repositoryFiles]
+    const occupied = actionFilePathIsOccupied(path, existingPaths)
+    if (occupied) throw new Error(`An action file already exists at ${path}`)
     await dataService.cards.saveProjectFile({ content: `${JSON.stringify(definition, null, 2)}\n`, path }, `Create ${path}`)
 
     return { definition, path }
