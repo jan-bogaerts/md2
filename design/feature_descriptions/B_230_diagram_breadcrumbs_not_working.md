@@ -3,7 +3,7 @@ author:
 id: B_230
 internalId: 02127bb8-87e9-4515-89b9-103550e2d125
 title: Diagram breadcrumbs not working
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,12 @@ policy:
 after: 3ca60eff-65bc-44d0-929f-451e034102c4
 branch: b_230_diagram_breadcrumbs_not_working
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/diagram_breadcrumb_bar.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
 ---
 The breadcrumbs bar on the diagram view needs fixing:
 

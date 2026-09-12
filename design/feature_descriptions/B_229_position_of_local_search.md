@@ -3,7 +3,7 @@ author:
 id: B_229
 internalId: 0be5ec62-c3e8-4d20-8b15-fd81f2636fc9
 title: position of local search
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,12 @@ policy:
 after: 3ca60eff-65bc-44d0-929f-451e034102c4
 branch: b_229_position_of_local_search
 worktree: 3
+changedFiles:
+  - app/src/components/card_view/card_body_editor.grouped.test.tsx
+  - app/src/components/editor/markdown_editor_local_text_search.grouped.test.tsx
+  - app/src/components/editor/markdown_local_text_search_plugin.tsx
+  - app/src/test/mdx_editor_stub.tsx
+  - app/vitest.targeted.config.ts
 ---
 
 The local search box that we show in the card popup should be sticky to the top and positioned below the toolbar.
