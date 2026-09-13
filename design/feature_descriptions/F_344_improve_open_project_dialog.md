@@ -3,12 +3,12 @@ author:
 id: F_344
 internalId: 1be32ecd-4fa8-4926-a390-3332a18226d5
 title: improve open project dialog
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: c6100c77-b4ed-44ab-b53d-7770c01b8656
+after: 67d4a581-6ded-4a41-a489-d079644e3e5b
 ---
 
 * double click on a folder also opens it immediately
