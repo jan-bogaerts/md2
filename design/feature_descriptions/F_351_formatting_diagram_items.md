@@ -3,7 +3,7 @@ author:
 id: F_351
 internalId: 19a0dd49-b8f7-4dbb-a6a6-eb515260dacd
 title: Formatting diagram items
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,57 @@ agents:
 policy:
 branch: f_351_formatting_diagram_items
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/current_diagram_edge.tsx
+  - app/src/components/diagram_view/current_diagram_node.tsx
+  - app/src/components/diagram_view/diagram.tsx
+  - app/src/components/diagram_view/diagram_connection_formatting_popover.tsx
+  - app/src/components/diagram_view/diagram_connection_marker.tsx
+  - app/src/components/diagram_view/diagram_edge.tsx
+  - app/src/components/diagram_view/diagram_edge_style.node.test.ts
+  - app/src/components/diagram_view/diagram_edge_style.ts
+  - app/src/components/diagram_view/diagram_entity_field.tsx
+  - app/src/components/diagram_view/diagram_font_style.ts
+  - app/src/components/diagram_view/diagram_formatting_controls.tsx
+  - app/src/components/diagram_view/diagram_formatting_popover.tsx
+  - app/src/components/diagram_view/diagram_formatting_scale_control.tsx
+  - app/src/components/diagram_view/diagram_group.tsx
+  - app/src/components/diagram_view/diagram_legend.tsx
+  - app/src/components/diagram_view/diagram_legend_connection_sample.tsx
+  - app/src/components/diagram_view/diagram_legend_entry_list.tsx
+  - app/src/components/diagram_view/diagram_legend_entry_row.tsx
+  - app/src/components/diagram_view/diagram_menu_tab.test.tsx
+  - app/src/components/diagram_view/diagram_menu_tab.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_role_style.ts
+  - app/src/components/diagram_view/diagram_session_legend_entries.test.tsx
+  - app/src/components/diagram_view/diagram_session_legend_entries.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/components/diagram_view/editable_diagram_edge.tsx
+  - app/src/components/diagram_view/editable_diagram_entity_field.tsx
+  - app/src/components/diagram_view/editable_diagram_entity_fields.tsx
+  - app/src/components/diagram_view/editable_diagram_fragment.tsx
+  - app/src/components/diagram_view/editable_diagram_group.tsx
+  - app/src/components/diagram_view/editable_diagram_leaves.test.tsx
+  - app/src/components/diagram_view/editable_diagram_node.tsx
+  - app/src/components/diagram_view/sequence_fragment.tsx
+  - app/src/components/diagram_view/use_diagram_formatting.ts
+  - app/src/services/diagrams/diagram_change_descriptions.node.test.ts
+  - app/src/services/diagrams/diagram_change_descriptions.ts
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_formatting.ts
+  - app/src/services/diagrams/diagram_geometry_service.ts
+  - app/src/services/diagrams/diagram_layout.node.test.ts
+  - app/src/services/diagrams/diagram_layout.ts
+  - app/src/services/diagrams/diagram_save_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
+  - shared/diagram_data.d.mts
+  - shared/diagram_data.mjs
 ---
 We need to add the ability to modify formatting of the items on the diagrams. This can be done by:
 
