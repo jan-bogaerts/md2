@@ -3,12 +3,12 @@ author:
 id: F_189
 internalId: 3a0d1119-4bc6-4bba-b47d-ddfabe12d56d
 title: add support to view all agent instructions
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: c00ec008-cf20-4fd2-81e2-254b2b400c48
+after: 67d4a581-6ded-4a41-a489-d079644e3e5b
 ---
 when loading the project, we should also search for markdown files that contain agent instructions:
 
@@ -20,4 +20,4 @@ when loading the project, we should also search for markdown files that contain 
 
 These should be placed in a special folder like ´active´ or ´releases´
 
-For name, concatenate folders in path, seperated with&#x20;
+For name, just show full path as string, so dont put these files in sub folders, they are all in the same special folder, called ´agent instructions´
