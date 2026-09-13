@@ -18,17 +18,17 @@ Foundation for [F_331](F_331_improve_schedule_action.md): define persisted sched
 
 ## implementation details
 
-* Extend shared schedule shape with `kind: 'action' | 'sequence'` and triggers `at`, `account-reset`, and `card-state`. Action records retain `actionId` and `context`. Sequence payload is reserved for F_356.
+* Extend shared schedule shape with required `kind: 'action' | 'sequence'` and triggers `now`, `at`, `account-reset`, and `card-state`. `now` is valid only for a sequence and fires during registration. Action records retain `actionId` and `context`. Sequence payload is reserved for F_356.
 * `account-reset` stores agent name, `limitId`, `windowId`, and expected reset timestamp. Tracker means one provider-reported account limit window, identified by those three fields. `card-state` stores `cardInternalId`, registration-time state, and target state; scheduled action target and trigger card must differ.
 * Move duplicated parser/serializer into one shared `.mjs` contract with `.d.mts` declarations. Both renderer and desktop import it. Reject unknown kinds, triggers, statuses, missing identities, invalid timestamps, and duplicate sequence card identities.
 * Add scheduler-owned `listActiveSchedules` and `deleteSchedule`. List returns only `pending` and `running`. Delete validates ID, cancels in-flight run when present, removes record instead of retaining `cancelled`, and reconciles timers.
 * Expose list/delete through preload and `ElectronActionBridge`. Keep existing registration callable while F_355 migrates UI. Do not change terminal result handling.
-* Test parsing each variant, old `at` records, invalid records, active filtering, pending deletion, running deletion, and unknown ID failure.
+* Test parsing each variant, invalid records, active filtering, pending deletion, running deletion, and unknown ID failure. Require new discriminator directly; do not add legacy-shape fallback.
 
 ## acceptance criteria
 
 * Renderer and desktop use one schedule parser and produce same validated shape.
-* Existing persisted `at` action schedules still load and execute.
+* Date/time action schedules still register and execute through required action schedule shape.
 * Account tracker identity contains agent, limit, and window; card trigger identity uses `cardInternalId`, never path.
 * Active listing excludes `completed`, `failed`, and `cancelled` records.
 * Deleting pending schedule removes record and timer. Deleting running schedule cancels run, waits for cancellation handling, removes record, and leaves no timer or run mapping.
