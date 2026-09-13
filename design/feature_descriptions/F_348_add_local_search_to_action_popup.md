@@ -3,7 +3,7 @@ author:
 id: F_348
 internalId: 7587f168-1106-4f87-b705-a38eab8717f4
 title: add local search to action popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
