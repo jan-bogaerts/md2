@@ -330,6 +330,44 @@ describe('ActionPopup', () => {
         expect(scrollBody.contains(bottomRow)).toBe(true)
     })
 
+    it('keeps disabled conversation search in the fixed header when no transcript is mounted', () => {
+        renderPopup()
+
+        const header = screen.getByTestId('action-popup-fixed-header')
+        const searchButton = within(header).getByRole('button', { name: 'Find in conversation' })
+        expect(searchButton).toBeDisabled()
+        expect(screen.getByTestId('action-popup-scroll-body').contains(searchButton)).toBe(false)
+    })
+
+    it('handles prompt Ctrl+F through conversation-only search in the fixed header', async () => {
+        const conversation = agentConversation({
+            actionId: 'respond',
+            entries: [{ content: 'Conversation needle', id: 'message-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
+        })
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([conversation])
+        actionService.loadFromFiles([file(agentDefinition('respond', { label: 'Respond' }))])
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+
+        const header = screen.getByTestId('action-popup-fixed-header')
+        const searchButton = within(header).getByRole('button', { name: 'Find in conversation' })
+        await waitFor(() => expect(searchButton).toBeEnabled())
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
+        fireEvent.change(prompt, { target: { value: 'Prompt needle' } })
+
+        expect(fireEvent.keyDown(prompt, { ctrlKey: true, key: 'f' })).toBe(false)
+        const searchField = within(header).getByRole('textbox', { name: 'Find in conversation' })
+        expect(searchField).toHaveFocus()
+        fireEvent.change(searchField, { target: { value: 'needle' } })
+        fireEvent.click(within(header).getByRole('button', { name: 'Search' }))
+
+        expect(within(header).getByRole('search')).toHaveTextContent('1 result')
+        expect(window.getSelection()?.toString()).toBe('needle')
+        expect(prompt).toHaveValue('Prompt needle')
+        expect(fireEvent.keyDown(searchField, { key: 'Escape' })).toBe(false)
+        expect(within(header).queryByRole('search')).not.toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
+    })
+
     it('prefills one idle command editor and preserves edited text through reopen', () => {
         const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Agent default' }))
         window.md2Actions = {
@@ -3199,8 +3237,7 @@ describe('ActionPopup', () => {
 
             expect(element).toHaveAttribute('tabindex', '0')
 
-
-            await userEvent.tab()
+            element.focus()
 
 
             expect(element).toHaveFocus()

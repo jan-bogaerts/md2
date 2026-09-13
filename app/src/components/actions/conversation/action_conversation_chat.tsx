@@ -15,19 +15,21 @@ import { ConversationMetaInfo } from './conversation_meta_info'
 import { ActionConversationCommandService } from './action_conversation_command_service'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import type { ActionUsageValuesService } from '../run/popup/action_usage_values_service'
+import type { ActionConversationSearchService } from './action_conversation_search_service'
 
 interface ActionConversationChatProps {
     actionId: string
     bindingStore: ActionRunBindingStore
     context: ActionContext
     popupEntryId?: string
+    searchService: ActionConversationSearchService
     store: ActionConversationStore
     usageValuesService?: ActionUsageValuesService
 }
 
 /** Conversation surface; owns selection, live-run, visibility, and acknowledgement subscriptions. */
 export function ActionConversationChat(
-    { actionId, bindingStore, context, popupEntryId, store, usageValuesService }: ActionConversationChatProps,
+    { actionId, bindingStore, context, popupEntryId, searchService, store, usageValuesService }: ActionConversationChatProps,
 ) {
     const selectAcknowledgementConversation = useMemo(() => createAcknowledgementConversationSelector(), [])
     const commands = useMemo(
@@ -62,6 +64,7 @@ export function ActionConversationChat(
             <ActionConversationTranscript
                 bindingStore={bindingStore}
                 commands={commands}
+                searchService={searchService}
                 store={store}
             />
             <ConversationMetaInfo bindingStore={bindingStore} store={store} usageValuesService={usageValuesService} />

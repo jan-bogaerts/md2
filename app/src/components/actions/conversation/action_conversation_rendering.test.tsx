@@ -8,6 +8,7 @@ import type { ActionRunBindingStore } from '../run/state/action_run_binding_stor
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import type { ActionConversationStore } from './action_conversation_store'
 import { ActionConversationTranscript } from './action_conversation_transcript'
+import { ActionConversationSearchService } from './action_conversation_search_service'
 import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
 import type { ActionConversationCommandOperations } from './action_conversation_command_service'
 
@@ -155,7 +156,7 @@ function ActionConversationChat({ conversation: value, status }: TranscriptTestP
             )
         )
 
-        return { bindingStore, registry, store, trackerFactory }
+        return { bindingStore, registry, searchService: new ActionConversationSearchService(), store, trackerFactory }
     })
     useLayoutEffect(() => {
         runtime.registry.updateConversation(value, status)
@@ -164,6 +165,7 @@ function ActionConversationChat({ conversation: value, status }: TranscriptTestP
     return <ActionConversationTranscript
         bindingStore={runtime.bindingStore as unknown as ActionRunBindingStore}
         commands={commands}
+        searchService={runtime.searchService}
         store={runtime.store as unknown as ActionConversationStore}
         trackerFactory={runtime.trackerFactory}
     />

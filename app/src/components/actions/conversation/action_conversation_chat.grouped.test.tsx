@@ -25,6 +25,7 @@ import type { ActionConversationStore } from './action_conversation_store'
 import { ActionConversationTranscript } from './action_conversation_transcript'
 import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
 import type { ActionConversationCommandOperations } from './action_conversation_command_service'
+import { ActionConversationSearchService } from './action_conversation_search_service'
 
 const commands: ActionConversationCommandOperations = {
     canSaveResponsePhrase: () => false,
@@ -215,6 +216,7 @@ interface TranscriptTestProps {
     conversation: TranscriptTestConversation | null
     queuedPrompts?: ActionQueuedPrompt[]
     runId?: string | null
+    searchService?: ActionConversationSearchService
     status: PopupRunStatus
 }
 
@@ -233,7 +235,7 @@ function transcriptTestRun(
     } as unknown as ActionRun
 }
 
-function ActionConversationChat({ conversation: value, queuedPrompts = [], runId, status }: TranscriptTestProps) {
+function ActionConversationChat({ conversation: value, queuedPrompts = [], runId, searchService, status }: TranscriptTestProps) {
     const testRunId = runId ?? 'transcript-test-run'
     const [runtime] = useState(() => {
         const registry = new TranscriptTestRunRegistry(transcriptTestRun(value, queuedPrompts, testRunId, status))
@@ -247,7 +249,13 @@ function ActionConversationChat({ conversation: value, queuedPrompts = [], runId
             )
         )
 
-        return { bindingStore, registry, store, trackerFactory }
+        return {
+            bindingStore,
+            registry,
+            searchService: searchService ?? new ActionConversationSearchService(),
+            store,
+            trackerFactory,
+        }
     })
     useLayoutEffect(() => {
         runtime.registry.updateConversation(value, queuedPrompts, testRunId, status)
@@ -256,15 +264,20 @@ function ActionConversationChat({ conversation: value, queuedPrompts = [], runId
     return <ActionConversationTranscript
         bindingStore={runtime.bindingStore as unknown as ActionRunBindingStore}
         commands={commands}
+        searchService={runtime.searchService}
         store={runtime.store as unknown as ActionConversationStore}
         trackerFactory={runtime.trackerFactory}
     />
 }
 
-function renderChat(value: AgentConversation | null, status: PopupRunStatus = 'idle') {
+function renderChat(
+    value: AgentConversation | null,
+    status: PopupRunStatus = 'idle',
+    searchService?: ActionConversationSearchService,
+) {
     return render(
         <AppThemeProvider>
-            <ActionConversationChat conversation={value} status={status} />
+            <ActionConversationChat conversation={value} searchService={searchService} status={status} />
         </AppThemeProvider>,
     )
 }
@@ -1290,6 +1303,25 @@ describe('ActionConversationChat', () => {
             .toBe('line one\n[123 characters omitted]\nline two')
         expect(screen.getByText('Exit code: 1')).toBeInTheDocument()
         expect(screen.getByText('Duration: 42 ms')).toBeInTheDocument()
+    })
+
+    it('searches command details only after they become visible', async () => {
+        const activity = toolEvent('command-completed', 'commandExecution', 'completed', {
+            command: 'hidden command',
+            content: 'hidden output',
+        })
+        const searchService = new ActionConversationSearchService()
+        renderChat(conversation('codex.json', [message('message-1', 'Start'), activity]), 'idle', searchService)
+        await waitFor(() => expect(searchService.getTranscriptMounted()).toBe(true))
+        searchService.setDraftTerm('hidden output')
+        searchService.submitSearch()
+        expect(searchService.getResultCount()).toBe(0)
+
+        fireEvent.click(screen.getByRole('button', { name: /Command details:/u }))
+
+        await waitFor(() => expect(searchService.getResultCount()).toBe(1))
+        searchService.submitSearch()
+        expect(window.getSelection()?.toString()).toBe('hidden output')
     })
 
     it('renders normalized generic activity without raw JSON', () => {

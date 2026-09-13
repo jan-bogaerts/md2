@@ -3,6 +3,7 @@ import type { ActionDefinition } from '../../../../data/action_types'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import { ActionConversationStore } from '../../conversation/action_conversation_store'
+import { ActionConversationSearchService } from '../../conversation/action_conversation_search_service'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionRunBindingStore } from '../state/action_run_binding_store'
@@ -39,6 +40,7 @@ export function createActionPopupBindings(
 
     return {
         bindingStore,
+        conversationSearchService: new ActionConversationSearchService(),
         conversationStore,
         historyStore,
         inputStore: new ActionRunInputStore(),

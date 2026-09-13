@@ -19,8 +19,8 @@ interface ActionAgentInteractionProps {
 export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
     const { action, assignmentContext, popupEntryId, runtime } = props
     const {
-        bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
-        settingsStore, usageValuesService,
+        bindingStore, conversationSearchService, conversationStore, historyStore, inputStore, resultStore,
+        runValidationError, scheduleStore, settingsStore, usageValuesService,
     } = runtime
     const boundRunId = useBoundRunId(bindingStore)
     const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
@@ -43,6 +43,7 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
                     bindingStore={bindingStore}
                     context={assignmentContext}
                     popupEntryId={popupEntryId}
+                    searchService={conversationSearchService}
                     store={conversationStore}
                     usageValuesService={displayedUsageValuesService}
                 />

@@ -11,6 +11,7 @@ import { ActionConversationChat } from './action_conversation_chat'
 import type { ActionConversationStore } from './action_conversation_store'
 import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import type { ActionUsageValuesService } from '../run/popup/action_usage_values_service'
+import { ActionConversationSearchService } from './action_conversation_search_service'
 
 const context = { cardInternalId: 'card-1', file: 'design/F-138.md', kind: 'card' as const }
 const snapshot = { conversations: [], loading: false, selectedConversation: null }
@@ -19,6 +20,7 @@ const store = {
     subscribe: () => () => undefined,
 } as unknown as ActionConversationStore
 const bindingStore = new ActionRunBindingStore('run-1')
+const conversationSearchService = new ActionConversationSearchService()
 const chatRenderProbe = vi.fn()
 const usageValuesSnapshot = {
     actionCard: {
@@ -110,7 +112,8 @@ describe('ActionConversationChat integration', () => {
         actionRunRegistry.start()
         render(
             <AppThemeProvider>
-                <ActionConversationChatRenderProbe actionId="review" bindingStore={bindingStore} context={context} store={store} />
+                <ActionConversationChatRenderProbe actionId="review" bindingStore={bindingStore} context={context}
+                    searchService={conversationSearchService} store={store} />
             </AppThemeProvider>,
         )
         if (!listener) throw new Error('Missing run listener')
@@ -166,7 +169,8 @@ describe('ActionConversationChat integration', () => {
         actionRunRegistry.start()
         render(
             <AppThemeProvider>
-                <ActionConversationChat actionId="review" bindingStore={bindingStore} context={context} store={store} />
+                <ActionConversationChat actionId="review" bindingStore={bindingStore} context={context}
+                    searchService={conversationSearchService} store={store} />
             </AppThemeProvider>,
         )
         if (!listener) throw new Error('Missing run listener')
@@ -243,6 +247,7 @@ describe('ActionConversationChat integration', () => {
                     actionId="review"
                     bindingStore={bindingStore}
                     context={context}
+                    searchService={conversationSearchService}
                     store={selectableStore}
                     usageValuesService={usageValuesService}
                 />
@@ -278,6 +283,7 @@ describe('ActionConversationChat integration', () => {
                     actionId="review"
                     bindingStore={bindingStore}
                     context={context}
+                    searchService={conversationSearchService}
                     store={store}
                     usageValuesService={usageValuesService}
                 />
@@ -338,6 +344,7 @@ describe('ActionConversationChat integration', () => {
                     bindingStore={bindingStore}
                     context={context}
                     popupEntryId={popupEntry.id}
+                    searchService={conversationSearchService}
                     store={selectableStore}
                 />
             </AppThemeProvider>,
@@ -401,6 +408,7 @@ describe('ActionConversationChat integration', () => {
                     bindingStore={bindingStore}
                     context={context}
                     popupEntryId={firstEntry.id}
+                    searchService={conversationSearchService}
                     store={selectedStore}
                 />
             </AppThemeProvider>,
@@ -433,6 +441,7 @@ describe('ActionConversationChat integration', () => {
                     bindingStore={bindingStore}
                     context={context}
                     popupEntryId={entry.id}
+                    searchService={conversationSearchService}
                     store={store}
                 />
             </AppThemeProvider>,
