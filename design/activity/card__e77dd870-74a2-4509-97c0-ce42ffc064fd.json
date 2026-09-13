@@ -5,7 +5,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "e77dd870-74a2-4509-97c0-ce42ffc064fd",
       "cardPath": "design/feature_descriptions/F_352_extend_schedule_contract_and_apis.md",
-      "completedAt": null,
+      "completedAt": "2026-09-13T18:10:00.864Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 181574
@@ -2554,7 +2554,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 191,
-          "timestamp": "2026-09-13T18:10:00.570Z"
+          "timestamp": "2026-09-13T18:10:00.864Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2564,15 +2564,15 @@
           "agent": "codex",
           "conversationId": "01a09be0-fa70-7152-9b81-114266a5f905",
           "createdAt": "2026-09-13T17:49:03.944Z",
-          "lastUsedAt": "2026-09-13T17:49:03.944Z",
-          "synchronizedThroughMessageId": "agent-turn-2ebffe1e-8875-4e63-bf8d-892bacd6ac2b-turn-1-assistant-3"
+          "lastUsedAt": "2026-09-13T18:10:00.864Z",
+          "synchronizedThroughMessageId": "agent-turn-2ebffe1e-8875-4e63-bf8d-892bacd6ac2b-turn-2-assistant-9"
         }
       ],
       "startedAt": "2026-09-13T17:46:46.966Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
-        "elapsedMs": 136978,
-        "runningStartedAt": "2026-09-13T17:51:03.291Z"
+        "elapsedMs": 1274551,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
