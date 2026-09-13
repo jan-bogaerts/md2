@@ -12,6 +12,25 @@ policy:
 after: 8b9b629c-e109-4dad-9092-6c2b588481e8
 branch: f_348_add_local_search_to_action_popup
 worktree: 2
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
+  - app/src/components/actions/conversation/action_conversation_chat.tsx
+  - app/src/components/actions/conversation/action_conversation_chat_integration.grouped.test.tsx
+  - app/src/components/actions/conversation/action_conversation_rendering.test.tsx
+  - app/src/components/actions/conversation/action_conversation_search_button.tsx
+  - app/src/components/actions/conversation/action_conversation_search_controls.test.tsx
+  - app/src/components/actions/conversation/action_conversation_search_row.tsx
+  - app/src/components/actions/conversation/action_conversation_search_service.test.ts
+  - app/src/components/actions/conversation/action_conversation_search_service.ts
+  - app/src/components/actions/conversation/action_conversation_transcript.tsx
+  - app/src/components/actions/run/popup/action_agent_interaction.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_content.tsx
+  - app/src/components/actions/run/popup/action_popup_frame.tsx
+  - app/src/components/actions/run/popup/action_popup_runtime.ts
+  - app/src/components/actions/run/popup/action_popup_types.ts
+  - app/src/components/actions/run/popup/agent_action.tsx
+  - app/vite.codex_targeted.config.ts
 ---
 
 We recently added local search to cards. this seems to work.
