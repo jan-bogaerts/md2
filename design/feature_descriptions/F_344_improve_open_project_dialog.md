@@ -10,6 +10,8 @@ agents:
   - design/activity/card__1be32ecd-4fa8-4926-a390-3332a18226d5.json
 policy:
 after: 67d4a581-6ded-4a41-a489-d079644e3e5b
+branch: f_344_improve_open_project_dialog
+worktree: 3
 ---
 
 * double click on a folder also opens it immediately
