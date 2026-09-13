@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
@@ -60,6 +60,17 @@ const diagramData: DiagramData = {
         { id: 'orders', label: 'Orders', role: 'backend' },
         { id: 'audit', label: 'Audit', role: 'optional' },
     ],
+}
+
+function comparisonPanelForTab(tabName: string) {
+    const comparison = screen.getByLabelText('Tabbed diagram comparison')
+    const tab = within(comparison).getByRole('tab', { name: tabName })
+    const panelId = tab.getAttribute('aria-controls')
+    if (!panelId) throw new Error(`Diagram comparison ${tabName} tab is missing aria-controls`)
+    const panel = document.getElementById(panelId)
+    if (!panel) throw new Error(`Diagram comparison panel ${panelId} is missing`)
+
+    return panel
 }
 
 function initialSnapshot(): DiagramViewSnapshot {
@@ -727,6 +738,41 @@ describe('DiagramView', () => {
         expect(editSession.getViewportScaleSnapshot()).toBe(1.5)
         expect(service.getViewportScaleSnapshot()).toBe(0.5)
     })
+
+    it.each(['horizontal', 'vertical'] as const)(
+        'switches from %s to tabbed with one panel in layout and no split separator',
+        (startingMode) => {
+            const service = createService()
+            const { editSession, geometry } = createEditHarness()
+            const layoutService = new DiagramComparisonLayoutService()
+            const editableDiagram = editSession.getEditableDiagram()
+            const sessionSnapshot = editSession.getSessionSnapshot()
+            editSession.setNodeField('customer', 'label', 'Edited customer')
+            layoutService.setComparisonMode(startingMode)
+            layoutService.setHorizontalDividerRatio(0.3)
+            layoutService.setVerticalDividerRatio(0.7)
+            render(
+                <DiagramView editSession={editSession} geometry={geometry} layoutService={layoutService} service={service} />,
+            )
+
+            expect(screen.getByRole('separator')).toBeInTheDocument()
+
+            act(() => layoutService.setComparisonMode('tabbed'))
+
+            const currentPanel = comparisonPanelForTab('Current')
+            const newPanel = comparisonPanelForTab('New')
+            expect(screen.queryByRole('separator')).not.toBeInTheDocument()
+            expect(currentPanel).toHaveStyle({ display: 'flex' })
+            expect(newPanel).toHaveStyle({ display: 'none' })
+            expect(currentPanel).not.toHaveAttribute('hidden')
+            expect(newPanel).toHaveAttribute('hidden')
+            expect(editSession.getEditableDiagram()).toBe(editableDiagram)
+            expect(editSession.getSessionSnapshot()).toBe(sessionSnapshot)
+            expect(editSession.getDirtySnapshot()).toBe(true)
+            expect(layoutService.getHorizontalDividerSnapshot()).toBe(0.3)
+            expect(layoutService.getVerticalDividerSnapshot()).toBe(0.7)
+        },
+    )
 
     it('keeps selected comparison mode while navigating inside the edit session', async () => {
         const service = createService()

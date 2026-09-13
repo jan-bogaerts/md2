@@ -116,7 +116,7 @@ export function TabbedDiagramComparison({
                 hidden={activeTab !== 'current'}
                 id={currentPanelId}
                 role="tabpanel"
-                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
+                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: activeTab === 'current' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
             >
                 <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">Current</Typography>
                 <DiagramCurrentViewport
@@ -133,7 +133,7 @@ export function TabbedDiagramComparison({
                 hidden={activeTab !== 'new'}
                 id={newPanelId}
                 role="tabpanel"
-                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
+                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: activeTab === 'new' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
             >
                 <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
                 <DiagramNewPane
