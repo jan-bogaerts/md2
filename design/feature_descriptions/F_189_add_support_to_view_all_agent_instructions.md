@@ -10,7 +10,6 @@ agents:
 policy:
 after: c00ec008-cf20-4fd2-81e2-254b2b400c48
 ---
-
 when loading the project, we should also search for markdown files that contain agent instructions:
 
 * root readme.md
@@ -18,3 +17,7 @@ when loading the project, we should also search for markdown files that contain 
 * copilot instructions
 * claude specific files
 * any other?
+
+These should be placed in a special folder like ´active´ or ´releases´
+
+For name, concatenate folders in path, seperated with&#x20;
