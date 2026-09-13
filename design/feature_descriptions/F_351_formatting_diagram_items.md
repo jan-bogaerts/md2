@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__19a0dd49-b8f7-4dbb-a6a6-eb515260dacd.json
 policy:
+branch: f_351_formatting_diagram_items
+worktree: 1
 ---
 We need to add the ability to modify formatting of the items on the diagrams. This can be done by:
 
