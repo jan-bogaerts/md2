@@ -10,7 +10,7 @@ agents:
   - design/activity/card__03616c27-a15f-43f5-8ba8-523c9e9a56d1.json
 policy:
 ---
-Execute new event triggers defined by [F_352](F_352_extend_schedule_contract_and_apis.md).
+Execute new event triggers defined by [F\_352](F_352_extend_schedule_contract_and_apis.md).
 
 ## Current state
 
