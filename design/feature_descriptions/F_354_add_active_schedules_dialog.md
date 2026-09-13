@@ -10,7 +10,7 @@ agents:
   - design/activity/card__57ceeeca-6732-42a3-b77f-b1c459a2f268.json
 policy:
 ---
-Add active-schedule management UI for [F_331](F_331_improve_schedule_action.md), using APIs from [F_352](F_352_extend_schedule_contract_and_apis.md).
+Add active-schedule management UI for [F\_331](F_331_improve_schedule_action.md), using APIs from [F\_352](F_352_extend_schedule_contract_and_apis.md).
 
 ## Current state
 

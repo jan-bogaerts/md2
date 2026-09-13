@@ -9,8 +9,10 @@ affects:
 agents:
   - design/activity/card__e77dd870-74a2-4509-97c0-ce42ffc064fd.json
 policy:
+branch: f_352_extend_schedule_contract_and_apis
+worktree: 2
 ---
-Foundation for [F_331](F_331_improve_schedule_action.md): define persisted schedule variants and management APIs used by later UI and execution jobs.
+Foundation for [F\_331](F_331_improve_schedule_action.md): define persisted schedule variants and management APIs used by later UI and execution jobs.
 
 ## Current state
 
@@ -18,11 +20,11 @@ Foundation for [F_331](F_331_improve_schedule_action.md): define persisted sched
 
 ## implementation details
 
-* Extend shared schedule shape with required `kind: 'action' | 'sequence'` and triggers `now`, `at`, `account-reset`, and `card-state`. `now` is valid only for a sequence and fires during registration. Action records retain `actionId` and `context`. Sequence payload is reserved for F_356.
+* Extend shared schedule shape with required `kind: 'action' | 'sequence'` and triggers `now`, `at`, `account-reset`, and `card-state`. `now` is valid only for a sequence and fires during registration. Action records retain `actionId` and `context`. Sequence payload is reserved for F\_356.
 * `account-reset` stores agent name, `limitId`, `windowId`, and expected reset timestamp. Tracker means one provider-reported account limit window, identified by those three fields. `card-state` stores `cardInternalId`, registration-time state, and target state; scheduled action target and trigger card must differ.
 * Move duplicated parser/serializer into one shared `.mjs` contract with `.d.mts` declarations. Both renderer and desktop import it. Reject unknown kinds, triggers, statuses, missing identities, invalid timestamps, and duplicate sequence card identities.
 * Add scheduler-owned `listActiveSchedules` and `deleteSchedule`. List returns only `pending` and `running`. Delete validates ID, cancels in-flight run when present, removes record instead of retaining `cancelled`, and reconciles timers.
-* Expose list/delete through preload and `ElectronActionBridge`. Keep existing registration callable while F_355 migrates UI. Do not change terminal result handling.
+* Expose list/delete through preload and `ElectronActionBridge`. Keep existing registration callable while F\_355 migrates UI. Do not change terminal result handling.
 * Test parsing each variant, invalid records, active filtering, pending deletion, running deletion, and unknown ID failure. Require new discriminator directly; do not add legacy-shape fallback.
 
 ## acceptance criteria

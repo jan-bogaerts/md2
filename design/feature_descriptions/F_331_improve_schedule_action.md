@@ -29,12 +29,12 @@ Card state changes already cross renderer-to-desktop boundary through `notifyAct
 
 Implement jobs in dependency order:
 
-1. [F_352 extend schedule contract and APIs](F_352_extend_schedule_contract_and_apis.md)
-2. [F_353 run schedules from account and card events](F_353_run_schedules_from_account_and_card_events.md)
-3. [F_354 add active schedules dialog](F_354_add_active_schedules_dialog.md)
-4. [F_355 add schedule trigger controls](F_355_add_schedule_trigger_controls.md)
-5. [F_356 add scheduled card sequence engine](F_356_add_scheduled_card_sequence_engine.md)
-6. [F_357 add card sequence dialog](F_357_add_card_sequence_dialog.md)
+1. [F\_352 extend schedule contract and APIs](F_352_extend_schedule_contract_and_apis.md)
+2. [F\_353 run schedules from account and card events](F_353_run_schedules_from_account_and_card_events.md)
+3. [F\_354 add active schedules dialog](F_354_add_active_schedules_dialog.md)
+4. [F\_355 add schedule trigger controls](F_355_add_schedule_trigger_controls.md)
+5. [F\_356 add scheduled card sequence engine](F_356_add_scheduled_card_sequence_engine.md)
+6. [F\_357 add card sequence dialog](F_357_add_card_sequence_dialog.md)
 
 `Card.header.internalId` remains card identity. Paths may be stored only as persistence or navigation locations and must be resolved from current card data before use. "Active schedule" means status `pending` or `running`. Deleting one cancels any running action, removes persisted record, then reconciles scheduler state.
 

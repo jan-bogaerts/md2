@@ -10,8 +10,6 @@ agents:
   - design/activity/card__7587f168-1106-4f87-b705-a38eab8717f4.json
 policy:
 after: 8b9b629c-e109-4dad-9092-6c2b588481e8
-branch: f_348_add_local_search_to_action_popup
-worktree: 2
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
   - app/src/components/actions/conversation/action_conversation_chat.tsx
