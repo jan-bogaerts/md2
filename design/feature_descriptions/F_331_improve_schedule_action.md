@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__67d4a581-6ded-4a41-a489-d079644e3e5b.json
 policy:
 ---
 We currently support scheduling an action using a date and time.
