@@ -3,7 +3,7 @@ author:
 id: F_352
 internalId: e77dd870-74a2-4509-97c0-ce42ffc064fd
 title: Extend schedule contract and APIs
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,25 @@ agents:
 policy:
 branch: f_352_extend_schedule_contract_and_apis
 worktree: 2
+changedFiles:
+  - app/src/data/action_schedule_types.node.test.ts
+  - app/src/data/action_schedule_types.ts
+  - app/src/data/data_types.ts
+  - app/src/data/electron_action_bridge.ts
+  - app/src/data/electron_data_bridge.ts
+  - app/src/services/data/local_git_storage_service.ts
+  - app/src/services/data/remote_control_storage_service.ts
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/schedule/schedule_store.js
+  - desktop/src/actions/schedule/schedule_store.test.mjs
+  - desktop/src/actions/schedule/schedule_timers.js
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
+  - shared/action_schedules.d.mts
+  - shared/action_schedules.mjs
 ---
 Foundation for [F\_331](F_331_improve_schedule_action.md): define persisted schedule variants and management APIs used by later UI and execution jobs.
 
