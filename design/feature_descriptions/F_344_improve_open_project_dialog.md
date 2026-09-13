@@ -3,7 +3,7 @@ author:
 id: F_344
 internalId: 1be32ecd-4fa8-4926-a390-3332a18226d5
 title: improve open project dialog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,15 @@ policy:
 after: 67d4a581-6ded-4a41-a489-d079644e3e5b
 branch: f_344_improve_open_project_dialog
 worktree: 3
+changedFiles:
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/components/shell/project/project_dialogs.test.tsx
+  - app/src/components/shell/project/project_open_dialog.tsx
+  - app/src/components/shell/project/recent_project_folder_list.tsx
+  - app/src/components/shell/project/use_project_toolbar_menu_actions.ts
+  - app/src/components/shell/project_toolbar_menu.tsx
+  - app/src/data/recent_local_repositories.service.test.ts
+  - app/src/data/recent_local_repositories.ts
 ---
 
 * double click on a folder also opens it immediately
