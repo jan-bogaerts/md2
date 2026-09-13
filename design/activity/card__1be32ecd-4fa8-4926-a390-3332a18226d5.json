@@ -2203,6 +2203,35 @@
       "startedAt": "2026-09-13T17:27:20.034Z",
       "status": "completed",
       "rootConversationId": "agent-2fff2d07-81e5-4b34-87ff-d3b4a0f0e563"
+    },
+    {
+      "commits": [
+        {
+          "commit": "944e878c381ccd0972efbb5d3a8e51aff2fd3942",
+          "committedAt": "2026-09-13T19:42:51+02:00",
+          "deletions": 22,
+          "filePaths": [
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/shell/project/project_dialogs.test.tsx",
+            "app/src/components/shell/project/project_open_dialog.tsx",
+            "app/src/components/shell/project/recent_project_folder_list.tsx",
+            "app/src/components/shell/project/use_project_toolbar_menu_actions.ts",
+            "app/src/components/shell/project_toolbar_menu.tsx",
+            "app/src/data/recent_local_repositories.service.test.ts",
+            "app/src/data/recent_local_repositories.ts"
+          ],
+          "filesChanged": 8,
+          "insertions": 226,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-13T19:42:51+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "1be32ecd-4fa8-4926-a390-3332a18226d5",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
