@@ -3,12 +3,11 @@ author:
 id: F_331
 internalId: 67d4a581-6ded-4a41-a489-d079644e3e5b
 title: Improve schedule action
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 1d937bde-19d5-467d-ad73-67ef587493fe
 ---
 We currently support scheduling an action using a date and time.
 
