@@ -3160,6 +3160,44 @@
       "startedAt": "2026-09-13T17:05:52.774Z",
       "status": "completed",
       "rootConversationId": "agent-03d150a0-acae-495a-b946-1f47e2591095"
+    },
+    {
+      "commits": [
+        {
+          "commit": "9aea995a0d9c7e8866ed0f58d1391327bb3766f4",
+          "committedAt": "2026-09-13T19:45:14+02:00",
+          "deletions": 73,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat_integration.grouped.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_rendering.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_search_button.tsx",
+            "app/src/components/actions/conversation/action_conversation_search_controls.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_search_row.tsx",
+            "app/src/components/actions/conversation/action_conversation_search_service.test.ts",
+            "app/src/components/actions/conversation/action_conversation_search_service.ts",
+            "app/src/components/actions/conversation/action_conversation_transcript.tsx",
+            "app/src/components/actions/run/popup/action_agent_interaction.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_content.tsx",
+            "app/src/components/actions/run/popup/action_popup_frame.tsx",
+            "app/src/components/actions/run/popup/action_popup_runtime.ts",
+            "app/src/components/actions/run/popup/action_popup_types.ts",
+            "app/src/components/actions/run/popup/agent_action.tsx"
+          ],
+          "filesChanged": 17,
+          "insertions": 948,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-13T19:45:14+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "7587f168-1106-4f87-b705-a38eab8717f4",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
