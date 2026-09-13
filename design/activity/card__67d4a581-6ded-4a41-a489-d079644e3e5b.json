@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 116828
+        "usedTokens": 126990
       },
       "entries": [
         {
@@ -954,24 +954,170 @@
           "role": "assistant",
           "sequence": 67,
           "timestamp": "2026-09-13T17:06:47.398Z"
+        },
+        {
+          "content": "1. Ok\n2. Yes\n3. Wait for both\n4. Feature is large. Split up in multiple cards",
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-user-67",
+          "kind": "message",
+          "role": "user",
+          "sequence": 68,
+          "timestamp": "2026-09-13T17:25:49.196Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-event-69",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00b3ba0b03d01bff016aa6dca3618087d297c7f37a86e3b3ed",
+          "sequence": 69,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-13T17:25:58.453Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Decisions fixed: select agent and limit window; delete cancels run then removes record; sequence advances only after action completes and card reaches selected state. Checking card numbering and split conventions.\n\n",
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 70,
+          "timestamp": "2026-09-13T17:25:59.440Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem 'design/feature_descriptions' -Filter '*.md' | Sort-Object Name | Select-Object -ExpandProperty Name | Select-Object -Last 40\"",
+          "content": "F_323_add_diagram_change_review.md\r\nF_324_pass_diagram_changes_to_an_agent.md\r\nF_325_handle_diagram_implementation_runs.md\r\nF_326_integrate_diagram_editor.md\r\nF_327_save_edited_diagram_as_copy.md\r\nF_328_better_show_state_of_project_agent.md\r\nF_329_make_diagram_edit_updates_granular.md\r\nF_330_shorten_token_count.md\r\nF_331_improve_schedule_action.md\r\nF_332_delete_conversations.md\r\nF_333_bad_error_diagram_action.md\r\nF_334_remove_5_hourly_account_usage.md\r\nF_335_include_cost_per_release.md\r\nF_336_add_docs_for_diagrams.md\r\nF_337_handle_back_button_when_on_mobile.md\r\nF_338_show_questions_after_agent_closed.md\r\nF_339_improve_time_reporting.md\r\nF_340_diagram_drag_surface.md\r\nF_341_diagram_zoom_with_ctrl_scrollwheel.md\r\nF_342_diagrams_emphasize_related_objects_and_connections.md\r\nF_343_diagram_object_context_menu_improvements.md\r\nF_344_improve_open_project_dialog.md\r\nF_345_remove_attach_and_open_in_list_view_icons_from_card.md\r\nF_346_add_diagram_menu_tab.md\r\nF_348_add_local_search_to_action_popup.md\r\nF_349_pin_conversations.md\r\nF_350_action_idea.md\r\nF_351_formatting_diagram_items.md\r\nF-6-animations.md\r\nJ_28_finishing_action_very_slow.md\r\nJ_39_size_of_questions_box.md\r\nJ_40_other_option_for_questions.md\r\nJ_42_run_history_command_actions_order.md\r\nJ_43_code_blocks_in_read_only_markdown.md\r\nJ_44_verify_claude_token_count.md\r\nJ_45_use_dagre_for_layered_diagram_layout.md\r\nJ_46_detect_claude_ready_prompt.md\r\nJ_47_fix_failing_tests.md\r\nJ_48_diagram_zoom.md\r\nJ_49_project_folders_dialog_improvements.md\r\n",
+          "durationMs": 31,
+          "exitCode": 0,
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-event-71",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-ChildItem 'design/feature_descriptions' -Filter '*.md' | Sort-Object Name | Select-Object -ExpandProperty Name | Select-Object -Last 40\"",
+          "providerItemId": "exec-df2f1889-08b7-4904-a19d-78db3f88af96",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-09-13T17:26:01.164Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-event-72",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00b3ba0b03d01bff016aa6dcad9ae087d29e0238b0fbd66773",
+          "sequence": 72,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-13T17:26:03.042Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_255_make_diagrams_editable.md'\"",
+          "content": "---\nauthor: \nid: F_255\ninternalId: 9d5878e6-2d20-4574-971d-57dbd82eb389\ntitle: make diagrams editable\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__9d5878e6-2d20-4574-971d-57dbd82eb389.json\npolicy:\nchangedFiles:\n  - design/feature_descriptions/F_276_add_diagram_mutation_operations.md\n  - design/feature_descriptions/F_277_track_diagram_changes.md\n  - design/feature_descriptions/F_278_make_diagram_layout_compatible_with_editing.md\n  - design/feature_descriptions/F_279_validate_diagram_edit_operations.md\n  - design/feature_descriptions/F_280_add_current_and_new_diagram_comparison.md\n  - design/feature_descriptions/F_281_add_vertical_diagram_comparison.md\n  - design/feature_descriptions/F_282_add_horizontal_diagram_comparison.md\n  - design/feature_descriptions/F_283_add_tabbed_diagram_comparison.md\n  - design/feature_descriptions/F_284_add_diagram_comparison_layout_selector.md\n  - design/feature_descriptions/F_285_add_resizable_diagram_toolbox.md\n  - design/feature_descriptions/F_286_manage_active_diagram_tool.md\n  - design/feature_descriptions/F_287_add_diagram_zoom_in_tool.md\n  - design/feature_descriptions/F_288_add_diagram_zoom_out_tool.md\n  - design/feature_descriptions/F_289_add_diagram_coordinate_conversion.md\n  - design/feature_descriptions/F_290_add_diagram_selection_service.md\n  - design/feature_descriptions/F_291_add_direct_diagram_selection.md\n  - design/feature_descriptions/F_292_add_additive_diagram_selection.md\n  - design/feature_descriptions/F_293_add_rectangle_diagram_selection.md\n  - design/feature_descriptions/F_294_move_selected_diagram_objects.md\n  - design/feature_descriptions/F_295_resize_selected_diagram_objects.md\n  - design/feature_descriptions/F_296_edit_diagram_object_details.md\n  - design/feature_descriptions/F_297_add_diagram_delete_tool.md\n  - design/feature_descriptions/F_298_add_diagram_delete_key_support.md\n  - design/feature_descriptions/F_299_add_diagram_cut_tool.md\n  - design/feature_descriptions/F_300_add_diagram_copy_tool.md\n  - design/feature_descriptions/F_301_add_diagram_paste_tool.md\n  - design/feature_descriptions/F_302_add_node_placement_infrastructure.md\n  - design/feature_descriptions/F_303_add_component_node_tool.md\n  - design/feature_descriptions/F_304_add_participant_node_tool.md\n  - design/feature_descriptions/F_305_add_step_node_tool.md\n  - design/feature_descriptions/F_306_add_decision_node_tool.md\n  - design/feature_descriptions/F_307_add_start_node_tool.md\n  - design/feature_descriptions/F_308_add_end_node_tool.md\n  - design/feature_descriptions/F_309_add_state_node_tool.md\n  - design/feature_descriptions/F_310_add_entity_node_tool.md\n  - design/feature_descriptions/F_311_add_edge_drawing_infrastructure.md\n  - design/feature_descriptions/F_312_add_architecture_edge_tools.md\n  - design/feature_descriptions/F_313_add_dependency_edge_tools.md\n  - design/feature_descriptions/F_314_add_sequence_edge_tools.md\n  - design/feature_descriptions/F_315_add_flow_edge_tools.md\n  - design/feature_descriptions/F_316_add_entity_relationship_edge_tool.md\n  - design/feature_descriptions/F_317_add_diagram_group_tool.md\n  - design/feature_descriptions/F_318_edit_diagram_group_membership.md\n  - design/feature_descriptions/F_319_edit_sequence_fragments.md\n  - design/feature_descriptions/F_320_edit_diagram_metadata.md\n  - design/feature_descriptions/F_321_edit_diagram_legend.md\n  - design/feature_descriptions/F_322_generate_diagram_change_descriptions.md\n  - design/feature_descriptions/F_323_add_diagram_change_review.md\n  - design/feature_descriptions/F_324_pass_diagram_changes_to_an_agent.md\n  - design/feature_descriptions/F_325_handle_diagram_implementation_runs.md\n  - design/feature_descriptions/F_326_integrate_diagram_editor.md\n  - design/feature_descriptions/F_327_save_edited_diagram_as_copy.md\n  - design/feature_descriptions/F_328_make_diagram_edit_updates_granular.md\nafter: 0a0fa053-2cfc-497e-9bb4-c3440ddb8638\n---\nThis is the umbrella for making JSON diagrams editable. The work is split into the focused jobs below.\n\n## Decisions\n\n* The original diagram is \n[2117 characters omitted]\n1. [F\\_280 add current and new diagram comparison](F_280_add_current_and_new_diagram_comparison.md)\n2. [F\\_281 add vertical diagram comparison](F_281_add_vertical_diagram_comparison.md)\n3. [F\\_282 add horizontal diagram comparison](F_282_add_horizontal_diagram_comparison.md)\n4. [F\\_283 add tabbed diagram comparison](F_283_add_tabbed_diagram_comparison.md)\n5. [F\\_284 add diagram comparison layout selector](F_284_add_diagram_comparison_layout_selector.md)\n\n### Toolbox and viewport\n\n1. [F\\_285 add resizable diagram toolbox](F_285_add_resizable_diagram_toolbox.md)\n2. [F\\_286 manage active diagram tool](F_286_manage_active_diagram_tool.md)\n3. [F\\_287 add diagram zoom in tool](F_287_add_diagram_zoom_in_tool.md)\n4. [F\\_288 add diagram zoom out tool](F_288_add_diagram_zoom_out_tool.md)\n5. [F\\_289 add diagram coordinate conversion](F_289_add_diagram_coordinate_conversion.md)\n\n### Selection and transforms\n\n1. [F\\_290 add diagram selection service](F_290_add_diagram_selection_service.md)\n2. [F\\_291 add direct diagram selection](F_291_add_direct_diagram_selection.md)\n3. [F\\_292 add additive diagram selection](F_292_add_additive_diagram_selection.md)\n4. [F\\_293 add rectangle diagram selection](F_293_add_rectangle_diagram_selection.md)\n5. [F\\_294 move selected diagram objects](F_294_move_selected_diagram_objects.md)\n6. [F\\_295 resize selected diagram objects](F_295_resize_selected_diagram_objects.md)\n7. [F\\_296 edit diagram object details](F_296_edit_diagram_object_details.md)\n8. [F\\_297 add diagram delete tool](F_297_add_diagram_delete_tool.md)\n9. [F\\_298 add diagram Delete key support](F_298_add_diagram_delete_key_support.md)\n10. [F\\_299 add diagram cut tool](F_299_add_diagram_cut_tool.md)\n11. [F\\_300 add diagram copy tool](F_300_add_diagram_copy_tool.md)\n12. [F\\_301 add diagram paste tool](F_301_add_diagram_paste_tool.md)\n\n### Node tools\n\n1. [F\\_302 add node placement infrastructure](F_302_add_node_placement_infrastructure.md)\n2. [F\\_303 add component node tool](F_303_add_component_node_tool.md)\n3. [F\\_304 add participant node tool](F_304_add_participant_node_tool.md)\n4. [F\\_305 add step node tool](F_305_add_step_node_tool.md)\n5. [F\\_306 add decision node tool](F_306_add_decision_node_tool.md)\n6. [F\\_307 add start node tool](F_307_add_start_node_tool.md)\n7. [F\\_308 add end node tool](F_308_add_end_node_tool.md)\n8. [F\\_309 add state node tool](F_309_add_state_node_tool.md)\n9. [F\\_310 add entity node tool](F_310_add_entity_node_tool.md)\n\n### Edge tools\n\n1. [F\\_311 add edge drawing infrastructure](F_311_add_edge_drawing_infrastructure.md)\n2. [F\\_312 add architecture edge tools](F_312_add_architecture_edge_tools.md)\n3. [F\\_313 add dependency edge tools](F_313_add_dependency_edge_tools.md)\n4. [F\\_314 add sequence edge tools](F_314_add_sequence_edge_tools.md)\n5. [F\\_315 add flow edge tools](F_315_add_flow_edge_tools.md)\n6. [F\\_316 add entity relationship edge tool](F_316_add_entity_relationship_edge_tool.md)\n\n### Groups and other content\n\n1. [F\\_317 add diagram group tool](F_317_add_diagram_group_tool.md)\n2. [F\\_318 edit diagram group membership](F_318_edit_diagram_group_membership.md)\n3. [F\\_319 edit sequence fragments](F_319_edit_sequence_fragments.md)\n4. [F\\_320 edit diagram metadata](F_320_edit_diagram_metadata.md)\n5. [F\\_321 edit diagram legend](F_321_edit_diagram_legend.md)\n\n### Change delivery and saving\n\n1. [F\\_322 generate diagram change descriptions](F_322_generate_diagram_change_descriptions.md)\n2. [F\\_323 add diagram change review](F_323_add_diagram_change_review.md)\n3. [F\\_324 pass diagram changes to an agent](F_324_pass_diagram_changes_to_an_agent.md)\n4. [F\\_325 handle diagram implementation runs](F_325_handle_diagram_implementation_runs.md)\n5. [F\\_326 integrate the diagram editor](F_326_integrate_diagram_editor.md)\n6. [F\\_327 save edited diagram as a copy](F_327_save_edited_diagram_as_copy.md)\n\n## Completion\n\nF\\_255 is complete when all jobs above meet their acceptance criteria. Each job must preserve diagram viewing, breadcrumb navigation, drill-down actions, and all diagram types outside its stated scope.\r\n",
+          "durationMs": 46,
+          "exitCode": 0,
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-event-73",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_255_make_diagrams_editable.md'\"",
+          "providerItemId": "exec-aecad9ab-06eb-4ddf-b12a-bead4507adba",
+          "sequence": 73,
+          "status": "completed",
+          "timestamp": "2026-09-13T17:26:06.451Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_339_improve_time_reporting.md'\"",
+          "content": "---\nauthor: \nid: F_339\ninternalId: 2f6108ac-7b47-4374-a2c6-292b5871b064\ntitle: improve time reporting\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__2f6108ac-7b47-4374-a2c6-292b5871b064.json\npolicy:\nchangedFiles:\n  - app/src/components/actions/conversation/conversation_timer.tsx\n  - app/src/services/actions/action_run_registry.ts\n  - app/src/services/stats/stats_duration_components.ts\n  - app/src/services/stats/stats_duration_split.node.test.ts\n  - desktop/src/actions/agent/agent_conversation.js\n  - desktop/src/actions/agent/agent_conversation_phases.js\n  - desktop/src/actions/agent/agent_conversation_phases.test.mjs\n  - patch_perf.py\n  - patch_service_tests.py\n  - patch_totals.py\n  - shared/agent_conversations.mjs\n  - shared/agent_event_categories.mjs\n---\nwe currently keep track how long a conversation runs. we should improve this measurement and include how much time was spend running tools, reasoning and then the rest. this way, we can see how much time was actually used by the agent itself.\n\nin the action popup's chatlog, we currently show the total time that the conversation ran, we should keep this, but add a tooltip that splits the time up in it's parts, so the user can see the values.\n\nin the stats:\n\n* agent/model performance, measured duration: each bar should be a stack of it's individual time-duration components. Each component its own color, include details in the legend. don't randomly pick colors, but be smart about it, user sees 2 bars per day: 1 for each agent. blocks should be easy to compare, so for instance one agent has a lighter shade of colors then the other agent\n* totals by card: again a stack of duration blocks. put colors in legend (each type of duration gets it's own color)\n\n## Current state\n\n**One number is measured today.** `transitionConversationStatus` in `desktop/src/actions/agent/agent_conversation.js:70` is the only place a duration is produced. It stamps `timer.runningStartedAt` when the conversation enters `running` and, when it leaves `running`, adds that period to `timer.elapsedMs` and clears the start stamp. The timer is created as `{ elapsedMs: 0, runningStartedAt: startedAt }` in `createConversation` (`agent_conversation.js:140`) and carried over unchanged when a stored conversation is continued, so `elapsedMs` is the accumulated wall clock of all `running` periods across every turn of the conversation. Periods where the run is parked on a question (`handleQuestion`, `desktop/src/actions/agent/agent_streaming_event_handlers.js:122`) or on a tool approval (`handleApproval`, same file line 133) are already excluded, because both move the status to `waitingForInput` first. The timer is validated on every save by `normalizeTimer` in `shared/agent_conversations.mjs:237`, which accepts exactly the two fields and drops anything else.\n\n**Nothing measures the parts.** Provider events all funnel through `recordProviderEvent` (`desktop/src/actions/agent/agent_provider_event.js:8`), called from the streaming path (`agent_streaming_event_handlers.js:78`) and the non-streaming path (`agent_runner_service.js:580`). It keys entries by `providerItemId`, so a later lifecycle state of the same item (`inProgress` then `completed` or `failed`) overwrites the earlier entry in place, including its `timestamp`. The first-seen time of a tool call or a reasoning block is therefore not recoverable from the stored transcript afterwards: only the last timestamp survives. Codex tool items carry a provider-supplied `durationMs` (`agent_codex_event.js:217`, `:241`, `:252`), rendered per event by `agent_tool_event.tsx:89` and `command_execution_event.tsx:107`, but Claude items carry none: `claudeToolEvent` and the `thinking` handling in `agent_claude_streaming_adapter.js:200`, `:476` and `:586` emit no duration. So no cross-agent split exists today, and none can be derived from already stored data.\n\n**The chat log shows the total only.** `ConversationTimer` (`app/src/components/actions/conversation/conversation_timer.tsx:22`) renders the `m:ss` caption from `displayedElapsedMs`, whi\n[9645 characters omitted]\ny's single bar and whisker, because medians of parts do not add up to the median of the total and a whisker on a stack segment has no meaning; the split is still listed in that bar's tooltip. `stats_content.tsx:54` selects `groupedStacked` for the stacked case and keeps `grouped` otherwise.\n\n**Totals chart.** `basicTotalsRows` (`stats_totals_dataset.ts:130`) emits the same four rows per card or action when `totalsMetric === 'duration'`, sharing the card's or action's identity as `stackIdentity`, and `stats_content.tsx` renders totals in `stacked` mode for that metric. Sorting in `totalsRows` (`:293`) sorts bars by their stack total and keeps the fixed component order inside each bar. Legend entries are per component only (`Tools`, `Reasoning`, `Agent`, `Unmeasured`), because a card's runs may mix agents.\n\n**Tooltips and export.** Each segment's tooltip names the component, its duration through `formatDurationHms`, its share of the bar total, and the bar's own heading line, so the existing two-line contract in `totalRow` still holds. No CSV schema change is needed: `series_identity` already names the component and `stack_identity` already names the bar (`stats_csv.ts:3`).\n\n**Tests.** Node tests for the union-of-intervals fold (overlapping tools, a tool spanning an approval pause, a span still open at cancellation), for `normalizeTimer` round-tripping and rejecting a breakdown above the total, for `calculateActivityStats` and `parseConversation` on both the old and the new shape, and for both datasets under each aggregation. Component tests for the chat log tooltip and for legend content and segment order in both charts. Type-check with `npm run typecheck`.\n\n## Acceptance criteria\n\n* A finished conversation stores `timer.breakdown` with non-negative `toolMs` and `reasoningMs` whose sum never exceeds `timer.elapsedMs`, and the total `elapsedMs` is unchanged from what the same run would have recorded before this feature.\n* Time parked on a question or a tool approval stays outside `elapsedMs`, and a tool that waits for its approval contributes only the time it actually ran.\n* Two tools running in parallel contribute their union, not their sum: components never add up past the total, and no stacked bar is ever taller than the run's measured duration.\n* Tool time counts the same event types the tool-call count already counts, from one shared classifier, for both Claude and Codex, in streaming and non-streaming runs.\n* Continuing a stored conversation keeps accumulating on top of the stored breakdown instead of restarting it, and the timer survives an activity-file save and reload unchanged.\n* The chat log caption still shows the total in the same format; hovering it shows total, tools, reasoning and agent time with percentages, and a conversation without a breakdown shows a single `Unmeasured` line instead.\n* The tooltip updates during a run as tools and reasoning blocks finish, without re-rendering the rest of the chat log.\n* In agent/model performance with metric `duration` and aggregation `sum` or `average`, each agent's bar is a stack of tools, reasoning, agent and unmeasured segments in that fixed order, and the segments add up exactly to the value the unsplit bar showed before.\n* With aggregation `median` or `average with deviation`, that chart is unchanged: one bar per agent with its whisker intact, and the split available in the tooltip.\n* In totals by card and by action with metric `duration`, each bar is the same stack, bars stay sorted by their total, and the legend names every duration type.\n* Each duration type has one hue in both charts, and two agents in the same bucket are told apart by lightness within that hue, consistently across components and across chart re-renders.\n* A conversation recorded before this feature appears as a single neutral `Unmeasured` segment carrying its whole total, and totals and averages that include it stay correct.\n* An existing `project_stats.json` and the archived release snapshots still load without a version bump, with their conversations reported as unmeasured.\n\r\n",
+          "durationMs": 46,
+          "exitCode": 0,
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-event-74",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_339_improve_time_reporting.md'\"",
+          "providerItemId": "exec-e9befad2-ad28-48da-8328-d9fcf404b5b6",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-09-13T17:26:06.451Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_346_add_diagram_menu_tab.md'\"",
+          "content": "---\nauthor: \nid: F_346\ninternalId: 38518a81-c62a-4c06-a5fb-677f1753b2dd\ntitle: Add diagram menu tab\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__38518a81-c62a-4c06-a5fb-677f1753b2dd.json\npolicy:\nchangedFiles:\n  - app/src/components/diagram_view/diagram_add_control.test.tsx\n  - app/src/components/diagram_view/diagram_add_control.tsx\n  - app/src/components/diagram_view/diagram_change_review_button.tsx\n  - app/src/components/diagram_view/diagram_comparison.test.tsx\n  - app/src/components/diagram_view/diagram_comparison_layout.test.tsx\n  - app/src/components/diagram_view/diagram_comparison_layout.tsx\n  - app/src/components/diagram_view/diagram_comparison_menu_control.test.tsx\n  - app/src/components/diagram_view/diagram_comparison_menu_control.tsx\n  - app/src/components/diagram_view/diagram_copy_button.tsx\n  - app/src/components/diagram_view/diagram_creation_tool_sample.tsx\n  - app/src/components/diagram_view/diagram_creation_tools.ts\n  - app/src/components/diagram_view/diagram_cut_button.tsx\n  - app/src/components/diagram_view/diagram_delete_button.tsx\n  - app/src/components/diagram_view/diagram_edit_button.tsx\n  - app/src/components/diagram_view/diagram_fragment_button.tsx\n  - app/src/components/diagram_view/diagram_legend_button.tsx\n  - app/src/components/diagram_view/diagram_menu_tab.test.tsx\n  - app/src/components/diagram_view/diagram_menu_tab.tsx\n  - app/src/components/diagram_view/diagram_menu_tool_button.tsx\n  - app/src/components/diagram_view/diagram_metadata_button.tsx\n  - app/src/components/diagram_view/diagram_new_pane.tsx\n  - app/src/components/diagram_view/diagram_paste_button.tsx\n  - app/src/components/diagram_view/diagram_toolbox.test.tsx\n  - app/src/components/diagram_view/diagram_toolbox.tsx\n  - app/src/components/diagram_view/diagram_toolbox_action_button.tsx\n  - app/src/components/diagram_view/diagram_view.test.tsx\n  - app/src/components/diagram_view/diagram_view.tsx\n  - app/src/components/diagram_view/tabbed_diagram_comparison.test.tsx\n  - app/src/components/diagram_view/tabbed_diagram_comparison.tsx\n  - app/src/components/diagram_view/vertical_diagram_comparison.test.tsx\n  - app/src/components/shell/menu/app_menu.test.tsx\n  - app/src/components/shell/menu/app_menu.tsx\n  - app/src/components/shell/menu/menu_icon_button.tsx\n  - app/src/services/diagrams/diagram_edit_session_service.test.ts\n  - app/src/services/diagrams/diagram_edit_session_service.ts\n---\n* Visible when in diagram view\n* Contains:\n  * The edit button\n  * the 3 buttons to select the view\n  * The edit functions: select, cut, copy, delete,...\n  * A button to select the Â´addÂ´ tool, followed with a dropdown button (attached to Â´addÂ´ button). The dropdown button shows a popper to select the tool\n* Use icons. For the Â´addÂ´ tools, use the same image as in the legend.\n* So remove toolbox and buttons from diagram surface\n\n## Current state\n\n`AppMenu` has Home and Run tabs. Diagram view is selected from Home, but has no menu tab of its own. `DiagramView` renders Edit diagram in its navigation row. During editing, `DiagramComparisonLayout` renders Vertical, Horizontal, and Tabbed buttons above diagram content, while each visible New pane owns a floating, resizable `DiagramToolbox` with Edit, Nodes, Edges, Groups, and Others tabs. Toolbox buttons use text; legend entries use role swatches and rendered edge samples.\n\nTool choice and comparison mode already belong to `DiagramEditSessionService` and `DiagramComparisonLayoutService`. Toolbox tab selection and stored toolbox size exist only for floating toolbox. Here, \"diagram surface controls\" means Edit diagram, comparison-layout selector, and floating toolbox; diagram navigation, zoom sliders, legend controls, emphasis exit, item menus, and floating action button remain on diagram view.\n\n## implementation details\n\n* Add a Diagram app-menu tab only while `WorkspaceViewService.viewMode` is `diagrams`. If user leaves diagram view while this tab is selected, select Home so MUI Tabs always has a visible selected value.\n* Put diagram controls in a dedicated menu-tab component. Before editing, show icon-based Edit diagram action when a current diagram exists. During editing, show icon-based Select, Pan, Cut, Copy, Paste, Delete, change review, metadata, and legend actions with existing availability rules. Keep each changing control subscribed to its existing service-owned primitive through `useSyncExternalStore`.\n* Move Vertical, Horizontal, and Tabbed comparison selection into diagram menu. \"Comparison layout\" means arrangement of saved Current diagram and editable New diagram. Keep mobile behavior: Tabbed is effective layout and split choices are disabled. `DiagramComparisonLayout` renders selected panes but no selector above diagram content.\n* Replace creation sections with attached split Add control. Main Add button reactivates last selected creation tool; adjacent dropdown opens a popper listing only tools valid for current diagram type. Choosing node, edge, group, or sequence-fragment entry selects and activates it. Store last selected creation tool in edit-session service, separate from active tool, so Select or Pan does not erase it; reset it when edit session starts or ends.\n* Use outlined MUI icons for general actions. Add entries reuse legend visuals: node entries use same colored role rectangle for tool's created role, and edge entries use `DiagramLegendConnectionSample` for tool's edge kind; group and fragment entries use matching diagram-renderer samples. Every icon-only control has tooltip and accessible name, and Add split segments expose selected tool and expanded state.\n* Remove floating toolbox from `DiagramNewPane`, including viewport boundary state, toolbox visibility plumbing, persisted toolbox size, and obsolete toolbox-section state. Keep existing edit operations and diagram-type filtering; change only where and how controls render.\n* Add focused tests for conditional menu-tab visibility and fallback, read-only versus editing controls, comparison selection and mobile constraints, Add popper filtering and activation, reused legend samples, absence of moved surface controls in every comparison layout, granular subscriptions, and keyboard-accessible controls. Run related tests and app lint.\n\n## acceptance criteria\n\n* Diagram tab is visible exactly while workspace view is Diagrams; leaving that view never leaves a hidden tab selected.\n* With current diagram and no edit session, Diagram tab offers Edit diagram. Starting editing focuses New diagram as before.\n* During editing, Diagram tab offers all existing edit actions and Vertical, Horizontal, and Tabbed comparison choices; their enabled, selected, and mobile states match existing behavior.\n* Add is an attached split control. Main segment activates last selected valid creation tool. Dropdown lists only creation tools supported by active diagram type, and choosing entry activates it.\n* Add menu node and edge images match legend role and connection rendering; other controls use labelled, tooltip-backed icons and work by keyboard.\n* Edit diagram, comparison-layout selector, and floating toolbox no longer render over diagram content. Navigation, zoom, legend, emphasis, item-menu, and action controls remain unchanged.\n* Moving controls does not change original or editable diagram data, dirty state, selection, active tool, comparison mode, zoom, or change descriptions except when user invokes corresponding control.\n* Changing one service-owned menu state value rerenders only control that reads it, not diagram roots, comparison roots, unrelated menu controls, or diagram objects.\n* Focused app-menu, diagram-menu, comparison, edit-session, and diagram-view tests pass; app lint passes.\n\r\n",
+          "durationMs": 41,
+          "exitCode": 0,
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-event-75",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_346_add_diagram_menu_tab.md'\"",
+          "providerItemId": "exec-d60470a0-ac29-4bb1-9426-fa709265bb81",
+          "sequence": 75,
+          "status": "completed",
+          "timestamp": "2026-09-13T17:26:06.460Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-event-76",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00b3ba0b03d01bff016aa6dcb42bb087d295934cc1bf8ea8db",
+          "sequence": 76,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-13T17:26:18.761Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-event-77",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_00b3ba0b03d01bff016aa6dcbde15087d2b23a2e65a7727e8e",
+          "sequence": 77,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-13T17:26:18.968Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Should `F_331` become umbrella while new child cards each get `status: ready for implementation`? Or only `F_331` gets that status, with child cards left `design`?\n\n",
+          "id": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 78,
+          "timestamp": "2026-09-13T17:26:19.951Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-8855a017-c73b-4d5f-bbd7-c25282cc6081",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a09bba-2935-76d3-ac7a-921ddb6d602c",
+          "createdAt": "2026-09-13T17:06:47.398Z",
+          "lastUsedAt": "2026-09-13T17:06:47.398Z",
+          "synchronizedThroughMessageId": "agent-turn-4bec57b4-85f5-4468-a7e1-5d2e79556e70-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-13T17:04:23.065Z",
       "status": "running",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-13T17:04:23.065Z"
+        "elapsedMs": 144333,
+        "runningStartedAt": "2026-09-13T17:25:49.196Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1450880,
-        "inputTokens": 109081,
-        "outputTokens": 2510,
-        "reasoningTokens": 1216,
-        "totalTokens": 1563687
+        "cachedInputTokens": 1801344,
+        "inputTokens": 119638,
+        "outputTokens": 2832,
+        "reasoningTokens": 2096,
+        "totalTokens": 1925910
       },
       "usageSchemaVersion": 1,
       "viewed": true
