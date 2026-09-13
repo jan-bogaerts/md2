@@ -1653,13 +1653,54 @@
         "totalTokens": 4201766
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "67d4a581-6ded-4a41-a489-d079644e3e5b",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "5c7c2a6ff7559b699585efbd41bddafeb16ddb73",
+          "committedAt": "2026-09-13T19:44:30+02:00",
+          "deletions": 10,
+          "filePaths": [
+            "design/feature_descriptions/F_352_extend_schedule_contract_and_apis.md",
+            "design/feature_descriptions/F_353_run_schedules_from_account_and_card_events.md",
+            "design/feature_descriptions/F_355_add_schedule_trigger_controls.md",
+            "design/feature_descriptions/F_356_add_scheduled_card_sequence_engine.md",
+            "design/feature_descriptions/F_357_add_card_sequence_dialog.md"
+          ],
+          "filesChanged": 5,
+          "insertions": 117
+        }
+      ],
+      "completedAt": "2026-09-13T17:44:31.037Z",
+      "conversationIds": [
+        "agent-8855a017-c73b-4d5f-bbd7-c25282cc6081"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-1de1cc0d-5dbb-4ed4-a28d-e15c2f9ceaa3",
+      "origin": {
+        "cardInternalId": "67d4a581-6ded-4a41-a489-d079644e3e5b",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-8855a017-c73b-4d5f-bbd7-c25282cc6081",
+      "startedAt": "2026-09-13T17:04:23.063Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
