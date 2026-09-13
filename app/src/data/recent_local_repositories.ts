@@ -46,3 +46,24 @@ export async function recordRecentLocalRepository(rootPath: string) {
 
     return nextRepositories
 }
+
+/** Remove one canonical root using Windows case-insensitive path matching. */
+export async function removeRecentLocalRepository(rootPath: string) {
+    if (rootPath.length === 0) throw new Error('Local repository root path is required')
+
+    const storedValue = await applicationStorage.readCurrentItem(RECENT_LOCAL_REPOSITORIES_STORAGE_KEY)
+    let currentRepositories: string[] = []
+    if (storedValue) {
+        try {
+            const parsedValue: unknown = JSON.parse(storedValue)
+            if (isRecentRepositoryList(parsedValue)) currentRepositories = parsedValue.slice(0, MAX_RECENT_LOCAL_REPOSITORIES)
+        } catch {
+            // Invalid stored history is replaced below.
+        }
+    }
+    const normalizedRoot = rootPath.toLowerCase()
+    const nextRepositories = currentRepositories.filter((path) => path.toLowerCase() !== normalizedRoot)
+    await applicationStorage.writeCurrentItem(RECENT_LOCAL_REPOSITORIES_STORAGE_KEY, JSON.stringify(nextRepositories))
+
+    return nextRepositories
+}

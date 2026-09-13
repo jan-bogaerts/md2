@@ -10,7 +10,11 @@ import {
     type RepositoryReference,
 } from '../../../data/data_types'
 import { getElectronDataBridge } from '../../../data/electron_data_bridge'
-import { readRecentLocalRepositories, recordRecentLocalRepository } from '../../../data/recent_local_repositories'
+import {
+    readRecentLocalRepositories,
+    recordRecentLocalRepository,
+    removeRecentLocalRepository,
+} from '../../../data/recent_local_repositories'
 import { toProjectFolderRelativePath, toRepositoryRelativePath } from '../../../data/repository_relative_path'
 import type { StorageType } from '../../../data/project_session'
 import { dialogService } from '../../../services/dialog_service'
@@ -114,6 +118,14 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const recordOpenedLocalProject = useCallback(async (rootPath: string) => {
         setRecentLocalRepositories(await recordRecentLocalRepository(rootPath))
         setPendingLocalRootPath(null)
+    }, [])
+
+    const removeRecentLocalProject = useCallback(async (rootPath: string) => {
+        try {
+            setRecentLocalRepositories(await removeRecentLocalRepository(rootPath))
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Recent local project removal failed' })
+        }
     }, [])
 
     const openResolvedLocalProject = useCallback(async (nextProject: ProjectReference) => {
@@ -425,6 +437,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         push: () => projectSessionService.push(),
         pushMode,
         recentLocalRepositories,
+        removeRecentLocalProject,
         repositories,
         releaseBranchCandidates,
         releaseIncludeProjectActivityDefault,

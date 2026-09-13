@@ -46,6 +46,7 @@ function projectOpenDialogProps(overrides: Partial<ProjectOpenDialogProps>): Pro
         onOpenGithub: vi.fn(async () => undefined),
         onOpenLocal: vi.fn(async () => undefined),
         onOpenRemote: vi.fn(async () => undefined),
+        onRemoveRecentLocal: vi.fn(async () => undefined),
         onRepositoryChange: vi.fn(async () => []),
         onSourceChange: vi.fn(),
         open: true,
@@ -159,6 +160,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 open
@@ -191,6 +193,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
                 open
@@ -235,6 +238,7 @@ describe('project dialog components', () => {
                 onOpenGithub={openGithub}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={openRemote}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={onSourceChange}
                 open
@@ -335,6 +339,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={openLocal}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
                 open
@@ -374,6 +379,74 @@ describe('project dialog components', () => {
         expect(openLocal).toHaveBeenCalledTimes(2)
     })
 
+    it('opens a double-clicked recent folder exactly once', () => {
+        const openLocal = vi.fn(async () => undefined)
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    isDesktopMode: true,
+                    onOpenLocal: openLocal,
+                    recentLocalRepositories: ['C:/recent'],
+                })}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        fireEvent.doubleClick(screen.getByText('C:/recent'))
+
+        expect(openLocal).toHaveBeenCalledWith('C:/recent')
+        expect(openLocal).toHaveBeenCalledOnce()
+    })
+
+    it('ignores a recent-folder double-click while loading', () => {
+        const openLocal = vi.fn(async () => undefined)
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    isDesktopMode: true,
+                    isLoading: true,
+                    onOpenLocal: openLocal,
+                    recentLocalRepositories: ['C:/recent'],
+                })}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        fireEvent.doubleClick(screen.getByText('C:/recent'))
+
+        expect(openLocal).not.toHaveBeenCalled()
+    })
+
+    it('removes only the chosen recent folder without selecting or opening it', async () => {
+        const user = userEvent.setup()
+        const openLocal = vi.fn(async () => undefined)
+        const removeRecentLocal = vi.fn(async () => undefined)
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    isDesktopMode: true,
+                    onOpenLocal: openLocal,
+                    onRemoveRecentLocal: removeRecentLocal,
+                    recentLocalRepositories: ['C:/first', 'C:/second'],
+                })}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const removeButton = screen.getByRole('button', { name: 'Remove C:/second from recent folders' })
+        await user.hover(removeButton)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Remove C:/second from recent folders')
+        await user.unhover(removeButton)
+        removeButton.focus()
+        expect(removeButton).toHaveFocus()
+        await user.keyboard('{Enter}')
+
+        expect(removeRecentLocal).toHaveBeenCalledWith('C:/second')
+        expect(removeRecentLocal).toHaveBeenCalledOnce()
+        expect(screen.getByLabelText('Local repository folder')).toHaveValue('')
+        expect(openLocal).not.toHaveBeenCalled()
+    })
+
     it('disables local open and folder picker while loading', () => {
         render(
             <ProjectOpenDialog
@@ -394,6 +467,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
                 open
@@ -431,6 +505,7 @@ describe('project dialog components', () => {
                 onOpenGithub={openGithub}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
                 open
@@ -473,6 +548,7 @@ describe('project dialog components', () => {
                 onOpenGithub={openGithub}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 open
@@ -513,6 +589,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 open
@@ -549,6 +626,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 open

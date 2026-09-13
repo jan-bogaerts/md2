@@ -9,9 +9,6 @@ import {
     IconButton,
     InputLabel,
     InputAdornment,
-    List,
-    ListItemButton,
-    ListItemText,
     MenuItem,
     Select,
     Stack,
@@ -34,6 +31,7 @@ import {
     type ProjectOpenResolution,
 } from '../../../services/project/project_session_service'
 import { ProjectFolderSetupFields } from './project_folder_setup_fields'
+import { RecentProjectFolderList } from './recent_project_folder_list'
 
 type ProjectSource = 'local' | 'personal' | 'public' | 'remote'
 type ProjectKind = 'folder' | 'repository'
@@ -72,6 +70,7 @@ interface ProjectOpenDialogProps {
     onOpenGithub: (owner: string, repository: string, branch: string, isPublic: boolean) => Promise<void>
     onOpenLocal: (rootPath: string) => Promise<void>
     onOpenRemote: (endpoint: string, project: ProjectReference) => Promise<void>
+    onRemoveRecentLocal: (rootPath: string) => Promise<void>
     onRepositoryChange: (repository: RepositoryReference) => Promise<BranchReference[]>
     onSourceChange: () => void
 }
@@ -132,6 +131,7 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         onOpenGithub,
         onOpenLocal,
         onOpenRemote,
+        onRemoveRecentLocal,
         onRepositoryChange,
         onSourceChange,
         open,
@@ -279,10 +279,7 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
         void onChooseLocalFolder()
     }
 
-    const handleRecentLocalRepositoryClick = (event: MouseEvent<HTMLDivElement>) => {
-        const rootPath = event.currentTarget.dataset.rootPath
-        if (!rootPath) throw new Error('Recent local repository path is missing')
-
+    const handleRecentLocalRepositorySelect = (rootPath: string) => {
         setLocalRootPath(rootPath)
     }
 
@@ -468,20 +465,13 @@ export function ProjectOpenDialog(props: ProjectOpenDialogProps) {
                                 value={localRootPath}
                             />
                             {recentLocalRepositories.length > 0 ? (
-                                <>
-                                    <Typography variant="subtitle2">Recent folders</Typography>
-                                    <List dense disablePadding>
-                                        {recentLocalRepositories.map((rootPath) => (
-                                            <ListItemButton
-                                                data-root-path={rootPath}
-                                                key={rootPath.toLowerCase()}
-                                                onClick={handleRecentLocalRepositoryClick}
-                                            >
-                                                <ListItemText primary={rootPath} />
-                                            </ListItemButton>
-                                        ))}
-                                    </List>
-                                </>
+                                <RecentProjectFolderList
+                                    isLoading={isLoading}
+                                    onOpen={onOpenLocal}
+                                    onRemove={onRemoveRecentLocal}
+                                    onSelect={handleRecentLocalRepositorySelect}
+                                    paths={recentLocalRepositories}
+                                />
                             ) : null}
                         </>
                     ) : null}
