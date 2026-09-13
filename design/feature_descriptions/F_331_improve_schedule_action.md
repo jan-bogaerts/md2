@@ -9,6 +9,13 @@ affects:
 agents:
   - design/activity/card__67d4a581-6ded-4a41-a489-d079644e3e5b.json
 policy:
+changedFiles:
+  - design/feature_descriptions/F_352_extend_schedule_contract_and_apis.md
+  - design/feature_descriptions/F_353_run_schedules_from_account_and_card_events.md
+  - design/feature_descriptions/F_354_add_active_schedules_dialog.md
+  - design/feature_descriptions/F_355_add_schedule_trigger_controls.md
+  - design/feature_descriptions/F_356_add_scheduled_card_sequence_engine.md
+  - design/feature_descriptions/F_357_add_card_sequence_dialog.md
 ---
 Improve scheduled actions with account-reset and card-state triggers, active-schedule management, and ordered card sequences. This umbrella splits implementation into focused jobs.
 
