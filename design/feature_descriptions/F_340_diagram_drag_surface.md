@@ -16,6 +16,7 @@ changedFiles:
   - app/patch_zoom_viewport.py
   - app/src/components/diagram_view/use_diagram_surface_pan.test.tsx
   - app/src/components/diagram_view/use_diagram_surface_pan.ts
+after: 6a4ede44-a6e7-44d0-afdc-3230b6595822
 ---
 user should be able to drag the diagram surface around both in editable and non-editable diagrams. this should move the scroll position.
 

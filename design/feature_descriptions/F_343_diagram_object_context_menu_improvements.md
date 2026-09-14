@@ -14,6 +14,7 @@ changedFiles:
   - app/src/components/diagram_view/diagram_view.test.tsx
   - app/src/services/diagrams/diagram_view_service.test.ts
   - app/src/services/diagrams/diagram_view_service.ts
+after: 1c4b8e5f-d13a-4c28-aa5a-b6724f3b6f1b
 ---
 
 on diagram view, the context menu of the objects currently has 2 static titles 'actions' and 'saved diagrams' with below them, each respectable list of items. The static titles should become sub menus. Actions would have as menu items: the list of actions that can be executed, saved diagrams the list of already existing diagrams.

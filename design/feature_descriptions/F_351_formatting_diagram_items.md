@@ -60,6 +60,7 @@ changedFiles:
   - app/src/services/diagrams/diagram_view_service.ts
   - shared/diagram_data.d.mts
   - shared/diagram_data.mjs
+after: 7587f168-1106-4f87-b705-a38eab8717f4
 ---
 We need to add the ability to modify formatting of the items on the diagrams. This can be done by:
 

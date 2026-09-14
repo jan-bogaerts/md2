@@ -45,6 +45,7 @@ changedFiles:
   - app/src/components/shell/menu/menu_icon_button.tsx
   - app/src/services/diagrams/diagram_edit_session_service.test.ts
   - app/src/services/diagrams/diagram_edit_session_service.ts
+after: 1be32ecd-4fa8-4926-a390-3332a18226d5
 ---
 * Visible when in diagram view
 * Contains:

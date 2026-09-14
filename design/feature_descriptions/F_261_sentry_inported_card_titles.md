@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__3509c194-adbf-4e1c-ad64-6aa9560354b4.json
 policy:
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+after: 526d5eb3-f1f1-4d3e-a65f-a5721d69a23c
 changedFiles:
   - app/src/services/data/card_operations.test.ts
   - app/src/services/data/card_operations.ts

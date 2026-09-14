@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__5c3ce7b1-898e-4a38-b281-0f6fc89e2bb9.json
 policy:
-after: 23d124ec-a23c-442f-af4d-f678be48084c
+after: 42bec8db-b7c5-4124-937f-7d0658050f20
 changedFiles:
   - app/src/components/card_view/card_view.test.tsx
   - app/src/components/hooks/use_card_popup_back_dismiss.test.tsx

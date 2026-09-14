@@ -13,6 +13,7 @@ changedFiles:
   - app/src/components/diagram_view/diagram_view.test.tsx
   - app/src/components/diagram_view/tabbed_diagram_comparison.test.tsx
   - app/src/components/diagram_view/tabbed_diagram_comparison.tsx
+after: 02127bb8-87e9-4515-89b9-103550e2d125
 ---
 
 There appaers to be a bug in the layout of the diagram view. When in verical split and we go to tabs  all ok. When from horizontal split to tabs, remains horizontal split layout

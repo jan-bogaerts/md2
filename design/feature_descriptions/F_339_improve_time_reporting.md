@@ -22,6 +22,7 @@ changedFiles:
   - patch_totals.py
   - shared/agent_conversations.mjs
   - shared/agent_event_categories.mjs
+after: 3509c194-adbf-4e1c-ad64-6aa9560354b4
 ---
 we currently keep track how long a conversation runs. we should improve this measurement and include how much time was spend running tools, reasoning and then the rest. this way, we can see how much time was actually used by the agent itself.
 

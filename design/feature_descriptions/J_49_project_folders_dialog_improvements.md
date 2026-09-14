@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - app/src/components/shell/project/project_folder_setup_fields.tsx
+after: e77dd870-74a2-4509-97c0-ce42ffc064fd
 ---
 * clicking outside of the dialog should not close it. to cancel, user needs to explicitly click on cancel
 * We need to improve the style of the dialog: currently, the folder is not really easy to overview, its just a list of texts.

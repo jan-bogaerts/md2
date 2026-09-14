@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__526d5eb3-f1f1-4d3e-a65f-a5721d69a23c.json
 policy:
-after: 25184e4d-b340-439f-bf0a-dd54afd466b2
+after: 0be5ec62-c3e8-4d20-8b15-fd81f2636fc9
 changedFiles:
   - app/src/components/editor/editor_no_mock.test.tsx
   - app/src/components/editor/markdown_editor.grouped.test.tsx

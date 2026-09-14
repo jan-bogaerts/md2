@@ -28,6 +28,7 @@ changedFiles:
   - desktop/src/shell/preload.test.mjs
   - shared/action_schedules.d.mts
   - shared/action_schedules.mjs
+after: 19a0dd49-b8f7-4dbb-a6a6-eb515260dacd
 ---
 Foundation for [F\_331](F_331_improve_schedule_action.md): define persisted schedule variants and management APIs used by later UI and execution jobs.
 

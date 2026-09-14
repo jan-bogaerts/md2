@@ -16,6 +16,7 @@ changedFiles:
   - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
   - app/src/components/diagram_view/diagram_zoom_viewport.tsx
   - app/src/components/diagram_view/use_diagram_ctrl_wheel_zoom.ts
+after: 5fdacfce-a360-41f7-a964-343f37edd94e
 ---
 
 on the diagram view, we currently support zooming .we should allow the user to zoom with the mouse : when ctrl is pressed, the scroll-wheel should zoom in and out.
