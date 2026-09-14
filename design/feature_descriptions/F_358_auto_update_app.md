@@ -3,13 +3,18 @@ author:
 id: F_358
 internalId: cf3ba1a5-1822-4aed-9626-f7107f677bac
 title: auto update app
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__cf3ba1a5-1822-4aed-9626-f7107f677bac.json
 policy:
 after: e635ff29-5c2e-40a2-9374-baa53708524f
+changedFiles:
+  - app/src/components/shell/update_notification.grouped.test.tsx
+  - app/src/components/shell/update_notification.test.tsx
+  - app/src/services/update_service.service.test.ts
+  - desktop/src/shell/preload.test.mjs
 ---
 The app is released on github: [https://github.com/jan-bogaerts/md2](https://github.com/jan-bogaerts/md2)
 
