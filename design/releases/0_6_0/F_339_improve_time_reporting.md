@@ -1,0 +1,93 @@
+---
+author: 
+id: F_339
+internalId: 2f6108ac-7b47-4374-a2c6-292b5871b064
+title: improve time reporting
+status: ready
+owner: 
+affects:
+agents:
+  - design/releases/0_6_0/card__2f6108ac-7b47-4374-a2c6-292b5871b064.json
+policy:
+changedFiles:
+  - app/src/components/actions/conversation/conversation_timer.tsx
+  - app/src/services/actions/action_run_registry.ts
+  - app/src/services/stats/stats_duration_components.ts
+  - app/src/services/stats/stats_duration_split.node.test.ts
+  - desktop/src/actions/agent/agent_conversation.js
+  - desktop/src/actions/agent/agent_conversation_phases.js
+  - desktop/src/actions/agent/agent_conversation_phases.test.mjs
+  - patch_perf.py
+  - patch_service_tests.py
+  - patch_totals.py
+  - shared/agent_conversations.mjs
+  - shared/agent_event_categories.mjs
+after: 3509c194-adbf-4e1c-ad64-6aa9560354b4
+---
+we currently keep track how long a conversation runs. we should improve this measurement and include how much time was spend running tools, reasoning and then the rest. this way, we can see how much time was actually used by the agent itself.
+
+in the action popup's chatlog, we currently show the total time that the conversation ran, we should keep this, but add a tooltip that splits the time up in it's parts, so the user can see the values.
+
+in the stats:
+
+* agent/model performance, measured duration: each bar should be a stack of it's individual time-duration components. Each component its own color, include details in the legend. don't randomly pick colors, but be smart about it, user sees 2 bars per day: 1 for each agent. blocks should be easy to compare, so for instance one agent has a lighter shade of colors then the other agent
+* totals by card: again a stack of duration blocks. put colors in legend (each type of duration gets it's own color)
+
+## Current state
+
+**One number is measured today.** `transitionConversationStatus` in `desktop/src/actions/agent/agent_conversation.js:70` is the only place a duration is produced. It stamps `timer.runningStartedAt` when the conversation enters `running` and, when it leaves `running`, adds that period to `timer.elapsedMs` and clears the start stamp. The timer is created as `{ elapsedMs: 0, runningStartedAt: startedAt }` in `createConversation` (`agent_conversation.js:140`) and carried over unchanged when a stored conversation is continued, so `elapsedMs` is the accumulated wall clock of all `running` periods across every turn of the conversation. Periods where the run is parked on a question (`handleQuestion`, `desktop/src/actions/agent/agent_streaming_event_handlers.js:122`) or on a tool approval (`handleApproval`, same file line 133) are already excluded, because both move the status to `waitingForInput` first. The timer is validated on every save by `normalizeTimer` in `shared/agent_conversations.mjs:237`, which accepts exactly the two fields and drops anything else.
+
+**Nothing measures the parts.** Provider events all funnel through `recordProviderEvent` (`desktop/src/actions/agent/agent_provider_event.js:8`), called from the streaming path (`agent_streaming_event_handlers.js:78`) and the non-streaming path (`agent_runner_service.js:580`). It keys entries by `providerItemId`, so a later lifecycle state of the same item (`inProgress` then `completed` or `failed`) overwrites the earlier entry in place, including its `timestamp`. The first-seen time of a tool call or a reasoning block is therefore not recoverable from the stored transcript afterwards: only the last timestamp survives. Codex tool items carry a provider-supplied `durationMs` (`agent_codex_event.js:217`, `:241`, `:252`), rendered per event by `agent_tool_event.tsx:89` and `command_execution_event.tsx:107`, but Claude items carry none: `claudeToolEvent` and the `thinking` handling in `agent_claude_streaming_adapter.js:200`, `:476` and `:586` emit no duration. So no cross-agent split exists today, and none can be derived from already stored data.
+
+**The chat log shows the total only.** `ConversationTimer` (`app/src/components/actions/conversation/conversation_timer.tsx:22`) renders the `m:ss` caption from `displayedElapsedMs`, which adds the currently open period to `elapsedMs` while the status is `running` and ticks once a second. It is deliberately isolated so only that node re-renders. Its `timer` prop comes from `ConversationMetaInfo` (`conversation_meta_info.tsx:30`), which prefers the live run timer and falls back to the selected stored conversation. The live timer reaches the renderer over the run event stream: `emitRunEvent` (`desktop/src/actions/agent/agent_run_state.js:9`) attaches `run.conversation.timer` to `state` events only, and `action_run_registry.ts:884` merges it into the run's conversation when handling `agentState`.
+
+**Both stats charts plot the total as one flat bar.** `elapsedMs` becomes the `elapsedMs` conversation fact in `calculateActivityStats` (`shared/project_stats.mjs:217`) and is validated by `parseConversation` (`:104`). In agent/model performance, `performanceMetricValue` (`app/src/services/stats/stats_performance_dataset.ts:44`) returns it as the sample value and `groupRow` emits one row per agent or model per bucket with `stackIdentity: null`; `stats_content.tsx:54` renders that dataset in `grouped` mode, so one bucket shows one plain bar per agent. In totals, `basicTotalsRows` (`stats_totals_dataset.ts:140`) sums it per card or action into a single row and the chart runs in `single` mode. Conversations whose timer is missing are counted into `omittedTimerCount` (`stats_snapshot_builder.ts:29`) and reported as a note.
+
+**Stacking and per-family colours already exist and are reusable.** `StatsBarChart` supports `stacked` and `groupedStacked` modes: `groupedStackedBars` (`stats_bar_chart.tsx:69`) groups rows into bars by `stackIdentity`, draws segments bottom-up in row order, labels the bar with `stackLabel` and puts the bar total above it. The legend is built from every distinct `seriesIdentity` and `seriesLabel` pair. Colours come from `allocateSeriesColors` (`stats_series_colors.ts:75`): each row is matched to a palette family through `matchedGroup(groupNames, row.provider ?? row.agent)`, and within a family colours are handed out in sorted-identity order, which makes the assignment stable and independent of row order. The configured families (`app/src/theme/app_theme.ts:55`) are `claude` and `codex`, each a list of four different hues. There is no notion today of one hue in several shades, which is what "one agent lighter than the other" needs.
+
+## Implementation details
+
+The split has three parts plus a legacy one: **tool time** (a tool call is in flight), **reasoning time** (a reasoning or thinking item is in flight), **agent time** (everything else inside the measured total: waiting for the model to answer, streaming text, md2's own bookkeeping), and **unmeasured** (a conversation recorded before this feature, which has a total but no split). Time parked waiting for the user stays outside the total, exactly as today, so every already recorded duration keeps its meaning.
+
+**Timer shape.** Extend `AgentConversationTimer` with an optional `breakdown: { reasoningMs, toolMs }`. `elapsedMs` stays the total and stays authoritative. Agent time is always derived, never stored: `max(0, elapsedMs - toolMs - reasoningMs)`. An absent `breakdown` means "not measured", which is what old conversations carry.
+
+* `shared/agent_conversations.mjs`: `normalizeTimer` accepts and re-emits `breakdown` when present, rejecting non-finite or negative members and a sum above `elapsedMs`; a timer without it round-trips unchanged.
+* `app/src/data/data_types.ts:374`: add the optional field to the timer interface.
+
+**Measuring spans.** Add a run-scoped phase tracker (a new `desktop/src/actions/agent/agent_conversation_phases.js`) holding a map of open spans keyed by `providerItemId` and a list of closed `{ category, startMs, endMs }` intervals. `recordProviderEvent` is the single funnel and drives it: on the first event for an item id whose status is not terminal, open a span at the event timestamp; on a later event for the same id with a terminal status (`completed`, `failed`, `aborted`, `cancelled`, `declined`), close it. The category comes from the event type. `reasoning` is reasoning; the tool set is the one `isToolCallEvent` and `CODEX_TOOL_EVENT_TYPES` already use in `shared/project_stats.mjs:7`, `:141` (`commandExecution`, `fileChange`, `mcpToolCall`, `dynamicToolCall`, `collabAgentToolCall`, `webSearch`, `imageView`, plus any `tool.*` type that is not `tool.result`). Move that classifier into a shared module and import it in both places, so "how many tool calls" and "how much tool time" can never disagree about what a tool is. Every other event type (assistant text, diagnostics, system, `agentQuestion`, `contextCompaction`) opens no span and therefore lands in agent time.
+
+**Folding spans into the timer.** Tools run in parallel and sub-agent threads overlap, so summing span lengths would exceed the wall clock and produce stacks taller than the total. Fold by **union of intervals**: per category, over the intervals clipped to the running period being closed. Where a tool span and a reasoning span overlap, the overlap is charged to tools, so each millisecond is counted exactly once. Do the fold inside `transitionConversationStatus`, at the same moment `elapsedMs` accumulates, by passing the tracker as an optional fourth argument (callers are `agent_runner_service.js:226`, `:302`, `:673`, `:732` and `agent_conversation.js:119`; a missing tracker keeps today's behaviour). Any span still open at that transition is closed at the transition timestamp and reopened when the status returns to `running`. That is what makes a tool waiting for its approval contribute only the time it actually worked.
+
+**Live tooltip freshness.** So the tooltip is not empty during a long uninterrupted run, also fold a closed span into `run.conversation.timer.breakdown` the moment it closes, and let `emitRunEvent` (`agent_run_state.js:9`) attach the timer to `agentEvent` events as it already does for `state` events. The `agentEvent` branch of `action_run_registry.ts:897` merges that one field into the run's conversation and republishes nothing else. One consequence to accept and to state in the tooltip: while a tool is still running, its time is not yet in `toolMs`, so it shows under agent time until that tool finishes.
+
+**Continuation and persistence.** `createConversation` already spreads the stored conversation, so a continued conversation keeps its accumulated `breakdown` and the new tracker adds on top of it. Checkpoints (`persistCheckpoint`) and terminal persistence write the timer as they do today, so no new write path is needed.
+
+**Chat log tooltip.** Wrap the existing caption in `ConversationTimer` (`conversation_timer.tsx:36`) in an MUI `Tooltip` using `whiteSpace: 'pre-line'`, listing `Total`, `Tools`, `Reasoning` and `Agent`; when the conversation has no `breakdown`, list a single `Unmeasured` line instead of the three parts. Each line shows its value through the existing `formatDuration` plus its percentage of the total. Keep the displayed caption exactly as it is and keep the component's isolation: the tooltip text is computed from the same `timer` prop, with no new subscription. Carry the same text in an `aria-label` so the split is reachable without hovering.
+
+**Stats facts.** In `shared/project_stats.mjs`, `calculateActivityStats` (`:217`) also emits `reasoningMs` and `toolMs` from `conversation.timer?.breakdown ?? null`, and `parseConversation` (`:103`) reads them as `value.reasoningMs ?? null` through `nullableNonNegativeNumber`. Reading with `?? null` rather than as required fields is what lets an existing `project_stats.json` and the archived release snapshots keep parsing, so `RELEASE_STATS_VERSION` stays at 3 and their conversations simply come back unmeasured.
+
+**Segment colours: hue per component, shade per agent.** Add one palette family per component to `theme.palette.custom.chartPalettes` (`app_theme.ts:55`): `duration:tool`, `duration:reasoning`, `duration:agent` and `duration:unmeasured`, each a list of shades of a single hue ordered light to dark, with `duration:unmeasured` a neutral grey. Add `colorGroup: string | null` to `StatsChartRow` and let `matchedGroup` (`stats_series_colors.ts:39`) prefer it over `row.provider ?? row.agent`. Because the allocator hands out palette entries in sorted-identity order within a family, giving each segment row the series identity `<agent> <component>` makes the first agent take shade 0 of every component and the second agent shade 1: one hue per duration type, one lightness per agent, stable across both charts and across re-renders. Totals rows are not per agent and always take shade 0.
+
+**Agent/model performance chart.** When `performanceMetric === 'duration'` and the aggregation is `sum` or `average`, `groupRow` (`stats_performance_dataset.ts:127`) emits four rows per group instead of one, in the fixed bottom-to-top order tools, reasoning, agent, unmeasured. They share `stackIdentity` and `stackLabel` (the group's identity and label) and each carries its own `seriesIdentity`, `seriesLabel` (`"<agent> - Tools"` and so on) and `colorGroup`. Components aggregate the same way as the total: `sum` sums each component, `average` divides each component's sum by the same `sampleCount`, so the segments always add up to the aggregate a single bar shows today. A sample whose `toolMs` or `reasoningMs` is null contributes its whole `elapsedMs` to the unmeasured component. Zero-valued components are still emitted so the legend stays complete; `StatsBarChart` already skips drawing a zero segment. `median` and `averageWithDeviation` keep exactly today's single bar and whisker, because medians of parts do not add up to the median of the total and a whisker on a stack segment has no meaning; the split is still listed in that bar's tooltip. `stats_content.tsx:54` selects `groupedStacked` for the stacked case and keeps `grouped` otherwise.
+
+**Totals chart.** `basicTotalsRows` (`stats_totals_dataset.ts:130`) emits the same four rows per card or action when `totalsMetric === 'duration'`, sharing the card's or action's identity as `stackIdentity`, and `stats_content.tsx` renders totals in `stacked` mode for that metric. Sorting in `totalsRows` (`:293`) sorts bars by their stack total and keeps the fixed component order inside each bar. Legend entries are per component only (`Tools`, `Reasoning`, `Agent`, `Unmeasured`), because a card's runs may mix agents.
+
+**Tooltips and export.** Each segment's tooltip names the component, its duration through `formatDurationHms`, its share of the bar total, and the bar's own heading line, so the existing two-line contract in `totalRow` still holds. No CSV schema change is needed: `series_identity` already names the component and `stack_identity` already names the bar (`stats_csv.ts:3`).
+
+**Tests.** Node tests for the union-of-intervals fold (overlapping tools, a tool spanning an approval pause, a span still open at cancellation), for `normalizeTimer` round-tripping and rejecting a breakdown above the total, for `calculateActivityStats` and `parseConversation` on both the old and the new shape, and for both datasets under each aggregation. Component tests for the chat log tooltip and for legend content and segment order in both charts. Type-check with `npm run typecheck`.
+
+## Acceptance criteria
+
+* A finished conversation stores `timer.breakdown` with non-negative `toolMs` and `reasoningMs` whose sum never exceeds `timer.elapsedMs`, and the total `elapsedMs` is unchanged from what the same run would have recorded before this feature.
+* Time parked on a question or a tool approval stays outside `elapsedMs`, and a tool that waits for its approval contributes only the time it actually ran.
+* Two tools running in parallel contribute their union, not their sum: components never add up past the total, and no stacked bar is ever taller than the run's measured duration.
+* Tool time counts the same event types the tool-call count already counts, from one shared classifier, for both Claude and Codex, in streaming and non-streaming runs.
+* Continuing a stored conversation keeps accumulating on top of the stored breakdown instead of restarting it, and the timer survives an activity-file save and reload unchanged.
+* The chat log caption still shows the total in the same format; hovering it shows total, tools, reasoning and agent time with percentages, and a conversation without a breakdown shows a single `Unmeasured` line instead.
+* The tooltip updates during a run as tools and reasoning blocks finish, without re-rendering the rest of the chat log.
+* In agent/model performance with metric `duration` and aggregation `sum` or `average`, each agent's bar is a stack of tools, reasoning, agent and unmeasured segments in that fixed order, and the segments add up exactly to the value the unsplit bar showed before.
+* With aggregation `median` or `average with deviation`, that chart is unchanged: one bar per agent with its whisker intact, and the split available in the tooltip.
+* In totals by card and by action with metric `duration`, each bar is the same stack, bars stay sorted by their total, and the legend names every duration type.
+* Each duration type has one hue in both charts, and two agents in the same bucket are told apart by lightness within that hue, consistently across components and across chart re-renders.
+* A conversation recorded before this feature appears as a single neutral `Unmeasured` segment carrying its whole total, and totals and averages that include it stay correct.
+* An existing `project_stats.json` and the archived release snapshots still load without a version bump, with their conversations reported as unmeasured.
