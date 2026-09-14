@@ -447,6 +447,11 @@ function describeFieldChange(change: DiagramChange, context: DiagramDescriptionC
     if (change.objectKind === 'entityField') return describeEntityFieldChange(change, context);
     if (change.objectKind === 'legendEntry') return describeLegendChange(change, context);
     if (change.objectKind === 'fragment') return describeFragmentField(change, context);
+    if (change.objectKind === 'formatting') {
+        const target = change.objectId === 'diagram' ? 'diagram' : `${String(change.field)} ${quote(change.objectId)}`;
+
+        return changedValueSentence(`${target} formatting`, String(change.field), change);
+    }
 
     throw new Error(`Diagram field change ${change.id} has unsupported object kind ${change.objectKind}`);
 }

@@ -2,7 +2,10 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../data/action_types'
-import type { DiagramData } from '../../services/diagrams/diagram_data'
+import type {
+    DiagramConnectionKindFormatting, DiagramData, DiagramEdgeKind, DiagramNodeRoleFormatting, DiagramRole,
+} from '../../services/diagrams/diagram_data'
+import type { DiagramScaleField } from '../../services/diagrams/diagram_formatting'
 import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type {
@@ -133,6 +136,7 @@ function createService(initial = initialSnapshot()) {
     let snapshot = initial
     let viewportScale = DEFAULT_DIAGRAM_ZOOM
     const snapshotEvents = new EventTarget()
+    const formattingEvents = new EventTarget()
     const viewportScaleEvents = new EventTarget()
     const publish = (next: DiagramViewSnapshot) => {
         const previous = snapshot
@@ -167,6 +171,9 @@ function createService(initial = initialSnapshot()) {
         ),
         getCurrentSelectedItemSnapshot: () => currentSelection,
         getErrorSnapshot: () => snapshot.error,
+        getFormattingScaleSnapshot: (field: DiagramScaleField) => snapshot.currentDiagram?.formatting?.[field] ?? 100,
+        getNodeRoleFormattingSnapshot: (role: DiagramRole) => snapshot.currentDiagram?.formatting?.nodeRoles?.[role],
+        getConnectionKindFormattingSnapshot: (kind: DiagramEdgeKind) => snapshot.currentDiagram?.formatting?.connectionKinds?.[kind],
         getIndexSnapshot: () => snapshot.index,
         getLegendCollapsedSnapshot: () => snapshot.legend.collapsed,
         getLegendPositionSnapshot: () => snapshot.legend.position,
@@ -252,6 +259,27 @@ function createService(initial = initialSnapshot()) {
 
             return true
         }),
+        setFormattingScale: vi.fn((field: DiagramScaleField, value: number) => {
+            if (!snapshot.currentDiagram) return
+            snapshot.currentDiagram.formatting = { ...snapshot.currentDiagram.formatting, [field]: value }
+            formattingEvents.dispatchEvent(new Event(`scale:${field}`))
+        }),
+        setNodeRoleFormatting: vi.fn((role: DiagramRole, value: DiagramNodeRoleFormatting) => {
+            if (!snapshot.currentDiagram) return
+            snapshot.currentDiagram.formatting = {
+                ...snapshot.currentDiagram.formatting,
+                nodeRoles: { ...snapshot.currentDiagram.formatting?.nodeRoles, [role]: value },
+            }
+            formattingEvents.dispatchEvent(new Event(`role:${role}`))
+        }),
+        setConnectionKindFormatting: vi.fn((kind: DiagramEdgeKind, value: DiagramConnectionKindFormatting) => {
+            if (!snapshot.currentDiagram) return
+            snapshot.currentDiagram.formatting = {
+                ...snapshot.currentDiagram.formatting,
+                connectionKinds: { ...snapshot.currentDiagram.formatting?.connectionKinds, [kind]: value },
+            }
+            formattingEvents.dispatchEvent(new Event(`kind:${kind}`))
+        }),
         selectCurrentObject: vi.fn((selection: {
             activeDiagramId: string, itemId: string, itemLabel: string, objectKind: 'edge' | 'node',
         }) => {
@@ -286,6 +314,21 @@ function createService(initial = initialSnapshot()) {
             snapshotEvents.addEventListener('error', listener)
 
             return () => snapshotEvents.removeEventListener('error', listener)
+        },
+        subscribeFormattingScale: (field: DiagramScaleField, listener: () => void) => {
+            formattingEvents.addEventListener(`scale:${field}`, listener)
+
+            return () => formattingEvents.removeEventListener(`scale:${field}`, listener)
+        },
+        subscribeNodeRoleFormatting: (role: DiagramRole, listener: () => void) => {
+            formattingEvents.addEventListener(`role:${role}`, listener)
+
+            return () => formattingEvents.removeEventListener(`role:${role}`, listener)
+        },
+        subscribeConnectionKindFormatting: (kind: DiagramEdgeKind, listener: () => void) => {
+            formattingEvents.addEventListener(`kind:${kind}`, listener)
+
+            return () => formattingEvents.removeEventListener(`kind:${kind}`, listener)
         },
         subscribeIndex: (listener: () => void) => {
             snapshotEvents.addEventListener('index', listener)

@@ -88,6 +88,7 @@ function EditableDiagramNodeLeaf({
             dimmed={dimmed}
             entityFieldSource={diagramType === 'entity' ? { nodeId, session } : undefined}
             flowPreset={preset ?? undefined}
+            formattingStore={session}
             node={node}
             onOpenDetails={handleOpenDetails}
             onSelect={handleSelect}

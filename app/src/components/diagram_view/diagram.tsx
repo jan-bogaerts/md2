@@ -10,6 +10,8 @@ import { CurrentDiagramEdge } from './current_diagram_edge'
 import { CurrentDiagramNode } from './current_diagram_node'
 import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 import { SequenceLifeline } from './sequence_lifeline'
+import { diagramFontStyle } from './diagram_font_style'
+import { useDiagramFormattingScale } from './use_diagram_formatting'
 
 export interface DiagramProps {
     data: PositionedDiagramData
@@ -26,6 +28,7 @@ function ignoreContextMenu() {}
 export function Diagram(props: DiagramProps) {
     const {data, emphasis = diagramEmphasisService, onContextMenu = ignoreContextMenu} = props
     const {onSelect, service = diagramViewService} = props
+    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', service as DiagramViewService)
     const surfaceRef = useRef<HTMLDivElement>(null)
     const nodeLabels = new Map(data.nodes.map((node) => [node.id, node.label]))
     const handleSelect: DiagramSelectHandler = (selection) => {
@@ -44,8 +47,14 @@ export function Diagram(props: DiagramProps) {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: data.width }}>
             <Box>
-                <Typography variant="h6">{data.meta.title}</Typography>
-                <Typography color="text.secondary" variant="body2">{data.meta.description}</Typography>
+                <Typography sx={diagramFontStyle(undefined, fontScalePercent, 'h6')} variant="h6">{data.meta.title}</Typography>
+                <Typography
+                    color="text.secondary"
+                    sx={diagramFontStyle(undefined, fontScalePercent, 'body2')}
+                    variant="body2"
+                >
+                    {data.meta.description}
+                </Typography>
             </Box>
             <Box
                 aria-label={`${data.meta.title} diagram`}
@@ -53,8 +62,22 @@ export function Diagram(props: DiagramProps) {
                 ref={surfaceRef}
                 sx={{ height: data.height, position: 'relative', width: data.width }}
             >
-                {data.groups.map((group) => <DiagramGroup emphasis={emphasis} group={group} key={group.id} />)}
-                {data.fragments.map((fragment) => <SequenceFragment emphasis={emphasis} fragment={fragment} key={fragment.id} />)}
+                {data.groups.map((group) => (
+                    <DiagramGroup
+                        emphasis={emphasis}
+                        formattingStore={service as DiagramViewService}
+                        group={group}
+                        key={group.id}
+                    />
+                ))}
+                {data.fragments.map((fragment) => (
+                    <SequenceFragment
+                        emphasis={emphasis}
+                        formattingStore={service as DiagramViewService}
+                        fragment={fragment}
+                        key={fragment.id}
+                    />
+                ))}
                 {data.meta.type === 'sequence' ? data.nodes.map((node) => (
                     <SequenceLifeline
                         emphasis={emphasis}

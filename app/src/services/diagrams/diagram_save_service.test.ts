@@ -35,6 +35,19 @@ function createHarness(sourceDiagram: DiagramData = diagram) {
 }
 
 describe('DiagramSaveService', () => {
+    it('persists New formatting through edited-copy save flow', async () => {
+        const { saveEditedDiagramCopy, service, session } = createHarness()
+        session.setNodeRoleFormatting('focal', { box: { fillColor: '#112233' } })
+        session.setFormattingScale('spacingScalePercent', 120)
+
+        await service.save()
+
+        expect(JSON.parse(saveEditedDiagramCopy.mock.calls[0][0].content).formatting).toEqual({
+            nodeRoles: { focal: { box: { fillColor: '#112233' } } },
+            spacingScalePercent: 120,
+        })
+    })
+
     it('saves canonical model data and acknowledges one stable copy without replacing session diagrams', async () => {
         const sourceWithRenderingData = {
             ...diagram,

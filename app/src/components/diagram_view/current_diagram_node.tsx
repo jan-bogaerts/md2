@@ -35,6 +35,7 @@ function CurrentDiagramNodeLeaf(props: CurrentDiagramNodeProps) {
             diagramType={diagramType}
             dimmed={dimmed}
             flowPreset={flowPreset}
+            formattingStore={service as DiagramViewService}
             node={node}
             onSelect={onSelect}
             selected={selected}

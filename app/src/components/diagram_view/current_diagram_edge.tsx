@@ -29,7 +29,16 @@ function CurrentDiagramEdgeLeaf(props: CurrentDiagramEdgeProps) {
     const selected = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
     const dimmed = useDiagramObjectDimmed('current', 'edge', edge.id, emphasis)
 
-    return <DiagramEdge dimmed={dimmed} edge={edge} nodeLabels={nodeLabels} onSelect={onSelect} selected={selected} />
+    return (
+        <DiagramEdge
+            dimmed={dimmed}
+            edge={edge}
+            formattingStore={service as DiagramViewService}
+            nodeLabels={nodeLabels}
+            onSelect={onSelect}
+            selected={selected}
+        />
+    )
 }
 
 export const CurrentDiagramEdge = memo(CurrentDiagramEdgeLeaf)

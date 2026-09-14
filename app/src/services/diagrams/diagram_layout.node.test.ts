@@ -86,6 +86,38 @@ describe('diagram layout', () => {
         expect(derived.groups[0].height).toBeGreaterThan(0)
     })
 
+    it('scales resolved node boxes and reroutes automatic connections without changing model geometry', () => {
+        const data = diagram()
+        const originalExplicitNode = { ...data.nodes[2] }
+        const unscaled = layout(data)
+        data.formatting = { boxScalePercent: 150 }
+
+        const scaled = layout(data)
+
+        expect(nodeById(scaled, 'one')).toMatchObject({ height: 108, width: 240 })
+        expect(nodeById(scaled, 'three')).toMatchObject({ height: 132, width: 300, x: 400, y: 300 })
+        expect(scaled.edges[0].points).not.toEqual(unscaled.edges[0].points)
+        expect(data.nodes[2]).toEqual(originalExplicitNode)
+    })
+
+    it('scales automatic gaps while preserving explicit coordinates and waypoints', () => {
+        const data = diagram('sequence')
+        data.nodes[2] = { ...data.nodes[2], x: 400, y: 300 }
+        data.edges = [{
+            from: 'one', id: 'explicit', kind: 'call', to: 'three',
+            waypoints: [{ x: 80, y: 200 }, { x: 400, y: 200 }],
+        }]
+        const unscaled = layout(data)
+        data.formatting = { spacingScalePercent: 150 }
+
+        const scaled = layout(data)
+
+        expect(nodeById(scaled, 'two').x).toBeGreaterThan(nodeById(unscaled, 'two').x)
+        expect(nodeById(scaled, 'three')).toMatchObject({ x: 400, y: 300 })
+        expect(scaled.edges[0].points).toEqual(data.edges[0].waypoints)
+        expect(scaled.groups[0].width).toBeGreaterThan(unscaled.groups[0].width)
+    })
+
     it('gives an empty group without persisted geometry a finite grid-aligned automatic box', () => {
         const data = diagram()
         data.groups[0].nodeIds = []

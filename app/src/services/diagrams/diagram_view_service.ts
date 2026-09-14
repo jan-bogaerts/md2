@@ -16,12 +16,31 @@ import {
     type DiagramIndex,
     type DiagramRecord,
 } from './diagram_index'
-import { isDiagramDataPath, parseDiagramData, type DiagramData } from './diagram_data'
+import {
+    isDiagramDataPath,
+    parseDiagramData,
+    serializeDiagramData,
+    type DiagramConnectionKindFormatting,
+    type DiagramData,
+    type DiagramEdgeKind,
+    type DiagramFormatting,
+    type DiagramNodeRoleFormatting,
+    type DiagramRole,
+} from './diagram_data'
+import {
+    diagramScale,
+    type DiagramFormattingCategory,
+    type DiagramScaleField,
+    withConnectionKindFormatting,
+    withDiagramScale,
+    withNodeRoleFormatting,
+} from './diagram_formatting'
 import { layout, type PositionedDiagramData } from './diagram_layout'
 import { DEFAULT_DIAGRAM_ZOOM } from './diagram_zoom'
 
 const DIAGRAM_INDEX_COMMIT_MESSAGE = 'Update diagram view'
 const DIAGRAM_COPY_COMMIT_MESSAGE = 'Save edited diagram copy'
+const DIAGRAM_FORMATTING_COMMIT_MESSAGE = 'Update diagram formatting'
 const MAXIMUM_COPY_PATH_ATTEMPTS = 100
 const CURRENT_DIAGRAM_CHANGED_EVENT = 'currentDiagramChanged'
 const CURRENT_DIAGRAM_ERROR_CHANGED_EVENT = 'currentDiagramErrorChanged'
@@ -146,6 +165,14 @@ function normalizedPathKey(path: string) {
 
 function currentSelectionChangedEvent(objectKind: CurrentDiagramSelection['objectKind'], itemId: string) {
     return `${CURRENT_SELECTION_CHANGED_EVENT_PREFIX}:${objectKind}:${itemId}`
+}
+
+function formattingCategoryChangedEvent(category: DiagramFormattingCategory, value: string) {
+    return `currentFormatting:${category}:${encodeURIComponent(value)}`
+}
+
+function formattingScaleChangedEvent(field: DiagramScaleField) {
+    return `currentFormatting:scale:${field}`
 }
 
 function insertAfter(values: readonly string[], existingValue: string, value: string) {
@@ -345,6 +372,14 @@ export class DiagramViewService extends EventTarget {
 
     getViewportScaleSnapshot = () => this.viewportScale
 
+    getFormattingSnapshot = (): DiagramFormatting | undefined => this.sourceSnapshot?.diagram.formatting
+
+    getFormattingScaleSnapshot = (field: DiagramScaleField) => diagramScale(this.getFormattingSnapshot(), field)
+
+    getNodeRoleFormattingSnapshot = (role: DiagramRole) => this.getFormattingSnapshot()?.nodeRoles?.[role]
+
+    getConnectionKindFormattingSnapshot = (kind: DiagramEdgeKind) => this.getFormattingSnapshot()?.connectionKinds?.[kind]
+
     subscribeCurrentDiagram = (listener: () => void) => {
         this.addEventListener(CURRENT_DIAGRAM_CHANGED_EVENT, listener)
 
@@ -433,6 +468,18 @@ export class DiagramViewService extends EventTarget {
 
         return () => this.removeEventListener(VIEWPORT_SCALE_CHANGED_EVENT, listener)
     }
+
+    subscribeFormattingScale = (field: DiagramScaleField, listener: () => void) => (
+        this.subscribe(formattingScaleChangedEvent(field), listener)
+    )
+
+    subscribeNodeRoleFormatting = (role: DiagramRole, listener: () => void) => (
+        this.subscribe(formattingCategoryChangedEvent('nodeRole', role), listener)
+    )
+
+    subscribeConnectionKindFormatting = (kind: DiagramEdgeKind, listener: () => void) => (
+        this.subscribe(formattingCategoryChangedEvent('connectionKind', kind), listener)
+    )
 
     bindProject(binding: DiagramProjectBinding) {
         const projectKey = `${binding.project.id}:${binding.project.branch}`
@@ -618,6 +665,30 @@ export class DiagramViewService extends EventTarget {
         await this.applyActivePath(this.snapshot.index.activePath.slice(0, -1))
     }
 
+    setFormattingScale(field: DiagramScaleField, value: number) {
+        const source = this.requireFormattingSource()
+        source.diagram.formatting = withDiagramScale(source.diagram, field, value)
+        if (field === 'boxScalePercent' || field === 'spacingScalePercent') {
+            this.setCurrentDiagram(layout(source.diagram))
+        }
+        this.dispatchEvent(new Event(formattingScaleChangedEvent(field)))
+        this.scheduleCurrentFormatting(source)
+    }
+
+    setNodeRoleFormatting(role: DiagramRole, value: DiagramNodeRoleFormatting) {
+        const source = this.requireFormattingSource()
+        source.diagram.formatting = withNodeRoleFormatting(source.diagram, role, value)
+        this.dispatchEvent(new Event(formattingCategoryChangedEvent('nodeRole', role)))
+        this.scheduleCurrentFormatting(source)
+    }
+
+    setConnectionKindFormatting(kind: DiagramEdgeKind, value: DiagramConnectionKindFormatting) {
+        const source = this.requireFormattingSource()
+        source.diagram.formatting = withConnectionKindFormatting(source.diagram, kind, value)
+        this.dispatchEvent(new Event(formattingCategoryChangedEvent('connectionKind', kind)))
+        this.scheduleCurrentFormatting(source)
+    }
+
     /** Persists canonical edited data and its record in one shared commit batch. */
     async saveEditedDiagramCopy(request: SaveEditedDiagramCopyRequest) {
         const binding = this.requireBinding()
@@ -779,6 +850,18 @@ export class DiagramViewService extends EventTarget {
         return this.binding
     }
 
+    private requireFormattingSource() {
+        this.requireReady()
+        if (!this.sourceSnapshot) throw new Error('Cannot format without an active diagram')
+
+        return this.sourceSnapshot
+    }
+
+    private scheduleCurrentFormatting(source: DiagramViewSourceSnapshot) {
+        const content = serializeDiagramData(source.diagram)
+        this.dependencies.scheduleCommit({ content, path: source.record.path }, DIAGRAM_FORMATTING_COMMIT_MESSAGE)
+    }
+
     private requireReady() {
         if (this.snapshot.status !== 'ready') throw new Error('Diagram view is not ready')
     }
@@ -894,6 +977,12 @@ export class DiagramViewService extends EventTarget {
 
         this.viewportScale = DEFAULT_DIAGRAM_ZOOM
         this.dispatchEvent(new Event(VIEWPORT_SCALE_CHANGED_EVENT))
+    }
+
+    private subscribe(eventType: string, listener: EventListener) {
+        this.addEventListener(eventType, listener)
+
+        return () => this.removeEventListener(eventType, listener)
     }
 }
 

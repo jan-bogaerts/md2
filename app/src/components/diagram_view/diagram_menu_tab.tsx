@@ -22,6 +22,7 @@ import { DiagramMenuToolButton } from './diagram_menu_tool_button';
 import { DiagramMetadataButton } from './diagram_metadata_button';
 import { DiagramPasteButton } from './diagram_paste_button';
 import { useCancelDiagramInteractionOnEscape } from './use_diagram_tool';
+import { DiagramFormattingControls } from './diagram_formatting_controls';
 
 /** Diagram app-menu content. Changing diagram state rerenders only subscribed leaf controls. */
 export function DiagramMenuTab({
@@ -41,7 +42,11 @@ export function DiagramMenuTab({
     return (
         <Tab>
             {!editSession ? (
-                <Section label="Diagram"><DiagramEditButton session={session} viewService={viewService} /></Section>
+                <>
+                    <Section label="Diagram"><DiagramEditButton session={session} viewService={viewService} /></Section>
+                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                    <Section label="Formatting"><DiagramFormattingControls store={viewService} surface="Current" /></Section>
+                </>
             ) : (
                 <>
                     <Section label="Edit">
@@ -58,6 +63,11 @@ export function DiagramMenuTab({
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="Add">
                         <DiagramAddControl session={session} />
+                    </Section>
+                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                    <Section label="Formatting">
+                        <DiagramFormattingControls store={session} surface="New" />
+                        <DiagramFormattingControls store={viewService} surface="Current" />
                     </Section>
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="Comparison">

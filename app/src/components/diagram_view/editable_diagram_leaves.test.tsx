@@ -145,6 +145,26 @@ describe('editable diagram leaves', () => {
         expect(screen.getByRole('button', { name: 'Order intake' })).toBeTruthy()
     })
 
+    it('rerenders only leaves matching one formatted semantic category', () => {
+        const { counts, session } = renderTree()
+        const beforeRole = new Map(counts)
+
+        act(() => { session.setNodeRoleFormatting('focal', { font: { color: '#112233' } }) })
+
+        expect(counts.get('orders')).toBeGreaterThan(beforeRole.get('orders') ?? 0)
+        expect(counts.get('store')).toBe(beforeRole.get('store'))
+        expect(counts.get('edge')).toBe(beforeRole.get('edge'))
+        expect(counts.get('group')).toBe(beforeRole.get('group'))
+        const beforeConnection = new Map(counts)
+
+        act(() => { session.setConnectionKindFormatting('connection', { line: { thickness: 4 } }) })
+
+        expect(counts.get('edge')).toBeGreaterThan(beforeConnection.get('edge') ?? 0)
+        expect(counts.get('orders')).toBe(beforeConnection.get('orders'))
+        expect(counts.get('store')).toBe(beforeConnection.get('store'))
+        expect(counts.get('group')).toBe(beforeConnection.get('group'))
+    })
+
     it('rerenders only the owning entity leaf when one position-addressed field changes', () => {
         const { counts, session } = renderTree(entityDiagram)
         const before = new Map(counts)
@@ -156,6 +176,14 @@ describe('editable diagram leaves', () => {
         expect(counts.get('edge')).toBe(before.get('edge'))
         expect(counts.get('group')).toBe(before.get('group'))
         expect(screen.getByText('# orderId: uuid')).toBeInTheDocument()
+    })
+
+    it('applies node-role font formatting to entity fields', () => {
+        const { session } = renderTree(entityDiagram)
+
+        act(() => { session.setNodeRoleFormatting('focal', { font: { color: '#112233', family: 'serif' } }) })
+
+        expect(screen.getByText('# id: uuid')).toHaveStyle({ color: '#112233', fontFamily: 'serif' })
     })
 
     it('rerenders the edge leaf for its own label and leaves the node leaves alone', () => {

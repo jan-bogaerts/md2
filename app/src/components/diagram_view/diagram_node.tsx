@@ -1,6 +1,6 @@
 import { Box, ButtonBase, Typography } from '@mui/material'
 import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
-import type { DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data'
+import type { DiagramContentPosition, DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data'
 import type { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import type { PositionedDiagramNode } from '../../services/diagrams/diagram_layout'
 import { DiagramEntityFieldRow } from './diagram_entity_field'
@@ -8,6 +8,10 @@ import { diagramRoleStyle } from './diagram_role_style'
 import type { DiagramSelectHandler } from './diagram_selection'
 import { EditableDiagramEntityFields } from './editable_diagram_entity_fields'
 import { DIAGRAM_DIMMED_OPACITY } from './diagram_emphasis_presentation'
+import { diagramFontStyle } from './diagram_font_style'
+import {
+    type DiagramFormattingStore, useDiagramFormattingScale, useDiagramNodeRoleFormatting,
+} from './use_diagram_formatting'
 
 interface EditableEntityFieldSource {
     nodeId: string
@@ -19,10 +23,18 @@ interface DiagramNodeProps {
     dimmed?: boolean
     entityFieldSource?: EditableEntityFieldSource
     flowPreset?: DiagramFlowPreset
+    formattingStore?: DiagramFormattingStore
     node: PositionedDiagramNode
     onOpenDetails?: () => void
     onSelect: DiagramSelectHandler
     selected: boolean
+}
+
+function contentPosition(position: DiagramContentPosition | undefined) {
+    const vertical = position?.startsWith('top') ? 'flex-start' : position?.startsWith('bottom') ? 'flex-end' : 'safe center'
+    const horizontal = position?.endsWith('left') ? 'flex-start' : position?.endsWith('right') ? 'flex-end' : 'center'
+
+    return { alignItems: horizontal, justifyContent: vertical }
 }
 
 function kindStyles(node: PositionedDiagramNode, flowPreset: DiagramFlowPreset | undefined) {
@@ -50,11 +62,14 @@ function decisionPoints(node: PositionedDiagramNode) {
 
 /** Positioned, themed, keyboard-operable diagram item. */
 export function DiagramNode(props: DiagramNodeProps) {
-    const {diagramType, dimmed = false, entityFieldSource, flowPreset, node} = props
+    const {diagramType, dimmed = false, entityFieldSource, flowPreset, formattingStore, node} = props
     const {onOpenDetails, onSelect, selected} = props
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
     const decision = node.kind === 'decision'
-    const roleStyle = diagramRoleStyle(node.role)
+    const formatting = useDiagramNodeRoleFormatting(node.role, formattingStore)
+    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
+    const roleStyle = diagramRoleStyle(node.role, formatting)
+    const positionStyle = contentPosition(formatting?.box?.contentPosition)
     const [focused, setFocused] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
     const pressScrollTop = useRef(0)
@@ -103,8 +118,8 @@ export function DiagramNode(props: DiagramNodeProps) {
                     alignItems: 'stretch', border: '1px solid', color: 'text.primary', display: 'flex', flexDirection: 'column',
                     height: node.height, left: node.x, overflow: 'hidden', position: 'absolute', textAlign: 'left',
                     opacity: dimmed ? DIAGRAM_DIMMED_OPACITY : 1, top: node.y, width: node.width, zIndex: 2,
-                    ...roleStyle,
                     ...kindStyles(node, flowPreset),
+                    ...roleStyle,
                     '&:focus-visible': { borderColor: 'primary.main' },
                 }}
             >
@@ -125,8 +140,10 @@ export function DiagramNode(props: DiagramNodeProps) {
                                 color: roleStyle.borderColor,
                                 fill: 'none',
                                 stroke: 'currentColor',
-                                strokeDasharray: 'borderStyle' in roleStyle && roleStyle.borderStyle === 'dashed' ? '4 4' : undefined,
-                                strokeWidth: 1,
+                                strokeDasharray: formatting?.box?.borderStyle === 'dashed'
+                                    ? '4 4'
+                                    : formatting?.box?.borderStyle === 'dotted' ? '1 3' : undefined,
+                                strokeWidth: formatting?.box?.borderThickness ?? 1,
                                 vectorEffect: 'non-scaling-stroke',
                             }}
                         />
@@ -140,22 +157,31 @@ export function DiagramNode(props: DiagramNodeProps) {
                             display: 'flex', flex: 1, flexDirection: 'column', position: 'relative',
                             // `safe center` centres content that fits and falls back to top alignment once it overflows,
                             // so the tag and label stay reachable instead of being clipped above the scroll origin.
-                            justifyContent: 'safe center', minHeight: 0, overflowX: 'hidden', overflowY: 'auto',
+                            ...positionStyle, minHeight: 0, overflowX: 'hidden', overflowY: 'auto',
                         }}
                     >
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 2, py: 1 }}>
-                            {node.tag ? <Typography color="custom.text3" variant="overline">{node.tag}</Typography> : null}
-                            <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }} variant="body2">{node.label}</Typography>
+                            {node.tag ? <Typography color="custom.text3" sx={diagramFontStyle(formatting?.font, fontScalePercent, 'overline')} variant="overline">{node.tag}</Typography> : null}
+                            <Typography sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'body2'), fontWeight: formatting?.font?.bold === undefined ? 600 : undefined, overflowWrap: 'anywhere' }} variant="body2">{node.label}</Typography>
                             {node.sublabel ? (
-                                <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="caption">{node.sublabel}</Typography>
+                                <Typography color="text.secondary" sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'caption'), overflowWrap: 'anywhere' }} variant="caption">{node.sublabel}</Typography>
                             ) : null}
                         </Box>
                         {diagramType === 'entity' && (entityFieldSource || node.fields) ? (
                             <Box sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', px: 2, py: 1 }}>
                                 {entityFieldSource ? (
-                                    <EditableDiagramEntityFields {...entityFieldSource} />
+                                    <EditableDiagramEntityFields
+                                        {...entityFieldSource}
+                                        fontFormatting={formatting?.font}
+                                        fontScalePercent={fontScalePercent}
+                                    />
                                 ) : node.fields?.map((field, fieldIndex) => (
-                                    <DiagramEntityFieldRow field={field} key={fieldIndex} />
+                                    <DiagramEntityFieldRow
+                                        field={field}
+                                        fontFormatting={formatting?.font}
+                                        fontScalePercent={fontScalePercent}
+                                        key={fieldIndex}
+                                    />
                                 ))}
                             </Box>
                         ) : null}
@@ -164,7 +190,7 @@ export function DiagramNode(props: DiagramNodeProps) {
                 {diagramType === 'dependency' ? (
                     <Typography
                         color="text.secondary"
-                        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0.25, position: 'absolute', px: 0.5, right: 1, top: 0.75 }}
+                        sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'caption'), border: '1px solid', borderColor: 'divider', borderRadius: 0.25, position: 'absolute', px: 0.5, right: 1, top: 0.75 }}
                         variant="caption"
                     >
                         {node.fanIn} in

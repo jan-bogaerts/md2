@@ -120,6 +120,47 @@ function membershipDetail(listener: ReturnType<typeof vi.fn>, callIndex = 0) {
 }
 
 describe('DiagramEditSessionService', () => {
+    it('tracks New formatting independently as scoped semantic changes', () => {
+        const { service, sourceService } = createHarness()
+        service.start()
+        const sourceBefore = structuredClone(sourceService.getSourceSnapshot()?.diagram)
+        const focalChanged = vi.fn()
+        const connectionChanged = vi.fn()
+        const fontScaleChanged = vi.fn()
+        service.subscribeNodeRoleFormatting('focal', focalChanged)
+        service.subscribeConnectionKindFormatting('connection', connectionChanged)
+        service.subscribeFormattingScale('fontScalePercent', fontScaleChanged)
+
+        service.setNodeRoleFormatting('focal', { font: { bold: true, color: '#112233' } })
+        service.setConnectionKindFormatting('connection', { endMarker: 'open-arrow', line: { thickness: 3 } })
+        service.setFormattingScale('fontScalePercent', 110)
+
+        expect(service.getNodeRoleFormattingSnapshot('focal')).toEqual({ font: { bold: true, color: '#112233' } })
+        expect(service.getConnectionKindFormattingSnapshot('connection')).toEqual({ endMarker: 'open-arrow', line: { thickness: 3 } })
+        expect(service.getFormattingScaleSnapshot('fontScalePercent')).toBe(110)
+        expect(service.getDirtySnapshot()).toBe(true)
+        expect(service.getChangeIdsSnapshot()).toEqual([
+            'diagram:formatting:nodeRole:focal',
+            'diagram:formatting:connectionKind:connection',
+            'diagram:formatting:scale:fontScalePercent',
+        ])
+        expect(focalChanged).toHaveBeenCalledOnce()
+        expect(connectionChanged).toHaveBeenCalledOnce()
+        expect(fontScaleChanged).toHaveBeenCalledOnce()
+        expect(sourceService.getSourceSnapshot()?.diagram).toEqual(sourceBefore)
+    })
+
+    it('clears a formatting change when value returns to baseline', () => {
+        const { service } = createHarness({ source: { ...diagram, formatting: { boxScalePercent: 120 } } })
+        service.start()
+
+        service.setFormattingScale('boxScalePercent', 130)
+        service.setFormattingScale('boxScalePercent', 120)
+
+        expect(service.getDirtySnapshot()).toBe(false)
+        expect(service.getChangeIdsSnapshot()).toEqual([])
+    })
+
     it('sets viewport scale directly without changing editable model state', () => {
         const { service } = createHarness()
         const viewportScaleChanged = vi.fn()

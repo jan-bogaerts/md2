@@ -23,14 +23,7 @@ type DiagramLegendTab = 'current' | 'new'
 
 interface DiagramLegendProps {
     data: PositionedDiagramData
-    service?: Pick<DiagramViewService,
-        'collapseLegend'
-        | 'expandLegend'
-        | 'getLegendCollapsedSnapshot'
-        | 'getLegendPositionSnapshot'
-        | 'moveLegend'
-        | 'subscribeLegendCollapsed'
-        | 'subscribeLegendPosition'>
+    service?: DiagramViewService
     /** Present only while an edit session is active, which is when the New tab is offered. */
     session?: SessionLegendSource | null
 }
@@ -214,6 +207,7 @@ export function DiagramLegend({ data, service = diagramViewService, session = nu
                             <DiagramLegendEntryList
                                 entries={entries}
                                 label={session ? 'Current diagram legend entries' : 'Diagram legend entries'}
+                                store={service}
                             />
                         ) : <DiagramSessionLegendEntries session={session} />}
                     </Box>

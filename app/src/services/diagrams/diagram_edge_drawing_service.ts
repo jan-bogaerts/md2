@@ -175,9 +175,12 @@ export class DiagramEdgeDrawingService extends EventTarget {
         const defaults = this.requireActiveDefaults()
         const node = this.requirePositionedNode(nodeId)
         if (this.session.getMetadataFieldSnapshot('type') === 'sequence') {
-            const rowIndex = sequenceMessageInsertionIndexAt(point.y, this.session.getEdgeIdsSnapshot().length)
+            const spacingScalePercent = this.session.getFormattingScaleSnapshot('spacingScalePercent')
+            const rowIndex = sequenceMessageInsertionIndexAt(
+                point.y, this.session.getEdgeIdsSnapshot().length, spacingScalePercent,
+            )
             const sourceAttachment = { nodeId, offset: 0.5, side: 'bottom' } as const
-            const source = Object.freeze({ x: node.x + node.width / 2, y: sequenceMessageRowY(rowIndex) })
+            const source = Object.freeze({ x: node.x + node.width / 2, y: sequenceMessageRowY(rowIndex, spacingScalePercent) })
             this.sequenceRowIndex = rowIndex
             this.setPreview({ kind: defaults.kind, points: Object.freeze([source]), sourceAttachment, targetAttachment: null })
             this.session.beginTransientGesture('edge')
@@ -274,8 +277,11 @@ export class DiagramEdgeDrawingService extends EventTarget {
     ) {
         const sourceNode = this.requirePositionedNode(preview.sourceAttachment.nodeId)
         const targetNode = targetNodeId ? this.findPositionedNode(targetNodeId) : null
-        const rowIndex = sequenceMessageInsertionIndexAt(point.y, this.session.getEdgeIdsSnapshot().length)
-        const y = sequenceMessageRowY(rowIndex)
+        const spacingScalePercent = this.session.getFormattingScaleSnapshot('spacingScalePercent')
+        const rowIndex = sequenceMessageInsertionIndexAt(
+            point.y, this.session.getEdgeIdsSnapshot().length, spacingScalePercent,
+        )
+        const y = sequenceMessageRowY(rowIndex, spacingScalePercent)
         const source = Object.freeze({ x: sourceNode.x + sourceNode.width / 2, y })
         const target = Object.freeze({ x: targetNode ? targetNode.x + targetNode.width / 2 : point.x, y })
         const targetAttachment = targetNode

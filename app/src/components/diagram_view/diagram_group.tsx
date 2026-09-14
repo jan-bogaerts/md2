@@ -6,10 +6,13 @@ import {
 } from '../../services/diagrams/diagram_emphasis_service'
 import { useDiagramDecorationsDimmed } from './use_diagram_emphasis'
 import { DIAGRAM_DIMMED_OPACITY } from './diagram_emphasis_presentation'
+import { diagramFontStyle } from './diagram_font_style'
+import { type DiagramFormattingStore, useDiagramFormattingScale } from './use_diagram_formatting'
 
 interface DiagramGroupProps {
     emphasis?: DiagramEmphasisService
     emphasisSurface?: DiagramSurface
+    formattingStore?: DiagramFormattingStore
     group: PositionedDiagramGroup
     onOpenDetails?: () => void
     onSelect?: (ctrlKey: boolean) => void
@@ -20,12 +23,14 @@ interface DiagramGroupProps {
 export function DiagramGroup({
     emphasis = diagramEmphasisService,
     emphasisSurface = 'current',
+    formattingStore,
     group,
     onOpenDetails,
     onSelect,
     selected = false,
 }: DiagramGroupProps) {
     const dimmed = useDiagramDecorationsDimmed(emphasisSurface, emphasis)
+    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
     const interactive = !!onSelect
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => onSelect?.(event.ctrlKey)
     const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -64,7 +69,7 @@ export function DiagramGroup({
             }}
             type={interactive ? 'button' : undefined}
         >
-            <Typography color="custom.text3" sx={{ bgcolor: 'background.default', left: 1, px: 0.5, position: 'absolute', top: 0.5 }} variant="overline">
+            <Typography color="custom.text3" sx={{ ...diagramFontStyle(undefined, fontScalePercent, 'overline'), bgcolor: 'background.default', left: 1, px: 0.5, position: 'absolute', top: 0.5 }} variant="overline">
                 {group.label}
             </Typography>
         </Box>

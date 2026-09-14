@@ -57,6 +57,53 @@ function startSession(source: DiagramData) {
 afterEach(cleanup)
 
 describe('DiagramSessionLegendEntries', () => {
+    it('offers accessible role formatting and applies one New transaction', async () => {
+        const session = startSession(legendDiagram)
+        const user = userEvent.setup()
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+
+        const gear = screen.getByRole('button', { name: 'Format Service' })
+        expect(gear).toBeInTheDocument()
+        await user.click(gear)
+        expect(screen.getByRole('textbox', { name: 'Font family' })).toBeInTheDocument()
+        expect(screen.getByRole('spinbutton', { name: 'Font size' })).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Font color' })).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Fill color' })).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Border color' })).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Border style' })).toBeInTheDocument()
+        expect(screen.getByRole('spinbutton', { name: 'Border thickness' })).toBeInTheDocument()
+        expect(screen.getByRole('spinbutton', { name: 'Corner radius' })).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'Content position' })).toBeInTheDocument()
+
+        await user.type(screen.getByRole('textbox', { name: 'Font family' }), 'Inter')
+        await user.type(screen.getByRole('textbox', { name: 'Fill color' }), '#112233')
+        await user.click(screen.getByRole('checkbox', { name: 'Bold' }))
+        await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+        expect(session.getNodeRoleFormattingSnapshot('focal')).toMatchObject({
+            box: { contentPosition: 'center', fillColor: '#112233' },
+            font: { bold: true, family: 'Inter' },
+        })
+    })
+
+    it('offers all connection markers and Cancel changes nothing', async () => {
+        const session = startSession(legendDiagram)
+        const user = userEvent.setup()
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+
+        await user.click(screen.getByRole('button', { name: 'Format Calls' }))
+        const startMarker = screen.getByRole('combobox', { name: 'Start marker' })
+        await user.click(startMarker)
+        for (const marker of ['none', 'filled-arrow', 'open-arrow', 'circle', 'diamond']) {
+            expect(screen.getByRole('option', { name: marker })).toBeInTheDocument()
+        }
+        await user.keyboard('{Escape}')
+        await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+        expect(session.getConnectionKindFormattingSnapshot('connection')).toBeUndefined()
+        expect(session.getDirtySnapshot()).toBe(false)
+    })
+
     it('renders explicit session entries in stored order', () => {
         const session = startSession(legendDiagram)
 

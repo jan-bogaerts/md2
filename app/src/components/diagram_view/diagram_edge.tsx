@@ -5,11 +5,16 @@ import { diagramEdgeStyle } from './diagram_edge_style'
 import { roundedDiagramPath } from './diagram_path'
 import type { DiagramSelectHandler } from './diagram_selection'
 import { DIAGRAM_DIMMED_OPACITY } from './diagram_emphasis_presentation'
+import { DiagramConnectionMarkerShape } from './diagram_connection_marker'
+import {
+    type DiagramFormattingStore, useDiagramConnectionKindFormatting, useDiagramFormattingScale,
+} from './use_diagram_formatting'
 
 const EDGE_LABEL_FONT_SIZE = 8
 interface DiagramEdgeProps {
     dimmed?: boolean
     edge: PositionedDiagramEdge
+    formattingStore?: DiagramFormattingStore
     /** Endpoint labels only, so a subscribing caller can supply them without owning positioned node objects. */
     nodeLabels: ReadonlyMap<string, string>
     onOpenDetails?: () => void
@@ -25,14 +30,20 @@ function edgeLabel(edge: PositionedDiagramEdge, nodeLabels: ReadonlyMap<string, 
 }
 
 /** Themed selectable connection rendered from validated geometry. */
-export function DiagramEdge({ dimmed = false, edge, nodeLabels, onOpenDetails, onSelect, selected }: DiagramEdgeProps) {
+export function DiagramEdge({ dimmed = false, edge, formattingStore, nodeLabels, onOpenDetails, onSelect, selected }: DiagramEdgeProps) {
     const theme = useTheme()
     const [focused, setFocused] = useState(false)
     const label = edgeLabel(edge, nodeLabels)
     const path = roundedDiagramPath(edge.points)
-    const { arrowhead, color, strokeDasharray, strokeWidth } = diagramEdgeStyle(edge.kind, theme, focused || selected)
+    const formatting = useDiagramConnectionKindFormatting(edge.kind, formattingStore)
+    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
+    const { color, endMarker, startMarker, strokeDasharray, strokeWidth } = diagramEdgeStyle(
+        edge.kind, theme, focused || selected, formatting,
+    )
     const visibleLabel = edge.label ?? (edge.kind === 'cycle' ? 'CYCLE' : null)
-    const markerId = `diagram-arrow-${useId().replace(/:/gu, '')}`
+    const markerId = `diagram-marker-${useId().replace(/:/gu, '')}`
+    const startMarkerId = `${markerId}-start`
+    const endMarkerId = `${markerId}-end`
     const handleSelect = (left: number, top: number, ctrlKey: boolean) => (
         onSelect({ id: edge.id, label, left, objectKind: 'edge', top }, ctrlKey)
     )
@@ -71,17 +82,19 @@ export function DiagramEdge({ dimmed = false, edge, nodeLabels, onOpenDetails, o
                 tabIndex={0}
             >
                 <defs>
-                    <marker id={markerId} markerHeight="6" markerWidth="8" orient="auto" refX="7" refY="3">
-                        {arrowhead === 'open'
-                            ? <polyline fill="none" points="0 0, 8 3, 0 6" stroke="currentColor" strokeWidth="1.2" />
-                            : <path d="M0,0 L8,3 L0,6 Z" fill="currentColor" />}
+                    <marker id={startMarkerId} markerHeight="6" markerWidth="8" orient="auto-start-reverse" refX="1" refY="3">
+                        <DiagramConnectionMarkerShape marker={startMarker} />
+                    </marker>
+                    <marker id={endMarkerId} markerHeight="6" markerWidth="8" orient="auto" refX="7" refY="3">
+                        <DiagramConnectionMarkerShape marker={endMarker} />
                     </marker>
                 </defs>
                 <path d={path} fill="none" opacity={0} stroke="currentColor" strokeWidth={12} />
                 <path
                     d={path}
                     fill="none"
-                    markerEnd={`url(#${markerId})`}
+                    markerEnd={endMarker === 'none' ? undefined : `url(#${endMarkerId})`}
+                    markerStart={startMarker === 'none' ? undefined : `url(#${startMarkerId})`}
                     stroke="currentColor"
                     strokeDasharray={strokeDasharray}
                     strokeLinecap="round"
@@ -99,9 +112,12 @@ export function DiagramEdge({ dimmed = false, edge, nodeLabels, onOpenDetails, o
                             y={labelPoint.y}
                         />
                         <text
-                            fill={color}
-                            fontFamily="monospace"
-                            fontSize={EDGE_LABEL_FONT_SIZE}
+                            fill={formatting?.font?.color ?? color}
+                            fontFamily={formatting?.font?.family ?? 'monospace'}
+                            fontSize={(formatting?.font?.size ?? EDGE_LABEL_FONT_SIZE) * fontScalePercent / 100}
+                            fontStyle={formatting?.font?.italic ? 'italic' : undefined}
+                            fontWeight={formatting?.font?.bold ? 700 : undefined}
+                            style={{ textDecoration: formatting?.font?.underline ? 'underline' : undefined }}
                             textAnchor="middle"
                             x={labelPoint.textX}
                             y={labelPoint.textY}
@@ -111,7 +127,7 @@ export function DiagramEdge({ dimmed = false, edge, nodeLabels, onOpenDetails, o
                     </g>
                 ) : null}
                 {edge.fromCardinality ? (
-                    <text fill={theme.palette.text.secondary} fontFamily="monospace" fontSize={EDGE_LABEL_FONT_SIZE} x={edge.points[0].x + 8} y={edge.points[0].y - 8}>
+                    <text fill={theme.palette.text.secondary} fontFamily="monospace" fontSize={EDGE_LABEL_FONT_SIZE * fontScalePercent / 100} x={edge.points[0].x + 8} y={edge.points[0].y - 8}>
                         {edge.fromCardinality}
                     </text>
                 ) : null}
@@ -119,7 +135,7 @@ export function DiagramEdge({ dimmed = false, edge, nodeLabels, onOpenDetails, o
                     <text
                         fill={theme.palette.text.secondary}
                         fontFamily="monospace"
-                        fontSize={EDGE_LABEL_FONT_SIZE}
+                        fontSize={EDGE_LABEL_FONT_SIZE * fontScalePercent / 100}
                         textAnchor="end"
                         x={(edge.points.at(-1)?.x ?? 0) - 8}
                         y={(edge.points.at(-1)?.y ?? 0) - 8}

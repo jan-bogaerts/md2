@@ -19,6 +19,7 @@ import {
     requireDiagramRelativeOffset,
     requireDiagramString,
     type DiagramConnectionPoint,
+    type DiagramConnectionKindFormatting,
     type DiagramData,
     type DiagramEdge,
     type DiagramEntityField,
@@ -29,10 +30,21 @@ import {
     type DiagramNodeKind,
     type DiagramEdgeKind,
     type DiagramRole,
+    type DiagramFormatting,
+    type DiagramNodeRoleFormatting,
     type DiagramSequenceFragment,
     type DiagramSequenceFragmentRegion,
     type DiagramSequenceOperator,
 } from './diagram_data'
+import {
+    diagramScale,
+    sameFormattingValue,
+    type DiagramFormattingCategory,
+    type DiagramScaleField,
+    withConnectionKindFormatting,
+    withDiagramScale,
+    withNodeRoleFormatting,
+} from './diagram_formatting'
 import type { DiagramRecord } from './diagram_index'
 import { diagramViewService, type DiagramViewSourceSnapshot } from './diagram_view_service'
 import { DEFAULT_DIAGRAM_ZOOM } from './diagram_zoom'
@@ -50,7 +62,7 @@ const EMPTY_IDS: readonly string[] = Object.freeze([])
 const MAX_ID_GENERATION_ATTEMPTS = 100
 
 export type DiagramCollectionKind = 'edge' | 'fragment' | 'group' | 'node'
-export type DiagramObjectKind = DiagramCollectionKind | 'connectionPoint' | 'entityField' | 'legendEntry' | 'meta'
+export type DiagramObjectKind = DiagramCollectionKind | 'connectionPoint' | 'entityField' | 'formatting' | 'legendEntry' | 'meta'
 export type DiagramRemovableObjectKind = Extract<DiagramCollectionKind, 'edge' | 'group' | 'node'>
 export type DiagramConnectionEndpoint = 'sourceAttachment' | 'targetAttachment'
 export type DiagramPersistentTool = 'select' | 'pan' | 'group' | `node:${DiagramNodeKind}` | `edge:${DiagramEdgeKind}`
@@ -277,6 +289,14 @@ export function diagramCollectionMembershipWillChangeEvent(objectKind: DiagramCo
     return `diagram:${objectKind}:membership:willChange`
 }
 
+export function diagramFormattingCategoryChangedEvent(category: DiagramFormattingCategory, value: string) {
+    return `diagram:formatting:${category}:${eventScope(value)}`
+}
+
+export function diagramFormattingScaleChangedEvent(field: DiagramScaleField) {
+    return `diagram:formatting:scale:${field}`
+}
+
 export function diagramGroupMembershipChangedEvent(groupId: string) {
     return `diagram:group:${eventScope(groupId)}:nodeIds`
 }
@@ -416,6 +436,14 @@ export class DiagramEditSessionService extends EventTarget {
     getTransientGestureSnapshot = () => this.transientGesture
 
     getViewportScaleSnapshot = () => this.viewportScale
+
+    getFormattingSnapshot = (): DeepReadonly<DiagramFormatting> | undefined => this.editableDiagram?.formatting
+
+    getFormattingScaleSnapshot = (field: DiagramScaleField) => diagramScale(this.editableDiagram?.formatting, field)
+
+    getNodeRoleFormattingSnapshot = (role: DiagramRole) => this.editableDiagram?.formatting?.nodeRoles?.[role]
+
+    getConnectionKindFormattingSnapshot = (kind: DiagramEdgeKind) => this.editableDiagram?.formatting?.connectionKinds?.[kind]
 
     getChangeIdsSnapshot = () => this.changeIds
 
@@ -574,6 +602,18 @@ export class DiagramEditSessionService extends EventTarget {
     subscribeTransientGesture = (listener: () => void) => this.subscribe(TRANSIENT_GESTURE_CHANGED_EVENT, listener)
 
     subscribeViewportScale = (listener: () => void) => this.subscribe(VIEWPORT_SCALE_CHANGED_EVENT, listener)
+
+    subscribeFormattingScale = (field: DiagramScaleField, listener: () => void) => (
+        this.subscribe(diagramFormattingScaleChangedEvent(field), listener)
+    )
+
+    subscribeNodeRoleFormatting = (role: DiagramRole, listener: () => void) => (
+        this.subscribe(diagramFormattingCategoryChangedEvent('nodeRole', role), listener)
+    )
+
+    subscribeConnectionKindFormatting = (kind: DiagramEdgeKind, listener: () => void) => (
+        this.subscribe(diagramFormattingCategoryChangedEvent('connectionKind', kind), listener)
+    )
 
     subscribeChangeIds = (listener: () => void) => this.subscribe(CHANGE_IDS_CHANGED_EVENT, listener)
 
@@ -808,6 +848,47 @@ export class DiagramEditSessionService extends EventTarget {
         this.dispatchEvent(new Event(VIEWPORT_SCALE_CHANGED_EVENT))
 
         return true
+    }
+
+    setFormattingScale(field: DiagramScaleField, value: number) {
+        const diagram = this.requireEditableDiagram()
+        const previousValue = diagramScale(diagram.formatting, field)
+        const formatting = withDiagramScale(diagram, field, value)
+        if (previousValue === value) return
+
+        diagram.formatting = formatting
+        this.finishFormattingChange(
+            diagramFormattingScaleChangedEvent(field), 'diagram', field,
+            diagramScale(this.changeBaselineDiagram?.formatting, field), previousValue, value,
+        )
+    }
+
+    setNodeRoleFormatting(role: DiagramRole, value: DiagramNodeRoleFormatting) {
+        const diagram = this.requireEditableDiagram()
+        const previousValue = diagram.formatting?.nodeRoles?.[role]
+        const formatting = withNodeRoleFormatting(diagram, role, value)
+        const nextValue = formatting.nodeRoles?.[role]
+        if (sameFormattingValue(previousValue, nextValue)) return
+
+        diagram.formatting = formatting
+        this.finishFormattingChange(
+            diagramFormattingCategoryChangedEvent('nodeRole', role), role, 'nodeRole',
+            this.changeBaselineDiagram?.formatting?.nodeRoles?.[role], previousValue, nextValue,
+        )
+    }
+
+    setConnectionKindFormatting(kind: DiagramEdgeKind, value: DiagramConnectionKindFormatting) {
+        const diagram = this.requireEditableDiagram()
+        const previousValue = diagram.formatting?.connectionKinds?.[kind]
+        const formatting = withConnectionKindFormatting(diagram, kind, value)
+        const nextValue = formatting.connectionKinds?.[kind]
+        if (sameFormattingValue(previousValue, nextValue)) return
+
+        diagram.formatting = formatting
+        this.finishFormattingChange(
+            diagramFormattingCategoryChangedEvent('connectionKind', kind), kind, 'connectionKind',
+            this.changeBaselineDiagram?.formatting?.connectionKinds?.[kind], previousValue, nextValue,
+        )
     }
 
     setMetadataField<Field extends MutableDiagramMetaField>(field: Field, value: DiagramMeta[Field]) {
@@ -2530,6 +2611,24 @@ export class DiagramEditSessionService extends EventTarget {
         this.setChange(change, ownerKey, Object.is(originalValue, value))
         this.commitTransaction([])
         const detail = { field, objectId, objectKind, previousValue, value }
+        this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(changeId, { detail }))
+    }
+
+    private finishFormattingChange(
+        changeId: string,
+        objectId: string,
+        field: string,
+        originalValue: unknown,
+        previousValue: unknown,
+        value: unknown,
+    ) {
+        const change: DiagramChange = {
+            category: 'field', field, id: changeId, objectId, objectKind: 'formatting',
+            originalValue, ownerId: null, regionIndex: null, value,
+        }
+        this.setChange(change, `formatting:${objectId}:${field}`, sameFormattingValue(originalValue, value))
+        this.commitTransaction([])
+        const detail = { field, objectId, objectKind: 'formatting' as const, previousValue, value }
         this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(changeId, { detail }))
     }
 

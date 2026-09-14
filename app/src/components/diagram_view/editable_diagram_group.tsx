@@ -61,6 +61,7 @@ function EditableDiagramGroupLeaf({
         <DiagramGroup
             emphasis={emphasis}
             emphasisSurface="new"
+            formattingStore={session}
             group={group}
             onOpenDetails={handleOpenDetails}
             onSelect={handleSelect}

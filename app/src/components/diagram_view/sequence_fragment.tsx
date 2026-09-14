@@ -5,17 +5,21 @@ import {
 } from '../../services/diagrams/diagram_emphasis_service'
 import { useDiagramDecorationsDimmed } from './use_diagram_emphasis'
 import { DIAGRAM_DIMMED_OPACITY } from './diagram_emphasis_presentation'
+import { diagramFontStyle } from './diagram_font_style'
+import { type DiagramFormattingStore, useDiagramFormattingScale } from './use_diagram_formatting'
 
 interface SequenceFragmentProps {
     emphasis?: DiagramEmphasisService
     emphasisSurface?: DiagramSurface
+    formattingStore?: DiagramFormattingStore
     fragment: PositionedSequenceFragment
     onOpenDetails?: () => void
 }
 
 /** Sequence alt, opt, or loop frame positioned behind messages. */
-export function SequenceFragment({emphasis = diagramEmphasisService, emphasisSurface = 'current', fragment, onOpenDetails}: SequenceFragmentProps) {
+export function SequenceFragment({emphasis = diagramEmphasisService, emphasisSurface = 'current', formattingStore, fragment, onOpenDetails}: SequenceFragmentProps) {
     const dimmed = useDiagramDecorationsDimmed(emphasisSurface, emphasis)
+    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
     return (
         <Box
             aria-label={`${fragment.operator} fragment`}
@@ -30,7 +34,7 @@ export function SequenceFragment({emphasis = diagramEmphasisService, emphasisSur
         >
             <Typography
                 color="text.secondary"
-                sx={{ bgcolor: 'background.default', border: '1px solid', borderColor: 'custom.borderStrong', left: -1, px: 1, position: 'absolute', top: -1 }}
+                sx={{ ...diagramFontStyle(undefined, fontScalePercent, 'overline'), bgcolor: 'background.default', border: '1px solid', borderColor: 'custom.borderStrong', left: -1, px: 1, position: 'absolute', top: -1 }}
                 variant="overline"
             >
                 {fragment.operator}
@@ -39,7 +43,7 @@ export function SequenceFragment({emphasis = diagramEmphasisService, emphasisSur
                 <Typography
                     color="text.secondary"
                     key={`${guard}:${y}`}
-                    sx={{ fontFamily: 'monospace', left: 1.5, position: 'absolute', top: y - fragment.y }}
+                    sx={{ ...diagramFontStyle(undefined, fontScalePercent, 'caption'), fontFamily: 'monospace', left: 1.5, position: 'absolute', top: y - fragment.y }}
                     variant="caption"
                 >
                     [{guard}]

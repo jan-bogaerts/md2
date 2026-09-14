@@ -49,6 +49,8 @@ import {
     diagramChangeReviewService, type DiagramChangeReviewService,
 } from './diagram_change_review_service'
 import { DiagramChangeActionPopup } from './diagram_change_action_popup'
+import { diagramFontStyle } from './diagram_font_style'
+import { useDiagramFormattingScale } from './use_diagram_formatting'
 
 interface EditableDiagramProps {
     details?: DiagramObjectDetailsService
@@ -70,13 +72,17 @@ interface MetadataLeafProps {
 
 /** Title of the New diagram; it observes that one metadata field. */
 export function EditableDiagramTitle({ session = diagramEditSessionService }: MetadataLeafProps) {
-    return <Typography variant="h6">{useEditableDiagramMetadataField('title', session) ?? ''}</Typography>
+    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', session)
+
+    return <Typography sx={diagramFontStyle(undefined, fontScalePercent, 'h6')} variant="h6">{useEditableDiagramMetadataField('title', session) ?? ''}</Typography>
 }
 
 /** Description of the New diagram; it observes that one metadata field. */
 export function EditableDiagramDescription({ session = diagramEditSessionService }: MetadataLeafProps) {
+    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', session)
+
     return (
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="text.secondary" sx={diagramFontStyle(undefined, fontScalePercent, 'body2')} variant="body2">
             {useEditableDiagramMetadataField('description', session) ?? ''}
         </Typography>
     )

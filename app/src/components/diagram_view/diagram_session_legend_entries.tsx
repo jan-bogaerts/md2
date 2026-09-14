@@ -6,21 +6,7 @@ import {
 import { derivedDiagramLegendEntries, type DiagramLegendEntry } from './diagram_legend_entries'
 import { DiagramLegendEntryList } from './diagram_legend_entry_list'
 
-export type SessionLegendSource = Pick<
-    DiagramEditSessionService,
-    'getEdgeFieldSnapshot'
-    | 'getEdgeIdsSnapshot'
-    | 'getLegendEntryFieldSnapshot'
-    | 'getLegendEntryKeysSnapshot'
-    | 'getNodeFieldSnapshot'
-    | 'getNodeIdsSnapshot'
-    | 'subscribeCollectionMembership'
-    | 'subscribeEdgeField'
-    | 'subscribeLegendEntryField'
-    | 'subscribeLegendMembership'
-    | 'subscribeNodeField'
-    | 'subscribeSession'
->
+export type SessionLegendSource = DiagramEditSessionService
 
 function explicitEntries(session: SessionLegendSource, entryKeys: readonly string[]): DiagramLegendEntry[] {
     return entryKeys.flatMap((entryKey): DiagramLegendEntry[] => {
@@ -99,5 +85,5 @@ export function DiagramSessionLegendEntries({
     label?: string
     session?: SessionLegendSource
 }) {
-    return <DiagramLegendEntryList entries={useSessionLegendEntries(session)} label={label} />
+    return <DiagramLegendEntryList entries={useSessionLegendEntries(session)} label={label} store={session} />
 }

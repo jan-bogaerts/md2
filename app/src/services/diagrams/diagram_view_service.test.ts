@@ -76,6 +76,35 @@ function completedEvent(overrides: Partial<ActionRunEvent> = {}): ActionRunEvent
 }
 
 describe('DiagramViewService', () => {
+    it('formats Current in place and schedules canonical content for captured active path', async () => {
+        const { run, scheduleCommit, service } = createHarness()
+        const boxScaleChanged = vi.fn()
+        const roleChanged = vi.fn()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+        scheduleCommit.mockClear()
+        const sourceBefore = service.getSourceSnapshot()
+        service.subscribeNodeRoleFormatting('focal', roleChanged)
+        service.subscribeFormattingScale('boxScalePercent', boxScaleChanged)
+
+        service.setNodeRoleFormatting('focal', { box: { fillColor: '#112233' } })
+        service.setFormattingScale('fontScalePercent', 110)
+        service.setFormattingScale('boxScalePercent', 120)
+
+        expect(service.getSourceSnapshot()).toBe(sourceBefore)
+        expect(service.getNodeRoleFormattingSnapshot('focal')).toEqual({ box: { fillColor: '#112233' } })
+        expect(roleChanged).toHaveBeenCalledOnce()
+        expect(boxScaleChanged).toHaveBeenCalledOnce()
+        expect(scheduleCommit).toHaveBeenCalledTimes(3)
+        expect(scheduleCommit.mock.calls[0][0].path).toBe('design/diagrams/overview.json')
+        expect(JSON.parse(scheduleCommit.mock.calls[2][0].content).formatting).toEqual({
+            boxScalePercent: 120,
+            fontScalePercent: 110,
+            nodeRoles: { focal: { box: { fillColor: '#112233' } } },
+        })
+    })
+
     it('ignores completed regular actions in diagram context', async () => {
         const { reportError, run, scheduleCommit, service } = createHarness()
         await service.open()

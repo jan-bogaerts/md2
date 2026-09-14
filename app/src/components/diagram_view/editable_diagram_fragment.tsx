@@ -50,7 +50,7 @@ function EditableDiagramFragmentLeaf({
 
     const handleOpenDetails = () => fragmentDialog.openEdit(fragmentId)
 
-    return <SequenceFragment emphasis={emphasis} emphasisSurface="new" fragment={fragment} onOpenDetails={handleOpenDetails} />
+    return <SequenceFragment emphasis={emphasis} emphasisSurface="new" formattingStore={session} fragment={fragment} onOpenDetails={handleOpenDetails} />
 }
 
 /** Memoised so a collection host rerender caused by another member cannot rerender this leaf. */

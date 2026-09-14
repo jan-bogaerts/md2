@@ -82,6 +82,7 @@ function EditableDiagramEdgeLeaf({
         <DiagramEdge
             dimmed={dimmed}
             edge={edge}
+            formattingStore={session}
             nodeLabels={EMPTY_NODE_LABELS}
             onOpenDetails={handleOpenDetails}
             onSelect={handleSelect}
