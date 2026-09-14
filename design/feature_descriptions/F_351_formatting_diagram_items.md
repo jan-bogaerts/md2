@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__19a0dd49-b8f7-4dbb-a6a6-eb515260dacd.json
 policy:
-branch: f_351_formatting_diagram_items
-worktree: 1
 changedFiles:
   - app/src/components/diagram_view/current_diagram_edge.tsx
   - app/src/components/diagram_view/current_diagram_node.tsx
