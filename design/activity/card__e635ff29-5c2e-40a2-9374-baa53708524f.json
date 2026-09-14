@@ -875,6 +875,30 @@
       "startedAt": "2026-09-14T10:03:34.559Z",
       "status": "completed",
       "rootConversationId": "agent-31d30c66-3f6c-46a6-9678-fee94dbae6f9"
+    },
+    {
+      "commits": [
+        {
+          "commit": "3af1fc904d7389806c4e92b19a6ab5aea81c306b",
+          "committedAt": "2026-09-14T13:26:53+02:00",
+          "deletions": 63,
+          "filePaths": [
+            "app/src/components/editor/markdown_emoji_picker_content.tsx",
+            "app/src/components/editor/markdown_emoji_toolbar_control.grouped.test.tsx",
+            "app/src/components/editor/markdown_emoji_toolbar_control.tsx"
+          ],
+          "filesChanged": 3,
+          "insertions": 137,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-14T13:26:53+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "e635ff29-5c2e-40a2-9374-baa53708524f",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
