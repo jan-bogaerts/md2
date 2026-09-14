@@ -1,5 +1,5 @@
 import type { ActionFile } from './action_types'
-import type { ActionSchedule } from './action_schedule_types'
+import type { AnySchedule } from './action_schedule_types'
 import type { ActivityStatsCalculationResult } from '../../../shared/project_stats.mjs'
 import type {
     AgentConversation,
@@ -55,8 +55,8 @@ export interface ElectronDataBridge {
     loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActivityConversations?(path: string): Promise<AgentConversation[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
-    loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
-    cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
+    loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<AnySchedule[]>
+    cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<AnySchedule[]>
     calculateActivityStats?(project: ProjectReference, paths: string[], calculationId: string): Promise<ActivityStatsCalculationResult>
     cancelActivityStatsCalculation?(calculationId: string): Promise<void>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
@@ -83,7 +83,7 @@ export interface ElectronDataBridge {
     pushWorktree?(request: WorktreeOperationRequest): Promise<void>
     refreshWorktrees?(project: ProjectReference): Promise<void>
     resolveProject(project: ProjectReference): Promise<ProjectReference>
-    saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
+    saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: AnySchedule[]): Promise<AnySchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     selectProjectSubFolder?(rootPath: string): Promise<string | null>
     selectWorktreeFolder?(): Promise<string | null>

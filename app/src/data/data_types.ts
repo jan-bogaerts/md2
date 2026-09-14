@@ -1,5 +1,5 @@
 import type { ActionFile } from './action_types'
-import type { ActionSchedule } from './action_schedule_types'
+import type { AnySchedule } from './action_schedule_types'
 import { DEFAULT_COLOR_SCHEME } from '../theme/theme_config'
 import type { ProjectBackgroundShade } from '../theme/project_background_shade'
 import type { ActivityStatsCalculationResult } from '../../../shared/project_stats.mjs'
@@ -454,8 +454,8 @@ export interface StorageService {
     listAgentConversationReferences?(project: ProjectReference, projectFolder: string): Promise<string[]>
     listRepositories(): Promise<RepositoryReference[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
-    loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]>
-    cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]>
+    loadActionSchedules?(project: ProjectReference, actionsFolder: string): Promise<AnySchedule[]>
+    cancelActionSchedule?(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<AnySchedule[]>
     calculateActivityStats?(project: ProjectReference, paths: string[], calculationId: string): Promise<ActivityStatsCalculationResult>
     cancelActivityStatsCalculation?(calculationId: string): Promise<void>
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
@@ -489,7 +489,7 @@ export interface StorageService {
     push(project: ProjectReference): Promise<void>
     pushWorktree?(request: WorktreeOperationRequest): Promise<void>
     refreshWorktrees?(project: ProjectReference): Promise<void>
-    saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]>
+    saveActionSchedules?(project: ProjectReference, actionsFolder: string, schedules: AnySchedule[]): Promise<AnySchedule[]>
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     selectWorktreeFolder?(): Promise<string | null>
     removeWorktree?(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void>

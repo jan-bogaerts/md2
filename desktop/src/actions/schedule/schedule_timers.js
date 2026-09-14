@@ -54,6 +54,7 @@ function reconcileScheduleTimers(schedules, dependencies) {
 
     for (const schedule of schedules) {
         if (schedule.status !== 'pending') continue;
+        if (schedule.trigger.type !== 'at') continue;
         if (dependencies.timers.has(schedule.id)) continue;
         registerPendingScheduleTimer(schedule, dependencies);
     }

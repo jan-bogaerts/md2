@@ -2,10 +2,13 @@ import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
+const sharedScheduleContract = require('../../../../shared/action_schedules.mjs');
 const {
+    activeSchedules,
     appendActionSchedule,
     cancelPendingActionSchedule,
     createActionScheduleFile,
+    deleteScheduleRecord,
     findPendingSchedule,
     parseActionScheduleFile,
     pendingScheduleIds,
@@ -20,12 +23,18 @@ function createSchedule(id = 'schedule-1', trigger = { timestamp: '2026-07-06T11
         context,
         createdAt: '2026-07-06T10:00:00.000Z',
         id,
+        kind: 'action',
         status: 'pending',
         trigger,
     };
 }
 
 describe('schedule store', () => {
+    it('uses shared parser and serializer directly', () => {
+        expect(parseActionScheduleFile).toBe(sharedScheduleContract.parseScheduleFile);
+        expect(createActionScheduleFile).toBe(sharedScheduleContract.createScheduleFile);
+    });
+
     it('parses and creates explicit schedule files', () => {
         const schedule = createSchedule();
 
@@ -34,7 +43,7 @@ describe('schedule store', () => {
     });
 
     it('rejects schedules with missing required fields', () => {
-        expect(() => parseActionScheduleFile({ schedules: [{ id: 'schedule-1' }] })).toThrow('missing actionId');
+        expect(() => parseActionScheduleFile({ schedules: [{ id: 'schedule-1' }] })).toThrow('missing kind');
     });
 
     it('parses project-wide schedules without a file target', () => {
@@ -63,6 +72,19 @@ describe('schedule store', () => {
 
         expect(findPendingSchedule([pendingSchedule], 'schedule-1')).toEqual(pendingSchedule);
         expect([...pendingScheduleIds([pendingSchedule, completedSchedule])]).toEqual(['schedule-1']);
+    });
+
+    it('filters active schedules and permanently removes one record', () => {
+        const pendingSchedule = createSchedule('schedule-1');
+        const runningSchedule = { ...createSchedule('schedule-2'), status: 'running' };
+        const completedSchedule = { ...createSchedule('schedule-3'), status: 'completed' };
+
+        expect(activeSchedules([pendingSchedule, runningSchedule, completedSchedule])).toEqual([
+            pendingSchedule,
+            runningSchedule,
+        ]);
+        expect(deleteScheduleRecord([pendingSchedule, completedSchedule], pendingSchedule.id)).toEqual([completedSchedule]);
+        expect(() => deleteScheduleRecord([pendingSchedule], 'missing')).toThrow('Schedule not found: missing');
     });
 
     it('rejects unsupported trigger types', () => {

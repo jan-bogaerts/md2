@@ -9,7 +9,7 @@ import type {
     AgentApprovalRequestId,
     PreparedActionPrompt,
 } from '../../data/action_run_types'
-import type { ActionSchedule } from '../../data/action_schedule_types'
+import type { AnySchedule } from '../../data/action_schedule_types'
 import type {
     ActionRunHistoryEntry,
     ActionRunHistoryRequest,
@@ -351,12 +351,12 @@ export class RemoteControlStorageService implements
         return this.request<ActionFile[]>('loadActionFiles', [project, actionsFolder])
     }
 
-    async loadActionSchedules(project: ProjectReference, actionsFolder: string): Promise<ActionSchedule[]> {
-        return this.request<ActionSchedule[]>('loadActionSchedules', [project, actionsFolder])
+    async loadActionSchedules(project: ProjectReference, actionsFolder: string): Promise<AnySchedule[]> {
+        return this.request<AnySchedule[]>('loadActionSchedules', [project, actionsFolder])
     }
 
-    async cancelActionSchedule(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<ActionSchedule[]> {
-        return this.request<ActionSchedule[]>('cancelActionSchedule', [project, actionsFolder, scheduleId])
+    async cancelActionSchedule(project: ProjectReference, actionsFolder: string, scheduleId: string): Promise<AnySchedule[]> {
+        return this.request<AnySchedule[]>('cancelActionSchedule', [project, actionsFolder, scheduleId])
     }
 
     async loadAgentConversation(_project: ProjectReference, path: string): Promise<AgentConversation> {
@@ -502,8 +502,8 @@ export class RemoteControlStorageService implements
         await this.request('refreshWorktrees', [project])
     }
 
-    async saveActionSchedules(project: ProjectReference, actionsFolder: string, schedules: ActionSchedule[]): Promise<ActionSchedule[]> {
-        return this.request<ActionSchedule[]>('saveActionSchedules', [project, actionsFolder, schedules])
+    async saveActionSchedules(project: ProjectReference, actionsFolder: string, schedules: AnySchedule[]): Promise<AnySchedule[]> {
+        return this.request<AnySchedule[]>('saveActionSchedules', [project, actionsFolder, schedules])
     }
 
     async saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void> {

@@ -116,6 +116,8 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Data.refreshWorktrees).toEqual(expect.any(Function));
         expect(exposed.md2Data.onWorktreesChanged).toEqual(expect.any(Function));
         expect(exposed.md2Actions.prepareActionPrompt).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.deleteSchedule).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.listActiveSchedules).toEqual(expect.any(Function));
         expect(exposed.md2Actions.startAction).toEqual(expect.any(Function));
         expect(exposed.md2Actions.sendActionMessage).toEqual(expect.any(Function));
         expect(exposed.md2Actions.splitActionConversation).toEqual(expect.any(Function));

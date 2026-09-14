@@ -30,6 +30,8 @@ function createDispatch(options = {}) {
         startProject: vi.fn(),
     };
     const actionSchedulerService = {
+        deleteSchedule: vi.fn(async () => []),
+        listActiveSchedules: vi.fn(async () => []),
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
         startProject: vi.fn(),
         subscribeRunEvents: vi.fn(() => vi.fn()),
@@ -924,6 +926,16 @@ describe('createLocalBridgeDispatch', () => {
             terminalResults: [{ failure: null, runId: 'run-ended', status: 'completed' }],
         });
         expect(actionRunnerService.loadRunRecoverySnapshot).toHaveBeenCalledWith(['run-ended']);
+    });
+
+    it('forwards schedule management through the action bridge', async () => {
+        const { actionSchedulerService, dispatch } = createDispatch();
+
+        await expect(dispatch.actionBridge.listActiveSchedules()).resolves.toEqual([]);
+        await expect(dispatch.actionBridge.deleteSchedule('schedule-1')).resolves.toEqual([]);
+
+        expect(actionSchedulerService.listActiveSchedules).toHaveBeenCalledOnce();
+        expect(actionSchedulerService.deleteSchedule).toHaveBeenCalledWith('schedule-1');
     });
 
     it('exposes worktree state subscriptions through the data bridge', () => {

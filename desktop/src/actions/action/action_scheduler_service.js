@@ -1,5 +1,11 @@
 const { normalizeFolderPath } = require('../../../../shared/project_config_defaults.mjs');
-const { appendActionSchedule, findPendingSchedule, updateActionScheduleStatus } = require('../schedule/schedule_store');
+const {
+    activeSchedules,
+    appendActionSchedule,
+    deleteScheduleRecord,
+    findPendingSchedule,
+    updateActionScheduleStatus,
+} = require('../schedule/schedule_store');
 const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = require('../schedule/schedule_timers');
 
 function createScheduleId() {
@@ -46,6 +52,7 @@ class ActionSchedulerService {
         this.project = null;
         this.actionsFolder = null;
         this.runIdsByScheduleId = new Map();
+        this.scheduleCompletionsByScheduleId = new Map();
         this.runningScheduleIds = new Set();
         this.timers = new Map();
     }
@@ -63,6 +70,7 @@ class ActionSchedulerService {
         clearScheduleTimers(this.timers, this.clearTimeout);
         this.runningScheduleIds.clear();
         this.runIdsByScheduleId.clear();
+        this.scheduleCompletionsByScheduleId.clear();
         this.project = null;
         this.actionsFolder = null;
     }
@@ -77,6 +85,7 @@ class ActionSchedulerService {
             context: registration.context,
             createdAt: new Date().toISOString(),
             id: createScheduleId(),
+            kind: 'action',
             status: 'pending',
             trigger: registration.trigger,
         };
@@ -85,6 +94,33 @@ class ActionSchedulerService {
         await this.reconcile();
 
         return schedule;
+    }
+
+    async listActiveSchedules() {
+        return activeSchedules(await this.loadSchedules());
+    }
+
+    async deleteSchedule(scheduleId) {
+        if (typeof scheduleId !== 'string' || scheduleId.length === 0) throw new Error('Missing schedule id');
+        const schedules = await this.loadSchedules();
+        if (!schedules.some(({ id }) => id === scheduleId)) throw new Error(`Schedule not found: ${scheduleId}`);
+
+        cancelScheduleTimer(this.timers, scheduleId, this.clearTimeout);
+        const runId = this.runIdsByScheduleId.get(scheduleId);
+        if (runId) this.actionRunnerService.cancel(runId);
+        const completion = this.scheduleCompletionsByScheduleId.get(scheduleId);
+        if (completion) await completion;
+
+        const currentSchedules = await this.loadSchedules();
+        const nextSchedules = deleteScheduleRecord(currentSchedules, scheduleId);
+        await this.localGitService.saveActionSchedules(
+            this.requireCurrentProject(),
+            this.requireActionsFolder(),
+            nextSchedules,
+        );
+        await this.reconcile();
+
+        return nextSchedules;
     }
 
     async cancelActionSchedule(scheduleId) {
@@ -149,6 +185,17 @@ class ActionSchedulerService {
     async fireSchedule(scheduleId) {
         if (this.runningScheduleIds.has(scheduleId)) return;
 
+        const completion = this.executeSchedule(scheduleId);
+        this.scheduleCompletionsByScheduleId.set(scheduleId, completion);
+
+        try {
+            await completion;
+        } finally {
+            this.scheduleCompletionsByScheduleId.delete(scheduleId);
+        }
+    }
+
+    async executeSchedule(scheduleId) {
         cancelScheduleTimer(this.timers, scheduleId, this.clearTimeout);
         this.runningScheduleIds.add(scheduleId);
 

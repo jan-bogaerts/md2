@@ -403,6 +403,11 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.deleteQueuedAgentPrompt(runId, promptId, revision);
         },
+        deleteSchedule: (scheduleId) => {
+            if (!actionSchedulerService) throw new Error('Action scheduler is not available');
+
+            return actionSchedulerService.deleteSchedule(scheduleId);
+        },
         editActionQueuedPrompt: (runId, promptId, revision, content) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
@@ -435,6 +440,11 @@ function createLocalBridgeDispatch(dependencies) {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
             return actionRunnerService.listActiveRuns();
+        },
+        listActiveSchedules: () => {
+            if (!actionSchedulerService) throw new Error('Action scheduler is not available');
+
+            return actionSchedulerService.listActiveSchedules();
         },
         loadActionRunRecoverySnapshot: (rendererRunIds) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
