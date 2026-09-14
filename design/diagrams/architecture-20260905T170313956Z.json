@@ -276,7 +276,20 @@
   ],
   "formatting": {
     "boxScalePercent": 110,
-    "fontScalePercent": 120
+    "fontScalePercent": 120,
+    "nodeRoles": {
+      "optional": {
+        "box": {
+          "borderStyle": "solid",
+          "contentPosition": "center"
+        },
+        "font": {
+          "bold": false,
+          "italic": false,
+          "underline": false
+        }
+      }
+    }
   },
   "groups": [
     {
