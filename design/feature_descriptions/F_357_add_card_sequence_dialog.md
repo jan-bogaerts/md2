@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__23d124ec-a23c-442f-af4d-f678be48084c.json
 policy:
+after: ef4c20d4-957e-4eea-8452-33bc996608f3
 ---
 Add Run-menu sequence builder for engine from [F_356](F_356_add_scheduled_card_sequence_engine.md).
 

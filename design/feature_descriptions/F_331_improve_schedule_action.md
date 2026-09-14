@@ -16,6 +16,7 @@ changedFiles:
   - design/feature_descriptions/F_355_add_schedule_trigger_controls.md
   - design/feature_descriptions/F_356_add_scheduled_card_sequence_engine.md
   - design/feature_descriptions/F_357_add_card_sequence_dialog.md
+after: 96236df6-2c3a-4846-9d52-f29b7ee9041d
 ---
 Improve scheduled actions with account-reset and card-state triggers, active-schedule management, and ordered card sequences. This umbrella splits implementation into focused jobs.
 

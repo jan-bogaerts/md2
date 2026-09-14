@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__5c3ce7b1-898e-4a38-b281-0f6fc89e2bb9.json
 policy:
+after: 23d124ec-a23c-442f-af4d-f678be48084c
 ---
 
 opening a card now takes very long. see trace: [Trace-20260914T100720.json](file:///C:/Users/janbo/Documents/dev/Trace-20260914T100720.json): this is just opening and closing a card (in the background, an agent was also running). but you can clearly see big slow down while opening & closing the card. this is not normal I suspect the latest changes (most likely diagrams) has broken something.

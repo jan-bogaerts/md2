@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__ef4c20d4-957e-4eea-8452-33bc996608f3.json
 policy:
+after: b750c85a-ac60-4608-b6e4-beb186e6ca60
 ---
 Add persisted ordered-card sequence execution under scheduler contract from [F_352](F_352_extend_schedule_contract_and_apis.md).
 
