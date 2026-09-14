@@ -2,7 +2,7 @@
 author: 
 id: B_233
 title: Move agent activity reference assignment to backend
-status: ready for implementation
+status: ready
 owner: 
 affects:
 policy:
@@ -12,6 +12,19 @@ branch: b_233_move_agent_activity_reference_assignment_to_backend
 worktree: 3
 agents:
   - design/activity/card__df17653d-859c-40cd-8515-2e3bf9e0da56.json
+changedFiles:
+  - app/src/services/actions/electron_action_runner.node.test.ts
+  - app/src/services/actions/electron_action_runner.ts
+  - app/src/services/agents/agent_integration.test.ts
+  - app/src/services/agents/agent_integration.ts
+  - app/src/services/data/data_service.ts
+  - desktop/src/actions/action/action_runner_service.js
+  - desktop/src/actions/action/action_runner_service.test.mjs
+  - desktop/src/actions/activity/card_activity_reference.js
+  - desktop/src/actions/activity/card_activity_reference.test.mjs
+  - desktop/src/actions/agent/agent_conversation_persistence.js
+  - desktop/src/actions/agent/agent_conversation_persistence.test.mjs
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
 ---
 
 Card activity references are assigned by every React instance that observes an agent run. With remote control active, the desktop and remote renderers can process the same event and persist competing versions of the card. Activity persistence and its card reference must have one backend owner.
