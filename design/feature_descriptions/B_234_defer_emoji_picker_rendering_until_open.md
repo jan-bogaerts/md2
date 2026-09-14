@@ -10,7 +10,7 @@ changedFiles:
   - app/src/components/editor/markdown_emoji_picker_content.tsx
   - app/src/components/editor/markdown_emoji_toolbar_control.grouped.test.tsx
   - app/src/components/editor/markdown_emoji_toolbar_control.tsx
-internalId: d82ffdd2-2877-4750-a46e-7d54188342e2
+internalId: e635ff29-5c2e-40a2-9374-baa53708524f
 ---
 
 Opening a card constructs the complete emoji picker even though the picker is closed. Render and group the emoji catalogue only after the user opens the picker.
