@@ -3,7 +3,7 @@ author:
 id: F_358
 internalId: cf3ba1a5-1822-4aed-9626-f7107f677bac
 title: auto update app
-status: new
+status: design
 owner: 
 affects:
 agents:
