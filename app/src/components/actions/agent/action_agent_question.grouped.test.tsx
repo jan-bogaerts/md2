@@ -4,16 +4,7 @@ import { dialogService } from '../../../services/dialog_service'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import { ActionAgentQuestion } from './action_agent_question'
-
-vi.mock('../../editor/markdown_editor', async () => {
-    const { forwardRef } = await import('react')
-
-    return {
-        MarkdownEditor: forwardRef(function MarkdownEditorMock() {
-            return <textarea aria-label="Markdown prompt" readOnly value="" />
-        }),
-    }
-})
+import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 describe('ActionAgentQuestion', () => {
     afterEach(() => {
@@ -478,15 +469,15 @@ describe('ActionAgentQuestion', () => {
         const promptDraft = new ActionPromptDraft('', false)
         render(
             <ActionAgentPrompt
+                bindingStore={new ActionRunBindingStore(null)}
                 convertMessage={null}
                 promptDraft={promptDraft}
-                questionsPanel={(
-                    <ActionAgentQuestion
-                        onAnswer={vi.fn(async () => undefined)}
-                        onDismiss={vi.fn(async () => undefined)}
-                        questions={[{ header: 'Approach', id: 'approach', options, question: 'Which approach?' }]}
-                    />
-                )}
+                questionsEnabled
+                restoredQuestions={{
+                    onAnswer: vi.fn(async () => undefined),
+                    onDismiss: vi.fn(async () => undefined),
+                    questions: [{ header: 'Approach', id: 'approach', options, question: 'Which approach?' }],
+                }}
             />,
         )
 

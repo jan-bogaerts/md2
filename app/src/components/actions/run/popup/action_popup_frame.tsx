@@ -2,7 +2,7 @@ import { Box, IconButton, Tooltip, Typography, useMediaQuery, useTheme } from '@
 import ArrowCollapseVertical from 'mdi-material-ui/ArrowCollapseVertical'
 import ArrowExpandVertical from 'mdi-material-ui/ArrowExpandVertical'
 import Close from 'mdi-material-ui/Close'
-import type { ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import { ResizablePopper } from '../../../resizable_popper'
 import type { WorktreeAssignmentTarget } from '../../../worktree_selector'
@@ -10,6 +10,9 @@ import { MarkdownTypeaheadLayerProvider } from '../../../editor/markdown_typeahe
 import { NO_DRAG_REGION } from '../../../shell/drag_region'
 import { ActionConversationPickerOwner } from '../../conversation/action_conversation_picker_owner'
 import type { ActionConversationStore } from '../../conversation/action_conversation_store'
+import type { ActionConversationSearchService } from '../../conversation/action_conversation_search_service'
+import { ActionConversationSearchButton } from '../../conversation/action_conversation_search_button'
+import { ActionConversationSearchRow } from '../../conversation/action_conversation_search_row'
 import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 import { ActionSelector } from './action_selector'
 import type { ActionPopupContentProps } from './action_popup_types'
@@ -22,6 +25,7 @@ interface ActionPopupFrameProps {
     bindingStore: ActionRunBindingStore
     children: ReactNode
     contentProps: ActionPopupContentProps
+    conversationSearchService: ActionConversationSearchService
     conversationStore: ActionConversationStore
 }
 
@@ -35,7 +39,9 @@ function worktreeAssignmentTarget(context: ActionContext): WorktreeAssignmentTar
 }
 
 /** Shared popup surface, toolbar, and action selector. */
-export function ActionPopupFrame({ bindingStore, children, contentProps, conversationStore }: ActionPopupFrameProps) {
+export function ActionPopupFrame(
+    { bindingStore, children, contentProps, conversationSearchService, conversationStore }: ActionPopupFrameProps,
+) {
     const {
         action, actions, anchorElement, assignmentContext, baseContext, draggable, fullHeight, onActivate,
         onClose, onSelectAction, onToggleFullHeight, open, primaryPath, readOnlyMessage, stackPosition,
@@ -72,6 +78,9 @@ export function ActionPopupFrame({ bindingStore, children, contentProps, convers
             {target}
         </Box>
     ) : null
+    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        conversationSearchService.handlePopupKeyDown(event)
+    }
 
     return (
         <ResizablePopper
@@ -108,64 +117,69 @@ export function ActionPopupFrame({ bindingStore, children, contentProps, convers
             storageKey={isMobile ? undefined : sizeStorageKey}
         >
             <MarkdownTypeaheadLayerProvider stackPosition={stackPosition ?? 0}>
-                <Typography
-                    id={titleId}
-                    sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}
-                >
-                    {target ? `Run actions for ${target}` : 'Run actions'}
-                </Typography>
-                <Box
-                    data-drag-handle={!isMobile && draggable ? 'true' : undefined}
-                    sx={{
-                        borderBottom: 1, borderColor: 'divider', cursor: !isMobile && draggable ? 'move' : undefined,
-                        display: 'flex', flexDirection: 'column', flexShrink: 0, gap: 1, px: 1.5, py: 1.5,
-                    }}
-                >
-                    <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
-                        {targetBadge && targetTitle ? <Tooltip title={targetTitle}>{targetBadge}</Tooltip> : targetBadge}
-                        {assignmentTarget && !readOnlyMessage ? (
-                            <ActionWorktreeSelectorOwner
-                                assignment={worktreeAssignment}
-                                assignmentTarget={assignmentTarget}
-                                bindingStore={bindingStore}
-                                primaryPath={primaryPath}
-                            />
-                        ) : null}
-                        {action.type === 'agent' ? (
-                            <ActionConversationPickerOwner
-                                actionId={action.id}
-                                bindingStore={bindingStore}
-                                context={assignmentContext}
-                                store={conversationStore}
-                            />
-                        ) : null}
-                        <Box sx={{ flex: 1 }} />
-                        {!isMobile ? (
-                            <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>
-                                <IconButton
-                                    aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}
-                                    onClick={onToggleFullHeight}
-                                    size="small"
-                                    sx={{ flexShrink: 0, height: 30, width: 30 }}
-                                >
-                                    {fullHeight
-                                        ? <ArrowCollapseVertical sx={{ fontSize: 18 }} />
-                                        : <ArrowExpandVertical sx={{ fontSize: 18 }} />}
-                                </IconButton>
-                            </Tooltip>
-                        ) : null}
-                        <IconButton aria-label="Close" onClick={onClose} size="small" sx={{ flexShrink: 0, height: 30, width: 30 }}>
-                            <Close sx={{ fontSize: 18 }} />
-                        </IconButton>
+                <Box onKeyDown={handleKeyDown} sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
+                    <Typography
+                        id={titleId}
+                        sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}
+                    >
+                        {target ? `Run actions for ${target}` : 'Run actions'}
+                    </Typography>
+                    <Box
+                        data-testid="action-popup-fixed-header"
+                        data-drag-handle={!isMobile && draggable ? 'true' : undefined}
+                        sx={{
+                            borderBottom: 1, borderColor: 'divider', cursor: !isMobile && draggable ? 'move' : undefined,
+                            display: 'flex', flexDirection: 'column', flexShrink: 0, gap: 1, px: 1.5, py: 1.5,
+                        }}
+                    >
+                        <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
+                            {targetBadge && targetTitle ? <Tooltip title={targetTitle}>{targetBadge}</Tooltip> : targetBadge}
+                            {assignmentTarget && !readOnlyMessage ? (
+                                <ActionWorktreeSelectorOwner
+                                    assignment={worktreeAssignment}
+                                    assignmentTarget={assignmentTarget}
+                                    bindingStore={bindingStore}
+                                    primaryPath={primaryPath}
+                                />
+                            ) : null}
+                            {action.type === 'agent' ? (
+                                <ActionConversationPickerOwner
+                                    actionId={action.id}
+                                    bindingStore={bindingStore}
+                                    context={assignmentContext}
+                                    store={conversationStore}
+                                />
+                            ) : null}
+                            <Box sx={{ flex: 1 }} />
+                            <ActionConversationSearchButton service={conversationSearchService} />
+                            {!isMobile ? (
+                                <Tooltip title={fullHeight ? 'Collapse downward' : 'Expand upward'}>
+                                    <IconButton
+                                        aria-label={fullHeight ? 'Collapse downward' : 'Expand upward'}
+                                        onClick={onToggleFullHeight}
+                                        size="small"
+                                        sx={{ flexShrink: 0, height: 30, width: 30 }}
+                                    >
+                                        {fullHeight
+                                            ? <ArrowCollapseVertical sx={{ fontSize: 18 }} />
+                                            : <ArrowExpandVertical sx={{ fontSize: 18 }} />}
+                                    </IconButton>
+                                </Tooltip>
+                            ) : null}
+                            <IconButton aria-label="Close" onClick={onClose} size="small" sx={{ flexShrink: 0, height: 30, width: 30 }}>
+                                <Close sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </Box>
+                        <ActionSelector
+                            actions={actions}
+                            context={assignmentContext}
+                            onSelect={onSelectAction}
+                            selectedAction={action}
+                        />
+                        <ActionConversationSearchRow service={conversationSearchService} />
                     </Box>
-                    <ActionSelector
-                        actions={actions}
-                        context={assignmentContext}
-                        onSelect={onSelectAction}
-                        selectedAction={action}
-                    />
+                    {children}
                 </Box>
-                {children}
             </MarkdownTypeaheadLayerProvider>
         </ResizablePopper>
     )

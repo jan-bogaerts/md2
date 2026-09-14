@@ -48,6 +48,15 @@ function persistedActionStates(
     context: ActionContext,
     snapshot: ReturnType<typeof useProjectState>['snapshot'],
 ) {
+    if (context.kind === 'project') {
+        const conversations = dataService.agents.getProjectAgentConversationsSnapshot()
+
+        return Object.fromEntries(actions.map(({ id }) => [
+            id,
+            cardAgentState(conversations.filter((conversation) => conversation.actionId === id)),
+        ])) as PersistedActionStates
+    }
+
     const cardInternalId = resolveCardInternalId(context, snapshot)
     if (!cardInternalId) return {}
 

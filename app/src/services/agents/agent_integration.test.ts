@@ -882,7 +882,7 @@ describe('AgentIntegration', () => {
         expect(actionRunRegistry.getGlobalActiveSnapshot()).toHaveLength(0)
     })
 
-    it('applies started and closed conversation snapshots without reading the activity file', async () => {
+    it('lets two renderer subscribers apply start and close snapshots without scheduling card writes', async () => {
         configService.init()
         let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
@@ -892,12 +892,16 @@ describe('AgentIntegration', () => {
                 return vi.fn()
             },
         } as unknown as typeof window.md2Actions
-        const storage = createStorage()
-        const service = createDataService()
-        service.init({ storage })
-        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        service.cards.updateCardWorktree('design/F-1-root.md', 3)
-        service.cards.toggleCardPolicy('design/F-1-root.md', 'allowNetwork')
+        const desktopStorage = createStorage()
+        const remoteStorage = createStorage()
+        const desktopService = createDataService()
+        desktopService.init({ storage: desktopStorage })
+        await desktopService.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const remoteService = createDataService()
+        remoteService.init({ storage: remoteStorage })
+        await remoteService.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const desktopAddReference = vi.spyOn(desktopService.cards, 'addAgentLogReference')
+        const remoteAddReference = vi.spyOn(remoteService.cards, 'addAgentLogReference')
         if (!actionRunCallback) throw new Error('Action run callback not registered')
         const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
 
@@ -912,9 +916,8 @@ describe('AgentIntegration', () => {
         emitActionRun(startedEvent)
         emitActionRun({ ...startedEvent, update: { ...startedEvent.update, continued: true } })
 
-        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual(['design/activity/card__root-card.json'])
-        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([runningConversation])
-        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
+        expect(desktopService.getState().snapshot?.activeCards[0].agentConversations).toEqual([runningConversation])
+        expect(remoteService.getState().snapshot?.activeCards[0].agentConversations).toEqual([runningConversation])
 
         const completedConversation = {
             ...runningConversation,
@@ -926,11 +929,12 @@ describe('AgentIntegration', () => {
             status: 'completed', type: 'update', update: { conversation: completedConversation, kind: 'agentClosed' },
         })
 
-        expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])
-        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
-        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual(['design/activity/card__root-card.json'])
-        expect(service.getState().snapshot?.activeCards[0].header.worktree).toBe(3)
-        expect(service.getState().snapshot?.activeCards[0].header.policy).toEqual({ allowNetwork: true })
+        expect(desktopService.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])
+        expect(remoteService.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])
+        expect(desktopAddReference).not.toHaveBeenCalled()
+        expect(remoteAddReference).not.toHaveBeenCalled()
+        expect(desktopStorage.commit).not.toHaveBeenCalled()
+        expect(remoteStorage.commit).not.toHaveBeenCalled()
     })
 
     it('applies a closed conversation snapshot when the started event was missed', async () => {
@@ -960,6 +964,6 @@ describe('AgentIntegration', () => {
 
         expect(storage.loadAgentConversation).not.toHaveBeenCalled()
         expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])
-        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual(['design/activity/card__root-card.json'])
+        expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([])
     })
 })

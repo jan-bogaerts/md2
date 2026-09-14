@@ -1,12 +1,17 @@
 import { Box, ButtonBase, Typography } from '@mui/material'
-import { useRef, type KeyboardEvent, type MouseEvent } from 'react'
-import type { DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data'
+import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import type { DiagramContentPosition, DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data'
 import type { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import type { PositionedDiagramNode } from '../../services/diagrams/diagram_layout'
 import { DiagramEntityFieldRow } from './diagram_entity_field'
 import { diagramRoleStyle } from './diagram_role_style'
 import type { DiagramSelectHandler } from './diagram_selection'
 import { EditableDiagramEntityFields } from './editable_diagram_entity_fields'
+import { DIAGRAM_DIMMED_OPACITY } from './diagram_emphasis_presentation'
+import { diagramFontStyle } from './diagram_font_style'
+import {
+    type DiagramFormattingStore, useDiagramFormattingScale, useDiagramNodeRoleFormatting,
+} from './use_diagram_formatting'
 
 interface EditableEntityFieldSource {
     nodeId: string
@@ -15,12 +20,21 @@ interface EditableEntityFieldSource {
 
 interface DiagramNodeProps {
     diagramType: DiagramType
+    dimmed?: boolean
     entityFieldSource?: EditableEntityFieldSource
     flowPreset?: DiagramFlowPreset
+    formattingStore?: DiagramFormattingStore
     node: PositionedDiagramNode
     onOpenDetails?: () => void
     onSelect: DiagramSelectHandler
     selected: boolean
+}
+
+function contentPosition(position: DiagramContentPosition | undefined) {
+    const vertical = position?.startsWith('top') ? 'flex-start' : position?.startsWith('bottom') ? 'flex-end' : 'safe center'
+    const horizontal = position?.endsWith('left') ? 'flex-start' : position?.endsWith('right') ? 'flex-end' : 'center'
+
+    return { alignItems: horizontal, justifyContent: vertical }
 }
 
 function kindStyles(node: PositionedDiagramNode, flowPreset: DiagramFlowPreset | undefined) {
@@ -47,15 +61,20 @@ function decisionPoints(node: PositionedDiagramNode) {
 }
 
 /** Positioned, themed, keyboard-operable diagram item. */
-export function DiagramNode({diagramType, entityFieldSource, flowPreset, node, onOpenDetails, onSelect, selected}: DiagramNodeProps) {
+export function DiagramNode(props: DiagramNodeProps) {
+    const {diagramType, dimmed = false, entityFieldSource, flowPreset, formattingStore, node} = props
+    const {onOpenDetails, onSelect, selected} = props
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
     const decision = node.kind === 'decision'
-    const interactive = node.drilldown !== false || !!onOpenDetails
-    const roleStyle = diagramRoleStyle(node.role)
+    const formatting = useDiagramNodeRoleFormatting(node.role, formattingStore)
+    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
+    const roleStyle = diagramRoleStyle(node.role, formatting)
+    const positionStyle = contentPosition(formatting?.box?.contentPosition)
+    const [focused, setFocused] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
     const pressScrollTop = useRef(0)
     const handleSelect = (left: number, top: number, ctrlKey: boolean) => (
-        onSelect({ id: node.id, label: node.label, left, top }, ctrlKey)
+        onSelect({ id: node.id, label: node.label, left, objectKind: 'node', top }, ctrlKey)
     )
     const handleMouseDown = () => { pressScrollTop.current = scrollRef.current?.scrollTop ?? 0 }
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
@@ -77,92 +96,116 @@ export function DiagramNode({diagramType, entityFieldSource, flowPreset, node, o
         onOpenDetails()
     }
 
+    const handleFocus = () => setFocused(true)
+    const handleBlur = () => setFocused(false)
+
     return (
-        <ButtonBase
-            aria-label={node.label}
-            aria-disabled={interactive ? undefined : true}
-            aria-pressed={interactive ? selected : undefined}
-            data-diagram-connection-target={node.id}
-            data-diagram-id={node.id}
-            data-diagram-kind="node"
-            onClick={interactive ? handleClick : undefined}
-            onDoubleClick={onOpenDetails ? handleDoubleClick : undefined}
-            onKeyDown={interactive ? handleKeyDown : undefined}
-            onMouseDown={interactive ? handleMouseDown : undefined}
-            role="button"
-            sx={{
-                alignItems: 'stretch', border: '1px solid', color: 'text.primary', display: 'flex', flexDirection: 'column',
-                height: node.height, left: node.x, overflow: 'hidden', position: 'absolute', textAlign: 'left',
-                top: node.y, width: node.width, zIndex: 2,
-                ...roleStyle,
-                ...kindStyles(node, flowPreset),
-                ...(selected ? { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 } : {}),
-                '&:focus-visible': { borderColor: 'primary.main', outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
-            }}
-            tabIndex={interactive ? undefined : -1}
-        >
-            {decision ? (
-                <Box
-                    aria-hidden="true"
-                    component="svg"
-                    data-diagram-node-shape="decision"
-                    preserveAspectRatio="none"
-                    sx={{ height: '100%', left: 0, pointerEvents: 'none', position: 'absolute', top: 0, width: '100%' }}
-                    viewBox={`0 0 ${node.width} ${node.height}`}
-                >
-                    <Box component="polygon" points={decisionPoints(node)} sx={{ color: roleStyle.bgcolor, fill: 'currentColor' }} />
+        <>
+            <ButtonBase
+                aria-label={node.label}
+                aria-pressed={selected}
+                data-diagram-connection-target={node.id}
+                data-diagram-id={node.id}
+                data-diagram-kind="node"
+                onBlur={handleBlur}
+                onClick={handleClick}
+                onDoubleClick={onOpenDetails ? handleDoubleClick : undefined}
+                onFocus={handleFocus}
+                onKeyDown={handleKeyDown}
+                onMouseDown={handleMouseDown}
+                role="button"
+                sx={{
+                    alignItems: 'stretch', border: '1px solid', color: 'text.primary', display: 'flex', flexDirection: 'column',
+                    height: node.height, left: node.x, overflow: 'hidden', position: 'absolute', textAlign: 'left',
+                    opacity: dimmed ? DIAGRAM_DIMMED_OPACITY : 1, top: node.y, width: node.width, zIndex: 2,
+                    ...kindStyles(node, flowPreset),
+                    ...roleStyle,
+                    '&:focus-visible': { borderColor: 'primary.main' },
+                }}
+            >
+                {decision ? (
                     <Box
-                        component="polygon"
-                        points={decisionPoints(node)}
+                        aria-hidden="true"
+                        component="svg"
+                        data-diagram-node-shape="decision"
+                        preserveAspectRatio="none"
+                        sx={{ height: '100%', left: 0, pointerEvents: 'none', position: 'absolute', top: 0, width: '100%' }}
+                        viewBox={`0 0 ${node.width} ${node.height}`}
+                    >
+                        <Box component="polygon" points={decisionPoints(node)} sx={{ color: roleStyle.bgcolor, fill: 'currentColor' }} />
+                        <Box
+                            component="polygon"
+                            points={decisionPoints(node)}
+                            sx={{
+                                color: roleStyle.borderColor,
+                                fill: 'none',
+                                stroke: 'currentColor',
+                                strokeDasharray: formatting?.box?.borderStyle === 'dashed'
+                                    ? '4 4'
+                                    : formatting?.box?.borderStyle === 'dotted' ? '1 3' : undefined,
+                                strokeWidth: formatting?.box?.borderThickness ?? 1,
+                                vectorEffect: 'non-scaling-stroke',
+                            }}
+                        />
+                    </Box>
+                ) : null}
+                {!stateMarker ? (
+                    <Box
+                        data-diagram-scroll="content"
+                        ref={scrollRef}
                         sx={{
-                            color: roleStyle.borderColor,
-                            fill: 'none',
-                            stroke: 'currentColor',
-                            strokeDasharray: 'borderStyle' in roleStyle && roleStyle.borderStyle === 'dashed' ? '4 4' : undefined,
-                            strokeWidth: 1,
-                            vectorEffect: 'non-scaling-stroke',
+                            display: 'flex', flex: 1, flexDirection: 'column', position: 'relative',
+                            // `safe center` centres content that fits and falls back to top alignment once it overflows,
+                            // so the tag and label stay reachable instead of being clipped above the scroll origin.
+                            ...positionStyle, minHeight: 0, overflowX: 'hidden', overflowY: 'auto',
                         }}
-                    />
-                </Box>
-            ) : null}
-            {!stateMarker ? (
-                <Box
-                    data-diagram-scroll="content"
-                    ref={scrollRef}
-                    sx={{
-                        display: 'flex', flex: 1, flexDirection: 'column', position: 'relative',
-                        // `safe center` centres content that fits and falls back to top alignment once it overflows,
-                        // so the tag and label stay reachable instead of being clipped above the scroll origin.
-                        justifyContent: 'safe center', minHeight: 0, overflowX: 'hidden', overflowY: 'auto',
-                    }}
-                >
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 2, py: 1 }}>
-                        {node.tag ? <Typography color="custom.text3" variant="overline">{node.tag}</Typography> : null}
-                        <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }} variant="body2">{node.label}</Typography>
-                        {node.sublabel ? (
-                            <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="caption">{node.sublabel}</Typography>
+                    >
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 2, py: 1 }}>
+                            {node.tag ? <Typography color="custom.text3" sx={diagramFontStyle(formatting?.font, fontScalePercent, 'overline')} variant="overline">{node.tag}</Typography> : null}
+                            <Typography sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'body2'), fontWeight: formatting?.font?.bold === undefined ? 600 : undefined, overflowWrap: 'anywhere' }} variant="body2">{node.label}</Typography>
+                            {node.sublabel ? (
+                                <Typography color="text.secondary" sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'caption'), overflowWrap: 'anywhere' }} variant="caption">{node.sublabel}</Typography>
+                            ) : null}
+                        </Box>
+                        {diagramType === 'entity' && (entityFieldSource || node.fields) ? (
+                            <Box sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', px: 2, py: 1 }}>
+                                {entityFieldSource ? (
+                                    <EditableDiagramEntityFields
+                                        {...entityFieldSource}
+                                        fontFormatting={formatting?.font}
+                                        fontScalePercent={fontScalePercent}
+                                    />
+                                ) : node.fields?.map((field, fieldIndex) => (
+                                    <DiagramEntityFieldRow
+                                        field={field}
+                                        fontFormatting={formatting?.font}
+                                        fontScalePercent={fontScalePercent}
+                                        key={fieldIndex}
+                                    />
+                                ))}
+                            </Box>
                         ) : null}
                     </Box>
-                    {diagramType === 'entity' && (entityFieldSource || node.fields) ? (
-                        <Box sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', px: 2, py: 1 }}>
-                            {entityFieldSource ? (
-                                <EditableDiagramEntityFields {...entityFieldSource} />
-                            ) : node.fields?.map((field, fieldIndex) => (
-                                <DiagramEntityFieldRow field={field} key={fieldIndex} />
-                            ))}
-                        </Box>
-                    ) : null}
-                </Box>
+                ) : null}
+                {diagramType === 'dependency' ? (
+                    <Typography
+                        color="text.secondary"
+                        sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'caption'), border: '1px solid', borderColor: 'divider', borderRadius: 0.25, position: 'absolute', px: 0.5, right: 1, top: 0.75 }}
+                        variant="caption"
+                    >
+                        {node.fanIn} in
+                    </Typography>
+                ) : null}
+            </ButtonBase>
+            {selected || focused ? (
+                <Box
+                    aria-hidden="true"
+                    sx={{
+                        height: node.height, left: node.x, outline: '2px solid', outlineColor: 'primary.main',
+                        outlineOffset: 2, pointerEvents: 'none', position: 'absolute', top: node.y, width: node.width, zIndex: 3,
+                    }}
+                />
             ) : null}
-            {diagramType === 'dependency' ? (
-                <Typography
-                    color="text.secondary"
-                    sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0.25, position: 'absolute', px: 0.5, right: 1, top: 0.75 }}
-                    variant="caption"
-                >
-                    {node.fanIn} in
-                </Typography>
-            ) : null}
-        </ButtonBase>
+        </>
     )
 }

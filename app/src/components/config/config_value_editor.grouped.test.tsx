@@ -140,7 +140,7 @@ describe('ConfigValueEditor', () => {
 
         render(<ConfigValueEditor entry={entry} onChange={vi.fn()} value="Save to {{diagram-file}}." />)
 
-        expect(screen.getByRole('textbox', { name: 'Diagram footer' })).toHaveAttribute('rows', '6')
+        expect(screen.getByRole('textbox', { name: 'Diagram footer' }).tagName).toBe('TEXTAREA')
     })
 
     it('keeps unavailable remembered desktop values visible with validation error', () => {

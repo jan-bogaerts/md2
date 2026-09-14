@@ -14,6 +14,48 @@ function validDiagram() {
 }
 
 describe('parseDiagramData', () => {
+    it('round-trips valid diagram formatting unchanged', () => {
+        const formatting = {
+            boxScalePercent: 120,
+            connectionKinds: {
+                data: {
+                    endMarker: 'diamond',
+                    font: { bold: true, color: '#123ABC', family: 'Inter', italic: true, size: 13, underline: true },
+                    line: { color: '#AABBCC', thickness: 3 },
+                    startMarker: 'circle',
+                },
+            },
+            fontScalePercent: 90,
+            nodeRoles: {
+                focal: {
+                    box: {
+                        borderColor: '#112233', borderStyle: 'dotted', borderThickness: 2,
+                        contentPosition: 'bottom-right', cornerRadius: 8, fillColor: '#FFFFFF',
+                    },
+                    font: { bold: false, color: '#445566', family: 'Arial', italic: false, size: 14, underline: false },
+                },
+            },
+            spacingScalePercent: 150,
+        } as const
+        const diagram = parseDiagramData(JSON.stringify({ ...validDiagram(), formatting }))
+
+        expect(parseDiagramData(serializeDiagramData(diagram))).toEqual(diagram)
+    })
+
+    it.each([
+        [{ fontScalePercent: 49 }, 'formatting.fontScalePercent has number outside the 50..200 range'],
+        [{ boxScalePercent: Number.POSITIVE_INFINITY }, 'formatting.boxScalePercent has number outside the 50..200 range'],
+        [{ spacingScalePercent: 201 }, 'formatting.spacingScalePercent has number outside the 50..200 range'],
+        [{ nodeRoles: { unknown: {} } }, 'formatting.nodeRoles.unknown has unknown category'],
+        [{ connectionKinds: { unknown: {} } }, 'formatting.connectionKinds.unknown has unknown category'],
+        [{ nodeRoles: { focal: { box: { fillColor: 'red' } } } }, 'formatting.nodeRoles.focal.box.fillColor has color outside #RRGGBB format'],
+        [{ nodeRoles: { focal: { box: { contentPosition: 'middle' } } } }, 'formatting.nodeRoles.focal.box.contentPosition has unsupported value middle'],
+        [{ connectionKinds: { data: { endMarker: 'arrow' } } }, 'formatting.connectionKinds.data.endMarker has unsupported value arrow'],
+    ])('rejects invalid formatting %#', (formatting, message) => {
+        expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), formatting })))
+            .toThrow(`Malformed diagram data: ${message}`)
+    })
+
     it('parses versioned semantic data and optional geometry', () => {
         expect(parseDiagramData(JSON.stringify(validDiagram()))).toEqual(validDiagram())
     })

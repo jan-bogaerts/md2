@@ -15,7 +15,7 @@ import {
 } from '../../../data/remote_control_connection'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { dialogService } from '../../../services/dialog_service'
-import { projectSessionService } from '../../../services/project/project_session_service'
+import { projectSessionService, type ProjectOpenResolution } from '../../../services/project/project_session_service'
 import { createDeferred } from '../../../services/test_support/data_service_test_support'
 import { BranchSwitchDialog } from './branch_switch_dialog'
 import { CompleteReleaseDialog } from './complete_release_dialog'
@@ -46,6 +46,7 @@ function projectOpenDialogProps(overrides: Partial<ProjectOpenDialogProps>): Pro
         onOpenGithub: vi.fn(async () => undefined),
         onOpenLocal: vi.fn(async () => undefined),
         onOpenRemote: vi.fn(async () => undefined),
+        onRemoveRecentLocal: vi.fn(async () => undefined),
         onRepositoryChange: vi.fn(async () => []),
         onSourceChange: vi.fn(),
         open: true,
@@ -78,6 +79,43 @@ function dismissThroughBackdrop() {
     const dialog = screen.getByRole('dialog', { name: 'New card' })
     const backdrop = dialog.closest('.MuiDialog-root')?.querySelector('.MuiBackdrop-root')
     if (!backdrop) throw new Error('Missing new-card dialog backdrop')
+
+    fireEvent.mouseDown(backdrop)
+    fireEvent.click(backdrop)
+}
+
+function folderSetupResolution(overrides: Partial<ProjectOpenResolution & { existingFolderPaths: string[] }> = {}) {
+    return {
+        existingFolderPaths: [],
+        folders: [{ name: 'design', path: 'design' }],
+        hasProjectConfig: false,
+        kind: 'project-folder-setup' as const,
+        project: PROJECT,
+        storageType: 'local' as const,
+        values: {
+            actionsFolder: 'actions',
+            archivedFolder: 'archived',
+            diagramsFolder: 'diagrams',
+            projectFolder: 'design',
+            releasesFolder: 'history',
+            workingFolder: 'active',
+        },
+        ...overrides,
+    } as ProjectOpenResolution
+}
+
+/** The label + input + meta block of one folder row, so marker assertions stay scoped to that row. */
+function rowOf(field: string) {
+    const row = document.querySelector(`[data-folder-row="${field}"]`)
+    if (!row) throw new Error(`Missing folder row for ${field}`)
+
+    return row
+}
+
+function clickDialogBackdrop(dialogName: string) {
+    const dialog = screen.getByRole('dialog', { name: dialogName })
+    const backdrop = dialog.closest('.MuiDialog-root')?.querySelector('.MuiBackdrop-root')
+    if (!backdrop) throw new Error(`Missing backdrop for the ${dialogName} dialog`)
 
     fireEvent.mouseDown(backdrop)
     fireEvent.click(backdrop)
@@ -122,6 +160,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 open
@@ -154,6 +193,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
                 open
@@ -198,6 +238,7 @@ describe('project dialog components', () => {
                 onOpenGithub={openGithub}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={openRemote}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={onSourceChange}
                 open
@@ -298,6 +339,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={openLocal}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
                 open
@@ -337,6 +379,74 @@ describe('project dialog components', () => {
         expect(openLocal).toHaveBeenCalledTimes(2)
     })
 
+    it('opens a double-clicked recent folder exactly once', () => {
+        const openLocal = vi.fn(async () => undefined)
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    isDesktopMode: true,
+                    onOpenLocal: openLocal,
+                    recentLocalRepositories: ['C:/recent'],
+                })}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        fireEvent.doubleClick(screen.getByText('C:/recent'))
+
+        expect(openLocal).toHaveBeenCalledWith('C:/recent')
+        expect(openLocal).toHaveBeenCalledOnce()
+    })
+
+    it('ignores a recent-folder double-click while loading', () => {
+        const openLocal = vi.fn(async () => undefined)
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    isDesktopMode: true,
+                    isLoading: true,
+                    onOpenLocal: openLocal,
+                    recentLocalRepositories: ['C:/recent'],
+                })}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        fireEvent.doubleClick(screen.getByText('C:/recent'))
+
+        expect(openLocal).not.toHaveBeenCalled()
+    })
+
+    it('removes only the chosen recent folder without selecting or opening it', async () => {
+        const user = userEvent.setup()
+        const openLocal = vi.fn(async () => undefined)
+        const removeRecentLocal = vi.fn(async () => undefined)
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    isDesktopMode: true,
+                    onOpenLocal: openLocal,
+                    onRemoveRecentLocal: removeRecentLocal,
+                    recentLocalRepositories: ['C:/first', 'C:/second'],
+                })}
+            />,
+            { wrapper: AppThemeProvider },
+        )
+
+        const removeButton = screen.getByRole('button', { name: 'Remove C:/second from recent folders' })
+        await user.hover(removeButton)
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Remove C:/second from recent folders')
+        await user.unhover(removeButton)
+        removeButton.focus()
+        expect(removeButton).toHaveFocus()
+        await user.keyboard('{Enter}')
+
+        expect(removeRecentLocal).toHaveBeenCalledWith('C:/second')
+        expect(removeRecentLocal).toHaveBeenCalledOnce()
+        expect(screen.getByLabelText('Local repository folder')).toHaveValue('')
+        expect(openLocal).not.toHaveBeenCalled()
+    })
+
     it('disables local open and folder picker while loading', () => {
         render(
             <ProjectOpenDialog
@@ -357,6 +467,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
                 open
@@ -394,6 +505,7 @@ describe('project dialog components', () => {
                 onOpenGithub={openGithub}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => [])}
                 onSourceChange={vi.fn()}
                 open
@@ -436,6 +548,7 @@ describe('project dialog components', () => {
                 onOpenGithub={openGithub}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 open
@@ -476,6 +589,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 open
@@ -512,6 +626,7 @@ describe('project dialog components', () => {
                 onOpenGithub={vi.fn()}
                 onOpenLocal={vi.fn(async () => undefined)}
                 onOpenRemote={vi.fn()}
+                onRemoveRecentLocal={vi.fn(async () => undefined)}
                 onRepositoryChange={vi.fn(async () => BRANCHES)}
                 onSourceChange={vi.fn()}
                 open
@@ -553,10 +668,89 @@ describe('project dialog components', () => {
 
         expect(screen.getByLabelText('Working folder')).toHaveValue('feature_descriptions')
         expect(screen.getByLabelText('Archived folder')).toHaveValue('archived')
-        expect(screen.getByText('Active cards, inside the project folder. Will be created.')).toBeInTheDocument()
-        expect(screen.getByText('Archived cards, inside the project folder.')).toBeInTheDocument()
+        expect(screen.getByText('design/feature_descriptions')).toBeInTheDocument()
+        expect(screen.getByText('design/archived')).toBeInTheDocument()
         expect(screen.queryByRole('group', { name: 'Project kind' })).toBeNull()
         expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument()
+    })
+
+    it('groups the folder fields under the project root with live and history headers', () => {
+        render(
+            <ProjectOpenDialog {...projectOpenDialogProps({ projectOpenResolution: folderSetupResolution() })} />,
+        )
+
+        expect(screen.getByRole('heading', { name: 'Live' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'History' })).toBeInTheDocument()
+
+        const labels = screen.getAllByLabelText(/ folder$/u).map((input) => input.getAttribute('aria-label'))
+        expect(labels).toEqual([
+            'Project folder',
+            'Working folder',
+            'Diagrams folder',
+            'Actions folder',
+            'Releases folder',
+            'Archived folder',
+        ])
+        expect(document.querySelectorAll('label.MuiInputLabel-root')).toHaveLength(0)
+        expect(screen.queryByText(/inside the project folder/u)).toBeNull()
+    })
+
+    it('marks only the folders that do not exist yet as to be created', () => {
+        const resolution = folderSetupResolution({ existingFolderPaths: ['design', 'design/active'] })
+        render(<ProjectOpenDialog {...projectOpenDialogProps({ projectOpenResolution: resolution })} />)
+
+        expect(rowOf('workingFolder')).not.toHaveTextContent('Will be created')
+        expect(rowOf('archivedFolder')).toHaveTextContent('Will be created')
+        expect(rowOf('projectFolder')).not.toHaveTextContent('Will be created')
+    })
+
+    it('keeps the folder setup dialog open on a backdrop click but closes it on Escape', () => {
+        const close = vi.fn()
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({ onClose: close, projectOpenResolution: folderSetupResolution() })}
+            />,
+        )
+
+        fireEvent.change(screen.getByLabelText('Working folder'), { target: { value: 'cards' } })
+        clickDialogBackdrop('Project folders')
+
+        expect(close).not.toHaveBeenCalled()
+        expect(screen.getByRole('dialog', { name: 'Project folders' })).toBeInTheDocument()
+        expect(screen.getByLabelText('Working folder')).toHaveValue('cards')
+
+        fireEvent.keyDown(screen.getByRole('dialog', { name: 'Project folders' }), { key: 'Escape' })
+
+        expect(close).toHaveBeenCalledOnce()
+    })
+
+    it('closes the folder setup dialog through the always-enabled Cancel button while loading', () => {
+        const close = vi.fn()
+        render(
+            <ProjectOpenDialog
+                {...projectOpenDialogProps({
+                    isLoading: true,
+                    onClose: close,
+                    projectOpenResolution: folderSetupResolution(),
+                })}
+            />,
+        )
+
+        const cancel = screen.getByRole('button', { name: 'Cancel' })
+        expect(cancel).toBeEnabled()
+
+        fireEvent.click(cancel)
+
+        expect(close).toHaveBeenCalledOnce()
+    })
+
+    it('still closes the source step on a backdrop click', () => {
+        const close = vi.fn()
+        render(<ProjectOpenDialog {...projectOpenDialogProps({ onClose: close })} />)
+
+        clickDialogBackdrop('Open project')
+
+        expect(close).toHaveBeenCalledOnce()
     })
 
     it('confirms all folder values for a project without md2.config.json', async () => {

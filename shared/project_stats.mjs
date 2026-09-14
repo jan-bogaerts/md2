@@ -1,18 +1,10 @@
 import { activityOriginFromPath } from './activity_paths.mjs'
+import { isToolCallEvent } from './agent_event_categories.mjs'
 import { parseActivityFileForMigration } from './card_activity.mjs'
 
 const RELEASE_STATS_VERSION = 3
 const CONVERSATION_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput'])
 const COMPLETED_ACTION_STATUSES = new Set(['completed', 'okButNotAfter'])
-const CODEX_TOOL_EVENT_TYPES = new Set([
-    'collabAgentToolCall',
-    'commandExecution',
-    'dynamicToolCall',
-    'fileChange',
-    'imageView',
-    'mcpToolCall',
-    'webSearch',
-])
 
 function requiredObject(value, fieldName) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Malformed project stats: invalid ${fieldName}`)
@@ -110,7 +102,9 @@ function parseConversation(value, fieldName) {
         identity: requiredString(conversation.identity, `${fieldName}.identity`),
         isRootConversation: requiredBoolean(conversation.isRootConversation, `${fieldName}.isRootConversation`),
         model: nullableString(conversation.model, `${fieldName}.model`),
+        reasoningMs: nullableNonNegativeNumber(conversation.reasoningMs ?? null, `${fieldName}.reasoningMs`),
         status,
+        toolMs: nullableNonNegativeNumber(conversation.toolMs ?? null, `${fieldName}.toolMs`),
         toolCallCount: nonNegativeNumber(conversation.toolCallCount, `${fieldName}.toolCallCount`),
         totalTokens: nonNegativeNumber(conversation.totalTokens, `${fieldName}.totalTokens`),
     }
@@ -134,13 +128,6 @@ function requireUniqueIdentities(entries, fieldName) {
 
 function originIdentity(origin) {
     return origin.kind === 'card' ? `card:${origin.cardInternalId}` : 'project'
-}
-
-function isToolCallEvent(entry) {
-    if (entry.kind !== 'event') return false
-    if (entry.type.startsWith('tool.')) return entry.type !== 'tool.result'
-
-    return CODEX_TOOL_EVENT_TYPES.has(entry.type)
 }
 
 function toolCallCount(entries) {
@@ -220,8 +207,10 @@ export function calculateActivityStats(activityFiles) {
                 identity,
                 isRootConversation: attribution.isRootConversation,
                 model: attribution.model,
+                reasoningMs: conversation.timer?.breakdown?.reasoningMs ?? null,
                 status: conversation.status,
                 toolCallCount: toolCallCount(conversation.entries),
+                toolMs: conversation.timer?.breakdown?.toolMs ?? null,
                 totalTokens: conversation.usage?.totalTokens ?? 0,
             })
         }

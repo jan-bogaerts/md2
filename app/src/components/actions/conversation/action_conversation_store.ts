@@ -202,13 +202,24 @@ export class ActionConversationStore {
     /** Applies one backend-returned conversation without another persistence round trip. */
     updateConversation(conversation: AgentConversation) {
         this.validateSelection(conversation)
-        const conversations = this.snapshot.conversations.some(({ path }) => path === conversation.path)
-            ? this.snapshot.conversations.map((current) => (current.path === conversation.path ? conversation : current))
+        const conversations = this.snapshot.conversations.some(({ id }) => id === conversation.id)
+            ? this.snapshot.conversations.map((current) => (current.id === conversation.id ? conversation : current))
             : [...this.snapshot.conversations, conversation]
-        const selectedConversation = this.snapshot.selectedConversation?.path === conversation.path
+        const selectedConversation = this.snapshot.selectedConversation?.id === conversation.id
             ? conversation
             : this.snapshot.selectedConversation
         this.setSnapshot({ ...this.snapshot, conversations, selectedConversation })
+    }
+
+    /** Adds and selects one backend-created conversation by canonical conversation identity. */
+    addAndSelectConversation(conversation: AgentConversation) {
+        this.validateSelection(conversation)
+        const conversations = this.snapshot.conversations.some(({ id }) => id === conversation.id)
+            ? this.snapshot.conversations.map((current) => (current.id === conversation.id ? conversation : current))
+            : [...this.snapshot.conversations, conversation]
+        this.bindingStore.setRunId(null)
+        this.setSnapshot({ ...this.snapshot, conversations, selectedConversation: conversation })
+        this.clearPromptDraftWhenIdle()
     }
 
     private clearPromptDraftWhenIdle() {

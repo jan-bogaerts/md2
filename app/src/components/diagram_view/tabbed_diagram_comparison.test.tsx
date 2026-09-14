@@ -6,7 +6,7 @@ import { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { layout } from '../../services/diagrams/diagram_layout'
-import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
+import { DiagramViewService, type DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { DiagramComparisonLayoutService } from './diagram_comparison_layout_service'
 import { TabbedDiagramComparison } from './tabbed_diagram_comparison'
 
@@ -78,8 +78,12 @@ describe('TabbedDiagramComparison', () => {
         expect(tabs.map((tab) => tab.textContent)).toEqual(['Current', 'New'])
         expect(currentTab).toHaveAttribute('aria-selected', 'true')
         expect(currentPanel).not.toHaveAttribute('hidden')
+        expect(currentPanel).toHaveStyle({ display: 'flex' })
         expect(newPanel).toHaveAttribute('hidden')
+        expect(newPanel).toHaveStyle({ display: 'none' })
         expect(screen.queryByRole('dialog', { name: 'Diagram tools' })).not.toBeInTheDocument()
+        expect(screen.getByRole('slider', { name: 'Current diagram zoom' })).toBeInTheDocument()
+        expect(screen.getByRole('slider', { hidden: true, name: 'New diagram zoom' })).toBeInTheDocument()
 
         currentTab.focus()
         await user.keyboard('{ArrowRight}{Enter}')
@@ -87,8 +91,12 @@ describe('TabbedDiagramComparison', () => {
         expect(newTab).toHaveFocus()
         expect(newTab).toHaveAttribute('aria-selected', 'true')
         expect(currentPanel).toHaveAttribute('hidden')
+        expect(currentPanel).toHaveStyle({ display: 'none' })
         expect(newPanel).not.toHaveAttribute('hidden')
-        expect(screen.getByRole('dialog', { name: 'Diagram tools' })).toBeInTheDocument()
+        expect(newPanel).toHaveStyle({ display: 'flex' })
+        expect(panelForTab(currentTab)).toBe(currentPanel)
+        expect(panelForTab(newTab)).toBe(newPanel)
+        expect(screen.queryByRole('dialog', { name: 'Diagram tools' })).not.toBeInTheDocument()
         expect(layoutService.getActiveTabSnapshot()).toBe('new')
     })
 
@@ -96,6 +104,9 @@ describe('TabbedDiagramComparison', () => {
         const user = userEvent.setup()
         const { geometry, session } = createHarness()
         const onCurrentSelect = vi.fn()
+        const viewService = new DiagramViewService()
+        viewService.setViewportScale(0.5)
+        session.setViewportScale(1.5)
         render(
             <TabbedDiagramComparison
                 currentDiagram={layout(diagram)}
@@ -103,27 +114,29 @@ describe('TabbedDiagramComparison', () => {
                 layoutService={new DiagramComparisonLayoutService()}
                 onCurrentSelect={onCurrentSelect}
                 session={session}
+                viewService={viewService}
             />,
         )
         const [currentTab, newTab] = screen.getAllByRole('tab')
         const currentPanel = panelForTab(currentTab)
         const newPanel = panelForTab(newTab)
         const newScroller = within(newPanel).getByLabelText('New diagram scroller')
+        const currentScroller = within(currentPanel).getByLabelText('Current diagram scroller')
         const currentNode = within(currentPanel).getByRole('button', { name: 'Orders' })
-        currentPanel.scrollTop = 31
+        currentScroller.scrollTop = 31
         await user.click(currentNode)
 
         await user.click(newTab)
         const newNode = within(newPanel).getByRole('button', { name: 'Orders' })
         newScroller.scrollTop = 47
         act(() => {
-            session.setActiveToolboxSection('nodes')
+            session.setActiveTool('node:component')
             session.setNodeField('orders', 'label', 'Order intake')
         })
 
         await user.click(currentTab)
         expect(panelForTab(currentTab)).toBe(currentPanel)
-        expect(currentPanel.scrollTop).toBe(31)
+        expect(currentScroller.scrollTop).toBe(31)
         expect(within(currentPanel).getByRole('button', { name: 'Orders' })).toBe(currentNode)
         expect(onCurrentSelect).toHaveBeenCalledTimes(1)
 
@@ -131,8 +144,10 @@ describe('TabbedDiagramComparison', () => {
         expect(panelForTab(newTab)).toBe(newPanel)
         expect(newScroller.scrollTop).toBe(47)
         expect(within(newPanel).getByRole('button', { name: 'Order intake' })).toBe(newNode)
-        expect(session.getActiveToolboxSectionSnapshot()).toBe('nodes')
+        expect(session.getLastSelectedCreationToolSnapshot()).toBe('node:component')
         expect(session.getDirtySnapshot()).toBe(true)
+        expect(viewService.getViewportScaleSnapshot()).toBe(0.5)
+        expect(session.getViewportScaleSnapshot()).toBe(1.5)
     })
 
     it('keeps tab layout and Current unchanged when a visible New leaf updates', () => {

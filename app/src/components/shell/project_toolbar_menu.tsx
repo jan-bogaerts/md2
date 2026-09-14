@@ -115,6 +115,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 onOpenGithub={actions.openGithubProject}
                 onOpenLocal={actions.openLocalProject}
                 onOpenRemote={actions.openRemoteProject}
+                onRemoveRecentLocal={actions.removeRecentLocalProject}
                 onRepositoryChange={actions.loadRepositoryBranches}
                 onSourceChange={actions.clearOpenDialogState}
                 open={dialogMode === 'open'}

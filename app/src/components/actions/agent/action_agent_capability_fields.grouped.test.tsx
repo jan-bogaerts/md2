@@ -118,7 +118,7 @@ describe('ActionAgentCapabilityFields', () => {
         expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
             agent: 'claude',
             model: 'default',
-            thinkingLevel: 'none',
+            thinkingLevel: 'medium',
         }))
     })
 })

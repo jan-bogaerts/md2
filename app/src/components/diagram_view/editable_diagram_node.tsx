@@ -14,9 +14,12 @@ import {
 import { useDiagramNodeGeometryField } from './use_diagram_geometry'
 import { useIsDiagramObjectSelected } from './use_diagram_selection'
 import { useEditableDiagramMetadataField, useEditableDiagramNodeField } from './use_editable_diagram'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
+import { useDiagramObjectDimmed } from './use_diagram_emphasis'
 
 interface EditableDiagramNodeProps {
     details?: DiagramObjectDetailsService
+    emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     nodeId: string
     selection?: DiagramSelectionService
@@ -29,6 +32,7 @@ interface EditableDiagramNodeProps {
  */
 function EditableDiagramNodeLeaf({
     details = diagramObjectDetailsService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     nodeId,
     selection = diagramSelectionService,
@@ -47,6 +51,7 @@ function EditableDiagramNodeLeaf({
     const x = useDiagramNodeGeometryField(nodeId, 'x', geometry)
     const y = useDiagramNodeGeometryField(nodeId, 'y', geometry)
     const selected = useIsDiagramObjectSelected(nodeId, 'node', selection)
+    const dimmed = useDiagramObjectDimmed('new', 'node', nodeId, emphasis)
     if (!diagramType || label === null || role === null || width === null || height === null) return null
 
     const handleSelect = (_selection: unknown, ctrlKey: boolean) => {
@@ -55,9 +60,11 @@ function EditableDiagramNodeLeaf({
         const identity = { objectId: nodeId, objectKind: 'node' } as const
         if (ctrlKey) {
             selection.toggle(identity)
-            return
+        } else {
+            selection.replace([identity])
         }
-        selection.replace([identity])
+        const sessionSnapshot = session.getSessionSnapshot()
+        if (sessionSnapshot) emphasis.moveTargetIfActive({diagramId: sessionSnapshot.sourceDiagramId, objectId: nodeId, objectKind: 'node', surface: 'new'})
     }
     const handleOpenDetails = () => details.open({ objectId: nodeId, objectKind: 'node' })
 
@@ -78,8 +85,10 @@ function EditableDiagramNodeLeaf({
     return (
         <DiagramNode
             diagramType={diagramType}
+            dimmed={dimmed}
             entityFieldSource={diagramType === 'entity' ? { nodeId, session } : undefined}
             flowPreset={preset ?? undefined}
+            formattingStore={session}
             node={node}
             onOpenDetails={handleOpenDetails}
             onSelect={handleSelect}

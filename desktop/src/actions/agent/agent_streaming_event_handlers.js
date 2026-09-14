@@ -121,7 +121,7 @@ function appendQuestionEntry(run, questions, timestamp) {
 
 async function handleQuestion(service, run, event, timestamp) {
     appendQuestionEntry(run, event.questions, timestamp);
-    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
+    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp, run.phases);
     run.waitingForQuestion = true;
     run.pendingQuestionRequestId = event.requestId;
     run.pendingQuestions = event.questions;
@@ -134,7 +134,7 @@ async function handleApproval(service, run, event, timestamp) {
     const requestId = event.approval.requestId;
     if (run.pendingApprovals.has(requestId)) throw new Error(`Duplicate agent approval request id: ${requestId}`);
     run.pendingApprovals.set(requestId, { ...event.approval, submitted: false });
-    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
+    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp, run.phases);
     await service.persistCheckpoint(run);
     emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
     emitRunEvent(run, { approval: event.approval, state: 'waitingForInput', type: 'approval' });
@@ -150,7 +150,7 @@ function handleApprovalSubmitted(service, run, event) {
 async function handleApprovalResolved(service, run, event, timestamp) {
     if (!run.pendingApprovals.delete(event.requestId)) return;
     const state = hasPendingInteraction(run) ? 'waitingForInput' : 'running';
-    transitionConversationStatus(run.conversation, state, timestamp);
+    transitionConversationStatus(run.conversation, state, timestamp, run.phases);
     await service.persistCheckpoint(run);
     emitRunEvent(run, { requestId: event.requestId, state, type: 'approvalResolved' });
     emitRunEvent(run, { state, type: 'state' });
@@ -202,7 +202,7 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     }
     const synchronizedMessage = lastMessageEntry(run.conversation);
     if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
-    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp);
+    transitionConversationStatus(run.conversation, 'waitingForInput', timestamp, run.phases);
     run.conversation.completedAt = null;
     await service.persistCheckpoint(run);
     emitRunEvent(run, { state: 'waitingForInput', type: 'state' });

@@ -55,6 +55,26 @@ const callsEdge: DiagramEdge = { from: 'orders', id: 'orders-store', kind: 'call
 const backendGroup: DiagramGroup = { id: 'backend', label: 'Backend', nodeIds: ['orders'] };
 
 describe('diagram change descriptions', () => {
+    it('describes diagram-wide and semantic-category formatting changes', () => {
+        const source = reader({
+            changes: [
+                diagramChange({
+                    field: 'fontScalePercent', id: 'font', objectId: 'diagram', objectKind: 'formatting',
+                    originalValue: 100, value: 110,
+                }),
+                diagramChange({
+                    field: 'nodeRole', id: 'role', objectId: 'focal', objectKind: 'formatting',
+                    originalValue: undefined, value: { font: { bold: true } },
+                }),
+            ],
+        })
+
+        expect(generateDiagramChangeDescriptions(source)).toBe([
+            '- Change fontScalePercent of diagram formatting from 100 to 110.',
+            '- Change nodeRole of nodeRole "focal" formatting from unset to { font: { bold: true } }.',
+        ].join('\n'))
+    })
+
     it('returns no implementation instructions for an empty change set', () => {
         const source = reader();
 

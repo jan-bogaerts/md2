@@ -116,12 +116,16 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Data.refreshWorktrees).toEqual(expect.any(Function));
         expect(exposed.md2Data.onWorktreesChanged).toEqual(expect.any(Function));
         expect(exposed.md2Actions.prepareActionPrompt).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.deleteSchedule).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.listActiveSchedules).toEqual(expect.any(Function));
         expect(exposed.md2Actions.startAction).toEqual(expect.any(Function));
         expect(exposed.md2Actions.sendActionMessage).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.splitActionConversation).toEqual(expect.any(Function));
         expect(exposed.md2Actions.answerActionApproval).toEqual(expect.any(Function));
         expect(exposed.md2Actions.answerActionQuestion).toEqual(expect.any(Function));
         expect(exposed.md2Actions.dismissActionQuestions).toEqual(expect.any(Function));
         expect(exposed.md2Actions.closeWaitingActionConversation).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.dismissWaitingActionConversationQuestions).toEqual(expect.any(Function));
         expect(exposed.md2Actions.updateActionConversationViewed).toEqual(expect.any(Function));
         expect(exposed.md2Actions.updateCardActionSettings).toEqual(expect.any(Function));
         expect(exposed.md2Actions.finishActionRun).toEqual(expect.any(Function));
@@ -138,10 +142,11 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2CodexRuntime.onCodexRateLimits).toEqual(expect.any(Function));
         expect(exposed.md2CodexRuntime.onCodexUpdateRequired).toEqual(expect.any(Function));
         expect(exposed.md2CodexRuntime.updateCodexCli).toEqual(expect.any(Function));
-        expect(exposed.md2Updates.onUpdateAvailable).toEqual(expect.any(Function));
-        expect(exposed.md2Updates.downloadUpdate).toEqual(expect.any(Function));
+        expect(exposed.md2Updates.dismiss).toEqual(expect.any(Function));
+        expect(exposed.md2Updates.getSnapshot).toEqual(expect.any(Function));
+        expect(exposed.md2Updates.install).toEqual(expect.any(Function));
+        expect(exposed.md2Updates.onChanged).toEqual(expect.any(Function));
         expect(exposed.md2Sentry.request).toEqual(expect.any(Function));
-        expect(exposed.md2Updates.onDownloadProgress).toEqual(expect.any(Function));
     });
 
     it('exposes application state only through scoped IPC methods', async () => {
@@ -170,18 +175,26 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Files.webUtils).toBeUndefined();
     });
 
-    it('wraps update-available notifications without exposing ipcRenderer', () => {
+    it('exposes scoped update snapshot operations without renderer URL input', async () => {
         const { electron, exposed } = createPreloadHarness();
         const callback = vi.fn();
-        const unsubscribe = exposed.md2Updates.onUpdateAvailable(callback);
-        const listenerCall = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === 'md2-update:available');
+        const snapshot = { error: null, received: 0, state: 'available', total: null, version: '0.6.0' };
+        electron.ipcRenderer.invoke.mockResolvedValueOnce(snapshot);
+        const unsubscribe = exposed.md2Updates.onChanged(callback);
+        const listenerCall = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === 'md2-update:changed');
         const listener = listenerCall[1];
 
-        listener({ sender: 'internal' }, { downloadUrl: 'https://example.test/md2.exe', version: '0.3.0' });
+        listener({ sender: 'internal' }, snapshot);
+        await expect(exposed.md2Updates.getSnapshot()).resolves.toEqual(snapshot);
+        await exposed.md2Updates.install('https://evil.test/installer.exe');
+        await exposed.md2Updates.dismiss();
         unsubscribe();
 
-        expect(callback).toHaveBeenCalledWith({ downloadUrl: 'https://example.test/md2.exe', version: '0.3.0' });
-        expect(electron.ipcRenderer.removeListener).toHaveBeenCalledWith('md2-update:available', listener);
+        expect(callback).toHaveBeenCalledWith(snapshot);
+        expect(electron.ipcRenderer.invoke).toHaveBeenNthCalledWith(1, 'md2-update:get-snapshot');
+        expect(electron.ipcRenderer.invoke).toHaveBeenNthCalledWith(2, 'md2-update:install');
+        expect(electron.ipcRenderer.invoke).toHaveBeenNthCalledWith(3, 'md2-update:dismiss');
+        expect(electron.ipcRenderer.removeListener).toHaveBeenCalledWith('md2-update:changed', listener);
         expect(exposed.md2Updates.ipcRenderer).toBeUndefined();
     });
 
@@ -367,6 +380,16 @@ describe('electron main isolation settings', () => {
         expect(source).toContain('LIFECYCLE_FLUSH_REQUEST_CHANNEL');
         expect(source).toContain('closeCoordinator.requestApplicationQuit()');
         expect(source).toContain('completeApplicationQuit: () => stopAndQuit()');
+        expect(source).toContain('requestApplicationQuit: () => closeCoordinator.requestApplicationQuit()');
+    });
+
+    it('registers current update snapshot bridge before starting one update check', () => {
+        const source = readFileSync(mainPath, 'utf8');
+        const bridgeRegistration = source.indexOf('registerUpdateBridge({ getWindow: getPrimaryWindow, ipcMain, updateService })');
+        const updateCheck = source.indexOf('void updateService.checkForUpdate()');
+
+        expect(bridgeRegistration).toBeGreaterThan(-1);
+        expect(updateCheck).toBeGreaterThan(bridgeRegistration);
     });
 
     it('opens renderer developer tools when Electron runs unpackaged', () => {

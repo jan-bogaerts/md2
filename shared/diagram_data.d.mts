@@ -7,6 +7,11 @@ export const DIAGRAM_FLOW_PRESETS: readonly ['flowchart', 'state']
 export const DIAGRAM_CARDINALITIES: readonly ['1', 'N', '0..1', '1..*']
 export const DIAGRAM_SEQUENCE_OPERATORS: readonly ['alt', 'opt', 'loop']
 export const DIAGRAM_CONNECTION_SIDES: readonly ['top', 'right', 'bottom', 'left']
+export const DIAGRAM_BORDER_STYLES: readonly ['solid', 'dashed', 'dotted', 'double']
+export const DIAGRAM_CONTENT_POSITIONS: readonly ['top-left', 'top-center', 'top-right', 'center-left', 'center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right']
+export const DIAGRAM_CONNECTION_MARKERS: readonly ['none', 'filled-arrow', 'open-arrow', 'circle', 'diamond']
+export const DIAGRAM_FORMATTING_SCALE_MINIMUM: 50
+export const DIAGRAM_FORMATTING_SCALE_MAXIMUM: 200
 
 export type DiagramType = typeof DIAGRAM_TYPES[number]
 export type DiagramRole = typeof DIAGRAM_ROLES[number]
@@ -16,6 +21,41 @@ export type DiagramFlowPreset = typeof DIAGRAM_FLOW_PRESETS[number]
 export type DiagramCardinality = typeof DIAGRAM_CARDINALITIES[number]
 export type DiagramSequenceOperator = typeof DIAGRAM_SEQUENCE_OPERATORS[number]
 export type DiagramConnectionSide = typeof DIAGRAM_CONNECTION_SIDES[number]
+export type DiagramBorderStyle = typeof DIAGRAM_BORDER_STYLES[number]
+export type DiagramContentPosition = typeof DIAGRAM_CONTENT_POSITIONS[number]
+export type DiagramConnectionMarker = typeof DIAGRAM_CONNECTION_MARKERS[number]
+
+export interface DiagramFontFormatting {
+    bold?: boolean
+    color?: string
+    family?: string
+    italic?: boolean
+    size?: number
+    underline?: boolean
+}
+export interface DiagramBoxFormatting {
+    borderColor?: string
+    borderStyle?: DiagramBorderStyle
+    borderThickness?: number
+    contentPosition?: DiagramContentPosition
+    cornerRadius?: number
+    fillColor?: string
+}
+export interface DiagramLineFormatting { color?: string; thickness?: number }
+export interface DiagramNodeRoleFormatting { box?: DiagramBoxFormatting; font?: DiagramFontFormatting }
+export interface DiagramConnectionKindFormatting {
+    endMarker?: DiagramConnectionMarker
+    font?: DiagramFontFormatting
+    line?: DiagramLineFormatting
+    startMarker?: DiagramConnectionMarker
+}
+export interface DiagramFormatting {
+    boxScalePercent?: number
+    connectionKinds?: Partial<Record<DiagramEdgeKind, DiagramConnectionKindFormatting>>
+    fontScalePercent?: number
+    nodeRoles?: Partial<Record<DiagramRole, DiagramNodeRoleFormatting>>
+    spacingScalePercent?: number
+}
 
 export type DiagramLegendEntryData =
     | { label: string; role: DiagramRole }
@@ -74,6 +114,7 @@ export interface DiagramSequenceFragment {
 }
 export interface DiagramData {
     edges: DiagramEdge[]
+    formatting?: DiagramFormatting
     fragments?: DiagramSequenceFragment[]
     groups: DiagramGroup[]
     meta: DiagramMeta

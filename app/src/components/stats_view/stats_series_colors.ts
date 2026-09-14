@@ -35,6 +35,11 @@ function randomCssColor() {
     return `#${colorValue.toString(16).padStart(6, '0')}`;
 }
 
+/** A row's palette family: its explicit `colorGroup` first, otherwise the agent that produced it. */
+function rowGroup(groupNames: string[], row: StatsChartRow) {
+    return matchedGroup(groupNames, row.colorGroup ?? row.provider ?? row.agent);
+}
+
 function matchedGroup(groupNames: string[], colorGroup: string | null) {
     if (!colorGroup) return NEUTRAL_GROUP;
     const normalized = colorGroup.trim().toLowerCase();
@@ -50,7 +55,7 @@ export function seriesColorInputs(rows: StatsChartRow[], groupNames: string[]): 
     const inputsByKey = new Map<string, StatsSeriesColorInput>();
     for (const row of rows) {
         const identity = effectiveSeriesIdentity(row);
-        const group = matchedGroup(groupNames, row.provider ?? row.agent);
+        const group = rowGroup(groupNames, row);
         const key = colorKey(group, identity);
         inputsByKey.set(key, { group, identity, key });
     }
@@ -61,9 +66,7 @@ export function seriesColorInputs(rows: StatsChartRow[], groupNames: string[]): 
 
 /** Looks up one row's group-scoped color identity. */
 export function seriesColorKey(row: StatsChartRow, groupNames: string[]) {
-    const group = matchedGroup(groupNames, row.provider ?? row.agent);
-
-    return colorKey(group, effectiveSeriesIdentity(row));
+    return colorKey(rowGroup(groupNames, row), effectiveSeriesIdentity(row));
 }
 
 /** Assigns one stable color per series identity: agent families first, neutral list last. */

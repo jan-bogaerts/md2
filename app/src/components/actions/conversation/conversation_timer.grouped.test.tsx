@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { formatDuration } from './conversation_duration'
 import { ConversationTimer } from './conversation_timer'
@@ -40,13 +40,13 @@ describe('ConversationTimer', () => {
             />,
         )
 
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:30')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('1:30')
 
         act(() => {
             vi.advanceTimersByTime(3_000)
         })
 
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('1:30')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('1:30')
     })
 
     it('ticks once a second while the run is active', () => {
@@ -57,18 +57,18 @@ describe('ConversationTimer', () => {
             />,
         )
 
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:15')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('0:15')
 
         act(() => {
             vi.advanceTimersByTime(999)
         })
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:15')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('0:15')
 
         act(() => {
             vi.advanceTimersByTime(1)
         })
 
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:16')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('0:16')
     })
 
     it.each(['idle', 'waitingForInput', 'completed', 'failed', 'cancelled'] as const)(
@@ -76,13 +76,13 @@ describe('ConversationTimer', () => {
         (status) => {
             render(<ConversationTimer status={status} timer={{ elapsedMs: 5_000, runningStartedAt: null }} />)
 
-            expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:05')
+            expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('0:05')
 
             act(() => {
                 vi.advanceTimersByTime(3_000)
             })
 
-            expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:05')
+            expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('0:05')
         },
     )
 
@@ -90,11 +90,11 @@ describe('ConversationTimer', () => {
         const { rerender } = render(
             <ConversationTimer status="idle" timer={{ elapsedMs: 5_000, runningStartedAt: null }} />,
         )
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:05')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('0:05')
 
         rerender(<ConversationTimer status="idle" timer={{ elapsedMs: 1_000, runningStartedAt: null }} />)
 
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:01')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('0:01')
     })
 
     it('resumes from the frozen value without counting time spent waiting', () => {
@@ -108,13 +108,13 @@ describe('ConversationTimer', () => {
         act(() => {
             vi.advanceTimersByTime(3_000)
         })
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:08')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('0:08')
 
         rerender(<ConversationTimer status="waitingForInput" timer={{ elapsedMs: 8_000, runningStartedAt: null }} />)
         act(() => {
             vi.advanceTimersByTime(10_000)
         })
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:08')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('0:08')
 
         rerender(
             <ConversationTimer
@@ -126,12 +126,45 @@ describe('ConversationTimer', () => {
             vi.advanceTimersByTime(2_000)
         })
 
-        expect(screen.getByLabelText('Elapsed time')).toHaveTextContent('0:10')
+        expect(screen.getByLabelText(/^Elapsed time/u)).toHaveTextContent('0:10')
+    })
+
+    it('splits the total into tools, reasoning and agent time on hover', async () => {
+        vi.useRealTimers()
+        render(
+            <ConversationTimer
+                status="completed"
+                timer={{ breakdown: { reasoningMs: 20_000, toolMs: 50_000 }, elapsedMs: 100_000, runningStartedAt: null }}
+            />,
+        )
+        const caption = screen.getByLabelText(/^Elapsed time/u)
+
+        expect(caption).toHaveTextContent('1:40')
+        expect(caption.getAttribute('aria-label')).toContain('Tools: 0:50 (50%)')
+        fireEvent.mouseOver(caption)
+        const tooltip = await screen.findByRole('tooltip')
+
+        expect(tooltip).toHaveTextContent('Total: 1:40')
+        expect(tooltip).toHaveTextContent('Tools: 0:50 (50%)')
+        expect(tooltip).toHaveTextContent('Reasoning: 0:20 (20%)')
+        expect(tooltip).toHaveTextContent('Agent: 0:30 (30%)')
+    })
+
+    it('reports a conversation without a breakdown as unmeasured', async () => {
+        vi.useRealTimers()
+        render(<ConversationTimer status="completed" timer={{ elapsedMs: 100_000, runningStartedAt: null }} />)
+        const caption = screen.getByLabelText(/^Elapsed time/u)
+        fireEvent.mouseOver(caption)
+        const tooltip = await screen.findByRole('tooltip')
+
+        expect(tooltip).toHaveTextContent('Total: 1:40')
+        expect(tooltip).toHaveTextContent('Unmeasured')
+        expect(tooltip).not.toHaveTextContent('Tools:')
     })
 
     it('shows no fabricated duration when timer data is unavailable', () => {
         render(<ConversationTimer status="completed" timer={undefined} />)
 
-        expect(screen.queryByLabelText('Elapsed time')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText(/^Elapsed time/u)).not.toBeInTheDocument()
     })
 })

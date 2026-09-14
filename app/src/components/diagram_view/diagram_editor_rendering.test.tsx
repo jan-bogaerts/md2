@@ -2,13 +2,12 @@ import { useCallback, useSyncExternalStore } from 'react'
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
-import {
-    MINIMUM_DIAGRAM_ZOOM, DiagramEditSessionService, type DiagramPersistentTool,
-} from '../../services/diagrams/diagram_edit_session_service'
+import { DiagramEditSessionService, type DiagramPersistentTool } from '../../services/diagrams/diagram_edit_session_service'
 import { DiagramGeometryService } from '../../services/diagrams/diagram_geometry_service'
 import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
+import { DEFAULT_DIAGRAM_ZOOM, DIAGRAM_ZOOM_STEP, MINIMUM_DIAGRAM_ZOOM } from '../../services/diagrams/diagram_zoom'
 import { useDiagramNodeGeometryField } from './use_diagram_geometry'
 import { useIsDiagramObjectSelected } from './use_diagram_selection'
 import { useActiveDiagramTool } from './use_diagram_tool'
@@ -203,7 +202,9 @@ describe('diagram editor render isolation', () => {
         ['fragment', 'fragment:first-fragment', ({ session }: ReturnType<typeof createHarness>) => session.setFragmentField('first-fragment', 'operator', 'loop')],
         ['selection', 'selection:one', ({ selection }: ReturnType<typeof createHarness>) => selection.replace([{ objectId: 'one', objectKind: 'node' }])],
         ['geometry', 'geometry:one', ({ session }: ReturnType<typeof createHarness>) => session.setNodeField('one', 'x', 200)],
-        ['zoom', 'zoom', ({ session }: ReturnType<typeof createHarness>) => session.zoomIn()],
+        ['zoom', 'zoom', ({ session }: ReturnType<typeof createHarness>) => (
+            session.setViewportScale(DEFAULT_DIAGRAM_ZOOM + DIAGRAM_ZOOM_STEP)
+        )],
         ['tool', 'tool:node:component', ({ session }: ReturnType<typeof createHarness>) => session.setActiveTool('node:component')],
     ] as const)('rerenders only owning %s leaf', (_changeKind, ownerId, mutate) => {
         const harness = createHarness()

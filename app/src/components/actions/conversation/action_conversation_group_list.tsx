@@ -4,15 +4,16 @@ import { ActionConversationEventRow } from './action_conversation_event_row'
 import { ActionConversationMessage } from './action_conversation_message'
 import { SubAgentGroup } from './sub_agent_group'
 import { TerminalToolCallGroup } from './terminal_tool_call_group'
+import type { ActionConversationCommandOperations } from './action_conversation_command_service'
 
 interface ActionConversationGroupListProps {
-    cardInternalId: string | null
+    commands: ActionConversationCommandOperations
     groups: ActionConversationRenderGroup[]
     tracker: ActionConversationChatlogTracker
 }
 
 /** Maps stable conversation render groups to their leaf components. */
-export function ActionConversationGroupList({ cardInternalId, groups, tracker }: ActionConversationGroupListProps) {
+export function ActionConversationGroupList({ commands, groups, tracker }: ActionConversationGroupListProps) {
     return groups.map((group) => {
         if (group.kind === 'terminalToolCalls') {
             return (
@@ -40,7 +41,7 @@ export function ActionConversationGroupList({ cardInternalId, groups, tracker }:
 
         const { entry } = group
         if (entry.kind === 'message') {
-            return <ActionConversationMessage cardInternalId={cardInternalId} entry={entry} key={group.key} />
+            return <ActionConversationMessage commands={commands} entry={entry} key={group.key} tracker={tracker} />
         }
 
         return <ActionConversationEventRow entry={entry} grouped={false} key={group.key} />

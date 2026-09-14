@@ -1,8 +1,18 @@
 import { Box, Typography } from '@mui/material'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import type { PositionedDiagramGroup } from '../../services/diagrams/diagram_layout'
+import {
+    diagramEmphasisService, type DiagramEmphasisService, type DiagramSurface,
+} from '../../services/diagrams/diagram_emphasis_service'
+import { useDiagramDecorationsDimmed } from './use_diagram_emphasis'
+import { DIAGRAM_DIMMED_OPACITY } from './diagram_emphasis_presentation'
+import { diagramFontStyle } from './diagram_font_style'
+import { type DiagramFormattingStore, useDiagramFormattingScale } from './use_diagram_formatting'
 
 interface DiagramGroupProps {
+    emphasis?: DiagramEmphasisService
+    emphasisSurface?: DiagramSurface
+    formattingStore?: DiagramFormattingStore
     group: PositionedDiagramGroup
     onOpenDetails?: () => void
     onSelect?: (ctrlKey: boolean) => void
@@ -10,7 +20,17 @@ interface DiagramGroupProps {
 }
 
 /** Containment or trust-zone box; interactive only on the New diagram. */
-export function DiagramGroup({ group, onOpenDetails, onSelect, selected = false }: DiagramGroupProps) {
+export function DiagramGroup({
+    emphasis = diagramEmphasisService,
+    emphasisSurface = 'current',
+    formattingStore,
+    group,
+    onOpenDetails,
+    onSelect,
+    selected = false,
+}: DiagramGroupProps) {
+    const dimmed = useDiagramDecorationsDimmed(emphasisSurface, emphasis)
+    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
     const interactive = !!onSelect
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => onSelect?.(event.ctrlKey)
     const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -40,7 +60,7 @@ export function DiagramGroup({ group, onOpenDetails, onSelect, selected = false 
             sx={{
                 bgcolor: 'transparent', color: 'text.primary', cursor: interactive ? 'pointer' : 'default', font: 'inherit', p: 0,
                 border: '1px dashed', borderColor: 'custom.borderStrong', borderRadius: 1, height: group.height, left: group.x,
-                pointerEvents: interactive ? 'auto' : 'none', position: 'absolute', textAlign: 'left', top: group.y,
+                opacity: dimmed ? DIAGRAM_DIMMED_OPACITY : 1, pointerEvents: interactive ? 'auto' : 'none', position: 'absolute', textAlign: 'left', top: group.y,
                 width: group.width, zIndex: 0,
                 ...(selected ? { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 } : {}),
                 '&:focus-visible': interactive
@@ -49,7 +69,7 @@ export function DiagramGroup({ group, onOpenDetails, onSelect, selected = false 
             }}
             type={interactive ? 'button' : undefined}
         >
-            <Typography color="custom.text3" sx={{ bgcolor: 'background.default', left: 1, px: 0.5, position: 'absolute', top: 0.5 }} variant="overline">
+            <Typography color="custom.text3" sx={{ ...diagramFontStyle(undefined, fontScalePercent, 'overline'), bgcolor: 'background.default', left: 1, px: 0.5, position: 'absolute', top: 0.5 }} variant="overline">
                 {group.label}
             </Typography>
         </Box>

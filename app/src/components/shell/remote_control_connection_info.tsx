@@ -3,6 +3,7 @@ import QRCode from 'qrcode'
 import { useEffect, useMemo, useState } from 'react'
 import type { RemoteControlStatus } from '../../data/electron_remote_control_bridge'
 import { connectUrlFromEndpoint } from '../../data/remote_connect_string'
+import { copyTextToClipboard } from '../../services/clipboard_text'
 
 interface RemoteControlConnectionInfoProps {
     anchorEl: HTMLElement | null
@@ -33,20 +34,6 @@ function connectTargets(status: RemoteControlStatus): ConnectTarget[] {
     }
 
     return targets
-}
-
-async function copyText(text: string) {
-    try {
-        await navigator.clipboard.writeText(text)
-    } catch {
-        // Non-secure contexts lack the async clipboard API; fall back to a hidden textarea + execCommand.
-        const textarea = document.createElement('textarea')
-        textarea.value = text
-        document.body.appendChild(textarea)
-        textarea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textarea)
-    }
 }
 
 /** Popover shown from the Serve button: hostname/IP connect links, a copy button and a QR of the selected link. */
@@ -84,7 +71,11 @@ export function RemoteControlConnectionInfo(props: RemoteControlConnectionInfoPr
 
     const handleCopy = async () => {
         if (!activeUrl) return
-        await copyText(activeUrl)
+        try {
+            await copyTextToClipboard(activeUrl)
+        } catch {
+            // The connect-URL button has always ignored copy failures; keep it dialog-free.
+        }
         setCopiedUrl(activeUrl)
     }
 

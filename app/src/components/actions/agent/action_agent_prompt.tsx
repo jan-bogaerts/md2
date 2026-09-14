@@ -1,12 +1,16 @@
 import { Box, Typography } from '@mui/material'
 import {
-    useCallback, useRef, useState, useSyncExternalStore,
+    useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore,
     type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from 'react'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
+import type { AgentQuestion } from '../../../data/action_run_types'
 import type { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
 import { applicationStorage } from '../../../services/storage/application_storage'
+import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown_editor'
+import { ActionAgentQuestionOwner, type RestoredAgentQuestions } from './action_agent_question_owner'
+import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
 const MIN_PROMPT_HEIGHT = 72
 const MIN_CHAT_HEIGHT = 96
@@ -18,6 +22,8 @@ const EMPTY_PROMPT_EDITOR_HEIGHT = 56
 const PROMPT_RESIZE_STEP = 24
 const PROMPT_HEIGHT_STORAGE_KEY = 'md2.actionPromptHeight'
 const QUESTIONS_BLOCK_HEIGHT_STORAGE_KEY = 'md2.actionQuestionsBlockHeight'
+
+type PrimaryRegion = 'prompt' | 'questions'
 
 function readStoredPromptHeight(): number {
     const storedValue = applicationStorage.getItem(PROMPT_HEIGHT_STORAGE_KEY)
@@ -43,6 +49,7 @@ function persistBlockHeight(height: number) {
 
 interface ActionAgentPromptProps {
     attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
+    bindingStore: ActionRunBindingStore
     bottomRow?: ReactNode
     convertMessage: string | null
     monospace?: boolean
@@ -50,15 +57,16 @@ interface ActionAgentPromptProps {
     plainText?: boolean
     onRunShortcut?: () => void
     promptDraft: ActionPromptDraft
-    questionsPanel?: ReactNode
+    questionsEnabled: boolean
     responsePrompts?: ReactNode
+    restoredQuestions?: RestoredAgentQuestions | null
 }
 
 /** Resizable prompt editor, plus any pending agent question, shown below an agent conversation. */
 export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     const {
-        attachmentHandler, bottomRow, convertMessage, monospace = false, onRunShortcut, plainText = false, promptDraft,
-        questionsPanel, responsePrompts,
+        attachmentHandler, bindingStore, bottomRow, convertMessage, monospace = false, onRunShortcut, plainText = false,
+        promptDraft, questionsEnabled, responsePrompts, restoredQuestions = null,
     } = props
     const promptEditorRef = useRef<MarkdownEditorHandle>(null)
     const promptHeightStartRef = useRef(0)
@@ -66,9 +74,11 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     const pointerStartYRef = useRef(0)
     const blockSurfaceRef = useRef<HTMLElement | null>(null)
     const questionsSurfaceRef = useRef<HTMLElement | null>(null)
+    const questionIdentityRef = useRef<string | number | AgentQuestion[] | null>(null)
     const [promptHeight, setPromptHeight] = useState(readStoredPromptHeight)
     const [blockHeight, setBlockHeight] = useState<number | null>(null)
     const [containerHeight, setContainerHeight] = useState(0)
+    const [primaryRegion, setPrimaryRegion] = useState<PrimaryRegion>('questions')
     const [resizingPrompt, setResizingPrompt] = useState(false)
     const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)
     const editorSnapshot = useSyncExternalStore(
@@ -76,14 +86,22 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
         promptDraft.getEditorSnapshot,
         promptDraft.getEditorSnapshot,
     )
+    const boundRunId = useBoundRunId(bindingStore)
+    const question = useRunSelector(boundRunId, (run) => run?.question ?? null)
 
     const promptEmpty = prompt.trim().length === 0
-    const hasQuestions = !!questionsPanel
+    const hasQuestions = questionsEnabled && !!(question || restoredQuestions)
+    const questionIdentity = questionsEnabled
+        ? question?.requestId ?? restoredQuestions?.questions ?? null
+        : null
     const resizeDisabled = promptEmpty && !hasQuestions
 
-    const handleLivePromptChange = (value: string) => {
-        if (value.trim().length === 0) setResizingPrompt(false)
-    }
+    useLayoutEffect(() => {
+        if (questionIdentity !== null && questionIdentity !== questionIdentityRef.current) {
+            setPrimaryRegion('questions')
+        }
+        questionIdentityRef.current = questionIdentity
+    }, [questionIdentity])
 
     const measureContainerHeight = useCallback(() => {
         const container = blockSurfaceRef.current?.parentElement
@@ -140,7 +158,9 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     const activeBlockHeight = hasQuestions ? blockHeight : null
     const effectivePromptHeight = activeBlockHeight === null
         ? promptHeight
-        : Math.min(Math.max(promptHeight, MIN_PROMPT_HEIGHT), activeBlockHeight - MIN_QUESTIONS_HEIGHT)
+        : primaryRegion === 'prompt'
+            ? Math.max(MIN_PROMPT_HEIGHT, activeBlockHeight - MIN_QUESTIONS_HEIGHT)
+            : MIN_PROMPT_HEIGHT
     const questionsMaxHeight = Math.max(MIN_QUESTIONS_HEIGHT, containerHeight * QUESTIONS_INITIAL_MAX_FRACTION)
 
     const currentBlockHeight = () => {
@@ -150,6 +170,25 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
 
         return clampBlockHeight(measured || MIN_BLOCK_HEIGHT)
     }
+
+    const activatePrimaryRegion = (region: PrimaryRegion) => {
+        if (!hasQuestions || region === primaryRegion) return
+
+        if (activeBlockHeight === null) setBlockHeight(currentBlockHeight())
+        setPrimaryRegion(region)
+    }
+
+    const handleLivePromptChange = (value: string) => {
+        if (value.trim().length === 0) {
+            setResizingPrompt(false)
+            return
+        }
+
+        activatePrimaryRegion('prompt')
+    }
+
+    const handleQuestionsPointerDown = () => activatePrimaryRegion('questions')
+    const handleQuestionsFocus = () => activatePrimaryRegion('questions')
 
     const handleSplitPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
         if (resizeDisabled) return
@@ -283,6 +322,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                         flexDirection: 'column',
                         flexShrink: 0,
                         height: promptEmpty && activeBlockHeight === null ? 'auto' : effectivePromptHeight,
+                        minHeight: hasQuestions ? MIN_PROMPT_HEIGHT : undefined,
                         overflow: 'hidden',
                         '&:focus-within': {
                             borderColor: 'primary.main',
@@ -319,18 +359,25 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
                     {responsePrompts}
                     {bottomRow}
                 </Box>
-                {questionsPanel ? (
+                {hasQuestions ? (
                     <Box
                         data-testid="action-questions-region"
+                        onFocusCapture={handleQuestionsFocus}
+                        onPointerDown={handleQuestionsPointerDown}
                         ref={questionsSurfaceRef}
                         sx={{
-                            flex: activeBlockHeight === null ? '0 1 auto' : 1,
+                            flex: activeBlockHeight === null
+                                ? '0 1 auto'
+                                : primaryRegion === 'questions' ? 1 : '0 0 auto',
+                            height: activeBlockHeight !== null && primaryRegion === 'prompt'
+                                ? MIN_QUESTIONS_HEIGHT
+                                : undefined,
                             maxHeight: activeBlockHeight === null ? questionsMaxHeight : undefined,
-                            minHeight: 0,
+                            minHeight: activeBlockHeight === null ? 0 : MIN_QUESTIONS_HEIGHT,
                             overflowY: 'auto',
                         }}
                     >
-                        {questionsPanel}
+                        <ActionAgentQuestionOwner bindingStore={bindingStore} restored={restoredQuestions} />
                     </Box>
                 ) : null}
             </Box>

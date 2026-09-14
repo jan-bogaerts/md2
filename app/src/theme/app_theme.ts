@@ -52,14 +52,25 @@ function paletteForMode(mode: PaletteMode, colorScheme: ColorSchemeConfig, backg
             chartPalette: isDark
                 ? ['#7aa2f7', '#9ece6a', '#e0af68', '#bb9af7', '#7dcfff', '#f7768e', '#73daca', '#c0caf5']
                 : ['#3366cc', '#2e8b57', '#d97706', '#7c3aed', '#0284c7', '#dc2626', '#0f766e', '#64748b'],
+            // Agent families carry one colour per series. The `duration:` families instead carry one hue
+            // per duration component in shades ordered light to dark, so a stacked bar reads as one hue
+            // per component and one lightness per agent.
             chartPalettes: isDark
                 ? {
                     claude: ['#e0af68', '#f7768e', '#bb9af7', '#c0caf5'],
                     codex: ['#7aa2f7', '#9ece6a', '#7dcfff', '#73daca'],
+                    'duration:agent': ['#a9efdc', '#6fd2c1', '#3aa595', '#25705f'],
+                    'duration:reasoning': ['#d7c4fb', '#b18df0', '#9061e0', '#6b3fb0'],
+                    'duration:tool': ['#a5c8ff', '#6f9bf5', '#4472d0', '#2b52a0'],
+                    'duration:unmeasured': ['#c3c9d6', '#9aa2b2', '#737b8c', '#525a6b'],
                 }
                 : {
                     claude: ['#d97706', '#dc2626', '#7c3aed', '#64748b'],
                     codex: ['#3366cc', '#2e8b57', '#0284c7', '#0f766e'],
+                    'duration:agent': ['#6ee7b7', '#10b981', '#047857', '#064e3b'],
+                    'duration:reasoning': ['#c4b5fd', '#8b5cf6', '#6d28d9', '#4c1d95'],
+                    'duration:tool': ['#93c5fd', '#3b82f6', '#1d4ed8', '#1e3a8a'],
+                    'duration:unmeasured': ['#cbd5e1', '#94a3b8', '#6b7280', '#475569'],
                 },
             colHead: modePalette.text.secondary,
             primaryBg: primaryBackground,

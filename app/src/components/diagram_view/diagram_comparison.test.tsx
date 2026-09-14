@@ -9,7 +9,7 @@ import type { DiagramRecord } from '../../services/diagrams/diagram_index'
 import { layout } from '../../services/diagrams/diagram_layout'
 import { DiagramMoveService } from '../../services/diagrams/diagram_move_service'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
-import type { DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
+import { DiagramViewService, type DiagramViewSourceSnapshot } from '../../services/diagrams/diagram_view_service'
 import { DiagramComparison } from './diagram_comparison'
 import { DiagramComparisonLayoutService } from './diagram_comparison_layout_service'
 
@@ -50,6 +50,11 @@ function createHarness() {
     return { geometry, movement: new DiagramMoveService(session, geometry, selection), selection, session }
 }
 
+function dispatchCtrlWheel(scroller: HTMLElement, deltaY: number) {
+    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, ctrlKey: true, deltaY })
+    act(() => { scroller.dispatchEvent(event) })
+}
+
 beforeEach(() => {
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
         bottom: COMPARISON_HEIGHT,
@@ -70,6 +75,50 @@ afterEach(() => {
 })
 
 describe('DiagramComparison', () => {
+    it('keeps Current and New slider scales independent', () => {
+        const { geometry, session } = createHarness()
+        const viewService = new DiagramViewService()
+        render(
+            <DiagramComparison
+                currentDiagram={layout(diagram)}
+                geometry={geometry}
+                onCurrentSelect={vi.fn()}
+                session={session}
+                viewService={viewService}
+            />,
+        )
+
+        fireEvent.change(screen.getByRole('slider', { name: 'Current diagram zoom' }), { target: { value: '2' } })
+        expect(viewService.getViewportScaleSnapshot()).toBe(2)
+        expect(session.getViewportScaleSnapshot()).toBe(1)
+
+        fireEvent.change(screen.getByRole('slider', { name: 'New diagram zoom' }), { target: { value: '0' } })
+        expect(viewService.getViewportScaleSnapshot()).toBe(2)
+        expect(session.getViewportScaleSnapshot()).toBe(0.05)
+    })
+
+    it('keeps Current and New Ctrl-wheel scales independent', () => {
+        const { geometry, session } = createHarness()
+        const viewService = new DiagramViewService()
+        render(
+            <DiagramComparison
+                currentDiagram={layout(diagram)}
+                geometry={geometry}
+                onCurrentSelect={vi.fn()}
+                session={session}
+                viewService={viewService}
+            />,
+        )
+
+        dispatchCtrlWheel(screen.getByLabelText('Current diagram scroller'), -1)
+        expect(viewService.getViewportScaleSnapshot()).toBe(1.05)
+        expect(session.getViewportScaleSnapshot()).toBe(1)
+
+        dispatchCtrlWheel(screen.getByLabelText('New diagram scroller'), 1)
+        expect(viewService.getViewportScaleSnapshot()).toBe(1.05)
+        expect(session.getViewportScaleSnapshot()).toBeCloseTo(0.95)
+    })
+
     it('labels Current and New and updates only New after an accepted edit', () => {
         const { geometry, session } = createHarness()
         const layoutService = new DiagramComparisonLayoutService()
@@ -133,7 +182,7 @@ describe('DiagramComparison', () => {
         expect(comparisonRenders).toBe(1)
     })
 
-    it('places Current above New and keeps diagram scrolling behind the New toolbox', () => {
+    it('places Current above New without rendering moved surface controls', () => {
         const { geometry, session } = createHarness()
         render(
             <DiagramComparison
@@ -148,10 +197,15 @@ describe('DiagramComparison', () => {
         const next = screen.getByRole('region', { name: 'New' })
 
         expect(current.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(current).toHaveStyle({ overflow: 'auto' })
+        expect(current).toHaveStyle({ overflow: 'hidden' })
         expect(next).toHaveStyle({ overflow: 'hidden', position: 'relative' })
+        expect(within(current).getByLabelText('Current diagram scroller')).toHaveStyle({ overflow: 'auto' })
         expect(within(next).getByLabelText('New diagram scroller')).toHaveStyle({ overflow: 'auto' })
-        expect(screen.getByRole('dialog', { name: 'Diagram tools' })).toBeInTheDocument()
+        expect(within(current).getByRole('slider', { name: 'Current diagram zoom' })).toBeInTheDocument()
+        expect(within(next).getByRole('slider', { name: 'New diagram zoom' })).toBeInTheDocument()
+        expect(within(next).getByLabelText('New diagram scroller'))
+            .not.toContainElement(within(next).getByRole('slider', { name: 'New diagram zoom' }))
+        expect(screen.queryByRole('dialog', { name: 'Diagram tools' })).not.toBeInTheDocument()
     })
 
     it('resizes by pointer while preserving minimum pane heights and diagram state', () => {
@@ -217,7 +271,7 @@ describe('DiagramComparison', () => {
         expect(separator).toHaveAttribute('aria-valuenow', '80')
     })
 
-    it('keeps comparison root, Current, toolbox, and unmoved node isolated during a New drag', () => {
+    it('keeps comparison root, Current, and unmoved node isolated during a New drag', () => {
         const { geometry, movement, selection, session } = createHarness()
         let comparisonRenders = 0
         const Comparison = () => {
@@ -242,7 +296,6 @@ describe('DiagramComparison', () => {
         const store = within(next).getByRole('button', { name: 'Store' })
         const currentMarkup = current.innerHTML
         const storeStyle = store.getAttribute('style')
-        const toolbox = screen.getByRole('dialog', { name: 'Diagram tools' })
         const startX = geometry.getNodeGeometryFieldSnapshot('orders', 'x')
 
         fireEvent.pointerDown(orders, { button: 0, clientX: 100, clientY: 100, isPrimary: true, pointerId: 4 })
@@ -252,7 +305,7 @@ describe('DiagramComparison', () => {
         expect(session.getNodeSnapshot('orders')?.x).toBe((startX ?? 0) + 16)
         expect(store.getAttribute('style')).toBe(storeStyle)
         expect(current.innerHTML).toBe(currentMarkup)
-        expect(screen.getByRole('dialog', { name: 'Diagram tools' })).toBe(toolbox)
+        expect(screen.queryByRole('dialog', { name: 'Diagram tools' })).not.toBeInTheDocument()
         expect(comparisonRenders).toBe(1)
     })
 })

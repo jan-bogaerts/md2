@@ -23,8 +23,12 @@ export interface StatsConversationFact {
     identity: string
     isRootConversation: boolean
     model: string | null
+    /** Reasoning time inside `elapsedMs`; null for a conversation recorded before the split existed. */
+    reasoningMs: number | null
     status: 'cancelled' | 'completed' | 'failed' | 'running' | 'waitingForInput'
     toolCallCount: number
+    /** Tool time inside `elapsedMs`; null for a conversation recorded before the split existed. */
+    toolMs: number | null
     totalTokens: number
 }
 

@@ -43,6 +43,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
         <ActionPopupFrame
             bindingStore={bindings.bindingStore}
             contentProps={props}
+            conversationSearchService={bindings.conversationSearchService}
             conversationStore={bindings.conversationStore}
         >
             {action.type === 'agent'

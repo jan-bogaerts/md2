@@ -1,5 +1,5 @@
 import { Box, Paper, Tab, Tabs, Typography } from '@mui/material'
-import { memo, useCallback, useId, useSyncExternalStore, type SyntheticEvent } from 'react'
+import { useCallback, useId, useSyncExternalStore, type SyntheticEvent } from 'react'
 import {
     diagramEditSessionService, type DiagramEditSessionService,
 } from '../../services/diagrams/diagram_edit_session_service'
@@ -22,7 +22,6 @@ import {
 import {
     diagramComparisonLayoutService, type DiagramComparisonLayoutService, type DiagramComparisonTab,
 } from './diagram_comparison_layout_service'
-import { DiagramRenderer } from './diagram_renderer'
 import type { DiagramSelection } from './diagram_selection'
 import { DiagramNewPane } from './diagram_new_pane'
 import {
@@ -31,40 +30,49 @@ import {
 import {
     diagramChangeReviewService, type DiagramChangeReviewService,
 } from './diagram_change_review_service'
+import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
+import { DiagramCurrentViewport } from './diagram_current_viewport'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 
 interface TabbedDiagramComparisonProps {
     currentDiagram: PositionedDiagramData
     details?: DiagramObjectDetailsService
     drawing?: DiagramEdgeDrawingService
+    emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
     layoutService?: DiagramComparisonLayoutService
     movement?: DiagramMoveService
+    onCurrentContextMenu?: (anchorElement: HTMLElement, selection: DiagramSelection) => void
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
     placement?: DiagramNodePlacementService
     resize?: DiagramResizeService
     review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
+    viewService?: DiagramViewService
 }
 
-const CurrentDiagram = memo(DiagramRenderer)
+function ignoreCurrentContextMenu() {}
 
 /** Accessible tab layout that keeps both diagram surfaces mounted and their view state intact. */
 export function TabbedDiagramComparison({
     currentDiagram,
     details = diagramObjectDetailsService,
     drawing = diagramEdgeDrawingService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
     layoutService = diagramComparisonLayoutService,
     movement = diagramMoveService,
+    onCurrentContextMenu = ignoreCurrentContextMenu,
     onCurrentSelect,
     placement = diagramNodePlacementService,
     resize = diagramResizeService,
     review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
+    viewService = diagramViewService,
 }: TabbedDiagramComparisonProps) {
     const comparisonId = useId()
     const activeTab = useSyncExternalStore(
@@ -108,10 +116,16 @@ export function TabbedDiagramComparison({
                 hidden={activeTab !== 'current'}
                 id={currentPanelId}
                 role="tabpanel"
-                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, flex: 1, minHeight: 0, overflow: 'auto', p: 2 }}
+                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: activeTab === 'current' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
             >
-                <Typography color="custom.colHead" sx={{ mb: 1 }} variant="overline">Current</Typography>
-                <CurrentDiagram data={currentDiagram} onSelect={onCurrentSelect} />
+                <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">Current</Typography>
+                <DiagramCurrentViewport
+                    data={currentDiagram}
+                    emphasis={emphasis}
+                    onContextMenu={onCurrentContextMenu}
+                    onSelect={onCurrentSelect}
+                    service={viewService}
+                />
             </Paper>
             <Paper
                 aria-labelledby={newTabId}
@@ -119,12 +133,13 @@ export function TabbedDiagramComparison({
                 hidden={activeTab !== 'new'}
                 id={newPanelId}
                 role="tabpanel"
-                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
+                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: activeTab === 'new' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
             >
                 <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">New</Typography>
                 <DiagramNewPane
                     details={details}
                     drawing={drawing}
+                    emphasis={emphasis}
                     geometry={geometry}
                     groupDrawing={groupDrawing}
                     movement={movement}
@@ -133,7 +148,7 @@ export function TabbedDiagramComparison({
                     review={review}
                     selection={selection}
                     session={session}
-                    toolboxVisible={activeTab === 'new'}
+                    viewService={viewService}
                 />
             </Paper>
         </Box>

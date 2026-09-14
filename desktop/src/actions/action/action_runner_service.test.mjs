@@ -52,7 +52,6 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         }),
         appendActionRunHistory,
         activityConversationReference: vi.fn((_projectFolder, _origin, conversationId) => `design/activity/card__card-010.json#conversation=${conversationId}`),
-        ensureActivityFile: vi.fn(async () => 'design/activity/card__card-010.json'),
         loadActionFile: vi.fn(async (_project, actionPath) => {
             const file = actionFiles.find(({ path }) => path === actionPath);
             if (!file) throw missingFileError(actionPath);
@@ -104,17 +103,12 @@ describe('ActionRunnerService', () => {
         expect(usageMetricsService.startProject).toHaveBeenCalledWith(project, 'design');
     });
 
-    it('reserves a root agent conversation before the action starts', async () => {
+    it('reserves a root agent conversation without creating its activity file', async () => {
         const files = [actionFile('main', { agent: 'codex', command: undefined, prompt: 'Run', type: 'agent' })];
-        const { localGitService, runner } = createRunner(files);
+        const { runner } = createRunner(files);
 
         const reservation = await runner.reserveConversation({ actionId: 'main', context, runInput: {} });
 
-        expect(localGitService.ensureActivityFile).toHaveBeenCalledWith(
-            project,
-            'design',
-            { cardInternalId: context.cardInternalId, kind: 'card' },
-        );
         expect(reservation.activityPath).toBe('design/activity/card__card-010.json');
         expect(reservation.reference).toBe(`design/activity/card__card-010.json#conversation=${reservation.conversationId}`);
     });
@@ -128,7 +122,7 @@ describe('ActionRunnerService', () => {
         await expect(runner.reserveConversation({ actionId: 'main', context: { file: 'design/notes.md', kind: 'file' }, runInput: {} }))
             .resolves.toMatchObject({ activityPath: 'design/activity/card__card-010.json' });
 
-        expect(localGitService.ensureActivityFile.mock.calls.map(([, , origin]) => origin))
+        expect(localGitService.activityConversationReference.mock.calls.map(([, origin]) => origin))
             .toEqual([{ kind: 'project' }, { kind: 'project' }]);
     });
 

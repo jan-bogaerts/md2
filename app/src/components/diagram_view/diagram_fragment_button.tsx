@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react'
+import DashboardCustomizeOutlined from '@mui/icons-material/DashboardCustomizeOutlined'
 import { diagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import {
     diagramFragmentDialogService, type DiagramFragmentDialogService,
@@ -34,5 +35,9 @@ export function DiagramFragmentButton({
 
     if (diagramType !== 'sequence') return null
 
-    return <DiagramToolboxActionButton label="Fragment" onActivate={handleActivate} tooltip="Create sequence fragment" />
+    return (
+        <DiagramToolboxActionButton label="Fragment" onActivate={handleActivate} tooltip="Create sequence fragment">
+            <DashboardCustomizeOutlined fontSize="small" />
+        </DiagramToolboxActionButton>
+    )
 }

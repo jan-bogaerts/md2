@@ -905,6 +905,9 @@ export class ActionRunRegistry extends EventTarget {
                         event.update.entryIndex,
                         event.update.event,
                     ),
+                    // Only the timer is merged here: the chat log tooltip needs the fresh breakdown,
+                    // nothing else about the conversation is republished for one entry.
+                    ...(event.timer ? { timer: event.timer } : {}),
                 },
                 conversationChange: { entryIndex: event.update.entryIndex, kind: 'entry' },
             }

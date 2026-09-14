@@ -220,7 +220,12 @@ describe('ProjectStatsService aggregation', () => {
         }))
         service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'duration' })
 
-        expect(service.getSnapshot().rows).toMatchObject([{ identity: 'card-1', value: 2_000 }])
+        expect(service.getSnapshot().rows.map((row) => [row.identity, row.seriesIdentity, row.value])).toEqual([
+            ['card-1', 'tool', 0],
+            ['card-1', 'reasoning', 0],
+            ['card-1', 'agent', 0],
+            ['card-1', 'unmeasured', 2_000],
+        ])
         expect(service.getSnapshot().omittedTimerCount).toBe(1)
         service.setControls({ totalsGrouping: 'action', totalsMetric: 'tokens' })
         expect(service.getSnapshot().rows).toMatchObject([{ identity: 'review', value: 37 }])
@@ -581,10 +586,10 @@ describe('ProjectStatsService aggregation', () => {
         ))).toEqual(currentTelemetry)
 
         service.setControls({ dataset: 'agentPerformance', performanceMetric: 'duration' })
-        expect(service.getSnapshot().rows).toEqual([expect.objectContaining({ value: 2_500 })])
+        expect(service.getSnapshot().rows[3]).toEqual(expect.objectContaining({ seriesIdentity: 'codex unmeasured', value: 2_500 }))
 
         service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'duration' })
-        expect(service.getSnapshot().rows).toEqual([expect.objectContaining({ identity: 'card-1', value: 2_500 })])
+        expect(service.getSnapshot().rows[3]).toEqual(expect.objectContaining({ identity: 'card-1', seriesIdentity: 'unmeasured', value: 2_500 }))
         expect(service.getSnapshot().omittedTimerCount).toBe(1)
     })
 
@@ -659,7 +664,10 @@ describe('ProjectStatsService aggregation', () => {
         }))
         service.setControls({ dataset: 'agentPerformance' })
 
-        expect(service.getSnapshot().rows).toMatchObject([{ identity: 'codex', sampleCount: 1, value: 1_500 }])
+        expect(service.getSnapshot().rows.map((row) => [row.seriesIdentity, row.value])).toEqual([
+            ['codex tool', 0], ['codex reasoning', 0], ['codex agent', 0], ['codex unmeasured', 1_500],
+        ])
+        expect(service.getSnapshot().rows[0]).toMatchObject({ identity: 'codex', sampleCount: 1 })
         service.setControls({ performanceMetric: 'tokens' })
         expect(service.getSnapshot().rows).toMatchObject([{ sampleCount: 1, value: 10 }])
         service.setControls({ performanceMetric: 'toolCalls' })
@@ -687,10 +695,10 @@ describe('ProjectStatsService aggregation', () => {
             performanceGrouping: 'agent',
             performanceModelIds: ['claude\u0000sonnet'],
         })
-        expect(service.getSnapshot().rows).toMatchObject([{ identity: 'codex' }])
+        expect(new Set(service.getSnapshot().rows.map((row) => row.identity))).toEqual(new Set(['codex']))
 
         service.setControls({ performanceGrouping: 'model' })
-        expect(service.getSnapshot().rows).toMatchObject([{ identity: 'claude\u0000sonnet' }])
+        expect(new Set(service.getSnapshot().rows.map((row) => row.identity))).toEqual(new Set(['claude\u0000sonnet']))
     })
 
     it('includes terminal statuses and reports each in averages and status counts', async () => {
@@ -708,12 +716,14 @@ describe('ProjectStatsService aggregation', () => {
         }))
         service.setControls({ dataset: 'agentPerformance' })
 
-        expect(service.getSnapshot().rows).toMatchObject([{
+        expect(service.getSnapshot().rows).toHaveLength(4)
+        expect(service.getSnapshot().rows[3]).toMatchObject({
             sampleCount: 3,
+            seriesIdentity: 'codex unmeasured',
             statusCounts: { cancelled: 1, completed: 1, failed: 1 },
             utcBucketStart: '2026-08-12T00:00:00.000Z',
             value: 200,
-        }])
+        })
     })
 
     it('aggregates performance runs and filters selected actions', async () => {
@@ -732,7 +742,8 @@ describe('ProjectStatsService aggregation', () => {
         await openService(service, storage({'design/activity/card__card-1.json': activityContent({ conversations, records })}))
         service.setControls({ dataset: 'agentPerformance' })
 
-        expect(service.getSnapshot().rows).toMatchObject([{aggregation: 'average', deviation: null, sampleCount: 4, value: 275}])
+        expect(service.getSnapshot().rows[3]).toMatchObject({aggregation: 'average', deviation: null, sampleCount: 4, value: 275})
+        expect(service.getSnapshot().rows.reduce((total, row) => total + row.value, 0)).toBe(275)
 
         service.setControls({ performanceAggregation: 'averageWithDeviation' })
         expect(service.getSnapshot().rows[0].value).toBe(275)
@@ -740,16 +751,17 @@ describe('ProjectStatsService aggregation', () => {
         expect(service.getSnapshot().rows[0].tooltip).toMatch(/Average duration per run: 0[,.]28 seconds\nStd dev: 0[,.]15 seconds/u)
 
         service.setControls({ performanceAggregation: 'sum' })
-        expect(service.getSnapshot().rows).toMatchObject([{ aggregation: 'sum', deviation: null, value: 1_100 }])
+        expect(service.getSnapshot().rows[3]).toMatchObject({ aggregation: 'sum', deviation: null, value: 1_100 })
 
+        // Median keeps one unsplit bar, because medians of the parts do not add up to the median total.
         service.setControls({ performanceAggregation: 'median' })
         expect(service.getSnapshot().rows).toMatchObject([{ aggregation: 'median', deviation: null, value: 250 }])
 
         service.setControls({ performanceActionIds: ['review'], performanceAggregation: 'average' })
-        expect(service.getSnapshot().rows).toMatchObject([{ sampleCount: 2, value: 150 }])
+        expect(service.getSnapshot().rows[3]).toMatchObject({ sampleCount: 2, value: 150 })
 
         service.setControls({ performanceActionIds: [] })
-        expect(service.getSnapshot().rows).toMatchObject([{ sampleCount: 4, value: 275 }])
+        expect(service.getSnapshot().rows[3]).toMatchObject({ sampleCount: 4, value: 275 })
     })
 
     it('reports running, waiting, missing timer, attribution, mixed, and nested exclusions', async () => {
@@ -1024,6 +1036,9 @@ describe('ProjectStatsService aggregation', () => {
         await openService(service, storage({'design/activity/card__card-1.json': activityContent({conversations: [conversation({ timer: { elapsedMs: 3_723_000, runningStartedAt: null } })]})}))
         service.setControls({ dataset: 'totals', totalsGrouping: 'card', totalsMetric: 'duration' })
 
-        expect(service.getSnapshot().rows).toMatchObject([{ tooltip: 'F_1: First\n01:02:03', value: 3_723_000 }])
+        expect(service.getSnapshot().rows[3]).toMatchObject({
+            tooltip: 'F_1: First\n01:02:03\nDuration type: Unmeasured\nShare: 100% of 01:02:03',
+            value: 3_723_000,
+        })
     })
 })

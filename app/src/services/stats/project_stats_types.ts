@@ -77,6 +77,8 @@ export interface StatsChartRow {
     agent: string | null;
     available: boolean;
     chartRole: StatsChartRole;
+    /** Palette family to colour this row from, overriding the agent family when set. */
+    colorGroup: string | null;
     displayLabel: string;
     grouping: string;
     identity: string;

@@ -119,6 +119,8 @@ export class DiagramGeometryService extends EventTarget {
         this.editSession.subscribeCollectionMembership('edge', this.handleEdgeMembershipChanged)
         this.editSession.subscribeCollectionMembership('group', this.handleGroupMembershipChanged)
         this.editSession.subscribeCollectionMembership('fragment', this.handleFragmentMembershipChanged)
+        this.editSession.subscribeFormattingScale('boxScalePercent', this.handleLayoutFormattingChanged)
+        this.editSession.subscribeFormattingScale('spacingScalePercent', this.handleLayoutFormattingChanged)
         this.handleSessionChanged()
     }
 
@@ -269,6 +271,8 @@ export class DiagramGeometryService extends EventTarget {
         }
     }
 
+    private readonly handleLayoutFormattingChanged = () => this.handleSessionChanged()
+
     private subscribeFragment(fragment: DiagramSequenceFragment) {
         const refresh = () => this.applyFragmentChange(fragment.id)
         this.objectUnsubscribes.push(this.editSession.subscribeFragmentField(fragment.id, 'operator', refresh))
@@ -322,7 +326,7 @@ export class DiagramGeometryService extends EventTarget {
         const positioned = this.groupsById.get(groupId)
         if (!model || !positioned) return
 
-        const next = groupBox(model, this.nodesById)
+        const next = groupBox(model, this.nodesById, this.editSession.getFormattingScaleSnapshot('spacingScalePercent'))
         const changedFields = BOX_FIELDS.filter((field) => this.assignField('group', groupId, positioned, field, next[field]))
         if (changedFields.length === 0) return
 
@@ -523,7 +527,9 @@ export class DiagramGeometryService extends EventTarget {
         }
         for (const group of diagram.groups) {
             if (this.groupsById.has(group.id)) continue
-            this.groupsById.set(group.id, groupBox(group, this.nodesById))
+            this.groupsById.set(group.id, groupBox(
+                group, this.nodesById, this.editSession.getFormattingScaleSnapshot('spacingScalePercent'),
+            ))
             this.subscribeGroup(group)
         }
         this.refreshSurface()

@@ -940,6 +940,21 @@ describe('MarkdownEditor', () => {
         expect(screen.queryByRole('button', { name: 'Insert placeholder' })).not.toBeInTheDocument()
     })
 
+    it('shows emoji insertion in editable toolbars without extra props and omits it when read-only', () => {
+        renderEditor()
+
+        expect(screen.getByRole('button', { name: 'Insert emoji' })).toBeInTheDocument()
+
+        cleanup()
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="locked" onChange={vi.fn()} readOnly />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.queryByRole('button', { name: 'Insert emoji' })).not.toBeInTheDocument()
+    })
+
     it('uses the MDXEditor palette matching the app theme', () => {
         window.localStorage.setItem(THEME_MODE_STORAGE_KEY, 'dark')
 

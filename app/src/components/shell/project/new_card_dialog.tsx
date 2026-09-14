@@ -22,11 +22,14 @@ import { useCardCreationState } from '../../hooks/use_card_creation_state'
 import { CardTypePillGroup } from './card_type_pill_group'
 import { NewCardMarkdownEditor } from './new_card_markdown_editor'
 import { projectSessionService } from '../../../services/project/project_session_service'
+import { isElectron } from '../../../services/electron_lifecycle_bridge'
+import { mobileBackDismissService } from '../../../services/mobile_back_dismiss_service'
 import { dialogService } from '../../../services/dialog_service'
 import { NewCardColumnPicker } from './new_card_column_picker'
 import { MarkdownAttachmentControl } from '../../editor/markdown_attachment_control'
 import { attachFilesToNewCardMarkdown } from '../../../services/attachments/new_card_attachment_workflow'
 
+const BACK_DISMISS_ID = 'new-card-dialog'
 const DIALOG_WIDTH = 480
 const DISCARD_CARD_MESSAGE = 'Discard this new card draft?'
 const LINK_POPUP_LAYER_OFFSET = 1
@@ -130,6 +133,23 @@ export function NewCardDialog(props: NewCardDialogProps) {
         dismissalPhaseRef.current = 'cleanup'
         void discardDraftAndClose()
     }
+
+    const dismissRequestRef = useRef(handleDialogClose)
+    // Full screen in a browser is the only case where the dialog has no visible Escape key,
+    // so that is the only case where it claims a history entry for the back button.
+    const isBackDismissable = open && isMobile && !isElectron()
+
+    useEffect(() => {
+        dismissRequestRef.current = handleDialogClose
+    })
+
+    useEffect(() => {
+        if (!isBackDismissable) return
+
+        mobileBackDismissService.register(BACK_DISMISS_ID, () => dismissRequestRef.current())
+
+        return () => mobileBackDismissService.unregister(BACK_DISMISS_ID)
+    }, [isBackDismissable])
 
     const handleKeepEditing = () => {
         if (dismissalPhaseRef.current !== 'confirmation') return

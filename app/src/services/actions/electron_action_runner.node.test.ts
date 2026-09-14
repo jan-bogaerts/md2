@@ -151,7 +151,7 @@ describe('electron action runner client', () => {
         expect(bridge.startAction).not.toHaveBeenCalled()
     })
 
-    it('links a reserved card conversation before flushing and starting the agent', async () => {
+    it('passes a reserved card conversation without mutating renderer card state', async () => {
         const bridge = createBridge()
         const reservation = {
             activityPath: 'design/activity/card__card-1.json',
@@ -161,9 +161,8 @@ describe('electron action runner client', () => {
         bridge.reserveActionConversation = vi.fn(async () => reservation)
         setActionBridgeOverride(bridge)
         const cardContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' as const }
-        const addReference = vi.spyOn(dataService.cards, 'addAgentLogReference').mockReturnValue('card-1')
-        const resumeAutomaticCommit = vi.fn()
-        vi.spyOn(dataService.cards, 'deferAutomaticCommit').mockReturnValue(resumeAutomaticCommit)
+        const addReference = vi.spyOn(dataService.cards, 'addAgentLogReference')
+        const deferAutomaticCommit = vi.spyOn(dataService.cards, 'deferAutomaticCommit')
         const snapshot = projectPersistenceService.getSnapshot()
         vi.spyOn(projectPersistenceService, 'getSnapshot').mockReturnValue({ ...snapshot, hasPendingSave: true })
         const flush = vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockResolvedValue()
@@ -171,7 +170,8 @@ describe('electron action runner client', () => {
         await runElectronAction(agentAction, cardContext)
 
         expect(bridge.reserveActionConversation).toHaveBeenCalledWith({ actionId: agentAction.id, context: cardContext, runInput: {} })
-        expect(addReference).toHaveBeenCalledWith(cardContext.file, reservation.activityPath)
+        expect(addReference).not.toHaveBeenCalled()
+        expect(deferAutomaticCommit).not.toHaveBeenCalled()
         expect(bridge.startAction).toHaveBeenCalledWith({
             actionId: agentAction.id,
             context: cardContext,
@@ -179,9 +179,7 @@ describe('electron action runner client', () => {
             runInput: {},
         })
         const reservationOrder = vi.mocked(bridge.reserveActionConversation).mock.invocationCallOrder[0]
-        expect(reservationOrder).toBeLessThan(addReference.mock.invocationCallOrder[0])
-        expect(addReference.mock.invocationCallOrder[0]).toBeLessThan(flush.mock.invocationCallOrder[0])
-        expect(resumeAutomaticCommit.mock.invocationCallOrder[0]).toBeLessThan(flush.mock.invocationCallOrder[0])
+        expect(reservationOrder).toBeLessThan(flush.mock.invocationCallOrder[0])
         expect(flush.mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(bridge.startAction).mock.invocationCallOrder[0])
     })
 

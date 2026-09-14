@@ -4,6 +4,7 @@ import {
     readRecentLocalRepositories,
     RECENT_LOCAL_REPOSITORIES_STORAGE_KEY,
     recordRecentLocalRepository,
+    removeRecentLocalRepository,
 } from './recent_local_repositories'
 
 describe('recent local repositories', () => {
@@ -34,5 +35,25 @@ describe('recent local repositories', () => {
         await recordRecentLocalRepository('C:/Second')
 
         await expect(recordRecentLocalRepository('c:/first')).resolves.toEqual(['c:/first', 'C:/Second'])
+    })
+
+    it('removes a case-insensitive Windows path match and retains order', async () => {
+        window.localStorage.setItem(
+            RECENT_LOCAL_REPOSITORIES_STORAGE_KEY,
+            JSON.stringify(['C:/First', 'C:/Second', 'C:/Third']),
+        )
+
+        await expect(removeRecentLocalRepository('c:/second')).resolves.toEqual(['C:/First', 'C:/Third'])
+        expect(readRecentLocalRepositories()).toEqual(['C:/First', 'C:/Third'])
+    })
+
+    it('persists the unchanged order when the removed path is missing', async () => {
+        window.localStorage.setItem(
+            RECENT_LOCAL_REPOSITORIES_STORAGE_KEY,
+            JSON.stringify(['C:/First', 'C:/Second']),
+        )
+
+        await expect(removeRecentLocalRepository('C:/Missing')).resolves.toEqual(['C:/First', 'C:/Second'])
+        expect(readRecentLocalRepositories()).toEqual(['C:/First', 'C:/Second'])
     })
 })

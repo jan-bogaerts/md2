@@ -1,0 +1,12 @@
+{
+  "id": "edcbc3cf-20de-415c-97fe-b36ca9953fdc",
+  "label": "build",
+  "description": "Build a new version of the app",
+  "type": "command",
+  "phrases": [],
+  "command": "npm run build:windows",
+  "showCommandWindow": true,
+  "appliesTo": {
+    "kind": "project"
+  }
+}

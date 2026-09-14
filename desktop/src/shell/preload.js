@@ -20,9 +20,10 @@ const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status';
 const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';
 const SENTRY_REQUEST_CHANNEL = 'md2-sentry:request';
 const THEME_SET_MODE_CHANNEL = 'md2-theme:set-mode';
-const UPDATE_AVAILABLE_CHANNEL = 'md2-update:available';
-const UPDATE_DOWNLOAD_CHANNEL = 'md2-update:download';
-const UPDATE_PROGRESS_CHANNEL = 'md2-update:progress';
+const UPDATE_CHANGED_CHANNEL = 'md2-update:changed';
+const UPDATE_DISMISS_CHANNEL = 'md2-update:dismiss';
+const UPDATE_GET_SNAPSHOT_CHANNEL = 'md2-update:get-snapshot';
+const UPDATE_INSTALL_CHANNEL = 'md2-update:install';
 
 const DATA_METHODS = [
     'abortMergeConflict',
@@ -85,6 +86,7 @@ const ACTION_METHODS = [
     'cancelActionRun',
     'closeWaitingActionConversation',
     'deleteActionQueuedPrompt',
+    'deleteSchedule',
     'dismissActionQuestions',
     'dismissWaitingActionConversationQuestions',
     'editActionQueuedPrompt',
@@ -93,6 +95,7 @@ const ACTION_METHODS = [
     'generateDiff',
     'generateWorktreeDiff',
     'listActiveActionRuns',
+    'listActiveSchedules',
     'loadActionRunHistory',
     'loadActionRunRecoverySnapshot',
     'notifyActionCardStateChange',
@@ -107,6 +110,7 @@ const ACTION_METHODS = [
     'restartActionRun',
     'runSearchRegexpAgent',
     'sendActionMessage',
+    'splitActionConversation',
     'startAction',
     'startUnattendedAction',
     'updateActionConversationViewed',
@@ -290,18 +294,14 @@ if (!isAllowedOrigin()) {
         onClaudeRateLimits: (callback) => subscribeBridge('onClaudeRateLimits', [], callback),
     };
     const updatesBridge = {
-        downloadUpdate: (downloadUrl) => ipcRenderer.invoke(UPDATE_DOWNLOAD_CHANNEL, { downloadUrl }),
-        onDownloadProgress: (callback) => {
-            const listener = (_event, progress) => callback(progress);
-            ipcRenderer.on(UPDATE_PROGRESS_CHANNEL, listener);
+        dismiss: () => ipcRenderer.invoke(UPDATE_DISMISS_CHANNEL),
+        getSnapshot: () => ipcRenderer.invoke(UPDATE_GET_SNAPSHOT_CHANNEL),
+        install: () => ipcRenderer.invoke(UPDATE_INSTALL_CHANNEL),
+        onChanged: (callback) => {
+            const listener = (_event, snapshot) => callback(snapshot);
+            ipcRenderer.on(UPDATE_CHANGED_CHANNEL, listener);
 
-            return () => ipcRenderer.removeListener(UPDATE_PROGRESS_CHANNEL, listener);
-        },
-        onUpdateAvailable: (callback) => {
-            const listener = (_event, info) => callback(info);
-            ipcRenderer.on(UPDATE_AVAILABLE_CHANNEL, listener);
-
-            return () => ipcRenderer.removeListener(UPDATE_AVAILABLE_CHANNEL, listener);
+            return () => ipcRenderer.removeListener(UPDATE_CHANGED_CHANNEL, listener);
         },
     };
 

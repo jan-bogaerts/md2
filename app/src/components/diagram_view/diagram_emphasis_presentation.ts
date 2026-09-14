@@ -1,0 +1,1 @@
+export const DIAGRAM_DIMMED_OPACITY = 0.08

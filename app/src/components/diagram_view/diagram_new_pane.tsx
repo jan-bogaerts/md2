@@ -1,5 +1,4 @@
 import { Box } from '@mui/material'
-import { useState } from 'react'
 import {
     diagramEditSessionService, type DiagramEditSessionService,
 } from '../../services/diagrams/diagram_edit_session_service'
@@ -24,12 +23,16 @@ import {
 import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from './diagram_object_details_service'
-import { DiagramToolbox } from './diagram_toolbox'
 import { DiagramZoomViewport } from './diagram_zoom_viewport'
+import { DiagramZoomSlider } from './diagram_zoom_slider'
+import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
+import { DiagramEmphasisExitButton } from './diagram_emphasis_exit_button'
 
 interface DiagramNewPaneProps {
     details?: DiagramObjectDetailsService
     drawing?: DiagramEdgeDrawingService
+    emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
     movement?: DiagramMoveService
@@ -38,13 +41,14 @@ interface DiagramNewPaneProps {
     review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
-    toolboxVisible?: boolean
+    viewService?: DiagramViewService
 }
 
 /** Owns New viewport and its floating tools so every comparison mode exposes one complete editor. */
 export function DiagramNewPane({
     details = diagramObjectDetailsService,
     drawing = diagramEdgeDrawingService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
     movement = diagramMoveService,
@@ -53,15 +57,14 @@ export function DiagramNewPane({
     review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
-    toolboxVisible = true,
+    viewService = diagramViewService,
 }: DiagramNewPaneProps) {
-    const [boundaryElement, setBoundaryElement] = useState<HTMLDivElement | null>(null)
-
     return (
-        <Box ref={setBoundaryElement} sx={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', position: 'relative' }}>
+        <Box sx={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', position: 'relative' }}>
             <DiagramZoomViewport
                 details={details}
                 drawing={drawing}
+                emphasis={emphasis}
                 geometry={geometry}
                 groupDrawing={groupDrawing}
                 movement={movement}
@@ -70,18 +73,10 @@ export function DiagramNewPane({
                 review={review}
                 selection={selection}
                 session={session}
+                viewService={viewService}
             />
-            {toolboxVisible ? (
-                <DiagramToolbox
-                    boundaryElement={boundaryElement}
-                    details={details}
-                    drawing={drawing}
-                    groupDrawing={groupDrawing}
-                    placement={placement}
-                    review={review}
-                    session={session}
-                />
-            ) : null}
+            <DiagramZoomSlider diagramIdentity="New" store={session} />
+            <DiagramEmphasisExitButton emphasis={emphasis} surface="new" />
         </Box>
     )
 }

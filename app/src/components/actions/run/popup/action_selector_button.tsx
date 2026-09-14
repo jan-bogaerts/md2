@@ -5,7 +5,7 @@ import Play from 'mdi-material-ui/Play'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunStatus } from '../../../../data/action_run_types'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
-import { useCardActionAgentState } from '../../../hooks/use_card_action_agent_state'
+import { useContextActionAgentState } from '../../../hooks/use_context_action_agent_state'
 
 interface ActionSelectorButtonProps {
     action: ActionDefinition
@@ -15,7 +15,7 @@ interface ActionSelectorButtonProps {
 
 /** One action selector leaf, including scoped live and persisted agent state. */
 export function ActionSelectorButton({ action, context, liveStatus }: ActionSelectorButtonProps) {
-    const persistedState = useCardActionAgentState(action.id, context)
+    const persistedState = useContextActionAgentState(action.id, context)
     const hasLiveState = liveStatus === 'queued' || liveStatus === 'running' || liveStatus === 'waitingForInput'
     const isQueued = liveStatus === 'queued'
     const isWaiting = liveStatus === 'waitingForInput' || (!hasLiveState && persistedState === 'waiting for input')

@@ -259,6 +259,7 @@ export class ActionConversationChatlogTracker extends EventTarget {
     readonly getReservedBlockCount = () => this.reservedBlockCount
     readonly getQueuedPrompts = () => this.queuedPrompts
     readonly getCardInternalId = () => this.conversation?.cardInternalId ?? null
+    readonly getConversation = () => this.conversation
     readonly getConversationIdentity = () => this.conversation?.id ?? null
     readonly getRunId = () => this.runId
     readonly groupIsExpanded = (key: string) => this.expandedGroupKeys.has(key)

@@ -151,6 +151,31 @@ describe('AgentRunnerService state handling', () => {
         await vi.waitFor(() => expect(persistConversation).toHaveBeenCalledOnce());
     });
 
+    it('does not spawn or publish started when initial card persistence fails', async () => {
+        const failure = new Error('Card identity mismatch');
+        const persistConversationCheckpoint = vi.fn(async () => { throw failure; });
+        const spawn = vi.fn();
+        const onEvent = vi.fn();
+        const service = new AgentRunnerService({
+            executableResolver: { find: vi.fn(async () => '/tools/fake-agent') },
+            persistConversationCheckpoint,
+            spawn,
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = {
+            activityOrigin: { cardInternalId: 'card-1', kind: 'card' },
+            cardPath: 'design/F-1.md',
+            command: ['fake-agent'],
+            projectFolder: 'design',
+            prompt: 'Start work',
+        };
+
+        await expect(service.start(project, request, onEvent, vi.fn(), vi.fn())).rejects.toBe(failure);
+
+        expect(spawn).not.toHaveBeenCalled();
+        expect(onEvent).not.toHaveBeenCalled();
+    });
+
     it('does not require an installed agent when the service is constructed', () => {
         const find = vi.fn();
 
@@ -939,6 +964,68 @@ describe('AgentRunnerService state handling', () => {
         expect(answerMessage.content).toContain('token: [secret]');
         expect(run.stdout).toContain('echo [secret]');
         expect(JSON.stringify(run.onEvent.mock.calls)).not.toContain('top-secret');
+    });
+
+    it('records the pending question as a transcript entry so a restart can restore it', async () => {
+        const persistConversationCheckpoint = vi.fn(async () => undefined);
+        const service = new AgentRunnerService({ persistConversationCheckpoint });
+        const questions = [{
+            header: 'Scope',
+            id: 'choice',
+            isSecret: false,
+            options: [{ description: 'only the failing test', label: 'Narrow' }],
+            question: 'How wide should the fix be?',
+        }];
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'running' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestions: [],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: {},
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { questions, requestId: 7, type: 'question' });
+
+        expect(run.conversation.entries).toEqual([
+            expect.objectContaining({ kind: 'event', questions, type: 'agentQuestion' }),
+        ]);
+        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({
+                entries: [expect.objectContaining({ questions, type: 'agentQuestion' })],
+                status: 'waitingForInput',
+            }),
+        }));
+    });
+
+    it('orders the dismissal entry after the recorded question entry', async () => {
+        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });
+        const questions = [{ header: 'Scope', id: 'choice', question: 'How wide?' }];
+        const run = {
+            conversation: { entries: [], providerSessions: [], status: 'running' },
+            id: 'run-1',
+            interactionWrites: Promise.resolve(),
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            pendingApprovals: new Map(),
+            pendingQuestions: [],
+            persistence: Promise.resolve(),
+            streaming: true,
+            streamingAdapter: { dismissQuestion: vi.fn(async () => undefined) },
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', { questions, requestId: 7, type: 'question' });
+        await service.dismissQuestions('run-1', 7);
+
+        expect(run.conversation.entries.map(({ type }) => type)).toEqual(['agentQuestion', 'questionsDismissed']);
     });
 
     it('dismisses questions after provider resolution and persists one transcript event', async () => {

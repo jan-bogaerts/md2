@@ -117,6 +117,26 @@ describe('ClaudeRateLimitService', () => {
         service.stop()
     })
 
+    it('accepts a window without a reset time and expires on the window that has one', async () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-08-15T10:00:00.000Z'))
+        const remoteObservedAt = Date.parse('2026-08-15T12:00:00.000Z')
+        const withoutSessionReset = snapshot(remoteObservedAt, 0)
+        withoutSessionReset.windows[0].resetsAt = null
+        const source = bridge(withoutSessionReset)
+        setClaudeRuntimeBridgeOverride(source.value)
+        const service = new ClaudeRateLimitService()
+        service.start()
+        await vi.runAllTicks()
+
+        expect(service.getState().snapshot).toBe(withoutSessionReset)
+        await vi.advanceTimersByTimeAsync(3_599_999)
+        expect(service.getState().stale).toBe(false)
+        await vi.advanceTimersByTimeAsync(1)
+        expect(service.getState().stale).toBe(true)
+        service.stop()
+    })
+
     it('marks data stale on disconnect and refreshes on reconnect', async () => {
         const source = bridge(snapshot(1))
         setClaudeRuntimeBridgeOverride(source.value)

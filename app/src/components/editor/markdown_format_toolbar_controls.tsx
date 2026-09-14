@@ -4,6 +4,7 @@ import {
 } from '@mdxeditor/editor'
 import type { ReactNode } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
+import { MarkdownEmojiToolbarControl } from './markdown_emoji_toolbar_control'
 import { MarkdownListIndentToolbarControls } from './markdown_list_indent_toolbar_controls'
 import { MarkdownLocalTextSearchToolbarControl } from './markdown_local_text_search_toolbar_control'
 import { MarkdownPlaceholderToolbarControl } from './markdown_placeholder_toolbar_control'
@@ -38,6 +39,7 @@ export function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarContro
                     <InsertTable />
                     <InsertThematicBreak />
                     <InsertCodeBlock />
+                    <MarkdownEmojiToolbarControl overlayContainer={overlayContainer} />
                     <Separator />
                 </>
             ) : null}

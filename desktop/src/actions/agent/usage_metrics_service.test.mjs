@@ -245,6 +245,18 @@ describe('UsageMetricsService', () => {
         expect(appendMetric.mock.calls[1][1]).toMatch(/^recorded_at,/u);
     });
 
+    it('records the weekly window when Claude reported no session reset time', async () => {
+        const { destination, filePath } = await createDestination();
+        const service = new UsageMetricsService();
+        const snapshot = claudeSnapshot(0, 34);
+        snapshot.windows[0].resetsAt = null;
+        startProject(service, destination);
+
+        await service.recordAccountUsage('claude', snapshot);
+
+        expect(parsedObjects(await readFile(filePath, 'utf8'))).toMatchObject([{ used_percent: '34', window_id: 'weekly' }]);
+    });
+
     it('writes only to the project currently owned by the service', async () => {
         const first = await createDestination();
         const second = await createDestination();

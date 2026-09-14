@@ -1,6 +1,6 @@
 import { Box, Paper, Typography } from '@mui/material'
 import {
-    memo, useCallback, useRef, useSyncExternalStore,
+    useCallback, useRef, useSyncExternalStore,
     type KeyboardEvent as ReactKeyboardEvent,
     type PointerEvent as ReactPointerEvent,
 } from 'react'
@@ -26,7 +26,6 @@ import {
 import {
     diagramComparisonLayoutService, type DiagramComparisonLayoutService,
 } from './diagram_comparison_layout_service'
-import { DiagramRenderer } from './diagram_renderer'
 import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from './diagram_object_details_service'
@@ -35,6 +34,9 @@ import { DiagramNewPane } from './diagram_new_pane'
 import {
     diagramChangeReviewService, type DiagramChangeReviewService,
 } from './diagram_change_review_service'
+import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
+import { DiagramCurrentViewport } from './diagram_current_viewport'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 
 const MINIMUM_PANE_HEIGHT = 160
 const SEPARATOR_HEIGHT = 6
@@ -45,19 +47,20 @@ interface DiagramComparisonProps {
     currentDiagram: PositionedDiagramData
     details?: DiagramObjectDetailsService
     drawing?: DiagramEdgeDrawingService
+    emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     groupDrawing?: DiagramGroupDrawingService
     layoutService?: DiagramComparisonLayoutService
     movement?: DiagramMoveService
+    onCurrentContextMenu?: (anchorElement: HTMLElement, selection: DiagramSelection) => void
     onCurrentSelect: (anchorElement: HTMLElement, selection: DiagramSelection) => void
     placement?: DiagramNodePlacementService
     resize?: DiagramResizeService
     review?: DiagramChangeReviewService
     selection?: DiagramSelectionService
     session?: DiagramEditSessionService
+    viewService?: DiagramViewService
 }
-
-const CurrentDiagram = memo(DiagramRenderer)
 
 function availablePaneHeight(containerHeight: number) {
     return Math.max(containerHeight - SEPARATOR_HEIGHT, 0)
@@ -75,21 +78,26 @@ function dividerRatioForHeight(proposedHeight: number, availableHeight: number) 
     return clampTopPaneHeight(proposedHeight, availableHeight) / availableHeight
 }
 
+function ignoreCurrentContextMenu() {}
+
 /** Layout-only comparison root. Diagram changes remain inside New service-bound leaves. */
 export function DiagramComparison({
     currentDiagram,
     details = diagramObjectDetailsService,
     drawing = diagramEdgeDrawingService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     groupDrawing = diagramGroupDrawingService,
     layoutService = diagramComparisonLayoutService,
     movement = diagramMoveService,
+    onCurrentContextMenu = ignoreCurrentContextMenu,
     onCurrentSelect,
     placement = diagramNodePlacementService,
     resize = diagramResizeService,
     review = diagramChangeReviewService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
+    viewService = diagramViewService,
 }: DiagramComparisonProps) {
     const containerRef = useRef<HTMLDivElement>(null)
     const activePointerIdRef = useRef<number | null>(null)
@@ -162,10 +170,16 @@ export function DiagramComparison({
                 aria-label="Current"
                 elevation={0}
                 role="region"
-                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, minHeight: 0, overflow: 'auto', p: 2 }}
+                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
             >
-                <Typography color="custom.colHead" sx={{ mb: 1 }} variant="overline">Current</Typography>
-                <CurrentDiagram data={currentDiagram} onSelect={onCurrentSelect} />
+                <Typography color="custom.colHead" sx={{ flexShrink: 0, px: 2, pt: 2 }} variant="overline">Current</Typography>
+                <DiagramCurrentViewport
+                    data={currentDiagram}
+                    emphasis={emphasis}
+                    onContextMenu={onCurrentContextMenu}
+                    onSelect={onCurrentSelect}
+                    service={viewService}
+                />
             </Paper>
             <Box
                 aria-label="Resize Current and New diagrams"
@@ -199,6 +213,7 @@ export function DiagramComparison({
                 <DiagramNewPane
                     details={details}
                     drawing={drawing}
+                    emphasis={emphasis}
                     geometry={geometry}
                     groupDrawing={groupDrawing}
                     movement={movement}
@@ -207,6 +222,7 @@ export function DiagramComparison({
                     review={review}
                     selection={selection}
                     session={session}
+                    viewService={viewService}
                 />
             </Paper>
         </Box>

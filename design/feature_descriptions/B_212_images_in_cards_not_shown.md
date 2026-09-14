@@ -10,5 +10,6 @@ agents:
 policy:
 after: df7f7a94-ee33-44a3-b499-2b230d484fef
 ---
-
 when we attach an image to a card, we don't show the image itself properly, but some placeholder. need to show the image itself.
+
+Might be only on remote ( mobile) over websocket

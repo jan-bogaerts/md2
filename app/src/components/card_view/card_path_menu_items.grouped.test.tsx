@@ -50,12 +50,30 @@ describe('CardPathMenuItems', () => {
         await waitFor(() => expect(writeText).toHaveBeenCalledWith('design/F_116.md'))
     })
 
+    it('copies through the execCommand fallback without a clipboard API', async () => {
+        const onSelected = vi.fn()
+        const reportError = vi.spyOn(dialogService, 'error')
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined, writable: true })
+        let copiedSelection: string | undefined
+        document.execCommand = vi.fn(() => {
+            copiedSelection = document.querySelector('textarea')?.value
+            return true
+        })
+        renderMenuItems({ cardPath: 'design/F_116.md', onSelected, rootPath: '/host/repo' })
+
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Copy relative path' }))
+
+        await waitFor(() => expect(copiedSelection).toBe('design/F_116.md'))
+        expect(reportError).not.toHaveBeenCalled()
+        expect(document.querySelector('textarea')).toBeNull()
+    })
+
     it('closes before writing and reports clipboard failure', async () => {
-        const copyError = new Error('Clipboard denied')
-        const writeText = vi.fn().mockRejectedValue(copyError)
+        const writeText = vi.fn().mockRejectedValue(new Error('Clipboard denied'))
         const onSelected = vi.fn()
         const reportError = vi.spyOn(dialogService, 'error')
         Object.assign(navigator, { clipboard: { writeText } })
+        document.execCommand = vi.fn().mockReturnValue(false)
         renderMenuItems({ cardPath: 'design/F_116.md', onSelected, rootPath: 'C:\\repo' })
 
         fireEvent.click(screen.getByRole('menuitem', { name: 'Copy path' }))
@@ -63,7 +81,7 @@ describe('CardPathMenuItems', () => {
         expect(onSelected).toHaveBeenCalledOnce()
         expect(writeText).toHaveBeenCalledAfter(onSelected)
         await waitFor(() => expect(reportError).toHaveBeenCalledWith(
-            copyError,
+            expect.any(Error),
             { fallbackMessage: 'Path could not be copied to clipboard' },
         ))
     })

@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined'
 import {
     diagramObjectDetailsService,
     type DiagramObjectDetailsService,
@@ -18,6 +19,6 @@ export function DiagramMetadataButton({ details = diagramObjectDetailsService }:
             label="Metadata"
             onActivate={handleActivate}
             tooltip="Edit diagram metadata"
-        />
+        ><DescriptionOutlined fontSize="small" /></DiagramToolboxActionButton>
     )
 }

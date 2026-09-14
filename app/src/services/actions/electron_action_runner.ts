@@ -3,7 +3,6 @@ import type { ActionDefinition } from '../../data/action_types'
 import type { AgentConversationReservation, ActionRunInput, ActionRunResult } from '../../data/action_run_types'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import { actionRunRegistry, cancelActionRun } from './action_run_registry'
-import { dataService } from '../data/data_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
 import { projectAccessService } from '../project/project_access_service'
 
@@ -29,20 +28,11 @@ export async function runElectronAction(
     }
     const requiresReservation = shouldReserveConversation(action, context, input)
     const bridge = getElectronActionBridge()
-    const resumeAutomaticCommit = requiresReservation ? dataService.cards.deferAutomaticCommit() : null
-    let conversationReservation: AgentConversationReservation | undefined
-    try {
-        conversationReservation = requiresReservation
-            ? await bridge?.reserveActionConversation?.({ actionId: action.id, context, runInput: input })
-            : undefined
-        if (requiresReservation && !conversationReservation) {
-            throw new Error('Starting a card agent requires conversation reservation support')
-        }
-        if (conversationReservation && context.file) {
-            dataService.cards.addAgentLogReference(context.file, conversationReservation.activityPath)
-        }
-    } finally {
-        resumeAutomaticCommit?.()
+    const conversationReservation: AgentConversationReservation | undefined = requiresReservation
+        ? await bridge?.reserveActionConversation?.({ actionId: action.id, context, runInput: input })
+        : undefined
+    if (requiresReservation && !conversationReservation) {
+        throw new Error('Starting a card agent requires conversation reservation support')
     }
     if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
     return actionRunRegistry.startRun(action, context, input, handleStarted, interactive, conversationReservation)

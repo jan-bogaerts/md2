@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react'
+import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
 import {
     diagramSelectionService,
     type DiagramSelectionService,
@@ -27,6 +28,6 @@ export function DiagramDeleteButton({ selection = diagramSelectionService }: Dia
             label="Delete"
             onActivate={handleDelete}
             tooltip="Delete selected diagram objects"
-        />
+        ><DeleteOutlineOutlined fontSize="small" /></DiagramToolboxActionButton>
     )
 }

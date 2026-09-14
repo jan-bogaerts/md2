@@ -9,6 +9,7 @@ import type {
     DiagramSequenceOperator,
     DiagramWaypoint,
 } from './diagram_data'
+import { diagramScale } from './diagram_formatting'
 
 export const DIAGRAM_GRID_SIZE = 4
 export const MINIMUM_DIAGRAM_GROUP_WIDTH = 48
@@ -99,34 +100,46 @@ function snap(value: number) {
     return Math.round(value / GRID_SIZE) * GRID_SIZE
 }
 
+function scaledSpacing(data: DiagramData, value: number) {
+    return snap(value * diagramScale(data.formatting, 'spacingScalePercent') / 100)
+}
+
+function scaledBoxSize(data: DiagramData, value: number) {
+    return Math.max(GRID_SIZE, snap(value * diagramScale(data.formatting, 'boxScalePercent') / 100))
+}
+
 /** Returns deterministic Y geometry for one zero-based sequence message row. */
-export function sequenceMessageRowY(rowIndex: number) {
-    return snap(SEQUENCE_MESSAGE_START + rowIndex * SEQUENCE_MESSAGE_GAP)
+export function sequenceMessageRowY(rowIndex: number, spacingScalePercent = 100) {
+    return snap(SEQUENCE_MESSAGE_START + rowIndex * SEQUENCE_MESSAGE_GAP * spacingScalePercent / 100)
 }
 
 /** Maps diagram-space Y to a valid insertion index in the ordered sequence message collection. */
-export function sequenceMessageInsertionIndexAt(y: number, messageCount: number) {
+export function sequenceMessageInsertionIndexAt(y: number, messageCount: number, spacingScalePercent = 100) {
     if (!Number.isFinite(y)) throw new Error('Sequence message position must be finite')
     if (!Number.isInteger(messageCount) || messageCount < 0) throw new Error('Sequence message count must be a non-negative integer')
 
-    return Math.min(Math.max(Math.round((y - SEQUENCE_MESSAGE_START) / SEQUENCE_MESSAGE_GAP), 0), messageCount)
+    const messageGap = SEQUENCE_MESSAGE_GAP * spacingScalePercent / 100
+
+    return Math.min(Math.max(Math.round((y - SEQUENCE_MESSAGE_START) / messageGap), 0), messageCount)
 }
 
 function nodeHeight(data: DiagramData, node: DiagramNode) {
-    if (node.height !== undefined) return node.height
-    if (node.fields) return snap(ENTITY_HEADER_HEIGHT + node.fields.length * ENTITY_FIELD_HEIGHT)
-    if (data.meta.type === 'flow' && node.kind === 'decision') return 96
-    if (data.meta.type === 'flow' && (node.kind === 'start' || node.kind === 'end')) return data.meta.preset === 'state' ? 24 : 48
+    let height = DEFAULT_NODE_HEIGHT
+    if (node.height !== undefined) height = node.height
+    else if (node.fields) height = snap(ENTITY_HEADER_HEIGHT + node.fields.length * ENTITY_FIELD_HEIGHT)
+    else if (data.meta.type === 'flow' && node.kind === 'decision') height = 96
+    else if (data.meta.type === 'flow' && (node.kind === 'start' || node.kind === 'end')) height = data.meta.preset === 'state' ? 24 : 48
 
-    return DEFAULT_NODE_HEIGHT
+    return scaledBoxSize(data, height)
 }
 
 function nodeWidth(data: DiagramData, node: DiagramNode) {
-    if (node.width !== undefined) return node.width
-    if (data.meta.type === 'flow' && node.kind === 'decision') return 96
-    if (data.meta.type === 'flow' && (node.kind === 'start' || node.kind === 'end')) return data.meta.preset === 'state' ? 24 : 120
+    let width = DEFAULT_NODE_WIDTH
+    if (node.width !== undefined) width = node.width
+    else if (data.meta.type === 'flow' && node.kind === 'decision') width = 96
+    else if (data.meta.type === 'flow' && (node.kind === 'start' || node.kind === 'end')) width = data.meta.preset === 'state' ? 24 : 120
 
-    return DEFAULT_NODE_WIDTH
+    return scaledBoxSize(data, width)
 }
 
 /** Counts the incoming edges a node renders as fan-in. Presentation `cycle` edges never contribute. */
@@ -155,9 +168,9 @@ function layeredGraph(data: DiagramData) {
     graph.setGraph({
         marginx: SURFACE_PADDING,
         marginy: SURFACE_PADDING,
-        nodesep: NODE_GAP,
+        nodesep: scaledSpacing(data, NODE_GAP),
         rankdir: 'TB',
-        ranksep: RANK_GAP,
+        ranksep: scaledSpacing(data, RANK_GAP),
     })
     graph.setDefaultEdgeLabel(() => ({}))
     const known = new Set<string>()
@@ -201,7 +214,7 @@ function layoutSequenceNodes(data: DiagramData) {
 
     return data.nodes.map((node) => {
         const result = nodeGeometry(data, node, x, SURFACE_PADDING)
-        x += result.width + SEQUENCE_COLUMN_GAP
+        x += result.width + scaledSpacing(data, SEQUENCE_COLUMN_GAP)
 
         return result
     })
@@ -506,11 +519,11 @@ function graphEdgePoints(
     return bestRoute(edge, candidates, positionedNodes, priorEdges)
 }
 
-function sequenceEdgePoints(edge: DiagramEdge, index: number, nodes: Map<string, PositionedDiagramNode>) {
+function sequenceEdgePoints(data: DiagramData, edge: DiagramEdge, index: number, nodes: Map<string, PositionedDiagramNode>) {
     if (usesSuppliedRoute(edge, nodes)) return edge.waypoints as DiagramWaypoint[]
     const from = nodes.get(edge.from) as PositionedDiagramNode
     const to = nodes.get(edge.to) as PositionedDiagramNode
-    const rowY = sequenceMessageRowY(index)
+    const rowY = sequenceMessageRowY(index, diagramScale(data.formatting, 'spacingScalePercent'))
     const automaticStart = { x: snap(from.x + from.width / 2), y: rowY }
     const automaticEnd = { x: snap(to.x + to.width / 2), y: rowY }
     const start = edge.sourceAttachment ? absoluteConnectionPoint(edge.sourceAttachment, from) : automaticStart
@@ -701,9 +714,12 @@ export function edgeGeometry(
     const index = data.edges.findIndex(({ id }) => id === edge.id)
     const suppliedRoute = usesSuppliedRoute(edge, nodes)
     const points = data.meta.type === 'sequence'
-        ? sequenceEdgePoints(edge, index, nodes)
+        ? sequenceEdgePoints(data, edge, index, nodes)
         : graphEdgePoints(data, edge, nodes, priorEdges)
-    if (suppliedRoute && data.meta.type !== 'sequence') validateSuppliedRoute(edge, points, nodes, priorEdges)
+    const boxScalePercent = diagramScale(data.formatting, 'boxScalePercent')
+    if (suppliedRoute && data.meta.type !== 'sequence' && boxScalePercent === 100) {
+        validateSuppliedRoute(edge, points, nodes, priorEdges)
+    }
     const routedPoints = suppliedRoute ? points : addCrossingHops(points, priorEdges)
     const labelPlacement = edgeLabelPlacement(edge, routedPoints, [...nodes.values()])
 
@@ -736,13 +752,20 @@ function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]
  * Positions one group. A group carrying persisted geometry keeps it, because F_255 groups are positioned and sized
  * independently of their members; only an omitted field falls back to the member-extent box.
  */
-export function groupBox(group: DiagramGroup, nodesById: Map<string, PositionedDiagramNode>): PositionedDiagramGroup {
+export function groupBox(
+    group: DiagramGroup,
+    nodesById: Map<string, PositionedDiagramNode>,
+    spacingScalePercent = 100,
+): PositionedDiagramGroup {
+    const horizontalPadding = snap(GROUP_HORIZONTAL_PADDING * spacingScalePercent / 100)
+    const headerHeight = snap(GROUP_HEADER_HEIGHT * spacingScalePercent / 100)
+    const bottomPadding = snap(GROUP_BOTTOM_PADDING * spacingScalePercent / 100)
     const members = group.nodeIds.map((id) => nodesById.get(id) as PositionedDiagramNode)
     if (members.length === 0) {
         return {
             ...group,
-            height: group.height ?? GROUP_HEADER_HEIGHT + GROUP_BOTTOM_PADDING,
-            width: group.width ?? GROUP_HORIZONTAL_PADDING * 2,
+            height: group.height ?? headerHeight + bottomPadding,
+            width: group.width ?? horizontalPadding * 2,
             x: group.x ?? SURFACE_PADDING,
             y: group.y ?? SURFACE_PADDING,
         }
@@ -754,17 +777,19 @@ export function groupBox(group: DiagramGroup, nodesById: Map<string, PositionedD
 
     return {
         ...group,
-        height: group.height ?? snap(bottom - top + GROUP_HEADER_HEIGHT + GROUP_BOTTOM_PADDING),
-        width: group.width ?? snap(right - left + GROUP_HORIZONTAL_PADDING * 2),
-        x: group.x ?? snap(left - GROUP_HORIZONTAL_PADDING),
-        y: group.y ?? snap(top - GROUP_HEADER_HEIGHT),
+        height: group.height ?? snap(bottom - top + headerHeight + bottomPadding),
+        width: group.width ?? snap(right - left + horizontalPadding * 2),
+        x: group.x ?? snap(left - horizontalPadding),
+        y: group.y ?? snap(top - headerHeight),
     }
 }
 
-function layoutGroups(groups: DiagramGroup[], nodes: PositionedDiagramNode[]) {
+function layoutGroups(data: DiagramData, nodes: PositionedDiagramNode[]) {
     const nodesById = new Map(nodes.map((node) => [node.id, node]))
 
-    return groups.map((group) => groupBox(group, nodesById))
+    return data.groups.map((group) => groupBox(
+        group, nodesById, diagramScale(data.formatting, 'spacingScalePercent'),
+    ))
 }
 
 /** Builds the activation bars of one participant from the call and reply messages that touch its lifeline. */
@@ -882,7 +907,7 @@ export function surfaceSize(
 export function layout(data: DiagramData): PositionedDiagramData {
     const nodes = data.meta.type === 'sequence' ? layoutSequenceNodes(data) : layoutLayeredNodes(data)
     const edges = layoutEdges(data, nodes)
-    const groups = layoutGroups(data.groups, nodes)
+    const groups = layoutGroups(data, nodes)
     const initialSize = surfaceSize(nodes, edges, groups)
     const activations = data.meta.type === 'sequence' ? layoutSequenceActivations(edges, nodes, initialSize.height - 24) : []
     const fragments = data.meta.type === 'sequence' ? layoutSequenceFragments(data.fragments ?? [], edges, nodes) : []

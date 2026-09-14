@@ -1,8 +1,8 @@
 import { ThemeProvider } from '@mui/material'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramLegendPosition } from '../../services/diagrams/diagram_view_service'
+import { DiagramViewService, type DiagramLegendPosition } from '../../services/diagrams/diagram_view_service'
 import { layout } from '../../services/diagrams/diagram_layout'
 import { createAppTheme } from '../../theme/app_theme'
 import { DiagramLegend } from './diagram_legend'
@@ -24,24 +24,18 @@ const theme = createAppTheme('dark')
 
 function renderLegend(
     position: DiagramLegendPosition | null = null,
-    callbacks = { onCollapse: vi.fn(), onExpand: vi.fn(), onMove: vi.fn() },
+    service = new DiagramViewService(),
 ) {
+    if (position) service.moveLegend(position)
     const view = render(
         <ThemeProvider theme={theme}>
             <div aria-label="Legend viewport" style={{ height: 200, position: 'relative', width: 300 }}>
-                <DiagramLegend
-                    collapsed={false}
-                    data={data}
-                    onCollapse={callbacks.onCollapse}
-                    onExpand={callbacks.onExpand}
-                    onMove={callbacks.onMove}
-                    position={position}
-                />
+                <DiagramLegend data={data} service={service} />
             </div>
         </ThemeProvider>,
     )
 
-    return { ...callbacks, ...view }
+    return { service, ...view }
 }
 
 describe('DiagramLegend', () => {
@@ -65,8 +59,10 @@ describe('DiagramLegend', () => {
     })
 
     it('provides accessible collapse control without starting drag', async () => {
-        const callbacks = { onCollapse: vi.fn(), onExpand: vi.fn(), onMove: vi.fn() }
-        renderLegend(null, callbacks)
+        const service = new DiagramViewService()
+        const collapseLegend = vi.spyOn(service, 'collapseLegend')
+        const moveLegend = vi.spyOn(service, 'moveLegend')
+        renderLegend(null, service)
         const user = userEvent.setup()
         const button = screen.getByRole('button', { name: 'Collapse legend' })
 
@@ -74,13 +70,16 @@ describe('DiagramLegend', () => {
         button.focus()
         await user.keyboard('{Enter}')
 
-        expect(callbacks.onCollapse).toHaveBeenCalledTimes(1)
-        expect(callbacks.onMove).not.toHaveBeenCalled()
+        expect(collapseLegend).toHaveBeenCalledTimes(1)
+        expect(moveLegend).not.toHaveBeenCalled()
     })
 
     it('clamps pointer dragging and suppresses its trailing click', () => {
-        const callbacks = { onCollapse: vi.fn(), onExpand: vi.fn(), onMove: vi.fn() }
-        renderLegend(null, callbacks)
+        const service = new DiagramViewService()
+        const collapseLegend = vi.spyOn(service, 'collapseLegend')
+        const expandLegend = vi.spyOn(service, 'expandLegend')
+        const moveLegend = vi.spyOn(service, 'moveLegend')
+        renderLegend(null, service)
         const viewport = screen.getByLabelText('Legend viewport')
         const panel = screen.getByLabelText('Diagram legend')
         const header = screen.getByLabelText('Move diagram legend')
@@ -99,9 +98,9 @@ describe('DiagramLegend', () => {
         fireEvent.pointerUp(header, { pointerId: 7 })
         fireEvent.click(header)
 
-        expect(callbacks.onMove).toHaveBeenLastCalledWith({ left: 200, top: 120 })
-        expect(callbacks.onCollapse).not.toHaveBeenCalled()
-        expect(callbacks.onExpand).not.toHaveBeenCalled()
+        expect(moveLegend).toHaveBeenLastCalledWith({ left: 200, top: 120 })
+        expect(collapseLegend).not.toHaveBeenCalled()
+        expect(expandLegend).not.toHaveBeenCalled()
     })
 
     it('reclamps a moved panel when observed viewport size changes', () => {
@@ -114,8 +113,9 @@ describe('DiagramLegend', () => {
             unobserve(element: Element) { this.elements.delete(element) }
         }
         vi.stubGlobal('ResizeObserver', ResizeObserverMock)
-        const callbacks = { onCollapse: vi.fn(), onExpand: vi.fn(), onMove: vi.fn() }
-        const view = renderLegend(null, callbacks)
+        const service = new DiagramViewService()
+        const moveLegend = vi.spyOn(service, 'moveLegend')
+        renderLegend(null, service)
         const viewport = screen.getByLabelText('Legend viewport')
         const panel = screen.getByLabelText('Diagram legend')
         let viewportWidth = 300
@@ -126,18 +126,12 @@ describe('DiagramLegend', () => {
         })
         Object.defineProperties(panel, { offsetHeight: { value: 80 }, offsetWidth: { value: 100 } })
 
-        view.rerender(
-            <ThemeProvider theme={theme}>
-                <div aria-label="Legend viewport" style={{ height: 200, position: 'relative', width: 300 }}>
-                    <DiagramLegend {...callbacks} collapsed={false} data={data} position={{ left: 150, top: 100 }} />
-                </div>
-            </ThemeProvider>,
-        )
+        act(() => service.moveLegend({ left: 150, top: 100 }))
         viewportWidth = 160
         viewportHeight = 100
         observers.at(-1)?.([], {} as ResizeObserver)
 
-        expect(callbacks.onMove).toHaveBeenLastCalledWith({ left: 60, top: 20 })
+        expect(moveLegend).toHaveBeenLastCalledWith({ left: 60, top: 20 })
     })
 
     it('clamps oversized and out-of-bounds positions', () => {

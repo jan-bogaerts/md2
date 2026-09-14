@@ -12,7 +12,13 @@ import {
 } from '../data/data_types'
 import { dataService } from '../services/data/data_service'
 import { dialogService } from '../services/dialog_service'
-import { getElectronLifecycleBridge, type ElectronFlushRequest, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
+import {
+    getElectronLifecycleBridge,
+    isElectron,
+    type ElectronFlushRequest,
+    type ElectronLifecycleBridge,
+} from '../services/electron_lifecycle_bridge'
+import { cardPopupService } from '../services/card_popup_service'
 import { openFilesService } from '../services/open_files_service'
 import type { OpenDocument } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry/telemetry_service'
@@ -96,6 +102,12 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     const statusColors = useMemo(() => new Map(
         states.map(({ color, state }, index) => [state, color ?? defaultColumnAccent(index)]),
     ), [states])
+
+    useEffect(() => {
+        cardPopupService.setMobileBackDismissEnabled(isMobile && !isElectron())
+
+        return () => cardPopupService.setMobileBackDismissEnabled(false)
+    }, [isMobile])
 
     useEffect(() => {
         onLeftPanelInteractionRef.current = onLeftPanelInteraction

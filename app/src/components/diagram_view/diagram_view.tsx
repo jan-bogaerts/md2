@@ -1,8 +1,7 @@
 import {
-    Alert, Box, Breadcrumbs, Button, CircularProgress, Menu, MenuItem, Paper, Tooltip, Typography,
+    Alert, Box, Button, CircularProgress, Paper, Typography,
 } from '@mui/material'
 import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
-import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined'
 import type { MouseEvent } from 'react'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { actionsForContext, diagramContext } from '../../data/action_context'
@@ -16,12 +15,15 @@ import {
     diagramSelectionService, type DiagramSelectionService,
 } from '../../services/diagrams/diagram_selection_service'
 import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
+import {
+    diagramEmphasisService, type DiagramEmphasisService,
+} from '../../services/diagrams/diagram_emphasis_service'
 import { useActions } from '../hooks/use_actions'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
-import { ActionPopup } from '../actions/run/popup/action_popup'
 import { MovableFab } from '../movable_fab'
-import { DiagramRenderer } from './diagram_renderer'
+import { DiagramActionPopup } from './diagram_action_popup'
 import { DiagramLegend } from './diagram_legend'
+import { DiagramItemMenu } from './diagram_item_menu'
 import { DiagramComparison } from './diagram_comparison'
 import { DiagramComparisonLayout } from './diagram_comparison_layout'
 import {
@@ -30,7 +32,8 @@ import {
 import type { DiagramSelection } from './diagram_selection'
 import { TabbedDiagramComparison } from './tabbed_diagram_comparison'
 import { VerticalDiagramComparison } from './vertical_diagram_comparison'
-import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from './use_diagram_delete_key'
+import { DiagramCurrentViewport } from './diagram_current_viewport'
+import { DiagramBreadcrumbBar } from './diagram_breadcrumb_bar'
 
 const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
 
@@ -40,6 +43,7 @@ function reportNavigationFailure(error: unknown) {
 
 interface DiagramViewProps {
     editSession?: DiagramEditSessionService
+    emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     layoutService?: DiagramComparisonLayoutService
     selection?: DiagramSelectionService
@@ -49,13 +53,26 @@ interface DiagramViewProps {
 /** Full workspace surface for navigating validated diagram data. */
 export function DiagramView({
     editSession = diagramEditSessionService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     layoutService = diagramComparisonLayoutService,
     selection = diagramSelectionService,
     service = diagramViewService,
 }: DiagramViewProps) {
     const { viewMode } = useWorkspaceView()
-    const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot)
+    const currentDiagram = useSyncExternalStore(
+        service.subscribeCurrentDiagram,
+        service.getCurrentDiagramSnapshot,
+        service.getCurrentDiagramSnapshot,
+    )
+    const currentDiagramError = useSyncExternalStore(
+        service.subscribeCurrentDiagramError,
+        service.getCurrentDiagramErrorSnapshot,
+        service.getCurrentDiagramErrorSnapshot,
+    )
+    const error = useSyncExternalStore(service.subscribeError, service.getErrorSnapshot, service.getErrorSnapshot)
+    const index = useSyncExternalStore(service.subscribeIndex, service.getIndexSnapshot, service.getIndexSnapshot)
+    const status = useSyncExternalStore(service.subscribeStatus, service.getStatusSnapshot, service.getStatusSnapshot)
     const editSessionSnapshot = useSyncExternalStore(
         editSession.subscribeSession,
         editSession.getSessionSnapshot,
@@ -63,18 +80,7 @@ export function DiagramView({
     )
     const { actions } = useActions()
     const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions])
-    const activeRecords = snapshot.index.activePath.map((id) => snapshot.index.diagrams[id])
-    const selectedContext = useMemo(() => snapshot.menu
-        ? diagramContext('child', snapshot.menu.diagramId, snapshot.menu.itemId, snapshot.menu.itemLabel)
-        : null, [snapshot.menu])
-    const childActions = useMemo(
-        () => selectedContext ? actionsForContext(actions, selectedContext) : [],
-        [actions, selectedContext],
-    )
-    const savedChildren = snapshot.menu
-        ? service.getSavedChildren(snapshot.menu.diagramId, snapshot.menu.itemId)
-        : []
-    const rootDiagrams = snapshot.index.activePath.length === 0 ? service.getRootDiagrams() : []
+    const rootDiagrams = index.activePath.length === 0 ? service.getRootDiagrams() : []
     const diagramTitle = (record: DiagramRecord) => {
         const label = actions.find(({ id }) => id === record.actionId)?.label ?? record.label
 
@@ -83,38 +89,27 @@ export function DiagramView({
 
     useEffect(() => {
         if (viewMode !== 'diagrams') return
+        emphasis.start()
         void service.open().catch((error: unknown) => {
             dialogService.error(error, { fallbackMessage: 'Diagram view could not be opened' })
         })
-    }, [service, viewMode])
+    }, [emphasis, service, viewMode])
 
-    const handleDiagramSelect = (anchorElement: HTMLElement, selection: DiagramSelection) => {
-        const diagramId = snapshot.index.activePath.at(-1)
+    const handleDiagramSelect = (_anchorElement: HTMLElement, selection: DiagramSelection) => {
+        const diagramId = index.activePath.at(-1)
         if (!diagramId) return
-        const { id: itemId, label: itemLabel, left, top } = selection
-        service.openItemMenu({ anchorElement, diagramId, itemId, itemLabel, left, top })
+        const { id: itemId, label: itemLabel, objectKind } = selection
+        service.selectCurrentObject({ activeDiagramId: diagramId, itemId, itemLabel, objectKind })
+        emphasis.moveTargetIfActive({ diagramId, objectId: itemId, objectKind, surface: 'current' })
     }
 
-    const handleMenuClick = (event: MouseEvent<HTMLElement>) => {
-        const item = (event.target as Element).closest<HTMLElement>('[data-diagram-menu-kind]')
-        const kind = item?.dataset.diagramMenuKind
-        const id = item?.dataset.diagramMenuId
-        if (!kind || !id) return
-        if (kind === 'action') {
-            service.openChildPopup(id)
-            return
-        }
-        void service.navigateToSavedDiagram(id).catch(reportNavigationFailure)
+    const handleDiagramContextMenu = (anchorElement: HTMLElement, selection: DiagramSelection) => {
+        const diagramId = index.activePath.at(-1)
+        if (!diagramId) return
+        const { id: itemId, label: itemLabel, left, objectKind, top } = selection
+        service.openItemMenu({ anchorElement, diagramId, itemId, itemLabel, left, objectKind, surface: 'current', top })
     }
 
-    const handleBreadcrumbClick = (event: MouseEvent<HTMLElement>) => {
-        const item = (event.target as Element).closest<HTMLElement>('[data-diagram-breadcrumb-index]')
-        if (!item) return
-        const index = Number(item.dataset.diagramBreadcrumbIndex)
-        void service.navigateToCrumb(index).catch(reportNavigationFailure)
-    }
-
-    const handleBack = () => void service.navigateBack().catch(reportNavigationFailure)
     const handleRetry = () => void service.open().catch((error: unknown) => {
         dialogService.error(error, { fallbackMessage: 'Diagram view could not be opened' })
     })
@@ -123,30 +118,14 @@ export function DiagramView({
         if (!item?.dataset.diagramRootId) return
         void service.navigateToSavedDiagram(item.dataset.diagramRootId).catch(reportNavigationFailure)
     }
-    const handleCloseMenu = () => service.closeItemMenu()
-    const handleClosePopup = () => service.closePopup()
     const handleFabActivate = (anchorElement: HTMLElement) => service.openRootPopup(anchorElement)
     const handleFabDragStart = () => service.closePopup()
-    const handleCollapseLegend = () => service.collapseLegend()
-    const handleExpandLegend = () => service.expandLegend()
-    const handleMoveLegend = (position: { left: number, top: number }) => service.moveLegend(position)
-    const handleStartEditing = () => {
-        try {
-            editSession.start()
-            queueMicrotask(() => {
-                const editor = document.querySelector<HTMLElement>(`[${DIAGRAM_EDITOR_ROOT_ATTRIBUTE}]`)
-                editor?.focus()
-            })
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Diagram editing could not be started' })
-        }
-    }
 
-    const content = snapshot.status === 'loading' ? (
+    const content = status === 'loading' ? (
         <Box sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center' }}><CircularProgress aria-label="Loading diagrams" /></Box>
-    ) : snapshot.status === 'error' ? (
-        <Alert action={<Button color="inherit" onClick={handleRetry} size="small">Retry</Button>} severity="error">{snapshot.error}</Alert>
-    ) : snapshot.index.activePath.length === 0 ? (
+    ) : status === 'error' ? (
+        <Alert action={<Button color="inherit" onClick={handleRetry} size="small">Retry</Button>} severity="error">{error}</Alert>
+    ) : index.activePath.length === 0 ? (
         <Paper
             elevation={0}
             onClick={handleRootDiagramClick}
@@ -160,104 +139,84 @@ export function DiagramView({
                 <Button data-diagram-root-id={record.id} key={record.id} size="small" variant="text">{diagramTitle(record)}</Button>
             ))}
         </Paper>
-    ) : snapshot.currentDiagramError ? (
-        <Alert severity="warning">Diagram unavailable: {snapshot.currentDiagramError}</Alert>
+    ) : currentDiagramError ? (
+        <Alert severity="warning">Diagram unavailable: {currentDiagramError}</Alert>
     ) : (
         <Box aria-label="Active diagram" sx={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
-            <Box
-                aria-label="Diagram scroller"
-                sx={{ alignItems: 'flex-start', display: 'flex', height: '100%', justifyContent: 'flex-start', overflow: 'auto' }}
-            >
-                {snapshot.currentDiagram ? (
+            <Box aria-label="Diagram content" sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+                {currentDiagram ? (
                     editSessionSnapshot ? (
                         <DiagramComparisonLayout
                             horizontalComparison={(
                                 <DiagramComparison
-                                    currentDiagram={snapshot.currentDiagram}
+                                    currentDiagram={currentDiagram}
+                                    emphasis={emphasis}
                                     geometry={geometry}
                                     layoutService={layoutService}
+                                    onCurrentContextMenu={handleDiagramContextMenu}
                                     onCurrentSelect={handleDiagramSelect}
                                     selection={selection}
                                     session={editSession}
+                                    viewService={service}
                                 />
                             )}
                             layoutService={layoutService}
                             tabbedComparison={(
                                 <TabbedDiagramComparison
-                                    currentDiagram={snapshot.currentDiagram}
+                                    currentDiagram={currentDiagram}
+                                    emphasis={emphasis}
                                     geometry={geometry}
                                     layoutService={layoutService}
+                                    onCurrentContextMenu={handleDiagramContextMenu}
                                     onCurrentSelect={handleDiagramSelect}
                                     selection={selection}
                                     session={editSession}
+                                    viewService={service}
                                 />
                             )}
                             verticalComparison={(
                                 <VerticalDiagramComparison
-                                    currentDiagram={snapshot.currentDiagram}
+                                    currentDiagram={currentDiagram}
+                                    emphasis={emphasis}
                                     geometry={geometry}
                                     layoutService={layoutService}
+                                    onCurrentContextMenu={handleDiagramContextMenu}
                                     onCurrentSelect={handleDiagramSelect}
                                     selection={selection}
                                     session={editSession}
+                                    viewService={service}
                                 />
                             )}
                         />
-                    ) : <DiagramRenderer data={snapshot.currentDiagram} onSelect={handleDiagramSelect} />
+                    ) : (
+                        <DiagramCurrentViewport
+                            data={currentDiagram}
+                            emphasis={emphasis}
+                            onContextMenu={handleDiagramContextMenu}
+                            onSelect={handleDiagramSelect}
+                            service={service}
+                        />
+                    )
                 ) : null}
             </Box>
-            {snapshot.currentDiagram ? (
+            {currentDiagram ? (
                 <DiagramLegend
-                    collapsed={snapshot.legend.collapsed}
-                    data={snapshot.currentDiagram}
-                    onCollapse={handleCollapseLegend}
-                    onExpand={handleExpandLegend}
-                    onMove={handleMoveLegend}
-                    position={snapshot.legend.position}
+                    data={currentDiagram}
+                    service={service}
                     session={editSessionSnapshot ? editSession : null}
                 />
             ) : null}
+            <DiagramBreadcrumbBar service={service} />
         </Box>
     )
 
     return (
         <Box
             aria-label="Diagram view"
-            sx={{ bgcolor: 'background.default', display: viewMode === 'diagrams' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden', p: 2.5 }}
+            sx={{ bgcolor: 'background.default', display: viewMode === 'diagrams' ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
         >
-            <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, flexWrap: 'wrap', gap: 1, mb: 2, minWidth: 0 }}>
-                <Tooltip title="Back">
-                    <span>
-                        <Button
-                            aria-label="Back"
-                            disabled={snapshot.index.activePath.length <= 1}
-                            onClick={handleBack}
-                            startIcon={<ArrowBackOutlined />}
-                            variant="outlined"
-                        >
-                            Back
-                        </Button>
-                    </span>
-                </Tooltip>
-                <Breadcrumbs aria-label="Diagram breadcrumb" onClick={handleBreadcrumbClick}>
-                    {activeRecords.map((record, index) => (
-                        <Button
-                            data-diagram-breadcrumb-index={index}
-                            disabled={index === activeRecords.length - 1}
-                            key={record.id}
-                            size="small"
-                            variant="text"
-                        >
-                            {record.label}
-                        </Button>
-                    ))}
-                </Breadcrumbs>
-                {snapshot.currentDiagram && !editSessionSnapshot ? (
-                    <Button onClick={handleStartEditing} size="small" variant="outlined">Edit diagram</Button>
-                ) : null}
-            </Box>
             {content}
-            {snapshot.status === 'ready' ? (
+            {status === 'ready' ? (
                 <MovableFab
                     ariaLabel="Diagram action"
                     disabled={rootActions.length === 0}
@@ -268,33 +227,8 @@ export function DiagramView({
                     <AccountTreeOutlined />
                 </MovableFab>
             ) : null}
-            <Menu
-                anchorPosition={snapshot.menu ? { left: snapshot.menu.left, top: snapshot.menu.top } : undefined}
-                anchorReference="anchorPosition"
-                onClick={handleMenuClick}
-                onClose={handleCloseMenu}
-                open={!!snapshot.menu}
-            >
-                <Typography color="custom.text3" sx={{ px: 2, py: 0.75 }} variant="overline">Actions</Typography>
-                {childActions.length > 0 ? childActions.map((action) => (
-                    <MenuItem data-diagram-menu-id={action.id} data-diagram-menu-kind="action" key={action.id}>{action.label}</MenuItem>
-                )) : <MenuItem disabled>No child actions</MenuItem>}
-                <Typography color="custom.text3" sx={{ px: 2, py: 0.75 }} variant="overline">Saved diagrams</Typography>
-                {savedChildren.length > 0 ? savedChildren.map((record) => (
-                    <MenuItem data-diagram-menu-id={record.id} data-diagram-menu-kind="saved" key={record.id}>
-                        {diagramTitle(record)}
-                    </MenuItem>
-                )) : <MenuItem disabled>No saved diagrams</MenuItem>}
-            </Menu>
-            {snapshot.popup ? (
-                <ActionPopup
-                    anchorElement={snapshot.popup.anchorElement}
-                    context={snapshot.popup.context}
-                    draggable
-                    initialActionId={snapshot.popup.initialActionId}
-                    onClose={handleClosePopup}
-                />
-            ) : null}
+            <DiagramItemMenu emphasis={emphasis} service={service} />
+            <DiagramActionPopup service={service} />
         </Box>
     )
 }

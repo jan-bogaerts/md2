@@ -9,6 +9,14 @@ export const DIAGRAM_FLOW_PRESETS = ['flowchart', 'state'];
 export const DIAGRAM_CARDINALITIES = ['1', 'N', '0..1', '1..*'];
 export const DIAGRAM_SEQUENCE_OPERATORS = ['alt', 'opt', 'loop'];
 export const DIAGRAM_CONNECTION_SIDES = ['top', 'right', 'bottom', 'left'];
+export const DIAGRAM_BORDER_STYLES = ['solid', 'dashed', 'dotted', 'double'];
+export const DIAGRAM_CONTENT_POSITIONS = [
+    'top-left', 'top-center', 'top-right', 'center-left', 'center', 'center-right',
+    'bottom-left', 'bottom-center', 'bottom-right',
+];
+export const DIAGRAM_CONNECTION_MARKERS = ['none', 'filled-arrow', 'open-arrow', 'circle', 'diamond'];
+export const DIAGRAM_FORMATTING_SCALE_MINIMUM = 50;
+export const DIAGRAM_FORMATTING_SCALE_MAXIMUM = 200;
 function malformed(field, reason = 'invalid value') {
     throw new Error(`Malformed diagram data: ${field} has ${reason}`);
 }
@@ -42,6 +50,25 @@ function optionalNumber(value, field, positive = false) {
         return undefined;
     if (typeof value !== 'number' || !Number.isFinite(value) || (positive && value <= 0))
         malformed(field, 'invalid number');
+    return value;
+}
+function optionalBoundedNumber(value, field, minimum, maximum) {
+    if (value === undefined)
+        return undefined;
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum || value > maximum)
+        malformed(field, `number outside the ${minimum}..${maximum} range`);
+    return value;
+}
+function rejectUnknownKeys(value, allowedKeys, field) {
+    const unknownKey = Object.keys(value).find((key) => !allowedKeys.includes(key));
+    if (unknownKey)
+        malformed(`${field}.${unknownKey}`, 'unknown field');
+}
+function optionalColor(value, field) {
+    if (value === undefined)
+        return undefined;
+    if (typeof value !== 'string' || !/^#[0-9A-Fa-f]{6}$/u.test(value))
+        malformed(field, 'color outside #RRGGBB format');
     return value;
 }
 export function requireDiagramGridNumber(value, field, positive = false) {
@@ -101,6 +128,127 @@ function parseMeta(value) {
         title: requireDiagramString(meta.title, 'meta.title'),
         type,
         version: DIAGRAM_DATA_VERSION,
+    };
+}
+function parseFontFormatting(value, field) {
+    if (value === undefined)
+        return undefined;
+    const font = requireObject(value, field);
+    rejectUnknownKeys(font, ['bold', 'color', 'family', 'italic', 'size', 'underline'], field);
+    const bold = optionalDiagramBoolean(font.bold, `${field}.bold`);
+    const color = optionalColor(font.color, `${field}.color`);
+    const family = optionalDiagramString(font.family, `${field}.family`);
+    const italic = optionalDiagramBoolean(font.italic, `${field}.italic`);
+    const size = optionalBoundedNumber(font.size, `${field}.size`, 1, 200);
+    const underline = optionalDiagramBoolean(font.underline, `${field}.underline`);
+    return {
+        ...(bold === undefined ? {} : { bold }),
+        ...(color ? { color } : {}),
+        ...(family ? { family } : {}),
+        ...(italic === undefined ? {} : { italic }),
+        ...(size === undefined ? {} : { size }),
+        ...(underline === undefined ? {} : { underline }),
+    };
+}
+function parseBoxFormatting(value, field) {
+    if (value === undefined)
+        return undefined;
+    const box = requireObject(value, field);
+    rejectUnknownKeys(box, [
+        'borderColor', 'borderStyle', 'borderThickness', 'contentPosition', 'cornerRadius', 'fillColor',
+    ], field);
+    const borderColor = optionalColor(box.borderColor, `${field}.borderColor`);
+    const borderStyle = optionalDiagramEnum(box.borderStyle, DIAGRAM_BORDER_STYLES, `${field}.borderStyle`);
+    const borderThickness = optionalBoundedNumber(box.borderThickness, `${field}.borderThickness`, 0, 20);
+    const contentPosition = optionalDiagramEnum(box.contentPosition, DIAGRAM_CONTENT_POSITIONS, `${field}.contentPosition`);
+    const cornerRadius = optionalBoundedNumber(box.cornerRadius, `${field}.cornerRadius`, 0, 100);
+    const fillColor = optionalColor(box.fillColor, `${field}.fillColor`);
+    return {
+        ...(borderColor ? { borderColor } : {}),
+        ...(borderStyle ? { borderStyle } : {}),
+        ...(borderThickness === undefined ? {} : { borderThickness }),
+        ...(contentPosition ? { contentPosition } : {}),
+        ...(cornerRadius === undefined ? {} : { cornerRadius }),
+        ...(fillColor ? { fillColor } : {}),
+    };
+}
+function parseLineFormatting(value, field) {
+    if (value === undefined)
+        return undefined;
+    const line = requireObject(value, field);
+    rejectUnknownKeys(line, ['color', 'thickness'], field);
+    const color = optionalColor(line.color, `${field}.color`);
+    const thickness = optionalBoundedNumber(line.thickness, `${field}.thickness`, 0, 20);
+    return {
+        ...(color ? { color } : {}),
+        ...(thickness === undefined ? {} : { thickness }),
+    };
+}
+function parseNodeRoleFormatting(value, role) {
+    const field = `formatting.nodeRoles.${role}`;
+    const formatting = requireObject(value, field);
+    rejectUnknownKeys(formatting, ['box', 'font'], field);
+    const box = parseBoxFormatting(formatting.box, `${field}.box`);
+    const font = parseFontFormatting(formatting.font, `${field}.font`);
+    return { ...(box ? { box } : {}), ...(font ? { font } : {}) };
+}
+function parseConnectionKindFormatting(value, kind) {
+    const field = `formatting.connectionKinds.${kind}`;
+    const formatting = requireObject(value, field);
+    rejectUnknownKeys(formatting, ['endMarker', 'font', 'line', 'startMarker'], field);
+    const endMarker = optionalDiagramEnum(formatting.endMarker, DIAGRAM_CONNECTION_MARKERS, `${field}.endMarker`);
+    const font = parseFontFormatting(formatting.font, `${field}.font`);
+    const line = parseLineFormatting(formatting.line, `${field}.line`);
+    const startMarker = optionalDiagramEnum(formatting.startMarker, DIAGRAM_CONNECTION_MARKERS, `${field}.startMarker`);
+    return {
+        ...(endMarker ? { endMarker } : {}),
+        ...(font ? { font } : {}),
+        ...(line ? { line } : {}),
+        ...(startMarker ? { startMarker } : {}),
+    };
+}
+function parseCategoryFormatting(value, field, categories, parseCategory) {
+    if (value === undefined)
+        return undefined;
+    const formatting = requireObject(value, field);
+    const unknownCategory = Object.keys(formatting).find((category) => !categories.includes(category));
+    if (unknownCategory)
+        malformed(`${field}.${unknownCategory}`, 'unknown category');
+    return Object.fromEntries(Object.entries(formatting).map(([category, override]) => (
+        [category, parseCategory(override, category)]
+    )));
+}
+function parseFormatting(value) {
+    if (value === undefined)
+        return undefined;
+    const formatting = requireObject(value, 'formatting');
+    rejectUnknownKeys(formatting, [
+        'boxScalePercent', 'connectionKinds', 'fontScalePercent', 'nodeRoles', 'spacingScalePercent',
+    ], 'formatting');
+    const boxScalePercent = optionalBoundedNumber(
+        formatting.boxScalePercent, 'formatting.boxScalePercent',
+        DIAGRAM_FORMATTING_SCALE_MINIMUM, DIAGRAM_FORMATTING_SCALE_MAXIMUM,
+    );
+    const connectionKinds = parseCategoryFormatting(
+        formatting.connectionKinds, 'formatting.connectionKinds', DIAGRAM_EDGE_KINDS, parseConnectionKindFormatting,
+    );
+    const fontScalePercent = optionalBoundedNumber(
+        formatting.fontScalePercent, 'formatting.fontScalePercent',
+        DIAGRAM_FORMATTING_SCALE_MINIMUM, DIAGRAM_FORMATTING_SCALE_MAXIMUM,
+    );
+    const nodeRoles = parseCategoryFormatting(
+        formatting.nodeRoles, 'formatting.nodeRoles', DIAGRAM_ROLES, parseNodeRoleFormatting,
+    );
+    const spacingScalePercent = optionalBoundedNumber(
+        formatting.spacingScalePercent, 'formatting.spacingScalePercent',
+        DIAGRAM_FORMATTING_SCALE_MINIMUM, DIAGRAM_FORMATTING_SCALE_MAXIMUM,
+    );
+    return {
+        ...(boxScalePercent === undefined ? {} : { boxScalePercent }),
+        ...(connectionKinds ? { connectionKinds } : {}),
+        ...(fontScalePercent === undefined ? {} : { fontScalePercent }),
+        ...(nodeRoles ? { nodeRoles } : {}),
+        ...(spacingScalePercent === undefined ? {} : { spacingScalePercent }),
     };
 }
 function parseEntityFields(value, field) {
@@ -346,6 +494,7 @@ export function parseDiagramData(content) {
     const root = requireObject(parsedValue, 'root');
     const data = {
         edges: requireArray(root.edges, 'edges').map(parseEdge),
+        ...(root.formatting === undefined ? {} : { formatting: parseFormatting(root.formatting) }),
         ...(root.fragments === undefined ? {} : { fragments: requireArray(root.fragments, 'fragments').map(parseSequenceFragment) }),
         groups: root.groups === undefined ? [] : requireArray(root.groups, 'groups').map(parseGroup),
         meta: parseMeta(root.meta),

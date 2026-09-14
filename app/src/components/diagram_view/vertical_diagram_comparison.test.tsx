@@ -85,10 +85,13 @@ describe('VerticalDiagramComparison', () => {
         expect(separator.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(separator).toHaveAttribute('aria-orientation', 'vertical')
         expect(comparison).toHaveStyle({ minWidth: '486px' })
-        expect(current).toHaveStyle({ overflow: 'auto' })
+        expect(current).toHaveStyle({ overflow: 'hidden' })
         expect(next).toHaveStyle({ overflow: 'hidden' })
+        expect(within(current).getByLabelText('Current diagram scroller')).toHaveStyle({ overflow: 'auto' })
         expect(within(next).getByLabelText('New diagram scroller')).toHaveStyle({ overflow: 'auto' })
-        expect(screen.getByRole('dialog', { name: 'Diagram tools' })).toBeInTheDocument()
+        expect(within(current).getByRole('slider', { name: 'Current diagram zoom' })).toBeInTheDocument()
+        expect(within(next).getByRole('slider', { name: 'New diagram zoom' })).toBeInTheDocument()
+        expect(screen.queryByRole('dialog', { name: 'Diagram tools' })).not.toBeInTheDocument()
     })
 
     it('keeps diagram edits isolated from Current and comparison pane roots', () => {

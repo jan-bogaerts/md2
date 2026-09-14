@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import LegendToggleOutlined from '@mui/icons-material/LegendToggleOutlined'
 import {
     diagramObjectDetailsService,
     type DiagramObjectDetailsService,
@@ -18,6 +19,6 @@ export function DiagramLegendButton({ details = diagramObjectDetailsService }: D
             label="Legend"
             onActivate={handleActivate}
             tooltip="Edit diagram legend"
-        />
+        ><LegendToggleOutlined fontSize="small" /></DiagramToolboxActionButton>
     )
 }

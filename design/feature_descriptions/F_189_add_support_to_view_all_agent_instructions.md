@@ -3,14 +3,13 @@ author:
 id: F_189
 internalId: 3a0d1119-4bc6-4bba-b47d-ddfabe12d56d
 title: add support to view all agent instructions
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: c00ec008-cf20-4fd2-81e2-254b2b400c48
+after: cf3ba1a5-1822-4aed-9626-f7107f677bac
 ---
-
 when loading the project, we should also search for markdown files that contain agent instructions:
 
 * root readme.md
@@ -18,3 +17,7 @@ when loading the project, we should also search for markdown files that contain 
 * copilot instructions
 * claude specific files
 * any other?
+
+These should be placed in a special folder like ´active´ or ´releases´
+
+For name, just show full path as string, so dont put these files in sub folders, they are all in the same special folder, called ´agent instructions´

@@ -1,6 +1,6 @@
 import type { ActionContext } from './action_context'
 import type { ActionSettings, CardActivityFile } from '../../../shared/card_activity.mjs'
-import type { ActionScheduleTrigger } from './action_schedule_types'
+import type { ActionScheduleTrigger, AnySchedule } from './action_schedule_types'
 import type { AgentConversation, AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
@@ -160,6 +160,7 @@ export interface ElectronActionBridge {
     closeWaitingActionConversation?(reference: string, status: 'cancelled' | 'completed'): Promise<AgentConversation>
     dismissWaitingActionConversationQuestions?(reference: string): Promise<AgentConversation>
     deleteActionQueuedPrompt?(runId: string, promptId: string, revision: number): Promise<{ deleted: true }>
+    deleteSchedule?(scheduleId: string): Promise<AnySchedule[]>
     dismissActionQuestions?(runId: string, requestId: number | string | null): Promise<void>
     editActionQueuedPrompt?(runId: string, promptId: string, revision: number, content: string): Promise<ActionQueuedPrompt>
     enqueueActionPrompt?(runId: string, content: string): Promise<ActionQueuedPrompt>
@@ -167,6 +168,7 @@ export interface ElectronActionBridge {
     generateDiff(request: DiffRequest): Promise<DiffResult>
     generateWorktreeDiff(request: WorktreeDiffRequest): Promise<WorktreeDiffResult>
     listActiveActionRuns?(): Promise<ActiveActionRun[]>
+    listActiveSchedules?(): Promise<AnySchedule[]>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
     loadActionRunRecoverySnapshot?(rendererRunIds: string[]): Promise<ActionRunRecoverySnapshot>
     notifyActionCardStateChange?(cardInternalId: string, state: string): Promise<void>
@@ -182,6 +184,7 @@ export interface ElectronActionBridge {
     restartActionRun?(runId: string, request: ActionStartRequest): Promise<string>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
     sendActionMessage?(runId: string, content: string): Promise<void>
+    splitActionConversation?(reference: string, messageId: string): Promise<AgentConversation>
     startAction(request: ActionStartRequest): Promise<string>
     startUnattendedAction?(request: ActionStartRequest): Promise<string>
     updateActionConversationViewed?(reference: string, viewed: boolean): Promise<AgentConversation>

@@ -2,10 +2,12 @@ import ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined'
 import ExpandLessOutlined from '@mui/icons-material/ExpandLessOutlined'
 import { Box, IconButton, Paper, Tab, Tabs, Tooltip, Typography } from '@mui/material'
 import {
-    useCallback, useId, useLayoutEffect, useRef, useState,
+    useCallback, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore,
     type MouseEvent, type PointerEvent, type SyntheticEvent,
 } from 'react'
-import type { DiagramLegendPosition } from '../../services/diagrams/diagram_view_service'
+import {
+    diagramViewService, type DiagramLegendPosition, type DiagramViewService,
+} from '../../services/diagrams/diagram_view_service'
 import type { PositionedDiagramData } from '../../services/diagrams/diagram_layout'
 import { diagramLegendEntries } from './diagram_legend_entries'
 import { DiagramLegendEntryList } from './diagram_legend_entry_list'
@@ -20,12 +22,8 @@ const DRAG_THRESHOLD = 3
 type DiagramLegendTab = 'current' | 'new'
 
 interface DiagramLegendProps {
-    collapsed: boolean
     data: PositionedDiagramData
-    onCollapse: () => void
-    onExpand: () => void
-    onMove: (position: DiagramLegendPosition) => void
-    position: DiagramLegendPosition | null
+    service?: DiagramViewService
     /** Present only while an edit session is active, which is when the New tab is offered. */
     session?: SessionLegendSource | null
 }
@@ -44,22 +42,34 @@ function samePosition(first: DiagramLegendPosition, second: DiagramLegendPositio
 }
 
 /** Floating legend derived from active diagram semantics. */
-export function DiagramLegend({ collapsed, data, onCollapse, onExpand, onMove, position, session = null }: DiagramLegendProps) {
+export function DiagramLegend({ data, service = diagramViewService, session = null }: DiagramLegendProps) {
     const panelRef = useRef<HTMLDivElement>(null)
     const dragRef = useRef<LegendDrag | null>(null)
     const suppressClickRef = useRef(false)
     const tabsId = useId()
     const [activeTab, setActiveTab] = useState<DiagramLegendTab>('new')
-    const entries = diagramLegendEntries(data)
+    const collapsed = useSyncExternalStore(
+        service.subscribeLegendCollapsed,
+        service.getLegendCollapsedSnapshot,
+        service.getLegendCollapsedSnapshot,
+    )
+    const position = useSyncExternalStore(
+        service.subscribeLegendPosition,
+        service.getLegendPositionSnapshot,
+        service.getLegendPositionSnapshot,
+    )
+    const entries = useMemo(() => diagramLegendEntries(data), [data])
     const handleTabChange = (_event: SyntheticEvent, tab: DiagramLegendTab) => setActiveTab(tab)
+    const handleCollapse = () => service.collapseLegend()
+    const handleExpand = () => service.expandLegend()
     const currentTabActive = !session || activeTab === 'current'
     const clampCurrentPosition = useCallback(() => {
         const panel = panelRef.current
         const viewport = panel?.parentElement
         if (!panel || !viewport || !position) return
         const clamped = clampLegendPosition(position, viewport.clientWidth, viewport.clientHeight, panel.offsetWidth, panel.offsetHeight)
-        if (!samePosition(position, clamped)) onMove(clamped)
-    }, [onMove, position])
+        if (!samePosition(position, clamped)) service.moveLegend(clamped)
+    }, [position, service])
 
     useLayoutEffect(() => {
         clampCurrentPosition()
@@ -104,7 +114,10 @@ export function DiagramLegend({ collapsed, data, onCollapse, onExpand, onMove, p
         const topDelta = event.clientY - drag.pointerY
         if (Math.abs(leftDelta) >= DRAG_THRESHOLD || Math.abs(topDelta) >= DRAG_THRESHOLD) drag.moved = true
         const nextPosition = { left: drag.startLeft + leftDelta, top: drag.startTop + topDelta }
-        onMove(clampLegendPosition(nextPosition, viewport.clientWidth, viewport.clientHeight, panel.offsetWidth, panel.offsetHeight))
+        const clampedPosition = clampLegendPosition(
+            nextPosition, viewport.clientWidth, viewport.clientHeight, panel.offsetWidth, panel.offsetHeight,
+        )
+        service.moveLegend(clampedPosition)
     }
     const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
         const drag = dragRef.current
@@ -149,7 +162,7 @@ export function DiagramLegend({ collapsed, data, onCollapse, onExpand, onMove, p
                 <Tooltip title={collapsed ? 'Expand legend' : 'Collapse legend'}>
                     <IconButton
                         aria-label={collapsed ? 'Expand legend' : 'Collapse legend'}
-                        onClick={collapsed ? onExpand : onCollapse}
+                        onClick={collapsed ? handleExpand : handleCollapse}
                         size="small"
                     >
                         {collapsed ? <ExpandMoreOutlined fontSize="small" /> : <ExpandLessOutlined fontSize="small" />}
@@ -194,6 +207,7 @@ export function DiagramLegend({ collapsed, data, onCollapse, onExpand, onMove, p
                             <DiagramLegendEntryList
                                 entries={entries}
                                 label={session ? 'Current diagram legend entries' : 'Diagram legend entries'}
+                                store={service}
                             />
                         ) : <DiagramSessionLegendEntries session={session} />}
                     </Box>

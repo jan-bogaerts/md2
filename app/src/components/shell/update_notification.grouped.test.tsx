@@ -1,102 +1,113 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DownloadProgress, ElectronUpdateBridge, UpdateInfo } from '../../data/electron_update_bridge'
+import type { ElectronUpdateBridge, UpdateSnapshot } from '../../data/electron_update_bridge'
+import { UpdateService } from '../../services/update_service'
 import { UpdateNotification } from './update_notification'
 
-const updateInfo: UpdateInfo = { downloadUrl: 'https://x/md2-Setup-0.3.0.exe', version: '0.3.0' }
+const availableSnapshot: UpdateSnapshot = {
+    error: null,
+    received: 0,
+    state: 'available',
+    total: null,
+    version: '0.6.0',
+}
 
-function installBridge() {
-    let pushAvailable: (info: UpdateInfo) => void = () => undefined
-    let pushProgress: (progress: DownloadProgress) => void = () => undefined
+function createHarness(snapshot: UpdateSnapshot = availableSnapshot) {
+    let changedCallback: (nextSnapshot: UpdateSnapshot) => void = () => undefined
     const bridge: ElectronUpdateBridge = {
-        downloadUpdate: vi.fn().mockResolvedValue(undefined),
-        onDownloadProgress: vi.fn((callback: (progress: DownloadProgress) => void) => {
-            pushProgress = callback
+        dismiss: vi.fn().mockResolvedValue(undefined),
+        getSnapshot: vi.fn().mockResolvedValue(snapshot),
+        install: vi.fn().mockResolvedValue(undefined),
+        onChanged: vi.fn((callback) => {
+            changedCallback = callback
 
-            return () => undefined
-        }),
-        onUpdateAvailable: vi.fn((callback: (info: UpdateInfo) => void) => {
-            pushAvailable = callback
-
-            return () => undefined
+            return vi.fn()
         }),
     }
-    window.md2Updates = bridge
+    const service = new UpdateService(() => bridge)
 
     return {
         bridge,
-        emitAvailable: (info: UpdateInfo) => act(() => pushAvailable(info)),
-        emitProgress: (progress: DownloadProgress) => act(() => pushProgress(progress)),
+        emitChanged: (nextSnapshot: UpdateSnapshot) => act(() => changedCallback(nextSnapshot)),
+        service,
     }
 }
 
 describe('UpdateNotification', () => {
-    afterEach(() => {
-        delete window.md2Updates
-        cleanup()
-    })
+    afterEach(cleanup)
 
-    it('renders nothing outside Electron', () => {
-        const { container } = render(<UpdateNotification />)
+    it('renders nothing for idle state', () => {
+        const { service } = createHarness({ error: null, received: 0, state: 'idle', total: null, version: null })
+        const { container } = render(<UpdateNotification service={service} />)
 
         expect(container).toBeEmptyDOMElement()
     })
 
-    it('renders nothing until an update is announced', () => {
-        installBridge()
-        render(<UpdateNotification />)
+    it('shows released version with dismiss and install actions', async () => {
+        const { service } = createHarness()
+        await service.start()
 
-        expect(screen.queryByRole('button', { name: 'Install' })).not.toBeInTheDocument()
-    })
+        render(<UpdateNotification service={service} />)
 
-    it('shows the version and Install button when an update is available', () => {
-        const { emitAvailable } = installBridge()
-        render(<UpdateNotification />)
-
-        emitAvailable(updateInfo)
-
-        expect(screen.getByText('Version 0.3.0 is available.')).toBeInTheDocument()
+        expect(screen.getByText('Version 0.6.0 is available.')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Install' })).toBeInTheDocument()
     })
 
-    it('starts the download and swaps to a progress bar that advances', () => {
-        const { bridge, emitAvailable, emitProgress } = installBridge()
-        render(<UpdateNotification />)
-        emitAvailable(updateInfo)
+    it('starts install once and renders determinate progress', async () => {
+        const user = userEvent.setup()
+        const { bridge, emitChanged, service } = createHarness()
+        await service.start()
+        render(<UpdateNotification service={service} />)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+        await user.dblClick(screen.getByRole('button', { name: 'Install' }))
+        expect(bridge.install).toHaveBeenCalledOnce()
+        expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow')
 
-        expect(bridge.downloadUpdate).toHaveBeenCalledWith(updateInfo.downloadUrl)
-        expect(screen.queryByRole('button', { name: 'Install' })).not.toBeInTheDocument()
-
-        emitProgress({ received: 25, total: 100 })
-        const progressBar = screen.getByRole('progressbar')
-        expect(progressBar).toHaveAttribute('aria-valuenow', '25')
-
-        emitProgress({ received: 60, total: 100 })
-        expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '60')
+        emitChanged({ error: null, received: 25, state: 'downloading', total: 100, version: '0.6.0' })
+        expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '25')
     })
 
-    it('shows the launching state when the download completes', () => {
-        const { emitAvailable, emitProgress } = installBridge()
-        render(<UpdateNotification />)
-        emitAvailable(updateInfo)
-        fireEvent.click(screen.getByRole('button', { name: 'Install' }))
+    it('renders launching state', async () => {
+        const { emitChanged, service } = createHarness()
+        await service.start()
+        render(<UpdateNotification service={service} />)
 
-        emitProgress({ received: 100, total: 100 })
+        emitChanged({ error: null, received: 100, state: 'launching', total: 100, version: '0.6.0' })
 
-        expect(screen.getByText('Launching installer…')).toBeInTheDocument()
+        expect(screen.getByText(/Launching installer/)).toBeInTheDocument()
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
     })
 
-    it('hides on dismiss and does not re-offer the same update', () => {
-        const { emitAvailable } = installBridge()
-        render(<UpdateNotification />)
-        emitAvailable(updateInfo)
+    it('dismisses offer until Electron startup state changes', async () => {
+        const user = userEvent.setup()
+        const { bridge, service } = createHarness()
+        await service.start()
+        render(<UpdateNotification service={service} />)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
-        expect(screen.queryByText('Version 0.3.0 is available.')).not.toBeInTheDocument()
+        await user.click(screen.getByRole('button', { name: 'Dismiss' }))
 
-        emitAvailable(updateInfo)
-        expect(screen.queryByText('Version 0.3.0 is available.')).not.toBeInTheDocument()
+        expect(bridge.dismiss).toHaveBeenCalledOnce()
+        expect(screen.queryByText('Version 0.6.0 is available.')).not.toBeInTheDocument()
+    })
+
+    it('shows install failure and retries', async () => {
+        const user = userEvent.setup()
+        const errorSnapshot: UpdateSnapshot = {
+            error: 'Could not install version 0.6.0. Try again.',
+            received: 0,
+            state: 'error',
+            total: null,
+            version: '0.6.0',
+        }
+        const { bridge, service } = createHarness(errorSnapshot)
+        await service.start()
+        render(<UpdateNotification service={service} />)
+
+        expect(screen.getByRole('alert')).toHaveTextContent(errorSnapshot.error ?? '')
+        await user.click(screen.getByRole('button', { name: 'Retry' }))
+
+        expect(bridge.install).toHaveBeenCalledOnce()
     })
 })

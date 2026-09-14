@@ -8,10 +8,14 @@ import { projectAgentSelection, selectModel, type AgentSelectionState } from '..
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { ActionRunSettingsStore, type ResolvedActionRunSettings } from '../../../../services/actions/action_run_settings_service'
+import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import {
+    answerRestoredConversationQuestions,
     cancelPopupAction,
+    composeRestoredQuestionAnswers,
     currentActionPromptDraft,
+    dismissRestoredConversationQuestions,
     finishPopupAction,
     runPopupAction,
     type ActionPopupOperationInput,
@@ -21,7 +25,9 @@ import { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 const action = { id: 'stream', label: 'Stream', streaming: true, type: 'agent' } as ActionDefinition
 const context: ActionContext = { file: 'design/F-1.md', kind: 'card', worktree: '3' }
+const dismissWaitingConversationQuestions = vi.hoisted(() => vi.fn())
 const restartAction = vi.hoisted(() => vi.fn())
+const runAction = vi.hoisted(() => vi.fn())
 
 function deferred<T>() {
     let resolvePromise: (value: T) => void = () => undefined
@@ -33,7 +39,12 @@ function deferred<T>() {
 vi.mock('./action_popup_defaults', async (importOriginal) => {
     const actual = await importOriginal<typeof import('./action_popup_defaults')>()
 
-    return { ...actual, defaultRestartAction: restartAction }
+    return {
+        ...actual,
+        defaultDismissWaitingConversationQuestions: dismissWaitingConversationQuestions,
+        defaultRestartAction: restartAction,
+        defaultRunAction: runAction,
+    }
 })
 
 const defaultSettings: ResolvedActionRunSettings = {agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval', thinkingLevel: 'high'}
@@ -328,5 +339,81 @@ describe('runPopupAction waiting follow-up', () => {
         await runPopupAction(operation)
 
         expect(currentActionPromptDraft(action, context, operation.bindingStore, false).getSnapshot()).toBe('')
+    })
+})
+
+describe('restored conversation questions', () => {
+    afterEach(() => {
+        actionPromptDraftService.clearAll()
+        vi.restoreAllMocks()
+    })
+
+    it('composes each restored answer with its question text', () => {
+        const questions = [
+            { header: 'Scope', id: 'scope', question: 'How wide?' },
+            { header: 'Safety', id: 'safety', question: 'Run tests?' },
+        ]
+
+        expect(composeRestoredQuestionAnswers(questions, { safety: ['Yes'], scope: ['Narrow'] }))
+            .toBe('How wide?: Narrow\nRun tests?: Yes')
+    })
+
+    it('resumes stored conversation with restored answers and clears prompt draft', async () => {
+        const conversation = storedConversation([])
+        const conversationStore = {
+            continuationPath: () => conversation.path,
+            getSnapshot: () => ({ conversations: [conversation], loading: false, selectedConversation: conversation }),
+            load: vi.fn(async () => undefined),
+            updateConversation: vi.fn(),
+        } as unknown as ActionPopupOperationInput['conversationStore']
+        const input = operationInput(new ActionRunInputStore(), undefined, conversationStore)
+        const draft = currentActionPromptDraft(action, context, input.bindingStore, false)
+        draft.edit('Unused draft')
+        runAction.mockImplementation(async (_action, _context, _runInput, onStarted) => {
+            onStarted('continued-run')
+
+            return { changedPaths: [], logs: [], status: 'completed' }
+        })
+
+        await answerRestoredConversationQuestions(
+            input,
+            [{ header: 'Scope', id: 'scope', question: 'How wide?' }],
+            { scope: ['Narrow'] },
+        )
+
+        expect(runAction).toHaveBeenCalledWith(
+            action,
+            context,
+            expect.objectContaining({ continueFrom: conversation.path, prompt: 'How wide?: Narrow' }),
+            expect.any(Function),
+        )
+        expect(draft.getSnapshot()).toBe('')
+    })
+
+    it('persists restored-question dismissal and updates renderer stores', async () => {
+        const conversation = storedConversation([])
+        const updatedConversation = {
+            ...conversation,
+            entries: [{content: '', id: 'dismissed-1', kind: 'event' as const, timestamp: 'now', type: 'questionsDismissed'}],
+        }
+        const updateConversation = vi.fn()
+        const conversationStore = {
+            continuationPath: () => conversation.path,
+            getSnapshot: () => ({ conversations: [conversation], loading: false, selectedConversation: conversation }),
+            load: vi.fn(async () => undefined),
+            updateConversation,
+        } as unknown as ActionPopupOperationInput['conversationStore']
+        const updateAgentConversation = vi.spyOn(dataService.agents, 'updateAgentConversation')
+        dismissWaitingConversationQuestions.mockResolvedValue(updatedConversation)
+
+        await dismissRestoredConversationQuestions(operationInput(
+            new ActionRunInputStore(),
+            undefined,
+            conversationStore,
+        ))
+
+        expect(dismissWaitingConversationQuestions).toHaveBeenCalledWith(conversation.path)
+        expect(updateConversation).toHaveBeenCalledWith(updatedConversation)
+        expect(updateAgentConversation).toHaveBeenCalledWith(updatedConversation)
     })
 })

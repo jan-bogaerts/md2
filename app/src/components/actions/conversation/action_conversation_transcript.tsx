@@ -8,12 +8,16 @@ import { ActionConversationHistory } from './action_conversation_history'
 import { ActionConversationQueuedPrompts } from './action_conversation_queued_prompts'
 import { ActionConversationReservedBlocks } from './action_conversation_reserved_blocks'
 import type { ActionConversationStore } from './action_conversation_store'
+import type { ActionConversationCommandOperations } from './action_conversation_command_service'
+import type { ActionConversationSearchService } from './action_conversation_search_service'
 
 const CHAT_END_TOLERANCE = 4
 const MIN_CHAT_HEIGHT = 96
 
 interface ActionConversationTranscriptProps {
     bindingStore: ActionRunBindingStore
+    commands: ActionConversationCommandOperations
+    searchService: ActionConversationSearchService
     store: ActionConversationStore
     trackerFactory?: (
         bindingStore: ActionRunBindingStore,
@@ -31,7 +35,7 @@ function viewportIsAtEnd(viewport: HTMLDivElement) {
 
 /** Owns tracker lifecycle and renders subscribed transcript leaves. */
 export const ActionConversationTranscript = memo(function ActionConversationTranscript(
-    { bindingStore, store, trackerFactory = createChatlogTracker }: ActionConversationTranscriptProps,
+    { bindingStore, commands, searchService, store, trackerFactory = createChatlogTracker }: ActionConversationTranscriptProps,
 ) {
     const [tracker, setTracker] = useState<ActionConversationChatlogTracker | null>(null)
     const viewportRef = useRef<HTMLDivElement>(null)
@@ -86,6 +90,7 @@ export const ActionConversationTranscript = memo(function ActionConversationTran
             const conversationIdentity = tracker.getConversationIdentity()
             if (conversationIdentityRef.current !== conversationIdentity) stuckToEndRef.current = true
             conversationIdentityRef.current = conversationIdentity
+            searchService.updateConversation(conversationIdentity)
             handleContentChange()
         }
         conversationIdentityRef.current = tracker.getConversationIdentity()
@@ -100,7 +105,14 @@ export const ActionConversationTranscript = memo(function ActionConversationTran
         return () => {
             for (const unsubscribe of unsubscribers) unsubscribe()
         }
-    }, [scrollToEnd, tracker])
+    }, [scrollToEnd, searchService, tracker])
+
+    useLayoutEffect(() => {
+        const viewport = viewportRef.current
+        if (!viewport || !tracker) return undefined
+
+        return searchService.registerTranscript(viewport, tracker.getConversationIdentity())
+    }, [searchService, tracker])
 
     useLayoutEffect(scrollToEnd, [scrollToEnd, tracker])
 
@@ -118,8 +130,8 @@ export const ActionConversationTranscript = memo(function ActionConversationTran
     return (
         <Stack aria-label="Conversation chat" onScroll={handleScroll} ref={viewportRef} spacing={1}
             sx={{ flex: 1, minHeight: MIN_CHAT_HEIGHT, overflowX: 'hidden', overflowY: 'auto' }}>
-            {tracker ? <ActionConversationHistory tracker={tracker} /> : null}
-            {tracker ? <ActionConversationEvolvingGroups tracker={tracker} /> : null}
+            {tracker ? <ActionConversationHistory commands={commands} tracker={tracker} /> : null}
+            {tracker ? <ActionConversationEvolvingGroups commands={commands} tracker={tracker} /> : null}
             {tracker ? <ActionConversationReservedBlocks tracker={tracker} /> : null}
             {tracker ? <ActionConversationQueuedPrompts tracker={tracker} /> : null}
         </Stack>

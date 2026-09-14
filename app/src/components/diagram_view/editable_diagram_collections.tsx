@@ -17,12 +17,14 @@ import {
 import {
     diagramFragmentDialogService, type DiagramFragmentDialogService,
 } from './diagram_fragment_dialog_service'
+import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 import { useDiagramActivationIds, useDiagramFragmentIds } from './use_diagram_geometry'
 import {
     useEditableDiagramEdgeIds, useEditableDiagramGroupIds, useEditableDiagramNodeIds,
 } from './use_editable_diagram'
 
 interface CollectionHostProps {
+    emphasis?: DiagramEmphasisService
     geometry?: DiagramGeometryService
     session?: DiagramEditSessionService
 }
@@ -33,6 +35,7 @@ interface FragmentCollectionHostProps extends CollectionHostProps {
 
 interface SelectableCollectionHostProps extends CollectionHostProps {
     details?: DiagramObjectDetailsService
+    emphasis?: DiagramEmphasisService
     selection?: DiagramSelectionService
 }
 
@@ -42,6 +45,7 @@ interface SelectableCollectionHostProps extends CollectionHostProps {
  */
 export function EditableDiagramNodes({
     details = diagramObjectDetailsService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -49,23 +53,33 @@ export function EditableDiagramNodes({
     const nodeIds = useEditableDiagramNodeIds(session)
 
     return nodeIds.map((nodeId) => (
-        <EditableDiagramNode details={details} geometry={geometry} key={nodeId} nodeId={nodeId} selection={selection} session={session} />
+        <EditableDiagramNode
+            details={details}
+            emphasis={emphasis}
+            geometry={geometry}
+            key={nodeId}
+            nodeId={nodeId}
+            selection={selection}
+            session={session}
+        />
     ))
 }
 
 export function EditableDiagramLifelines({
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     session = diagramEditSessionService,
 }: CollectionHostProps) {
     const nodeIds = useEditableDiagramNodeIds(session)
 
     return nodeIds.map((nodeId) => (
-        <EditableDiagramLifeline geometry={geometry} key={nodeId} nodeId={nodeId} session={session} />
+        <EditableDiagramLifeline emphasis={emphasis} geometry={geometry} key={nodeId} nodeId={nodeId} session={session} />
     ))
 }
 
 export function EditableDiagramEdges({
     details = diagramObjectDetailsService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -83,6 +97,7 @@ export function EditableDiagramEdges({
                 <EditableDiagramEdge
                     details={details}
                     edgeId={edgeId}
+                    emphasis={emphasis}
                     geometry={geometry}
                     key={edgeId}
                     selection={selection}
@@ -95,6 +110,7 @@ export function EditableDiagramEdges({
 
 export function EditableDiagramGroups({
     details = diagramObjectDetailsService,
+    emphasis = diagramEmphasisService,
     geometry = diagramGeometryService,
     selection = diagramSelectionService,
     session = diagramEditSessionService,
@@ -104,6 +120,7 @@ export function EditableDiagramGroups({
     return groupIds.map((groupId) => (
         <EditableDiagramGroup
             details={details}
+            emphasis={emphasis}
             geometry={geometry}
             groupId={groupId}
             key={groupId}
@@ -114,6 +131,7 @@ export function EditableDiagramGroups({
 }
 
 export function EditableDiagramFragments({
+    emphasis = diagramEmphasisService,
     fragmentDialog = diagramFragmentDialogService,
     geometry = diagramGeometryService,
     session = diagramEditSessionService,
@@ -123,6 +141,7 @@ export function EditableDiagramFragments({
     return fragmentIds.map((fragmentId) => (
         <EditableDiagramFragment
             fragmentDialog={fragmentDialog}
+            emphasis={emphasis}
             fragmentId={fragmentId}
             geometry={geometry}
             key={fragmentId}
@@ -131,10 +150,10 @@ export function EditableDiagramFragments({
     ))
 }
 
-export function EditableDiagramActivations({ geometry = diagramGeometryService }: CollectionHostProps) {
+export function EditableDiagramActivations({emphasis = diagramEmphasisService, geometry = diagramGeometryService}: CollectionHostProps) {
     const activationIds = useDiagramActivationIds(geometry)
 
     return activationIds.map((activationId) => (
-        <EditableDiagramActivation activationId={activationId} geometry={geometry} key={activationId} />
+        <EditableDiagramActivation activationId={activationId} emphasis={emphasis} geometry={geometry} key={activationId} />
     ))
 }

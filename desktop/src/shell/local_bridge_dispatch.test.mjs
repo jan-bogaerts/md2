@@ -30,6 +30,8 @@ function createDispatch(options = {}) {
         startProject: vi.fn(),
     };
     const actionSchedulerService = {
+        deleteSchedule: vi.fn(async () => []),
+        listActiveSchedules: vi.fn(async () => []),
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
         startProject: vi.fn(),
         subscribeRunEvents: vi.fn(() => vi.fn()),
@@ -55,6 +57,7 @@ function createDispatch(options = {}) {
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         closeWaitingActivityConversation: vi.fn(async (_project, reference, status) => ({ path: reference, status })),
+        dismissWaitingActivityConversationQuestions: vi.fn(async (_project, reference) => ({ path: reference })),
         updateActivityConversationViewed: vi.fn(async (_project, reference, viewed) => ({ path: reference, viewed })),
         updateCardActionSettings: vi.fn(async () => undefined),
         commit: vi.fn(async () => []),
@@ -91,6 +94,7 @@ function createDispatch(options = {}) {
             insertions: 2,
         })),
         runCommand: vi.fn(async () => ({ exitCode: 0, stderr: '', stdout: 'ok' })),
+        splitActivityConversation: vi.fn(async (_project, reference, messageId) => ({ id: 'split-1', messageId, path: `${reference}-split` })),
         push: vi.fn(async () => undefined),
         watchProject: vi.fn(() => vi.fn()),
     };
@@ -752,6 +756,17 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.closeWaitingActivityConversation).toHaveBeenCalledWith(project, reference, 'cancelled');
     });
 
+    it('delegates persisted question dismissal through current project', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const reference = 'design/activity/project.json#conversation=conversation-1';
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await expect(dispatch.actionBridge.dismissWaitingActionConversationQuestions(reference))
+            .resolves.toEqual({ path: reference });
+        expect(localGitService.dismissWaitingActivityConversationQuestions).toHaveBeenCalledWith(project, reference);
+    });
+
     it('delegates targeted conversation view updates through current project', async () => {
         const { dispatch, localGitService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
@@ -761,6 +776,17 @@ describe('createLocalBridgeDispatch', () => {
         await expect(dispatch.actionBridge.updateActionConversationViewed(reference, false))
             .resolves.toEqual({ path: reference, viewed: false });
         expect(localGitService.updateActivityConversationViewed).toHaveBeenCalledWith(project, reference, false);
+    });
+
+    it('delegates conversation splits through current project', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await expect(dispatch.actionBridge.splitActionConversation(reference, 'message-2'))
+            .resolves.toEqual({ id: 'split-1', messageId: 'message-2', path: `${reference}-split` });
+        expect(localGitService.splitActivityConversation).toHaveBeenCalledWith(project, reference, 'message-2');
     });
 
     it('delegates atomic action restart with old run and new request', async () => {
@@ -900,6 +926,16 @@ describe('createLocalBridgeDispatch', () => {
             terminalResults: [{ failure: null, runId: 'run-ended', status: 'completed' }],
         });
         expect(actionRunnerService.loadRunRecoverySnapshot).toHaveBeenCalledWith(['run-ended']);
+    });
+
+    it('forwards schedule management through the action bridge', async () => {
+        const { actionSchedulerService, dispatch } = createDispatch();
+
+        await expect(dispatch.actionBridge.listActiveSchedules()).resolves.toEqual([]);
+        await expect(dispatch.actionBridge.deleteSchedule('schedule-1')).resolves.toEqual([]);
+
+        expect(actionSchedulerService.listActiveSchedules).toHaveBeenCalledOnce();
+        expect(actionSchedulerService.deleteSchedule).toHaveBeenCalledWith('schedule-1');
     });
 
     it('exposes worktree state subscriptions through the data bridge', () => {

@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import ContentPasteOutlined from '@mui/icons-material/ContentPasteOutlined'
 import { diagramPasteService, type DiagramPasteService } from '../../services/diagrams/diagram_paste'
 import { DiagramToolboxActionButton } from './diagram_toolbox_action_button'
 
@@ -17,6 +18,6 @@ export function DiagramPasteButton({ pasteService = diagramPasteService }: Diagr
             label="Paste"
             onActivate={handlePaste}
             tooltip="Paste diagram objects"
-        />
+        ><ContentPasteOutlined fontSize="small" /></DiagramToolboxActionButton>
     )
 }

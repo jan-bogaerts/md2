@@ -5,9 +5,10 @@ function normalizeWindow(window) {
     if (!window || typeof window !== 'object' || Array.isArray(window)) return null;
     if (!WINDOW_IDS.has(window.id)) return null;
     if (!Number.isInteger(window.usedPercent) || window.usedPercent < 0 || window.usedPercent > 100) return null;
-    if (!Number.isFinite(window.resetsAt)) return null;
+    // Claude omits the reset time for a window it has not started; the percentage is still usable.
+    if (window.resetsAt !== null && !Number.isFinite(window.resetsAt)) return null;
 
-    return { id: window.id, resetsAt: window.resetsAt, usedPercent: window.usedPercent };
+    return { id: window.id, resetsAt: window.resetsAt ?? null, usedPercent: window.usedPercent };
 }
 
 function normalizeWindows(payload) {

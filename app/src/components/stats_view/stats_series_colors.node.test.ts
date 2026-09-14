@@ -19,6 +19,7 @@ function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {
         agent: null,
         available: true,
         chartRole: 'primary',
+        colorGroup: null,
         displayLabel: '18 Aug',
         grouping: 'day',
         identity: 'series',
@@ -120,6 +121,47 @@ describe('assignSeriesColors', () => {
         expect(colors.get(seriesColorKey(claudeOne, ['claude']))).toBe('#000001');
         expect(colors.get(seriesColorKey(claudeTwo, ['claude']))).not.toBe('#000001');
         expect(random).toHaveBeenCalledTimes(2);
+    });
+
+    it('gives each duration component one hue and each agent one shade inside it', () => {
+        const palettes: StatsSeriesPalettes = {
+            groups: {
+                claude: ['#c1'],
+                codex: ['#x1'],
+                'duration:reasoning': ['#r1', '#r2'],
+                'duration:tool': ['#t1', '#t2'],
+            },
+            neutral: ['#n1'],
+        };
+        const groupNames = Object.keys(palettes.groups);
+        const segment = (agent: string, component: string) => row({
+            agent,
+            colorGroup: `duration:${component}`,
+            identity: agent,
+            seriesIdentity: `${agent} ${component}`,
+            seriesLabel: `${agent} - ${component}`,
+        });
+        const rows = [
+            segment('codex', 'tool'), segment('claude', 'tool'),
+            segment('codex', 'reasoning'), segment('claude', 'reasoning'),
+        ];
+        const colors = assignSeriesColors(rows, palettes);
+        const colorOf = (targetRow: StatsChartRow) => colors.get(seriesColorKey(targetRow, groupNames));
+
+        // One hue per component, one lightness per agent: claude is shade 0 of both hues, codex shade 1.
+        expect(colorOf(segment('claude', 'tool'))).toBe('#t1');
+        expect(colorOf(segment('codex', 'tool'))).toBe('#t2');
+        expect(colorOf(segment('claude', 'reasoning'))).toBe('#r1');
+        expect(colorOf(segment('codex', 'reasoning'))).toBe('#r2');
+        expect([...assignSeriesColors([...rows].reverse(), palettes)]).toEqual([...colors]);
+    });
+
+    it('prefers the explicit colorGroup over the agent that produced the row', () => {
+        const palettes: StatsSeriesPalettes = { groups: { claude: ['#c1'], 'duration:tool': ['#t1'] }, neutral: ['#n1'] };
+        const forced = row({ agent: 'claude', colorGroup: 'duration:tool', seriesIdentity: 'claude tool' });
+        const colors = assignSeriesColors([forced], palettes);
+
+        expect(colors.get(seriesColorKey(forced, Object.keys(palettes.groups)))).toBe('#t1');
     });
 
     it('keeps a shared series identity inside each row agent family', () => {

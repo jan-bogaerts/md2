@@ -151,6 +151,23 @@ describe('ActionConversationChatlogTracker', () => {
         expect(removeConversation).toHaveBeenCalledOnce()
     })
 
+    it('renders no row for the recorded agent question', () => {
+        const user = message('user-1', 'user')
+        const questionEntry = event('question-1', 'agentQuestion', {
+            content: '',
+            questions: [{ header: 'Scope', id: 'choice', question: 'How wide?' }],
+            status: undefined,
+        })
+        const value = conversation('conversation-1', [user, questionEntry], 'waitingForInput')
+        const { tracker } = setup(run('run-1', value, 'waitingForInput'))
+        tracker.load()
+
+        const renderedEntries = [...tracker.getStableGroups(), ...tracker.getEvolvingGroups()]
+            .flatMap((group) => (group.kind === 'entry' ? [group.entry] : group.kind === 'terminalToolCalls' ? group.entries : []))
+
+        expect(renderedEntries.map(({ id }) => id)).toEqual(['user-1'])
+    })
+
     it('publishes only a new evolving list for an evolving entry update', () => {
         const user = message('user-1', 'user')
         const assistant = message('assistant-1', 'assistant', 'draft')

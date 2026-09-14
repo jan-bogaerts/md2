@@ -81,6 +81,7 @@ function createSchedule(id, actionId, trigger) {
         context,
         createdAt: '2026-07-06T09:00:00.000Z',
         id,
+        kind: 'action',
         status: 'pending',
         trigger,
     };
@@ -283,6 +284,42 @@ describe('ActionSchedulerService', () => {
 
         expect(clearTimeout).toHaveBeenCalledWith('timer-1');
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'cancelled' }]);
+    });
+
+    it('lists only pending and running schedules', async () => {
+        const pendingSchedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' });
+        const runningSchedule = { ...createSchedule('schedule-2', 'implement', { timestamp: '2026-07-06T10:02:00.000Z', type: 'at' }), status: 'running' };
+        const terminalSchedules = ['cancelled', 'completed', 'failed'].map((status, index) => ({
+            ...createSchedule(`schedule-${index + 3}`, 'implement', { timestamp: '2026-07-06T10:03:00.000Z', type: 'at' }),
+            status,
+        }));
+        const localGitService = createLocalGitService([pendingSchedule, runningSchedule, ...terminalSchedules]);
+        const scheduler = createScheduler(localGitService);
+        await startProject(scheduler, localGitService);
+
+        await expect(scheduler.listActiveSchedules()).resolves.toEqual([pendingSchedule, runningSchedule]);
+    });
+
+    it('deletes a pending schedule and its timer', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' });
+        const localGitService = createLocalGitService([schedule]);
+        const clearTimeout = vi.fn();
+        const scheduler = createScheduler(localGitService, { clearTimeout });
+        await startProject(scheduler, localGitService);
+
+        await expect(scheduler.deleteSchedule(schedule.id)).resolves.toEqual([]);
+
+        expect(clearTimeout).toHaveBeenCalledWith('timer');
+        expect(localGitService.schedules()).toEqual([]);
+        expect(scheduler.timers.size).toBe(0);
+    });
+
+    it('rejects deleting an unknown schedule', async () => {
+        const localGitService = createLocalGitService([]);
+        const scheduler = createScheduler(localGitService);
+        await startProject(scheduler, localGitService);
+
+        await expect(scheduler.deleteSchedule('missing')).rejects.toThrow('Schedule not found: missing');
     });
 
     it('registers a future date and time schedule', async () => {
@@ -499,6 +536,34 @@ describe('ActionSchedulerService', () => {
         completion.resolve({ runId: 'action-1', failure: 'Action cancelled', status: 'cancelled' });
         await firing;
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'cancelled' }]);
+    });
+
+    it('cancels and awaits a running schedule before deleting it', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
+        const localGitService = createLocalGitService([schedule]);
+        const completion = createDeferred();
+        const actionRunnerService = {
+            cancel: vi.fn(),
+            start: vi.fn(async () => 'action-1'),
+            startProject: vi.fn(),
+            wait: vi.fn(async () => completion.promise),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+        const firing = scheduler.fireSchedule(schedule.id);
+        await vi.waitFor(() => expect(actionRunnerService.wait).toHaveBeenCalledWith('action-1'));
+
+        const deletion = scheduler.deleteSchedule(schedule.id);
+        await vi.waitFor(() => expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1'));
+        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'running' }]);
+
+        completion.resolve({ runId: 'action-1', failure: 'Action cancelled', status: 'cancelled' });
+        await firing;
+        await expect(deletion).resolves.toEqual([]);
+        expect(localGitService.schedules()).toEqual([]);
+        expect(scheduler.runIdsByScheduleId.size).toBe(0);
+        expect(scheduler.scheduleCompletionsByScheduleId.size).toBe(0);
+        expect(scheduler.timers.size).toBe(0);
     });
 
     it('produces same phase ordering and result for direct and scheduled entry points', async () => {

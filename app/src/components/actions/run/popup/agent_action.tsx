@@ -19,7 +19,7 @@ interface AgentActionProps {
 /** Agent conversation, prompt, interaction, and scheduling content. */
 export function AgentAction(props: AgentActionProps) {
     const { action, assignmentContext, baseContext, popupEntryId, readOnlyMessage, runtime } = props
-    const { bindingStore, conversationStore, runValidationError, scheduleStore, settingsStore } = runtime
+    const { bindingStore, conversationSearchService, conversationStore, runValidationError, scheduleStore, settingsStore } = runtime
 
     if (readOnlyMessage) {
         return (
@@ -29,6 +29,7 @@ export function AgentAction(props: AgentActionProps) {
                     bindingStore={bindingStore}
                     context={assignmentContext}
                     popupEntryId={popupEntryId}
+                    searchService={conversationSearchService}
                     store={conversationStore}
                 />
                 <Typography color="text.secondary" role="note" variant="caption">{readOnlyMessage}</Typography>

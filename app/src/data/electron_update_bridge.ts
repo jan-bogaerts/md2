@@ -1,17 +1,18 @@
-export interface UpdateInfo {
-    downloadUrl: string
-    version: string
-}
+export type UpdateState = 'idle' | 'available' | 'downloading' | 'launching' | 'error'
 
-export interface DownloadProgress {
+export interface UpdateSnapshot {
+    error: string | null
     received: number
-    total: number
+    state: UpdateState
+    total: number | null
+    version: string | null
 }
 
 export interface ElectronUpdateBridge {
-    downloadUpdate(downloadUrl: string): Promise<void>
-    onDownloadProgress(callback: (progress: DownloadProgress) => void): () => void
-    onUpdateAvailable(callback: (info: UpdateInfo) => void): () => void
+    dismiss(): Promise<void>
+    getSnapshot(): Promise<UpdateSnapshot>
+    install(): Promise<void>
+    onChanged(callback: (snapshot: UpdateSnapshot) => void): () => void
 }
 
 declare global {

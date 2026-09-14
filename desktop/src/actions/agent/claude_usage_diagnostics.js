@@ -48,6 +48,15 @@ function usageScreenExcerpt(text) {
     return `…${tail.slice(-CLAUDE_USAGE_EXCERPT_MAX_CHARS)}`;
 }
 
+/**
+ * Traces the stages of a pty poll from inside the worker, where a failure that never reports back
+ * leaves the parent with nothing but a deadline. A stage that logs without its follow-up names the
+ * step the worker hung in. Failure paths only, so a healthy poll stays silent.
+ */
+function logUsagePollStage(stage, detail = {}) {
+    console.warn(CLAUDE_USAGE_LOG_TAG, { stage, timestamp: new Date().toISOString(), ...detail });
+}
+
 /** Writes exactly one console record per failed attempt; callers log at most one per attempt. */
 function logUsagePollFailure({ attempt, cwd, elapsedMs, error, executable, reason, screenExcerpt }) {
     const record = {
@@ -69,5 +78,6 @@ module.exports = {
     CLAUDE_USAGE_LOG_TAG,
     CLAUDE_USAGE_POLL_REASONS,
     logUsagePollFailure,
+    logUsagePollStage,
     usageScreenExcerpt,
 };

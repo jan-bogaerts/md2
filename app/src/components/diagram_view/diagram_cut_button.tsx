@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react'
+import ContentCutOutlined from '@mui/icons-material/ContentCutOutlined'
 import {
     canCutDiagramSelection,
     cutDiagramSelection,
@@ -38,6 +39,6 @@ export function DiagramCutButton({
             label="Cut"
             onActivate={handleCut}
             tooltip="Cut selected diagram objects"
-        />
+        ><ContentCutOutlined fontSize="small" /></DiagramToolboxActionButton>
     )
 }

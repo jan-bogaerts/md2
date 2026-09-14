@@ -1,447 +1,296 @@
 {
-  "meta": {
-    "version": 1,
-    "type": "architecture",
-    "title": "MD² system architecture",
-    "description": "Runtime architecture of the shared React client, Electron desktop host, persistence modes, action automation, and external integrations"
-  },
-  "nodes": [
-    {
-      "id": "user",
-      "label": "User",
-      "sublabel": "Operates the desktop or LAN browser client",
-      "role": "input",
-      "kind": "component",
-      "drilldown": false
-    },
-    {
-      "id": "react-client",
-      "label": "React Client",
-      "sublabel": "Renders boards, editors, actions, search, statistics, configuration, and dialogs",
-      "role": "input",
-      "kind": "component"
-    },
-    {
-      "id": "renderer-domain-services",
-      "label": "Renderer Domain Services",
-      "sublabel": "Own project sessions, cards, actions, drafts, open documents, run state, navigation, and derived view state",
-      "role": "focal",
-      "kind": "component"
-    },
-    {
-      "id": "electron-client-adapter",
-      "label": "Electron Client Adapters",
-      "sublabel": "Expose local storage, action, runtime, configuration, lifecycle, and integration calls to renderer services",
-      "role": "boundary",
-      "kind": "component"
-    },
-    {
-      "id": "github-storage-adapter",
-      "label": "GitHub Storage Adapter",
-      "sublabel": "Loads and commits project snapshots directly through GitHub REST APIs",
-      "role": "backend",
-      "kind": "component"
-    },
-    {
-      "id": "remote-host-adapter",
-      "label": "Remote Host Adapter",
-      "sublabel": "Implements storage and action bridges over a reconnecting WebSocket connection",
-      "role": "boundary",
-      "kind": "component"
-    },
-    {
-      "id": "preload-ipc-bridge",
-      "label": "Sandboxed Preload Bridge",
-      "sublabel": "Whitelists IPC requests, subscriptions, and host events for the Electron renderer",
-      "role": "boundary",
-      "kind": "component"
-    },
-    {
-      "id": "remote-control-gateway",
-      "label": "Remote Control Gateway",
-      "sublabel": "Serves the bundled client over HTTP and maps WebSocket requests and subscriptions to host dispatch",
-      "role": "boundary",
-      "kind": "component"
-    },
-    {
-      "id": "desktop-host-dispatch",
-      "label": "Desktop Host Dispatch",
-      "sublabel": "Composes Electron main-process services and routes approved bridge operations",
-      "role": "backend",
-      "kind": "component"
-    },
-    {
-      "id": "local-project-services",
-      "label": "Local Project and Git Services",
-      "sublabel": "Load, watch, mutate, commit, diff, branch, merge, and manage linked worktrees",
-      "role": "backend",
-      "kind": "component"
-    },
-    {
-      "id": "action-automation",
-      "label": "Action Automation",
-      "sublabel": "Resolves definitions, schedules timers, coordinates command or agent runs, worktrees, diagrams, and activity history",
-      "role": "focal",
-      "kind": "component"
-    },
-    {
-      "id": "agent-runtime",
-      "label": "Agent Runtime",
-      "sublabel": "Spawns Codex, Claude, or configured agents and manages streaming turns, approvals, usage, and conversation checkpoints",
-      "role": "backend",
-      "kind": "component"
-    },
-    {
-      "id": "project-stats-worker",
-      "label": "Project Statistics Worker",
-      "sublabel": "Calculates activity and usage statistics off the main process",
-      "role": "optional",
-      "kind": "component"
-    },
-    {
-      "id": "desktop-integration-services",
-      "label": "Desktop Integration Services",
-      "sublabel": "Provides reMarkable SFTP import, Sentry API proxying, spellcheck, and update delivery",
-      "role": "backend",
-      "kind": "component"
-    },
-    {
-      "id": "telemetry-services",
-      "label": "Telemetry Services",
-      "sublabel": "Captures renderer and main-process usage events and errors with bounded flushing",
-      "role": "optional",
-      "kind": "component"
-    },
-    {
-      "id": "application-state-store",
-      "label": "Application State Store",
-      "sublabel": "Persists preferences, recent projects, credentials, and desktop configuration through electron-store or browser localStorage",
-      "role": "store",
-      "kind": "component"
-    },
-    {
-      "id": "local-project-repository",
-      "label": "Local Git Project",
-      "sublabel": "Canonical project Markdown, action definitions, configuration, activity, diagrams, assets, schedules, and Git history",
-      "role": "store",
-      "kind": "component"
-    },
-    {
-      "id": "github-platform",
-      "label": "GitHub Platform",
-      "sublabel": "Repository data, identity, refs, commits, releases, and installer assets",
-      "role": "external",
-      "kind": "component",
-      "drilldown": false
-    },
-    {
-      "id": "agent-cli-processes",
-      "label": "Agent CLI Processes",
-      "sublabel": "Codex, Claude, and other configured command-line agents",
-      "role": "external",
-      "kind": "component",
-      "drilldown": false
-    },
-    {
-      "id": "remarkable-device",
-      "label": "reMarkable Device",
-      "sublabel": "Remote image source accessed over SSH and SFTP",
-      "role": "external",
-      "kind": "component",
-      "drilldown": false
-    },
-    {
-      "id": "sentry-platform",
-      "label": "Sentry",
-      "sublabel": "Issue import API and optional error telemetry destination",
-      "role": "external",
-      "kind": "component",
-      "drilldown": false
-    },
-    {
-      "id": "aptabase-platform",
-      "label": "Aptabase",
-      "sublabel": "Optional usage event destination",
-      "role": "external",
-      "kind": "component",
-      "drilldown": false
-    }
-  ],
   "edges": [
     {
-      "id": "user-operates-client",
       "from": "user",
-      "to": "react-client",
+      "id": "user-operates-client",
       "kind": "connection",
-      "label": "operates"
+      "label": "operates",
+      "to": "react-client"
     },
     {
-      "id": "client-binds-domain-state",
       "from": "react-client",
-      "to": "renderer-domain-services",
+      "id": "client-binds-domain-state",
       "kind": "connection",
-      "label": "commands and subscribes"
+      "label": "commands and subscribes",
+      "to": "renderer-domain-services"
     },
     {
+      "from": "renderer-domain-services",
       "id": "domain-publishes-view-state",
-      "from": "renderer-domain-services",
-      "to": "react-client",
       "kind": "async",
-      "label": "publishes scoped state changes"
+      "label": "publishes scoped state changes",
+      "to": "react-client"
     },
     {
+      "from": "renderer-domain-services",
       "id": "domain-persists-application-state",
-      "from": "renderer-domain-services",
-      "to": "application-state-store",
       "kind": "data",
-      "label": "reads and writes client state"
+      "label": "reads and writes client state",
+      "to": "application-state-store"
     },
     {
+      "from": "renderer-domain-services",
       "id": "domain-uses-electron-adapter",
-      "from": "renderer-domain-services",
-      "to": "electron-client-adapter",
       "kind": "connection",
-      "label": "uses local host mode"
+      "label": "uses local host mode",
+      "to": "electron-client-adapter"
     },
     {
+      "from": "renderer-domain-services",
       "id": "domain-uses-github-adapter",
-      "from": "renderer-domain-services",
-      "to": "github-storage-adapter",
       "kind": "data",
-      "label": "uses GitHub project mode"
+      "label": "uses GitHub project mode",
+      "to": "github-storage-adapter"
     },
     {
+      "from": "renderer-domain-services",
       "id": "domain-uses-remote-adapter",
-      "from": "renderer-domain-services",
-      "to": "remote-host-adapter",
       "kind": "connection",
-      "label": "uses remote desktop mode"
+      "label": "uses remote desktop mode",
+      "to": "remote-host-adapter"
     },
     {
-      "id": "electron-adapter-invokes-preload",
       "from": "electron-client-adapter",
-      "to": "preload-ipc-bridge",
+      "id": "electron-adapter-invokes-preload",
       "kind": "connection",
-      "label": "invokes exposed APIs"
+      "label": "invokes exposed APIs",
+      "to": "preload-ipc-bridge"
     },
     {
+      "from": "preload-ipc-bridge",
       "id": "preload-invokes-host",
-      "from": "preload-ipc-bridge",
-      "to": "desktop-host-dispatch",
       "kind": "connection",
-      "label": "IPC requests"
+      "label": "IPC requests",
+      "to": "desktop-host-dispatch"
     },
     {
+      "from": "desktop-host-dispatch",
       "id": "host-publishes-ipc-events",
-      "from": "desktop-host-dispatch",
-      "to": "preload-ipc-bridge",
       "kind": "async",
-      "label": "run, file, lifecycle, and status events"
+      "label": "run, file, lifecycle, and status events",
+      "to": "preload-ipc-bridge"
     },
     {
-      "id": "preload-publishes-renderer-events",
       "from": "preload-ipc-bridge",
-      "to": "electron-client-adapter",
+      "id": "preload-publishes-renderer-events",
       "kind": "async",
-      "label": "subscription callbacks"
+      "label": "subscription callbacks",
+      "to": "electron-client-adapter"
     },
     {
-      "id": "remote-adapter-requests-gateway",
       "from": "remote-host-adapter",
-      "to": "remote-control-gateway",
+      "id": "remote-adapter-requests-gateway",
       "kind": "connection",
-      "label": "WebSocket RPC"
+      "label": "WebSocket RPC",
+      "to": "remote-control-gateway"
     },
     {
+      "from": "remote-control-gateway",
       "id": "gateway-publishes-remote-events",
-      "from": "remote-control-gateway",
-      "to": "remote-host-adapter",
       "kind": "async",
-      "label": "run and project subscriptions"
+      "label": "run and project subscriptions",
+      "to": "remote-host-adapter"
     },
     {
+      "from": "remote-control-gateway",
       "id": "gateway-dispatches-host-operations",
-      "from": "remote-control-gateway",
-      "to": "desktop-host-dispatch",
       "kind": "connection",
-      "label": "dispatches approved methods"
+      "label": "dispatches approved methods",
+      "to": "desktop-host-dispatch"
     },
     {
+      "from": "desktop-host-dispatch",
       "id": "host-publishes-gateway-events",
-      "from": "desktop-host-dispatch",
-      "to": "remote-control-gateway",
       "kind": "async",
-      "label": "subscription events"
+      "label": "subscription events",
+      "to": "remote-control-gateway"
     },
     {
-      "id": "github-adapter-exchanges-repository-data",
       "from": "github-storage-adapter",
-      "to": "github-platform",
+      "id": "github-adapter-exchanges-repository-data",
       "kind": "data",
-      "label": "reads trees and writes commits"
+      "label": "reads trees and writes commits",
+      "to": "github-platform"
     },
     {
+      "from": "desktop-host-dispatch",
       "id": "host-routes-project-operations",
-      "from": "desktop-host-dispatch",
-      "to": "local-project-services",
       "kind": "connection",
-      "label": "routes project and Git commands"
+      "label": "routes project and Git commands",
+      "to": "local-project-services"
     },
     {
+      "from": "desktop-host-dispatch",
       "id": "host-routes-action-operations",
-      "from": "desktop-host-dispatch",
-      "to": "action-automation",
       "kind": "connection",
-      "label": "starts and controls actions"
+      "label": "starts and controls actions",
+      "to": "action-automation"
     },
     {
+      "from": "action-automation",
       "id": "actions-publish-run-events",
-      "from": "action-automation",
-      "to": "desktop-host-dispatch",
       "kind": "async",
-      "label": "streams run state"
+      "label": "streams run state",
+      "to": "desktop-host-dispatch"
     },
     {
+      "from": "desktop-host-dispatch",
       "id": "host-starts-statistics-work",
-      "from": "desktop-host-dispatch",
-      "to": "project-stats-worker",
       "kind": "async",
-      "label": "starts cancellable calculations"
+      "label": "starts cancellable calculations",
+      "to": "project-stats-worker"
     },
     {
+      "from": "desktop-host-dispatch",
       "id": "host-routes-integrations",
-      "from": "desktop-host-dispatch",
-      "to": "desktop-integration-services",
       "kind": "connection",
-      "label": "routes integration requests"
+      "label": "routes integration requests",
+      "to": "desktop-integration-services"
     },
     {
+      "from": "desktop-host-dispatch",
       "id": "host-persists-desktop-settings",
-      "from": "desktop-host-dispatch",
-      "to": "application-state-store",
       "kind": "data",
-      "label": "reads and writes desktop state"
+      "label": "reads and writes desktop state",
+      "to": "application-state-store"
     },
     {
-      "id": "project-services-access-repository",
       "from": "local-project-services",
-      "to": "local-project-repository",
+      "id": "project-services-access-repository",
       "kind": "data",
-      "label": "reads, writes, and commits"
+      "label": "reads, writes, and commits",
+      "to": "local-project-repository"
     },
     {
-      "id": "repository-publishes-file-changes",
       "from": "local-project-repository",
-      "to": "local-project-services",
+      "id": "repository-publishes-file-changes",
       "kind": "async",
-      "label": "filesystem watch events"
+      "label": "filesystem watch events",
+      "to": "local-project-services"
     },
     {
+      "from": "action-automation",
       "id": "actions-coordinate-git-worktrees",
-      "from": "action-automation",
-      "to": "local-project-services",
       "kind": "connection",
-      "label": "coordinates diffs, worktrees, and merges"
+      "label": "coordinates diffs, worktrees, and merges",
+      "to": "local-project-services"
     },
     {
+      "from": "action-automation",
       "id": "actions-persist-project-artifacts",
-      "from": "action-automation",
-      "to": "local-project-repository",
       "kind": "data",
-      "label": "loads definitions and stores schedules, activity, and diagrams"
+      "label": "loads definitions and stores schedules, activity, and diagrams",
+      "to": "local-project-repository"
     },
     {
+      "from": "action-automation",
       "id": "actions-run-agents",
-      "from": "action-automation",
-      "to": "agent-runtime",
       "kind": "connection",
-      "label": "starts and controls agent turns"
+      "label": "starts and controls agent turns",
+      "to": "agent-runtime"
     },
     {
+      "from": "agent-runtime",
       "id": "agent-runtime-publishes-stream",
-      "from": "agent-runtime",
-      "to": "action-automation",
       "kind": "async",
-      "label": "streams output, tools, questions, and approvals"
+      "label": "streams output, tools, questions, and approvals",
+      "to": "action-automation"
     },
     {
+      "from": "agent-runtime",
       "id": "agent-runtime-spawns-cli",
-      "from": "agent-runtime",
-      "to": "agent-cli-processes",
       "kind": "connection",
-      "label": "spawns configured executables"
+      "label": "spawns configured executables",
+      "to": "agent-cli-processes"
     },
     {
-      "id": "agent-cli-streams-protocol",
       "from": "agent-cli-processes",
-      "to": "agent-runtime",
+      "id": "agent-cli-streams-protocol",
       "kind": "async",
-      "label": "stdout, stderr, and streaming protocol"
+      "label": "stdout, stderr, and streaming protocol",
+      "to": "agent-runtime"
     },
     {
-      "id": "agent-runtime-persists-conversations",
       "from": "agent-runtime",
-      "to": "local-project-repository",
+      "id": "agent-runtime-persists-conversations",
       "kind": "data",
-      "label": "writes conversation checkpoints and usage"
+      "label": "writes conversation checkpoints and usage",
+      "to": "local-project-repository"
     },
     {
-      "id": "stats-worker-reads-project-data",
       "from": "project-stats-worker",
-      "to": "local-project-repository",
+      "id": "stats-worker-reads-project-data",
       "kind": "data",
-      "label": "reads activity and usage files"
+      "label": "reads activity and usage files",
+      "to": "local-project-repository"
     },
     {
+      "from": "desktop-integration-services",
       "id": "integrations-import-remarkable-images",
-      "from": "desktop-integration-services",
-      "to": "remarkable-device",
       "kind": "data",
-      "label": "lists and downloads images over SFTP"
+      "label": "lists and downloads images over SFTP",
+      "to": "remarkable-device"
     },
     {
+      "from": "desktop-integration-services",
       "id": "integrations-query-sentry",
-      "from": "desktop-integration-services",
-      "to": "sentry-platform",
       "kind": "data",
-      "label": "loads issue and event data"
+      "label": "loads issue and event data",
+      "to": "sentry-platform"
     },
     {
+      "from": "desktop-integration-services",
       "id": "integrations-query-github-releases",
-      "from": "desktop-integration-services",
-      "to": "github-platform",
       "kind": "data",
-      "label": "checks releases and downloads updates"
+      "label": "checks releases and downloads updates",
+      "to": "github-platform"
     },
     {
-      "id": "renderer-emits-telemetry",
       "from": "renderer-domain-services",
-      "to": "telemetry-services",
+      "id": "renderer-emits-telemetry",
       "kind": "async",
-      "label": "records usage and errors"
+      "label": "records usage and errors",
+      "to": "telemetry-services"
     },
     {
-      "id": "host-emits-telemetry",
       "from": "desktop-host-dispatch",
-      "to": "telemetry-services",
+      "id": "host-emits-telemetry",
       "kind": "async",
-      "label": "records lifecycle and process errors"
+      "label": "records lifecycle and process errors",
+      "to": "telemetry-services"
     },
     {
+      "from": "telemetry-services",
       "id": "telemetry-reports-errors",
-      "from": "telemetry-services",
-      "to": "sentry-platform",
       "kind": "async",
-      "label": "reports exceptions"
+      "label": "reports exceptions",
+      "to": "sentry-platform"
     },
     {
-      "id": "telemetry-reports-usage",
       "from": "telemetry-services",
-      "to": "aptabase-platform",
+      "id": "telemetry-reports-usage",
       "kind": "async",
-      "label": "publishes usage events"
+      "label": "publishes usage events",
+      "to": "aptabase-platform"
     }
   ],
+  "formatting": {
+    "boxScalePercent": 110,
+    "fontScalePercent": 120,
+    "nodeRoles": {
+      "optional": {
+        "box": {
+          "borderStyle": "solid",
+          "contentPosition": "center"
+        },
+        "font": {
+          "bold": false,
+          "italic": false,
+          "underline": false
+        }
+      }
+    }
+  },
   "groups": [
     {
       "id": "react-runtime-boundary",
@@ -486,6 +335,174 @@
         "sentry-platform",
         "aptabase-platform"
       ]
+    }
+  ],
+  "meta": {
+    "description": "Runtime architecture of the shared React client, Electron desktop host, persistence modes, action automation, and external integrations",
+    "title": "MD² system architecture",
+    "type": "architecture",
+    "version": 1
+  },
+  "nodes": [
+    {
+      "drilldown": false,
+      "id": "user",
+      "kind": "component",
+      "label": "User",
+      "role": "input",
+      "sublabel": "Operates the desktop or LAN browser client"
+    },
+    {
+      "id": "react-client",
+      "kind": "component",
+      "label": "React Client",
+      "role": "input",
+      "sublabel": "Renders boards, editors, actions, search, statistics, configuration, and dialogs"
+    },
+    {
+      "id": "renderer-domain-services",
+      "kind": "component",
+      "label": "Renderer Domain Services",
+      "role": "focal",
+      "sublabel": "Own project sessions, cards, actions, drafts, open documents, run state, navigation, and derived view state"
+    },
+    {
+      "id": "electron-client-adapter",
+      "kind": "component",
+      "label": "Electron Client Adapters",
+      "role": "boundary",
+      "sublabel": "Expose local storage, action, runtime, configuration, lifecycle, and integration calls to renderer services"
+    },
+    {
+      "id": "github-storage-adapter",
+      "kind": "component",
+      "label": "GitHub Storage Adapter",
+      "role": "backend",
+      "sublabel": "Loads and commits project snapshots directly through GitHub REST APIs"
+    },
+    {
+      "id": "remote-host-adapter",
+      "kind": "component",
+      "label": "Remote Host Adapter",
+      "role": "boundary",
+      "sublabel": "Implements storage and action bridges over a reconnecting WebSocket connection"
+    },
+    {
+      "id": "preload-ipc-bridge",
+      "kind": "component",
+      "label": "Sandboxed Preload Bridge",
+      "role": "boundary",
+      "sublabel": "Whitelists IPC requests, subscriptions, and host events for the Electron renderer"
+    },
+    {
+      "id": "remote-control-gateway",
+      "kind": "component",
+      "label": "Remote Control Gateway",
+      "role": "boundary",
+      "sublabel": "Serves the bundled client over HTTP and maps WebSocket requests and subscriptions to host dispatch"
+    },
+    {
+      "id": "desktop-host-dispatch",
+      "kind": "component",
+      "label": "Desktop Host Dispatch",
+      "role": "backend",
+      "sublabel": "Composes Electron main-process services and routes approved bridge operations"
+    },
+    {
+      "id": "local-project-services",
+      "kind": "component",
+      "label": "Local Project and Git Services",
+      "role": "backend",
+      "sublabel": "Load, watch, mutate, commit, diff, branch, merge, and manage linked worktrees"
+    },
+    {
+      "id": "action-automation",
+      "kind": "component",
+      "label": "Action Automation",
+      "role": "focal",
+      "sublabel": "Resolves definitions, schedules timers, coordinates command or agent runs, worktrees, diagrams, and activity history"
+    },
+    {
+      "id": "agent-runtime",
+      "kind": "component",
+      "label": "Agent Runtime",
+      "role": "backend",
+      "sublabel": "Spawns Codex, Claude, or configured agents and manages streaming turns, approvals, usage, and conversation checkpoints"
+    },
+    {
+      "id": "project-stats-worker",
+      "kind": "component",
+      "label": "Project Statistics Worker",
+      "role": "optional",
+      "sublabel": "Calculates activity and usage statistics off the main process"
+    },
+    {
+      "id": "desktop-integration-services",
+      "kind": "component",
+      "label": "Desktop Integration Services",
+      "role": "backend",
+      "sublabel": "Provides reMarkable SFTP import, Sentry API proxying, spellcheck, and update delivery"
+    },
+    {
+      "id": "telemetry-services",
+      "kind": "component",
+      "label": "Telemetry Services",
+      "role": "optional",
+      "sublabel": "Captures renderer and main-process usage events and errors with bounded flushing"
+    },
+    {
+      "id": "application-state-store",
+      "kind": "component",
+      "label": "Application State Store",
+      "role": "store",
+      "sublabel": "Persists preferences, recent projects, credentials, and desktop configuration through electron-store or browser localStorage"
+    },
+    {
+      "id": "local-project-repository",
+      "kind": "component",
+      "label": "Local Git Project",
+      "role": "store",
+      "sublabel": "Canonical project Markdown, action definitions, configuration, activity, diagrams, assets, schedules, and Git history"
+    },
+    {
+      "drilldown": false,
+      "id": "github-platform",
+      "kind": "component",
+      "label": "GitHub Platform",
+      "role": "external",
+      "sublabel": "Repository data, identity, refs, commits, releases, and installer assets"
+    },
+    {
+      "drilldown": false,
+      "id": "agent-cli-processes",
+      "kind": "component",
+      "label": "Agent CLI Processes",
+      "role": "external",
+      "sublabel": "Codex, Claude, and other configured command-line agents"
+    },
+    {
+      "drilldown": false,
+      "id": "remarkable-device",
+      "kind": "component",
+      "label": "reMarkable Device",
+      "role": "external",
+      "sublabel": "Remote image source accessed over SSH and SFTP"
+    },
+    {
+      "drilldown": false,
+      "id": "sentry-platform",
+      "kind": "component",
+      "label": "Sentry",
+      "role": "external",
+      "sublabel": "Issue import API and optional error telemetry destination"
+    },
+    {
+      "drilldown": false,
+      "id": "aptabase-platform",
+      "kind": "component",
+      "label": "Aptabase",
+      "role": "external",
+      "sublabel": "Optional usage event destination"
     }
   ]
 }

@@ -19,6 +19,7 @@ function row(overrides: Partial<StatsChartRow> = {}): StatsChartRow {
         agent: null,
         available: true,
         chartRole: 'primary',
+        colorGroup: null,
         displayLabel: '18 Aug',
         grouping: 'day',
         identity: 'codex',
@@ -290,6 +291,36 @@ describe('StatsBarChart', () => {
             transform: 'translateX(-50%)',
             width: 'max-content',
         });
+    });
+
+    it('stacks duration components per agent with one legend entry each and one hue per component', () => {
+        const segment = (agent: string, component: string, value: number) => row({
+            colorGroup: `duration:${component}`,
+            identity: agent,
+            metric: 'duration',
+            seriesIdentity: `${agent} ${component}`,
+            seriesLabel: `${agent} - ${component}`,
+            stackIdentity: agent,
+            stackLabel: agent,
+            unit: 'milliseconds',
+            value,
+        });
+        const { container } = renderChart(<StatsBarChart mode="groupedStacked" rows={[
+            segment('claude', 'tool', 5), segment('claude', 'reasoning', 3),
+            segment('codex', 'tool', 4), segment('codex', 'reasoning', 2),
+        ]} />);
+        const swatches = screen.getAllByTestId('stats-legend-swatch');
+        const barIdentities = [...container.querySelectorAll('[data-testid="stats-bar"]')]
+            .map((bar) => bar.getAttribute('data-series-identity') ?? '');
+        const colorOf = (identity: string) => window.getComputedStyle(
+            container.querySelector(`[data-testid="stats-bar"][data-series-identity="${identity}"]`)!,
+        ).backgroundColor;
+
+        expect(swatches).toHaveLength(4);
+        expect(barIdentities).toEqual(['claude tool', 'claude reasoning', 'codex tool', 'codex reasoning']);
+        // Same component, different agent: a different shade. Different component: a different hue.
+        expect(colorOf('claude tool')).not.toBe(colorOf('codex tool'));
+        expect(new Set(barIdentities.map(colorOf)).size).toBe(4);
     });
 
     it('shows each stacked action tooltip with its action value', async () => {

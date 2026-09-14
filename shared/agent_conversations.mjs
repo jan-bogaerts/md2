@@ -108,9 +108,12 @@ function normalizeQuestion(value) {
     const id = optionalString(value.id);
     const question = optionalString(value.question);
     if (!header || !id || !question) return null;
+    if (value.isSecret !== undefined && typeof value.isSecret !== 'boolean') return null;
+    if (value.options !== undefined && value.options !== null && !Array.isArray(value.options)) return null;
     const options = Array.isArray(value.options)
-        ? value.options.map(normalizeQuestionOption).filter((option) => option !== null)
+        ? value.options.map(normalizeQuestionOption)
         : null;
+    if (options?.some((option) => option === null)) return null;
 
     return {
         header,
@@ -123,10 +126,17 @@ function normalizeQuestion(value) {
 
 /** Structured questions of an `agentQuestion` entry, so a pending question survives a restart. */
 function optionalQuestions(value) {
-    if (!Array.isArray(value)) return null;
-    const questions = value.map(normalizeQuestion).filter((question) => question !== null);
+    if (value === undefined) return null;
+    if (!Array.isArray(value) || value.length === 0) {
+        throw new Error('Malformed agent conversation: invalid event.questions');
+    }
+    const questions = value.map(normalizeQuestion);
+    const invalidIndex = questions.findIndex((question) => question === null);
+    if (invalidIndex >= 0) {
+        throw new Error(`Malformed agent conversation: invalid event.questions[${invalidIndex}]`);
+    }
 
-    return questions.length > 0 ? questions : null;
+    return questions;
 }
 
 function normalizeMessage(value) {
@@ -225,11 +235,34 @@ function normalizeContextWindowUsage(value) {
     return { capacityTokens, usedTokens };
 }
 
+/**
+ * Optional duration split; absent means the conversation predates the measurement and is unmeasured.
+ * The sum is bounded by `elapsedMs` only once the timer has settled: a checkpoint written mid-run
+ * already counts the open running period in its breakdown while `elapsedMs` still excludes it.
+ */
+function normalizeTimerBreakdown(value, elapsedMs, settled) {
+    if (value === undefined || value === null) return null;
+    if (typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Malformed agent conversation: invalid timer.breakdown');
+    }
+    const { reasoningMs, toolMs } = value;
+    for (const [member, memberValue] of [['reasoningMs', reasoningMs], ['toolMs', toolMs]]) {
+        if (typeof memberValue !== 'number' || !Number.isFinite(memberValue) || memberValue < 0) {
+            throw new Error(`Malformed agent conversation: invalid timer.breakdown.${member}`);
+        }
+    }
+    if (settled && reasoningMs + toolMs > elapsedMs) {
+        throw new Error('Malformed agent conversation: timer.breakdown exceeds timer.elapsedMs');
+    }
+
+    return { reasoningMs, toolMs };
+}
+
 function normalizeTimer(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         throw new Error('Malformed agent conversation: invalid timer');
     }
-    const { elapsedMs, runningStartedAt } = value;
+    const { breakdown, elapsedMs, runningStartedAt } = value;
     if (typeof elapsedMs !== 'number' || !Number.isFinite(elapsedMs) || elapsedMs < 0) {
         throw new Error('Malformed agent conversation: invalid timer.elapsedMs');
     }
@@ -238,7 +271,9 @@ function normalizeTimer(value) {
         throw new Error('Malformed agent conversation: invalid timer.runningStartedAt');
     }
 
-    return { elapsedMs, runningStartedAt };
+    const normalizedBreakdown = normalizeTimerBreakdown(breakdown, elapsedMs, runningStartedAt === null);
+
+    return { ...(normalizedBreakdown ? { breakdown: normalizedBreakdown } : {}), elapsedMs, runningStartedAt };
 }
 
 function normalizeArray(value, normalize) {

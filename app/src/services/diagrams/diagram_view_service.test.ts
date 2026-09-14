@@ -5,6 +5,7 @@ import { DEFAULT_PROJECT_CONFIG, resolveProjectConfigPaths, type MarkdownFile, t
 import { DiagramViewService } from './diagram_view_service'
 import { serializeDiagramIndex, type DiagramIndex } from './diagram_index'
 import { serializeDiagramData } from './diagram_data'
+import { DEFAULT_DIAGRAM_ZOOM, MINIMUM_DIAGRAM_ZOOM } from './diagram_zoom'
 
 const INDEX_PATH = 'design/diagrams/diagram-view.json'
 const DIAGRAM_JSON = JSON.stringify({
@@ -36,8 +37,9 @@ function createHarness(repositoryFiles: string[] = []) {
         createTimestamp: () => '2026-09-01T10:00:00.000Z',
         flushCommits,
         loadActions: () => [
-            { id: 'overview', label: 'Overview' },
-            { id: 'detail', label: 'Detail' },
+            { appliesTo: { kind: 'diagram', type: 'root' }, builtin: false, id: 'overview', label: 'Overview' },
+            { appliesTo: { kind: 'diagram', type: 'root' }, builtin: false, id: 'dependencies', label: 'Dependencies' },
+            { appliesTo: { kind: 'diagram', type: 'child' }, builtin: false, id: 'detail', label: 'Detail' },
         ] as ActionDefinition[],
         reportError,
         scheduleCommit,
@@ -74,6 +76,35 @@ function completedEvent(overrides: Partial<ActionRunEvent> = {}): ActionRunEvent
 }
 
 describe('DiagramViewService', () => {
+    it('formats Current in place and schedules canonical content for captured active path', async () => {
+        const { run, scheduleCommit, service } = createHarness()
+        const boxScaleChanged = vi.fn()
+        const roleChanged = vi.fn()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+        scheduleCommit.mockClear()
+        const sourceBefore = service.getSourceSnapshot()
+        service.subscribeNodeRoleFormatting('focal', roleChanged)
+        service.subscribeFormattingScale('boxScalePercent', boxScaleChanged)
+
+        service.setNodeRoleFormatting('focal', { box: { fillColor: '#112233' } })
+        service.setFormattingScale('fontScalePercent', 110)
+        service.setFormattingScale('boxScalePercent', 120)
+
+        expect(service.getSourceSnapshot()).toBe(sourceBefore)
+        expect(service.getNodeRoleFormattingSnapshot('focal')).toEqual({ box: { fillColor: '#112233' } })
+        expect(roleChanged).toHaveBeenCalledOnce()
+        expect(boxScaleChanged).toHaveBeenCalledOnce()
+        expect(scheduleCommit).toHaveBeenCalledTimes(3)
+        expect(scheduleCommit.mock.calls[0][0].path).toBe('design/diagrams/overview.json')
+        expect(JSON.parse(scheduleCommit.mock.calls[2][0].content).formatting).toEqual({
+            boxScalePercent: 120,
+            fontScalePercent: 110,
+            nodeRoles: { focal: { box: { fillColor: '#112233' } } },
+        })
+    })
+
     it('ignores completed regular actions in diagram context', async () => {
         const { reportError, run, scheduleCommit, service } = createHarness()
         await service.open()
@@ -108,13 +139,130 @@ describe('DiagramViewService', () => {
         expect(service.getSnapshot().popup).toBeNull()
 
         const childAnchor = document.createElement('button')
-        service.openItemMenu({ anchorElement: childAnchor, diagramId: 'diagram-1', itemId: 'item-1', itemLabel: 'Item', left: 1, top: 2 })
+        service.openItemMenu({ anchorElement: childAnchor, diagramId: 'diagram-1', itemId: 'item-1', itemLabel: 'Item', left: 1, objectKind: 'node', surface: 'current', top: 2 })
         service.openChildPopup('detail')
+        expect(service.getSnapshot().menu).toBeNull()
         expect(service.getSnapshot().popup).toMatchObject({
             anchorElement: childAnchor,
             context: { diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Item', type: 'child' },
             initialActionId: 'detail',
         })
+    })
+
+    it('owns root menu and preselects first root action without a saved diagram', async () => {
+        const { run, service } = createHarness()
+        const menuChanged = vi.fn()
+        const menuAnchor = document.createElement('button')
+        const newAnchor = document.createElement('button')
+        await service.open()
+        service.subscribeRootMenu(menuChanged)
+
+        service.openRootMenu(menuAnchor)
+        expect(service.getRootMenuSnapshot()).toEqual({ anchorElement: menuAnchor })
+
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSnapshot().index.roots.overview).toEqual(['root-1']))
+        service.openRootMenu(menuAnchor)
+        service.openNewRootPopup(newAnchor)
+
+        expect(service.getRootMenuSnapshot()).toBeNull()
+        expect(service.getPopupSnapshot()).toMatchObject({
+            anchorElement: newAnchor,
+            context: { kind: 'diagram', type: 'root' },
+            initialActionId: 'dependencies',
+        })
+        expect(menuChanged).toHaveBeenCalledTimes(3)
+    })
+
+    it('omits root popup preselection after every root action has a saved diagram', async () => {
+        const { run, service } = createHarness()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSnapshot().index.roots.overview).toEqual(['root-1']))
+        run(completedEvent({ actionId: 'dependencies', diagramPath: 'design/diagrams/dependencies.json', rootActionId: 'dependencies', runId: 'run-2' }))
+        await vi.waitFor(() => expect(service.getSnapshot().index.roots.dependencies).toEqual(['root-2']))
+
+        service.openNewRootPopup(document.createElement('button'))
+
+        expect(service.getPopupSnapshot()).toEqual(expect.objectContaining({ context: { kind: 'diagram', type: 'root' } }))
+        expect(service.getPopupSnapshot()).not.toHaveProperty('initialActionId')
+    })
+
+    it('owns one item submenu and clears it with its parent menu', async () => {
+        const { service } = createHarness()
+        const itemAnchor = document.createElement('button')
+        const actionsAnchor = document.createElement('button')
+        const savedDiagramsAnchor = document.createElement('button')
+        await service.open()
+
+        service.openItemMenu({ anchorElement: itemAnchor, diagramId: 'diagram-1', itemId: 'item-1', itemLabel: 'Item', left: 1, objectKind: 'node', surface: 'current', top: 2 })
+        expect(service.getSnapshot().menu?.submenu).toBeNull()
+
+        service.openItemSubmenu('actions', actionsAnchor)
+        expect(service.getSnapshot().menu?.submenu).toEqual({ anchorElement: actionsAnchor, kind: 'actions' })
+
+        service.openItemSubmenu('savedDiagrams', savedDiagramsAnchor)
+        expect(service.getSnapshot().menu?.submenu).toEqual({ anchorElement: savedDiagramsAnchor, kind: 'savedDiagrams' })
+
+        service.closeItemSubmenu()
+        expect(service.getSnapshot().menu?.submenu).toBeNull()
+
+        service.openItemSubmenu('actions', actionsAnchor)
+        service.closeItemMenu()
+        expect(service.getSnapshot().menu).toBeNull()
+    })
+
+    it('owns granular Current selection', async () => {
+        const { run, service } = createHarness()
+        const selectedChanged = vi.fn()
+        const selectedItemChanged = vi.fn()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getCurrentDiagramSnapshot()).not.toBeNull())
+        const unsubscribe = service.subscribeCurrentSelection('node', 'orders', selectedChanged)
+        service.subscribeCurrentSelectedItem(selectedItemChanged)
+
+        const selection = { activeDiagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node' } as const
+        service.selectCurrentObject(selection)
+
+        expect(service.getCurrentSelectionSnapshot('node', 'orders')).toBe(true)
+        const selectedItemSnapshot = service.getCurrentSelectedItemSnapshot()
+        expect(selectedItemSnapshot).toEqual({activeDiagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node'})
+        expect(selectedChanged).toHaveBeenCalledOnce()
+        expect(selectedItemChanged).toHaveBeenCalledOnce()
+        service.selectCurrentObject({ ...selection })
+        expect(service.getCurrentSelectedItemSnapshot()).toBe(selectedItemSnapshot)
+        expect(selectedItemChanged).toHaveBeenCalledOnce()
+        run(completedEvent({ diagramPath: 'design/diagrams/overview-2.json', runId: 'run-2' }))
+        await vi.waitFor(() => expect(service.getCurrentSelectionSnapshot('node', 'orders')).toBe(false))
+        expect(service.getCurrentSelectedItemSnapshot()).toBeNull()
+        expect(selectedItemChanged).toHaveBeenCalledTimes(2)
+        unsubscribe()
+    })
+
+    it('opens child popup from selected Current item and clears selection after navigation', async () => {
+        const { run, service } = createHarness()
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+        service.selectCurrentObject({ activeDiagramId: 'root-1', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node' })
+        const anchorElement = document.createElement('button')
+
+        service.openSelectedItemPopup(anchorElement)
+
+        expect(service.getPopupSnapshot()).toEqual({
+            anchorElement,
+            context: { diagramId: 'root-1', diagramItemId: 'orders', kind: 'diagram', parentNode: 'Orders', type: 'child' },
+        })
+
+        run(completedEvent({ diagramPath: 'design/diagrams/overview-2.json', runId: 'run-2' }))
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-2'))
+        service.selectCurrentObject({ activeDiagramId: 'root-2', itemId: 'orders', itemLabel: 'Orders', objectKind: 'node' })
+
+        await service.navigateToSavedDiagram('root-1')
+
+        expect(service.getCurrentSelectedItemSnapshot()).toBeNull()
+        expect(() => service.openSelectedItemPopup(anchorElement)).toThrow('without a selected Current item')
     })
 
     it('owns transient legend state and resets it only when project changes or service clears', async () => {
@@ -136,6 +284,72 @@ describe('DiagramViewService', () => {
         service.moveLegend({ left: 20, top: 10 })
         service.clear()
         expect(service.getSnapshot().legend).toEqual({ collapsed: false, position: null })
+    })
+
+    it('notifies only subscribers of fields changed by transient view operations', async () => {
+        const { service } = createHarness()
+        await service.open()
+        const currentDiagramChanged = vi.fn()
+        const currentDiagramErrorChanged = vi.fn()
+        const errorChanged = vi.fn()
+        const indexChanged = vi.fn()
+        const legendCollapsedChanged = vi.fn()
+        const legendPositionChanged = vi.fn()
+        const menuChanged = vi.fn()
+        const popupChanged = vi.fn()
+        const statusChanged = vi.fn()
+        service.subscribeCurrentDiagram(currentDiagramChanged)
+        service.subscribeCurrentDiagramError(currentDiagramErrorChanged)
+        service.subscribeError(errorChanged)
+        service.subscribeIndex(indexChanged)
+        service.subscribeLegendCollapsed(legendCollapsedChanged)
+        service.subscribeLegendPosition(legendPositionChanged)
+        service.subscribeMenu(menuChanged)
+        service.subscribePopup(popupChanged)
+        service.subscribeStatus(statusChanged)
+
+        service.moveLegend({ left: 20, top: 10 })
+        service.moveLegend({ left: 20, top: 10 })
+        service.collapseLegend()
+        service.expandLegend()
+        const anchorElement = document.createElement('button')
+        service.openItemMenu({ anchorElement, diagramId: 'diagram-1', itemId: 'item-1', itemLabel: 'Item', left: 1, objectKind: 'node', surface: 'current', top: 2 })
+        service.closeItemMenu()
+        service.openRootPopup(anchorElement)
+        service.closePopup()
+
+        expect(legendPositionChanged).toHaveBeenCalledOnce()
+        expect(legendCollapsedChanged).toHaveBeenCalledTimes(2)
+        expect(menuChanged).toHaveBeenCalledTimes(2)
+        expect(popupChanged).toHaveBeenCalledTimes(2)
+        expect(currentDiagramChanged).not.toHaveBeenCalled()
+        expect(currentDiagramErrorChanged).not.toHaveBeenCalled()
+        expect(errorChanged).not.toHaveBeenCalled()
+        expect(indexChanged).not.toHaveBeenCalled()
+        expect(statusChanged).not.toHaveBeenCalled()
+    })
+
+    it('owns Current scale separately and resets it when active saved diagram changes', async () => {
+        const { run, service } = createHarness()
+        const viewportScaleChanged = vi.fn()
+        service.subscribeViewportScale(viewportScaleChanged)
+        await service.open()
+        run(completedEvent())
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))
+
+        const snapshot = service.getSnapshot()
+        expect(service.setViewportScale(MINIMUM_DIAGRAM_ZOOM)).toBe(true)
+        expect(service.getViewportScaleSnapshot()).toBe(MINIMUM_DIAGRAM_ZOOM)
+        expect(service.getSnapshot()).toBe(snapshot)
+        service.collapseLegend()
+        expect(service.getViewportScaleSnapshot()).toBe(MINIMUM_DIAGRAM_ZOOM)
+        expect(viewportScaleChanged).toHaveBeenCalledOnce()
+
+        run(completedEvent({ diagramPath: 'design/diagrams/overview-2.json', runId: 'run-2' }))
+        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-2'))
+
+        expect(service.getViewportScaleSnapshot()).toBe(DEFAULT_DIAGRAM_ZOOM)
+        expect(viewportScaleChanged).toHaveBeenCalledTimes(2)
     })
 
     it('restores global active path and parses exact last diagram JSON from versioned index', async () => {

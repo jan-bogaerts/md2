@@ -10,68 +10,13 @@ import { MarkdownFileSearchOption } from './markdown_file_search_option'
 import { MarkdownTypeaheadLayerProvider } from './markdown_typeahead_layer_provider'
 
 const STACK_POSITION = 2
+const ANCHOR_RECT = { height: 18, left: 120, top: 240, width: 8 }
 const KEYBOARD_OPTIONS = [
     new MarkdownFileSearchOption('app/readme.md'),
     new MarkdownFileSearchOption('desktop/readme.md'),
 ]
 
-interface OffsetParentStub {
-    borderWidth: number
-    scrollLeft: number
-    scrollTop: number
-    viewportLeft: number
-    viewportTop: number
-}
-
-/**
- * Makes `container` behave like the positioned, scrolled popup Paper the frozen anchor resolves
- * against. jsdom performs no layout, so `offsetParent`, the bounding rect and the scroll/border
- * metrics all have to be stubbed. Returns a restore function.
- */
-function stubOffsetParent(container: HTMLElement, stub: OffsetParentStub) {
-    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetParent')
-    Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
-        configurable: true,
-        get(this: HTMLElement) {
-            return this.parentElement === container ? container : null
-        },
-    })
-    Object.defineProperty(container, 'scrollLeft', { configurable: true, value: stub.scrollLeft })
-    Object.defineProperty(container, 'scrollTop', { configurable: true, value: stub.scrollTop })
-    Object.defineProperty(container, 'clientLeft', { configurable: true, value: stub.borderWidth })
-    Object.defineProperty(container, 'clientTop', { configurable: true, value: stub.borderWidth })
-    container.getBoundingClientRect = () => ({
-        bottom: stub.viewportTop,
-        height: 0,
-        left: stub.viewportLeft,
-        right: stub.viewportLeft,
-        toJSON: () => ({}),
-        top: stub.viewportTop,
-        width: 0,
-        x: stub.viewportLeft,
-        y: stub.viewportTop,
-    }) as DOMRect
-
-    return () => {
-        if (original) Object.defineProperty(HTMLElement.prototype, 'offsetParent', original)
-    }
-}
-
-/** Pretends the page is scrolled, so the page -> viewport conversion has something to subtract. */
-function stubWindowScroll(scrollX: number, scrollY: number) {
-    const originalX = Object.getOwnPropertyDescriptor(window, 'scrollX')
-    const originalY = Object.getOwnPropertyDescriptor(window, 'scrollY')
-    Object.defineProperty(window, 'scrollX', { configurable: true, value: scrollX })
-    Object.defineProperty(window, 'scrollY', { configurable: true, value: scrollY })
-
-    return () => {
-        if (originalX) Object.defineProperty(window, 'scrollX', originalX)
-        if (originalY) Object.defineProperty(window, 'scrollY', originalY)
-    }
-}
-
-/** Flushes the animation frame the menu waits for before it freezes its anchor. */
-async function flushFrozenAnchor() {
+async function flushSessionAnchor() {
     await act(async () => {
         await new Promise((resolve) => { requestAnimationFrame(() => resolve(null)) })
     })
@@ -99,7 +44,7 @@ function KeyboardSelectionHarness({ onSelect }: { onSelect: (option: MarkdownFil
             {open ? (
                 <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
                     <MarkdownFileSearchMenu
-                        anchorElement={document.body}
+                        anchorRect={ANCHOR_RECT}
                         onHighlight={setSelectedIndex}
                         onSelect={onSelect}
                         options={KEYBOARD_OPTIONS}
@@ -127,7 +72,7 @@ describe('MarkdownFileSearchMenu', () => {
             <AppThemeProvider>
                 <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
                     <MarkdownFileSearchMenu
-                        anchorElement={document.body}
+                        anchorRect={ANCHOR_RECT}
                         onHighlight={vi.fn()}
                         onSelect={vi.fn()}
                         options={options}
@@ -137,7 +82,7 @@ describe('MarkdownFileSearchMenu', () => {
             </AppThemeProvider>,
         )
 
-        await flushFrozenAnchor()
+        await flushSessionAnchor()
 
         expect(screen.getByRole('listbox', { name: 'Project files' })).toBeInTheDocument()
         expect(screen.getAllByRole('option')).toHaveLength(2)
@@ -154,7 +99,7 @@ describe('MarkdownFileSearchMenu', () => {
                     <PopupLayerProbe />
                     <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
                         <MarkdownFileSearchMenu
-                            anchorElement={document.body}
+                            anchorRect={ANCHOR_RECT}
                             onHighlight={vi.fn()}
                             onSelect={vi.fn()}
                             options={options}
@@ -165,7 +110,7 @@ describe('MarkdownFileSearchMenu', () => {
             </AppThemeProvider>,
         )
 
-        await flushFrozenAnchor()
+        await flushSessionAnchor()
 
         const menuSurface = screen.getByRole('dialog', { name: 'Project files' })
         const menuLayer = menuSurface.closest('.MuiPopper-root')
@@ -188,7 +133,7 @@ describe('MarkdownFileSearchMenu', () => {
             <AppThemeProvider>
                 <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
                     <MarkdownFileSearchMenu
-                        anchorElement={document.body}
+                        anchorRect={ANCHOR_RECT}
                         onHighlight={vi.fn()}
                         onSelect={onSelect}
                         options={options}
@@ -197,7 +142,7 @@ describe('MarkdownFileSearchMenu', () => {
                 </VirtuosoMockContext.Provider>
             </AppThemeProvider>,
         )
-        await flushFrozenAnchor()
+        await flushSessionAnchor()
         const dialog = screen.getByRole('dialog', { name: 'Project files' })
         const listbox = screen.getByRole('listbox', { name: 'Project files' })
         const handle = screen.getByRole('separator', { name: 'Resize file selector from bottom-right' })
@@ -226,7 +171,7 @@ describe('MarkdownFileSearchMenu', () => {
             <AppThemeProvider>
                 <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
                     <MarkdownFileSearchMenu
-                        anchorElement={document.body}
+                        anchorRect={ANCHOR_RECT}
                         onHighlight={vi.fn()}
                         onSelect={vi.fn()}
                         options={[new MarkdownFileSearchOption('app/readme.md')]}
@@ -236,17 +181,17 @@ describe('MarkdownFileSearchMenu', () => {
             </AppThemeProvider>,
         )
 
-        await flushFrozenAnchor()
+        await flushSessionAnchor()
 
         expect(screen.getByRole('dialog', { name: 'Project files' })).toHaveStyle({ height: '240px', width: '500px' })
     })
 
-    it('keeps one size while the number of matching files changes', async () => {
+    it('keeps one popup shell and session anchor while matching files change', async () => {
         const { rerender } = render(
             <AppThemeProvider>
                 <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
                     <MarkdownFileSearchMenu
-                        anchorElement={document.body}
+                        anchorRect={ANCHOR_RECT}
                         onHighlight={vi.fn()}
                         onSelect={vi.fn()}
                         options={[new MarkdownFileSearchOption('app/readme.md')]}
@@ -255,8 +200,10 @@ describe('MarkdownFileSearchMenu', () => {
                 </VirtuosoMockContext.Provider>
             </AppThemeProvider>,
         )
-        await flushFrozenAnchor()
+        await flushSessionAnchor()
         const dialog = screen.getByRole('dialog', { name: 'Project files' })
+        const sessionAnchor = document.body.querySelector<HTMLElement>('[data-markdown-file-search-anchor]')
+        if (!sessionAnchor) throw new Error('Missing file-search session anchor')
 
         expect(dialog).toHaveStyle({ height: '320px', width: '320px' })
 
@@ -264,7 +211,7 @@ describe('MarkdownFileSearchMenu', () => {
             <AppThemeProvider>
                 <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
                     <MarkdownFileSearchMenu
-                        anchorElement={document.body}
+                        anchorRect={ANCHOR_RECT}
                         onHighlight={vi.fn()}
                         onSelect={vi.fn()}
                         options={[
@@ -279,6 +226,7 @@ describe('MarkdownFileSearchMenu', () => {
         )
 
         expect(screen.getByRole('dialog', { name: 'Project files' })).toBe(dialog)
+        expect(document.body.querySelector('[data-markdown-file-search-anchor]')).toBe(sessionAnchor)
         expect(dialog).toHaveStyle({ height: '320px', width: '320px' })
     })
 
@@ -287,7 +235,7 @@ describe('MarkdownFileSearchMenu', () => {
             <AppThemeProvider>
                 <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
                     <MarkdownFileSearchMenu
-                        anchorElement={document.body}
+                        anchorRect={ANCHOR_RECT}
                         onHighlight={vi.fn()}
                         onSelect={vi.fn()}
                         options={[]}
@@ -296,28 +244,19 @@ describe('MarkdownFileSearchMenu', () => {
                 </VirtuosoMockContext.Provider>
             </AppThemeProvider>,
         )
-        await flushFrozenAnchor()
+        await flushSessionAnchor()
 
         expect(screen.getByRole('dialog', { name: 'Project files' })).toHaveStyle({ height: '320px', width: '320px' })
         expect(screen.getByText('No matching files')).toBeInTheDocument()
         expect(screen.queryByRole('listbox', { name: 'Project files' })).not.toBeInTheDocument()
     })
 
-    it('freezes its anchor so later moves of the lexical anchor leave the popup in place', async () => {
-        const overlayContainer = document.createElement('div')
-        const lexicalAnchor = document.createElement('div')
-        lexicalAnchor.style.position = 'absolute'
-        lexicalAnchor.style.left = '120px'
-        lexicalAnchor.style.top = '240px'
-        lexicalAnchor.style.height = '18px'
-        overlayContainer.append(lexicalAnchor)
-        document.body.append(overlayContainer)
-
+    it('positions its session anchor directly from the opening viewport rectangle', async () => {
         render(
             <AppThemeProvider>
                 <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
                     <MarkdownFileSearchMenu
-                        anchorElement={lexicalAnchor}
+                        anchorRect={ANCHOR_RECT}
                         onHighlight={vi.fn()}
                         onSelect={vi.fn()}
                         options={[new MarkdownFileSearchOption('app/readme.md')]}
@@ -326,99 +265,17 @@ describe('MarkdownFileSearchMenu', () => {
                 </VirtuosoMockContext.Provider>
             </AppThemeProvider>,
         )
-        await flushFrozenAnchor()
-        const frozenAnchor = overlayContainer.querySelector<HTMLElement>('[data-markdown-file-search-anchor]')
-        if (!frozenAnchor) throw new Error('Missing frozen file-search anchor')
+        await flushSessionAnchor()
+        const sessionAnchor = document.body.querySelector<HTMLElement>('[data-markdown-file-search-anchor]')
+        if (!sessionAnchor) throw new Error('Missing file-search session anchor')
 
-        // Without an offset parent the page coordinates already match the containing block.
-        expect(frozenAnchor.style.left).toBe('120px')
-        expect(frozenAnchor.style.top).toBe('240px')
-        expect(frozenAnchor.style.height).toBe('18px')
-
-        lexicalAnchor.style.left = '400px'
-        lexicalAnchor.style.top = '600px'
-        lexicalAnchor.style.height = '90px'
-        await flushFrozenAnchor()
-
-        expect(frozenAnchor.style.left).toBe('120px')
-        expect(frozenAnchor.style.top).toBe('240px')
-        expect(frozenAnchor.style.height).toBe('18px')
-        overlayContainer.remove()
-    })
-
-    it('converts the anchor out of page space when it sits inside a positioned container', async () => {
-        const overlayContainer = document.createElement('div')
-        const lexicalAnchor = document.createElement('div')
-        lexicalAnchor.style.position = 'absolute'
-        lexicalAnchor.style.left = '120px'
-        lexicalAnchor.style.top = '240px'
-        lexicalAnchor.style.height = '18px'
-        overlayContainer.append(lexicalAnchor)
-        document.body.append(overlayContainer)
-        // Stand in for the card popup Paper: viewport position (50, 90), scrolled (5, 10), 2px border.
-        const restoreOffsetParent = stubOffsetParent(overlayContainer, {
-            borderWidth: 2,
-            scrollLeft: 5,
-            scrollTop: 10,
-            viewportLeft: 50,
-            viewportTop: 90,
+        expect(sessionAnchor).toHaveStyle({
+            height: '18px',
+            left: '120px',
+            position: 'fixed',
+            top: '240px',
+            width: '8px',
         })
-        const restoreScroll = stubWindowScroll(30, 60)
-
-        render(
-            <AppThemeProvider>
-                <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
-                    <MarkdownFileSearchMenu
-                        anchorElement={lexicalAnchor}
-                        onHighlight={vi.fn()}
-                        onSelect={vi.fn()}
-                        options={[new MarkdownFileSearchOption('app/readme.md')]}
-                        selectedIndex={0}
-                    />
-                </VirtuosoMockContext.Provider>
-            </AppThemeProvider>,
-        )
-        await flushFrozenAnchor()
-        const frozenAnchor = overlayContainer.querySelector<HTMLElement>('[data-markdown-file-search-anchor]')
-        if (!frozenAnchor) throw new Error('Missing frozen file-search anchor')
-
-        // 120 - 30 page scroll - 50 container left + 5 container scroll - 2 border = 43
-        expect(frozenAnchor.style.left).toBe('43px')
-        // 240 - 60 page scroll - 90 container top + 10 container scroll - 2 border = 98
-        expect(frozenAnchor.style.top).toBe('98px')
-        expect(frozenAnchor.style.height).toBe('18px')
-        restoreOffsetParent()
-        restoreScroll()
-        overlayContainer.remove()
-    })
-
-    it('leaves the frozen anchor unpositioned while lexical has not placed its own anchor', async () => {
-        const overlayContainer = document.createElement('div')
-        const lexicalAnchor = document.createElement('div')
-        lexicalAnchor.style.position = 'absolute'
-        overlayContainer.append(lexicalAnchor)
-        document.body.append(overlayContainer)
-
-        render(
-            <AppThemeProvider>
-                <VirtuosoMockContext.Provider value={{ itemHeight: 52, viewportHeight: 104 }}>
-                    <MarkdownFileSearchMenu
-                        anchorElement={lexicalAnchor}
-                        onHighlight={vi.fn()}
-                        onSelect={vi.fn()}
-                        options={[new MarkdownFileSearchOption('app/readme.md')]}
-                        selectedIndex={0}
-                    />
-                </VirtuosoMockContext.Provider>
-            </AppThemeProvider>,
-        )
-        await flushFrozenAnchor()
-        const frozenAnchor = overlayContainer.querySelector<HTMLElement>('[data-markdown-file-search-anchor]')
-        if (!frozenAnchor) throw new Error('Missing frozen file-search anchor')
-
-        expect(frozenAnchor.style.left).toBe('')
-        expect(frozenAnchor.style.top).toBe('')
-        overlayContainer.remove()
     })
 
     it('leaves focus and keyboard selection with the editor after resize', async () => {
@@ -428,7 +285,7 @@ describe('MarkdownFileSearchMenu', () => {
                 <KeyboardSelectionHarness onSelect={onSelect} />
             </AppThemeProvider>,
         )
-        await flushFrozenAnchor()
+        await flushSessionAnchor()
         const editor = screen.getByRole('textbox', { name: 'Markdown editor' }) as HTMLInputElement
         editor.focus()
         editor.setSelectionRange(1, 5)

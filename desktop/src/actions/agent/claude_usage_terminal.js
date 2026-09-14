@@ -1,6 +1,6 @@
 const nodePty = require('node-pty');
 const { Terminal } = require('@xterm/headless');
-const { CLAUDE_USAGE_POLL_REASONS, usageScreenExcerpt } = require('./claude_usage_diagnostics');
+const { CLAUDE_USAGE_POLL_REASONS, logUsagePollStage, usageScreenExcerpt } = require('./claude_usage_diagnostics');
 const { parseClaudeUsageOutput } = require('./claude_usage_parsing');
 
 const CLAUDE_USAGE_TERMINAL_COLUMNS = 140;
@@ -132,7 +132,11 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
             timeout = setPollTimeout(() => {
                 const screen = terminalScreenText(terminal);
                 const payload = parseClaudeUsageOutput(screen, observedAt);
+                // The parent only ever sees a deadline of its own when this reply never arrives, so the
+                // screen and the teardown are traced here, where they still exist.
+                logUsagePollStage('report-deadline', { hasPayload: Boolean(payload), screenExcerpt: usageScreenExcerpt(screen) });
                 killProcess();
+                logUsagePollStage('report-deadline-killed');
                 if (payload) finish({ payload, reason: null, screenExcerpt: '' });
                 else finishWithoutUsage(CLAUDE_USAGE_POLL_REASONS.ptyReportTimeout, screen);
             }, reportTimeoutMs);
@@ -222,7 +226,9 @@ function collectTerminalUsage(processHandle, terminal, observedAt, dependencies)
         });
         timeout = setPollTimeout(() => {
             const screen = terminalScreenText(terminal);
+            logUsagePollStage('ready-deadline', { commandSent, screenExcerpt: usageScreenExcerpt(screen) });
             killProcess();
+            logUsagePollStage('ready-deadline-killed');
             // Answering trust and still not becoming ready is a different fault from never seeing the
             // screen at all, so it never triggers a second keystroke and never shares a reason.
             const reason = trustAnswered && showsTrustScreen(screen)

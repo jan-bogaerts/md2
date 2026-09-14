@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../data/action_context'
 import type { DataService } from './data/data_service'
 import { CardPopupService } from './card_popup_service'
+import { MobileBackDismissService } from './mobile_back_dismiss_service'
 
 class PopupDataService extends EventTarget {
     project: { branch: string, id: string } | null = { branch: 'main', id: 'project-1' }
@@ -12,13 +13,46 @@ class PopupDataService extends EventTarget {
 }
 
 const services: CardPopupService[] = []
+const originalWindow = window
+let testWindow: ReturnType<typeof installTestWindow>
+
+interface TestHistory {
+    go: ReturnType<typeof vi.fn>
+    pushState: ReturnType<typeof vi.fn>
+}
+
+function installTestWindow() {
+    const popStateHandlers: Array<() => void> = []
+    const history: TestHistory = {
+        go: vi.fn(() => queueMicrotask(() => popStateHandlers.forEach((handler) => handler()))),
+        pushState: vi.fn(),
+    }
+    const testWindow = {
+        addEventListener: (type: string, handler: () => void) => {
+            if (type === 'popstate') popStateHandlers.push(handler)
+        },
+        history,
+    }
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: testWindow, writable: true })
+
+    return {
+        history,
+        pressBack: () => popStateHandlers.forEach((handler) => handler()),
+    }
+}
+
+async function flushMicrotasks() {
+    await Promise.resolve()
+    await Promise.resolve()
+}
 
 function createService() {
     const owner = new PopupDataService()
-    const service = new CardPopupService(owner as unknown as DataService)
+    const mobileBackDismissService = new MobileBackDismissService()
+    const service = new CardPopupService(owner as unknown as DataService, mobileBackDismissService)
     services.push(service)
 
-    return { owner, service }
+    return { mobileBackDismissService, owner, service }
 }
 
 function actionContext(cardInternalId: string): ActionContext {
@@ -29,9 +63,16 @@ function anchor() {
     return document.createElement('button')
 }
 
-afterEach(() => {
+beforeEach(() => {
+    testWindow = installTestWindow()
+})
+
+afterEach(async () => {
+    services.forEach((service) => service.setMobileBackDismissEnabled(false))
     services.forEach((service) => service.clear())
+    await flushMicrotasks()
     services.length = 0
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: originalWindow, writable: true })
 })
 
 describe('CardPopupService', () => {
@@ -142,5 +183,69 @@ describe('CardPopupService', () => {
 
         expect(service.getSnapshot()).toEqual([])
         expect(changed).toHaveBeenCalledTimes(3)
+    })
+
+    it('registers only while mobile back dismissal is enabled', async () => {
+        const { mobileBackDismissService, service } = createService()
+        service.toggleCardDetails('card-1', anchor())
+
+        expect(mobileBackDismissService.getRegistrationCount()).toBe(0)
+
+        service.setMobileBackDismissEnabled(true)
+        expect(mobileBackDismissService.getRegistrationCount()).toBe(1)
+
+        service.setMobileBackDismissEnabled(false)
+        await flushMicrotasks()
+        expect(mobileBackDismissService.getRegistrationCount()).toBe(0)
+
+        service.setMobileBackDismissEnabled(true)
+        expect(mobileBackDismissService.getRegistrationCount()).toBe(1)
+    })
+
+    it('closes the current top popup after activation on each back press', async () => {
+        const { mobileBackDismissService, service } = createService()
+        service.setMobileBackDismissEnabled(true)
+        service.toggleCardDetails('card-1', anchor())
+        service.toggleCardDetails('card-2', anchor())
+        const [firstEntry, secondEntry] = service.getSnapshot()
+        service.activate(firstEntry.id)
+
+        testWindow.pressBack()
+        await flushMicrotasks()
+
+        expect(service.getSnapshot()).toEqual([secondEntry])
+        expect(mobileBackDismissService.getRegistrationCount()).toBe(1)
+
+        testWindow.pressBack()
+        await flushMicrotasks()
+
+        expect(service.getSnapshot()).toEqual([])
+        expect(mobileBackDismissService.getRegistrationCount()).toBe(0)
+    })
+
+    it('returns several registrations in one history move when popups clear', async () => {
+        const { mobileBackDismissService, service } = createService()
+        service.setMobileBackDismissEnabled(true)
+        service.toggleCardDetails('card-1', anchor())
+        service.toggleCardDetails('card-2', anchor())
+
+        service.clear()
+        await flushMicrotasks()
+
+        expect(mobileBackDismissService.getRegistrationCount()).toBe(0)
+        expect(testWindow.history.go).toHaveBeenCalledExactlyOnceWith(-2)
+    })
+
+    it('returns popup registrations when project identity changes', async () => {
+        const { owner, service, mobileBackDismissService } = createService()
+        service.setMobileBackDismissEnabled(true)
+        service.toggleCardDetails('card-1', anchor())
+        owner.project = { branch: 'feature', id: 'project-1' }
+
+        owner.dispatchEvent(new Event('changed'))
+        await flushMicrotasks()
+
+        expect(service.getSnapshot()).toEqual([])
+        expect(mobileBackDismissService.getRegistrationCount()).toBe(0)
     })
 })
