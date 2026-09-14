@@ -11,7 +11,7 @@ agents:
 policy:
 after: 57ceeeca-6732-42a3-b77f-b1c459a2f268
 ---
-Extend action-popup scheduling UI for event triggers delivered by [F_353](F_353_run_schedules_from_account_and_card_events.md).
+Extend action-popup scheduling UI for event triggers delivered by [F\_353](F_353_run_schedules_from_account_and_card_events.md).
 
 ## Current state
 
