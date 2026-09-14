@@ -5,5 +5,8 @@
   "type": "command",
   "phrases": [],
   "command": "npm run build:windows",
-  "showCommandWindow": true
+  "showCommandWindow": true,
+  "appliesTo": {
+    "kind": "project"
+  }
 }
