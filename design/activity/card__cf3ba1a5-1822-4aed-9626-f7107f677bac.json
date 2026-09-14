@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "cf3ba1a5-1822-4aed-9626-f7107f677bac",
       "cardPath": "design/feature_descriptions/F_358_auto_update_app.md",
-      "completedAt": "2026-09-14T08:59:21.501Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 84751
+        "usedTokens": 86184
       },
       "entries": [
         {
@@ -406,6 +406,36 @@
           "role": "assistant",
           "sequence": 31,
           "timestamp": "2026-09-14T08:59:21.501Z"
+        },
+        {
+          "content": "I am confused. has this already been implemented?",
+          "id": "agent-turn-4a8ec43c-486c-4825-adf5-a874c71a0f13-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 32,
+          "timestamp": "2026-09-14T09:05:37.042Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-4a8ec43c-486c-4825-adf5-a874c71a0f13-event-33",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_095ad952217330fa016aa7b8e52fd487d293abf5e099490bce",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-14T09:05:41.888Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. First version already implemented in commit `8eef7ca6`.\n\nIt currently:\n\n- Checks GitHub on packaged-app startup.\n- Compares versions.\n- Shows update snackbar.\n- Downloads installer with progress.\n- Opens installer and quits app.\n\nBut implementation has gaps: missed-notification race, renderer-controlled download URL, hidden download/launch failures, unchecked installer-launch result, component-owned state.\n\n`status: ready for implementation` now means “ready to implement those fixes,” not “feature absent.” This distinction was unclear. Better title/scope may be “harden existing auto-update flow.”\n\n",
+          "id": "agent-turn-4a8ec43c-486c-4825-adf5-a874c71a0f13-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-09-14T09:05:44.224Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -420,21 +450,21 @@
         }
       ],
       "startedAt": "2026-09-14T08:57:05.361Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "elapsedMs": 136140,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-14T09:05:37.042Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 557696,
-        "inputTokens": 74995,
-        "outputTokens": 2514,
-        "reasoningTokens": 3398,
-        "totalTokens": 638603
+        "cachedInputTokens": 642048,
+        "inputTokens": 76637,
+        "outputTokens": 2640,
+        "reasoningTokens": 3462,
+        "totalTokens": 724787
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -461,11 +491,11 @@
         "agent-83f0a21b-98e8-436c-be08-4b0f9db7274e"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-c64d5fb3-2462-47db-a6c7-b2bd3008986c",
       "origin": {
@@ -474,9 +504,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-83f0a21b-98e8-436c-be08-4b0f9db7274e",
       "startedAt": "2026-09-14T08:57:05.359Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-83f0a21b-98e8-436c-be08-4b0f9db7274e"
     }
   ],
   "version": 5
