@@ -61,7 +61,7 @@ const {
     SENTRY_REQUEST_CHANNEL,
     THEME_SET_MODE_CHANNEL,
 } = require('./src/shell/ipc_channels');
-const { checkForUpdate, registerUpdateDownload } = require('./src/shell/update_service');
+const { registerUpdateBridge, UpdateService } = require('./src/shell/update_service');
 const { CloseCoordinator } = require('./src/shell/close_coordinator');
 const { createManagedWindow } = require('./src/shell/window_state');
 const { ProjectStatsWorkerService } = require('./src/stats/project_stats_worker_service');
@@ -147,6 +147,12 @@ const closeCoordinator = new CloseCoordinator({
     getWindows: () => BrowserWindow.getAllWindows(),
     sendFlushRequest: (webContents, request) => webContents.send(LIFECYCLE_FLUSH_REQUEST_CHANNEL, request),
     showMessageBox: (...parameters) => dialog.showMessageBox(...parameters),
+});
+const updateService = new UpdateService({
+    app,
+    https,
+    requestApplicationQuit: () => closeCoordinator.requestApplicationQuit(),
+    shell,
 });
 
 registerProcessErrorHandlers();
@@ -372,9 +378,9 @@ app.whenReady().then(async () => {
     registerRemoteControlBridge();
     registerThemeBridge();
     const getPrimaryWindow = () => BrowserWindow.getAllWindows()[0] ?? null;
-    registerUpdateDownload({ app, getWindow: getPrimaryWindow, https, ipcMain, shell });
+    registerUpdateBridge({ getWindow: getPrimaryWindow, ipcMain, updateService });
     createWindow();
-    void checkForUpdate({ app, getWindow: getPrimaryWindow, https });
+    void updateService.checkForUpdate();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {

@@ -1934,7 +1934,7 @@
         "totalTokens": 2722081
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -2033,11 +2033,11 @@
         "agent-d3f6dc0c-5fc7-4c1a-a7fe-8adcf9af8dbc"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-e9dd47cd-e9fa-4d21-8d64-2b76e719ea04",
       "origin": {
@@ -2046,9 +2046,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-d3f6dc0c-5fc7-4c1a-a7fe-8adcf9af8dbc",
       "startedAt": "2026-09-14T10:03:47.283Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-d3f6dc0c-5fc7-4c1a-a7fe-8adcf9af8dbc"
     }
   ],
   "version": 5

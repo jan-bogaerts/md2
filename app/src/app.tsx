@@ -13,6 +13,7 @@ import { readStartupSplashPreference } from './services/config/config_service'
 import { dialogService } from './services/dialog_service'
 import type { ApplicationStartupService } from './services/application_startup_service'
 import { SentryImportConfirmationDialog } from './components/sentry_import_confirmation_dialog'
+import { updateService } from './services/update_service'
 
 interface AppProps {
     startupService?: ApplicationStartupService
@@ -23,6 +24,12 @@ export function App({ startupService }: AppProps = {}) {
     const bootstrap = useAppBootstrap(startupService)
     const showStartupSplash = readStartupSplashPreference()
     const reportedBootstrapErrorRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        void updateService.start()
+
+        return () => updateService.stop()
+    }, [])
 
     useEffect(() => {
         if (!bootstrap.error) {

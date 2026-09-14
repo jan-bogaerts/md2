@@ -1,84 +1,55 @@
 import { Box, Button, LinearProgress, Paper, Snackbar, Stack, Typography } from '@mui/material'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-    getElectronUpdateBridge,
-    type DownloadProgress,
-    type UpdateInfo,
-} from '../../data/electron_update_bridge'
+import { useSyncExternalStore } from 'react'
+import { updateService, type UpdateService } from '../../services/update_service'
 
-type Phase = 'available' | 'downloading' | 'launching'
-
-function computePercent(progress: DownloadProgress | null) {
-    if (!progress || progress.total <= 0) return 0
-
-    return Math.min(100, Math.round((progress.received / progress.total) * 100))
+interface UpdateNotificationProps {
+    service?: UpdateService
 }
 
-/**
- * Persistent snackbar offering the newly released version. Install streams the installer in the main
- * process; a progress bar tracks the download, then the app quits as the installer launches.
- */
-export function UpdateNotification() {
-    const bridge = useMemo(() => getElectronUpdateBridge(), [])
-    const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
-    const [phase, setPhase] = useState<Phase>('available')
-    const [progress, setProgress] = useState<DownloadProgress | null>(null)
-    const dismissedRef = useRef(false)
+function computePercent(received: number, total: number | null) {
+    if (!total || total <= 0) return 0
 
-    useEffect(() => {
-        if (!bridge) return undefined
+    return Math.min(100, Math.round((received / total) * 100))
+}
 
-        return bridge.onUpdateAvailable((info) => {
-            // A dismissed offer is not re-shown until the next startup.
-            if (dismissedRef.current) return
-            setUpdateInfo(info)
-        })
-    }, [bridge])
+/** Persistent application update offer, progress, and retry notification. */
+export function UpdateNotification({ service = updateService }: UpdateNotificationProps) {
+    const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot)
+    if (snapshot.state === 'idle') return null
 
-    useEffect(() => {
-        if (!bridge) return undefined
-
-        return bridge.onDownloadProgress((next) => {
-            setProgress(next)
-            if (next.total > 0 && next.received >= next.total) setPhase('launching')
-        })
-    }, [bridge])
-
-    if (!bridge || !updateInfo) return null
-
+    const handleDismiss = () => service.dismiss()
     const handleInstall = () => {
-        setPhase('downloading')
-        void bridge.downloadUpdate(updateInfo.downloadUrl)
+        void service.install()
     }
-
-    const handleDismiss = () => {
-        dismissedRef.current = true
-        setUpdateInfo(null)
-    }
-
-    const percent = computePercent(progress)
+    const determinate = snapshot.total !== null && snapshot.total > 0
+    const percent = computePercent(snapshot.received, snapshot.total)
+    const message = snapshot.state === 'launching'
+        ? 'Launching installer…'
+        : snapshot.state === 'downloading'
+            ? `Downloading version ${snapshot.version}…`
+            : snapshot.state === 'error'
+                ? snapshot.error
+                : `Version ${snapshot.version} is available.`
 
     return (
         <Snackbar anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }} open>
-            <Paper elevation={6} sx={{ maxWidth: 360, p: 2 }}>
+            <Paper role={snapshot.state === 'error' ? 'alert' : undefined} sx={{ maxWidth: 360, p: 2 }}>
                 <Stack spacing={1.5}>
-                    <Typography variant="body2">
-                        {phase === 'launching'
-                            ? 'Launching installer…'
-                            : `Version ${updateInfo.version} is available.`}
-                    </Typography>
-                    {phase === 'available' ? (
-                        <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
-                            <Button onClick={handleDismiss} size="small">Dismiss</Button>
-                            <Button onClick={handleInstall} size="small" variant="contained">Install</Button>
-                        </Stack>
-                    ) : (
+                    <Typography variant="body2">{message}</Typography>
+                    {snapshot.state === 'downloading' || snapshot.state === 'launching' ? (
                         <Box>
                             <LinearProgress
-                                value={percent}
-                                variant={progress ? 'determinate' : 'indeterminate'}
+                                value={determinate ? percent : undefined}
+                                variant={determinate ? 'determinate' : 'indeterminate'}
                             />
                         </Box>
+                    ) : (
+                        <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+                            <Button onClick={handleDismiss} size="small" variant="outlined">Dismiss</Button>
+                            <Button onClick={handleInstall} size="small" variant="contained">
+                                {snapshot.state === 'error' ? 'Retry' : 'Install'}
+                            </Button>
+                        </Stack>
                     )}
                 </Stack>
             </Paper>

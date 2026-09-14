@@ -2,7 +2,7 @@
 author: 
 id: B_234
 title: Defer emoji picker rendering until open
-status: ready for implementation
+status: ready
 owner: 
 affects:
 policy:
