@@ -10,7 +10,6 @@ agents:
   - design/activity/card__cf3ba1a5-1822-4aed-9626-f7107f677bac.json
 policy:
 ---
-
 The app is released on github: [https://github.com/jan-bogaerts/md2](https://github.com/jan-bogaerts/md2)
 
 It has official releases. I believe we can do an automatic update from github.&#x20;
@@ -26,7 +25,7 @@ This path is not complete. Availability is sent once without a stored snapshot, 
 ## Implementation details
 
 * Keep release lookup, selected installer URL, download, and launch in an Electron update service. Renderer must request installation without supplying a URL.
-* Check once per packaged-app startup after Electron is ready. Request `https://api.github.com/repos/jan-bogaerts/md2/releases/latest`, compare numeric version segments with `app.getVersion()`, and accept only the signed Windows x64 asset named `MD2-Setup-<version>-x64.exe`.
+* Check once per packaged-app startup after Electron is ready. Request [`https://api.github.com/repos/jan-bogaerts/md2/releases/latest`](https://api.github.com/repos/jan-bogaerts/md2/releases/latest), compare numeric version segments with `app.getVersion()`, and accept only the signed Windows x64 asset named `MD2-Setup-<version>-x64.exe`.
 * Store current update snapshot so renderer can read it after mounting. A snapshot is current update state, version, and download progress at one moment. Send granular IPC notifications when that snapshot changes; expose only scoped read, subscribe, dismiss, and install operations through preload.
 * Add renderer update service owning `idle`, `available`, `downloading`, `launching`, and `error` states. `UpdateNotification` subscribes with `useSyncExternalStore` and only renders service state.
 * Show persistent bottom-right snackbar for `available`. Include released version, secondary `Dismiss` button, and primary `Install` button. Dismissal suppresses that release until next app start.
