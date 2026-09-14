@@ -4,6 +4,6 @@
   "description": "Build a new version of the app",
   "type": "command",
   "phrases": [],
-  "command": "",
+  "command": "npm run build:windows",
   "showCommandWindow": true
 }
