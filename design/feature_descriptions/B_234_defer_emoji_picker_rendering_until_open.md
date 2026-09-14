@@ -12,8 +12,6 @@ changedFiles:
   - app/src/components/editor/markdown_emoji_toolbar_control.tsx
 internalId: e635ff29-5c2e-40a2-9374-baa53708524f
 after: 23d124ec-a23c-442f-af4d-f678be48084c
-branch: b_234_defer_emoji_picker_rendering_until_open
-worktree: 1
 agents:
   - design/activity/card__e635ff29-5c2e-40a2-9374-baa53708524f.json
 ---
