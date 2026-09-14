@@ -851,6 +851,31 @@
     "cardInternalId": "e635ff29-5c2e-40a2-9374-baa53708524f",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-09-14T10:08:32.681Z",
+      "conversationIds": [
+        "agent-31d30c66-3f6c-46a6-9678-fee94dbae6f9"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-4251bff6-45bc-41ac-b585-a3cca112d827",
+      "origin": {
+        "cardInternalId": "e635ff29-5c2e-40a2-9374-baa53708524f",
+        "kind": "card"
+      },
+      "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "rootActionLabel": "fix bug",
+      "rootConversationId": "agent-31d30c66-3f6c-46a6-9678-fee94dbae6f9",
+      "startedAt": "2026-09-14T10:03:34.559Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
