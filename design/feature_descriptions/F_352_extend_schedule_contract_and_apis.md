@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__e77dd870-74a2-4509-97c0-ce42ffc064fd.json
 policy:
-branch: f_352_extend_schedule_contract_and_apis
-worktree: 2
 changedFiles:
   - app/src/data/action_schedule_types.node.test.ts
   - app/src/data/action_schedule_types.ts
