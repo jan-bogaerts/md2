@@ -3099,7 +3099,35 @@
         "totalTokens": 2965111
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "5c3ce7b1-898e-4a38-b281-0f6fc89e2bb9",
+      "cardPath": "design/feature_descriptions/B_232_latest_changes_broke_opening_cards.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "we fixed design/feature_descriptions/B_232_latest_changes_broke_opening_cards.md. can you check [Trace-20260914T112630.json](file:///C:/Users/janbo/Documents/dev/Trace-20260914T112630.json) this is a trace after the fix of opening a card. it is faster, but there still appears to be happening a lot. what is causing the heavy load?",
+          "id": "agent-turn-7be70f21-5c66-47f7-bf55-9bdbc1d93583-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-14T09:28:55.779Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-7685d4a9-1b7c-4803-9978-bbbb833119eb",
+      "providerSessions": [],
+      "startedAt": "2026-09-14T09:28:55.779Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-14T09:28:55.779Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
