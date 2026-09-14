@@ -12,7 +12,13 @@ import {
 } from '../data/data_types'
 import { dataService } from '../services/data/data_service'
 import { dialogService } from '../services/dialog_service'
-import { getElectronLifecycleBridge, type ElectronFlushRequest, type ElectronLifecycleBridge } from '../services/electron_lifecycle_bridge'
+import {
+    getElectronLifecycleBridge,
+    isElectron,
+    type ElectronFlushRequest,
+    type ElectronLifecycleBridge,
+} from '../services/electron_lifecycle_bridge'
+import { cardPopupService } from '../services/card_popup_service'
 import { openFilesService } from '../services/open_files_service'
 import type { OpenDocument } from '../services/open_files_service'
 import { telemetryService } from '../services/telemetry/telemetry_service'
@@ -29,7 +35,6 @@ import { MobileCardViewMenu } from './card_view/mobile_card_view_menu'
 import { MobileCardView } from './card_view/mobile_card_view'
 import { CardActionPopupHost } from './actions/run/popup/card_action_popup_host'
 import { stageMarkdownEditors } from '../services/project/markdown_editor_staging'
-import { useCardPopupBackDismiss } from './hooks/use_card_popup_back_dismiss'
 import { useProjectReference } from './hooks/use_project_reference'
 import { TextView } from './text_view/text_view'
 import { FileTreeView } from './text_view/file_tree_view'
@@ -98,7 +103,11 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         states.map(({ color, state }, index) => [state, color ?? defaultColumnAccent(index)]),
     ), [states])
 
-    useCardPopupBackDismiss()
+    useEffect(() => {
+        cardPopupService.setMobileBackDismissEnabled(isMobile && !isElectron())
+
+        return () => cardPopupService.setMobileBackDismissEnabled(false)
+    }, [isMobile])
 
     useEffect(() => {
         onLeftPanelInteractionRef.current = onLeftPanelInteraction

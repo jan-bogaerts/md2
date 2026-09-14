@@ -4,9 +4,11 @@ import {
     dataService,
     type DataService,
 } from './data/data_service'
+import { mobileBackDismissService, type MobileBackDismissService } from './mobile_back_dismiss_service'
 import { register } from './service_injector'
 
 const CARD_POPUPS_CHANGED_EVENT = 'changed'
+const MOBILE_BACK_DISMISS_REGISTRATION_PREFIX = 'card-popup-back-dismiss'
 
 interface CardPopupEntryBase {
     anchorElement: HTMLElement
@@ -61,19 +63,31 @@ function createFallbackAnchor(anchorElement: HTMLElement) {
 /** Owns ordered action and card-details popup entries across card component lifetimes. */
 export class CardPopupService extends EventTarget {
     private readonly dataService: DataService
+    private readonly mobileBackDismissService: MobileBackDismissService
     private entries: CardPopupEntry[] = []
+    private mobileBackDismissEnabled = false
+    private mobileBackDismissRegistrationIds: string[] = []
+    private nextMobileBackDismissRegistrationId = 1
     private nextId = 1
     private currentProjectKey: string | null
 
-    constructor(dataServiceInstance: DataService) {
+    constructor(dataServiceInstance: DataService, mobileBackDismissServiceInstance: MobileBackDismissService) {
         super()
         this.dataService = dataServiceInstance
+        this.mobileBackDismissService = mobileBackDismissServiceInstance
         this.currentProjectKey = projectKey(this.dataService)
         this.dataService.addEventListener('changed', this.handleDataServiceChanged)
     }
 
     getSnapshot() {
         return this.entries
+    }
+
+    setMobileBackDismissEnabled(enabled: boolean) {
+        if (enabled === this.mobileBackDismissEnabled) return
+
+        this.mobileBackDismissEnabled = enabled
+        this.reconcileMobileBackDismissRegistrations()
     }
 
     toggleAction(context: ActionContext, anchorElement: HTMLElement) {
@@ -199,6 +213,13 @@ export class CardPopupService extends EventTarget {
         this.clear()
     }
 
+    private readonly closeTopPopup = () => {
+        const topEntry = this.entries.at(-1)
+        if (!topEntry) return
+
+        this.close(topEntry.id)
+    }
+
     private findCardDetails(cardInternalId: string) {
         return this.entries.find((entry): entry is CardDetailsPopupEntry => (
             entry.kind === 'card-details' && entry.cardInternalId === cardInternalId
@@ -245,11 +266,32 @@ export class CardPopupService extends EventTarget {
 
     private setEntries(entries: CardPopupEntry[]) {
         this.entries = entries
+        this.reconcileMobileBackDismissRegistrations()
         this.dispatchEvent(new Event(CARD_POPUPS_CHANGED_EVENT))
+    }
+
+    private reconcileMobileBackDismissRegistrations() {
+        const requiredRegistrationCount = this.mobileBackDismissEnabled ? this.entries.length : 0
+        const obsoleteRegistrationIds = this.mobileBackDismissRegistrationIds.slice(requiredRegistrationCount)
+        this.mobileBackDismissRegistrationIds = this.mobileBackDismissRegistrationIds.slice(0, requiredRegistrationCount)
+        obsoleteRegistrationIds.forEach((registrationId) => this.mobileBackDismissService.unregister(registrationId))
+
+        const missingRegistrationCount = requiredRegistrationCount - this.mobileBackDismissRegistrationIds.length
+        const newRegistrationIds = Array.from({ length: missingRegistrationCount }, () => {
+            const registrationId = `${MOBILE_BACK_DISMISS_REGISTRATION_PREFIX}-${this.nextMobileBackDismissRegistrationId}`
+            this.nextMobileBackDismissRegistrationId += 1
+            this.mobileBackDismissService.register(registrationId, this.closeTopPopup)
+
+            return registrationId
+        })
+        this.mobileBackDismissRegistrationIds = [...this.mobileBackDismissRegistrationIds, ...newRegistrationIds]
     }
 }
 
-export const cardPopupService = register('cardPopupService', new CardPopupService(dataService))
+export const cardPopupService = register(
+    'cardPopupService',
+    new CardPopupService(dataService, mobileBackDismissService),
+)
 
 export function subscribeCardPopups(onStoreChange: () => void) {
     cardPopupService.addEventListener(CARD_POPUPS_CHANGED_EVENT, onStoreChange)

@@ -370,13 +370,19 @@ describe('CardView', () => {
     it('does not rerender card columns when the body popup opens or closes', () => {
         const renderCardColumn = vi.spyOn(cardColumnModule, 'CardColumn')
         renderCardView()
-        const initialRenderCount = renderCardColumn.mock.calls.length
+        const initialColumnRenderCount = renderCardColumn.mock.calls.length
+        const selectedCard = screen.getByRole('button', { name: 'Drag F-1' })
+        const unaffectedCard = screen.getByRole('button', { name: 'Drag F-2' })
 
-        fireEvent.click(screen.getByRole('button', { name: 'Drag F-1' }))
-        expect(renderCardColumn).toHaveBeenCalledTimes(initialRenderCount)
+        fireEvent.click(selectedCard)
+        expect(renderCardColumn).toHaveBeenCalledTimes(initialColumnRenderCount)
+        expect(selectedCard).toHaveAttribute('aria-expanded', 'true')
+        expect(unaffectedCard).toHaveAttribute('aria-expanded', 'false')
 
         fireEvent.click(screen.getByRole('button', { name: 'Close card details' }))
-        expect(renderCardColumn).toHaveBeenCalledTimes(initialRenderCount)
+        expect(renderCardColumn).toHaveBeenCalledTimes(initialColumnRenderCount)
+        expect(selectedCard).toHaveAttribute('aria-expanded', 'false')
+        expect(unaffectedCard).toHaveAttribute('aria-expanded', 'false')
     })
 
     it('rerenders only columns whose drop preview changes', () => {
