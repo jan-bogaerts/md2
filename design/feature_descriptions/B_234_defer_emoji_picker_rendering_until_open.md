@@ -14,6 +14,8 @@ internalId: e635ff29-5c2e-40a2-9374-baa53708524f
 after: 23d124ec-a23c-442f-af4d-f678be48084c
 branch: b_234_defer_emoji_picker_rendering_until_open
 worktree: 1
+agents:
+  - design/activity/card__e635ff29-5c2e-40a2-9374-baa53708524f.json
 ---
 
 Opening a card constructs the complete emoji picker even though the picker is closed. Render and group the emoji catalogue only after the user opens the picker.

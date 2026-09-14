@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "cardInternalId": "e635ff29-5c2e-40a2-9374-baa53708524f",
+      "cardPath": "design/feature_descriptions/B_234_defer_emoji_picker_rendering_until_open.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and fix the bug described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_234_defer_emoji_picker_rendering_until_open.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned bug description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).&#x20;\n2. create a task for each block\n3. Wait for approval.\n4. include tests\n5. After implementation is done, update the field `status` in the markdown feature description file to `ready`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_234_defer_emoji_picker_rendering_until_open.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria. Keep everything short and to the point.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-acda11e1-c9c0-4e38-8847-ad7fc0772586-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-14T09:53:50.972Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-31d30c66-3f6c-46a6-9678-fee94dbae6f9",
+      "providerSessions": [],
+      "startedAt": "2026-09-14T09:53:50.972Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-14T09:53:50.972Z"
+      },
+      "title": "fix bug",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "e635ff29-5c2e-40a2-9374-baa53708524f",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
