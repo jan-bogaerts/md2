@@ -2234,6 +2234,39 @@
       "startedAt": "2026-09-14T08:41:42.429Z",
       "status": "completed",
       "rootConversationId": "agent-8bef9de3-bf5f-4207-9054-48d278d312b7"
+    },
+    {
+      "commits": [
+        {
+          "commit": "e9dbabec9144bb793e00624fd554bef78a60e5da",
+          "committedAt": "2026-09-14T11:25:48+02:00",
+          "deletions": 78,
+          "filePaths": [
+            "app/src/services/actions/electron_action_runner.node.test.ts",
+            "app/src/services/actions/electron_action_runner.ts",
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/data/data_service.ts",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/action/action_runner_service.test.mjs",
+            "desktop/src/actions/activity/card_activity_reference.js",
+            "desktop/src/actions/activity/card_activity_reference.test.mjs",
+            "desktop/src/actions/agent/agent_conversation_persistence.js",
+            "desktop/src/actions/agent/agent_conversation_persistence.test.mjs",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs"
+          ],
+          "filesChanged": 12,
+          "insertions": 377,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-14T11:25:48+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "df17653d-859c-40cd-8515-2e3bf9e0da56",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
