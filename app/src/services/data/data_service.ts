@@ -169,10 +169,7 @@ export class DataService extends EventTarget {
                 })
             },
         )
-        this.agents = new AgentIntegration(
-            this.createAgentIntegrationDependencies(),
-            (cardPath, reference) => this.cards.addAgentLogReference(cardPath, reference),
-        )
+        this.agents = new AgentIntegration(this.createAgentIntegrationDependencies())
         agentAcknowledgementService.connectConversationStore((conversation) => this.agents.findStoredConversation(conversation))
         this.projectLoading = new ProjectLoading(
             this.createProjectLoadingDependencies(),

@@ -151,6 +151,31 @@ describe('AgentRunnerService state handling', () => {
         await vi.waitFor(() => expect(persistConversation).toHaveBeenCalledOnce());
     });
 
+    it('does not spawn or publish started when initial card persistence fails', async () => {
+        const failure = new Error('Card identity mismatch');
+        const persistConversationCheckpoint = vi.fn(async () => { throw failure; });
+        const spawn = vi.fn();
+        const onEvent = vi.fn();
+        const service = new AgentRunnerService({
+            executableResolver: { find: vi.fn(async () => '/tools/fake-agent') },
+            persistConversationCheckpoint,
+            spawn,
+        });
+        const project = { rootPath: resolve(import.meta.dirname, '../../../..') };
+        const request = {
+            activityOrigin: { cardInternalId: 'card-1', kind: 'card' },
+            cardPath: 'design/F-1.md',
+            command: ['fake-agent'],
+            projectFolder: 'design',
+            prompt: 'Start work',
+        };
+
+        await expect(service.start(project, request, onEvent, vi.fn(), vi.fn())).rejects.toBe(failure);
+
+        expect(spawn).not.toHaveBeenCalled();
+        expect(onEvent).not.toHaveBeenCalled();
+    });
+
     it('does not require an installed agent when the service is constructed', () => {
         const find = vi.fn();
 

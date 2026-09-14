@@ -18,7 +18,6 @@ import { mapWithConcurrency } from '../concurrency'
 import { type RequiredDataServiceDependencies } from '../data/data_service_context'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { dialogService } from '../dialog_service'
-import { parseConversationActivityReference } from '../../../../shared/activity_paths.mjs'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 const MAX_REPORTED_LOAD_ERROR_KEYS = 200
@@ -89,15 +88,10 @@ export class AgentIntegration {
     private projectLoad: Promise<void> | null = null
     private projectLoadCompleted = false
     private readonly reportedLoadErrorKeys: Set<string> = new Set()
-    private readonly addAgentLogReference: (cardPath: string, reference: string) => string | null
     private scheduledRunCleanup: (() => void) | null = null
 
-    constructor(
-        dependencies: AgentIntegrationDeps,
-        addAgentLogReference: (cardPath: string, reference: string) => string | null,
-    ) {
+    constructor(dependencies: AgentIntegrationDeps) {
         this.dependencies = dependencies
-        this.addAgentLogReference = addAgentLogReference
     }
 
     reset() {
@@ -146,12 +140,6 @@ export class AgentIntegration {
 
         this.scheduledRunCleanup()
         this.scheduledRunCleanup = null
-    }
-
-    private linkCardActivityFile(cardPath: string, reference: string) {
-        const { activityPath } = parseConversationActivityReference(reference)
-
-        return this.addAgentLogReference(cardPath, activityPath)
     }
 
     async ensureAgentConversationsForCard(cardInternalId: string) {
@@ -402,14 +390,9 @@ export class AgentIntegration {
         if (
             event.type === 'update'
             && (event.update.kind === 'agentStarted' || event.update.kind === 'agentClosed')
-            && event.context.kind === 'card'
-            && event.context.file
+            && event.context.cardInternalId
         ) {
-            const cardInternalId = this.linkCardActivityFile(event.context.file, event.update.conversation.path)
-            if (!cardInternalId) {
-                throw new Error(`Cannot link a card conversation without an internal ID: ${event.context.file}`)
-            }
-            this.upsertAgentConversation(cardInternalId, event.update.conversation)
+            this.upsertAgentConversation(event.context.cardInternalId, event.update.conversation)
         }
     }
 

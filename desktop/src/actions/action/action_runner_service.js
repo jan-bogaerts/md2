@@ -9,6 +9,7 @@ const { createDiagramPath, resolveDiagramFile } = require('./action_diagram_outp
 const { resolveAgentPrompt } = require('./action_text');
 const { validatePreparePromptRequest, validateStartRequest } = require('./action_run_request');
 const { assertReleasedCardActionAllowed } = require('../../../../shared/released_card_actions.mjs');
+const { parseConversationActivityReference } = require('../../../../shared/activity_paths.mjs');
 
 function createRunId() {
     return `action-${crypto.randomUUID()}`;
@@ -204,10 +205,9 @@ class ActionRunnerService {
         const action = await this.loadRootAction(startRequest.actionId);
         if (action.type !== 'agent') throw new Error('Cannot reserve a conversation for a command action');
         const origin = activityOrigin(startRequest.context);
-        const project = { ...this.project };
         const conversationId = `agent-${crypto.randomUUID()}`;
-        const activityPath = await this.localGitService.ensureActivityFile(project, this.projectFolder, origin);
         const reference = this.localGitService.activityConversationReference(this.projectFolder, origin, conversationId);
+        const { activityPath } = parseConversationActivityReference(reference);
         const reservation = { activityPath, conversationId, reference };
         this.conversationReservations.set(reference, reservation);
 
