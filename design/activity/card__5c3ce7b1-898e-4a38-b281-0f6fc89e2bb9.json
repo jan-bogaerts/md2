@@ -4401,19 +4401,19 @@
           "agent": "codex",
           "conversationId": "01a09f3f-8ab6-7922-8b1d-35b371fef08f",
           "createdAt": "2026-09-14T09:35:12.633Z",
-          "lastUsedAt": "2026-09-14T09:35:12.633Z",
-          "synchronizedThroughMessageId": "agent-turn-7be70f21-5c66-47f7-bf55-9bdbc1d93583-turn-1-assistant-4"
+          "lastUsedAt": "2026-09-14T09:41:43.339Z",
+          "synchronizedThroughMessageId": "agent-turn-7be70f21-5c66-47f7-bf55-9bdbc1d93583-turn-2-assistant-4"
         }
       ],
       "startedAt": "2026-09-14T09:28:55.779Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 253917,
           "toolMs": 9788
         },
-        "elapsedMs": 376854,
-        "runningStartedAt": "2026-09-14T09:38:43.992Z"
+        "elapsedMs": 556201,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
