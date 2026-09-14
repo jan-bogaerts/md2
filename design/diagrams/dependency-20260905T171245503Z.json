@@ -1,251 +1,1361 @@
 {
+  "edges": [
+    {
+      "from": "renderer-entry",
+      "id": "dep-entry-workspace",
+      "kind": "dependency",
+      "to": "ui-workspace"
+    },
+    {
+      "from": "renderer-entry",
+      "id": "dep-entry-shell",
+      "kind": "dependency",
+      "to": "ui-app-shell"
+    },
+    {
+      "from": "renderer-entry",
+      "id": "dep-entry-theme",
+      "kind": "dependency",
+      "to": "ui-theme"
+    },
+    {
+      "from": "ui-workspace",
+      "id": "cyc-workspace-shell",
+      "kind": "cycle",
+      "label": "project_workspace <-> main_window",
+      "to": "ui-app-shell"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "cyc-shell-workspace",
+      "kind": "cycle",
+      "to": "ui-workspace"
+    },
+    {
+      "from": "ui-workspace",
+      "id": "dep-workspace-hooks",
+      "kind": "dependency",
+      "to": "ui-hooks"
+    },
+    {
+      "from": "ui-workspace",
+      "id": "dep-workspace-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "ui-workspace",
+      "id": "dep-workspace-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "ui-workspace",
+      "id": "dep-workspace-project",
+      "kind": "dependency",
+      "to": "svc-project"
+    },
+    {
+      "from": "ui-workspace",
+      "id": "dep-workspace-data",
+      "kind": "dependency",
+      "to": "svc-data"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-hooks",
+      "kind": "dependency",
+      "to": "ui-hooks"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-project",
+      "kind": "dependency",
+      "to": "svc-project"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-agents",
+      "kind": "dependency",
+      "to": "svc-agents"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-search",
+      "kind": "dependency",
+      "to": "svc-search"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-shortcuts",
+      "kind": "dependency",
+      "to": "svc-shortcuts"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-auth",
+      "kind": "dependency",
+      "to": "auth-github"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-theme",
+      "kind": "dependency",
+      "to": "ui-theme"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-actions-ui",
+      "kind": "dependency",
+      "to": "ui-actions"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-mui",
+      "kind": "dependency",
+      "to": "lib-mui"
+    },
+    {
+      "from": "ui-app-shell",
+      "id": "dep-shell-react",
+      "kind": "dependency",
+      "to": "lib-react"
+    },
+    {
+      "from": "ui-card-view",
+      "id": "dep-card-view-editor",
+      "kind": "dependency",
+      "to": "ui-editor"
+    },
+    {
+      "from": "ui-card-view",
+      "id": "dep-card-view-hooks",
+      "kind": "dependency",
+      "to": "ui-hooks"
+    },
+    {
+      "from": "ui-card-view",
+      "id": "dep-card-view-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "ui-card-view",
+      "id": "dep-card-view-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "ui-card-view",
+      "id": "dep-card-view-data",
+      "kind": "dependency",
+      "to": "svc-data"
+    },
+    {
+      "from": "ui-card-view",
+      "id": "dep-card-view-project",
+      "kind": "dependency",
+      "to": "svc-project"
+    },
+    {
+      "from": "ui-card-view",
+      "id": "dep-card-view-actions-svc",
+      "kind": "dependency",
+      "to": "svc-actions"
+    },
+    {
+      "from": "ui-card-view",
+      "id": "dep-card-view-dnd",
+      "kind": "dependency",
+      "to": "lib-dnd-kit"
+    },
+    {
+      "from": "ui-card-view",
+      "id": "dep-card-view-mui",
+      "kind": "dependency",
+      "to": "lib-mui"
+    },
+    {
+      "from": "ui-card-view",
+      "id": "dep-card-view-react",
+      "kind": "dependency",
+      "to": "lib-react"
+    },
+    {
+      "from": "ui-text-view",
+      "id": "dep-text-view-card-view",
+      "kind": "dependency",
+      "to": "ui-card-view"
+    },
+    {
+      "from": "ui-text-view",
+      "id": "dep-text-view-editor",
+      "kind": "dependency",
+      "to": "ui-editor"
+    },
+    {
+      "from": "ui-text-view",
+      "id": "dep-text-view-hooks",
+      "kind": "dependency",
+      "to": "ui-hooks"
+    },
+    {
+      "from": "ui-text-view",
+      "id": "dep-text-view-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "ui-text-view",
+      "id": "dep-text-view-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "ui-text-view",
+      "id": "dep-text-view-mui",
+      "kind": "dependency",
+      "to": "lib-mui"
+    },
+    {
+      "from": "ui-editor",
+      "id": "dep-editor-hooks",
+      "kind": "dependency",
+      "to": "ui-hooks"
+    },
+    {
+      "from": "ui-editor",
+      "id": "dep-editor-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "ui-editor",
+      "id": "dep-editor-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "ui-editor",
+      "id": "dep-editor-theme",
+      "kind": "dependency",
+      "to": "ui-theme"
+    },
+    {
+      "from": "ui-editor",
+      "id": "dep-editor-lexical",
+      "kind": "dependency",
+      "to": "lib-lexical-editor"
+    },
+    {
+      "from": "ui-editor",
+      "id": "dep-editor-mui",
+      "kind": "dependency",
+      "to": "lib-mui"
+    },
+    {
+      "from": "ui-editor",
+      "id": "dep-editor-react",
+      "kind": "dependency",
+      "to": "lib-react"
+    },
+    {
+      "from": "ui-diagram-view",
+      "id": "dep-diagram-view-diagrams",
+      "kind": "dependency",
+      "to": "svc-diagrams"
+    },
+    {
+      "from": "ui-diagram-view",
+      "id": "dep-diagram-view-hooks",
+      "kind": "dependency",
+      "to": "ui-hooks"
+    },
+    {
+      "from": "ui-diagram-view",
+      "id": "dep-diagram-view-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "ui-diagram-view",
+      "id": "dep-diagram-view-mui",
+      "kind": "dependency",
+      "to": "lib-mui"
+    },
+    {
+      "from": "ui-diagram-view",
+      "id": "dep-diagram-view-react",
+      "kind": "dependency",
+      "to": "lib-react"
+    },
+    {
+      "from": "ui-actions",
+      "id": "dep-actions-ui-hooks",
+      "kind": "dependency",
+      "to": "ui-hooks"
+    },
+    {
+      "from": "ui-actions",
+      "id": "dep-actions-ui-editor",
+      "kind": "dependency",
+      "to": "ui-editor"
+    },
+    {
+      "from": "ui-actions",
+      "id": "dep-actions-ui-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "ui-actions",
+      "id": "dep-actions-ui-actions-svc",
+      "kind": "dependency",
+      "to": "svc-actions"
+    },
+    {
+      "from": "ui-actions",
+      "id": "dep-actions-ui-agents-svc",
+      "kind": "dependency",
+      "to": "svc-agents"
+    },
+    {
+      "from": "ui-actions",
+      "id": "dep-actions-ui-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "ui-actions",
+      "id": "dep-actions-ui-data-svc",
+      "kind": "dependency",
+      "to": "svc-data"
+    },
+    {
+      "from": "ui-actions",
+      "id": "dep-actions-ui-project",
+      "kind": "dependency",
+      "to": "svc-project"
+    },
+    {
+      "from": "ui-actions",
+      "id": "dep-actions-ui-mui",
+      "kind": "dependency",
+      "to": "lib-mui"
+    },
+    {
+      "from": "ui-actions",
+      "id": "dep-actions-ui-react",
+      "kind": "dependency",
+      "to": "lib-react"
+    },
+    {
+      "from": "ui-config",
+      "id": "dep-config-ui-hooks",
+      "kind": "dependency",
+      "to": "ui-hooks"
+    },
+    {
+      "from": "ui-config",
+      "id": "dep-config-ui-config-svc",
+      "kind": "dependency",
+      "to": "svc-config"
+    },
+    {
+      "from": "ui-config",
+      "id": "dep-config-ui-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "ui-config",
+      "id": "dep-config-ui-project",
+      "kind": "dependency",
+      "to": "svc-project"
+    },
+    {
+      "from": "ui-config",
+      "id": "dep-config-ui-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "ui-config",
+      "id": "dep-config-ui-theme",
+      "kind": "dependency",
+      "to": "ui-theme"
+    },
+    {
+      "from": "ui-config",
+      "id": "dep-config-ui-mui",
+      "kind": "dependency",
+      "to": "lib-mui"
+    },
+    {
+      "from": "ui-stats",
+      "id": "dep-stats-view-stats-svc",
+      "kind": "dependency",
+      "to": "svc-stats"
+    },
+    {
+      "from": "ui-stats",
+      "id": "dep-stats-view-mui",
+      "kind": "dependency",
+      "to": "lib-mui"
+    },
+    {
+      "from": "ui-stats",
+      "id": "dep-stats-view-react",
+      "kind": "dependency",
+      "to": "lib-react"
+    },
+    {
+      "from": "ui-hooks",
+      "id": "dep-hooks-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "ui-hooks",
+      "id": "dep-hooks-project",
+      "kind": "dependency",
+      "to": "svc-project"
+    },
+    {
+      "from": "ui-hooks",
+      "id": "dep-hooks-actions-svc",
+      "kind": "dependency",
+      "to": "svc-actions"
+    },
+    {
+      "from": "ui-hooks",
+      "id": "dep-hooks-agents-svc",
+      "kind": "dependency",
+      "to": "svc-agents"
+    },
+    {
+      "from": "ui-hooks",
+      "id": "dep-hooks-data-svc",
+      "kind": "dependency",
+      "to": "svc-data"
+    },
+    {
+      "from": "ui-hooks",
+      "id": "dep-hooks-react",
+      "kind": "dependency",
+      "to": "lib-react"
+    },
+    {
+      "from": "ui-theme",
+      "id": "dep-theme-mui",
+      "kind": "dependency",
+      "to": "lib-mui"
+    },
+    {
+      "from": "ui-theme",
+      "id": "dep-theme-react",
+      "kind": "dependency",
+      "to": "lib-react"
+    },
+    {
+      "from": "svc-data",
+      "id": "cyc-data-svc-data-model",
+      "kind": "cycle",
+      "label": "card operations <-> project_session",
+      "to": "data-model"
+    },
+    {
+      "from": "data-model",
+      "id": "cyc-data-model-data-svc",
+      "kind": "cycle",
+      "to": "svc-data"
+    },
+    {
+      "from": "svc-data",
+      "id": "cyc-data-svc-project-svc",
+      "kind": "cycle",
+      "label": "data_service <-> project_loading",
+      "to": "svc-project"
+    },
+    {
+      "from": "svc-project",
+      "id": "cyc-project-svc-data-svc",
+      "kind": "cycle",
+      "to": "svc-data"
+    },
+    {
+      "from": "svc-data",
+      "id": "cyc-data-svc-core",
+      "kind": "cycle",
+      "label": "card operations <-> open_files_service",
+      "to": "svc-core"
+    },
+    {
+      "from": "svc-core",
+      "id": "cyc-core-data-svc",
+      "kind": "cycle",
+      "to": "svc-data"
+    },
+    {
+      "from": "svc-core",
+      "id": "dep-core-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-core",
+      "id": "dep-core-actions-svc",
+      "kind": "dependency",
+      "to": "svc-actions"
+    },
+    {
+      "from": "svc-core",
+      "id": "dep-core-agents-svc",
+      "kind": "dependency",
+      "to": "svc-agents"
+    },
+    {
+      "from": "svc-core",
+      "id": "dep-core-project",
+      "kind": "dependency",
+      "to": "svc-project"
+    },
+    {
+      "from": "svc-core",
+      "id": "dep-core-config",
+      "kind": "dependency",
+      "to": "svc-config"
+    },
+    {
+      "from": "svc-core",
+      "id": "dep-core-sentry",
+      "kind": "dependency",
+      "to": "svc-sentry"
+    },
+    {
+      "from": "svc-core",
+      "id": "dep-core-stats",
+      "kind": "dependency",
+      "to": "svc-stats"
+    },
+    {
+      "from": "svc-core",
+      "id": "dep-core-telemetry",
+      "kind": "dependency",
+      "to": "svc-telemetry"
+    },
+    {
+      "from": "svc-core",
+      "id": "dep-core-shared",
+      "kind": "dependency",
+      "to": "shared-contracts"
+    },
+    {
+      "from": "svc-data",
+      "id": "dep-data-svc-agents-svc",
+      "kind": "dependency",
+      "to": "svc-agents"
+    },
+    {
+      "from": "svc-data",
+      "id": "dep-data-svc-config",
+      "kind": "dependency",
+      "to": "svc-config"
+    },
+    {
+      "from": "svc-data",
+      "id": "dep-data-svc-telemetry",
+      "kind": "dependency",
+      "to": "svc-telemetry"
+    },
+    {
+      "from": "svc-project",
+      "id": "dep-project-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-project",
+      "id": "dep-project-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "svc-actions",
+      "id": "dep-actions-svc-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-actions",
+      "id": "dep-actions-svc-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "svc-actions",
+      "id": "dep-actions-svc-data-svc",
+      "kind": "dependency",
+      "to": "svc-data"
+    },
+    {
+      "from": "svc-actions",
+      "id": "dep-actions-svc-project",
+      "kind": "dependency",
+      "to": "svc-project"
+    },
+    {
+      "from": "svc-actions",
+      "id": "dep-actions-svc-shared",
+      "kind": "dependency",
+      "to": "shared-contracts"
+    },
+    {
+      "from": "svc-agents",
+      "id": "dep-agents-svc-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-agents",
+      "id": "dep-agents-svc-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "svc-agents",
+      "id": "dep-agents-svc-actions-svc",
+      "kind": "dependency",
+      "to": "svc-actions"
+    },
+    {
+      "from": "svc-agents",
+      "id": "dep-agents-svc-shared",
+      "kind": "dependency",
+      "to": "shared-contracts"
+    },
+    {
+      "from": "svc-diagrams",
+      "id": "dep-diagrams-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "svc-diagrams",
+      "id": "dep-diagrams-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-diagrams",
+      "id": "dep-diagrams-dagre",
+      "kind": "dependency",
+      "to": "lib-dagre"
+    },
+    {
+      "from": "svc-stats",
+      "id": "dep-stats-svc-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-stats",
+      "id": "dep-stats-svc-agents-svc",
+      "kind": "dependency",
+      "to": "svc-agents"
+    },
+    {
+      "from": "svc-stats",
+      "id": "dep-stats-svc-shared",
+      "kind": "dependency",
+      "to": "shared-contracts"
+    },
+    {
+      "from": "svc-github",
+      "id": "dep-github-svc-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-github",
+      "id": "dep-github-svc-auth",
+      "kind": "dependency",
+      "to": "auth-github"
+    },
+    {
+      "from": "svc-github",
+      "id": "dep-github-svc-core",
+      "kind": "dependency",
+      "to": "svc-core"
+    },
+    {
+      "from": "svc-config",
+      "id": "dep-config-svc-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-search",
+      "id": "dep-search-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-attachments",
+      "id": "dep-attachments-data-svc",
+      "kind": "dependency",
+      "to": "svc-data"
+    },
+    {
+      "from": "svc-remarkable",
+      "id": "dep-remarkable-svc-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-sentry",
+      "id": "dep-sentry-svc-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "svc-sentry",
+      "id": "dep-sentry-svc-data-svc",
+      "kind": "dependency",
+      "to": "svc-data"
+    },
+    {
+      "from": "svc-telemetry",
+      "id": "dep-telemetry-sentry-lib",
+      "kind": "dependency",
+      "to": "lib-sentry"
+    },
+    {
+      "from": "data-model",
+      "id": "dep-data-model-shared",
+      "kind": "dependency",
+      "to": "shared-contracts"
+    },
+    {
+      "from": "auth-github",
+      "id": "dep-auth-data-model",
+      "kind": "dependency",
+      "to": "data-model"
+    },
+    {
+      "from": "data-model",
+      "id": "dep-data-model-preload",
+      "kind": "dependency",
+      "label": "window.md2* contextBridge",
+      "to": "desktop-shell"
+    },
+    {
+      "from": "desktop-main",
+      "id": "dep-desktop-main-shell",
+      "kind": "dependency",
+      "to": "desktop-shell"
+    },
+    {
+      "from": "desktop-main",
+      "id": "dep-desktop-main-agents",
+      "kind": "dependency",
+      "to": "desktop-agents"
+    },
+    {
+      "from": "desktop-main",
+      "id": "dep-desktop-main-actions",
+      "kind": "dependency",
+      "to": "desktop-actions"
+    },
+    {
+      "from": "desktop-main",
+      "id": "dep-desktop-main-git",
+      "kind": "dependency",
+      "to": "desktop-git"
+    },
+    {
+      "from": "desktop-main",
+      "id": "dep-desktop-main-integrations",
+      "kind": "dependency",
+      "to": "desktop-integrations"
+    },
+    {
+      "from": "desktop-main",
+      "id": "dep-desktop-main-stats",
+      "kind": "dependency",
+      "to": "desktop-stats"
+    },
+    {
+      "from": "desktop-main",
+      "id": "dep-desktop-main-electron",
+      "kind": "dependency",
+      "to": "lib-electron"
+    },
+    {
+      "from": "desktop-main",
+      "id": "dep-desktop-main-node",
+      "kind": "dependency",
+      "to": "lib-node"
+    },
+    {
+      "from": "desktop-shell",
+      "id": "dep-desktop-shell-agents",
+      "kind": "dependency",
+      "to": "desktop-agents"
+    },
+    {
+      "from": "desktop-shell",
+      "id": "dep-desktop-shell-project",
+      "kind": "dependency",
+      "to": "desktop-project"
+    },
+    {
+      "from": "desktop-shell",
+      "id": "dep-desktop-shell-electron",
+      "kind": "dependency",
+      "to": "lib-electron"
+    },
+    {
+      "from": "desktop-shell",
+      "id": "dep-desktop-shell-node",
+      "kind": "dependency",
+      "to": "lib-node"
+    },
+    {
+      "from": "desktop-actions",
+      "id": "dep-desktop-actions-agents",
+      "kind": "dependency",
+      "to": "desktop-agents"
+    },
+    {
+      "from": "desktop-actions",
+      "id": "dep-desktop-actions-git",
+      "kind": "dependency",
+      "to": "desktop-git"
+    },
+    {
+      "from": "desktop-actions",
+      "id": "dep-desktop-actions-schedule",
+      "kind": "dependency",
+      "to": "desktop-schedule"
+    },
+    {
+      "from": "desktop-actions",
+      "id": "dep-desktop-actions-shared",
+      "kind": "dependency",
+      "to": "shared-contracts"
+    },
+    {
+      "from": "desktop-actions",
+      "id": "dep-desktop-actions-node",
+      "kind": "dependency",
+      "to": "lib-node"
+    },
+    {
+      "from": "desktop-agents",
+      "id": "dep-desktop-agents-activity",
+      "kind": "dependency",
+      "to": "desktop-activity"
+    },
+    {
+      "from": "desktop-agents",
+      "id": "dep-desktop-agents-git",
+      "kind": "dependency",
+      "to": "desktop-git"
+    },
+    {
+      "from": "desktop-agents",
+      "id": "dep-desktop-agents-shared",
+      "kind": "dependency",
+      "to": "shared-contracts"
+    },
+    {
+      "from": "desktop-agents",
+      "id": "dep-desktop-agents-node",
+      "kind": "dependency",
+      "to": "lib-node"
+    },
+    {
+      "from": "desktop-activity",
+      "id": "dep-desktop-activity-shared",
+      "kind": "dependency",
+      "to": "shared-contracts"
+    },
+    {
+      "from": "desktop-activity",
+      "id": "dep-desktop-activity-node",
+      "kind": "dependency",
+      "to": "lib-node"
+    },
+    {
+      "from": "desktop-git",
+      "id": "dep-desktop-git-node",
+      "kind": "dependency",
+      "to": "lib-node"
+    },
+    {
+      "from": "desktop-project",
+      "id": "dep-desktop-project-git",
+      "kind": "dependency",
+      "to": "desktop-git"
+    },
+    {
+      "from": "desktop-project",
+      "id": "dep-desktop-project-shared",
+      "kind": "dependency",
+      "to": "shared-contracts"
+    },
+    {
+      "from": "desktop-project",
+      "id": "dep-desktop-project-node",
+      "kind": "dependency",
+      "to": "lib-node"
+    },
+    {
+      "from": "desktop-stats",
+      "id": "dep-desktop-stats-node",
+      "kind": "dependency",
+      "to": "lib-node"
+    },
+    {
+      "from": "desktop-integrations",
+      "id": "dep-desktop-integrations-node",
+      "kind": "dependency",
+      "to": "lib-node"
+    }
+  ],
+  "formatting": {
+    "boxScalePercent": 110,
+    "fontScalePercent": 110
+  },
+  "groups": [
+    {
+      "id": "group-renderer-ui",
+      "label": "Renderer UI",
+      "nodeIds": [
+        "renderer-entry",
+        "ui-workspace",
+        "ui-app-shell",
+        "ui-card-view",
+        "ui-text-view",
+        "ui-editor",
+        "ui-diagram-view",
+        "ui-actions",
+        "ui-config",
+        "ui-stats",
+        "ui-hooks",
+        "ui-theme"
+      ]
+    },
+    {
+      "id": "group-renderer-services",
+      "label": "Renderer services",
+      "nodeIds": [
+        "svc-core",
+        "svc-data",
+        "svc-project",
+        "svc-actions",
+        "svc-agents",
+        "svc-diagrams",
+        "svc-stats",
+        "svc-github",
+        "svc-config",
+        "svc-search",
+        "svc-attachments",
+        "svc-remarkable",
+        "svc-sentry",
+        "svc-telemetry",
+        "svc-shortcuts"
+      ]
+    },
+    {
+      "id": "group-domain",
+      "label": "Domain & contracts",
+      "nodeIds": [
+        "data-model",
+        "auth-github",
+        "shared-contracts"
+      ]
+    },
+    {
+      "id": "group-desktop",
+      "label": "Electron main process",
+      "nodeIds": [
+        "desktop-main",
+        "desktop-shell",
+        "desktop-actions",
+        "desktop-schedule",
+        "desktop-activity",
+        "desktop-agents",
+        "desktop-git",
+        "desktop-project",
+        "desktop-stats",
+        "desktop-integrations"
+      ]
+    },
+    {
+      "id": "group-external",
+      "label": "Third-party libraries",
+      "nodeIds": [
+        "lib-react",
+        "lib-mui",
+        "lib-lexical-editor",
+        "lib-dnd-kit",
+        "lib-dagre",
+        "lib-sentry",
+        "lib-electron",
+        "lib-node"
+      ]
+    }
+  ],
   "meta": {
-    "version": 1,
-    "type": "dependency",
+    "description": "Module-level dependency graph of the md2 workspace, derived from imports, require() calls and Electron contextBridge wiring across the React renderer (app/), the Electron main process (desktop/) and the shared ESM contracts (shared/). Edges marked as cycles were confirmed by reading the importing files on both sides.",
     "title": "md2 dependency structure",
-    "description": "Module-level dependency graph of the md2 workspace, derived from imports, require() calls and Electron contextBridge wiring across the React renderer (app/), the Electron main process (desktop/) and the shared ESM contracts (shared/). Edges marked as cycles were confirmed by reading the importing files on both sides."
+    "type": "dependency",
+    "version": 1
   },
   "nodes": [
-    { "id": "renderer-entry", "label": "Renderer entry", "role": "input", "kind": "component", "sublabel": "app/src/main.tsx, app.tsx" },
-    { "id": "ui-workspace", "label": "Workspace & dialogs", "role": "focal", "kind": "component", "sublabel": "app/src/components" },
-    { "id": "ui-app-shell", "label": "Application shell", "role": "focal", "kind": "component", "sublabel": "components/shell" },
-    { "id": "ui-card-view", "label": "Card view", "role": "focal", "kind": "component", "sublabel": "components/card_view" },
-    { "id": "ui-text-view", "label": "Text view", "role": "focal", "kind": "component", "sublabel": "components/text_view" },
-    { "id": "ui-editor", "label": "Markdown editor", "role": "focal", "kind": "component", "sublabel": "components/editor" },
-    { "id": "ui-diagram-view", "label": "Diagram view", "role": "focal", "kind": "component", "sublabel": "components/diagram_view" },
-    { "id": "ui-actions", "label": "Actions & agents UI", "role": "focal", "kind": "component", "sublabel": "components/actions, components/agents" },
-    { "id": "ui-config", "label": "Configuration UI", "role": "focal", "kind": "component", "sublabel": "components/config" },
-    { "id": "ui-stats", "label": "Stats view", "role": "focal", "kind": "component", "sublabel": "components/stats_view" },
-    { "id": "ui-hooks", "label": "Shared React hooks", "role": "focal", "kind": "component", "sublabel": "components/hooks" },
-    { "id": "ui-theme", "label": "Theme", "role": "optional", "kind": "component", "sublabel": "app/src/theme" },
-
-    { "id": "svc-core", "label": "Core services", "role": "focal", "kind": "component", "sublabel": "service_injector, open_files, dialog, progress" },
-    { "id": "svc-data", "label": "Card data services", "role": "focal", "kind": "component", "sublabel": "services/data" },
-    { "id": "svc-project", "label": "Project services", "role": "focal", "kind": "component", "sublabel": "services/project" },
-    { "id": "svc-actions", "label": "Action services", "role": "focal", "kind": "component", "sublabel": "services/actions" },
-    { "id": "svc-agents", "label": "Agent services", "role": "focal", "kind": "component", "sublabel": "services/agents" },
-    { "id": "svc-diagrams", "label": "Diagram services", "role": "focal", "kind": "component", "sublabel": "services/diagrams" },
-    { "id": "svc-stats", "label": "Stats services", "role": "focal", "kind": "component", "sublabel": "services/stats" },
-    { "id": "svc-github", "label": "GitHub services", "role": "focal", "kind": "component", "sublabel": "services/github" },
-    { "id": "svc-config", "label": "Config services", "role": "focal", "kind": "component", "sublabel": "services/config" },
-    { "id": "svc-search", "label": "Search services", "role": "optional", "kind": "component", "sublabel": "services/search" },
-    { "id": "svc-attachments", "label": "Attachment services", "role": "optional", "kind": "component", "sublabel": "services/attachments" },
-    { "id": "svc-remarkable", "label": "reMarkable services", "role": "optional", "kind": "component", "sublabel": "services/remarkable" },
-    { "id": "svc-sentry", "label": "Sentry import services", "role": "optional", "kind": "component", "sublabel": "services/sentry" },
-    { "id": "svc-telemetry", "label": "Telemetry service", "role": "optional", "kind": "component", "sublabel": "services/telemetry" },
-    { "id": "svc-shortcuts", "label": "Keyboard shortcuts", "role": "optional", "kind": "component", "sublabel": "services/shortcuts" },
-
-    { "id": "data-model", "label": "Domain model & renderer bridges", "role": "store", "kind": "component", "sublabel": "app/src/data" },
-    { "id": "auth-github", "label": "GitHub auth", "role": "focal", "kind": "component", "sublabel": "app/src/auth" },
-    { "id": "shared-contracts", "label": "Shared contracts", "role": "boundary", "kind": "component", "sublabel": "shared/*.mjs" },
-
-    { "id": "desktop-main", "label": "Electron main entry", "role": "input", "kind": "component", "sublabel": "desktop/main.js" },
-    { "id": "desktop-shell", "label": "Desktop shell & preload bridge", "role": "boundary", "kind": "component", "sublabel": "desktop/src/shell" },
-    { "id": "desktop-actions", "label": "Action runtime", "role": "backend", "kind": "component", "sublabel": "desktop/src/actions/action" },
-    { "id": "desktop-schedule", "label": "Action scheduling", "role": "backend", "kind": "component", "sublabel": "desktop/src/actions/schedule" },
-    { "id": "desktop-activity", "label": "Activity log files", "role": "backend", "kind": "component", "sublabel": "desktop/src/actions/activity" },
-    { "id": "desktop-agents", "label": "Agent runtime", "role": "backend", "kind": "component", "sublabel": "desktop/src/actions/agent" },
-    { "id": "desktop-git", "label": "Git services", "role": "backend", "kind": "component", "sublabel": "desktop/src/git" },
-    { "id": "desktop-project", "label": "Project paths", "role": "backend", "kind": "component", "sublabel": "desktop/src/project" },
-    { "id": "desktop-stats", "label": "Stats worker", "role": "backend", "kind": "component", "sublabel": "desktop/src/stats" },
-    { "id": "desktop-integrations", "label": "External integrations", "role": "backend", "kind": "component", "sublabel": "remote control, reMarkable, Sentry, telemetry" },
-
-    { "id": "lib-react", "label": "React", "role": "external", "kind": "component" },
-    { "id": "lib-mui", "label": "MUI", "role": "external", "kind": "component", "sublabel": "@mui/material, icons, mdi-material-ui" },
-    { "id": "lib-lexical-editor", "label": "MDXEditor / Lexical", "role": "external", "kind": "component" },
-    { "id": "lib-dnd-kit", "label": "dnd-kit", "role": "external", "kind": "component" },
-    { "id": "lib-dagre", "label": "dagre", "role": "external", "kind": "component" },
-    { "id": "lib-sentry", "label": "@sentry/react", "role": "external", "kind": "component" },
-    { "id": "lib-electron", "label": "Electron", "role": "external", "kind": "component" },
-    { "id": "lib-node", "label": "Node.js runtime", "role": "external", "kind": "component", "sublabel": "fs, path, child_process, https" }
-  ],
-  "groups": [
-    { "id": "group-renderer-ui", "label": "Renderer UI", "nodeIds": ["renderer-entry", "ui-workspace", "ui-app-shell", "ui-card-view", "ui-text-view", "ui-editor", "ui-diagram-view", "ui-actions", "ui-config", "ui-stats", "ui-hooks", "ui-theme"] },
-    { "id": "group-renderer-services", "label": "Renderer services", "nodeIds": ["svc-core", "svc-data", "svc-project", "svc-actions", "svc-agents", "svc-diagrams", "svc-stats", "svc-github", "svc-config", "svc-search", "svc-attachments", "svc-remarkable", "svc-sentry", "svc-telemetry", "svc-shortcuts"] },
-    { "id": "group-domain", "label": "Domain & contracts", "nodeIds": ["data-model", "auth-github", "shared-contracts"] },
-    { "id": "group-desktop", "label": "Electron main process", "nodeIds": ["desktop-main", "desktop-shell", "desktop-actions", "desktop-schedule", "desktop-activity", "desktop-agents", "desktop-git", "desktop-project", "desktop-stats", "desktop-integrations"] },
-    { "id": "group-external", "label": "Third-party libraries", "nodeIds": ["lib-react", "lib-mui", "lib-lexical-editor", "lib-dnd-kit", "lib-dagre", "lib-sentry", "lib-electron", "lib-node"] }
-  ],
-  "edges": [
-    { "id": "dep-entry-workspace", "from": "renderer-entry", "to": "ui-workspace", "kind": "dependency" },
-    { "id": "dep-entry-shell", "from": "renderer-entry", "to": "ui-app-shell", "kind": "dependency" },
-    { "id": "dep-entry-theme", "from": "renderer-entry", "to": "ui-theme", "kind": "dependency" },
-
-    { "id": "cyc-workspace-shell", "from": "ui-workspace", "to": "ui-app-shell", "kind": "cycle", "label": "project_workspace <-> main_window" },
-    { "id": "cyc-shell-workspace", "from": "ui-app-shell", "to": "ui-workspace", "kind": "cycle" },
-
-    { "id": "dep-workspace-hooks", "from": "ui-workspace", "to": "ui-hooks", "kind": "dependency" },
-    { "id": "dep-workspace-core", "from": "ui-workspace", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-workspace-data-model", "from": "ui-workspace", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-workspace-project", "from": "ui-workspace", "to": "svc-project", "kind": "dependency" },
-    { "id": "dep-workspace-data", "from": "ui-workspace", "to": "svc-data", "kind": "dependency" },
-
-    { "id": "dep-shell-hooks", "from": "ui-app-shell", "to": "ui-hooks", "kind": "dependency" },
-    { "id": "dep-shell-data-model", "from": "ui-app-shell", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-shell-core", "from": "ui-app-shell", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-shell-project", "from": "ui-app-shell", "to": "svc-project", "kind": "dependency" },
-    { "id": "dep-shell-agents", "from": "ui-app-shell", "to": "svc-agents", "kind": "dependency" },
-    { "id": "dep-shell-search", "from": "ui-app-shell", "to": "svc-search", "kind": "dependency" },
-    { "id": "dep-shell-shortcuts", "from": "ui-app-shell", "to": "svc-shortcuts", "kind": "dependency" },
-    { "id": "dep-shell-auth", "from": "ui-app-shell", "to": "auth-github", "kind": "dependency" },
-    { "id": "dep-shell-theme", "from": "ui-app-shell", "to": "ui-theme", "kind": "dependency" },
-    { "id": "dep-shell-actions-ui", "from": "ui-app-shell", "to": "ui-actions", "kind": "dependency" },
-    { "id": "dep-shell-mui", "from": "ui-app-shell", "to": "lib-mui", "kind": "dependency" },
-    { "id": "dep-shell-react", "from": "ui-app-shell", "to": "lib-react", "kind": "dependency" },
-
-    { "id": "dep-card-view-editor", "from": "ui-card-view", "to": "ui-editor", "kind": "dependency" },
-    { "id": "dep-card-view-hooks", "from": "ui-card-view", "to": "ui-hooks", "kind": "dependency" },
-    { "id": "dep-card-view-data-model", "from": "ui-card-view", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-card-view-core", "from": "ui-card-view", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-card-view-data", "from": "ui-card-view", "to": "svc-data", "kind": "dependency" },
-    { "id": "dep-card-view-project", "from": "ui-card-view", "to": "svc-project", "kind": "dependency" },
-    { "id": "dep-card-view-actions-svc", "from": "ui-card-view", "to": "svc-actions", "kind": "dependency" },
-    { "id": "dep-card-view-dnd", "from": "ui-card-view", "to": "lib-dnd-kit", "kind": "dependency" },
-    { "id": "dep-card-view-mui", "from": "ui-card-view", "to": "lib-mui", "kind": "dependency" },
-    { "id": "dep-card-view-react", "from": "ui-card-view", "to": "lib-react", "kind": "dependency" },
-
-    { "id": "dep-text-view-card-view", "from": "ui-text-view", "to": "ui-card-view", "kind": "dependency" },
-    { "id": "dep-text-view-editor", "from": "ui-text-view", "to": "ui-editor", "kind": "dependency" },
-    { "id": "dep-text-view-hooks", "from": "ui-text-view", "to": "ui-hooks", "kind": "dependency" },
-    { "id": "dep-text-view-data-model", "from": "ui-text-view", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-text-view-core", "from": "ui-text-view", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-text-view-mui", "from": "ui-text-view", "to": "lib-mui", "kind": "dependency" },
-
-    { "id": "dep-editor-hooks", "from": "ui-editor", "to": "ui-hooks", "kind": "dependency" },
-    { "id": "dep-editor-data-model", "from": "ui-editor", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-editor-core", "from": "ui-editor", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-editor-theme", "from": "ui-editor", "to": "ui-theme", "kind": "dependency" },
-    { "id": "dep-editor-lexical", "from": "ui-editor", "to": "lib-lexical-editor", "kind": "dependency" },
-    { "id": "dep-editor-mui", "from": "ui-editor", "to": "lib-mui", "kind": "dependency" },
-    { "id": "dep-editor-react", "from": "ui-editor", "to": "lib-react", "kind": "dependency" },
-
-    { "id": "dep-diagram-view-diagrams", "from": "ui-diagram-view", "to": "svc-diagrams", "kind": "dependency" },
-    { "id": "dep-diagram-view-hooks", "from": "ui-diagram-view", "to": "ui-hooks", "kind": "dependency" },
-    { "id": "dep-diagram-view-data-model", "from": "ui-diagram-view", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-diagram-view-mui", "from": "ui-diagram-view", "to": "lib-mui", "kind": "dependency" },
-    { "id": "dep-diagram-view-react", "from": "ui-diagram-view", "to": "lib-react", "kind": "dependency" },
-
-    { "id": "dep-actions-ui-hooks", "from": "ui-actions", "to": "ui-hooks", "kind": "dependency" },
-    { "id": "dep-actions-ui-editor", "from": "ui-actions", "to": "ui-editor", "kind": "dependency" },
-    { "id": "dep-actions-ui-data-model", "from": "ui-actions", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-actions-ui-actions-svc", "from": "ui-actions", "to": "svc-actions", "kind": "dependency" },
-    { "id": "dep-actions-ui-agents-svc", "from": "ui-actions", "to": "svc-agents", "kind": "dependency" },
-    { "id": "dep-actions-ui-core", "from": "ui-actions", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-actions-ui-data-svc", "from": "ui-actions", "to": "svc-data", "kind": "dependency" },
-    { "id": "dep-actions-ui-project", "from": "ui-actions", "to": "svc-project", "kind": "dependency" },
-    { "id": "dep-actions-ui-mui", "from": "ui-actions", "to": "lib-mui", "kind": "dependency" },
-    { "id": "dep-actions-ui-react", "from": "ui-actions", "to": "lib-react", "kind": "dependency" },
-
-    { "id": "dep-config-ui-hooks", "from": "ui-config", "to": "ui-hooks", "kind": "dependency" },
-    { "id": "dep-config-ui-config-svc", "from": "ui-config", "to": "svc-config", "kind": "dependency" },
-    { "id": "dep-config-ui-core", "from": "ui-config", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-config-ui-project", "from": "ui-config", "to": "svc-project", "kind": "dependency" },
-    { "id": "dep-config-ui-data-model", "from": "ui-config", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-config-ui-theme", "from": "ui-config", "to": "ui-theme", "kind": "dependency" },
-    { "id": "dep-config-ui-mui", "from": "ui-config", "to": "lib-mui", "kind": "dependency" },
-
-    { "id": "dep-stats-view-stats-svc", "from": "ui-stats", "to": "svc-stats", "kind": "dependency" },
-    { "id": "dep-stats-view-mui", "from": "ui-stats", "to": "lib-mui", "kind": "dependency" },
-    { "id": "dep-stats-view-react", "from": "ui-stats", "to": "lib-react", "kind": "dependency" },
-
-    { "id": "dep-hooks-data-model", "from": "ui-hooks", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-hooks-project", "from": "ui-hooks", "to": "svc-project", "kind": "dependency" },
-    { "id": "dep-hooks-actions-svc", "from": "ui-hooks", "to": "svc-actions", "kind": "dependency" },
-    { "id": "dep-hooks-agents-svc", "from": "ui-hooks", "to": "svc-agents", "kind": "dependency" },
-    { "id": "dep-hooks-data-svc", "from": "ui-hooks", "to": "svc-data", "kind": "dependency" },
-    { "id": "dep-hooks-react", "from": "ui-hooks", "to": "lib-react", "kind": "dependency" },
-    { "id": "dep-theme-mui", "from": "ui-theme", "to": "lib-mui", "kind": "dependency" },
-    { "id": "dep-theme-react", "from": "ui-theme", "to": "lib-react", "kind": "dependency" },
-
-    { "id": "cyc-data-svc-data-model", "from": "svc-data", "to": "data-model", "kind": "cycle", "label": "card operations <-> project_session" },
-    { "id": "cyc-data-model-data-svc", "from": "data-model", "to": "svc-data", "kind": "cycle" },
-    { "id": "cyc-data-svc-project-svc", "from": "svc-data", "to": "svc-project", "kind": "cycle", "label": "data_service <-> project_loading" },
-    { "id": "cyc-project-svc-data-svc", "from": "svc-project", "to": "svc-data", "kind": "cycle" },
-    { "id": "cyc-data-svc-core", "from": "svc-data", "to": "svc-core", "kind": "cycle", "label": "card operations <-> open_files_service" },
-    { "id": "cyc-core-data-svc", "from": "svc-core", "to": "svc-data", "kind": "cycle" },
-
-    { "id": "dep-core-data-model", "from": "svc-core", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-core-actions-svc", "from": "svc-core", "to": "svc-actions", "kind": "dependency" },
-    { "id": "dep-core-agents-svc", "from": "svc-core", "to": "svc-agents", "kind": "dependency" },
-    { "id": "dep-core-project", "from": "svc-core", "to": "svc-project", "kind": "dependency" },
-    { "id": "dep-core-config", "from": "svc-core", "to": "svc-config", "kind": "dependency" },
-    { "id": "dep-core-sentry", "from": "svc-core", "to": "svc-sentry", "kind": "dependency" },
-    { "id": "dep-core-stats", "from": "svc-core", "to": "svc-stats", "kind": "dependency" },
-    { "id": "dep-core-telemetry", "from": "svc-core", "to": "svc-telemetry", "kind": "dependency" },
-    { "id": "dep-core-shared", "from": "svc-core", "to": "shared-contracts", "kind": "dependency" },
-
-    { "id": "dep-data-svc-agents-svc", "from": "svc-data", "to": "svc-agents", "kind": "dependency" },
-    { "id": "dep-data-svc-config", "from": "svc-data", "to": "svc-config", "kind": "dependency" },
-    { "id": "dep-data-svc-telemetry", "from": "svc-data", "to": "svc-telemetry", "kind": "dependency" },
-
-    { "id": "dep-project-data-model", "from": "svc-project", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-project-core", "from": "svc-project", "to": "svc-core", "kind": "dependency" },
-
-    { "id": "dep-actions-svc-data-model", "from": "svc-actions", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-actions-svc-core", "from": "svc-actions", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-actions-svc-data-svc", "from": "svc-actions", "to": "svc-data", "kind": "dependency" },
-    { "id": "dep-actions-svc-project", "from": "svc-actions", "to": "svc-project", "kind": "dependency" },
-    { "id": "dep-actions-svc-shared", "from": "svc-actions", "to": "shared-contracts", "kind": "dependency" },
-
-    { "id": "dep-agents-svc-data-model", "from": "svc-agents", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-agents-svc-core", "from": "svc-agents", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-agents-svc-actions-svc", "from": "svc-agents", "to": "svc-actions", "kind": "dependency" },
-    { "id": "dep-agents-svc-shared", "from": "svc-agents", "to": "shared-contracts", "kind": "dependency" },
-
-    { "id": "dep-diagrams-core", "from": "svc-diagrams", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-diagrams-data-model", "from": "svc-diagrams", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-diagrams-dagre", "from": "svc-diagrams", "to": "lib-dagre", "kind": "dependency" },
-
-    { "id": "dep-stats-svc-data-model", "from": "svc-stats", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-stats-svc-agents-svc", "from": "svc-stats", "to": "svc-agents", "kind": "dependency" },
-    { "id": "dep-stats-svc-shared", "from": "svc-stats", "to": "shared-contracts", "kind": "dependency" },
-
-    { "id": "dep-github-svc-data-model", "from": "svc-github", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-github-svc-auth", "from": "svc-github", "to": "auth-github", "kind": "dependency" },
-    { "id": "dep-github-svc-core", "from": "svc-github", "to": "svc-core", "kind": "dependency" },
-    { "id": "dep-config-svc-data-model", "from": "svc-config", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-search-data-model", "from": "svc-search", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-attachments-data-svc", "from": "svc-attachments", "to": "svc-data", "kind": "dependency" },
-    { "id": "dep-remarkable-svc-data-model", "from": "svc-remarkable", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-sentry-svc-data-model", "from": "svc-sentry", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-sentry-svc-data-svc", "from": "svc-sentry", "to": "svc-data", "kind": "dependency" },
-    { "id": "dep-telemetry-sentry-lib", "from": "svc-telemetry", "to": "lib-sentry", "kind": "dependency" },
-
-    { "id": "dep-data-model-shared", "from": "data-model", "to": "shared-contracts", "kind": "dependency" },
-    { "id": "dep-auth-data-model", "from": "auth-github", "to": "data-model", "kind": "dependency" },
-    { "id": "dep-data-model-preload", "from": "data-model", "to": "desktop-shell", "kind": "dependency", "label": "window.md2* contextBridge" },
-
-    { "id": "dep-desktop-main-shell", "from": "desktop-main", "to": "desktop-shell", "kind": "dependency" },
-    { "id": "dep-desktop-main-agents", "from": "desktop-main", "to": "desktop-agents", "kind": "dependency" },
-    { "id": "dep-desktop-main-actions", "from": "desktop-main", "to": "desktop-actions", "kind": "dependency" },
-    { "id": "dep-desktop-main-git", "from": "desktop-main", "to": "desktop-git", "kind": "dependency" },
-    { "id": "dep-desktop-main-integrations", "from": "desktop-main", "to": "desktop-integrations", "kind": "dependency" },
-    { "id": "dep-desktop-main-stats", "from": "desktop-main", "to": "desktop-stats", "kind": "dependency" },
-    { "id": "dep-desktop-main-electron", "from": "desktop-main", "to": "lib-electron", "kind": "dependency" },
-    { "id": "dep-desktop-main-node", "from": "desktop-main", "to": "lib-node", "kind": "dependency" },
-
-    { "id": "dep-desktop-shell-agents", "from": "desktop-shell", "to": "desktop-agents", "kind": "dependency" },
-    { "id": "dep-desktop-shell-project", "from": "desktop-shell", "to": "desktop-project", "kind": "dependency" },
-    { "id": "dep-desktop-shell-electron", "from": "desktop-shell", "to": "lib-electron", "kind": "dependency" },
-    { "id": "dep-desktop-shell-node", "from": "desktop-shell", "to": "lib-node", "kind": "dependency" },
-
-    { "id": "dep-desktop-actions-agents", "from": "desktop-actions", "to": "desktop-agents", "kind": "dependency" },
-    { "id": "dep-desktop-actions-git", "from": "desktop-actions", "to": "desktop-git", "kind": "dependency" },
-    { "id": "dep-desktop-actions-schedule", "from": "desktop-actions", "to": "desktop-schedule", "kind": "dependency" },
-    { "id": "dep-desktop-actions-shared", "from": "desktop-actions", "to": "shared-contracts", "kind": "dependency" },
-    { "id": "dep-desktop-actions-node", "from": "desktop-actions", "to": "lib-node", "kind": "dependency" },
-
-    { "id": "dep-desktop-agents-activity", "from": "desktop-agents", "to": "desktop-activity", "kind": "dependency" },
-    { "id": "dep-desktop-agents-git", "from": "desktop-agents", "to": "desktop-git", "kind": "dependency" },
-    { "id": "dep-desktop-agents-shared", "from": "desktop-agents", "to": "shared-contracts", "kind": "dependency" },
-    { "id": "dep-desktop-agents-node", "from": "desktop-agents", "to": "lib-node", "kind": "dependency" },
-    { "id": "dep-desktop-activity-shared", "from": "desktop-activity", "to": "shared-contracts", "kind": "dependency" },
-    { "id": "dep-desktop-activity-node", "from": "desktop-activity", "to": "lib-node", "kind": "dependency" },
-    { "id": "dep-desktop-git-node", "from": "desktop-git", "to": "lib-node", "kind": "dependency" },
-    { "id": "dep-desktop-project-git", "from": "desktop-project", "to": "desktop-git", "kind": "dependency" },
-    { "id": "dep-desktop-project-shared", "from": "desktop-project", "to": "shared-contracts", "kind": "dependency" },
-    { "id": "dep-desktop-project-node", "from": "desktop-project", "to": "lib-node", "kind": "dependency" },
-    { "id": "dep-desktop-stats-node", "from": "desktop-stats", "to": "lib-node", "kind": "dependency" },
-    { "id": "dep-desktop-integrations-node", "from": "desktop-integrations", "to": "lib-node", "kind": "dependency" }
+    {
+      "id": "renderer-entry",
+      "kind": "component",
+      "label": "Renderer entry",
+      "role": "input",
+      "sublabel": "app/src/main.tsx, app.tsx"
+    },
+    {
+      "id": "ui-workspace",
+      "kind": "component",
+      "label": "Workspace & dialogs",
+      "role": "focal",
+      "sublabel": "app/src/components"
+    },
+    {
+      "id": "ui-app-shell",
+      "kind": "component",
+      "label": "Application shell",
+      "role": "focal",
+      "sublabel": "components/shell"
+    },
+    {
+      "id": "ui-card-view",
+      "kind": "component",
+      "label": "Card view",
+      "role": "focal",
+      "sublabel": "components/card_view"
+    },
+    {
+      "id": "ui-text-view",
+      "kind": "component",
+      "label": "Text view",
+      "role": "focal",
+      "sublabel": "components/text_view"
+    },
+    {
+      "id": "ui-editor",
+      "kind": "component",
+      "label": "Markdown editor",
+      "role": "focal",
+      "sublabel": "components/editor"
+    },
+    {
+      "id": "ui-diagram-view",
+      "kind": "component",
+      "label": "Diagram view",
+      "role": "focal",
+      "sublabel": "components/diagram_view"
+    },
+    {
+      "id": "ui-actions",
+      "kind": "component",
+      "label": "Actions & agents UI",
+      "role": "focal",
+      "sublabel": "components/actions, components/agents"
+    },
+    {
+      "id": "ui-config",
+      "kind": "component",
+      "label": "Configuration UI",
+      "role": "focal",
+      "sublabel": "components/config"
+    },
+    {
+      "id": "ui-stats",
+      "kind": "component",
+      "label": "Stats view",
+      "role": "focal",
+      "sublabel": "components/stats_view"
+    },
+    {
+      "id": "ui-hooks",
+      "kind": "component",
+      "label": "Shared React hooks",
+      "role": "focal",
+      "sublabel": "components/hooks"
+    },
+    {
+      "id": "ui-theme",
+      "kind": "component",
+      "label": "Theme",
+      "role": "optional",
+      "sublabel": "app/src/theme"
+    },
+    {
+      "id": "svc-core",
+      "kind": "component",
+      "label": "Core services",
+      "role": "focal",
+      "sublabel": "service_injector, open_files, dialog, progress"
+    },
+    {
+      "id": "svc-data",
+      "kind": "component",
+      "label": "Card data services",
+      "role": "focal",
+      "sublabel": "services/data"
+    },
+    {
+      "id": "svc-project",
+      "kind": "component",
+      "label": "Project services",
+      "role": "focal",
+      "sublabel": "services/project"
+    },
+    {
+      "id": "svc-actions",
+      "kind": "component",
+      "label": "Action services",
+      "role": "focal",
+      "sublabel": "services/actions"
+    },
+    {
+      "id": "svc-agents",
+      "kind": "component",
+      "label": "Agent services",
+      "role": "focal",
+      "sublabel": "services/agents"
+    },
+    {
+      "id": "svc-diagrams",
+      "kind": "component",
+      "label": "Diagram services",
+      "role": "focal",
+      "sublabel": "services/diagrams"
+    },
+    {
+      "id": "svc-stats",
+      "kind": "component",
+      "label": "Stats services",
+      "role": "focal",
+      "sublabel": "services/stats"
+    },
+    {
+      "id": "svc-github",
+      "kind": "component",
+      "label": "GitHub services",
+      "role": "focal",
+      "sublabel": "services/github"
+    },
+    {
+      "id": "svc-config",
+      "kind": "component",
+      "label": "Config services",
+      "role": "focal",
+      "sublabel": "services/config"
+    },
+    {
+      "id": "svc-search",
+      "kind": "component",
+      "label": "Search services",
+      "role": "optional",
+      "sublabel": "services/search"
+    },
+    {
+      "id": "svc-attachments",
+      "kind": "component",
+      "label": "Attachment services",
+      "role": "optional",
+      "sublabel": "services/attachments"
+    },
+    {
+      "id": "svc-remarkable",
+      "kind": "component",
+      "label": "reMarkable services",
+      "role": "optional",
+      "sublabel": "services/remarkable"
+    },
+    {
+      "id": "svc-sentry",
+      "kind": "component",
+      "label": "Sentry import services",
+      "role": "optional",
+      "sublabel": "services/sentry"
+    },
+    {
+      "id": "svc-telemetry",
+      "kind": "component",
+      "label": "Telemetry service",
+      "role": "optional",
+      "sublabel": "services/telemetry"
+    },
+    {
+      "id": "svc-shortcuts",
+      "kind": "component",
+      "label": "Keyboard shortcuts",
+      "role": "optional",
+      "sublabel": "services/shortcuts"
+    },
+    {
+      "id": "data-model",
+      "kind": "component",
+      "label": "Domain model & renderer bridges",
+      "role": "store",
+      "sublabel": "app/src/data"
+    },
+    {
+      "id": "auth-github",
+      "kind": "component",
+      "label": "GitHub auth",
+      "role": "focal",
+      "sublabel": "app/src/auth"
+    },
+    {
+      "id": "shared-contracts",
+      "kind": "component",
+      "label": "Shared contracts",
+      "role": "boundary",
+      "sublabel": "shared/*.mjs"
+    },
+    {
+      "id": "desktop-main",
+      "kind": "component",
+      "label": "Electron main entry",
+      "role": "input",
+      "sublabel": "desktop/main.js"
+    },
+    {
+      "id": "desktop-shell",
+      "kind": "component",
+      "label": "Desktop shell & preload bridge",
+      "role": "boundary",
+      "sublabel": "desktop/src/shell"
+    },
+    {
+      "id": "desktop-actions",
+      "kind": "component",
+      "label": "Action runtime",
+      "role": "backend",
+      "sublabel": "desktop/src/actions/action"
+    },
+    {
+      "id": "desktop-schedule",
+      "kind": "component",
+      "label": "Action scheduling",
+      "role": "backend",
+      "sublabel": "desktop/src/actions/schedule"
+    },
+    {
+      "id": "desktop-activity",
+      "kind": "component",
+      "label": "Activity log files",
+      "role": "backend",
+      "sublabel": "desktop/src/actions/activity"
+    },
+    {
+      "id": "desktop-agents",
+      "kind": "component",
+      "label": "Agent runtime",
+      "role": "backend",
+      "sublabel": "desktop/src/actions/agent"
+    },
+    {
+      "id": "desktop-git",
+      "kind": "component",
+      "label": "Git services",
+      "role": "backend",
+      "sublabel": "desktop/src/git"
+    },
+    {
+      "id": "desktop-project",
+      "kind": "component",
+      "label": "Project paths",
+      "role": "backend",
+      "sublabel": "desktop/src/project"
+    },
+    {
+      "id": "desktop-stats",
+      "kind": "component",
+      "label": "Stats worker",
+      "role": "backend",
+      "sublabel": "desktop/src/stats"
+    },
+    {
+      "id": "desktop-integrations",
+      "kind": "component",
+      "label": "External integrations",
+      "role": "backend",
+      "sublabel": "remote control, reMarkable, Sentry, telemetry"
+    },
+    {
+      "id": "lib-react",
+      "kind": "component",
+      "label": "React",
+      "role": "external"
+    },
+    {
+      "id": "lib-mui",
+      "kind": "component",
+      "label": "MUI",
+      "role": "external",
+      "sublabel": "@mui/material, icons, mdi-material-ui"
+    },
+    {
+      "id": "lib-lexical-editor",
+      "kind": "component",
+      "label": "MDXEditor / Lexical",
+      "role": "external"
+    },
+    {
+      "id": "lib-dnd-kit",
+      "kind": "component",
+      "label": "dnd-kit",
+      "role": "external"
+    },
+    {
+      "id": "lib-dagre",
+      "kind": "component",
+      "label": "dagre",
+      "role": "external"
+    },
+    {
+      "id": "lib-sentry",
+      "kind": "component",
+      "label": "@sentry/react",
+      "role": "external"
+    },
+    {
+      "id": "lib-electron",
+      "kind": "component",
+      "label": "Electron",
+      "role": "external"
+    },
+    {
+      "id": "lib-node",
+      "kind": "component",
+      "label": "Node.js runtime",
+      "role": "external",
+      "sublabel": "fs, path, child_process, https"
+    }
   ]
 }
