@@ -18,6 +18,7 @@ changedFiles:
   - app/src/components/project_workspace_rendering.test.tsx
   - app/src/services/card_popup_service.test.ts
   - app/src/services/card_popup_service.ts
+  - design/feature_descriptions/B_234_defer_emoji_picker_rendering_until_open.md
 ---
 
 opening a card now takes very long. see trace: [Trace-20260914T100720.json](file:///C:/Users/janbo/Documents/dev/Trace-20260914T100720.json): this is just opening and closing a card (in the background, an agent was also running). but you can clearly see big slow down while opening & closing the card. this is not normal I suspect the latest changes (most likely diagrams) has broken something.
