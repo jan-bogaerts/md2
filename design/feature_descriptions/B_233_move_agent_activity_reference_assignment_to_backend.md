@@ -8,6 +8,8 @@ affects:
 policy:
 internalId: df17653d-859c-40cd-8515-2e3bf9e0da56
 after: 5c3ce7b1-898e-4a38-b281-0f6fc89e2bb9
+branch: b_233_move_agent_activity_reference_assignment_to_backend
+worktree: 3
 ---
 
 Card activity references are assigned by every React instance that observes an agent run. With remote control active, the desktop and remote renderers can process the same event and persist competing versions of the card. Activity persistence and its card reference must have one backend owner.
