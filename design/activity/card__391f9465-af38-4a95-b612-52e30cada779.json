@@ -1867,6 +1867,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "391f9465-af38-4a95-b612-52e30cada779",
+      "cardPath": "design/feature_descriptions/B_235_end_of_action_not_logged.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "we fixed the bugs in design/feature_descriptions/B_235_end_of_action_not_logged.md. they were spread in [B\\_236\\_backend\\_owns\\_agent\\_run\\_status.md](design/feature_descriptions/B_236_backend_owns_agent_run_status.md), [B\\_237\\_card\\_agent\\_state\\_follows\\_run\\_events.md](design/feature_descriptions/B_237_card_agent_state_follows_run_events.md), [B\\_238\\_backend\\_detects\\_card\\_state\\_change.md](design/feature_descriptions/B_238_backend_detects_card_state_change.md), [B\\_239\\_always\\_write\\_terminal\\_activity\\_record.md](design/feature_descriptions/B_239_always_write_terminal_activity_record.md) and [B\\_241\\_conversation\\_viewed\\_flag\\_converges.md](design/feature_descriptions/B_241_conversation_viewed_flag_converges.md)\n\ndo a full review. make certain everything has been fixed correctly, the fixes are correct",
+          "id": "agent-turn-acae84e9-0d00-4f47-a0af-742c3bfe8cbf-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-16T15:03:37.550Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-b1877f3d-b1f7-4cfd-afd0-850282a3bd27",
+      "providerSessions": [],
+      "startedAt": "2026-09-16T15:03:37.550Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-16T15:03:37.550Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -1905,11 +1933,11 @@
         "agent-d0b7dbb7-0638-4842-86c7-244320a59acd"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-36f07a4c-206d-49ea-8bfd-7777c96f525b",
       "origin": {
@@ -1918,9 +1946,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-d0b7dbb7-0638-4842-86c7-244320a59acd",
       "startedAt": "2026-09-16T08:41:27.318Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-d0b7dbb7-0638-4842-86c7-244320a59acd"
     }
   ],
   "version": 5
