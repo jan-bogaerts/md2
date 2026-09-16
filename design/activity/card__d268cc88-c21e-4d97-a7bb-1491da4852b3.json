@@ -954,6 +954,31 @@
     "cardInternalId": "d268cc88-c21e-4d97-a7bb-1491da4852b3",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-09-16T14:26:31.355Z",
+      "conversationIds": [
+        "agent-4532bbbb-0d3c-4550-8efb-53d75952e17b"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-53cb1314-708c-4c23-ba3f-51b7e4f12841",
+      "origin": {
+        "cardInternalId": "d268cc88-c21e-4d97-a7bb-1491da4852b3",
+        "kind": "card"
+      },
+      "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "rootActionLabel": "fix bug",
+      "rootConversationId": "agent-4532bbbb-0d3c-4550-8efb-53d75952e17b",
+      "startedAt": "2026-09-16T14:19:52.454Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
