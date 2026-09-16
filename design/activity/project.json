@@ -942,6 +942,29 @@
       "startedAt": "2026-09-14T11:57:27.183Z",
       "status": "completed",
       "rootConversationId": "agent-b1a01212-91a3-47c2-b741-63817429d9a4"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-09-16T12:05:35.881Z",
+      "conversationIds": [
+        "agent-3576e93f-3438-4c0e-a304-fa2da4686d96"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-c611c9e6-78cc-44f9-852b-8d98a33327a3",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "agent-3576e93f-3438-4c0e-a304-fa2da4686d96",
+      "startedAt": "2026-09-16T11:56:05.126Z",
+      "status": "failed"
     }
   ],
   "version": 5
