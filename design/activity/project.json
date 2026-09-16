@@ -521,7 +521,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-16T12:14:48.309Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 58664
@@ -1080,7 +1080,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 44,
-          "timestamp": "2026-09-16T12:14:22.118Z"
+          "timestamp": "2026-09-16T12:14:48.309Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1090,19 +1090,19 @@
           "agent": "claude",
           "conversationId": "67df0304-edce-4679-8e75-a01d482d2ffa",
           "createdAt": "2026-09-16T11:56:19.813Z",
-          "lastUsedAt": "2026-09-16T12:12:41.434Z",
-          "synchronizedThroughMessageId": "agent-turn-ab77e9ee-0ea2-4531-ab7d-3f1c7e1b061d-turn-1-assistant-1"
+          "lastUsedAt": "2026-09-16T12:14:48.309Z",
+          "synchronizedThroughMessageId": "agent-turn-ab77e9ee-0ea2-4531-ab7d-3f1c7e1b061d-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-09-16T11:56:05.128Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 58298,
           "toolMs": 211891
         },
-        "elapsedMs": 322091,
-        "runningStartedAt": "2026-09-16T12:14:03.597Z"
+        "elapsedMs": 340612,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
