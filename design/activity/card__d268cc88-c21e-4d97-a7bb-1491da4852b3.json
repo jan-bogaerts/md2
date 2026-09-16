@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 56739
+        "usedTokens": 84409
       },
       "entries": [
         {
@@ -398,6 +398,522 @@
           "role": "user",
           "sequence": 30,
           "timestamp": "2026-09-16T14:23:09.331Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-31",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cf7Ga4dMFvF421jpqEdrk:thinking:0",
+          "sequence": 31,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-16T14:23:11.170Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '476,500p' desktop/src/actions/action/action_run.js",
+          "content": "    }\n\n    async persistRootActivity(status, failure) {\n        const completedAt = new Date().toISOString();\n        const commits = this.commitReferences.map((reference) => {\n            const persisted = Object.fromEntries(Object.entries(reference).filter(([fieldName]) => fieldName !== 'repositoryRoot'));\n            if (reference.actionId === this.rootAction.id) {\n                delete persisted.actionId;\n                delete persisted.actionName;\n            }\n\n            return persisted;\n        });\n        if (this.rootAction.type === 'agent' && typeof this.rootConversationId !== 'string') {\n            return false;\n        }\n        const details = this.rootDetails ?? {\n            command: this.rootAction.command,\n            output: failure ? errorMessage(failure, 'Action failed') : '',\n            type: 'command',\n        };\n        const record = {\n            commits,\n            completedAt,\n            conversationIds: [...new Set(this.conversationIds)],",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-32",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '476,500p' desktop/src/actions/action/action_run.js",
+          "providerItemId": "toolu_01KmHrR2KgZbx6ricRqQfXQT",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:23:12.373Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && python -c \"\nimport io\np='desktop/src/actions/action/action_run.js'\ns=io.open(p,encoding='utf-8').read()\nold='''        if (this.rootAction.type === 'agent' && typeof this.rootConversationId !== 'string') {\n            return false;\n        }\n        const details = this.rootDetails ?? {\n            command: this.rootAction.command,\n            output: failure ? errorMessage(failure, 'Action failed') : '',\n            type: 'command',\n        };\n'''\nnew='''        // An agent root that failed before a conversation existed still gets a record: command-shaped\n        // details carry the failure cause, because agent details require a root conversation id.\n        const details = this.rootDetails ?? {\n            command: this.rootAction.command,\n            output: failure ? errorMessage(failure, 'Action failed') : '',\n            type: 'command',\n        };\n'''\nassert old in s\nio.open(p,'w',encoding='utf-8').write(s.replace(old,new))\n\"",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-33",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && python -c \"\nimport io\np='desktop/src/actions/action/action_run.js'\ns=io.open(p,encoding='utf-8').read()\nold='''        if (this.rootAction.type === 'agent' && typeof this.rootConversationId !== 'string') {\n            return false;\n        }\n        const details = this.rootDetails ?? {\n            command: this.rootAction.command,\n            output: failure ? errorMessage(failure, 'Action failed') : '',\n            type: 'command',\n        };\n'''\nnew='''        // An agent root that failed before a conversation existed still gets a record: command-shaped\n        // details carry the failure cause, because agent details require a root conversation id.\n        const details = this.rootDetails ?? {\n            command: this.rootAction.command,\n            output: failure ? errorMessage(failure, 'Action failed') : '',\n            type: 'command',\n        };\n'''\nassert old in s\nio.open(p,'w',encoding='utf-8').write(s.replace(old,new))\n\"",
+          "providerItemId": "toolu_018guWMLvjdDMjvdF3H1WjPi",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:23:18.636Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-34",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cf7GajeNPR3yc1G2JQYYw:thinking:0",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-16T14:23:20.855Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"not.toHaveBeenCalled\\|appendAndCommitActionActivity\" desktop/src/actions/action/action_run.test.mjs | head -30",
+          "content": "48:        appendAndCommitActionActivity: vi.fn(async (_project, _projectFolder, _origin, record) => {\n183:        expect(agentExecutor.execute).not.toHaveBeenCalled();\n227:        expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();\n228:        expect(commandRunner).not.toHaveBeenCalled();\n240:        expect(actionWorktreeRunService.execute).not.toHaveBeenCalled();\n241:        expect(commandRunner).not.toHaveBeenCalled();\n357:            appendAndCommitActionActivity: vi.fn(async () => {\n412:            appendAndCommitActionActivity: vi.fn(async () => {\n669:        expect(sendMessage).not.toHaveBeenCalled();\n852:        expect(agentRunnerService.sendMessage).not.toHaveBeenCalled();\n929:        expect(agentRunnerService.sendMessage).not.toHaveBeenCalled();\n973:        expect(sendMessage).not.toHaveBeenCalled();\n1064:        expect(agentExecutor.execute).not.toHaveBeenCalled();\n1097:        expect(agentRunnerService.finish).not.toHaveBeenCalled();\n1287:        const record = localGitService.appendAndCommitActionActivity.mock.calls[0][3];\n1327:        const record = service.appendAndCommitActionActivity.mock.calls[0][3];\n1363:        expect(service.appendAndCommitActionActivity).toHaveBeenCalledOnce();\n1364:        expect(service.appendAndCommitActionActivity.mock.calls[0][3].commits[0].actionId).toBe('tracked');\n1386:        const record = service.appendAndCommitActionActivity.mock.calls[0][3];\n1475:        expect(commitTrackedPaths).not.toHaveBeenCalled();\n1499:        expect(commitTrackedPaths).not.toHaveBeenCalled();\n1506:        expect(commandRunner).not.toHaveBeenCalled();",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-35",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"not.toHaveBeenCalled\\|appendAndCommitActionActivity\" desktop/src/actions/action/action_run.test.mjs | head -30",
+          "providerItemId": "toolu_01XmHswQY9R9TAX2dfVwkMwg",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:23:22.256Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "Now block 2. Reading test harness style and `handleClose` precisely.",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-09-16T14:23:23.730Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,120p' desktop/src/actions/agent/agent_runner_state.test.mjs",
+          "content": "import { createRequire } from 'node:module';\nimport { EventEmitter } from 'node:events';\nimport { resolve } from 'node:path';\nimport { PassThrough } from 'node:stream';\nimport { describe, expect, it, vi } from 'vitest';\nimport { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';\n\nconst require = createRequire(import.meta.url);\nconst { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');\nconst { CodexRuntimeService } = require('./codex_runtime_service');\nconst { createRun } = require('./agent_run_state');\n\nfunction diagnosticStreamingEvent(content, providerItemId) {\n    return {\n        event: { content, label: 'Codex protocol diagnostic', providerItemId, status: 'completed', type: 'diagnostic' },\n        type: 'event',\n    };\n}\n\n/** A streaming run with the full field set, registered in a service whose checkpoints are no-ops. */\nfunction streamingRunService() {\n    const onEvent = vi.fn();\n    const service = new AgentRunnerService({\n        persistConversation: vi.fn(async () => undefined),\n        persistConversationCheckpoint: vi.fn(async () => undefined),\n    });\n    const run = createRun({\n        agent: 'codex',\n        child: null,\n        conversation: { entries: [], providerSessions: [], status: 'running' },\n        environment: {},\n        executable: '/tools/codex',\n        id: 'run-1',\n        nextSequence: 1,\n        onComplete: null,\n        onCompletionError: null,\n        onEvent,\n        reference: 'run.json',\n        request: { agent: 'codex', command: ['codex'], prompt: 'run' },\n        rootPath: 'C:/repo',\n        startedAt: '2026-07-20T10:00:00.000Z',\n        streaming: true,\n    });\n    service.processes.set(run.id, run);\n\n    return { onEvent, run, service };\n}\n\nfunction toolEvent(providerItemId) {\n    return {\n        event: {content: '', label: 'Command', providerItemId, status: 'inProgress', type: 'commandExecution'},\n        type: 'event',\n    };\n}\n\nfunction emittedStatuses(onEvent, type) {\n    return onEvent.mock.calls.filter(([event]) => event.type === type).map(([event]) => event.status);\n}\n\ndescribe('AgentRunnerService published run status', () => {\n    it('keeps waitingForInput on tool, usage and output events while a question is pending', async () => {\n        const { onEvent, run, service } = streamingRunService();\n\n        await service.handleStreamingEvent('run-1', {questions: [{ id: 'confirm', question: 'Proceed?' }], requestId: 7, type: 'question'});\n        await service.handleStreamingEvent('run-1', toolEvent('command-1'));\n        await service.handleStreamingEvent('run-1', {\n            type: 'usage',\n            usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },\n        });\n        await service.handleStreamingEvent('run-1', { itemId: 'item-1', type: 'assistantStarted' });\n        await service.handleStreamingEvent('run-1', { content: 'chunk', itemId: 'item-1', type: 'assistant' });\n\n        expect(run.conversation.status).toBe('waitingForInput');\n        expect(service.hasPendingInteraction('run-1')).toBe(true);\n        expect(emittedStatuses(onEvent, 'agentEvent')).toEqual(['waitingForInput']);\n        expect(emittedStatuses(onEvent, 'usage')).toEqual(['waitingForInput']);\n        expect(emittedStatuses(onEvent, 'output')).toEqual(['waitingForInput', 'waitingForInput']);\n    });\n\n    it('keeps waitingForInput on tool, usage and output events while an approval is pending', async () => {\n        const { onEvent, run, service } = streamingRunService();\n        const approval = {\n            command: 'npm test', itemId: 'command-1', kind: 'commandExecution', requestId: 41,\n            threadId: 'thread-1', turnId: 'turn-1',\n        };\n\n        await service.handleStreamingEvent('run-1', { approval, type: 'approval' });\n        await service.handleStreamingEvent('run-1', toolEvent('command-2'));\n        await service.handleStreamingEvent('run-1', {\n            type: 'usage',\n            usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },\n        });\n        await service.handleStreamingEvent('run-1', { itemId: 'item-1', type: 'assistantStarted' });\n        await service.handleStreamingEvent('run-1', { content: 'chunk', itemId: 'item-1', type: 'assistant' });\n\n        expect(run.conversation.status).toBe('waitingForInput');\n        expect(emittedStatuses(onEvent, 'agentEvent')).toEqual(['waitingForInput']);\n        expect(emittedStatuses(onEvent, 'usage')).toEqual(['waitingForInput']);\n        expect(emittedStatuses(onEvent, 'output')).toEqual(['waitingForInput', 'waitingForInput']);\n    });\n\n    it('returns to running once the last pending interaction resolves', async () => {\n        const { onEvent, run, service } = streamingRunService();\n        const approval = (requestId) => ({\n            command: 'npm test', itemId: `command-${requestId}`, kind: 'commandExecution', requestId,\n            threadId: 'thread-1', turnId: 'turn-1',\n        });\n\n        await service.handleStreamingEvent('run-1', { approval: approval(41), type: 'approval' });\n        await service.handleStreamingEvent('run-1', { approval: approval(42), type: 'approval' });\n        await service.handleStreamingEvent('run-1', { requestId: 41, type: 'approvalResolved' });\n\n        expect(run.conversation.status).toBe('waitingForInput');\n        expect(emittedStatuses(onEvent, 'approvalResolved')).toEqual(['waitingForInput']);\n\n        await service.handleStreamingEvent('run-1', { requestId: 42, type: 'approvalResolved' });\n\n        expect(run.conversation.status).toBe('running');\n        expect(emittedStatuses(onEvent, 'approvalResolved')).toEqual(['waitingForInput', 'running']);\n        expect(emittedStatuses(onEvent, 'state'))",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-37",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,120p' desktop/src/actions/agent/agent_runner_state.test.mjs",
+          "providerItemId": "toolu_01BHq15GeMQjM6ZeZX1rU3zV",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:23:25.080Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"handleClose\" -r desktop/src --include=*.js --include=*.mjs | head",
+          "content": "desktop/src/actions/agent/agent_runner_service.js:198:            void this.handleClose(id, exitCode ?? 1).finally(run.resolveClosed);\ndesktop/src/actions/agent/agent_runner_service.js:708:    async handleClose(runId, exitCode) {\ndesktop/src/actions/agent/agent_runner_state.test.mjs:762:        await service.handleClose('run-1', 1);\ndesktop/src/actions/agent/agent_runner_state.test.mjs:817:        await service.handleClose('run-1', 1);\ndesktop/src/actions/agent/agent_runner_state.test.mjs:878:        await service.handleClose('run-1', 0);\ndesktop/src/actions/agent/agent_runner_state.test.mjs:933:        await service.handleClose('run-1', 1);\ndesktop/src/actions/agent/agent_runner_state.test.mjs:989:        await service.handleClose('run-1', 1);\ndesktop/src/actions/agent/codex_usage_poller.js:98:            this.child.on('close', () => this.handleClose());\ndesktop/src/actions/agent/codex_usage_poller.js:151:    handleClose() {",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-38",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"handleClose\" -r desktop/src --include=*.js --include=*.mjs | head",
+          "providerItemId": "toolu_017WcMC3YppXxhuxErZtMnre",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:23:27.812Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '720,1000p' desktop/src/actions/agent/agent_runner_state.test.mjs",
+          "content": "        expect(terminateProcessTree).toHaveBeenCalledWith(child);\n    });\n\n    it('does not scan for descendants after a process closes normally', async () => {\n        const persistConversation = vi.fn(async () => undefined);\n        const terminateProcessTree = vi.fn(async () => undefined);\n        const service = new AgentRunnerService({ persistConversation, terminateProcessTree });\n        const run = {\n            agent: 'codex',\n            cancelled: false,\n            changedPaths: new Set(),\n            child: { pid: 10 },\n            conversation: {\n                completedAt: null,\n                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],\n                id: 'conversation-1',\n                providerSessions: [],\n                status: 'waitingForInput',\n            },\n            currentAssistantMessageId: null,\n            finishing: false,\n            id: 'run-1',\n            missingSession: false,\n            onComplete: vi.fn(),\n            onEvent: vi.fn(),\n            persistence: Promise.resolve(),\n            protocolHandling: Promise.resolve(),\n            request: {},\n            startedAt: '2026-07-30T10:00:00.000Z',\n            stderr: '',\n            stderrBuffer: '',\n            stdout: '',\n            streaming: true,\n            streamingFailure: null,\n            suspended: true,\n            termination: null,\n            turnUsage: null,\n        };\n        service.processes.set('run-1', run);\n        service.runningConversationIds.add('conversation-1');\n\n        await service.handleClose('run-1', 1);\n\n        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({\n                completedAt: null,\n                entries: [expect.objectContaining({ content: 'Done', kind: 'message' })],\n                status: 'waitingForInput',\n            }),\n            stderr: '',\n        }));\n        expect(terminateProcessTree).not.toHaveBeenCalled();\n    });\n\n    it('publishes the terminal conversation when terminal persistence fails', async () => {\n        const persistenceError = new Error('Token summary could not be written');\n        const persistConversation = vi.fn(async () => {\n            throw persistenceError;\n        });\n        const service = new AgentRunnerService({ persistConversation });\n        const run = {\n            agent: 'codex',\n            cancelled: true,\n            changedPaths: new Set(),\n            child: { pid: 10 },\n            conversation: {\n                completedAt: null,\n                entries: [{ content: 'Stopped', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],\n                id: 'conversation-1',\n                providerSessions: [],\n                status: 'running',\n            },\n            currentAssistantMessageId: null,\n            finishing: false,\n            id: 'run-1',\n            missingSession: false,\n            onComplete: vi.fn(),\n            onCompletionError: vi.fn(),\n            onEvent: vi.fn(),\n            persistence: Promise.resolve(),\n            protocolHandling: Promise.resolve(),\n            request: {},\n            startedAt: '2026-07-30T10:00:00.000Z',\n            stderr: '',\n            stderrBuffer: '',\n            stderrHandling: Promise.resolve(),\n            stdout: '',\n            streaming: false,\n            streamingFailure: null,\n            suspended: false,\n            termination: Promise.resolve(),\n            turnUsage: null,\n        };\n        service.processes.set('run-1', run);\n        service.runningConversationIds.add('conversation-1');\n\n        await service.handleClose('run-1', 1);\n\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ completedAt: expect.any(String), status: 'cancelled' }),\n            type: 'closed',\n        }));\n        expect(run.onCompletionError).toHaveBeenCalledWith(persistenceError);\n        expect(run.onComplete).not.toHaveBeenCalled(\n[3025 characters omitted]\n.sourceConversation,\n                entries: [\n                    ...sourceConversation.entries,\n                    { content: 'Unsent request', id: 'user-2', kind: 'message', role: 'user', timestamp: 'now' },\n                ],\n                status: 'running',\n            },\n            currentAssistantMessageId: null,\n            finishing: false,\n            id: 'run-1',\n            missingSession: false,\n            onComplete: vi.fn(),\n            onEvent: vi.fn(),\n            persistence: Promise.resolve(),\n            protocolHandling: Promise.resolve(),\n            request: { conversation: sourceConversation },\n            startedAt: '2026-07-30T10:00:00.000Z',\n            stderr: 'provider startup failed',\n            stderrBuffer: '',\n            stdout: '',\n            streaming: true,\n            streamingFailure: new Error('provider startup failed'),\n            suspended: false,\n            termination: null,\n            turnStarted: false,\n            turnUsage: null,\n        };\n        service.processes.set('run-1', run);\n        service.runningConversationIds.add('conversation-1');\n\n        await service.handleClose('run-1', 1);\n\n        expect(persistConversation).not.toHaveBeenCalled();\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ status: 'failed' }),\n            type: 'closed',\n        }));\n        expect(run.onComplete).toHaveBeenCalledWith(1, run);\n    });\n\n    it('persists earlier transcript and concrete failure after provider turn starts', async () => {\n        const persistConversation = vi.fn(async () => undefined);\n        const service = new AgentRunnerService({ persistConversation });\n        const sourceConversation = {\n            entries: [{ content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'earlier' }],\n            id: 'conversation-1',\n            providerSessions: [],\n            status: 'completed',\n        };\n        const run = {\n            agent: 'claude',\n            cancelled: false,\n            changedPaths: new Set(),\n            child: { pid: 10 },\n            conversation: {\n                ...sourceConversation,\n                entries: [\n                    ...sourceConversation.entries,\n                    { content: 'Sent request', id: 'user-2', kind: 'message', role: 'user', timestamp: 'now' },\n                    { content: 'Claude provider failed: quota exhausted', id: 'error-3', kind: 'event', timestamp: 'now', type: 'error' },\n                ],\n                status: 'running',\n            },\n            currentAssistantMessageId: null,\n            finishing: false,\n            id: 'run-1',\n            missingSession: false,\n            onComplete: vi.fn(),\n            onEvent: vi.fn(),\n            persistence: Promise.resolve(),\n            protocolHandling: Promise.resolve(),\n            request: { conversation: sourceConversation },\n            startedAt: '2026-07-30T10:00:00.000Z',\n            stderr: 'Claude provider failed: quota exhausted',\n            stderrBuffer: '',\n            stdout: '',\n            streaming: true,\n            streamingFailure: new Error('Claude provider failed: quota exhausted'),\n            suspended: false,\n            termination: null,\n            turnStarted: true,\n            turnUsage: null,\n        };\n        service.processes.set('run-1', run);\n        service.runningConversationIds.add('conversation-1');\n\n        await service.handleClose('run-1', 1);\n\n        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({\n                entries: [\n                    expect.objectContaining({ id: 'assistant-1' }),\n                    expect.objectContaining({ content: 'Sent request', id: 'user-2' }),\n                    expect.objectContaining({ content: 'Claude provider failed: quota exhausted', type: 'error' }),\n                ],\n                id: 'conversation-1',\n                status: 'failed',\n            }),",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-39",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '720,1000p' desktop/src/actions/agent/agent_runner_state.test.mjs",
+          "providerItemId": "toolu_01Gfc91AV7vQjke9tDdA8HbD",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:23:30.328Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-40",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cf7Gbc11QLL99K8CT7XY8:thinking:0",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-16T14:23:33.023Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '735,780p' desktop/src/actions/agent/agent_runner_service.js && sed -n '40,80p' desktop/src/actions/agent/agent_runner_service.js",
+          "content": "                if (run.turnUsage) run.conversation.usage = accumulateUsage(run.conversation.usage, run.turnUsage);\n                if (!run.streaming && run.turnUsage) await this.recordTokenUsage(run, run.turnUsage, completedAt);\n            }\n            const preserveWaitingState = run.suspended && run.conversation.status === 'waitingForInput';\n            run.conversation.completedAt = preserveWaitingState ? null : completedAt;\n            const status = preserveWaitingState\n                ? 'waitingForInput'\n                : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';\n            transitionConversationStatus(run.conversation, status, completedAt, run.phases);\n            const continuedTurnFailedBeforeStart = !!run.request.conversation\n                && !run.turnStarted\n                && !succeeded\n                && !run.cancelled\n                && !run.suspended;\n            logAgentEvent('[agent:complete]', {\n                completedAt,\n                durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),\n                actionRunId: run.request.actionRunId ?? null,\n                exitCode,\n                pid: run.child.pid,\n                runId,\n            });\n            await run.persistence;\n            let persistenceError = null;\n            if (!continuedTurnFailedBeforeStart) {\n                try {\n                    await this.persistConversation(run);\n                } catch (error) {\n                    persistenceError = error;\n                }\n            }\n            this.processes.delete(runId);\n            this.runningConversationIds.delete(run.conversation.id);\n            emitRunEvent(run, { conversation: run.conversation, type: 'closed' });\n            this.requestUsagePoll(run);\n            if (persistenceError) {\n                if (run.onCompletionError) run.onCompletionError(persistenceError);\n                return;\n            }\n            if (run.onComplete) run.onComplete(succeeded ? 0 : exitCode || 1, run);\n        } catch (error) {\n            if (run.onCompletionError) run.onCompletionError(error);\n        } finally {\n            this.processes.delete(runId);\n            this.runningConversationIds.delete(run.conversation.id);\n        }\n} = require('./agent_run_transcript');\nconst {\n    readOptionalString,\n    requireCommand,\n    requireProjectFolder,\n    requireString,\n} = require('./agent_run_validation');\nconst { redactSecrets } = require('./agent_secret_redaction');\nconst { filterCompleteStderrLines, isHiddenStderrLine, stripAnsi } = require('./agent_stderr_filter');\nconst { STREAMING_EVENT_HANDLERS } = require('./agent_streaming_event_handlers');\nconst { terminateProcessTree } = require('../process_tree');\nconst { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');\n\nconst AGENT_FINISH_GRACE_MS = 5_000;\nconst AGENT_USAGE_POLL_TICK_MS = 120_000;\n\nclass AgentRunnerService {\n    constructor(dependencies = {}) {\n        this.claudeRuntimeService = dependencies.claudeRuntimeService ?? null;\n        this.codexRuntimeService = dependencies.codexRuntimeService ?? null;\n        this.usageMetricsService = dependencies.usageMetricsService ?? null;\n        this.persistConversation = dependencies.persistConversation\n            ?? dependencies.persistTerminalConversation\n            ?? persistConversation;\n        this.persistConversationCheckpoint = dependencies.persistConversationCheckpoint\n            ?? persistConversationCheckpoint;\n        this.persistSuccessfulConversationTurn = dependencies.persistSuccessfulConversationTurn\n            ?? dependencies.persistConversation\n            ?? dependencies.persistConversationCheckpoint\n            ?? persistConversation;\n        this.spawn = dependencies.spawn ?? crossSpawn;\n        this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();\n        this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;\n        this.setTimeout = dependencies.setTimeout ?? setTimeout;\n        this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;\n        this.claudeUsagePoller = dependencies.claudeUsagePoller\n            ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});\n        this.codexUsagePoller = dependencies.codexUsagePoller\n            ?? new CodexUsagePoller({\n                onRuntimeEvent: (event) => this.handleAccountCodexRuntimeEvent(event),\n                terminateProcessTree: this.terminateProcessTree,",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-41",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '735,780p' desktop/src/actions/agent/agent_runner_service.js && sed -n '40,80p' desktop/src/actions/agent/agent_runner_service.js",
+          "providerItemId": "toolu_01EZGxrpwpxQffNnXkXS5sqk",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:23:35.076Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow edit `handleClose` and add the retrying terminal persist.",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 42,
+          "timestamp": "2026-09-16T14:23:36.426Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='desktop/src/actions/agent/agent_runner_service.js'\ns=io.open(p,encoding='utf-8').read()\n\nold = \"\"\"            transitionConversationStatus(run.conversation, status, completedAt, run.phases);\n            const continuedTurnFailedBeforeStart = !!run.request.conversation\n                && !run.turnStarted\n                && !succeeded\n                && !run.cancelled\n                && !run.suspended;\n            logAgentEvent('[agent:complete]', {\n                completedAt,\n                durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),\n                actionRunId: run.request.actionRunId ?? null,\n                exitCode,\n                pid: run.child.pid,\n                runId,\n            });\n            await run.persistence;\n            let persistenceError = null;\n            if (!continuedTurnFailedBeforeStart) {\n                try {\n                    await this.persistConversation(run);\n                } catch (error) {\n                    persistenceError = error;\n                }\n            }\n            this.processes.delete(runId);\n            this.runningConversationIds.delete(run.conversation.id);\n            emitRunEvent(run, { conversation: run.conversation, type: 'closed' });\n\"\"\"\nnew = \"\"\"            transitionConversationStatus(run.conversation, status, completedAt, run.phases);\n            logAgentEvent('[agent:complete]', {\n                completedAt,\n                durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),\n                actionRunId: run.request.actionRunId ?? null,\n                exitCode,\n                pid: run.child.pid,\n                runId,\n            });\n            await run.persistence;\n            // Every close writes the terminal conversation, continued turns that never started included:\n            // the renderer already shows the terminal status, so a skipped write leaves `running` on disk.\n            const persistenceError = await this.persistTerminalConversation(run);\n            this.processes.delete(runId);\n            this.runningConversationIds.delete(run.conversation.id);\n            emitRunEvent(run, {\n                conversation: run.conversation,\n                persisted: !persistenceError,\n                type: 'closed',\n            });\n\"\"\"\nassert old in s\ns = s.replace(old, new)\n\nold2 = \"\"\"    requireRun(runId) {\n        const run = this.processes.get(runId);\n        if (!run) throw new Error(`Agent run is not active: ${runId}`);\n\n        return run;\n    }\n\"\"\"\nnew2 = \"\"\"    /**\n     * Writes the terminal conversation, retrying a bounded number of times. Returns the last error when\n     * every attempt failed so the caller can report it; the failure is never swallowed.\n     */\n    async persistTerminalConversation(run) {\n        for (let attempt = 1; attempt <= TERMINAL_PERSIST_ATTEMPTS; attempt += 1) {\n            try {\n                await this.persistConversation(run);\n                logAgentEvent('[agent:terminalPersist]', {\n                    attempt,\n                    conversationId: run.conversation.id,\n                    runId: run.id,\n                    status: run.conversation.status,\n                    persisted: true,\n                });\n\n                return null;\n            } catch (error) {\n                logAgentEvent('[agent:terminalPersist]', {\n                    attempt,\n                    conversationId: run.conversation.id,\n                    error: error instanceof Error ? error.message : String(error),\n                    runId: run.id,\n                    status: run.conversation.status,\n                    persisted: false,\n                });\n                if (attempt === TERMINAL_PERSIST_ATTEMPTS) return error;\n            }\n        }\n\n        return null;\n    }\n\n    requireRun(runId) {\n        const run = this.processes.get(runId);\n        if (!run) throw new Error(`Agent run is not active: ${runId}`);\n\n        return run;\n    }\n\"\"\"\nassert old2 in s\ns = s.replace(old2, new2)\n\ns = s.replace(\"const AGENT_USAGE_POLL_TICK_MS = 120_000;\",\n              \"const AGENT_USAGE_POLL_TICK_MS = 120_000;\\nconst TERMINAL_PERSIST_ATTEMPTS = 3;\")\nio.open(p,'w',encoding='utf-8').write(s)\nPY",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-43",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='desktop/src/actions/agent/agent_runner_service.js'\ns=io.open(p,encoding='utf-8').read()\n\nold = \"\"\"            transitionConversationStatus(run.conversation, status, completedAt, run.phases);\n            const continuedTurnFailedBeforeStart = !!run.request.conversation\n                && !run.turnStarted\n                && !succeeded\n                && !run.cancelled\n                && !run.suspended;\n            logAgentEvent('[agent:complete]', {\n                completedAt,\n                durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),\n                actionRunId: run.request.actionRunId ?? null,\n                exitCode,\n                pid: run.child.pid,\n                runId,\n            });\n            await run.persistence;\n            let persistenceError = null;\n            if (!continuedTurnFailedBeforeStart) {\n                try {\n                    await this.persistConversation(run);\n                } catch (error) {\n                    persistenceError = error;\n                }\n            }\n            this.processes.delete(runId);\n            this.runningConversationIds.delete(run.conversation.id);\n            emitRunEvent(run, { conversation: run.conversation, type: 'closed' });\n\"\"\"\nnew = \"\"\"            transitionConversationStatus(run.conversation, status, completedAt, run.phases);\n            logAgentEvent('[agent:complete]', {\n                completedAt,\n                durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),\n                actionRunId: run.request.actionRunId ?? null,\n                exitCode,\n                pid: run.child.pid,\n                runId,\n            });\n            await run.persistence;\n            // Every close writes the terminal conversation, continued turns that never started included:\n            // the renderer already shows the terminal status, so a skipped write leaves `running` on disk.\n            const persistenceError = await this.persistTerminalConversation(run);\n            this.processes.delete(runId);\n            this.runningConversationIds.delete(run.conversation.id);\n            emitRunEvent(run, {\n                conversation: run.conversation,\n                persisted: !persistenceError,\n                type: 'closed',\n            });\n\"\"\"\nassert old in s\ns = s.replace(old, new)\n\nold2 = \"\"\"    requireRun(runId) {\n        const run = this.processes.get(runId);\n        if (!run) throw new Error(`Agent run is not active: ${runId}`);\n\n        return run;\n    }\n\"\"\"\nnew2 = \"\"\"    /**\n     * Writes the terminal conversation, retrying a bounded number of times. Returns the last error when\n     * every attempt failed so the caller can report it; the failure is never swallowed.\n     */\n    async persistTerminalConversation(run) {\n        for (let attempt = 1; attempt <= TERMINAL_PERSIST_ATTEMPTS; attempt += 1) {\n            try {\n                await this.persistConversation(run);\n                logAgentEvent('[agent:terminalPersist]', {\n                    attempt,\n                    conversationId: run.conversation.id,\n                    runId: run.id,\n                    status: run.conversation.status,\n                    persisted: true,\n                });\n\n                return null;\n            } catch (error) {\n                logAgentEvent('[agent:terminalPersist]', {\n                    attempt,\n                    conversationId: run.conversation.id,\n                    error: error instanceof Error ? error.message : String(error),\n                    runId: run.id,\n                    status: run.conversation.status,\n                    persisted: false,\n                });\n                if (attempt === TERMINAL_PERSIST_ATTEMPTS) return error;\n            }\n        }\n\n        return null;\n    }\n\n    requireRun(runId) {\n        const run = this.processes.get(runId);\n        if (!run) throw new Error(`Agent run is not active: ${runId}`);\n\n        return run;\n    }\n\"\"\"\nassert old2 in s\ns = s.replace(old2, new2)\n\ns = s.replace(\"const AGENT_USAGE_POLL_TICK_MS = 120_000;\",\n              \"const AGENT_USAGE_POLL_TICK_MS = 120_000;\\nconst TERMINAL_PERSIST_ATTEMPTS = 3;\")\nio.open(p,'w',encoding='utf-8').write(s)\nPY",
+          "providerItemId": "toolu_01PDggKBGK7KZNtgpxuKfHzs",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:23:50.496Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-44",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cf7Gd5prhm3DFScm2cVYU:thinking:0",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-16T14:23:53.967Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"continuedTurnFailedBeforeStart\" desktop app shared | head",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-45",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"continuedTurnFailedBeforeStart\" desktop app shared | head",
+          "providerItemId": "toolu_016zhpGA98WcCDFeFv3YCxL9",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:24:07.256Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow block 3: the `persisted` flag in renderer types.",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-09-16T14:24:08.629Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '420,445p' app/src/data/data_types.ts",
+          "content": "    | {\n        event: AgentConversationEventEntry\n        runId: string\n        type: 'agentEvent'\n    }\n    | {\n        content: string\n        runId: string\n        type: 'error' | 'output'\n    }\n    | {\n        conversation: AgentConversation\n        runId: string\n        type: 'closed'\n    }\n\nexport interface StorageProjectFiles {\n    files: MarkdownFile[]\n    workingFolder: string\n}\n\nexport interface StorageService {\n    addWorktree?(project: ProjectReference, folderPath: string): Promise<void>\n    checkoutBranch(project: ProjectReference, branch: string): Promise<ProjectReference>\n    commit(request: CommitRequest): Promise<CommitResult>\n    commitWorktree?(request: CommitWorktreeRequest): Promise<void>",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-47",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '420,445p' app/src/data/data_types.ts",
+          "providerItemId": "toolu_01VkMNq4kCw5SZwkvxCRSxzd",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:24:09.756Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='app/src/data/data_types.ts'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"    | {\n        conversation: AgentConversation\n        runId: string\n        type: 'closed'\n    }\n\"\"\"\nnew=\"\"\"    | {\n        conversation: AgentConversation\n        /** False when the terminal conversation could not be written; the file still holds an earlier state. */\n        persisted?: boolean\n        runId: string\n        type: 'closed'\n    }\n\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8').write(s.replace(old,new))\nPY",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-48",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='app/src/data/data_types.ts'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"    | {\n        conversation: AgentConversation\n        runId: string\n        type: 'closed'\n    }\n\"\"\"\nnew=\"\"\"    | {\n        conversation: AgentConversation\n        /** False when the terminal conversation could not be written; the file still holds an earlier state. */\n        persisted?: boolean\n        runId: string\n        type: 'closed'\n    }\n\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8').write(s.replace(old,new))\nPY",
+          "providerItemId": "toolu_0163oBZurtcST2J99h6fsLWt",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:24:13.313Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow tests. First the desktop action_run test.",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-turn-2-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-09-16T14:24:14.675Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,120p' desktop/src/actions/action/action_run.test.mjs",
+          "content": "import { createRequire } from 'node:module';\nimport { describe, expect, it, vi } from 'vitest';\n\nconst require = createRequire(import.meta.url);\nconst { ActionRun } = require('./action_run');\n\nconst context = { cardInternalId: 'card-1', file: 'design/card.md', kind: 'card' };\nconst project = { branch: 'main', rootPath: 'C:/repo' };\n\nfunction action(id, overrides = {}) {\n    return {\n        command: id,\n        id,\n        label: id,\n        on: [],\n        onAfter: [],\n        onBefore: [],\n        type: 'command',\n        ...overrides,\n    };\n}\n\nfunction deferred() {\n    const { promise, resolve } = Promise.withResolvers();\n\n    return { promise, resolve };\n}\n\n/**\n * Stand-in for the backend agent run state that `ActionRun` now queries. Tests flip `question` and\n * `approvals` exactly where the real streaming handlers do, so `hasPendingInteraction` answers what\n * the backend would answer at that point in the sequence.\n */\nfunction agentRunState() {\n    const state = {\n        approvals: new Set(),\n        question: false,\n    };\n    state.hasPendingInteraction = vi.fn(() => state.question || state.approvals.size > 0);\n\n    return state;\n}\n\nfunction createRun(rootAction, overrides = {}) {\n    const events = [];\n    const appendActionRunHistory = overrides.localGitService?.appendActionRunHistory ?? vi.fn(async () => []);\n    const localGitService = {\n        appendAndCommitActionActivity: vi.fn(async (_project, _projectFolder, _origin, record) => {\n            const commits = record.commits.map((commit) => ({\n                ...commit,\n                actionId: commit.actionId ?? record.rootActionId,\n                actionName: commit.actionName ?? record.rootActionLabel,\n                repositoryRoot: project.rootPath,\n            }));\n            const entry = {\n                ...record.details,\n                commits,\n                completedAt: record.completedAt,\n                ...(record.rootConversationId ? { rootConversationId: record.rootConversationId } : {}),\n                startedAt: record.startedAt,\n                status: record.status,\n            };\n            await appendActionRunHistory(project, { actionId: record.rootActionId, context }, entry);\n\n            return { relativePath: 'design/activity/card__card-1.json' };\n        }),\n        appendActionRunHistory,\n        ...overrides.localGitService,\n    };\n    const commandRunner = overrides.commandRunner ?? vi.fn(async (_project, command, _signal, onOutput) => {\n        onOutput({ stderr: '', stdout: `${command}-chunk` });\n\n        return { command, exitCode: 0, stderr: '', stdout: command };\n    });\n    const actionWorktreeRunService = {\n        execute: vi.fn(async (primaryProject, _action, _context, run) => ({\n            ...await run(primaryProject),\n            branch: primaryProject.branch,\n            runWorktree: null,\n            repositoryRoot: primaryProject.rootPath,\n        })),\n        runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),\n        ...overrides.actionWorktreeRunService,\n    };\n    const agentRunnerService = {\n        hasPendingInteraction: () => false,\n        ...(overrides.agentRunnerService ?? { stop: vi.fn() }),\n    };\n    const agentExecutor = overrides.agentExecutor ?? { execute: vi.fn() };\n    const run = new ActionRun({\n        activeCardsFolder: 'design/feature_descriptions',\n        actionsFolder: 'actions',\n        activityOrigin: overrides.context?.kind === 'project'\n            ? { kind: 'project' }\n            : { cardInternalId: 'card-1', kind: 'card' },\n        context: overrides.context ?? context,\n        diagramFooter: overrides.diagramFooter,\n        diagramsFolder: overrides.diagramsFolder,\n        diagramPath: overrides.diagramPath,\n        runId: 'run-1',\n        project,\n        projectFolder: 'design',\n        releasesFolder: 'design/releases',\n        rootAction,\n        runInput: { extraPrompt: '', ...overrides.runInput },\n        startedAt: '2026-07-20T10:00:00.000Z',\n    }, {\n        actionWorktreeRunService,\n        agentExecutor,\n        agentRunnerService,\n        commandRunner,\n        diagramOutputWatcherFactory: overrides.diagramOutputWatcherFactory,\n        localGitService,\n        publisher: (event) => events.push(event),\n    });\n    run.start((completion) => completion);\n\n    return { actionWorktreeRunService, agentRunnerService, commandRunner, events, run, localGitService };\n}",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-50",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1,120p' desktop/src/actions/action/action_run.test.mjs",
+          "providerItemId": "toolu_01UeQmMRKEk4tHykqzCpGgQo",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:24:15.756Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1270,1300p' desktop/src/actions/action/action_run.test.mjs && grep -n \"agentExecutor\" desktop/src/actions/action/action_run.test.mjs | head -20",
+          "content": "            commit: 'abcdef3456789012345678901234567890123456',\n            committedAt: '2026-07-15T10:00:00+00:00',\n            filePaths: ['app/a.ts', 'app/b.ts'],\n        }));\n        const rootAction = action('main', {agent: 'codex', model: 'gpt', prompt: 'run', trackFileChanges: true, type: 'agent'});\n        const { run, localGitService } = createRun(rootAction, {\n            agentExecutor,\n            localGitService: { commitTrackedPaths, resolveCommitMetadata },\n        });\n\n        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });\n\n        expect(commitTrackedPaths).toHaveBeenCalledWith('C:/repo', ['app/a.ts', 'app/b.ts'], 'main', run.controller.signal);\n        expect(localGitService.appendActionRunHistory.mock.calls[0][2].commits[0]).toMatchObject({\n            actionId: 'main', actionName: 'main', commit: 'abcdef3456789012345678901234567890123456',\n            filePaths: ['app/a.ts', 'app/b.ts'],\n        });\n        const record = localGitService.appendAndCommitActionActivity.mock.calls[0][3];\n        expect(record).toMatchObject({\n            conversationIds: ['conversation'], details: { agent: 'codex', model: 'gpt', thinkingLevel: 'none', type: 'agent' },\n            rootConversationId: 'conversation',\n        });\n        expect(record).not.toHaveProperty('history');\n        expect(record.details).not.toHaveProperty('output');\n        expect(record.details).not.toHaveProperty('prompt');\n    });\n\n    it('groups ordered before, root, matching, and after commits on root history only', async () => {\n        const before = action('before');\n        const matching = action('matching');\n        const after = action('after');\n89:    const agentExecutor = overrides.agentExecutor ?? { execute: vi.fn() };\n109:        agentExecutor,\n129:        const agentExecutor = {\n151:            agentExecutor,\n167:        const agentExecutor = { execute: vi.fn() };\n174:            agentExecutor,\n183:        expect(agentExecutor.execute).not.toHaveBeenCalled();\n190:        const agentExecutor = {\n201:            agentExecutor,\n332:        const agentExecutor = {\n338:        const { run } = createRun(rootAction, { agentExecutor, runInput: { prompt: 'Root edited' } });\n342:        expect(agentExecutor.execute.mock.calls.map(([input]) => input.runInput)).toEqual([\n373:            agentExecutor: { execute: vi.fn() },\n397:        const agentExecutor = {\n418:        const { events, run } = createRun(rootAction, { agentExecutor, localGitService });\n486:        const agentExecutor = {\n499:        const { run } = createRun(rootAction, { agentExecutor, agentRunnerService });\n500:        await vi.waitFor(() => expect(agentExecutor.execute).toHaveBeenCalled());\n522:        const agentExecutor = {\n537:        const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-51",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '1270,1300p' desktop/src/actions/action/action_run.test.mjs && grep -n \"agentExecutor\" desktop/src/actions/action/action_run.test.mjs | head -20",
+          "providerItemId": "toolu_01UNS7MQmGiBhPBUBvGLDzHe",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:24:18.887Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '385,430p' desktop/src/actions/action/action_run.test.mjs",
+          "content": "        await run.completion;\n\n        expect(order).toEqual(['running:', 'running:chunk', 'process', 'completed:', 'history']);\n        expect(events.every((event) => event.context === context)).toBe(true);\n    });\n\n    it('publishes accumulated agent paths only after activity persistence', async () => {\n        const rootAction = action('main', {\n            onAfter: [action('after', { prompt: 'after', type: 'agent' })],\n            prompt: 'main',\n            type: 'agent',\n        });\n        const agentExecutor = {\n            execute: vi.fn(async ({ action: currentAction }) => ({\n                agent: 'codex',\n                changedPaths: currentAction.id === 'main' ? ['app/a.ts'] : ['desktop/b.js', 'app/a.ts'],\n                conversationId: currentAction.id,\n                exitCode: 0,\n                model: 'gpt',\n                prompt: currentAction.prompt,\n                stderr: '',\n                stdout: '',\n                thinkingLevel: 'none',\n            })),\n        };\n        const order = [];\n        const localGitService = {\n            appendAndCommitActionActivity: vi.fn(async () => {\n                order.push('activity');\n\n                return { relativePath: 'design/activity/card__card-1.json' };\n            }),\n        };\n        const { events, run } = createRun(rootAction, { agentExecutor, localGitService });\n        const originalPublisher = run.publisher;\n        run.publisher = (event) => {\n            originalPublisher(event);\n            if (event.type === 'run' && event.status === 'completed') order.push('terminal');\n        };\n\n        await expect(run.completion).resolves.toMatchObject({\n            changedPaths: ['app/a.ts', 'desktop/b.js'],\n            status: 'completed',\n        });\n\n        expect(order).toEqual(['activity', 'terminal']);",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-52",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '385,430p' desktop/src/actions/action/action_run.test.mjs",
+          "providerItemId": "toolu_01JrwM9uE3Lvc53E7gcTdgxN",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:24:21.842Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow add the action_run test.",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-turn-2-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 53,
+          "timestamp": "2026-09-16T14:24:23.233Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='desktop/src/actions/action/action_run.test.mjs'\ns=io.open(p,encoding='utf-8').read()\nanchor = \"    it('publishes accumulated agent paths only after activity persistence', async () => {\"\ntest = \"\"\"    it('records a failure activity when the agent fails before a conversation exists', async () => {\n        const rootAction = action('main', { prompt: 'main', type: 'agent' });\n        const agentExecutor = {\n            execute: vi.fn(async () => {\n                throw new Error('Agent executable is missing');\n            }),\n        };\n        const { run, localGitService } = createRun(rootAction, { agentExecutor });\n\n        await expect(run.completion).resolves.toMatchObject({ status: 'failed' });\n\n        expect(localGitService.appendAndCommitActionActivity).toHaveBeenCalledOnce();\n        const record = localGitService.appendAndCommitActionActivity.mock.calls[0][3];\n        expect(record).toMatchObject({\n            conversationIds: [],\n            details: { output: 'Agent executable is missing', type: 'command' },\n            runId: 'run-1',\n            status: 'failed',\n        });\n        expect(record).not.toHaveProperty('rootConversationId');\n    });\n\n\"\"\"\nassert anchor in s\nio.open(p,'w',encoding='utf-8').write(s.replace(anchor, test+anchor,1))\nPY\nnpx vitest run desktop/src/actions/action/action_run.test.mjs 2>&1 | tail -25",
+          "content": "npm warn exec The following package was not found and will be installed: vitest@5.0.1\n\n RUN  v5.0.1 C:/Users/janbo/Documents/dev/md2\n\n\n Test Files  1 passed (1)\n      Tests  54 passed (54)\n   Start at  16:24:38\n   Duration  902ms (tests 82%, import 9%, transform 6%, worker 3%)",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-54",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='desktop/src/actions/action/action_run.test.mjs'\ns=io.open(p,encoding='utf-8').read()\nanchor = \"    it('publishes accumulated agent paths only after activity persistence', async () => {\"\ntest = \"\"\"    it('records a failure activity when the agent fails before a conversation exists', async () => {\n        const rootAction = action('main', { prompt: 'main', type: 'agent' });\n        const agentExecutor = {\n            execute: vi.fn(async () => {\n                throw new Error('Agent executable is missing');\n            }),\n        };\n        const { run, localGitService } = createRun(rootAction, { agentExecutor });\n\n        await expect(run.completion).resolves.toMatchObject({ status: 'failed' });\n\n        expect(localGitService.appendAndCommitActionActivity).toHaveBeenCalledOnce();\n        const record = localGitService.appendAndCommitActionActivity.mock.calls[0][3];\n        expect(record).toMatchObject({\n            conversationIds: [],\n            details: { output: 'Agent executable is missing', type: 'command' },\n            runId: 'run-1',\n            status: 'failed',\n        });\n        expect(record).not.toHaveProperty('rootConversationId');\n    });\n\n\"\"\"\nassert anchor in s\nio.open(p,'w',encoding='utf-8').write(s.replace(anchor, test+anchor,1))\nPY\nnpx vitest run desktop/src/actions/action/action_run.test.mjs 2>&1 | tail -25",
+          "providerItemId": "toolu_01KTeCWTiJ8Eg4udHSepDU79",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:24:39.953Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-55",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cf7GgjBW2D14TtxuoBYuS:thinking:0",
+          "sequence": 55,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-16T14:24:42.561Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat package.json | head -30 && ls desktop/package.json app/package.json 2>/dev/null",
+          "content": "{\n  \"name\": \"md2\",\n  \"private\": true,\n  \"scripts\": {\n    \"build:windows\": \"node desktop/packaging/build_windows.js\",\n    \"dev\": \"concurrently -k -n APP,DESKTOP -c blue,green \\\"npm:dev:app\\\" \\\"npm:dev:desktop\\\"\",\n    \"dev:app\": \"npm run dev --prefix app\",\n    \"dev:desktop\": \"wait-on http://localhost:5173 && npm start --prefix desktop\",\n    \"install:all\": \"npm install --prefix app && npm install --prefix desktop\"\n  },\n  \"devDependencies\": {\n    \"concurrently\": \"^10.0.3\",\n    \"wait-on\": \"^9.0.10\"\n  },\n  \"dependencies\": {\n    \"electron-window-state\": \"^5.0.3\"\n  }\n}\napp/package.json\ndesktop/package.json",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-56",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat package.json | head -30 && ls desktop/package.json app/package.json 2>/dev/null",
+          "providerItemId": "toolu_01PFLy3chq48serdCbFUnbHp",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:24:43.732Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"\\\"scripts\\\"\" -A8 app/package.json desktop/package.json",
+          "content": "app/package.json:6:  \"scripts\": {\napp/package.json-7-    \"dev\": \"vite\",\napp/package.json-8-    \"build\": \"tsc && vite build\",\napp/package.json-9-    \"lint\": \"eslint .\",\napp/package.json-10-    \"lint-fix\": \"eslint . --fix\",\napp/package.json-11-    \"preview\": \"vite preview\",\napp/package.json-12-    \"typecheck\": \"tsc --noEmit\",\napp/package.json-13-    \"test\": \"vitest run\",\napp/package.json-14-    \"test:full\": \"vitest run\",\n--\ndesktop/package.json:7:  \"scripts\": {\ndesktop/package.json-8-    \"lint\": \"eslint .\",\ndesktop/package.json-9-    \"lint-fix\": \"eslint . --fix\",\ndesktop/package.json-10-    \"package:windows\": \"electron-builder --config electron-builder.config.cjs --win nsis --x64\",\ndesktop/package.json-11-    \"postpackage:windows\": \"node packaging/verify_windows_package.mjs\",\ndesktop/package.json-12-    \"start\": \"node start_electron.js\",\ndesktop/package.json-13-    \"test\": \"vitest run\",\ndesktop/package.json-14-    \"test:full\": \"vitest run\",\ndesktop/package.json-15-    \"test:watch\": \"vitest\"",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-57",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"\\\"scripts\\\"\" -A8 app/package.json desktop/package.json",
+          "providerItemId": "toolu_01X8P4DLugcjKE2m3Va2eJBD",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:24:45.950Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the agent runner tests: update the stale expectation and add retry/failure cases.",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-turn-2-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 58,
+          "timestamp": "2026-09-16T14:24:47.264Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='desktop/src/actions/agent/agent_runner_state.test.mjs'\ns=io.open(p,encoding='utf-8').read()\n\nold_title = \"    it('leaves persisted continuation unchanged when provider turn never starts', async () => {\"\nnew_title = \"    it('persists the failed continuation when the provider turn never starts', async () => {\"\nassert old_title in s\ns = s.replace(old_title, new_title)\n\nold = \"\"\"        expect(persistConversation).not.toHaveBeenCalled();\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ status: 'failed' }),\n            type: 'closed',\n        }));\n        expect(run.onComplete).toHaveBeenCalledWith(1, run);\n\"\"\"\nnew = \"\"\"        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ id: 'conversation-1', status: 'failed' }),\n        }));\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ status: 'failed' }),\n            persisted: true,\n            type: 'closed',\n        }));\n        expect(run.onComplete).toHaveBeenCalledWith(1, run);\n\"\"\"\nassert old in s\ns = s.replace(old, new, 1)\nio.open(p,'w',encoding='utf-8').write(s)\nPY",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-59",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='desktop/src/actions/agent/agent_runner_state.test.mjs'\ns=io.open(p,encoding='utf-8').read()\n\nold_title = \"    it('leaves persisted continuation unchanged when provider turn never starts', async () => {\"\nnew_title = \"    it('persists the failed continuation when the provider turn never starts', async () => {\"\nassert old_title in s\ns = s.replace(old_title, new_title)\n\nold = \"\"\"        expect(persistConversation).not.toHaveBeenCalled();\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ status: 'failed' }),\n            type: 'closed',\n        }));\n        expect(run.onComplete).toHaveBeenCalledWith(1, run);\n\"\"\"\nnew = \"\"\"        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ id: 'conversation-1', status: 'failed' }),\n        }));\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ status: 'failed' }),\n            persisted: true,\n            type: 'closed',\n        }));\n        expect(run.onComplete).toHaveBeenCalledWith(1, run);\n\"\"\"\nassert old in s\ns = s.replace(old, new, 1)\nio.open(p,'w',encoding='utf-8').write(s)\nPY",
+          "providerItemId": "toolu_013VkWXLZA5saN5FZFFCTX3C",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:24:52.444Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-60",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cf7Gheje3n8XXDRR9VNqX:thinking:0",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-16T14:24:56.252Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='desktop/src/actions/agent/agent_runner_state.test.mjs'\ns=io.open(p,encoding='utf-8').read()\n\nold = \"\"\"        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ completedAt: expect.any(String), status: 'cancelled' }),\n            type: 'closed',\n        }));\n        expect(run.onCompletionError).toHaveBeenCalledWith(persistenceError);\n        expect(run.onComplete).not.toHaveBeenCalled();\n        expect(service.processes.has('run-1')).toBe(false);\n    });\n\"\"\"\nnew = \"\"\"        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ completedAt: expect.any(String), status: 'cancelled' }),\n            persisted: false,\n            type: 'closed',\n        }));\n        expect(persistConversation).toHaveBeenCalledTimes(3);\n        expect(run.onCompletionError).toHaveBeenCalledWith(persistenceError);\n        expect(run.onComplete).not.toHaveBeenCalled();\n        expect(service.processes.has('run-1')).toBe(false);\n    });\n\n    it('retries a failing terminal write and completes once one attempt succeeds', async () => {\n        const persistConversation = vi.fn()\n            .mockRejectedValueOnce(new Error('Activity file is locked'))\n            .mockResolvedValueOnce(undefined);\n        const service = new AgentRunnerService({ persistConversation });\n        const run = {\n            agent: 'codex',\n            cancelled: false,\n            changedPaths: new Set(),\n            child: { pid: 10 },\n            conversation: {\n                completedAt: null,\n                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],\n                id: 'conversation-1',\n                providerSessions: [],\n                status: 'running',\n            },\n            currentAssistantMessageId: null,\n            finishing: false,\n            id: 'run-1',\n            missingSession: false,\n            onComplete: vi.fn(),\n            onCompletionError: vi.fn(),\n            onEvent: vi.fn(),\n            persistence: Promise.resolve(),\n            protocolHandling: Promise.resolve(),\n            request: {},\n            startedAt: '2026-07-30T10:00:00.000Z',\n            stderr: '',\n            stderrBuffer: '',\n            stderrHandling: Promise.resolve(),\n            stdout: '',\n            streaming: false,\n            streamingFailure: null,\n            suspended: false,\n            termination: Promise.resolve(),\n            turnUsage: null,\n        };\n        service.processes.set('run-1', run);\n        service.runningConversationIds.add('conversation-1');\n\n        await service.handleClose('run-1', 0);\n\n        expect(persistConversation).toHaveBeenCalledTimes(2);\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ status: 'completed' }),\n            persisted: true,\n            type: 'closed',\n        }));\n        expect(run.onCompletionError).not.toHaveBeenCalled();\n        expect(run.onComplete).toHaveBeenCalledWith(0, run);\n    });\n\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8').write(s.replace(old,new,1))\nPY\nnpx vitest run desktop/src/actions/agent/agent_runner_state.test.mjs 2>&1 | tail -30",
+          "content": " RUN  v5.0.1 C:/Users/janbo/Documents/dev/md2\n\n\n Test Files  1 passed (1)\n      Tests  58 passed (58)\n   Start at  16:25:08\n   Duration  935ms (tests 83%, import 10%, transform 7%)",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-61",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='desktop/src/actions/agent/agent_runner_state.test.mjs'\ns=io.open(p,encoding='utf-8').read()\n\nold = \"\"\"        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ completedAt: expect.any(String), status: 'cancelled' }),\n            type: 'closed',\n        }));\n        expect(run.onCompletionError).toHaveBeenCalledWith(persistenceError);\n        expect(run.onComplete).not.toHaveBeenCalled();\n        expect(service.processes.has('run-1')).toBe(false);\n    });\n\"\"\"\nnew = \"\"\"        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ completedAt: expect.any(String), status: 'cancelled' }),\n            persisted: false,\n            type: 'closed',\n        }));\n        expect(persistConversation).toHaveBeenCalledTimes(3);\n        expect(run.onCompletionError).toHaveBeenCalledWith(persistenceError);\n        expect(run.onComplete).not.toHaveBeenCalled();\n        expect(service.processes.has('run-1')).toBe(false);\n    });\n\n    it('retries a failing terminal write and completes once one attempt succeeds', async () => {\n        const persistConversation = vi.fn()\n            .mockRejectedValueOnce(new Error('Activity file is locked'))\n            .mockResolvedValueOnce(undefined);\n        const service = new AgentRunnerService({ persistConversation });\n        const run = {\n            agent: 'codex',\n            cancelled: false,\n            changedPaths: new Set(),\n            child: { pid: 10 },\n            conversation: {\n                completedAt: null,\n                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],\n                id: 'conversation-1',\n                providerSessions: [],\n                status: 'running',\n            },\n            currentAssistantMessageId: null,\n            finishing: false,\n            id: 'run-1',\n            missingSession: false,\n            onComplete: vi.fn(),\n            onCompletionError: vi.fn(),\n            onEvent: vi.fn(),\n            persistence: Promise.resolve(),\n            protocolHandling: Promise.resolve(),\n            request: {},\n            startedAt: '2026-07-30T10:00:00.000Z',\n            stderr: '',\n            stderrBuffer: '',\n            stderrHandling: Promise.resolve(),\n            stdout: '',\n            streaming: false,\n            streamingFailure: null,\n            suspended: false,\n            termination: Promise.resolve(),\n            turnUsage: null,\n        };\n        service.processes.set('run-1', run);\n        service.runningConversationIds.add('conversation-1');\n\n        await service.handleClose('run-1', 0);\n\n        expect(persistConversation).toHaveBeenCalledTimes(2);\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ status: 'completed' }),\n            persisted: true,\n            type: 'closed',\n        }));\n        expect(run.onCompletionError).not.toHaveBeenCalled();\n        expect(run.onComplete).toHaveBeenCalledWith(0, run);\n    });\n\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8').write(s.replace(old,new,1))\nPY\nnpx vitest run desktop/src/actions/agent/agent_runner_state.test.mjs 2>&1 | tail -30",
+          "providerItemId": "toolu_01CoNMU4qFeDwNJufEhyDw9Z",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:25:09.534Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-62",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cf7GiuuUKYc6pkTFriXnH:thinking:0",
+          "sequence": 62,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-16T14:25:11.836Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/desktop\" && npx vitest run src/actions 2>&1 | tail -30",
+          "content": "     73|         expect(findPendingSchedule([pendingSchedule], 'schedule-1')).t…\n     74|         expect([...pendingScheduleIds([pendingSchedule, completedSched…\n       |                    ^\n     75|     });\n     76|\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯\n\n FAIL  src/actions/agent/agent_profiles_parity.test.mjs > agent_profiles shared adapter > keeps validation and command building behavior covered by shared built-ins\nAssertionError: expected 'gpt-5.6-sol' to be 'gpt-5.5' // Object.is equality\n\nExpected: \"gpt-5.5\"\nReceived: \"gpt-5.6-sol\"\n\n ❯ src/actions/agent/agent_profiles_parity.test.mjs:26:47\n     24|         if (!codex) throw new Error('Missing codex built-in profile');\n     25|\n     26|         expect(defaultModelForProfile(codex)).toBe('gpt-5.5');\n       |                                               ^\n     27|         expect(buildAgentCommand(codex, 'gpt-5')).toEqual(['codex', '-…\n     28|         expect(buildAgentExecutionCommand(codex, 'gpt-5', 'low')).toEq…\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯\n\n\n Test Files  4 failed | 53 passed (57)\n      Tests  4 failed | 827 passed (831)\n   Start at  16:25:14\n   Duration  3.96s (transform 582ms, setup 0ms, import 2.53s, tests 5.08s, environment 4ms)",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-63",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/desktop\" && npx vitest run src/actions 2>&1 | tail -30",
+          "providerItemId": "toolu_01Nu2MnwCEVQeGWEywjWmpdx",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:25:18.200Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/desktop\" && npx vitest run src/actions 2>&1 | grep -E \"^ (FAIL|❯)|FAIL \" | head -20",
+          "content": " ❯ src/actions/schedule/schedule_store.test.mjs (9 tests | 1 failed) 13ms\n ❯ src/actions/action/action_agent_executor.test.mjs (33 tests | 1 failed) 45ms\n ❯ src/actions/agent/agent_profiles_parity.test.mjs (2 tests | 1 failed) 8ms\n ❯ src/actions/action/action_scheduler_service.test.mjs (38 tests | 1 failed) 413ms\n FAIL  src/actions/action/action_agent_executor.test.mjs > ActionAgentExecutor > resumes restarted Claude streaming with its saved session\n ❯ src/actions/action/action_agent_executor.test.mjs:350:25\n FAIL  src/actions/action/action_scheduler_service.test.mjs > ActionSchedulerService > rejects unsupported scheduled thinking-level resolution before process start\n ❯ src/actions/action/action_scheduler_service.test.mjs:708:43\n FAIL  src/actions/agent/agent_profiles_parity.test.mjs > agent_profiles shared adapter > keeps validation and command building behavior covered by shared built-ins\n ❯ src/actions/agent/agent_profiles_parity.test.mjs:26:47\n FAIL  src/actions/schedule/schedule_store.test.mjs > schedule store > finds pending schedules\n ❯ src/actions/schedule/schedule_store.test.mjs:74:20",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-64",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/desktop\" && npx vitest run src/actions 2>&1 | grep -E \"^ (FAIL|❯)|FAIL \" | head -20",
+          "providerItemId": "toolu_011vJWvcNLRDNzG68TN4pv4c",
+          "sequence": 64,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:25:25.341Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-65",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cf7Gk5L332os2LyDxFgbZ:thinking:0",
+          "sequence": 65,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-16T14:25:27.489Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npm run typecheck 2>&1 | tail -15",
+          "content": "> app@0.6.0 typecheck\n> tsc --noEmit",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-66",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npm run typecheck 2>&1 | tail -15",
+          "providerItemId": "toolu_015twk5FPV3EwmB6AUWvvPNm",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:25:43.535Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npx vitest run src/services/agents src/services/actions 2>&1 | tail -8",
+          "content": " RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/app\n\n\n Test Files  23 passed (23)\n      Tests  341 passed (341)\n   Start at  16:25:49\n   Duration  5.73s (transform 1.51s, setup 137ms, import 2.60s, tests 2.32s, environment 710ms)",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-67",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npx vitest run src/services/agents src/services/actions 2>&1 | tail -8",
+          "providerItemId": "toolu_01NeKaAzJD971JjEKAdwc1FB",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:25:55.735Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nLint + spec status.",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-turn-2-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-09-16T14:25:57.085Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/desktop\" && npx eslint src/actions/agent/agent_runner_service.js src/actions/action/action_run.js src/actions/agent/agent_runner_state.test.mjs src/actions/action/action_run.test.mjs 2>&1 | tail -20",
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_state.test.mjs\n  990:82  error  Unexpected line break after this opening brace   object-curly-newline\n  992:9   error  Unexpected line break before this closing brace  object-curly-newline\n\n✖ 2 problems (2 errors, 0 warnings)\n  2 errors and 0 warnings potentially fixable with the `--fix` option.",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-69",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/desktop\" && npx eslint src/actions/agent/agent_runner_service.js src/actions/action/action_run.js src/actions/agent/agent_runner_state.test.mjs src/actions/action/action_run.test.mjs 2>&1 | tail -20",
+          "providerItemId": "toolu_01CKXcLGDuT6f6syx5oDq1es",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:26:01.218Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/desktop\" && sed -n '988,994p' src/actions/agent/agent_runner_state.test.mjs",
+          "content": "        await service.handleClose('run-1', 1);\n\n        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ id: 'conversation-1', status: 'failed' }),\n        }));\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ status: 'failed' }),",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-70",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/desktop\" && sed -n '988,994p' src/actions/agent/agent_runner_state.test.mjs",
+          "providerItemId": "toolu_01T5g9oRWVd25ZeRNWbxZrfi",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:26:03.325Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/desktop\" && python - <<'PY'\nimport io\np='src/actions/agent/agent_runner_state.test.mjs'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ id: 'conversation-1', status: 'failed' }),\n        }));\n\"\"\"\nnew=\"\"\"        expect(persistConversation).toHaveBeenCalledWith(\n            expect.objectContaining({ conversation: expect.objectContaining({ id: 'conversation-1', status: 'failed' }) }),\n        );\n\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8').write(s.replace(old,new,1))\nPY\nnpx eslint src/actions/agent/agent_runner_state.test.mjs && npx vitest run src/actions/agent/agent_runner_state.test.mjs src/actions/action/action_run.test.mjs 2>&1 | tail -6",
+          "content": " Test Files  2 passed (2)\n      Tests  112 passed (112)\n   Start at  16:26:11\n   Duration  990ms (transform 131ms, setup 0ms, import 286ms, tests 1.21s, environment 0ms)",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-71",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/desktop\" && python - <<'PY'\nimport io\np='src/actions/agent/agent_runner_state.test.mjs'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({\n            conversation: expect.objectContaining({ id: 'conversation-1', status: 'failed' }),\n        }));\n\"\"\"\nnew=\"\"\"        expect(persistConversation).toHaveBeenCalledWith(\n            expect.objectContaining({ conversation: expect.objectContaining({ id: 'conversation-1', status: 'failed' }) }),\n        );\n\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8').write(s.replace(old,new,1))\nPY\nnpx eslint src/actions/agent/agent_runner_state.test.mjs && npx vitest run src/actions/agent/agent_runner_state.test.mjs src/actions/action/action_run.test.mjs 2>&1 | tail -6",
+          "providerItemId": "toolu_014675dvhoMyLTTu95ANRxcJ",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:26:12.215Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npx eslint src/data/data_types.ts 2>&1 | tail -5; cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='design/feature_descriptions/B_239_always_write_terminal_activity_record.md'\ns=io.open(p,encoding='utf-8').read()\nassert 'status: ready for implementation' in s\nio.open(p,'w',encoding='utf-8').write(s.replace('status: ready for implementation','status: ready',1))\nPY\ngrep -n \"^status\" design/feature_descriptions/B_239_always_write_terminal_activity_record.md",
+          "content": "6:status: ready",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-event-72",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app\" && npx eslint src/data/data_types.ts 2>&1 | tail -5; cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='design/feature_descriptions/B_239_always_write_terminal_activity_record.md'\ns=io.open(p,encoding='utf-8').read()\nassert 'status: ready for implementation' in s\nio.open(p,'w',encoding='utf-8').write(s.replace('status: ready for implementation','status: ready',1))\nPY\ngrep -n \"^status\" design/feature_descriptions/B_239_always_write_terminal_activity_record.md",
+          "providerItemId": "toolu_017pq2XkdNYe2z1hG887zY7d",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-09-16T14:26:19.648Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. All 4 blocks implemented.\n\n**Block 1 — `desktop/src/actions/action/action_run.js`**\nRemoved the early return in `persistRootActivity`. An agent root run whose agent phase threw before a conversation id existed now falls through to the command-shaped `details` fallback, so the failure cause lands in `output` and a `failed` record reaches disk.\n\n**Block 2 — `desktop/src/actions/agent/agent_runner_service.js`**\n- `handleClose` no longer skips the terminal write for a continued turn that failed before starting; the write is unconditional.\n- New method `persistTerminalConversation(run)` retries up to `TERMINAL_PERSIST_ATTEMPTS` (3) and logs every attempt via `logAgentEvent('[agent:terminalPersist]', …)` with run id, conversation id, status, attempt, and outcome — traceable next to the existing `[agent:complete]` entry. A final failure is returned, then handed to `onCompletionError`, which rejects the run completion so the action publishes `failed`.\n- The `closed` event now carries `persisted`, so renderer consumers can tell that the file disagrees.\n\n**Block 3 — `app/src/data/data_types.ts`**\nAdded optional `persisted?: boolean` to the `closed` run event. `npm run typecheck` in `app` clean.\n\n**Block 4** — spec `status` set to `ready`.\n\n**Tests**\n- `action_run.test.mjs`: new case — agent fails before a conversation exists, one activity append, `status: 'failed'`, cause in `details.output`, no `rootConversationId`.\n- `agent_runner_state.test.mjs`: rewrote `leaves persisted continuation unchanged when provider turn never starts` (it encoded the bug) into `persists the failed continuation when the provider turn never starts`; extended the persist-failure case to assert 3 attempts plus `persisted: false`; added a retry-then-success case asserting 2 attempts, `persisted: true`, and normal completion.\n- Suites: `action_run` 54 passed, `agent_runner_state` 58 passed, app `services/agents` + `services/actions` 341 passed. ESLint clean on changed files.\n\nPre-existing, unrelated failures in the worktree (untouched by this change): `agent_profiles_parity`, `action_agent_executor`, `action_scheduler_service`, `schedule_store` — model-name and schedule expectations.",
+          "id": "agent-turn-f2c3443c-e3df-4b1d-bf51-2b43bf86bd51-turn-2-assistant-8",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 73,
+          "timestamp": "2026-09-16T14:26:30.624Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -415,20 +931,20 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 24572,
-          "toolMs": 24293
+          "reasoningMs": 34754,
+          "toolMs": 167555
         },
         "elapsedMs": 85570,
         "runningStartedAt": "2026-09-16T14:23:09.331Z"
       },
       "title": "fix bug",
       "usage": {
-        "cachedInputTokens": 648623,
-        "inputTokens": 30,
-        "outputTokens": 5441,
+        "cachedInputTokens": 2704572,
+        "inputTokens": 86,
+        "outputTokens": 15657,
         "reasoningTokens": 0,
-        "totalTokens": 654094,
-        "costUsd": 0.8333804999999999
+        "totalTokens": 2720315,
+        "costUsd": 3.2132804999999998
       },
       "usageSchemaVersion": 1,
       "viewed": true
