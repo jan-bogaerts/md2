@@ -3,7 +3,7 @@ author:
 id: B_235
 internalId: 391f9465-af38-4a95-b612-52e30cada779
 title: end of action not logged
-status: new
+status: design
 owner: 
 affects:
 agents:
