@@ -3,12 +3,14 @@ author:
 id: B_236
 internalId: be94932a-4808-47eb-aa34-e52dd9504e7f
 title: backend owns agent run status
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__be94932a-4808-47eb-aa34-e52dd9504e7f.json
 policy:
+changedFiles:
+  - temp_b236.py
 ---
 Make electron backend the only place that computes agent run status. Split from [B\_235](B_235_end_of_action_not_logged.md).
 
