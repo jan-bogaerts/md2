@@ -745,20 +745,30 @@
           "sequence": 54,
           "timestamp": "2026-09-16T08:25:02.551Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-133baad2-e7b5-46e0-a0a5-c1f81c34eafe-questions-dismissed-54",
+          "kind": "event",
+          "label": "Questions dismissed",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-09-16T08:33:02.055Z",
+          "type": "questionsDismissed"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-d0b7dbb7-0638-4842-86c7-244320a59acd",
       "providerSessions": [],
       "startedAt": "2026-09-16T08:21:46.547Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 76534,
           "toolMs": 63991
         },
         "elapsedMs": 196004,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-16T08:33:02.055Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
