@@ -20,7 +20,7 @@
       "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "cardInternalId": "e92293d1-a775-46d9-ab48-57a8123b7c56",
       "cardPath": "design/feature_descriptions/B_237_card_agent_state_follows_run_events.md",
-      "completedAt": null,
+      "completedAt": "2026-09-16T12:36:56.943Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 120346
@@ -1446,7 +1446,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 114,
-          "timestamp": "2026-09-16T12:36:56.432Z"
+          "timestamp": "2026-09-16T12:36:56.943Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1456,19 +1456,19 @@
           "agent": "claude",
           "conversationId": "85998163-f5c1-4109-b081-48ad98f64023",
           "createdAt": "2026-09-16T12:16:58.210Z",
-          "lastUsedAt": "2026-09-16T12:16:58.210Z",
-          "synchronizedThroughMessageId": "agent-turn-d801e332-1951-48d6-8efe-d9116fb54941-turn-1-assistant-2"
+          "lastUsedAt": "2026-09-16T12:36:56.943Z",
+          "synchronizedThroughMessageId": "agent-turn-d801e332-1951-48d6-8efe-d9116fb54941-turn-2-assistant-14"
         }
       ],
       "startedAt": "2026-09-16T12:15:35.622Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 141255,
           "toolMs": 904461
         },
-        "elapsedMs": 82588,
-        "runningStartedAt": "2026-09-16T12:18:55.814Z"
+        "elapsedMs": 1163717,
+        "runningStartedAt": null
       },
       "title": "fix bug",
       "usage": {
