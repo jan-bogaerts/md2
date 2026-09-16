@@ -3,13 +3,21 @@ author:
 id: B_237
 internalId: e92293d1-a775-46d9-ab48-57a8123b7c56
 title: card agent state follows run events
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__e92293d1-a775-46d9-ab48-57a8123b7c56.json
 policy:
 after: be94932a-4808-47eb-aa34-e52dd9504e7f
+changedFiles:
+  - app/src/services/actions/action_run_registry.ts
+  - app/src/services/agents/agent_integration.ts
+  - app/src/services/agents/card_agent_state.ts
+  - tmp_b237_insert.py
+  - tmp_b237_reg_test.ts
+  - tmp_b237_reload.ts
+  - tmp_b237_tests.ts
 ---
 Keep the card action spinner in step with the live run. Split from [B\_235](B_235_end_of_action_not_logged.md); consumes the single backend status from [B\_236](B_236_backend_owns_agent_run_status.md).
 
