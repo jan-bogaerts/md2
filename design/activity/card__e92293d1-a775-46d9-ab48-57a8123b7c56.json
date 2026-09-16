@@ -1,0 +1,54 @@
+{
+  "actionSettings": {
+    "5c6ec911-a3e8-46d3-8500-46875d67b78d": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "cardInternalId": "e92293d1-a775-46d9-ab48-57a8123b7c56",
+      "cardPath": "design/feature_descriptions/B_237_card_agent_state_follows_run_events.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and fix the bug described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_237_card_agent_state_follows_run_events.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned bug description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).&#x20;\n2. create a task for each block\n3. Wait for approval.\n4. include tests\n5. After implementation is done, update the field `status` in the markdown feature description file to `ready`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_237_card_agent_state_follows_run_events.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria. Keep everything short and to the point.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-d801e332-1951-48d6-8efe-d9116fb54941-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-16T12:15:35.622Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-0d546c51-e5db-4282-aa43-3346aaf23d4f",
+      "providerSessions": [],
+      "startedAt": "2026-09-16T12:15:35.622Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-16T12:15:35.622Z"
+      },
+      "title": "fix bug",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "e92293d1-a775-46d9-ab48-57a8123b7c56",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
