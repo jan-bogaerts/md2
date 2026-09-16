@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__57ceeeca-6732-42a3-b77f-b1c459a2f268.json
 policy:
-after: 03616c27-a15f-43f5-8ba8-523c9e9a56d1
+after: 67d4a581-6ded-4a41-a489-d079644e3e5b
 ---
 Add active-schedule management UI for [F\_331](F_331_improve_schedule_action.md), using APIs from [F\_352](F_352_extend_schedule_contract_and_apis.md).
 
