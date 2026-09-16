@@ -28,7 +28,7 @@ lets check where the state is recalculated (react app or electron backend) and h
 in principle, it should always be the backend that calculates the new state and informs the react side
 ## Analysis outcome
 
-The root cause is split ownership of agent run status, plus end-of-action records that are not always written. The work is tracked in six cards; this card stays open as the umbrella and closes when they are all done.
+The root cause is split ownership of agent run status, plus end-of-action records that are not always written. The work is tracked in five cards; this card stays open as the umbrella and closes when they are all done.
 
 Governing principle: the backend owns every persisted value and every status. A renderer may set a value optimistically when it caused the change, purely for UI latency, and must accept any differing value the backend later reports.
 
@@ -36,5 +36,4 @@ Governing principle: the backend owns every persisted value and every status. A 
 * [B_237](B_237_card_agent_state_follows_run_events.md) — card spinner follows live run events, not just start and close
 * [B_238](B_238_backend_detects_card_state_change.md) — backend reads the card header itself; no renderer round trip for auto-finish
 * [B_239](B_239_always_write_terminal_activity_record.md) — every run leaves a terminal record; the directly reported symptom
-* [B_240](B_240_reconcile_stale_running_conversations.md) — startup reconciliation of conversations left as running
 * [B_241](B_241_conversation_viewed_flag_converges.md) — view state announced by the backend to every window
