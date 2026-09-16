@@ -3,12 +3,21 @@ author:
 id: B_238
 internalId: 0f3edcd4-a27e-45e8-a6f1-4f3cf25cb096
 title: backend detects card state change
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__0f3edcd4-a27e-45e8-a6f1-4f3cf25cb096.json
 policy:
+changedFiles:
+  - app/src/services/data/data_service.ts
+  - app/src/services/data/markdown_parsing_service.ts
+  - desktop/src/actions/card/card_state_tracker.js
+  - desktop/src/actions/card/card_state_tracker.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
 ---
 Detect the card state transition that ends an action on the backend instead of routing it through a renderer. Split from [B\_235](B_235_end_of_action_not_logged.md).
 
