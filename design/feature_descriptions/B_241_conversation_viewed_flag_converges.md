@@ -3,12 +3,14 @@ author:
 id: B_241
 internalId: ce82acf0-7a8f-4201-ac60-7c43b28f4e82
 title: conversation viewed flag converges from backend
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__ce82acf0-7a8f-4201-ac60-7c43b28f4e82.json
 policy:
+changedFiles:
+  - desktop/src/actions/activity/conversation_view_events.js
 ---
 Let the backend announce conversation view state so every window agrees. Split from [B\_235](B_235_end_of_action_not_logged.md).
 
