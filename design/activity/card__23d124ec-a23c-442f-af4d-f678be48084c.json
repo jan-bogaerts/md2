@@ -2670,6 +2670,49 @@
       "startedAt": "2026-09-18T18:37:12.893Z",
       "status": "completed",
       "rootConversationId": "agent-171c6ec5-f887-479f-8e69-1558bde5a94c"
+    },
+    {
+      "commits": [
+        {
+          "commit": "a6c9cb21551def83c43b7a5c90d00710a2c8fb10",
+          "committedAt": "2026-09-18T21:07:11+02:00",
+          "deletions": 172,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_selector.tsx",
+            "app/src/components/actions/run/popup/action_selector_styles.ts",
+            "app/src/components/actions/run/schedule/action_schedule_form.tsx",
+            "app/src/components/actions/run/schedule/schedule_trigger_fields.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_action_selector.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_actions.node.test.ts",
+            "app/src/components/actions/run/sequence/card_sequence_actions.ts",
+            "app/src/components/actions/run/sequence/card_sequence_card_picker.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dialog.tsx",
+            "app/src/components/actions/run/sequence/card_sequence_dnd.ts",
+            "app/src/components/actions/run/sequence/card_sequence_draft_service.node.test.ts",
+            "app/src/components/actions/run/sequence/card_sequence_draft_service.ts",
+            "app/src/components/actions/run/sequence/card_sequence_registration.node.test.ts",
+            "app/src/components/actions/run/sequence/card_sequence_registration.ts",
+            "app/src/components/actions/run/sequence/card_sequence_row.tsx",
+            "app/src/components/card_view/card_view.test.tsx",
+            "app/src/components/card_view/card_view.tsx",
+            "app/src/components/card_view/mobile_card_view.tsx",
+            "app/src/components/shell/menu/app_menu.test.tsx",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/data/electron_action_bridge.ts"
+          ],
+          "filesChanged": 22,
+          "insertions": 1265,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-18T21:07:11+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "23d124ec-a23c-442f-af4d-f678be48084c",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
