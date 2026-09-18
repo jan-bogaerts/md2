@@ -659,20 +659,28 @@
           "sequence": 46,
           "timestamp": "2026-09-18T17:41:01.679Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Card rule: top of stack only (Recommended)",
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-answer-46",
+          "kind": "message",
+          "role": "user",
+          "sequence": 47,
+          "timestamp": "2026-09-18T17:41:48.577Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-079eccb1-b6d8-41fb-b938-35aeb3cc8695",
       "providerSessions": [],
       "startedAt": "2026-09-18T17:28:21.204Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 37808,
           "toolMs": 94236
         },
         "elapsedMs": 165447,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-18T17:41:48.577Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
