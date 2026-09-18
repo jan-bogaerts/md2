@@ -24,6 +24,26 @@ function requireTimestamp(value, fieldName) {
     return timestamp;
 }
 
+function requireBoolean(value, fieldName) {
+    if (typeof value !== 'boolean') throw new Error(`Invalid schedule file: ${fieldName} must be a boolean`);
+
+    return value;
+}
+
+function requireNonNegativeInteger(value, fieldName) {
+    if (!Number.isInteger(value) || value < 0) {
+        throw new Error(`Invalid schedule file: ${fieldName} must be a non-negative integer`);
+    }
+
+    return value;
+}
+
+function requireNullableString(value, fieldName) {
+    if (value === null) return null;
+
+    return requireString(value, fieldName);
+}
+
 function parseContext(value) {
     const context = requireObject(value, 'context');
     const kind = requireString(context.kind, 'context.kind');
@@ -108,7 +128,23 @@ function parseCardInternalIds(value) {
 }
 
 function parseSequenceSchedule(schedule, base) {
-    return { cardInternalIds: parseCardInternalIds(schedule.cardInternalIds), ...base };
+    const cardInternalIds = parseCardInternalIds(schedule.cardInternalIds);
+    const currentIndex = requireNonNegativeInteger(schedule.currentIndex, 'currentIndex');
+    if (currentIndex >= cardInternalIds.length) {
+        throw new Error('Invalid schedule file: currentIndex must identify a sequence card');
+    }
+
+    return {
+        actionCompleted: requireBoolean(schedule.actionCompleted, 'actionCompleted'),
+        actionId: requireString(schedule.actionId, 'actionId'),
+        cardInternalIds,
+        currentIndex,
+        currentRunId: requireNullableString(schedule.currentRunId, 'currentRunId'),
+        failure: requireNullableString(schedule.failure, 'failure'),
+        readyState: requireString(schedule.readyState, 'readyState'),
+        readyStateMet: requireBoolean(schedule.readyStateMet, 'readyStateMet'),
+        ...base,
+    };
 }
 
 function parseSchedule(value) {

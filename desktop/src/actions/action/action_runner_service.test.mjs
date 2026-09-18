@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { ActionRunnerService } = require('./action_runner_service');
+const { ActionRunnerService, allocateActionRunId } = require('./action_runner_service');
 
 const context = { cardInternalId: 'card-010', file: 'design/F-010.md', kind: 'card', state: 'design', type: 'feature' };
 const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
@@ -101,6 +101,17 @@ describe('ActionRunnerService', () => {
         const { usageMetricsService } = createRunner();
 
         expect(usageMetricsService.startProject).toHaveBeenCalledWith(project, 'design');
+    });
+
+    it('starts a run with a scheduler-reserved run ID', async () => {
+        const { runner } = createRunner();
+        const runId = allocateActionRunId();
+
+        await expect(runner.start(
+            { actionId: 'main', context, runInput: {} },
+            { interactive: false, runId },
+        )).resolves.toBe(runId);
+        await expect(runner.wait(runId)).resolves.toMatchObject({ runId, status: 'completed' });
     });
 
     it('reserves a root agent conversation without creating its activity file', async () => {

@@ -102,10 +102,17 @@ describe('action schedule types', () => {
 
     it('parses sequence schedules with now triggers', () => {
         const schedule: AnySchedule = {
+            actionCompleted: false,
+            actionId: 'implement',
             cardInternalIds: ['card-1', 'card-2'],
             createdAt,
+            currentIndex: 0,
+            currentRunId: null,
+            failure: null,
             id: 'sequence-1',
             kind: 'sequence',
+            readyState: 'ready',
+            readyStateMet: false,
             status: 'pending',
             trigger: { type: 'now' },
         }
@@ -130,10 +137,17 @@ describe('action schedule types', () => {
         [{...createActionSchedule({ registrationState: 'todo', targetState: 'ready', type: 'card-state' } as never)}, 'missing trigger.cardInternalId'],
         [{...createActionSchedule({ cardInternalId: 'card-action', registrationState: 'todo', targetState: 'ready', type: 'card-state' })}, 'scheduled action card and trigger card must differ'],
         [{
+            actionCompleted: false,
+            actionId: 'implement',
             cardInternalIds: ['card-1', 'card-1'],
             createdAt,
+            currentIndex: 0,
+            currentRunId: null,
+            failure: null,
             id: 'sequence-1',
             kind: 'sequence',
+            readyState: 'ready',
+            readyStateMet: false,
             status: 'pending',
             trigger: { type: 'now' },
         }, 'duplicate sequence cardInternalId'],

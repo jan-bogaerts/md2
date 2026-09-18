@@ -1,6 +1,6 @@
 import type { ActionContext } from './action_context'
 import type { ActionSettings, CardActivityFile } from '../../../shared/card_activity.mjs'
-import type { ActionScheduleTrigger, AnySchedule } from './action_schedule_types'
+import type { ActionScheduleTrigger, AnySchedule, ScheduleTrigger } from './action_schedule_types'
 import type { AgentConversation, AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
@@ -59,6 +59,13 @@ export interface ActionScheduleRegistrationRequest {
     actionId: string
     context: ActionContext
     trigger: ActionScheduleTrigger
+}
+
+export interface SequenceScheduleRegistrationRequest {
+    actionId: string
+    cardInternalIds: string[]
+    readyState: string
+    trigger: ScheduleTrigger
 }
 
 /** Commit produced during an action chain and owned by its root run. */
@@ -186,6 +193,7 @@ export interface ElectronActionBridge {
     readFileAtCommit?(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent>
     releaseReleaseCardLocks?(leaseId: string): Promise<void>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
+    registerSequenceSchedule?(request: SequenceScheduleRegistrationRequest): Promise<void>
     reserveActionConversation?(request: ActionStartRequest): Promise<AgentConversationReservation>
     restartActionRun?(runId: string, request: ActionStartRequest): Promise<string>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>

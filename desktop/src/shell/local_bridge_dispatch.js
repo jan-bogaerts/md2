@@ -165,7 +165,7 @@ function createLocalBridgeDispatch(dependencies) {
         const projectPaths = resolveProjectPaths(projectConfig);
         await startCardStateDetection(project, projectPaths.projectFolder);
         if (actionRunnerService) await actionRunnerService.startProject(project, projectPaths, projectConfig?.states);
-        if (actionSchedulerService) await actionSchedulerService.startProject(project, projectPaths.actionsFolder);
+        if (actionSchedulerService) await actionSchedulerService.startProject(project, projectPaths, projectConfig);
         await worktreeService.startProject(project);
         // Account usage polls run in this folder: Claude's per-folder trust question blocks a poll
         // started anywhere it has never run, which is why the poll waits for a project at all.
@@ -587,6 +587,11 @@ function createLocalBridgeDispatch(dependencies) {
             if (!actionSchedulerService) throw new Error('Action scheduler is not available');
 
             return actionSchedulerService.registerActionSchedule(request);
+        },
+        registerSequenceSchedule: (request) => {
+            if (!actionSchedulerService) throw new Error('Action scheduler is not available');
+
+            return actionSchedulerService.registerSequenceSchedule(request);
         },
         reserveActionConversation: (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');

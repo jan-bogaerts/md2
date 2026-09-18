@@ -105,6 +105,7 @@ const ACTION_METHODS = [
     'readFileAtCommit',
     'releaseReleaseCardLocks',
     'registerActionSchedule',
+    'registerSequenceSchedule',
     'reserveActionConversation',
     'restartActionRun',
     'runSearchRegexpAgent',

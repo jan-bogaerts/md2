@@ -46,8 +46,15 @@ export interface ActionSchedule extends ScheduleBase {
 }
 
 export interface SequenceSchedule extends ScheduleBase {
+    actionCompleted: boolean
+    actionId: string
     cardInternalIds: string[]
+    currentIndex: number
+    currentRunId: string | null
+    failure: string | null
     kind: 'sequence'
+    readyState: string
+    readyStateMet: boolean
 }
 
 export type Schedule = ActionSchedule | SequenceSchedule

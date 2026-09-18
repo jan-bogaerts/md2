@@ -90,7 +90,12 @@ function createSchedule(id, actionId, trigger) {
 function createLocalGitService(
     initialSchedules,
     actionFiles = [createAction()],
-    projectConfig = { actionsFolder: 'actions', states: [{ state: 'ready' }] },
+    projectConfig = {
+        actionsFolder: 'actions',
+        cardTypes: [{ idPrefix: 'F', type: 'feature' }],
+        states: [{ state: 'ready' }],
+        workingFolder: 'feature_descriptions',
+    },
 ) {
     let schedules = initialSchedules;
     const histories = [];
@@ -124,7 +129,17 @@ function createLocalGitService(
         loadActionFiles: vi.fn(async () => actionFiles),
         loadActionSchedules: vi.fn(async () => schedules),
         loadFile: vi.fn(async () => ({ content: '# Card', path: context.file })),
-        loadProjectConfig: vi.fn(async () => ({ states: [{ state: 'ready' }], ...projectConfig })),
+        loadProject: vi.fn(async () => ({
+            files: [{
+                content: '---\nid: F_022\ninternalId: card-022\nstatus: ready\ntitle: Card 22\n---\n\n# Card',
+                path: context.file,
+            }],
+        })),
+        loadProjectConfig: vi.fn(async () => ({
+            cardTypes: [{ idPrefix: 'F', type: 'feature' }],
+            states: [{ state: 'ready' }],
+            ...projectConfig,
+        })),
         runCommand: vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: 'done' })),
         saveActionSchedules: vi.fn(async (_project, _actionsFolder, nextSchedules) => {
             schedules = nextSchedules;
@@ -209,7 +224,7 @@ async function startProject(scheduler, localGitService) {
     const config = await localGitService.loadProjectConfig(project);
     const paths = resolveProjectPaths(config);
     await scheduler.actionRunnerService.startProject(project, paths, config?.states);
-    await scheduler.startProject(project, paths.actionsFolder);
+    await scheduler.startProject(project, paths, config);
 }
 
 describe('ActionSchedulerService', () => {
@@ -382,6 +397,39 @@ describe('ActionSchedulerService', () => {
         expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 5000);
     });
 
+    it('registers a sequence and fires its now trigger immediately', async () => {
+        const localGitService = createLocalGitService([]);
+        const completion = createDeferred();
+        const actionRunnerService = {
+            allocateRunId: vi.fn(() => 'sequence-run-1'),
+            cancel: vi.fn(),
+            start: vi.fn(async () => 'sequence-run-1'),
+            startProject: vi.fn(),
+            wait: vi.fn(() => completion.promise),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+
+        const schedule = await scheduler.registerSequenceSchedule({
+            actionId: 'implement',
+            cardInternalIds: ['card-022'],
+            readyState: 'ready',
+            trigger: { type: 'now' },
+        });
+
+        expect(schedule).toMatchObject({ actionId: 'implement', cardInternalIds: ['card-022'], status: 'pending' });
+        expect(actionRunnerService.start).toHaveBeenCalledWith(
+            { actionId: 'implement', context: expect.objectContaining({ cardInternalId: 'card-022' }), runInput: {} },
+            { interactive: false, runId: expect.stringMatching(/^action-/u) },
+        );
+        const sequenceRunId = actionRunnerService.start.mock.calls[0][1].runId;
+        expect(localGitService.schedules()[0]).toMatchObject({
+            currentRunId: sequenceRunId,
+            readyStateMet: true,
+            status: 'running',
+        });
+    });
+
     it('fires only when the configured card later enters its target state', async () => {
         const trigger = {cardInternalId: 'card-source', registrationState: 'todo', targetState: 'ready', type: 'card-state'};
         const schedule = createSchedule('schedule-1', 'implement', trigger);
@@ -511,7 +559,9 @@ describe('ActionSchedulerService', () => {
         await startProject(scheduler, localGitService);
 
         const staleEvent = scheduler.handleCardStateChange('card-source', 'ready');
-        await scheduler.startProject({ branch: 'next', id: 'next', rootPath: 'C:/next' }, 'actions');
+        const nextProject = { branch: 'next', id: 'next', rootPath: 'C:/next' };
+        const nextConfig = await localGitService.loadProjectConfig(nextProject);
+        await scheduler.startProject(nextProject, resolveProjectPaths(nextConfig), nextConfig);
         delayedSchedules.resolve([staleSchedule]);
         await staleEvent;
 
@@ -540,7 +590,9 @@ describe('ActionSchedulerService', () => {
         await startProject(scheduler, localGitService);
 
         const staleEvent = scheduler.handleAccountUsageChange('codex', codexSnapshot('codex,pro', (now + 60000) / 1000));
-        await scheduler.startProject({ branch: 'next', id: 'next', rootPath: 'C:/next' }, 'actions');
+        const nextProject = { branch: 'next', id: 'next', rootPath: 'C:/next' };
+        const nextConfig = await localGitService.loadProjectConfig(nextProject);
+        await scheduler.startProject(nextProject, resolveProjectPaths(nextConfig), nextConfig);
         delayedSchedules.resolve([staleSchedule]);
         await staleEvent;
 

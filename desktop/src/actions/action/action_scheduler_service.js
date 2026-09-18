@@ -4,10 +4,14 @@ const {
     appendActionSchedule,
     deleteScheduleRecord,
     findPendingSchedule,
+    replaceScheduleRecord,
     updateActionScheduleStatus,
 } = require('../schedule/schedule_store');
 const { cancelScheduleTimer, clearScheduleTimers, reconcileScheduleTimers } = require('../schedule/schedule_timers');
 const { accountResetObservations, trackerKey } = require('../schedule/schedule_account_snapshots');
+const { resolveScheduledCardContext } = require('../schedule/scheduled_card_context');
+const { ScheduledCardSequenceEngine } = require('../schedule/scheduled_card_sequence_engine');
+const { allocateActionRunId } = require('./action_runner_service');
 
 function createScheduleId() {
     return `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -45,6 +49,20 @@ function validateRegistrationRequest(request, now) {
     throw new Error(`Unsupported action schedule trigger: ${request.trigger.type}`);
 }
 
+function validateSequenceRegistrationRequest(request) {
+    if (!request || typeof request !== 'object') throw new Error('Missing sequence schedule registration request');
+    if (typeof request.actionId !== 'string' || request.actionId.length === 0) throw new Error('Missing sequence schedule actionId');
+    if (!Array.isArray(request.cardInternalIds) || request.cardInternalIds.length === 0) {
+        throw new Error('Missing sequence schedule cardInternalIds');
+    }
+    if (typeof request.readyState !== 'string' || request.readyState.length === 0) {
+        throw new Error('Missing sequence schedule readyState');
+    }
+    if (!request.trigger || typeof request.trigger !== 'object') throw new Error('Missing sequence schedule trigger');
+
+    return request;
+}
+
 function requireProject(project) {
     if (!project || typeof project.rootPath !== 'string' || project.rootPath.length === 0) throw new Error('Missing scheduler project');
 
@@ -61,11 +79,15 @@ class ActionSchedulerService {
         this.setTimeout = dependencies?.setTimeout ?? setTimeout;
         this.project = null;
         this.actionsFolder = null;
+        this.activeCardsFolder = null;
+        this.cardTypes = [];
+        this.configuredStates = [];
         this.accountResetObservations = new Map();
         this.cardObservationsByScheduleId = new Map();
         this.projectGeneration = 0;
         this.runIdsByScheduleId = new Map();
         this.scheduleCompletionsByScheduleId = new Map();
+        this.sequenceEngine = null;
         this.runningScheduleIds = new Set();
         this.timers = new Map();
         this.accountUsageUnsubscribers = [];
@@ -75,11 +97,38 @@ class ActionSchedulerService {
 
     // The caller resolves the project config and starts the action runner; the scheduler's only
     // project-derived input is the actions folder holding its own schedules file.
-    async startProject(project, actionsFolder) {
-        if (typeof actionsFolder !== 'string' || actionsFolder.length === 0) throw new Error('Missing scheduler actionsFolder');
+    async startProject(project, paths, projectConfig) {
+        if (!paths || typeof paths.actionsFolder !== 'string' || paths.actionsFolder.length === 0) {
+            throw new Error('Missing scheduler actionsFolder');
+        }
+        if (typeof paths.activeCardsFolder !== 'string' || paths.activeCardsFolder.length === 0) {
+            throw new Error('Missing scheduler activeCardsFolder');
+        }
+        if (!Array.isArray(projectConfig?.states)) throw new Error('Missing scheduler project states');
+        if (!Array.isArray(projectConfig.cardTypes)) throw new Error('Missing scheduler project card types');
         this.clearProjectState();
         this.project = requireProject(project);
-        this.actionsFolder = actionsFolder;
+        this.actionsFolder = paths.actionsFolder;
+        this.activeCardsFolder = paths.activeCardsFolder;
+        this.cardTypes = projectConfig.cardTypes;
+        this.configuredStates = projectConfig.states.map(({ state }) => state);
+        const generation = this.projectGeneration;
+        const executionContext = {
+            actionsFolder: this.actionsFolder,
+            activeCardsFolder: this.activeCardsFolder,
+            cardTypes: this.cardTypes,
+            generation,
+            project: this.project,
+        };
+        this.sequenceEngine = new ScheduledCardSequenceEngine({
+            actionRunnerService: this.actionRunnerService,
+            allocateRunId: allocateActionRunId,
+            isCurrent: () => generation === this.projectGeneration,
+            loadSchedules: () => this.loadSchedules(executionContext),
+            resolveCardContext: (cardInternalId) => this.resolveCardContext(cardInternalId, executionContext),
+            saveSequence: (sequence) => this.saveSequence(sequence, executionContext),
+            states: this.configuredStates,
+        });
         await this.reconcile();
     }
 
@@ -92,6 +141,10 @@ class ActionSchedulerService {
         this.scheduleCompletionsByScheduleId.clear();
         this.project = null;
         this.actionsFolder = null;
+        this.activeCardsFolder = null;
+        this.cardTypes = [];
+        this.configuredStates = [];
+        this.sequenceEngine = null;
     }
 
     clearProjectState() {
@@ -130,6 +183,34 @@ class ActionSchedulerService {
         return schedule;
     }
 
+    async registerSequenceSchedule(request) {
+        const registration = validateSequenceRegistrationRequest(request);
+        const project = this.requireCurrentProject();
+        const actionsFolder = this.requireActionsFolder();
+        const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder);
+        const schedule = {
+            actionCompleted: false,
+            actionId: registration.actionId,
+            cardInternalIds: registration.cardInternalIds,
+            createdAt: new Date(this.now()).toISOString(),
+            currentIndex: 0,
+            currentRunId: null,
+            failure: null,
+            id: createScheduleId(),
+            kind: 'sequence',
+            readyState: registration.readyState,
+            readyStateMet: false,
+            status: 'pending',
+            trigger: registration.trigger,
+        };
+        const nextSchedules = appendActionSchedule(schedules, schedule);
+        await this.localGitService.saveActionSchedules(project, actionsFolder, nextSchedules);
+        if (schedule.trigger.type === 'now') await this.fireSchedule(schedule.id);
+        else await this.reconcile();
+
+        return schedule;
+    }
+
     async listActiveSchedules() {
         return activeSchedules(await this.loadSchedules());
     }
@@ -140,6 +221,8 @@ class ActionSchedulerService {
         if (!schedules.some(({ id }) => id === scheduleId)) throw new Error(`Schedule not found: ${scheduleId}`);
 
         cancelScheduleTimer(this.timers, scheduleId, this.clearTimeout);
+        const sequence = schedules.find((schedule) => schedule.id === scheduleId && schedule.kind === 'sequence');
+        if (sequence) await this.sequenceEngine.cancel(scheduleId);
         const scheduleKey = this.scheduleKey(scheduleId);
         const runId = this.runIdsByScheduleId.get(scheduleKey);
         if (runId) this.actionRunnerService.cancel(runId);
@@ -209,6 +292,7 @@ class ActionSchedulerService {
             observation.state = state;
             if (enteredTargetState) await this.fireSchedule(schedule.id, generation);
         }
+        if (generation === this.projectGeneration) await this.sequenceEngine.handleCardStateChange(cardInternalId, state);
     }
 
     async handleAccountUsageChange(agent, snapshot) {
@@ -243,6 +327,11 @@ class ActionSchedulerService {
         const dependencies = this.createTimerDependencies(this.projectGeneration);
 
         await reconcileScheduleTimers(schedules, dependencies);
+        for (const schedule of schedules) {
+            if (schedule.kind !== 'sequence') continue;
+            if (schedule.status === 'running') await this.sequenceEngine.activate(schedule.id);
+            if (schedule.status === 'pending' && schedule.trigger.type === 'now') await this.fireSchedule(schedule.id);
+        }
     }
 
     reconcileCardObservations(schedules) {
@@ -279,7 +368,7 @@ class ActionSchedulerService {
     createTimerDependencies(generation) {
         return {
             clearTimeout: this.clearTimeout,
-            failSchedule: (schedule) => this.failSchedule(schedule, generation),
+            failSchedule: (schedule, failure) => this.failSchedule(schedule, failure, generation),
             fireSchedule: (scheduleId) => this.fireSchedule(scheduleId, generation),
             now: this.now,
             setTimeout: this.setTimeout,
@@ -315,6 +404,11 @@ class ActionSchedulerService {
             const schedule = await this.findPendingSchedule(scheduleId, executionContext);
             if (!schedule || executionContext.generation !== this.projectGeneration) return;
 
+            if (schedule.kind === 'sequence') {
+                await this.sequenceEngine.activate(scheduleId);
+                return;
+            }
+
             await this.updateScheduleStatus(scheduleId, 'running', executionContext);
             if (executionContext.generation !== this.projectGeneration) {
                 await this.updateScheduleStatus(scheduleId, 'pending', executionContext);
@@ -340,8 +434,12 @@ class ActionSchedulerService {
         return findPendingSchedule(schedules, scheduleId);
     }
 
-    async failSchedule(schedule, generation) {
+    async failSchedule(schedule, failure, generation) {
         if (generation !== this.projectGeneration) return;
+        if (schedule.kind === 'sequence') {
+            await this.saveSequence({ ...schedule, failure, status: 'failed' });
+            return;
+        }
         await this.updateScheduleStatus(schedule.id, 'failed');
     }
 
@@ -359,6 +457,26 @@ class ActionSchedulerService {
         this.runIdsByScheduleId.set(scheduleKey, runId);
 
         return this.actionRunnerService.wait(runId);
+    }
+
+    async resolveCardContext(cardInternalId, executionContext = null) {
+        const project = executionContext?.project ?? this.requireCurrentProject();
+        const activeCardsFolder = executionContext?.activeCardsFolder ?? this.activeCardsFolder;
+        const cardTypes = executionContext?.cardTypes ?? this.cardTypes;
+        if (!activeCardsFolder) throw new Error('Action scheduler has no activeCardsFolder');
+        const { files } = await this.localGitService.loadProject(project, activeCardsFolder);
+
+        return resolveScheduledCardContext(files, cardTypes, cardInternalId);
+    }
+
+    async saveSequence(sequence, executionContext = null) {
+        const project = executionContext?.project ?? this.requireCurrentProject();
+        const actionsFolder = executionContext?.actionsFolder ?? this.requireActionsFolder();
+        const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder);
+        const nextSchedules = replaceScheduleRecord(schedules, sequence);
+        await this.localGitService.saveActionSchedules(project, actionsFolder, nextSchedules);
+
+        return nextSchedules.find(({ id }) => id === sequence.id);
     }
 
     async findRunningSchedule(scheduleId, executionContext) {

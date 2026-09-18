@@ -22,6 +22,10 @@ function pendingTimedScheduleIds(schedules) {
         .map((schedule) => schedule.id));
 }
 
+function pendingScheduleIds(schedules) {
+    return new Set(schedules.filter(({ status }) => status === 'pending').map(({ id }) => id));
+}
+
 function activeSchedules(schedules) {
     return schedules.filter(({ status }) => status === 'pending' || status === 'running');
 }
@@ -41,6 +45,12 @@ function updateActionScheduleStatus(schedules, scheduleId, status) {
     })).schedules;
 }
 
+function replaceScheduleRecord(schedules, schedule) {
+    if (!schedules.some(({ id }) => id === schedule.id)) throw new Error(`Schedule not found: ${schedule.id}`);
+
+    return createActionScheduleFile(schedules.map((candidate) => candidate.id === schedule.id ? schedule : candidate)).schedules;
+}
+
 function cancelPendingActionSchedule(schedules, scheduleId) {
     const schedule = schedules.find((candidate) => candidate.id === scheduleId);
     if (!schedule) throw new Error(`Action schedule not found: ${scheduleId}`);
@@ -58,6 +68,8 @@ module.exports = {
     deleteScheduleRecord,
     findPendingSchedule,
     parseActionScheduleFile,
+    pendingScheduleIds,
     pendingTimedScheduleIds,
+    replaceScheduleRecord,
     updateActionScheduleStatus,
 };
