@@ -12,7 +12,7 @@ import { planAgentReferenceMigration } from '../agents/agent_reference_migration
 import { CardOperations, type CardOperationsDeps } from './card_operations'
 import { configService } from '../config/config_service'
 import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlushFailure } from './data_service_context'
-import { actionRunRegistry, notifyActionCardStateChange } from '../actions/action_run_registry'
+import { actionRunRegistry } from '../actions/action_run_registry'
 import { actionService } from '../actions/action_service'
 import { AgentIntegration, type AgentIntegrationDeps } from '../agents/agent_integration'
 import { ProjectLoading, type ProjectLoadingDeps } from '../project/project_loading'
@@ -159,15 +159,7 @@ export class DataService extends EventTarget {
         )
         this.cards = new CardOperations(
             this.createCardOperationsDependencies(),
-            (cardPath, state) => {
-                this.agents.triggerStateActions(cardPath, state)
-                const snapshot = this.projectState.snapshot
-                const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
-                    .find(({ path }) => path === cardPath)
-                void notifyActionCardStateChange(card?.header.internalId ?? null, state).catch((error: unknown) => {
-                    dialogService.error(error, { fallbackMessage: 'Could not update automatic agent finish' })
-                })
-            },
+            (cardPath, state) => this.agents.triggerStateActions(cardPath, state),
         )
         this.agents = new AgentIntegration(this.createAgentIntegrationDependencies())
         agentAcknowledgementService.connectConversationStore((conversation) => this.agents.findStoredConversation(conversation))
@@ -557,12 +549,6 @@ export class DataService extends EventTarget {
                     if (!cardFieldChanged(field, previousCard, card)) continue
                     this.dispatchEvent(new Event(cardFieldChangedEvent(card.path, field)))
                     this.dispatchEvent(new Event(cardCollectionFieldChangedEvent(field)))
-                }
-                if (previousCard.header.status !== card.header.status && card.header.status) {
-                    const finishNotification = notifyActionCardStateChange(card.header.internalId, card.header.status)
-                    void finishNotification.catch((error: unknown) => {
-                        dialogService.error(error, { fallbackMessage: 'Could not update automatic agent finish' })
-                    })
                 }
             }
         }

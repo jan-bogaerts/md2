@@ -42,6 +42,8 @@ export interface ActionRun {
     activeActionStreaming: boolean
     activeActionType: ActionDefinition['type'] | null
     changedPaths: string[]
+    /** Null before the agent closes; false means the terminal conversation differs from its activity file. */
+    conversationPersisted: boolean | null
     diagramPath: string | null
     conversation: AgentConversation | null
     conversationChange: ActionConversationChange | null
@@ -114,7 +116,8 @@ function createLog(event: ActionRunEvent): ActionRunLogEntry {
         message: event.type === 'action' ? event.message ?? `${actionName(event.actionId)} ${event.status}` : `${actionName(event.actionId)} running`,
         phase: event.phase,
         ...(event.type === 'action' && event.permissionMode ? { permissionMode: event.permissionMode } : {}),
-        status: event.status,
+        // A log entry tracks the action step, so it opens as running even when the agent is waiting for input.
+        status: event.type === 'action' ? event.status : 'running',
         stderr: '',
         stdout: '',
         ...(event.type === 'action' && event.thinkingLevel ? { thinkingLevel: event.thinkingLevel } : {}),
@@ -358,14 +361,6 @@ export async function finishActionRun(runId: string) {
     await bridge.finishActionRun(runId)
 }
 
-export async function notifyActionCardStateChange(cardInternalId: string | null, state: string) {
-    if (!cardInternalId) return
-    const bridge = getElectronActionBridge()
-    if (!bridge?.notifyActionCardStateChange) throw new Error('Automatic agent finish requires Electron')
-
-    await bridge.notifyActionCardStateChange(cardInternalId, state)
-}
-
 /** Stable state owner for one action run. */
 export class ActionRunStore {
     private readonly listeners = new Set<StoreListener>()
@@ -518,6 +513,16 @@ export class ActionRunRegistry extends EventTarget {
 
     getRunStore(runId: string) {
         return this.runs.get(runId) ?? null
+    }
+
+    /** True while a still-active run holds this conversation, so stored copies of it must not be replaced by a load. */
+    hasLiveConversation(conversationId: string) {
+        for (const store of this.runs.values()) {
+            const run = store.getSnapshot()
+            if (run.conversation?.id === conversationId && !TERMINAL_STATUSES.has(run.status as ActionRunTerminalStatus)) return true
+        }
+
+        return false
     }
 
     getActionRunStore(actionId: string, context: ActionContext) {
@@ -825,6 +830,7 @@ export class ActionRunRegistry extends EventTarget {
             activeActionStreaming: false,
             activeActionType: null,
             changedPaths: [],
+            conversationPersisted: null,
             diagramPath: null,
             conversation: null,
             conversationChange: null,
@@ -889,11 +895,21 @@ export class ActionRunRegistry extends EventTarget {
         }
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             const { continued } = event.update
-            next = { ...next, conversation: event.update.conversation, conversationChange: { kind: 'replace' } }
+            next = {
+                ...next,
+                conversation: event.update.conversation,
+                conversationChange: { kind: 'replace' },
+                conversationPersisted: null,
+            }
             if (continued) actionPromptDraftService.discardUneditedDraft(next.rootActionId, next.context, next.runId)
         }
         if (event.type === 'update' && event.update.kind === 'agentClosed') {
-            next = { ...next, conversation: event.update.conversation, conversationChange: { kind: 'replace' } }
+            next = {
+                ...next,
+                conversation: event.update.conversation,
+                conversationChange: { kind: 'replace' },
+                conversationPersisted: event.update.persisted,
+            }
         }
         if (event.type === 'update' && event.update.kind === 'agentEvent' && next.conversation) {
             next = {
@@ -947,7 +963,7 @@ export class ActionRunRegistry extends EventTarget {
             next = {
                 ...next,
                 question: { questions: event.update.questions, requestId: event.update.requestId },
-                status: 'waitingForInput',
+                status: event.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentQuestionDismissed' && next.conversation) {
@@ -960,7 +976,7 @@ export class ActionRunRegistry extends EventTarget {
                 },
                 conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
                 question: matchingQuestion ? null : next.question,
-                status: matchingQuestion && next.approvals.length === 0 ? event.status : next.status,
+                status: event.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentApproval') {
@@ -969,7 +985,7 @@ export class ActionRunRegistry extends EventTarget {
             next = {
                 ...next,
                 approvals: [...approvals, { ...event.update.approval, submitted: false }],
-                status: 'waitingForInput',
+                status: event.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentApprovalSubmitted') {
@@ -987,7 +1003,7 @@ export class ActionRunRegistry extends EventTarget {
             next = {
                 ...next,
                 approvals,
-                status: next.question || approvals.length > 0 ? 'waitingForInput' : event.status,
+                status: event.status,
             }
         }
         if (
@@ -1000,10 +1016,9 @@ export class ActionRunRegistry extends EventTarget {
                 conversation: {
                     ...next.conversation,
                     entries: [...next.conversation.entries, event.update.userMessage],
-                    status: conversationStatus(next.question || next.approvals.length > 0 ? 'waitingForInput' : event.status),
                 },
                 conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
-                status: next.question || next.approvals.length > 0 ? 'waitingForInput' : event.status,
+                status: event.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentQuestionAnswer' && next.conversation) {
@@ -1016,7 +1031,7 @@ export class ActionRunRegistry extends EventTarget {
                 },
                 conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
                 question: matchingQuestion ? null : next.question,
-                status: matchingQuestion && next.approvals.length === 0 ? event.status : next.status,
+                status: event.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentOutput') {
@@ -1039,21 +1054,6 @@ export class ActionRunRegistry extends EventTarget {
                 conversation: output?.conversation ?? next.conversation,
                 ...(output ? { conversationChange: { entryIndex: output.entryIndex, kind: 'entry' as const } } : {}),
                 logs: updateOutputLogs(next.logs, event, event.update),
-            }
-        }
-        if (
-            event.type === 'update'
-            && event.update.kind !== 'agentClosed'
-            && event.update.kind !== 'agentPromptEdited'
-            && event.update.kind !== 'agentPromptQueued'
-            && event.update.kind !== 'agentPromptRemoved'
-            && event.update.kind !== 'agentUsage'
-            && event.update.kind !== 'agentUserMessage'
-            && next.conversation
-        ) {
-            next = {
-                ...next,
-                conversation: { ...next.conversation, status: conversationStatus(event.status) },
             }
         }
         const nextStore = store ?? new ActionRunStore(next, (releasedStore) => this.handleStoreReleased(releasedStore))

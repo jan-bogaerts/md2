@@ -1,9 +1,10 @@
 import { cardContext, type ActionContext } from '../../data/action_context'
 import { type ActionDefinition } from '../../data/action_types'
-import type { ActionRunEvent } from '../../data/action_run_types'
+import type { ActionRunEvent, ActionRunTerminalStatus } from '../../data/action_run_types'
 import {
     type AgentConversation,
     type AgentConversationError,
+    type AgentConversationStatus,
     type Card,
     type ProjectReference,
     type ProjectSnapshot,
@@ -11,6 +12,7 @@ import {
 } from '../../data/data_types'
 import { actionService } from '../actions/action_service'
 import { actionRunRegistry } from '../actions/action_run_registry'
+import { getElectronActionBridge, type ActionConversationViewedEvent } from '../../data/electron_action_bridge'
 import { agentAcknowledgementService } from './agent_acknowledgement_service'
 import { listAgentConversationReferences, loadActivityConversations, loadAgentConversation } from './agent_conversation_service'
 import { runElectronAction } from '../actions/electron_action_runner'
@@ -20,6 +22,13 @@ import { telemetryService } from '../telemetry/telemetry_service'
 import { dialogService } from '../dialog_service'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
+/** Terminal run status as the conversation records it; a run that ended after its after-phase check still completed. */
+const TERMINAL_CONVERSATION_STATUS: Record<ActionRunTerminalStatus, AgentConversationStatus> = {
+    cancelled: 'cancelled',
+    completed: 'completed',
+    failed: 'failed',
+    okButNotAfter: 'completed',
+}
 const MAX_REPORTED_LOAD_ERROR_KEYS = 200
 
 interface ResolvedAgentConversations {
@@ -40,14 +49,6 @@ export interface AgentIntegrationDeps {
 
 function isOnStateActionError(error: AgentConversationError) {
     return error.kind === 'onStateAction'
-}
-
-/** Keeps already-stored conversations when a load returns an older copy of the same record. */
-function preferExistingConversations(existing: AgentConversation[], loaded: AgentConversation[]) {
-    const conversationsById = new Map(loaded.map((conversation) => [conversation.id, conversation]))
-    existing.forEach((conversation) => conversationsById.set(conversation.id, conversation))
-
-    return [...conversationsById.values()]
 }
 
 async function resolveCardConversations(
@@ -80,6 +81,8 @@ export class AgentIntegration {
     private readonly cardLoadsInFlight: Map<string, Promise<void>> = new Map()
     private readonly conversationsByCardInternalId: Map<string, AgentConversation[]> = new Map()
     private conversationLoadGeneration = 0
+    private conversationWriteSequence = 0
+    private readonly conversationWriteSequenceById: Map<string, number> = new Map()
     private currentProjectLoadToken: number | null = null
     private readonly dependencies: AgentIntegrationDeps
     private readonly errorsByCardInternalId: Map<string, AgentConversationError[]> = new Map()
@@ -88,6 +91,7 @@ export class AgentIntegration {
     private projectLoad: Promise<void> | null = null
     private projectLoadCompleted = false
     private readonly reportedLoadErrorKeys: Set<string> = new Set()
+    private conversationViewCleanup: (() => void) | null = null
     private scheduledRunCleanup: (() => void) | null = null
 
     constructor(dependencies: AgentIntegrationDeps) {
@@ -103,6 +107,7 @@ export class AgentIntegration {
         this.cardLoadsInFlight.clear()
         this.conversationsByCardInternalId.clear()
         this.conversationLoadGeneration += 1
+        this.conversationWriteSequenceById.clear()
         this.currentProjectLoadToken = null
         this.errorsByCardInternalId.clear()
         this.loadedCardInternalIds.clear()
@@ -112,6 +117,30 @@ export class AgentIntegration {
         this.reportedLoadErrorKeys.clear()
         agentAcknowledgementService.reset()
         agentAcknowledgementService.announceConversationsChanged(null, [])
+    }
+
+    /** Records an in-memory write, so a load that started before it cannot put an older copy back. */
+    private markConversationWritten(conversationId: string) {
+        this.conversationWriteSequence += 1
+        this.conversationWriteSequenceById.set(conversationId, this.conversationWriteSequence)
+    }
+
+    /**
+     * Merges a load result into the stored records. A stored record survives only while a live run still owns it,
+     * or when it was written in memory after this load started. Otherwise the loaded record wins, so a corrected
+     * activity file takes effect on reload.
+     */
+    private preferExistingConversations(existing: AgentConversation[], loaded: AgentConversation[], loadSequence: number) {
+        const conversationsById = new Map(loaded.map((conversation) => [conversation.id, conversation]))
+        existing.forEach((conversation) => {
+            const writtenDuringLoad = (this.conversationWriteSequenceById.get(conversation.id) ?? 0) > loadSequence
+            const keepExisting = writtenDuringLoad || actionRunRegistry.hasLiveConversation(conversation.id)
+            if (conversationsById.has(conversation.id) && !keepExisting) return
+
+            conversationsById.set(conversation.id, conversation)
+        })
+
+        return [...conversationsById.values()]
     }
 
     /** Resolves the loaded record matching a conversation, so view changes update the canonical instance. */
@@ -133,13 +162,59 @@ export class AgentIntegration {
                 telemetryService.captureError(error)
             }
         })
+        this.startConversationViewWatch()
+    }
+
+    /** Listens for view-state changes written by any window, so every window converges without a reload. */
+    private startConversationViewWatch() {
+        const bridge = getElectronActionBridge()
+        if (!bridge?.onActionConversationViewed) return
+
+        this.conversationViewCleanup = bridge.onActionConversationViewed((event) => {
+            try {
+                this.applyConversationViewed(event)
+            } catch (error) {
+                telemetryService.captureError(error)
+            }
+        })
     }
 
     private stopScheduledRunWatch() {
+        if (this.conversationViewCleanup) {
+            this.conversationViewCleanup()
+            this.conversationViewCleanup = null
+        }
         if (!this.scheduledRunCleanup) return
 
         this.scheduledRunCleanup()
         this.scheduledRunCleanup = null
+    }
+
+    /**
+     * Writes the view state the backend reports onto the stored conversation and announces it through the
+     * scoped acknowledgement events. The backend value wins over an optimistic local one, and only that one
+     * field changes; no card or conversation object is republished for it.
+     */
+    applyConversationViewed({ conversationId, viewed }: ActionConversationViewedEvent) {
+        agentAcknowledgementService.recordBackendViewed(conversationId, viewed)
+        const located = this.locateStoredConversation(conversationId)
+        if (!located || located.conversation.viewed === viewed) return
+
+        located.conversation.viewed = viewed
+        this.markConversationWritten(located.conversation.id)
+        const actionId = located.conversation.actionId
+        agentAcknowledgementService.announceConversationsChanged(located.scope, actionId ? [actionId] : [])
+    }
+
+    /** Finds the stored record for a canonical conversation id together with the scope it is announced under. */
+    private locateStoredConversation(conversationId: string) {
+        for (const [cardInternalId, conversations] of this.conversationsByCardInternalId) {
+            const stored = conversations.find(({ id }) => id === conversationId)
+            if (stored) return { conversation: stored, scope: cardInternalId as string | null }
+        }
+        const stored = this.projectConversations.find(({ id }) => id === conversationId)
+
+        return stored ? { conversation: stored, scope: null as string | null } : null
     }
 
     async ensureAgentConversationsForCard(cardInternalId: string) {
@@ -214,6 +289,7 @@ export class AgentIntegration {
     }
 
     private async loadProjectConversations(project: ProjectReference, projectLoadToken: number, generation: number) {
+        const loadSequence = this.conversationWriteSequence
         const { config, storage } = this.dependencies.requireDependencies()
         const references = await listAgentConversationReferences(storage, project, config.projectFolder)
         const conversations = await mapWithConcurrency(references, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (reference) => (
@@ -222,7 +298,7 @@ export class AgentIntegration {
         if (!this.canApplyLoad(generation, project, projectLoadToken)) return
 
         const loadedProjectConversations = conversations.filter(({ cardInternalId }) => cardInternalId === null)
-        this.projectConversations = preferExistingConversations(this.projectConversations, loadedProjectConversations)
+        this.projectConversations = this.preferExistingConversations(this.projectConversations, loadedProjectConversations, loadSequence)
         agentAcknowledgementService.announceConversationsChanged(null, [])
     }
 
@@ -288,13 +364,17 @@ export class AgentIntegration {
         projectLoadToken: number,
         generation: number,
     ) {
+        const loadSequence = this.conversationWriteSequence
         const { storage } = this.dependencies.requireDependencies()
         const resolved = await resolveCardConversations(card, project, storage)
         if (!this.canApplyLoad(generation, project, projectLoadToken)) return
 
         if (resolved.loadedActivityCount > 0) {
             const existing = this.conversationsByCardInternalId.get(cardInternalId) ?? []
-            this.conversationsByCardInternalId.set(cardInternalId, preferExistingConversations(existing, resolved.conversations))
+            this.conversationsByCardInternalId.set(
+                cardInternalId,
+                this.preferExistingConversations(existing, resolved.conversations, loadSequence),
+            )
         }
         this.replaceLoadErrors(cardInternalId, resolved.errors)
         this.reportNewLoadErrors(cardInternalId, resolved.errors)
@@ -378,6 +458,16 @@ export class AgentIntegration {
     }
 
     private handleActionRunEvent(event: ActionRunEvent) {
+        if (event.type === 'agentState') {
+            this.applyConversationStatus(event, event.status)
+            return
+        }
+
+        if (event.type === 'run' && event.status in TERMINAL_CONVERSATION_STATUS) {
+            this.applyConversationStatus(event, TERMINAL_CONVERSATION_STATUS[event.status as ActionRunTerminalStatus])
+            return
+        }
+
         if (
             event.type === 'update'
             && (event.update.kind === 'agentStarted' || event.update.kind === 'agentClosed')
@@ -396,12 +486,32 @@ export class AgentIntegration {
         }
     }
 
+    /**
+     * Writes the backend status onto the stored conversation and announces it through the scoped acknowledgement
+     * events. Only that one field changes; no card or conversation object is republished for it.
+     */
+    private applyConversationStatus(event: ActionRunEvent, status: AgentConversationStatus) {
+        const liveConversation = actionRunRegistry.getRunStore(event.runId)?.getSnapshot().conversation
+        if (!liveConversation) return
+
+        const cardInternalId = event.context.cardInternalId ?? null
+        const stored = cardInternalId
+            ? (this.conversationsByCardInternalId.get(cardInternalId) ?? []).find(({ id }) => id === liveConversation.id)
+            : this.projectConversations.find(({ id }) => id === liveConversation.id)
+        if (!stored || stored.status === status) return
+
+        stored.status = status
+        this.markConversationWritten(stored.id)
+        agentAcknowledgementService.announceConversationsChanged(cardInternalId, stored.actionId ? [stored.actionId] : [])
+    }
+
     private updateProjectConversation(conversation: AgentConversation) {
         if (!this.projectConversations.some(({ id }) => id === conversation.id)) return
 
         this.projectConversations = this.projectConversations.map((current) => (
             current.id === conversation.id ? conversation : current
         ))
+        this.markConversationWritten(conversation.id)
         agentAcknowledgementService.announceConversationsChanged(null, [])
     }
 
@@ -409,6 +519,7 @@ export class AgentIntegration {
         this.projectConversations = this.projectConversations.some(({ id }) => id === conversation.id)
             ? this.projectConversations.map((current) => current.id === conversation.id ? conversation : current)
             : [...this.projectConversations, conversation]
+        this.markConversationWritten(conversation.id)
         agentAcknowledgementService.announceConversationsChanged(null, [])
     }
 
@@ -418,6 +529,7 @@ export class AgentIntegration {
             ? conversations.map((current) => (current.id === conversation.id ? conversation : current))
             : [...conversations, conversation]
         this.conversationsByCardInternalId.set(cardInternalId, nextConversations)
+        this.markConversationWritten(conversation.id)
         this.notifyConversationsChanged(cardInternalId)
         const actionIds = conversation.actionId ? [conversation.actionId] : []
         agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)

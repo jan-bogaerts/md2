@@ -8,6 +8,7 @@ import { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.
 const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
 const { CodexRuntimeService } = require('./codex_runtime_service');
+const { createRun } = require('./agent_run_state');
 
 function diagnosticStreamingEvent(content, providerItemId) {
     return {
@@ -15,6 +16,138 @@ function diagnosticStreamingEvent(content, providerItemId) {
         type: 'event',
     };
 }
+
+/** A streaming run with the full field set, registered in a service whose checkpoints are no-ops. */
+function streamingRunService() {
+    const onEvent = vi.fn();
+    const service = new AgentRunnerService({
+        persistConversation: vi.fn(async () => undefined),
+        persistConversationCheckpoint: vi.fn(async () => undefined),
+    });
+    const run = createRun({
+        agent: 'codex',
+        child: null,
+        conversation: { entries: [], providerSessions: [], status: 'running' },
+        environment: {},
+        executable: '/tools/codex',
+        id: 'run-1',
+        nextSequence: 1,
+        onComplete: null,
+        onCompletionError: null,
+        onEvent,
+        reference: 'run.json',
+        request: { agent: 'codex', command: ['codex'], prompt: 'run' },
+        rootPath: 'C:/repo',
+        startedAt: '2026-07-20T10:00:00.000Z',
+        streaming: true,
+    });
+    service.processes.set(run.id, run);
+
+    return { onEvent, run, service };
+}
+
+function toolEvent(providerItemId) {
+    return {
+        event: {content: '', label: 'Command', providerItemId, status: 'inProgress', type: 'commandExecution'},
+        type: 'event',
+    };
+}
+
+function emittedStatuses(onEvent, type) {
+    return onEvent.mock.calls.filter(([event]) => event.type === type).map(([event]) => event.status);
+}
+
+describe('AgentRunnerService published run status', () => {
+    it('keeps waitingForInput on tool, usage and output events while a question is pending', async () => {
+        const { onEvent, run, service } = streamingRunService();
+
+        await service.handleStreamingEvent('run-1', {questions: [{ id: 'confirm', question: 'Proceed?' }], requestId: 7, type: 'question'});
+        await service.handleStreamingEvent('run-1', toolEvent('command-1'));
+        await service.handleStreamingEvent('run-1', {
+            type: 'usage',
+            usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
+        });
+        await service.handleStreamingEvent('run-1', { itemId: 'item-1', type: 'assistantStarted' });
+        await service.handleStreamingEvent('run-1', { content: 'chunk', itemId: 'item-1', type: 'assistant' });
+
+        expect(run.conversation.status).toBe('waitingForInput');
+        expect(service.hasPendingInteraction('run-1')).toBe(true);
+        expect(emittedStatuses(onEvent, 'agentEvent')).toEqual(['waitingForInput']);
+        expect(emittedStatuses(onEvent, 'usage')).toEqual(['waitingForInput']);
+        expect(emittedStatuses(onEvent, 'output')).toEqual(['waitingForInput', 'waitingForInput']);
+    });
+
+    it('keeps waitingForInput on tool, usage and output events while an approval is pending', async () => {
+        const { onEvent, run, service } = streamingRunService();
+        const approval = {
+            command: 'npm test', itemId: 'command-1', kind: 'commandExecution', requestId: 41,
+            threadId: 'thread-1', turnId: 'turn-1',
+        };
+
+        await service.handleStreamingEvent('run-1', { approval, type: 'approval' });
+        await service.handleStreamingEvent('run-1', toolEvent('command-2'));
+        await service.handleStreamingEvent('run-1', {
+            type: 'usage',
+            usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
+        });
+        await service.handleStreamingEvent('run-1', { itemId: 'item-1', type: 'assistantStarted' });
+        await service.handleStreamingEvent('run-1', { content: 'chunk', itemId: 'item-1', type: 'assistant' });
+
+        expect(run.conversation.status).toBe('waitingForInput');
+        expect(emittedStatuses(onEvent, 'agentEvent')).toEqual(['waitingForInput']);
+        expect(emittedStatuses(onEvent, 'usage')).toEqual(['waitingForInput']);
+        expect(emittedStatuses(onEvent, 'output')).toEqual(['waitingForInput', 'waitingForInput']);
+    });
+
+    it('returns to running once the last pending interaction resolves', async () => {
+        const { onEvent, run, service } = streamingRunService();
+        const approval = (requestId) => ({
+            command: 'npm test', itemId: `command-${requestId}`, kind: 'commandExecution', requestId,
+            threadId: 'thread-1', turnId: 'turn-1',
+        });
+
+        await service.handleStreamingEvent('run-1', { approval: approval(41), type: 'approval' });
+        await service.handleStreamingEvent('run-1', { approval: approval(42), type: 'approval' });
+        await service.handleStreamingEvent('run-1', { requestId: 41, type: 'approvalResolved' });
+
+        expect(run.conversation.status).toBe('waitingForInput');
+        expect(emittedStatuses(onEvent, 'approvalResolved')).toEqual(['waitingForInput']);
+
+        await service.handleStreamingEvent('run-1', { requestId: 42, type: 'approvalResolved' });
+
+        expect(run.conversation.status).toBe('running');
+        expect(emittedStatuses(onEvent, 'approvalResolved')).toEqual(['waitingForInput', 'running']);
+        expect(emittedStatuses(onEvent, 'state'))
+            .toEqual(['waitingForInput', 'waitingForInput', 'waitingForInput', 'running']);
+        expect(service.hasPendingInteraction('run-1')).toBe(false);
+
+        await service.handleStreamingEvent('run-1', toolEvent('command-3'));
+
+        expect(emittedStatuses(onEvent, 'agentEvent')).toEqual(['running']);
+    });
+
+    it('stays waitingForInput when an approval resolves while a question is still unanswered', async () => {
+        const { onEvent, run, service } = streamingRunService();
+        const approval = {
+            command: 'npm test', itemId: 'command-1', kind: 'commandExecution', requestId: 41,
+            threadId: 'thread-1', turnId: 'turn-1',
+        };
+
+        await service.handleStreamingEvent('run-1', {questions: [{ id: 'confirm', question: 'Proceed?' }], requestId: 7, type: 'question'});
+        await service.handleStreamingEvent('run-1', { approval, type: 'approval' });
+        await service.handleStreamingEvent('run-1', { requestId: 41, type: 'approvalResolved' });
+
+        expect(run.conversation.status).toBe('waitingForInput');
+        expect(service.hasPendingInteraction('run-1')).toBe(true);
+        expect(emittedStatuses(onEvent, 'approvalResolved')).toEqual(['waitingForInput']);
+    });
+
+    it('reports no pending interaction for a run that is no longer active', () => {
+        const { service } = streamingRunService();
+
+        expect(service.hasPendingInteraction('run-2')).toBe(false);
+    });
+});
 
 describe('AgentRunnerService state handling', () => {
     it('reconciles and persists one-shot canonical provider file events', () => {
@@ -685,11 +818,66 @@ describe('AgentRunnerService state handling', () => {
 
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
             conversation: expect.objectContaining({ completedAt: expect.any(String), status: 'cancelled' }),
+            persisted: false,
             type: 'closed',
         }));
+        expect(persistConversation).toHaveBeenCalledTimes(3);
         expect(run.onCompletionError).toHaveBeenCalledWith(persistenceError);
         expect(run.onComplete).not.toHaveBeenCalled();
         expect(service.processes.has('run-1')).toBe(false);
+    });
+
+    it('retries a failing terminal write and completes once one attempt succeeds', async () => {
+        const persistConversation = vi.fn()
+            .mockRejectedValueOnce(new Error('Activity file is locked'))
+            .mockResolvedValueOnce(undefined);
+        const service = new AgentRunnerService({ persistConversation });
+        const run = {
+            agent: 'codex',
+            cancelled: false,
+            changedPaths: new Set(),
+            child: { pid: 10 },
+            conversation: {
+                completedAt: null,
+                entries: [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }],
+                id: 'conversation-1',
+                providerSessions: [],
+                status: 'running',
+            },
+            currentAssistantMessageId: null,
+            finishing: false,
+            id: 'run-1',
+            missingSession: false,
+            onComplete: vi.fn(),
+            onCompletionError: vi.fn(),
+            onEvent: vi.fn(),
+            persistence: Promise.resolve(),
+            protocolHandling: Promise.resolve(),
+            request: {},
+            startedAt: '2026-07-30T10:00:00.000Z',
+            stderr: '',
+            stderrBuffer: '',
+            stderrHandling: Promise.resolve(),
+            stdout: '',
+            streaming: false,
+            streamingFailure: null,
+            suspended: false,
+            termination: Promise.resolve(),
+            turnUsage: null,
+        };
+        service.processes.set('run-1', run);
+        service.runningConversationIds.add('conversation-1');
+
+        await service.handleClose('run-1', 0);
+
+        expect(persistConversation).toHaveBeenCalledTimes(2);
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            conversation: expect.objectContaining({ status: 'completed' }),
+            persisted: true,
+            type: 'closed',
+        }));
+        expect(run.onCompletionError).not.toHaveBeenCalled();
+        expect(run.onComplete).toHaveBeenCalledWith(0, run);
     });
 
     it('records one-shot Claude usage only after successful process completion', async () => {
@@ -752,7 +940,7 @@ describe('AgentRunnerService state handling', () => {
         expect(run.onComplete).toHaveBeenCalledWith(0, run);
     });
 
-    it('leaves persisted continuation unchanged when provider turn never starts', async () => {
+    it('persists the failed continuation when the provider turn never starts', async () => {
         const persistConversation = vi.fn(async () => undefined);
         const service = new AgentRunnerService({ persistConversation });
         const sourceConversation = {
@@ -799,9 +987,12 @@ describe('AgentRunnerService state handling', () => {
 
         await service.handleClose('run-1', 1);
 
-        expect(persistConversation).not.toHaveBeenCalled();
+        expect(persistConversation).toHaveBeenCalledWith(
+            expect.objectContaining({ conversation: expect.objectContaining({ id: 'conversation-1', status: 'failed' }) }),
+        );
         expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
             conversation: expect.objectContaining({ status: 'failed' }),
+            persisted: true,
             type: 'closed',
         }));
         expect(run.onComplete).toHaveBeenCalledWith(1, run);

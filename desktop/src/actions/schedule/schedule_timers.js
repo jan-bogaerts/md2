@@ -1,4 +1,4 @@
-const { pendingScheduleIds } = require('./schedule_store');
+const { pendingTimedScheduleIds } = require('./schedule_store');
 
 const MAX_TIMER_DELAY_MS = 2147483647;
 
@@ -30,7 +30,6 @@ function registerAtScheduleTimer(schedule, timestamp, dependencies) {
         void dependencies.failSchedule(schedule, `Invalid action schedule timestamp: ${timestamp}`);
         return;
     }
-
     const delay = Math.min(Math.max(fireAt - dependencies.now(), 0), MAX_TIMER_DELAY_MS);
     const callback = createScheduleTimerCallback(schedule, fireAt, dependencies);
     const timer = dependencies.setTimeout(callback, delay);
@@ -38,13 +37,20 @@ function registerAtScheduleTimer(schedule, timestamp, dependencies) {
 }
 
 function registerPendingScheduleTimer(schedule, dependencies) {
-    if (schedule.trigger.type !== 'at') throw new Error(`Unsupported action schedule trigger: ${schedule.trigger.type}`);
+    if (schedule.trigger.type === 'at') {
+        registerAtScheduleTimer(schedule, schedule.trigger.timestamp, dependencies);
+        return;
+    }
+    if (schedule.trigger.type === 'account-reset') {
+        registerAtScheduleTimer(schedule, schedule.trigger.expectedResetAt, dependencies);
+        return;
+    }
 
-    registerAtScheduleTimer(schedule, schedule.trigger.timestamp, dependencies);
+    throw new Error(`Unsupported timed action schedule trigger: ${schedule.trigger.type}`);
 }
 
 function reconcileScheduleTimers(schedules, dependencies) {
-    const activeScheduleIds = pendingScheduleIds(schedules);
+    const activeScheduleIds = pendingTimedScheduleIds(schedules);
 
     for (const [scheduleId, timer] of dependencies.timers.entries()) {
         if (activeScheduleIds.has(scheduleId)) continue;
@@ -54,7 +60,7 @@ function reconcileScheduleTimers(schedules, dependencies) {
 
     for (const schedule of schedules) {
         if (schedule.status !== 'pending') continue;
-        if (schedule.trigger.type !== 'at') continue;
+        if (schedule.trigger.type !== 'at' && schedule.trigger.type !== 'account-reset') continue;
         if (dependencies.timers.has(schedule.id)) continue;
         registerPendingScheduleTimer(schedule, dependencies);
     }

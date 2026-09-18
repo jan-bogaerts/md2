@@ -142,6 +142,7 @@ export type ActionRunUpdate =
     | {
         conversation: AgentConversation
         kind: 'agentClosed'
+        persisted: boolean
     }
     | {
         kind: 'agentQuestion'

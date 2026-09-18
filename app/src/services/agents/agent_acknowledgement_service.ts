@@ -28,11 +28,12 @@ function conversationKey(scope: AgentConversationScope, actionId: string, conver
     return `${scope ?? PROJECT_SCOPE_KEY}-${actionId}-${conversationId}`
 }
 
-async function persistConversationViewed(reference: string, viewed: boolean) {
+/** Resolves the backend write before any local value changes, so a missing backend leaves the record untouched. */
+function requireConversationViewedWriter() {
     const bridge = getElectronActionBridge()
     if (!bridge?.updateActionConversationViewed) throw new Error('Updating conversation view state requires Electron')
 
-    return bridge.updateActionConversationViewed(reference, viewed)
+    return (reference: string, viewed: boolean) => bridge.updateActionConversationViewed!(reference, viewed)
 }
 
 /**
@@ -42,6 +43,7 @@ async function persistConversationViewed(reference: string, viewed: boolean) {
  * Scoping uses the stable card internal ID so card renames cannot break acknowledgement state.
  */
 export class AgentAcknowledgementService extends EventTarget {
+    private readonly backendViewedByConversationId = new Map<string, boolean>()
     private readonly lastRunStatuses = new Map<string, ActionRunStatus>()
     private resolveStoredConversation: ResolveStoredConversation | null = null
     private readonly visibleEntries = new Map<string, Set<string>>()
@@ -88,28 +90,53 @@ export class AgentAcknowledgementService extends EventTarget {
         }
     }
 
+    /**
+     * Remembers the view state the backend last reported for a conversation, so a failed write has a
+     * value to fall back to rather than guessing from the optimistic one it is undoing.
+     */
+    recordBackendViewed(conversationId: string, viewed: boolean) {
+        this.backendViewedByConversationId.set(conversationId, viewed)
+    }
+
+    /**
+     * Applies the view state locally first so the window it was clicked in responds without waiting for
+     * the backend, then persists it. A failed write puts back the value the backend last reported, which
+     * leaves no window showing a state the activity file does not hold. The backend announcement that
+     * follows a successful write replaces the optimistic value, so a differing backend value wins.
+     */
     async setViewed(scope: AgentConversationScope, actionId: string, conversation: AgentConversation, viewed: boolean) {
         const current = this.resolveStoredConversation?.(conversation) ?? conversation
         if (current.viewed === viewed) return current
 
+        const previous = current.viewed
+        let applied = false
         try {
-            await persistConversationViewed(conversation.path, viewed)
+            const write = requireConversationViewedWriter()
+            current.viewed = viewed
+            conversation.viewed = viewed
+            applied = true
+            this.announceConversationsChanged(scope, [actionId])
+            await write(conversation.path, viewed)
         } catch (error) {
+            if (applied) {
+                const reverted = this.backendViewedByConversationId.get(conversation.id) ?? previous
+                current.viewed = reverted
+                conversation.viewed = reverted
+                this.announceConversationsChanged(scope, [actionId])
+            }
             const fallbackMessage = scope === null
                 ? 'Project conversation view state could not be saved'
                 : 'Card conversation view state could not be saved'
             dialogService.error(error, { fallbackMessage })
             throw error
         }
-        current.viewed = viewed
-        conversation.viewed = viewed
-        this.announceConversationsChanged(scope, [actionId])
 
         return current
     }
 
     /** Clears transient state at a project boundary. */
     reset() {
+        this.backendViewedByConversationId.clear()
         this.lastRunStatuses.clear()
         this.visibleEntries.clear()
     }

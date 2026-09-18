@@ -3,7 +3,7 @@ author:
 id: B_239
 internalId: d268cc88-c21e-4d97-a7bb-1491da4852b3
 title: always write terminal activity record
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

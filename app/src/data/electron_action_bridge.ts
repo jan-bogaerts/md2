@@ -152,6 +152,12 @@ export interface ActiveActionRun {
     runId: string
 }
 
+/** One conversation's view state as the backend just wrote it; only the changed field travels. */
+export interface ActionConversationViewedEvent {
+    conversationId: string
+    viewed: boolean
+}
+
 export interface ElectronActionBridge {
     acquireReleaseCardLocks?(cardInternalIds: string[]): Promise<string>
     answerActionApproval?(runId: string, requestId: AgentApprovalRequestId, decision: AgentApprovalDecision): Promise<void>
@@ -171,9 +177,9 @@ export interface ElectronActionBridge {
     listActiveSchedules?(): Promise<AnySchedule[]>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
     loadActionRunRecoverySnapshot?(rendererRunIds: string[]): Promise<ActionRunRecoverySnapshot>
-    notifyActionCardStateChange?(cardInternalId: string, state: string): Promise<void>
     loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
+    onActionConversationViewed?(callback: (event: ActionConversationViewedEvent) => void): () => void
     onActionRun(callback: (event: ActionRunEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
     prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt>

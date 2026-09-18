@@ -4,7 +4,7 @@ import type { ActionRunEvent } from '../../data/action_run_types'
 import type { AgentConversation, AgentConversationEntry } from '../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge'
 import { actionPromptDraftService } from './action_prompt_draft_service'
-import { ActionRunRegistry, notifyActionCardStateChange } from './action_run_registry'
+import { ActionRunRegistry } from './action_run_registry'
 
 const context = { file: 'design/F-1.md', kind: 'card' as const }
 
@@ -560,10 +560,11 @@ describe('ActionRunRegistry', () => {
         })
         emit({
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'completed', type: 'update',
-            update: { conversation: completed, kind: 'agentClosed' },
+            update: { conversation: completed, kind: 'agentClosed', persisted: false },
         })
 
         expect(getRun(service).conversation).toEqual(completed)
+        expect(getRun(service).conversationPersisted).toBe(false)
         service.stop()
     })
 
@@ -586,10 +587,17 @@ describe('ActionRunRegistry', () => {
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
             update: { approval, kind: 'agentApproval' },
         })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review',
+            status: 'waitingForInput', type: 'agentState',
+        })
         const previous = getRun(service)
 
+        // The backend stamps every event with the status the conversation holds, so a token tick that
+        // arrives while the approval is open reports `waitingForInput`, never `running`.
         emit({
-            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review',
+            status: 'waitingForInput', type: 'update',
             update: {
                 contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
                 kind: 'agentUsage',
@@ -609,7 +617,8 @@ describe('ActionRunRegistry', () => {
         expect(current.conversation?.status).toBe('waitingForInput')
 
         emit({
-            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review',
+            status: 'waitingForInput', type: 'update',
             update: {
                 contextWindowUsage: { capacityTokens: 100_000, usedTokens: 25_000 },
                 kind: 'agentUsage',
@@ -726,9 +735,14 @@ describe('ActionRunRegistry', () => {
             actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
             update: { kind: 'agentQuestion', questions, requestId: 8 },
         })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review',
+            status: 'waitingForInput', type: 'agentState',
+        })
         const queuedMessage = { content: 'Queued prompt', id: 'queued-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' }
         emit({
-            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review',
+            status: 'waitingForInput', type: 'update',
             update: { kind: 'agentUserMessage', userMessage: queuedMessage },
         })
 
@@ -737,6 +751,95 @@ describe('ActionRunRegistry', () => {
             question: { questions, requestId: 8 },
             status: 'waitingForInput',
         })
+        service.stop()
+    })
+
+    it('stores the backend status verbatim instead of deriving it from its own question and approvals', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
+        const approval = {
+            filePaths: [], itemId: 'command-1', kind: 'commandExecution' as const, provider: 'codex' as const,
+            requestId: 41, startedAtMs: 0, threadId: 'thread-1', turnId: 'turn-1',
+        }
+
+        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'run' })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation([]), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions, requestId: 7 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { approval, kind: 'agentApproval' },
+        })
+
+        expect(getRun(service).status).toBe('waitingForInput')
+
+        // The question and the approval are still held as display data; the backend nevertheless says
+        // running, and that value wins - the store never recomputes a status of its own.
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review',
+            status: 'running', type: 'agentState',
+        })
+
+        expect(getRun(service)).toMatchObject({
+            approvals: [{ ...approval, submitted: false }],
+            conversation: { status: 'running' },
+            question: { questions, requestId: 7 },
+            status: 'running',
+        })
+
+        // Provider traffic during the same pending question carries the backend status too.
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review',
+            status: 'waitingForInput', type: 'update',
+            update: { content: 'chunk', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review',
+            status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentApprovalResolved', requestId: 41 },
+        })
+
+        expect(getRun(service)).toMatchObject({ approvals: [], question: { questions, requestId: 7 }, status: 'waitingForInput' })
+        service.stop()
+    })
+
+    it('replaces an optimistic renderer status with the next backend status for that run', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const questions = [{ header: 'Confirm', id: 'confirm', question: 'Proceed?' }]
+        const answer = { content: 'confirm: yes', id: 'message-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' }
+
+        emit({ actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'run' })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
+            update: { conversation: agentConversation([]), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestion', questions, requestId: 7 },
+        })
+        // Optimistic: the renderer answered the question itself and moved the run on for UI latency.
+        service.getRunStore('run-1')?.update({ ...getRun(service), status: 'running' })
+
+        expect(getRun(service).status).toBe('running')
+
+        // The backend disagrees - another question is already pending - and its status replaces the guess.
+        emit({
+            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'waitingForInput', type: 'update',
+            update: { kind: 'agentQuestionAnswer', requestId: 7, userMessage: answer },
+        })
+
+        expect(getRun(service)).toMatchObject({ question: null, status: 'waitingForInput' })
         service.stop()
     })
 
@@ -773,6 +876,10 @@ describe('ActionRunRegistry', () => {
             {
                 actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', sequence: 5,
                 status: 'waitingForInput', type: 'update', update: { kind: 'agentQuestion', questions, requestId: 7 },
+            },
+            {
+                actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', sequence: 6,
+                status: 'waitingForInput', type: 'agentState',
             },
         ]
         service.start()
@@ -1008,18 +1115,6 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
-    it('routes card-state changes to desktop without replaying renderer run state', async () => {
-        const notifyBridge = vi.fn(async () => undefined)
-        const { bridge } = bridgeWithEvents({ notifyActionCardStateChange: notifyBridge })
-        setActionBridgeOverride(bridge)
-
-        await notifyActionCardStateChange(null, 'ready')
-        await notifyActionCardStateChange('card-1', 'ready')
-
-        expect(notifyBridge).toHaveBeenCalledOnce()
-        expect(notifyBridge).toHaveBeenCalledWith('card-1', 'ready')
-    })
-
     it('keeps a stable FIFO queue snapshot from granular events without changing waiting status', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
@@ -1120,5 +1215,26 @@ describe('ActionRunRegistry prompt drafts', () => {
         emit(runEvent('completed'))
 
         expect(draft.getSnapshot()).toBe('Buffered keystrokes')
+    })
+
+    it('reports a conversation as live only while its run has not reached a terminal status', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+
+        emit(runEvent('running'))
+        emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'update',
+            update: { conversation: agentConversation([]), kind: 'agentStarted' },
+        })
+
+        expect(service.hasLiveConversation('conversation-1')).toBe(true)
+        expect(service.hasLiveConversation('conversation-2')).toBe(false)
+
+        emit(runEvent('failed'))
+
+        expect(service.hasLiveConversation('conversation-1')).toBe(false)
+        service.stop()
     })
 })

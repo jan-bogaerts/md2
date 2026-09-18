@@ -1,3 +1,5 @@
+import type { HeaderValue, MarkdownHeaderFields } from '../../../../shared/markdown_header_fields.mjs'
+import { parseHeaderFields, splitHeader } from '../../../../shared/markdown_header_fields.mjs'
 import type { Card, CardHeader, MarkdownFile } from '../../data/data_types'
 import { generateUuid } from '../../data/uuid'
 
@@ -9,8 +11,7 @@ const TITLE_PREFIX = '# '
 const LIST_ITEM_PREFIX = '  - '
 const CHILD_INDENT = '  '
 
-export type HeaderValue = string | string[] | Record<string, string>
-export type MarkdownHeaderFields = Record<string, HeaderValue>
+export type { HeaderValue, MarkdownHeaderFields }
 
 export interface ParsedMarkdown {
     body: string
@@ -39,12 +40,6 @@ export interface NewCardHeader {
     sentryOrganization?: string
     status?: string | null
     title: string
-}
-
-interface HeaderSplit {
-    body: string
-    hasHeader: boolean
-    rawHeader: string
 }
 
 interface CardSourceState {
@@ -137,99 +132,6 @@ function currentHeaderFields(card: Card, source: CardSourceState): MarkdownHeade
 
 function detectLineEnding(content: string) {
     return content.includes('\r\n') ? '\r\n' : '\n'
-}
-
-function splitHeader(content: string): HeaderSplit {
-    if (!content.startsWith(`${HEADER_DELIMITER}\n`) && !content.startsWith(`${HEADER_DELIMITER}\r\n`)) {
-        return { body: content, hasHeader: false, rawHeader: '' }
-    }
-
-    const closingDelimiter = /\r?\n---\r?\n/g
-    closingDelimiter.lastIndex = HEADER_DELIMITER.length
-    const closingMatch = closingDelimiter.exec(content)
-
-    if (!closingMatch) return { body: content, hasHeader: false, rawHeader: '' }
-
-    const headerStart = content.indexOf('\n') + 1
-    const rawHeader = content.slice(headerStart, closingMatch.index).replace(/\r\n/g, '\n')
-    const body = content.slice(closingMatch.index + closingMatch[0].length)
-
-    return { body, hasHeader: true, rawHeader }
-}
-
-function parseListValue(lines: string[], startIndex: number) {
-    const values: string[] = []
-    let index = startIndex + 1
-
-    while (index < lines.length && lines[index].startsWith(LIST_ITEM_PREFIX)) {
-        values.push(lines[index].slice(LIST_ITEM_PREFIX.length).trim())
-        index += 1
-    }
-
-    return { nextIndex: index, values }
-}
-
-function parseMapValue(lines: string[], startIndex: number) {
-    const value: Record<string, string> = {}
-    let index = startIndex + 1
-
-    while (index < lines.length && lines[index].startsWith(CHILD_INDENT) && !lines[index].startsWith(LIST_ITEM_PREFIX)) {
-        const childLine = lines[index].trim()
-        const separatorIndex = childLine.indexOf(':')
-
-        if (separatorIndex === -1) break
-
-        value[childLine.slice(0, separatorIndex).trim()] = childLine.slice(separatorIndex + 1).trim()
-        index += 1
-    }
-
-    return { nextIndex: index, value }
-}
-
-function parseHeaderFields(headerText: string): MarkdownHeaderFields {
-    const fields: MarkdownHeaderFields = {}
-    const lines = headerText.split(/\r?\n/)
-    let index = 0
-
-    while (index < lines.length) {
-        const line = lines[index]
-        const separatorIndex = line.indexOf(':')
-
-        if (separatorIndex === -1 || line.startsWith(' ')) {
-            index += 1
-            continue
-        }
-
-        const key = line.slice(0, separatorIndex).trim()
-        const value = line.slice(separatorIndex + 1).trim()
-
-        if (value.length > 0) {
-            fields[key] = value
-            index += 1
-            continue
-        }
-
-        const nextLine = lines[index + 1] ?? ''
-
-        if (nextLine.startsWith(LIST_ITEM_PREFIX)) {
-            const listValue = parseListValue(lines, index)
-            fields[key] = listValue.values
-            index = listValue.nextIndex
-            continue
-        }
-
-        if (nextLine.startsWith(CHILD_INDENT)) {
-            const mapValue = parseMapValue(lines, index)
-            fields[key] = mapValue.value
-            index = mapValue.nextIndex
-            continue
-        }
-
-        fields[key] = ''
-        index += 1
-    }
-
-    return fields
 }
 
 function cloneHeaderFields(fields: MarkdownHeaderFields): MarkdownHeaderFields {

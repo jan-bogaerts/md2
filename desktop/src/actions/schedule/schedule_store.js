@@ -15,9 +15,10 @@ function findPendingSchedule(schedules, scheduleId) {
     return schedule;
 }
 
-function pendingScheduleIds(schedules) {
+function pendingTimedScheduleIds(schedules) {
     return new Set(schedules
-        .filter((schedule) => schedule.status === 'pending' && schedule.trigger.type === 'at')
+        .filter((schedule) => schedule.status === 'pending'
+            && (schedule.trigger.type === 'at' || schedule.trigger.type === 'account-reset'))
         .map((schedule) => schedule.id));
 }
 
@@ -57,6 +58,6 @@ module.exports = {
     deleteScheduleRecord,
     findPendingSchedule,
     parseActionScheduleFile,
-    pendingScheduleIds,
+    pendingTimedScheduleIds,
     updateActionScheduleStatus,
 };

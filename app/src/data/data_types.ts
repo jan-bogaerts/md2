@@ -429,6 +429,8 @@ export type AgentRunEvent =
     }
     | {
         conversation: AgentConversation
+        /** False when the terminal conversation could not be written; the file still holds an earlier state. */
+        persisted?: boolean
         runId: string
         type: 'closed'
     }

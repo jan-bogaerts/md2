@@ -1,4 +1,6 @@
 const { resolveAgentCommand } = require('../actions/agent/agent_profiles.mjs');
+const { CardStateTracker } = require('../actions/card/card_state_tracker');
+const { ConversationViewEvents } = require('../actions/activity/conversation_view_events');
 const { resolveProjectPaths } = require('../project/project_paths');
 
 const INTEGRATION_ACTIVITY_LABEL = 'Integrate into project';
@@ -70,6 +72,64 @@ function createLocalBridgeDispatch(dependencies) {
         worktreeService,
     } = dependencies;
     let currentLocalProject = null;
+    let closeCardStateWatcher = null;
+    const conversationViewEvents = new ConversationViewEvents();
+    const cardStateTracker = new CardStateTracker({
+        readCardFile: async (path) => {
+            if (!currentLocalProject) return null;
+            try {
+                const file = await localGitService.loadFile(currentLocalProject, path);
+
+                return typeof file?.content === 'string' ? file.content : null;
+            } catch {
+                // The file can be gone or unreadable by the time the settled event is handled;
+                // that is the same as having no status to compare against.
+                return null;
+            }
+        },
+    });
+
+    /** Runs the two consumers of one backend-detected card state transition, scheduler first. */
+    async function reportCardStateTransition(transition) {
+        if (!transition || !actionRunnerService) return;
+        if (actionSchedulerService) await actionSchedulerService.handleCardStateChange(transition.cardInternalId, transition.state);
+        actionRunnerService.handleCardStateChange(transition.cardInternalId, transition.state);
+    }
+
+    async function handleWatchedCardChange(event) {
+        try {
+            const transition = await cardStateTracker.observeChange(event);
+            await reportCardStateTransition(transition);
+        } catch (error) {
+            // Card state detection must never take the project watcher down with it.
+            console.error('Card state change detection failed', error);
+        }
+    }
+
+    /**
+     * Watches the project for card state transitions from the backend itself, rather than through
+     * a renderer: detection has to keep working with no window attached, and it must run once no
+     * matter how many windows are open.
+     */
+    async function startCardStateDetection(project, projectFolder) {
+        if (closeCardStateWatcher) closeCardStateWatcher();
+        closeCardStateWatcher = null;
+        // The starting status of every card is recorded before any event is handled, so the first
+        // status an agent writes after activation reads as a transition, not as a first sighting.
+        cardStateTracker.reset();
+        try {
+            const { files } = await localGitService.loadProject(project, projectFolder);
+            cardStateTracker.seed(files);
+        } catch (error) {
+            console.error('Card state seeding failed', error);
+        }
+        closeCardStateWatcher = localGitService.watchProject(
+            project,
+            // The returned promise is what lets a test await one settled event; the watcher ignores it.
+            (event) => handleWatchedCardChange(event),
+            (error) => console.error('Card state watcher failed', error),
+        );
+    }
 
     function isCurrentProject(project) {
         return !!currentLocalProject
@@ -103,6 +163,7 @@ function createLocalBridgeDispatch(dependencies) {
         // timer immediately, and firing calls into the runner.
         const projectConfig = await localGitService.loadProjectConfig(project);
         const projectPaths = resolveProjectPaths(projectConfig);
+        await startCardStateDetection(project, projectPaths.projectFolder);
         if (actionRunnerService) await actionRunnerService.startProject(project, projectPaths, projectConfig?.states);
         if (actionSchedulerService) await actionSchedulerService.startProject(project, projectPaths.actionsFolder);
         await worktreeService.startProject(project);
@@ -451,11 +512,6 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.loadRunRecoverySnapshot(rendererRunIds);
         },
-        notifyActionCardStateChange: (cardInternalId, state) => {
-            if (!actionRunnerService) throw new Error('Action runner is not available');
-
-            return actionRunnerService.handleCardStateChange(cardInternalId, state);
-        },
         loadCardActivity: async (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
             if (!request || typeof request.cardInternalId !== 'string' || request.cardInternalId.length === 0) {
@@ -482,9 +538,14 @@ function createLocalBridgeDispatch(dependencies) {
         dismissWaitingActionConversationQuestions: (reference) => (
             localGitService.dismissWaitingActivityConversationQuestions(currentLocalProject, reference)
         ),
-        updateActionConversationViewed: (reference, viewed) => (
-            localGitService.updateActivityConversationViewed(currentLocalProject, reference, viewed)
-        ),
+        updateActionConversationViewed: async (reference, viewed) => {
+            const conversation = await localGitService.updateActivityConversationViewed(currentLocalProject, reference, viewed);
+            // Announced only once the file holds the new value, so no window can show a state the file lacks.
+            conversationViewEvents.emit({ conversationId: conversation.id, viewed: conversation.viewed });
+
+            return conversation;
+        },
+        onActionConversationViewed: (callback) => conversationViewEvents.subscribe(callback),
         updateCardActionSettings: async (request) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 

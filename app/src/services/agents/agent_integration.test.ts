@@ -348,6 +348,94 @@ describe('AgentIntegration', () => {
         agentAcknowledgementService.removeEventListener(otherActionEvent, otherActionListener)
     })
 
+    it('applies a backend conversation view change without reloading the activity file', async () => {
+        configService.init()
+        const agentFiles: MarkdownFile[] = [{
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        }]
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+        const loadActivityConversations = vi.fn(async () => [{ ...conversation(reference), actionId: 'implement', viewed: true }])
+        const storage = createStorage({
+            loadActivityConversations,
+            loadProject: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+        })
+        let viewedCallback: ((event: { conversationId: string; viewed: boolean }) => void) | null = null
+        window.md2Actions = {
+            onActionConversationViewed: (callback: (event: { conversationId: string; viewed: boolean }) => void) => {
+                viewedCallback = callback
+
+                return vi.fn()
+            },
+            onActionRun: () => vi.fn(),
+        } as unknown as typeof window.md2Actions
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const context = { cardInternalId: 'root-card', file: agentFiles[0].path, kind: 'card' as const }
+        await service.listAgentConversations(context)
+        const loadsBeforeAnnouncement = loadActivityConversations.mock.calls.length
+        if (!viewedCallback) throw new Error('Conversation view callback not registered')
+        const announceViewed = viewedCallback as (event: { conversationId: string; viewed: boolean }) => void
+        const cardListener = vi.fn()
+        const actionListener = vi.fn()
+        const cardEvent = cardAcknowledgementEvent('root-card')
+        const actionEvent = actionAcknowledgementEvent('root-card', 'implement')
+        agentAcknowledgementService.addEventListener(cardEvent, cardListener)
+        agentAcknowledgementService.addEventListener(actionEvent, actionListener)
+
+        announceViewed({ conversationId: 'agent-1', viewed: false })
+
+        expect((await service.listAgentConversations(context))[0].viewed).toBe(false)
+        expect(loadActivityConversations.mock.calls.length).toBe(loadsBeforeAnnouncement)
+        expect(cardListener).toHaveBeenCalledOnce()
+        expect(actionListener).toHaveBeenCalledOnce()
+        agentAcknowledgementService.removeEventListener(cardEvent, cardListener)
+        agentAcknowledgementService.removeEventListener(actionEvent, actionListener)
+    })
+
+    it('lets a backend view state overrule the one a window set optimistically', async () => {
+        configService.init()
+        const agentFiles: MarkdownFile[] = [{
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - design/activity/card__root-card.json#conversation=agent-1\n---\n\n# Root',
+            path: 'design/F-1-root.md',
+        }]
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+        const storage = createStorage({
+            loadActivityConversations: vi.fn(async () => [{ ...conversation(reference), actionId: 'implement', viewed: false }]),
+            loadProject: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+        })
+        let viewedCallback: ((event: { conversationId: string; viewed: boolean }) => void) | null = null
+        window.md2Actions = {
+            onActionConversationViewed: (callback: (event: { conversationId: string; viewed: boolean }) => void) => {
+                viewedCallback = callback
+
+                return vi.fn()
+            },
+            onActionRun: () => vi.fn(),
+            updateActionConversationViewed: vi.fn(async (_reference: string, viewed: boolean) => ({ viewed })),
+        } as unknown as typeof window.md2Actions
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const context = { cardInternalId: 'root-card', file: agentFiles[0].path, kind: 'card' as const }
+        const [stored] = await service.listAgentConversations(context)
+        if (!viewedCallback) throw new Error('Conversation view callback not registered')
+        const announceViewed = viewedCallback as (event: { conversationId: string; viewed: boolean }) => void
+
+        const pending = agentAcknowledgementService.setViewed('root-card', 'implement', stored, true)
+        expect(stored.viewed).toBe(true)
+        await pending
+
+        // The backend reports what it actually wrote, which differs from the optimistic value.
+        announceViewed({ conversationId: 'agent-1', viewed: false })
+
+        expect(stored.viewed).toBe(false)
+        expect((await service.listAgentConversations(context))[0].viewed).toBe(false)
+    })
+
     it('refreshes card waiting state from a backend-returned terminal conversation', async () => {
         configService.init()
         const agentFiles: MarkdownFile[] = [{
@@ -585,7 +673,7 @@ describe('AgentIntegration', () => {
         emitActionRun({
             ...startedEvent,
             status: 'completed',
-            update: { conversation: completedConversation, kind: 'agentClosed' },
+            update: { conversation: completedConversation, kind: 'agentClosed', persisted: true },
         })
 
         expect(service.agents.getProjectAgentConversationsSnapshot()).toEqual([completedConversation])
@@ -926,7 +1014,7 @@ describe('AgentIntegration', () => {
         }
         emitActionRun({
             actionId: 'implement', context, runId: 'action-1', phase: 'main', rootActionId: 'implement',
-            status: 'completed', type: 'update', update: { conversation: completedConversation, kind: 'agentClosed' },
+            status: 'completed', type: 'update', update: { conversation: completedConversation, kind: 'agentClosed', persisted: true },
         })
 
         expect(desktopService.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])
@@ -959,11 +1047,155 @@ describe('AgentIntegration', () => {
         const completedConversation = { ...conversation(reference), status: 'completed' as const }
         emitActionRun({
             actionId: 'implement', context, runId: 'action-1', phase: 'main', rootActionId: 'implement',
-            status: 'completed', type: 'update', update: { conversation: completedConversation, kind: 'agentClosed' },
+            status: 'completed', type: 'update', update: { conversation: completedConversation, kind: 'agentClosed', persisted: true },
         })
 
         expect(storage.loadAgentConversation).not.toHaveBeenCalled()
         expect(service.getState().snapshot?.activeCards[0].agentConversations).toEqual([completedConversation])
         expect(service.getState().snapshot?.activeCards[0].header.agentLogReferences).toEqual([])
+    })
+
+    it('turns the card spinner into the waiting state on a backend agent state event without an agentClosed', async () => {
+        configService.init()
+        let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
+                actionRunCallback = callback
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        if (!actionRunCallback) throw new Error('Action run callback not registered')
+        const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
+
+        const context = { cardInternalId: 'root-card', file: 'design/F-1-root.md', kind: 'card' as const }
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+        const runningConversation = { ...conversation(reference), actionId: 'implement', completedAt: null, status: 'running' as const }
+        const runEvent = {
+            actionId: 'implement', context, runId: 'action-1', phase: 'main' as const,
+            rootActionId: 'implement', status: 'running' as const,
+        }
+        emitActionRun({ ...runEvent, type: 'update', update: { conversation: runningConversation, kind: 'agentStarted' } })
+        const cardBefore = service.getState().snapshot?.activeCards[0]
+        const conversationsBefore = cardBefore?.agentConversations
+        const actionChanged = vi.fn()
+        const cardChanged = vi.fn()
+        agentAcknowledgementService.addEventListener(actionAcknowledgementEvent('root-card', 'implement'), actionChanged)
+        agentAcknowledgementService.addEventListener(cardAcknowledgementEvent('root-card'), cardChanged)
+
+        emitActionRun({ ...runEvent, status: 'waitingForInput', type: 'agentState' })
+
+        const cardAfter = service.getState().snapshot?.activeCards[0]
+        expect(cardAgentState(cardAfter?.agentConversations ?? [])).toBe('waiting for input')
+        expect(actionChanged).toHaveBeenCalledTimes(1)
+        expect(cardChanged).toHaveBeenCalledTimes(1)
+        expect(cardAfter).toBe(cardBefore)
+        expect(cardAfter?.agentConversations).toBe(conversationsBefore)
+        agentAcknowledgementService.removeEventListener(actionAcknowledgementEvent('root-card', 'implement'), actionChanged)
+        agentAcknowledgementService.removeEventListener(cardAcknowledgementEvent('root-card'), cardChanged)
+    })
+
+    it('clears the card spinner when the run fails without an agentClosed', async () => {
+        configService.init()
+        let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
+                actionRunCallback = callback
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        if (!actionRunCallback) throw new Error('Action run callback not registered')
+        const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
+
+        const context = { cardInternalId: 'root-card', file: 'design/F-1-root.md', kind: 'card' as const }
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+        const runningConversation = { ...conversation(reference), actionId: 'implement', completedAt: null, status: 'running' as const }
+        const runEvent = {
+            actionId: 'implement', context, runId: 'action-1', phase: 'main' as const,
+            rootActionId: 'implement', status: 'running' as const,
+        }
+        emitActionRun({ ...runEvent, type: 'update', update: { conversation: runningConversation, kind: 'agentStarted' } })
+        expect(cardAgentState(service.getState().snapshot?.activeCards[0].agentConversations ?? [])).toBe('running')
+
+        emitActionRun({ ...runEvent, status: 'failed', type: 'run' })
+
+        const conversations = service.getState().snapshot?.activeCards[0].agentConversations ?? []
+        expect(conversations[0].status).toBe('failed')
+        expect(cardAgentState(conversations)).toBe('idle')
+    })
+
+    it('adopts the corrected activity record on a later load when no live run holds the conversation', async () => {
+        configService.init()
+        let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
+                actionRunCallback = callback
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        const reference = 'design/activity/project.json#conversation=project-agent'
+        const corrected = { ...conversation(reference), cardInternalId: null, cardPath: null, id: 'project-agent', status: 'failed' as const }
+        const storage = createStorage({
+            listAgentConversationReferences: vi.fn(async () => [reference]),
+            loadAgentConversation: vi.fn(async () => corrected),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        if (!actionRunCallback) throw new Error('Action run callback not registered')
+        const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
+
+        const context = { kind: 'project' as const }
+        const runEvent = {
+            actionId: 'implement', context, runId: 'project-run', phase: 'main' as const,
+            rootActionId: 'implement', status: 'running' as const,
+        }
+        const running = { ...corrected, completedAt: null, status: 'running' as const }
+        emitActionRun({ ...runEvent, type: 'update', update: { conversation: running, kind: 'agentStarted' } })
+        emitActionRun({ ...runEvent, status: 'cancelled', type: 'run' })
+        expect(actionRunRegistry.hasLiveConversation('project-agent')).toBe(false)
+
+        await expect(service.listAgentConversations(context)).resolves.toEqual([corrected])
+    })
+
+    it('keeps the live record when a load returns while the run still holds the conversation', async () => {
+        configService.init()
+        let actionRunCallback: ((event: ActionRunEvent) => void) | null = null
+        window.md2Actions = {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
+                actionRunCallback = callback
+
+                return vi.fn()
+            },
+        } as unknown as typeof window.md2Actions
+        const reference = 'design/activity/project.json#conversation=project-agent'
+        const persisted = { ...conversation(reference), cardInternalId: null, cardPath: null, id: 'project-agent', status: 'completed' as const }
+        const storage = createStorage({
+            listAgentConversationReferences: vi.fn(async () => [reference]),
+            loadAgentConversation: vi.fn(async () => persisted),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        if (!actionRunCallback) throw new Error('Action run callback not registered')
+        const emitActionRun = actionRunCallback as (event: ActionRunEvent) => void
+
+        const context = { kind: 'project' as const }
+        const running = { ...persisted, completedAt: null, status: 'running' as const }
+        emitActionRun({
+            actionId: 'implement', context, runId: 'project-run', phase: 'main', rootActionId: 'implement',
+            status: 'running', type: 'update', update: { conversation: running, kind: 'agentStarted' },
+        })
+        expect(actionRunRegistry.hasLiveConversation('project-agent')).toBe(true)
+
+        await expect(service.listAgentConversations(context)).resolves.toEqual([running])
     })
 })

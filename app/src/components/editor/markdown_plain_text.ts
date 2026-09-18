@@ -1,4 +1,4 @@
-import { $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, type LexicalEditor } from 'lexical'
+import { $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $setSelection, type LexicalEditor } from 'lexical'
 
 /**
  * Collapses the blank line Lexical inserts between top-level blocks, so a command line typed with
@@ -27,5 +27,6 @@ export function writePlainText(editor: LexicalEditor, text: string) {
             if (line) paragraph.append($createTextNode(line))
         }
         root.append(paragraph)
+        $setSelection(null)
     }, { discrete: true })
 }

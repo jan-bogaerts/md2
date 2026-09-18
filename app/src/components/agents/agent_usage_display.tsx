@@ -1,6 +1,6 @@
 import { Tooltip, Typography } from '@mui/material'
 import type { AgentTokenUsage } from '../../data/data_types'
-import { formatTokenCount } from './token_count'
+import { formatTokenCount } from './token_count_format'
 
 const TOKEN_NUMBER_FORMAT = new Intl.NumberFormat('en-US')
 const COST_NUMBER_FORMAT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 6, minimumFractionDigits: 2 })

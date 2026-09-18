@@ -98,7 +98,6 @@ const ACTION_METHODS = [
     'listActiveSchedules',
     'loadActionRunHistory',
     'loadActionRunRecoverySnapshot',
-    'notifyActionCardStateChange',
     'loadCardActivity',
     'loadAgentAvailability',
     'openInEditor',
@@ -281,6 +280,7 @@ if (!isAllowedOrigin()) {
     };
     const actionBridge = {
         ...createBridge(ACTION_METHODS),
+        onActionConversationViewed: (callback) => subscribeBridge('onActionConversationViewed', [], callback),
         onActionRun: (callback) => subscribeBridge('onActionRun', [], callback),
     };
     const codexRuntimeBridge = {

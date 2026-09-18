@@ -72,6 +72,11 @@ const persistentSubscriptionCases: PersistentSubscriptionCase[] = [
         subscribe: (service) => service.onMergeConflictSessionChanged(() => undefined),
     },
     { method: 'onActionRun', name: 'action-run', subscribe: (service) => service.onActionRun(() => undefined) },
+    {
+        method: 'onActionConversationViewed',
+        name: 'conversation-view',
+        subscribe: (service) => service.onActionConversationViewed(() => undefined),
+    },
     { method: 'onClaudeRateLimits', name: 'Claude-rate-limit', subscribe: (service) => service.onClaudeRateLimits(() => undefined) },
     { method: 'onCodexRateLimits', name: 'Codex-rate-limit', subscribe: (service) => service.onCodexRateLimits(() => undefined) },
     {
@@ -827,7 +832,6 @@ describe('RemoteControlStorageService', () => {
             service.splitActionConversation('activity.json#conversation=one', 'message-2'),
             service.finishActionRun('action-1'),
             service.restartActionRun('action-1', { actionId: 'review', context: { kind: 'project' }, runInput: {} }),
-            service.notifyActionCardStateChange('card-1', 'ready'),
         ]
         await flushPromises()
         const requests = socket.sent.map((entry) => JSON.parse(entry) as { id: string, method: string, params: unknown[] })
@@ -845,7 +849,6 @@ describe('RemoteControlStorageService', () => {
             { method: 'splitActionConversation', params: ['activity.json#conversation=one', 'message-2'] },
             { method: 'finishActionRun', params: ['action-1'] },
             { method: 'restartActionRun', params: ['action-1', { actionId: 'review', context: { kind: 'project' }, runInput: {} }] },
-            { method: 'notifyActionCardStateChange', params: ['card-1', 'ready'] },
         ])
         requests.forEach(({ id, method }) => {
             const result = method === 'enqueueActionPrompt' || method === 'editActionQueuedPrompt'
@@ -877,6 +880,28 @@ describe('RemoteControlStorageService', () => {
         socket.receive({ id: sentRequest.id, result: snapshot })
 
         await expect(recovery).resolves.toEqual(snapshot)
+    })
+
+    it('delivers backend conversation view changes to a remote window', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        service.onActionConversationViewed(callback)
+        const socket = lastSocket()
+        socket.open()
+        await flushPromises()
+        const subscription = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(subscription.method).toBe('onActionConversationViewed')
+        socket.receive({ id: subscription.id, result: { subscriptionId: 'conversation-view-1' } })
+        await flushPromises()
+        const event = { conversationId: 'conversation-1', viewed: false }
+
+        socket.receive({
+            event: 'conversationViewed',
+            payload: { event, requestId: subscription.id, subscriptionId: 'conversation-view-1' },
+        })
+
+        expect(callback).toHaveBeenCalledWith(event)
     })
 
     it('reattaches action run subscription after reconnect', async () => {

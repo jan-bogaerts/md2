@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StatsChartRow } from '../../services/stats/project_stats_types';
 import { createAppTheme } from '../../theme/app_theme';
 import { AppThemeProvider } from '../../theme/theme_provider';
-import { formatTokenCount } from '../agents/token_count';
+import { formatTokenCount } from '../agents/token_count_format';
 import { StatsBarChart } from './stats_bar_chart';
 import { StatsUsageComparisonCharts } from './stats_usage_comparison_charts';
 

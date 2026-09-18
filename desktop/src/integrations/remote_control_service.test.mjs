@@ -45,6 +45,7 @@ describe('RemoteControlService push protocol', () => {
         const subscriptions = [
             ['watchProject', [project], 'watch-request'],
             ['onActionRun', [], 'action-request'],
+            ['onActionConversationViewed', [], 'conversation-view-request'],
             ['onClaudeRateLimits', [], 'claude-limits-request'],
             ['onCodexRateLimits', [], 'limits-request'],
             ['onMergeConflictSessionChanged', [], 'conflict-request'],
@@ -59,6 +60,7 @@ describe('RemoteControlService push protocol', () => {
         const watchEvent = { changeKind: 'changed', path: 'design/F-1.md' };
         const actionEvent = { runId: 'action-1', sequence: 1, status: 'running', type: 'run' };
         const agentEvent = { content: 'working', runId: 'agent-1', type: 'output' };
+        const conversationViewedEvent = { conversationId: 'conversation-1', viewed: false };
         const claudeSnapshot = { available: true, observedAt: 11, windows: [] };
         const codexSnapshot = { available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null };
         const state = { error: null, primaryStatus: null, project, records: [] };
@@ -66,6 +68,7 @@ describe('RemoteControlService push protocol', () => {
         callbacks.get('watchProject')(watchEvent);
         callbacks.get('runSearchRegexpAgent')(agentEvent);
         callbacks.get('onActionRun')(actionEvent);
+        callbacks.get('onActionConversationViewed')(conversationViewedEvent);
         callbacks.get('onClaudeRateLimits')(claudeSnapshot);
         callbacks.get('onCodexRateLimits')(codexSnapshot);
         callbacks.get('onMergeConflictSessionChanged')(conflictSession);
@@ -76,6 +79,7 @@ describe('RemoteControlService push protocol', () => {
             { event: 'watchProject', payload: { event: watchEvent, requestId: 'watch-request', subscriptionId: subscriptionResults.get('watchProject').subscriptionId } },
             { event: 'agentRun', payload: { event: agentEvent, requestId: 'agent-request' } },
             { event: 'actionRun', payload: { event: actionEvent, requestId: 'action-request', subscriptionId: subscriptionResults.get('onActionRun').subscriptionId } },
+            { event: 'conversationViewed', payload: { event: conversationViewedEvent, requestId: 'conversation-view-request', subscriptionId: subscriptionResults.get('onActionConversationViewed').subscriptionId } },
             { event: 'claudeRateLimits', payload: { requestId: 'claude-limits-request', snapshot: claudeSnapshot, subscriptionId: subscriptionResults.get('onClaudeRateLimits').subscriptionId } },
             { event: 'codexRateLimits', payload: { requestId: 'limits-request', snapshot: codexSnapshot, subscriptionId: subscriptionResults.get('onCodexRateLimits').subscriptionId } },
             { event: 'mergeConflictSessionChanged', payload: { requestId: 'conflict-request', session: conflictSession, subscriptionId: subscriptionResults.get('onMergeConflictSessionChanged').subscriptionId } },
