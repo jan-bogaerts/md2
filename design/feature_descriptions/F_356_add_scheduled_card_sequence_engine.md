@@ -3,7 +3,7 @@ author:
 id: F_356
 internalId: ef4c20d4-957e-4eea-8452-33bc996608f3
 title: Add scheduled card sequence engine
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,24 @@ policy:
 after: b750c85a-ac60-4608-b6e4-beb186e6ca60
 branch: f_356_add_scheduled_card_sequence_engine
 worktree: 2
+changedFiles:
+  - app/src/data/action_schedule_types.node.test.ts
+  - app/src/data/electron_action_bridge.ts
+  - desktop/src/actions/action/action_runner_service.js
+  - desktop/src/actions/action/action_runner_service.test.mjs
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/schedule/schedule_store.js
+  - desktop/src/actions/schedule/scheduled_card_context.js
+  - desktop/src/actions/schedule/scheduled_card_context.test.mjs
+  - desktop/src/actions/schedule/scheduled_card_sequence_engine.js
+  - desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
+  - shared/action_schedules.d.mts
+  - shared/action_schedules.mjs
 ---
 Add persisted ordered-card sequence execution under scheduler contract from [F\_352](F_352_extend_schedule_contract_and_apis.md).
 
