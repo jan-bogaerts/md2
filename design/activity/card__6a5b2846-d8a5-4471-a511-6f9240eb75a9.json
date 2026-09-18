@@ -1903,6 +1903,35 @@
       "startedAt": "2026-09-18T17:46:41.634Z",
       "status": "completed",
       "rootConversationId": "agent-ee36a1c5-535e-4ebc-81c0-6a01cca0d2ef"
+    },
+    {
+      "commits": [
+        {
+          "commit": "d982684a81a355a816a93d78cafa6aa74e380470",
+          "committedAt": "2026-09-18T20:14:03+02:00",
+          "deletions": 27,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.tsx",
+            "app/src/components/actions/conversation/action_conversation_chat_visibility.test.tsx",
+            "app/src/components/actions/run/popup/card_action_popup_host.test.tsx",
+            "app/src/components/actions/run/popup/card_action_popup_host.tsx",
+            "app/src/components/agents/agent_chat_fab.test.tsx",
+            "app/src/components/agents/agent_chat_fab.tsx",
+            "app/src/services/card_popup_service.test.ts",
+            "app/src/services/card_popup_service.ts"
+          ],
+          "filesChanged": 8,
+          "insertions": 301,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-18T20:14:03+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "6a5b2846-d8a5-4471-a511-6f9240eb75a9",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
