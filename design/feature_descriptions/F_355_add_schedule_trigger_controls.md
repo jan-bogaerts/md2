@@ -3,7 +3,7 @@ author:
 id: F_355
 internalId: b750c85a-ac60-4608-b6e4-beb186e6ca60
 title: Add schedule trigger controls
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,18 @@ policy:
 after: 57ceeeca-6732-42a3-b77f-b1c459a2f268
 branch: f_355_add_schedule_trigger_controls
 worktree: 1
+changedFiles:
+  - app/src/components/actions/actions_no_mock.test.tsx
+  - app/src/components/actions/run/schedule/action_schedule_form.grouped.test.tsx
+  - app/src/components/actions/run/schedule/action_schedule_form.tsx
+  - app/src/components/actions/run/schedule/action_schedule_options.node.test.ts
+  - app/src/components/actions/run/schedule/action_schedule_options.ts
+  - app/src/components/actions/run/schedule/action_schedule_owner.grouped.test.tsx
+  - app/src/components/actions/run/schedule/action_schedule_owner.tsx
+  - app/src/components/actions/run/schedule/action_schedule_store.node.test.ts
+  - app/src/components/actions/run/schedule/action_schedule_store.ts
+  - app/src/components/actions/run/schedule/action_schedule_trigger.node.test.ts
+  - app/src/components/actions/run/schedule/action_schedule_trigger.ts
 ---
 Extend action-popup scheduling UI for event triggers delivered by [F\_353](F_353_run_schedules_from_account_and_card_events.md).
 
