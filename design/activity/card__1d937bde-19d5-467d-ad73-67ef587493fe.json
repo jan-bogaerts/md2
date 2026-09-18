@@ -451,20 +451,28 @@
           "sequence": 30,
           "timestamp": "2026-09-18T18:29:51.944Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Whatvis currently on the toolbar? That\nclaude-question-1: Keep CreateLink, drop InsertImage\nclaude-question-2: No variation — keep auto",
+          "id": "agent-turn-86d8b296-2a33-4d6e-8b72-1d860313afab-answer-30",
+          "kind": "message",
+          "role": "user",
+          "sequence": 31,
+          "timestamp": "2026-09-18T18:32:48.496Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-ca32ea2e-3c82-4e7f-b606-6375ebd837f4",
       "providerSessions": [],
       "startedAt": "2026-09-18T18:28:29.743Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 18161,
           "toolMs": 35470
         },
         "elapsedMs": 82201,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-18T18:32:48.496Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
