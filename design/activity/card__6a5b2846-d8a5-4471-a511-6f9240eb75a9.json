@@ -629,10 +629,11 @@
           "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-45",
           "kind": "event",
           "label": "AskUserQuestion",
+          "output": "The user answered: \"Given that explanation — after the project popup becomes a real stack entry, should the project agent conversation be marked viewed only while its popup is top of stack (card rule), or keep today's \"always viewed while open\" behavior?\"=\"Card rule: top of stack only (Recommended)\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
           "providerItemId": "toolu_01MtupadXZyxiM2eUnyTmDQ3",
           "sequence": 45,
-          "status": "inProgress",
-          "timestamp": "2026-09-18T17:41:01.677Z",
+          "status": "completed",
+          "timestamp": "2026-09-18T17:41:48.584Z",
           "type": "tool.AskUserQuestion"
         },
         {
@@ -667,6 +668,158 @@
           "role": "user",
           "sequence": 47,
           "timestamp": "2026-09-18T17:41:48.577Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-48",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfBKLd5THNLDnHtkXS3U7:thinking:0",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-18T17:41:50.589Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions\" && ls | tail -12 && echo \"=== sample\" && grep -rln \"ready for implementation\" . | head -3",
+          "content": "F_345_remove_attach_and_open_in_list_view_icons_from_card.md\nF_349_pin_conversations.md\nF_350_action_idea.md\nF_353_run_schedules_from_account_and_card_events.md\nF_354_add_active_schedules_dialog.md\nF_355_add_schedule_trigger_controls.md\nF_356_add_scheduled_card_sequence_engine.md\nF_357_add_card_sequence_dialog.md\nF_359_stats_on_small_screen.md\nF_94_no_prefill_prompt_running_conv.md.bak\nJ_28_finishing_action_very_slow.md\nJ_42_run_history_command_actions_order.md\n=== sample\n./F_180_add_extra_event_logging.md\n./F_331_improve_schedule_action.md\n./F_354_add_active_schedules_dialog.md",
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-49",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions\" && ls | tail -12 && echo \"=== sample\" && grep -rln \"ready for implementation\" . | head -3",
+          "providerItemId": "toolu_01JPhdgRCqsdRdvrWN2EynPF",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-09-18T17:41:52.353Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions\" && cat F_354_add_active_schedules_dialog.md",
+          "content": "---\nauthor: \nid: F_354\ninternalId: 57ceeeca-6732-42a3-b77f-b1c459a2f268\ntitle: Add active schedules dialog\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__57ceeeca-6732-42a3-b77f-b1c459a2f268.json\npolicy:\nafter: 67d4a581-6ded-4a41-a489-d079644e3e5b\nbranch: f_354_add_active_schedules_dialog\nworktree: 1\n---\nAdd active-schedule management UI for [F\\_331](F_331_improve_schedule_action.md), using APIs from [F\\_352](F_352_extend_schedule_contract_and_apis.md).\n\n## Current state\n\nRun tab contains agent setup and action buttons only. Schedules can be loaded through data storage, but no service owns live schedule view data and no screen lists them. Workspace navigation opens paths; board reveal selects and scrolls card, while list view opens documents in tabs.\n\n## implementation details\n\n* Add `View active schedules` to Run tab and open MUI dialog. Dedicated schedule service loads active records when project opens, refreshes after registration/deletion and `.md2-schedules.json` changes, and exposes stable schedule list through `EventTarget` plus `useSyncExternalStore`.\n* Show one selectable row per pending or running record. Expand row for kind, action, status, trigger, creation time, selected tracker or trigger card, ready state, sequence progress, and unavailable reason. Resolve labels and current paths from loaded actions/cards; retain IDs when target disappeared.\n* `Open` and row double-click resolve current target by `cardInternalId`. For action schedule use action context card; for sequence use current item, or first item before start. Board view selects, scrolls, and opens card details. List view opens or activates card tab. Missing card reports through `dialogService`.\n* `Delete` asks confirmation, calls delete API, disables repeated action while pending, then updates list. Running deletion text states current action will be cancelled.\n* Dialog follows style guide: scrollable body, pinned right-aligned actions, one contained primary action at most, accessible expansion and selection, empty state.\n* Add menu, service, dialog, navigation, deletion, missing-target, empty, and error tests.\n\n## acceptance criteria\n\n* Run menu opens dialog containing every active action and sequence schedule, and no terminal schedule.\n* Selection and expansion work independently; details identify exact trigger and current sequence progress.\n* Open button and double-click reveal and open correct current card in board view, or open correct tab in list view.\n* Navigation resolves `cardInternalId` to current path, so rename does not break Open.\n* Confirmed delete cancels running work when needed, removes schedule, and removes row. Cancel leaves it unchanged.\n* Missing action, card, or tracker remains inspectable and produces clear unavailable state instead of render error.",
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-50",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions\" && cat F_354_add_active_schedules_dialog.md",
+          "providerItemId": "toolu_01F9Eo7yWMVpxMB8zxMefddL",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-09-18T17:41:54.227Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-51",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfBKM2c4JB5GByBzf8uGM:thinking:0",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-18T17:42:14.696Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app/src\" && grep -rn \"openActionRun\\|toggleAction\" --include=*.tsx --include=*.ts . | grep -v \"\\.test\\.\" | grep -v card_popup_service.ts | head -20",
+          "content": "./components/actions/run/trigger/card_run_button.tsx:38:        cardPopupService.toggleAction(context, event.currentTarget)\n./components/shell/running_agents_indicator.tsx:62:        cardPopupService.openActionRun(agent.context, agent.rootActionId, agent.runId, rowAnchorElement)\n./components/text_view/list_editor_toolbar_controls.tsx:55:            cardPopupService.toggleAction(context, event.currentTarget)",
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-52",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app/src\" && grep -rn \"openActionRun\\|toggleAction\" --include=*.tsx --include=*.ts . | grep -v \"\\.test\\.\" | grep -v card_popup_service.ts | head -20",
+          "providerItemId": "toolu_01DWzVhFeTKHzrymi1DonwjC",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-09-18T17:42:16.548Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2/app/src\" && sed -n 35,80p components/shell/running_agents_indicator.tsx",
+          "content": "            context.kind === 'card' && !!context.cardInternalId\n                ? {\n                    context,\n                    id: runId,\n                    kind: 'card-action',\n                    label: actionLabels.get(rootActionId) ?? rootActionId,\n                    rootActionId,\n                    runId,\n                    secondaryLabel: context.title,\n                }\n                : { id: runId, kind: 'plain', label: `Action ${rootActionId}` }\n        )),\n    ]\n    const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)\n\n    const handleOpen = (event: React.MouseEvent<HTMLElement>) => {\n        setAnchorElement(event.currentTarget)\n    }\n\n    const handleClose = () => {\n        setAnchorElement(null)\n    }\n\n    const handleSelect = (agent: RunningAgentDetailsItem, rowAnchorElement: HTMLElement) => {\n        if (agent.kind !== 'card-action') return\n\n        handleClose()\n        cardPopupService.openActionRun(agent.context, agent.rootActionId, agent.runId, rowAnchorElement)\n    }\n\n    return (\n        <>\n            {mobile ? (\n                <MobileStatusRow\n                    accessibleName={`Running agents: ${agents.length}`}\n                    icon={<Robot sx={{ fontSize: 18 }} />}\n                    label=\"Running agents\"\n                    onClick={handleOpen}\n                    tone=\"text.secondary\"\n                    value={agents.length.toLocaleString('en-US')}\n                />\n            ) : (\n                <Button\n                    aria-label={`Running agents: ${agents.length}`}\n                    onClick={handleOpen}\n                    size=\"small\"",
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-53",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2/app/src\" && sed -n 35,80p components/shell/running_agents_indicator.tsx",
+          "providerItemId": "toolu_019y8EAiB6AfdehSXReJugW3",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-09-18T17:42:18.574Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-54",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfBKNpmTvcDBxXK6Dxgd6:thinking:0",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-18T17:42:20.640Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow writing the sections.",
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 55,
+          "timestamp": "2026-09-18T17:42:20.641Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat > \"design/feature_descriptions/B_242_project_agent_popup_not_part_of_popup_stack.md\" <<'EOF'\n---\nauthor: \nid: B_242\ninternalId: 6a5b2846-d8a5-4471-a511-6f9240eb75a9\ntitle: project agent popup not part of popup stack\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__6a5b2846-d8a5-4471-a511-6f9240eb75a9.json\npolicy:\n---\n\nthe project-agent-action-popup doesn't follow the rules of the other popups. it doesn't seem to be managed by the popup service as the other card and action popups. this is wrong. this popup should also follow the stack rules of who is on top.\n\n## Current state\n\n* `CardPopupService` (`app/src/services/card_popup_service.ts`) owns an ordered list of popup entries. Last entry is top of stack. It provides `toggleAction`, `openActionRun`, `close`, `activate` (moves an entry to the end so it becomes top), `clear` when the open project or branch changes, per-entry mobile back-button dismissal, and a hidden fallback anchor so a popup survives its anchor element leaving the DOM.\n* `CardActionPopupHost` (`app/src/components/actions/run/popup/card_action_popup_host.tsx`) renders every `action` entry, passing the array index as `stackPosition`, and on mobile opens only the entry whose id matches the last entry. `CardActionPopupHostEntry` wires `onActivate` to `cardPopupService.activate(entry.id)` and `popupEntryId` to the entry id.\n* `ResizablePopper` turns `stackPosition` into a z-index of `theme.zIndex.modal + stackPosition`, and into an overlay theme so menus and tooltips opened inside the popup render above it. `ResizablePopper` calls `onActivate` on pointer-down and on focus, which is how clicking a buried card popup raises it.\n* The project agent popup is rendered by `AgentChatFab` (`app/src/components/agents/agent_chat_fab.tsx`), outside that host. The fab keeps the open state in a local `useState` anchor element and generates `popupEntryId` with React `useId`. It passes no `stackPosition` and no `onActivate`, so `ResizablePopper` falls back to the bare `modal` z-index and to a paper element with no `tabIndex`.\n* Consequences of standing outside the service, all caused by that missing entry:\n  * Every card action popup, which sits at `modal + index`, paints over the project agent popup, and clicking the project agent popup cannot raise it because nothing calls `activate`.\n  * The popup is not registered with `mobileBackDismissService`, so the mobile back gesture does not close it, and it does not follow the mobile top-only rendering rule.\n  * Switching project or branch leaves it open, because `clear` only walks service entries.\n  * `MarkdownTypeaheadLayerProvider` and the overlay theme receive `stackPosition ?? 0`, the lowest layer, rather than a real stack position.\n* `cardPopupService.toggleAction` currently throws `Cannot open a card action popup without a card internal ID`, so a project context cannot be added to the stack today. `actionContextIdentity` already returns the constant `'project'` for a project context, so the duplicate-entry lookup that `toggleAction` performs needs no new key.\n* `ActionConversationChat` (`app/src/components/actions/conversation/action_conversation_chat.tsx`) computes `popupVisible` as `context.kind === 'project' || popupEntries.at(-1)?.id === popupEntryId`. The `kind === 'project'` term is a workaround for this same bug: the fab's `useId` value is never present in the service entry list, so the comparison would always be false and the project agent conversation would never be marked viewed, leaving the unseen-result dot on the fab forever.\n* The fab itself stays responsible for `dataService.listAgentConversations(PROJECT_CONTEXT)` on mount, for the running, queued, waiting and unseen badge states, and for dragging itself around the viewport. Dragging currently closes the popup through `handleDragStart`.\n\n## implementation details\n\n* Allow project contexts into the popup stack. In `CardPopupService.toggleAction`, replace the unconditional `cardInternalId` requirement with a check that accepts a context whose `kind` is `project` and still rejects a card context without an internal id. Keep entry shape, id generation, and `CardActionPopupEntry` unchanged, so the project entry is an ordinary `action` entry that happens to carry a project context.\n* Add `closeAction(context: ActionContext)` to the service, which removes the `action` entry matching `actionContextIdentity(context)` if one exists and does nothing otherwise. The fab needs it for drag start, where closing must not toggle the popup back open.\n* Rewrite `AgentChatFab` so it holds no popup state. `handleActivate` calls `cardPopupService.toggleAction(PROJECT_CONTEXT, nextAnchorElement)`; `handleDragStart` calls `cardPopupService.closeAction(PROJECT_CONTEXT)`. Delete the local `anchorElement` state, the `useId` entry id, the `handleClose` callback, and the `<ActionPopup>` element from the fab. Keep the conversation preload effect and all badge logic.\n* Render the project entry from `CardActionPopupHost`, so it gets `stackPosition`, `onActivate`, and the entry id as `popupEntryId` from the existing `CardActionPopupHostEntry` path with no per-kind branch.\n* View-mode visibility gets one deliberate exception. The host currently hides every popup when `viewMode` is `diagrams` or `stats`. A project-context entry must stay visible in `stats` view, so compute visibility as: hidden in `diagrams` view for all entries, hidden in `stats` view only for non-project entries. Diagram view keeps hiding the project popup because the fab that owns it is already unmounted there by `ProjectWorkspaceAvailability`, and diagram view runs its own action popups.\n* Mobile keeps the top-only rule with no exception: on mobile the project entry is open only while it is the last entry, and it gains back-gesture dismissal automatically through the service's existing `reconcileMobileBackDismissRegistrations`, because that walks all entries.\n* Delete the `context.kind === 'project'` term from `popupVisible` in `ActionConversationChat`. Once the project popup is a real entry, its id is in the service list and the top-of-stack comparison resolves correctly on its own. Intended behavior change: while a card action popup covers the project popup, a finishing project agent run no longer clears the unseen-result dot on the fab; raising the project popup back to the top clears it.\n* No change is needed in `ActionPopupFrame` for popup size persistence: it already selects `PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY` from `baseContext.kind === 'project'`, and the host passes the entry context through unchanged.\n* Out of scope: `RunningAgentsIndicator` still lists project-level runs as non-clickable `plain` rows, because `openActionRun` requires a card internal id. That guard stays as it is.\n* Tests to add or extend:\n  * `card_popup_service.test.ts`: a project context can be toggled open and closed, a second toggle closes rather than duplicating, `closeAction` is a no-op when nothing is open, `activate` reorders a project entry, and a project or branch change clears a project entry.\n  * `card_action_popup_host_entry.test.tsx` or host-level test: a project entry renders with its stack position, stays visible in `stats` view, hides in `diagrams` view, and on mobile is open only when it is the last entry.\n  * A fab test asserting activation delegates to the service and that the fab renders no popup of its own.\n  * A conversation-visibility test asserting a project conversation is marked viewed only while its entry is top of stack.\n\n## acceptance criteria\n\n* Opening a card action popup while the project agent popup is open draws the card popup on top; clicking anywhere on the project agent popup raises it above the card popup, and clicking back on the card popup raises that one again.\n* Focusing an input inside a buried project agent popup raises it, matching card popup behavior.\n* Clicking the fab while the project agent popup is open closes it; clicking again reopens it, and no second project popup can exist at the same time.\n* Dragging the fab closes the project agent popup and does not reopen it when the drag ends.\n* Switching project or branch closes the project agent popup along with every card popup.\n* On mobile, the back gesture closes the topmost popup, including the project agent popup, and only the topmost popup is rendered.\n* The project agent popup remains open and usable in stats view, and is hidden in diagram view.\n* Menus, tooltips, and markdown typeahead opened inside the project agent popup render above it, including when it has been raised above card popups.\n* The project agent conversation is marked viewed, clearing the fab's unseen-result dot, only while the project agent popup is the topmost popup.\n* Popup size persistence for the project agent popup still uses its own storage key and is unaffected by card popup sizes.\nEOF\necho done",
+          "content": "Exit code 2\n/usr/bin/bash: -c: line 41: unexpected EOF while looking for matching `''",
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-56",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat > \"design/feature_descriptions/B_242_project_agent_popup_not_part_of_popup_stack.md\" <<'EOF'\n---\nauthor: \nid: B_242\ninternalId: 6a5b2846-d8a5-4471-a511-6f9240eb75a9\ntitle: project agent popup not part of popup stack\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__6a5b2846-d8a5-4471-a511-6f9240eb75a9.json\npolicy:\n---\n\nthe project-agent-action-popup doesn't follow the rules of the other popups. it doesn't seem to be managed by the popup service as the other card and action popups. this is wrong. this popup should also follow the stack rules of who is on top.\n\n## Current state\n\n* `CardPopupService` (`app/src/services/card_popup_service.ts`) owns an ordered list of popup entries. Last entry is top of stack. It provides `toggleAction`, `openActionRun`, `close`, `activate` (moves an entry to the end so it becomes top), `clear` when the open project or branch changes, per-entry mobile back-button dismissal, and a hidden fallback anchor so a popup survives its anchor element leaving the DOM.\n* `CardActionPopupHost` (`app/src/components/actions/run/popup/card_action_popup_host.tsx`) renders every `action` entry, passing the array index as `stackPosition`, and on mobile opens only the entry whose id matches the last entry. `CardActionPopupHostEntry` wires `onActivate` to `cardPopupService.activate(entry.id)` and `popupEntryId` to the entry id.\n* `ResizablePopper` turns `stackPosition` into a z-index of `theme.zIndex.modal + stackPosition`, and into an overlay theme so menus and tooltips opened inside the popup render above it. `ResizablePopper` calls `onActivate` on pointer-down and on focus, which is how clicking a buried card popup raises it.\n* The project agent popup is rendered by `AgentChatFab` (`app/src/components/agents/agent_chat_fab.tsx`), outside that host. The fab keeps the open state in a local `useState` anchor element and generates `popupEntryId` with React `useId`. It passes no `stackPosition` and no `onActivate`, so `ResizablePopper` falls back to the bare `modal` z-index and to a paper element with no `tabIndex`.\n* Consequences of standing outside the service, all caused by that missing entry:\n  * Every card action popup, which sits at `modal + index`, paints over the project agent popup, and clicking the project agent popup cannot raise it because nothing calls `activate`.\n  * The popup is not registered with `mobileBackDismissService`, so the mobile back gesture does not close it, and it does not follow the mobile top-only rendering rule.\n  * Switching project or branch leaves it open, because `clear` only walks service entries.\n  * `MarkdownTypeaheadLayerProvider` and the overlay theme receive `stackPosition ?? 0`, the lowest layer, rather than a real stack position.\n* `cardPopupService.toggleAction` currently throws `Cannot open a card action popup without a card internal ID`, so a project context cannot be added to the stack today. `actionContextIdentity` already returns the constant `'project'` for a project context, so the duplicate-entry lookup that `toggleAction` performs needs no new key.\n* `ActionConversationChat` (`app/src/components/actions/conversation/action_conversation_chat.tsx`) computes `popupVisible` as `context.kind === 'project' || popupEntries.at(-1)?.id === popupEntryId`. The `kind === 'project'` term is a workaround for this same bug: the fab's `useId` value is never present in the service entry list, so the comparison would always be false and the project agent conversation would never be marked viewed, leaving the unseen-result dot on the fab forever.\n* The fab itself stays responsible for `dataService.listAgentConversations(PROJECT_CONTEXT)` on mount, for the running, queued, waiting and unseen badge states, and for dragging itself around the viewport. Dragging currently closes the popup through `handleDragStart`.\n\n## implementation details\n\n* Allow project contexts into the popup stack. In `CardPopupService.toggleAction`, replace the unconditional `cardInternalId` requirement with a check that accepts a context whose `kind` is `project` and still rejects a card context without an internal id. Keep entry shape, id generation, and `CardActionPopupEntry` unchanged, so the project entry is an ordinary `action` entry that happens to carry a project context.\n* Add `closeAction(context: ActionContext)` to the service, which removes the `action` entry matching `actionContextIdentity(context)` if one exists and does nothing otherwise. The fab needs it for drag start, where closing must not toggle the popup back open.\n* Rewrite `AgentChatFab` so it holds no popup state. `handleActivate` calls `cardPopupService.toggleAction(PROJECT_CONTEXT, nextAnchorElement)`; `handleDragStart` calls `cardPopupService.closeAction(PROJECT_CONTEXT)`. Delete the local `anchorElement` state, the `useId` entry id, the `handleClose` callback, and the `<ActionPopup>` element from the fab. Keep the conversation preload effect and all badge logic.\n* Render the project entry from `CardActionPopupHost`, so it gets `stackPosition`, `onActivate`, and the entry id as `popupEntryId` from the existing `CardActionPopupHostEntry` path with no per-kind branch.\n* View-mode visibility gets one deliberate exception. The host currently hides every popup when `viewMode` is `diagrams` or `stats`. A project-context entry must stay visible in `stats` view, so compute visibility as: hidden in `diagrams` view for all entries, hidden in `stats` view only for non-project entries. Diagram view keeps hiding the project popup because the fab that owns it is already unmounted there by `ProjectWorkspaceAvailability`, and diagram view runs its own action popups.\n* Mobile keeps the top-only rule with no exception: on mobile the project entry is open only while it is the last entry, and it gains back-gesture dismissal automatically through the service's existing `reconcileMobileBackDismissRegistrations`, because that walks all entries.\n* Delete the `context.kind === 'project'` term from `popupVisible` in `ActionConversationChat`. Once the project popup is a real entry, its id is in the service list and the top-of-stack comparison resolves correctly on its own. Intended behavior change: while a card action popup covers the project popup, a finishing project agent run no longer clears the unseen-result dot on the fab; raising the project popup back to the top clears it.\n* No change is needed in `ActionPopupFrame` for popup size persistence: it already selects `PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY` from `baseContext.kind === 'project'`, and the host passes the entry context through unchanged.\n* Out of scope: `RunningAgentsIndicator` still lists project-level runs as non-clickable `plain` rows, because `openActionRun` requires a card internal id. That guard stays as it is.\n* Tests to add or extend:\n  * `card_popup_service.test.ts`: a project context can be toggled open and closed, a second toggle closes rather than duplicating, `closeAction` is a no-op when nothing is open, `activate` reorders a project entry, and a project or branch change clears a project entry.\n  * `card_action_popup_host_entry.test.tsx` or host-level test: a project entry renders with its stack position, stays visible in `stats` view, hides in `diagrams` view, and on mobile is open only when it is the last entry.\n  * A fab test asserting activation delegates to the service and that the fab renders no popup of its own.\n  * A conversation-visibility test asserting a project conversation is marked viewed only while its entry is top of stack.\n\n## acceptance criteria\n\n* Opening a card action popup while the project agent popup is open draws the card popup on top; clicking anywhere on the project agent popup raises it above the card popup, and clicking back on the card popup raises that one again.\n* Focusing an input inside a buried project agent popup raises it, matching card popup behavior.\n* Clicking the fab while the project agent popup is open closes it; clicking again reopens it, and no second project popup can exist at the same time.\n* Dragging the fab closes the project agent popup and does not reopen it when the drag ends.\n* Switching project or branch closes the project agent popup along with every card popup.\n* On mobile, the back gesture closes the topmost popup, including the project agent popup, and only the topmost popup is rendered.\n* The project agent popup remains open and usable in stats view, and is hidden in diagram view.\n* Menus, tooltips, and markdown typeahead opened inside the project agent popup render above it, including when it has been raised above card popups.\n* The project agent conversation is marked viewed, clearing the fab's unseen-result dot, only while the project agent popup is the topmost popup.\n* Popup size persistence for the project agent popup still uses its own storage key and is unaffected by card popup sizes.\nEOF\necho done",
+          "providerItemId": "toolu_01DcbT12Qm2mMwJaEFF9GY12",
+          "sequence": 56,
+          "status": "failed",
+          "timestamp": "2026-09-18T17:43:02.429Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-57",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfBKS4K8zfwd96GoGftfH:thinking:0",
+          "sequence": 57,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-18T17:43:07.679Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_242_project_agent_popup_not_part_of_popup_stack.md",
+          "deletions": 2,
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-event-58",
+          "insertions": 47,
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_242_project_agent_popup_not_part_of_popup_stack.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Gj8P27B3i7KVGUk9HDqiun",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-09-18T17:43:35.991Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nB_242 written. `status: ready for implementation`. Nothing staged or committed.\n\nRoot cause: `AgentChatFab` renders its own `ActionPopup` with local `useState` and a `useId` entry id, never entering `CardPopupService`. No `stackPosition` → `ResizablePopper` uses bare `modal` z-index; no `onActivate` → clicking it cannot raise it. Same gap also costs mobile back-dismiss and close-on-project-switch.\n\nFix shape: `toggleAction` accepts a project context (identity is already the constant `project`, so dedupe works), new `closeAction(context)` for fab drag start, fab becomes stateless, `CardActionPopupHost` renders the project entry through the normal path.\n\nTwo exceptions recorded per your answers: project entry stays visible in stats view (hidden in diagrams only), and the `context.kind === 'project'` bypass in `action_conversation_chat.tsx` goes away — the unseen-result dot now survives while a card popup covers the project popup.",
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 59,
+          "timestamp": "2026-09-18T17:43:42.736Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -676,13 +829,21 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 37808,
-          "toolMs": 94236
+          "reasoningMs": 62238,
+          "toolMs": 169945
         },
         "elapsedMs": 165447,
         "runningStartedAt": "2026-09-18T17:41:48.577Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 1594876,
+        "inputTokens": 60,
+        "outputTokens": 16809,
+        "reasoningTokens": 0,
+        "totalTokens": 1611745,
+        "costUsd": 1.8240535000000004
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
