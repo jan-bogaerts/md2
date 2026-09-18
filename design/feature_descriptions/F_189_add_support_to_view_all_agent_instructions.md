@@ -46,6 +46,7 @@ changedFiles:
   - app/src/services/test_support/data_service_test_support.ts
   - desktop/src/project/project_files.js
   - desktop/src/project/project_files.test.mjs
+after: ef4c20d4-957e-4eea-8452-33bc996608f3
 ---
 when loading the project, we should also search for markdown files that contain agent instructions:
 

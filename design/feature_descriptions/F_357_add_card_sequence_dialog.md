@@ -10,8 +10,6 @@ agents:
   - design/activity/card__23d124ec-a23c-442f-af4d-f678be48084c.json
 policy:
 after: b750c85a-ac60-4608-b6e4-beb186e6ca60
-branch: f_357_add_card_sequence_dialog
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/popup/action_selector.tsx
   - app/src/components/actions/run/popup/action_selector_styles.ts
