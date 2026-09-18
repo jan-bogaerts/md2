@@ -14,6 +14,24 @@ interface ActionRunHistoryProps {
     error: string | null
 }
 
+interface IndexedHistoryEntry {
+    entry: ActionRunHistoryEntry
+    sourceIndex: number
+}
+
+function compareHistoryEntries(first: IndexedHistoryEntry, second: IndexedHistoryEntry) {
+    const completedAtDifference = Date.parse(second.entry.completedAt) - Date.parse(first.entry.completedAt);
+    if (completedAtDifference !== 0) return completedAtDifference;
+
+    return second.sourceIndex - first.sourceIndex;
+}
+
+function newestFirstHistoryEntries(entries: ActionRunHistoryEntry[]) {
+    return entries
+        .map((entry, sourceIndex) => ({ entry, sourceIndex }))
+        .sort(compareHistoryEntries);
+}
+
 /** One run history line with commits produced across its action chain. */
 function HistoryEntryRow(props: HistoryEntryRowProps) {
     const { entry } = props
@@ -24,7 +42,7 @@ function HistoryEntryRow(props: HistoryEntryRowProps) {
     const completedAt = new Date(entry.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
     const summary = entry.type === 'agent'
         ? `${entry.status}${agentLabel} · ${completedAt}`
-        : `${entry.status}: ${entry.output}`
+        : `${entry.status}: ${entry.output} · ${completedAt}`
 
     return (
         <Box>
@@ -45,6 +63,7 @@ function HistoryEntryRow(props: HistoryEntryRowProps) {
 export function ActionRunHistory(props: ActionRunHistoryProps) {
     const { compact = false, entries, error } = props
     const reportedErrorRef = useRef<string | null>(null)
+    const displayEntries = newestFirstHistoryEntries(entries);
 
     useEffect(() => {
         if (!error) {
@@ -72,8 +91,8 @@ export function ActionRunHistory(props: ActionRunHistoryProps) {
                 </Typography>
             ) : null}
             <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                {entries.map((entry, index) => (
-                    <HistoryEntryRow entry={entry} key={`${entry.completedAt}-${entry.status}-${index}`} />
+                {displayEntries.map(({ entry, sourceIndex }) => (
+                    <HistoryEntryRow entry={entry} key={`${entry.completedAt}-${entry.status}-${sourceIndex}`} />
                 ))}
             </Stack>
         </Box>
