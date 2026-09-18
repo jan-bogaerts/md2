@@ -2414,6 +2414,39 @@
       "startedAt": "2026-09-18T18:15:16.485Z",
       "status": "completed",
       "rootConversationId": "agent-50bb999f-c9bf-40f9-b8dc-215dadccad8b"
+    },
+    {
+      "commits": [
+        {
+          "commit": "eb84e2a6bb962deba610386d9a58908e6487f6ba",
+          "committedAt": "2026-09-18T20:36:38+02:00",
+          "deletions": 89,
+          "filePaths": [
+            "app/src/components/actions/actions_no_mock.test.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_form.grouped.test.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_form.test.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_form.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_options.node.test.ts",
+            "app/src/components/actions/run/schedule/action_schedule_options.ts",
+            "app/src/components/actions/run/schedule/action_schedule_owner.test.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_owner.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_store.node.test.ts",
+            "app/src/components/actions/run/schedule/action_schedule_store.ts",
+            "app/src/components/actions/run/schedule/action_schedule_trigger.node.test.ts",
+            "app/src/components/actions/run/schedule/action_schedule_trigger.ts"
+          ],
+          "filesChanged": 12,
+          "insertions": 801,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-18T20:36:38+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "b750c85a-ac60-4608-b6e4-beb186e6ca60",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
