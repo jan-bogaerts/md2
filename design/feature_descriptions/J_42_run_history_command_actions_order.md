@@ -10,8 +10,6 @@ agents:
   - design/activity/card__b4c6118b-6976-41ec-b33e-bd93e66eda89.json
 policy:
 after: 421a382c-ec00-4741-a8f7-eab2a949fcfe
-branch: j_42_run_history_command_actions_order
-worktree: 2
 changedFiles:
   - app/src/components/actions/run/state/action_run_history.test.tsx
   - app/src/components/actions/run/state/action_run_history.tsx
