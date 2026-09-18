@@ -3,7 +3,7 @@ author:
 id: F_189
 internalId: 3a0d1119-4bc6-4bba-b47d-ddfabe12d56d
 title: add support to view all agent instructions
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,43 @@ agents:
 policy:
 branch: f_189_add_support_to_view_all_agent_instructions
 worktree: 2
+changedFiles:
+  - app/src/components/editor/instruction_markdown_data_source.node.test.ts
+  - app/src/components/editor/instruction_markdown_data_source.ts
+  - app/src/components/editor/markdown_data_source.ts
+  - app/src/components/hooks/use_active_document.ts
+  - app/src/components/hooks/use_agent_instructions.ts
+  - app/src/components/project_workspace.tsx
+  - app/src/components/text_view/agent_instruction_file_tree.test.tsx
+  - app/src/components/text_view/file_tree_node_row.tsx
+  - app/src/components/text_view/file_tree_toolbar.tsx
+  - app/src/components/text_view/file_tree_view.grouped.test.tsx
+  - app/src/components/text_view/file_tree_view.tsx
+  - app/src/components/text_view/instruction_editor.test.tsx
+  - app/src/components/text_view/instruction_editor.tsx
+  - app/src/components/text_view/tab_bar.tsx
+  - app/src/components/text_view/text_editor_pane.tsx
+  - app/src/components/text_view/text_view.grouped.test.tsx
+  - app/src/data/file_tree.node.test.ts
+  - app/src/data/file_tree.ts
+  - app/src/services/agent_instructions/agent_instruction_file.ts
+  - app/src/services/agent_instructions/agent_instruction_paths.node.test.ts
+  - app/src/services/agent_instructions/agent_instruction_paths.ts
+  - app/src/services/agent_instructions/agent_instructions_service.node.test.ts
+  - app/src/services/agent_instructions/agent_instructions_service.ts
+  - app/src/services/application_startup_service.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/managed_open_document.ts
+  - app/src/services/open_document.ts
+  - app/src/services/open_files_service.node.test.ts
+  - app/src/services/open_files_service.ts
+  - app/src/services/project/agent_instruction_project_loading.test.ts
+  - app/src/services/project/project_loading.ts
+  - app/src/services/project/project_persistence_service.node.test.ts
+  - app/src/services/project/project_persistence_service.ts
+  - app/src/services/test_support/data_service_test_support.ts
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_files.test.mjs
 ---
 when loading the project, we should also search for markdown files that contain agent instructions:
 
