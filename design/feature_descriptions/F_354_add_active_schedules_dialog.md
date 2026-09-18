@@ -10,8 +10,6 @@ agents:
   - design/activity/card__57ceeeca-6732-42a3-b77f-b1c459a2f268.json
 policy:
 after: 67d4a581-6ded-4a41-a489-d079644e3e5b
-branch: f_354_add_active_schedules_dialog
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/popup/action_popup_defaults.node.test.ts
   - app/src/components/actions/run/popup/action_popup_defaults.ts

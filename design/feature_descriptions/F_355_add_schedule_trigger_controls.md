@@ -10,6 +10,8 @@ agents:
   - design/activity/card__b750c85a-ac60-4608-b6e4-beb186e6ca60.json
 policy:
 after: 57ceeeca-6732-42a3-b77f-b1c459a2f268
+branch: f_355_add_schedule_trigger_controls
+worktree: 1
 ---
 Extend action-popup scheduling UI for event triggers delivered by [F\_353](F_353_run_schedules_from_account_and_card_events.md).
 
