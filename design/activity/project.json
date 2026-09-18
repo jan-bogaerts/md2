@@ -4102,16 +4102,24 @@
       ],
       "hasExplicitTitle": true,
       "id": "agent-8679436b-d7f8-4889-8224-05018292bdab",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0b5c1-f482-7c51-9a5b-b1346eadde87",
+          "createdAt": "2026-09-18T18:23:57.845Z",
+          "lastUsedAt": "2026-09-18T18:23:57.845Z",
+          "synchronizedThroughMessageId": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-09-18T18:23:01.713Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 14665,
           "toolMs": 3413
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-18T18:23:01.713Z"
+        "elapsedMs": 56132,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
@@ -4122,7 +4130,7 @@
         "totalTokens": 271442
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
