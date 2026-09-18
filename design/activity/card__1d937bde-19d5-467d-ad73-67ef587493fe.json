@@ -1,0 +1,54 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "1d937bde-19d5-467d-ad73-67ef587493fe",
+      "cardPath": "design/feature_descriptions/B_213_double_add_link_and_add_image_buttons.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_213_double_add_link_and_add_image_buttons.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-86d8b296-2a33-4d6e-8b72-1d860313afab-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-18T18:28:29.743Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-ca32ea2e-3c82-4e7f-b606-6375ebd837f4",
+      "providerSessions": [],
+      "startedAt": "2026-09-18T18:28:29.743Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-18T18:28:29.743Z"
+      },
+      "title": "complete",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "1d937bde-19d5-467d-ad73-67ef587493fe",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
