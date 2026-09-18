@@ -20,6 +20,7 @@ import { AppThemeProvider } from '../../../theme/theme_provider'
 import { DialogDisplay } from '../../dialog_display'
 import { AppMenu } from './app_menu'
 import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../../shared/agent_token_usage_summary.mjs'
+import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
 
 const auth: UseGithubAuthResult = {
     accessToken: null,
@@ -182,6 +183,7 @@ describe('AppMenu', () => {
         window.localStorage.clear()
         delete window.md2Data
         setActionBridgeOverride(null)
+        cardSequenceDraftService.close()
         vi.restoreAllMocks()
     })
 
@@ -234,6 +236,20 @@ describe('AppMenu', () => {
         fireEvent.click(screen.getByRole('button', { name: 'View active schedules' }))
 
         expect(screen.getByRole('dialog', { name: 'Active schedules' })).toBeInTheDocument()
+    })
+
+    it('opens a fresh sequence draft from the Run menu when backend API is available', async () => {
+        await activateLocalProject(createBridge())
+        setActionBridgeOverride({
+            onActionRun: vi.fn(() => vi.fn()),
+            registerSequenceSchedule: vi.fn(async () => undefined),
+        } as unknown as ElectronActionBridge)
+        renderMenu()
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Add sequence' }))
+
+        expect(cardSequenceDraftService.getSnapshot()).toMatchObject({ cardInternalIds: [], open: true })
     })
 
     it('shows the Commit shortcut in its tooltip without changing the accessible name or other tooltips', async () => {

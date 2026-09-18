@@ -17,6 +17,13 @@ import { CardDragOverlay } from './card_drag_overlay'
 import { cardDragDropService } from './card_drag_drop_service'
 import { resolveCardDragEvent } from './card_drag'
 import { useCardViewColumns } from './use_card_view_columns'
+import { CardSequenceDialog } from '../actions/run/sequence/card_sequence_dialog'
+import { cardSequenceDraftService } from '../actions/run/sequence/card_sequence_draft_service'
+import {
+    CARD_SEQUENCE_DROP_ID,
+    cardInternalIdFromSequenceItem,
+    isCardSequenceDropId,
+} from '../actions/run/sequence/card_sequence_dnd'
 
 const DRAG_ACTIVATION_DISTANCE = 2
 interface CardViewProps {
@@ -103,6 +110,8 @@ export function CardView(props: CardViewProps) {
     useEffect(() => () => cardPopupService.closeCardDetails(), [])
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
+        if (cardInternalIdFromSequenceItem(String(event.active.id))) return
+
         dragColumnsRef.current = currentCardColumns(states)
         lastOverIdRef.current = null
         cardDragDropService.startDrag(
@@ -114,7 +123,12 @@ export function CardView(props: CardViewProps) {
 
     const handleDragOver = useCallback((event: DragOverEvent) => {
         const { active, over } = event
+        const activeId = String(active.id)
         const overId = over ? String(over.id) : null
+        if (cardInternalIdFromSequenceItem(activeId) || (overId && isCardSequenceDropId(overId))) {
+            cardDragDropService.setDropPreview(null)
+            return
+        }
         if (lastOverIdRef.current === overId) return
 
         lastOverIdRef.current = overId
@@ -134,8 +148,29 @@ export function CardView(props: CardViewProps) {
 
     const handleDragEnd = useCallback((event: DragEndEvent) => {
         const { active, over } = event
+        const activeId = String(active.id)
+        const overId = over ? String(over.id) : null
+        const sequenceCardInternalId = cardInternalIdFromSequenceItem(activeId)
+        if (sequenceCardInternalId) {
+            const beforeCardInternalId = overId === CARD_SEQUENCE_DROP_ID
+                ? null
+                : overId ? cardInternalIdFromSequenceItem(overId) : null
+            if (overId && isCardSequenceDropId(overId)) {
+                cardSequenceDraftService.reorderCard(sequenceCardInternalId, beforeCardInternalId)
+            }
+            clearActiveCard()
+            return
+        }
+        if (overId && isCardSequenceDropId(overId)) {
+            const card = currentCardColumns(states).flatMap(({ cards }) => cards).find(({ path }) => path === activeId)
+            if (card?.header.internalId) {
+                cardSequenceDraftService.addCard(card.header.internalId, cardInternalIdFromSequenceItem(overId))
+            }
+            clearActiveCard()
+            return
+        }
         const drop = over ? resolveCardDragEvent(currentCardColumns(states), event) : null
-        const path = String(active.id)
+        const path = activeId
         if (!drop) {
             clearActiveCard()
             return
@@ -241,6 +276,7 @@ export function CardView(props: CardViewProps) {
                 <DragOverlay>
                     <CardDragOverlay cardTypes={cardTypes} />
                 </DragOverlay>
+                <CardSequenceDialog />
                 <CardBodyPopover
                     cardTypes={cardTypes}
                     isMobile={false}

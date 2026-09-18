@@ -232,3 +232,7 @@ export function hasActiveScheduleBackend() {
 
     return !!bridge?.listActiveSchedules && !!bridge.deleteSchedule
 }
+
+export function hasSequenceScheduleBackend() {
+    return !!getElectronActionBridge()?.registerSequenceSchedule
+}

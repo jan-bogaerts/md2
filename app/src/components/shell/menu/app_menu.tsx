@@ -15,6 +15,7 @@ import TextBoxOutline from 'mdi-material-ui/TextBoxOutline'
 import BarChartOutlined from '@mui/icons-material/BarChartOutlined'
 import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
 import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined'
+import PlaylistAddOutlined from '@mui/icons-material/PlaylistAddOutlined'
 import {
     findAgentProfile,
     mergeAgentProfiles,
@@ -77,7 +78,8 @@ import { Section } from './section'
 import { Tab } from './tab'
 import { DiagramMenuTab } from '../../diagram_view/diagram_menu_tab'
 import { ActiveSchedulesDialog } from '../../actions/run/schedule/active_schedules_dialog'
-import { hasActiveScheduleBackend } from '../../../data/electron_action_bridge'
+import { hasActiveScheduleBackend, hasSequenceScheduleBackend } from '../../../data/electron_action_bridge'
+import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
 
 type AppMenuTab = 'home' | 'agents' | 'diagram'
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release' | 'schedules'
@@ -229,6 +231,10 @@ export function AppMenu(props: AppMenuProps) {
 
     const handleOpenActiveSchedules = () => {
         openDialog('schedules')
+    }
+
+    const handleOpenCardSequence = () => {
+        cardSequenceDraftService.open()
     }
 
     const handleCommit = useCallback(async () => {
@@ -560,6 +566,13 @@ export function AppMenu(props: AppMenuProps) {
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="Actions">
                         <ActionEntryPoints context={PROJECT_CONTEXT} variant="icons" visibility="explicit-context" />
+                        <MenuIconButton
+                            disabled={readOnly || !actions.isProjectOpen || !hasSequenceScheduleBackend()}
+                            label="Add sequence"
+                            onClick={handleOpenCardSequence}
+                        >
+                            <PlaylistAddOutlined fontSize="small" />
+                        </MenuIconButton>
                         <MenuIconButton
                             disabled={!actions.isProjectOpen || !hasActiveScheduleBackend()}
                             label="View active schedules"
