@@ -11,6 +11,7 @@ agents:
 policy:
 branch: b_242_project_agent_popup_not_part_of_popup_stack
 worktree: 3
+after: 23d124ec-a23c-442f-af4d-f678be48084c
 ---
 
 the project-agent-action-popup doesn't follow the rules of the other popups. it doesn't seem to be managed by the popup service as the other card and action popups. this is wrong. this popup should also follow the stack rules of who is on top.

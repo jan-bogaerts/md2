@@ -3,15 +3,13 @@ author:
 id: F_356
 internalId: ef4c20d4-957e-4eea-8452-33bc996608f3
 title: Add scheduled card sequence engine
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__ef4c20d4-957e-4eea-8452-33bc996608f3.json
 policy:
-after: b750c85a-ac60-4608-b6e4-beb186e6ca60
-branch: f_356_add_scheduled_card_sequence_engine
-worktree: 2
+after: 391f9465-af38-4a95-b612-52e30cada779
 changedFiles:
   - app/src/data/action_schedule_types.node.test.ts
   - app/src/data/electron_action_bridge.ts
