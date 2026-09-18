@@ -11,7 +11,7 @@ agents:
 policy:
 after: b750c85a-ac60-4608-b6e4-beb186e6ca60
 ---
-Add persisted ordered-card sequence execution under scheduler contract from [F_352](F_352_extend_schedule_contract_and_apis.md).
+Add persisted ordered-card sequence execution under scheduler contract from [F\_352](F_352_extend_schedule_contract_and_apis.md).
 
 ## Current state
 
