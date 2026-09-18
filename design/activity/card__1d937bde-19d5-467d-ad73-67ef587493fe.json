@@ -1212,11 +1212,11 @@
         "agent-2216a1a9-c278-4cb5-809e-a5201c0cb1ed"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-ee3c503f-8817-48c1-858d-f282a911cbe3",
       "origin": {
@@ -1225,9 +1225,9 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-2216a1a9-c278-4cb5-809e-a5201c0cb1ed",
       "startedAt": "2026-09-18T18:34:49.476Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-2216a1a9-c278-4cb5-809e-a5201c0cb1ed"
     }
   ],
   "version": 5

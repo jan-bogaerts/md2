@@ -3,7 +3,7 @@ author:
 id: B_213
 internalId: 1d937bde-19d5-467d-ad73-67ef587493fe
 title: double add link and add image buttons
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
