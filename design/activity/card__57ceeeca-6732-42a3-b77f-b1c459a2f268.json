@@ -1209,19 +1209,19 @@
           "agent": "codex",
           "conversationId": "01a0b582-9ced-7f43-a2e1-fdf5fc15edc5",
           "createdAt": "2026-09-18T17:16:39.713Z",
-          "lastUsedAt": "2026-09-18T17:16:39.713Z",
-          "synchronizedThroughMessageId": "agent-turn-e1b3d922-af8d-4d3e-a4c3-d0e0e2097540-turn-1-assistant-3"
+          "lastUsedAt": "2026-09-18T17:28:13.506Z",
+          "synchronizedThroughMessageId": "agent-turn-e1b3d922-af8d-4d3e-a4c3-d0e0e2097540-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-09-18T17:13:50.213Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 55703,
           "toolMs": 676
         },
-        "elapsedMs": 169500,
-        "runningStartedAt": "2026-09-18T17:27:13.530Z"
+        "elapsedMs": 229476,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
