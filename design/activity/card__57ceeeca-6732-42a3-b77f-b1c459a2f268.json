@@ -1200,6 +1200,14 @@
           "role": "assistant",
           "sequence": 86,
           "timestamp": "2026-09-18T17:28:13.506Z"
+        },
+        {
+          "content": "356 should be implemented now. Check code",
+          "id": "agent-turn-e1b3d922-af8d-4d3e-a4c3-d0e0e2097540-user-86",
+          "kind": "message",
+          "role": "user",
+          "sequence": 87,
+          "timestamp": "2026-09-18T17:48:24.884Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1214,14 +1222,14 @@
         }
       ],
       "startedAt": "2026-09-18T17:13:50.213Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 55703,
           "toolMs": 676
         },
         "elapsedMs": 229476,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-18T17:48:24.884Z"
       },
       "title": "implement",
       "usage": {
