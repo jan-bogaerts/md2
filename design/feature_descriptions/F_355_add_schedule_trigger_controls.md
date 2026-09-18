@@ -10,8 +10,6 @@ agents:
   - design/activity/card__b750c85a-ac60-4608-b6e4-beb186e6ca60.json
 policy:
 after: 57ceeeca-6732-42a3-b77f-b1c459a2f268
-branch: f_355_add_schedule_trigger_controls
-worktree: 1
 changedFiles:
   - app/src/components/actions/actions_no_mock.test.tsx
   - app/src/components/actions/run/schedule/action_schedule_form.grouped.test.tsx
