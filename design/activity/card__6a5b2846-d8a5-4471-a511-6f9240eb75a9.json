@@ -590,24 +590,32 @@
           "sequence": 41,
           "timestamp": "2026-09-18T17:30:53.353Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Host should not hide project agent popup in stats view\nclaude-question-1: Yes, same top-only rule (Recommended)\nclaude-question-2: I dont understand this. What purpose does the bypass have. Where visible. Why cant we keep same behavior",
+          "id": "agent-turn-193c62ac-7838-4bbb-98aa-6eeda1e31ae4-answer-41",
+          "kind": "message",
+          "role": "user",
+          "sequence": 42,
+          "timestamp": "2026-09-18T17:40:48.381Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-079eccb1-b6d8-41fb-b938-35aeb3cc8695",
       "providerSessions": [],
       "startedAt": "2026-09-18T17:28:21.204Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 34144,
           "toolMs": 90060
         },
         "elapsedMs": 152149,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-18T17:40:48.381Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
