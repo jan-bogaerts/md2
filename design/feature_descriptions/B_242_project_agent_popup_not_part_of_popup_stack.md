@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__6a5b2846-d8a5-4471-a511-6f9240eb75a9.json
 policy:
+branch: b_242_project_agent_popup_not_part_of_popup_stack
+worktree: 3
 ---
 
 the project-agent-action-popup doesn't follow the rules of the other popups. it doesn't seem to be managed by the popup service as the other card and action popups. this is wrong. this popup should also follow the stack rules of who is on top.

@@ -3,7 +3,7 @@ author:
 id: F_356
 internalId: ef4c20d4-957e-4eea-8452-33bc996608f3
 title: Add scheduled card sequence engine
-status: ready
+status: ready for implementation
 owner: 
 affects:
 agents:
