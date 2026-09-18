@@ -3246,16 +3246,24 @@
       ],
       "hasExplicitTitle": true,
       "id": "agent-b9d84026-2c2e-40c9-bd97-a3d2be2a1096",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0b5eb-2cc0-7ec2-a81b-1ae81aedf129",
+          "createdAt": "2026-09-18T19:14:05.465Z",
+          "lastUsedAt": "2026-09-18T19:14:05.465Z",
+          "synchronizedThroughMessageId": "agent-turn-3056e2bd-739f-4afc-ad2a-722da49bb53a-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-09-18T19:08:02.831Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 145649,
           "toolMs": 2709
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-18T19:08:02.831Z"
+        "elapsedMs": 362634,
+        "runningStartedAt": null
       },
       "title": "review",
       "usage": {
