@@ -5,6 +5,7 @@ import { configService } from './config/config_service'
 import { actionRunRegistry } from './actions/action_run_registry'
 import { actionRunSettingsService } from './actions/action_run_settings_service'
 import { actionService } from './actions/action_service'
+import { activeScheduleService } from './actions/active_schedule_service'
 import { agentCapabilitiesService } from './agents/agent_capabilities_service'
 import { codexCliUpdateService } from './agents/codex_cli_update_service'
 import { codexRateLimitService } from './agents/codex_rate_limit_service'
@@ -48,6 +49,7 @@ function initializeServices() {
     actionMarkdownDataSource.init(actionService)
     actionRunRegistry.start()
     actionRunSettingsService.init(dataService)
+    activeScheduleService.start()
     codexCliUpdateService.start()
     claudeRateLimitService.start()
     codexRateLimitService.start()

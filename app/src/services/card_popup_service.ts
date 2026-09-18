@@ -158,6 +158,18 @@ export class CardPopupService extends EventTarget {
         this.openCardDetails(cardInternalId, anchorElement, null)
     }
 
+    showCardDetails(cardInternalId: string, anchorElement: HTMLElement) {
+        if (!cardInternalId) throw new Error('Cannot open card details without a card internal ID')
+
+        const existing = this.findCardDetails(cardInternalId)
+        if (existing) {
+            this.activate(existing.id)
+            return
+        }
+
+        this.openCardDetails(cardInternalId, anchorElement, null)
+    }
+
     openWorktreeDiff(cardInternalId: string, anchorElement: HTMLElement) {
         if (!cardInternalId) throw new Error('Cannot open worktree diff without a card internal ID')
 

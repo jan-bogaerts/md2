@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { getService } from '../service_injector'
 import {
     WorkspaceNavigationService,
+    type WorkspaceOpenCardRequest,
     type WorkspaceOpenRequest,
     type WorkspaceRevealCardRequest,
 } from './workspace_navigation_service'
@@ -40,6 +41,23 @@ describe('WorkspaceNavigationService', () => {
         const service = new WorkspaceNavigationService()
 
         expect(() => service.revealCard('')).toThrow('Cannot reveal a card without a path')
+    })
+
+    it('requests card opening by stable internal ID', () => {
+        const service = new WorkspaceNavigationService()
+        const listener = vi.fn()
+        service.addEventListener('openCard', listener)
+
+        service.openCard('card-1')
+
+        const event = listener.mock.calls[0][0] as CustomEvent<WorkspaceOpenCardRequest>
+        expect(event.detail).toEqual({ cardInternalId: 'card-1' })
+    })
+
+    it('fails fast when opening a card without an internal ID', () => {
+        const service = new WorkspaceNavigationService()
+
+        expect(() => service.openCard('')).toThrow('Cannot open a card without a card internal ID')
     })
 
     it('registers itself in the service injector', () => {

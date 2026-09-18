@@ -1,43 +1,28 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../../../data/action_types'
-import type { ElectronActionBridge } from '../../../../data/electron_action_bridge'
-import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
-import { defaultPreparePrompt } from './action_popup_defaults'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
+import { activeScheduleService } from '../../../../services/actions/active_schedule_service'
+import { projectAccessService } from '../../../../services/project/project_access_service'
+import { defaultScheduleAction } from './action_popup_defaults'
 
-const action = {id: 'review'} as ActionDefinition
-const context = { file: 'design/F-1.md', kind: 'card' as const }
-
-describe('action popup defaults', () => {
+describe('defaultScheduleAction', () => {
     afterEach(() => {
-        delete window.md2Actions
+        setActionBridgeOverride(null)
         vi.restoreAllMocks()
     })
 
-    it('flushes aggregate pending persistence before preparing the prompt', async () => {
-        const calls: string[] = []
-        vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockImplementation(async () => {
-            calls.push('persistence')
-        })
-        window.md2Actions = {
-            prepareActionPrompt: vi.fn(async () => {
-                calls.push('prepare')
-                return { prompt: 'Current prompt' }
-            }),
-        } as unknown as ElectronActionBridge
+    it('refreshes active schedule view after backend registration succeeds', async () => {
+        const registerActionSchedule = vi.fn(async () => undefined)
+        setActionBridgeOverride({ registerActionSchedule } as unknown as ElectronActionBridge)
+        projectAccessService.setReadOnly(false)
+        const refresh = vi.spyOn(activeScheduleService, 'refresh').mockResolvedValue(undefined)
+        const action = { id: 'implement' } as ActionDefinition
+        const context = { cardInternalId: 'card-1', kind: 'card' as const }
+        const trigger = { timestamp: '2026-09-19T10:00:00.000Z', type: 'at' as const }
 
-        await expect(defaultPreparePrompt(action, context)).resolves.toEqual({ prompt: 'Current prompt' })
+        await defaultScheduleAction(action, context, trigger)
 
-        expect(calls).toEqual(['persistence', 'prepare'])
-    })
-
-    it('does not prepare the prompt when pending persistence fails', async () => {
-        const saveError = new Error('disk unavailable')
-        vi.spyOn(projectPersistenceService, 'flushPendingChanges').mockRejectedValue(saveError)
-        const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Stale prompt' }))
-        window.md2Actions = { prepareActionPrompt } as unknown as ElectronActionBridge
-
-        await expect(defaultPreparePrompt(action, context)).rejects.toBe(saveError)
-
-        expect(prepareActionPrompt).not.toHaveBeenCalled()
+        expect(registerActionSchedule).toHaveBeenCalledWith({ actionId: 'implement', context, trigger })
+        expect(refresh).toHaveBeenCalledOnce()
     })
 })

@@ -152,6 +152,19 @@ describe('CardPopupService', () => {
         })
     })
 
+    it('shows existing card details without toggling them closed', () => {
+        const { service } = createService()
+        const firstAnchor = anchor()
+        service.showCardDetails('card-1', firstAnchor)
+        const firstEntry = service.getSnapshot()[0]
+        service.toggleAction(actionContext('card-2'), anchor())
+
+        service.showCardDetails('card-1', anchor())
+
+        expect(service.getSnapshot()).toHaveLength(2)
+        expect(service.getSnapshot().at(-1)).toMatchObject({ id: firstEntry.id, kind: 'card-details' })
+    })
+
     it('closes only matching card details by stable identity', () => {
         const { service } = createService()
         service.toggleAction(actionContext('card-1'), anchor())

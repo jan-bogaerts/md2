@@ -226,3 +226,9 @@ export function getElectronActionBridge() {
 export function hasActionRunBackend() {
     return getElectronActionBridge() !== null
 }
+
+export function hasActiveScheduleBackend() {
+    const bridge = getElectronActionBridge()
+
+    return !!bridge?.listActiveSchedules && !!bridge.deleteSchedule
+}

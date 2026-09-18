@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
 import type { StorageService } from '../../../data/data_types'
 import type { ElectronDataBridge } from '../../../data/electron_data_bridge'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
 import { actionService } from '../../../services/actions/action_service'
 import { configService } from '../../../services/config/config_service'
 import { dataService } from '../../../services/data/data_service'
@@ -180,6 +181,7 @@ describe('AppMenu', () => {
         actionService.clear()
         window.localStorage.clear()
         delete window.md2Data
+        setActionBridgeOverride(null)
         vi.restoreAllMocks()
     })
 
@@ -217,6 +219,21 @@ describe('AppMenu', () => {
         expect(completeReleaseButton).toBeInTheDocument()
         expect(newCardButton).not.toBeVisible()
         expect(screen.getByRole('button', { name: 'New action', hidden: true })).not.toBeVisible()
+    })
+
+    it('opens active schedules from the Run menu when backend API is available', async () => {
+        await activateLocalProject(createBridge())
+        setActionBridgeOverride({
+            deleteSchedule: vi.fn(async () => []),
+            listActiveSchedules: vi.fn(async () => []),
+            onActionRun: vi.fn(() => vi.fn()),
+        } as unknown as ElectronActionBridge)
+        renderMenu()
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
+        fireEvent.click(screen.getByRole('button', { name: 'View active schedules' }))
+
+        expect(screen.getByRole('dialog', { name: 'Active schedules' })).toBeInTheDocument()
     })
 
     it('shows the Commit shortcut in its tooltip without changing the accessible name or other tooltips', async () => {
