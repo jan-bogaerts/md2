@@ -80,6 +80,31 @@ function owners(initialCards: Card[] = [], initialActions: ActionDefinition[] = 
 }
 
 describe('OpenFilesService', () => {
+    it('opens instruction documents by path, refreshes clean content, and removes disappeared files', () => {
+        const ownerState = owners()
+        let files = [{ content: '# Initial', path: 'docs/AGENTS.md' }]
+        const instructionOwner = Object.assign(new EventTarget(), {getSnapshot: () => ({ errors: [], files, projectKey: 'project:main' })})
+        const service = new OpenFilesService()
+        service.init({
+            actionService: ownerState.actionOwner,
+            agentInstructionsService: instructionOwner,
+            dataService: ownerState.dataOwner,
+        })
+        const document = service.openPath('docs/AGENTS.md')
+
+        expect(document.kind).toBe('instruction')
+        expect(document.path).toBe('docs/AGENTS.md')
+        expect(document.getDraft()).toEqual({ content: '# Initial' })
+
+        files = [{ content: '# External', path: 'docs/AGENTS.md' }]
+        instructionOwner.dispatchEvent(new Event('filesChanged'))
+        expect(document.getDraft()).toEqual({ content: '# External' })
+
+        files = []
+        instructionOwner.dispatchEvent(new Event('filesChanged'))
+        expect(service.getSnapshot()).toEqual({ activeDocument: null, documents: [] })
+    })
+
     it('keeps one stable wrapper while card metadata and path renew', () => {
         const firstCard = card('card-1')
         const ownerState = owners([firstCard])

@@ -1,5 +1,6 @@
 import { actionMarkdownDataSource } from '../components/editor/action_markdown_data_source'
 import { cardMarkdownDataSource } from '../components/editor/card_markdown_data_source'
+import { instructionMarkdownDataSource } from '../components/editor/instruction_markdown_data_source'
 import { readDesktopConfigFromBridge } from './config/config_persistence'
 import { configService } from './config/config_service'
 import { actionRunRegistry } from './actions/action_run_registry'
@@ -19,6 +20,7 @@ import { projectSessionService, type ProjectOpenResolution } from './project/pro
 import { register } from './service_injector'
 import { initDefaultSentryConnectionService, sentryConnectionService } from './sentry/sentry_connection_service'
 import { sentryImportService } from './sentry/sentry_import_service'
+import { agentInstructionsService } from './agent_instructions/agent_instructions_service'
 
 export type ApplicationStartupPhase = 'ready' | 'starting'
 
@@ -43,9 +45,10 @@ function initializeServices() {
     configService.init({ desktopConfig })
     initDefaultGithubAuthService(githubAuthService)
     initDefaultSentryConnectionService(sentryConnectionService)
-    openFilesService.init({ actionService, dataService })
+    openFilesService.init({ actionService, agentInstructionsService, dataService })
     projectPersistenceService.init({ actionService, dataService, openFilesService })
     cardMarkdownDataSource.init(dataService)
+    instructionMarkdownDataSource.init(dataService)
     actionMarkdownDataSource.init(actionService)
     actionRunRegistry.start()
     actionRunSettingsService.init(dataService)

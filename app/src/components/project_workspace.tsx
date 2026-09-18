@@ -52,7 +52,7 @@ import { DiagramView } from './diagram_view/diagram_view'
 const WORKSPACE_PANEL_PADDING = 3
 
 function openDocumentPath(document: OpenDocument) {
-    return document.kind === 'card' ? document.getObject().path : document.getObject().sourcePath
+    return document.kind === 'action' ? document.getObject().sourcePath : document.getObject().path
 }
 
 function flushPendingCommits() {

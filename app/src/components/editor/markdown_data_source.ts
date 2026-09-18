@@ -1,6 +1,6 @@
-import type { ActionOpenDocument, CardOpenDocument, OpenDocument } from '../../services/open_files_service'
+import type { ActionOpenDocument, CardOpenDocument, InstructionOpenDocument, OpenDocument } from '../../services/open_files_service'
 
-export type MarkdownBindingKind = 'board-card' | 'list-action' | 'list-card'
+export type MarkdownBindingKind = 'board-card' | 'list-action' | 'list-card' | 'list-instruction'
 
 export type ActionMarkdownSection =
     | { kind: 'prompt' }
@@ -9,6 +9,7 @@ export type ActionMarkdownSection =
 export type MarkdownDocumentTarget =
     | { document: ActionOpenDocument, section: ActionMarkdownSection }
     | { document: CardOpenDocument, section?: never }
+    | { document: InstructionOpenDocument, section?: never }
 
 export interface ActiveMarkdownDocumentChangedDetail {
     binding: MarkdownBindingKind
@@ -26,6 +27,7 @@ export interface MarkdownBindingsSnapshot {
     activeBoardCardTarget: MarkdownDocumentTarget | null
     activeListActionTarget: MarkdownDocumentTarget | null
     activeListCardTarget: MarkdownDocumentTarget | null
+    activeListInstructionTarget: MarkdownDocumentTarget | null
 }
 
 export interface MarkdownDataSource extends EventTarget {
@@ -39,11 +41,13 @@ const INITIAL_BINDINGS: MarkdownBindingsSnapshot = {
     activeBoardCardTarget: null,
     activeListActionTarget: null,
     activeListCardTarget: null,
+    activeListInstructionTarget: null,
 }
 
 function bindingSnapshotKey(binding: MarkdownBindingKind): keyof MarkdownBindingsSnapshot {
     if (binding === 'board-card') return 'activeBoardCardTarget'
     if (binding === 'list-card') return 'activeListCardTarget'
+    if (binding === 'list-instruction') return 'activeListInstructionTarget'
 
     return 'activeListActionTarget'
 }
@@ -89,7 +93,9 @@ export abstract class MarkdownDataSourceBase extends EventTarget implements Mark
     }
 
     clearBindings(discard = false) {
-        for (const binding of ['board-card', 'list-card', 'list-action'] as const) this.setActiveTarget(binding, null, discard)
+        for (const binding of ['board-card', 'list-card', 'list-action', 'list-instruction'] as const) {
+            this.setActiveTarget(binding, null, discard)
+        }
     }
 
     protected dispatchMarkdownReplaced(detail: MarkdownReplacedDetail) {

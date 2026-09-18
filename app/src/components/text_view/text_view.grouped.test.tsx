@@ -15,6 +15,8 @@ import { workspaceViewService } from '../../services/project/workspace_view_serv
 import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
 import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import { FileTreeView } from './file_tree_view'
+import { agentInstructionsService } from '../../services/agent_instructions/agent_instructions_service'
+import { instructionMarkdownDataSource } from '../editor/instruction_markdown_data_source'
 
 function card(path: string, overrides: Partial<Card['header']> = {}, content = ''): Card {
     return {
@@ -87,7 +89,7 @@ function renderTextView(
         const handleDeleteFile = useCallback(async (path: string) => {
             await dataService.cards.deleteFile(path)
             const document = openFilesService.getSnapshot().documents.find((candidate) => (
-                candidate.kind === 'card' ? candidate.getObject().path : candidate.getObject().sourcePath
+                candidate.kind === 'action' ? candidate.getObject().sourcePath : candidate.getObject().path
             ) === path)
             if (document) openFilesService.closeDocument(document)
         }, [])
@@ -207,12 +209,13 @@ describe('TextView', () => {
         setCards(activeCards)
         configService.init()
         for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
-        openFilesService.init({ actionService, dataService })
+        openFilesService.init({ actionService, agentInstructionsService, dataService })
         vi.spyOn(dataService.cards, 'createFolder').mockResolvedValue('design/notes')
         vi.spyOn(dataService.cards, 'createMarkdownFile').mockResolvedValue({ content: '', path: 'design/notes.md' })
         vi.spyOn(dataService.cards, 'deleteFile').mockResolvedValue(null)
         vi.spyOn(dataService.cards, 'deleteFolder').mockResolvedValue(null)
         actionMarkdownDataSource.init(actionService)
+        instructionMarkdownDataSource.init(dataService)
         vi.spyOn(cardMarkdownDataSource, 'getMarkdown').mockImplementation((target) => target.document.kind === 'card'
             ? target.document.getDraft().content
             : '')
@@ -231,6 +234,7 @@ describe('TextView', () => {
         workspaceViewService.setViewMode('cards')
         for (const document of openFilesService.getRegisteredDocuments()) openFilesService.discardDocument(document)
         actionService.clear()
+        agentInstructionsService.clear()
         configService.clear()
         vi.restoreAllMocks()
     })

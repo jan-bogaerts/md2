@@ -1,7 +1,8 @@
 import type { ActionDefinition, RawActionDefinition } from '../data/action_types'
 import type { Card } from '../data/data_types'
+import type { AgentInstructionFile } from './agent_instructions/agent_instruction_file'
 
-export type OpenDocumentObject = Card | ActionDefinition
+export type OpenDocumentObject = ActionDefinition | AgentInstructionFile | Card
 export interface CardBodyDraft {
     content: string
 }
@@ -21,7 +22,7 @@ export interface OpenDocumentChangedDetail {
 
 interface OpenDocumentBase<TObject extends OpenDocumentObject, TDraft extends OpenDocumentDraft> extends EventTarget {
     readonly dirty: boolean
-    readonly kind: 'action' | 'card'
+    readonly kind: 'action' | 'card' | 'instruction'
     readonly path: string
     createSaveReference(): OpenDocumentSaveReference
     getDraft(): TDraft
@@ -38,4 +39,8 @@ export interface CardOpenDocument extends OpenDocumentBase<Card, CardBodyDraft> 
     readonly kind: 'card'
 }
 
-export type OpenDocument = ActionOpenDocument | CardOpenDocument
+export interface InstructionOpenDocument extends OpenDocumentBase<AgentInstructionFile, CardBodyDraft> {
+    readonly kind: 'instruction'
+}
+
+export type OpenDocument = ActionOpenDocument | CardOpenDocument | InstructionOpenDocument

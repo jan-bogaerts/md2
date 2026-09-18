@@ -10,10 +10,11 @@ import { DataService } from '../data/data_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
 import { openFilesService } from '../open_files_service'
 import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../shared/agent_token_usage_summary.mjs'
+import { agentInstructionsService } from '../agent_instructions/agent_instructions_service'
 
 export function createDataService() {
     const service = new DataService()
-    openFilesService.init({ actionService, dataService: service })
+    openFilesService.init({ actionService, agentInstructionsService, dataService: service })
     projectPersistenceService.init({ actionService, dataService: service, openFilesService })
 
     return service

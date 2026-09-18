@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { CardOpenDocument, OpenDocument, OpenDocumentSaveReference, OpenFilesService } from '../open_files_service'
+import type { CardOpenDocument, InstructionOpenDocument, OpenDocument, OpenDocumentSaveReference, OpenFilesService } from '../open_files_service'
 import type { ActionService } from '../actions/action_service'
 import type { DataPersistenceSnapshot, DataService } from '../data/data_service'
 import { ProjectPersistenceService } from './project_persistence_service'
 import { ACTION_PERSISTENCE_CHANGED_EVENT } from '../actions/action_service_events'
 import { registerMarkdownEditorStage } from './markdown_editor_staging'
+import type { MarkdownFile } from '../../data/data_types'
 
 class TestActionService extends EventTarget {
     pendingDrafts = false
@@ -16,9 +17,11 @@ class TestActionService extends EventTarget {
 }
 
 class TestDataService extends EventTarget {
+    private readonly saveReferences: OpenDocumentSaveReference[] = []
     snapshot: DataPersistenceSnapshot = { hasPendingFileCommit: false, hasPendingPush: false, isSaving: false }
     readonly cards = {
         flushPendingCommits: vi.fn(async () => {
+            this.saveReferences.splice(0).forEach(({ acknowledge }) => acknowledge())
             this.snapshot = { ...this.snapshot, hasPendingFileCommit: false }
         }),
         updateCardBody: vi.fn((_path: string, _content: string, saveReference?: OpenDocumentSaveReference) => {
@@ -27,6 +30,10 @@ class TestDataService extends EventTarget {
     }
     readonly drainPendingStorageWrites = vi.fn(async () => {
         this.snapshot = { ...this.snapshot, isSaving: false }
+    })
+    readonly scheduleFileCommit = vi.fn((_file: MarkdownFile, _message: string, saveReference?: OpenDocumentSaveReference) => {
+        if (saveReference) this.saveReferences.push(saveReference)
+        this.snapshot = { ...this.snapshot, hasPendingFileCommit: true }
     })
     getPersistenceSnapshot() { return this.snapshot }
     publishPersistenceChange() { this.dispatchEvent(new Event('persistenceChanged')) }
@@ -60,6 +67,19 @@ function dirtyCardDocument(): CardOpenDocument {
         getDraft: () => card, getObject: () => card, kind: 'card' as const,
         path: 'design/card.md', replaceDraft: vi.fn(), updateDraft: vi.fn(),
     }) as unknown as CardOpenDocument
+    Object.defineProperty(document, 'dirty', { get: () => dirty })
+
+    return document
+}
+
+function dirtyInstructionDocument(): InstructionOpenDocument {
+    const instruction = { content: 'Draft guidance', path: 'AGENTS.md' }
+    let dirty = true
+    const document = Object.assign(new EventTarget(), {
+        createSaveReference: vi.fn(() => ({ document, acknowledge: () => { dirty = false } })),
+        getDraft: () => ({ content: instruction.content }), getObject: () => instruction, kind: 'instruction' as const,
+        path: instruction.path, replaceDraft: vi.fn(), updateDraft: vi.fn(),
+    }) as unknown as InstructionOpenDocument
     Object.defineProperty(document, 'dirty', { get: () => dirty })
 
     return document
@@ -115,6 +135,21 @@ describe('ProjectPersistenceService', () => {
         await service.flushPendingChanges()
 
         expect(calls).toEqual(['actions', 'card-draft', 'batch'])
+    })
+
+    it('stages dirty instruction documents with save acknowledgement', async () => {
+        const { dataService, openFilesService, service } = initService()
+        const document = dirtyInstructionDocument()
+        openFilesService.documents = [document]
+
+        await service.flushPendingChanges()
+
+        expect(dataService.scheduleFileCommit).toHaveBeenCalledWith(
+            { content: 'Draft guidance', path: 'AGENTS.md' },
+            'Update AGENTS.md',
+            expect.objectContaining({ document }),
+        )
+        expect(document.dirty).toBe(false)
     })
 
     it('reconciles live dependencies after a flush without relying on dependency events', async () => {
@@ -183,6 +218,20 @@ describe('ProjectPersistenceService', () => {
         dataService.publishPersistenceChange()
 
         await expect(service.flushPendingChanges()).rejects.toBe(failure)
+        expect(service.getSnapshot().hasPendingSave).toBe(true)
+    })
+
+    it('keeps an instruction draft dirty when its physical save fails', async () => {
+        const failure = new Error('instruction commit failed')
+        const { dataService, openFilesService, service } = initService()
+        const document = dirtyInstructionDocument()
+        openFilesService.documents = [document]
+        openFilesService.publishDocumentChange()
+        dataService.cards.flushPendingCommits.mockRejectedValue(failure)
+
+        await expect(service.flushPendingChanges()).rejects.toBe(failure)
+
+        expect(document.dirty).toBe(true)
         expect(service.getSnapshot().hasPendingSave).toBe(true)
     })
 })

@@ -59,6 +59,19 @@ function tabData(cardTypes: CardTypeConfig[], actionsFolder: string, document: O
 
         return { color: null, document, id: null, key: `action:${action.id}`, kind: 'action', label: action.label, title: action.label }
     }
+    if (document.kind === 'instruction') {
+        const instruction = document.getObject()
+
+        return {
+            color: null,
+            document,
+            id: null,
+            key: `instruction:${instruction.path}`,
+            kind: 'markdown',
+            label: instruction.path,
+            title: instruction.path,
+        }
+    }
     const card = document.getObject()
     const label = fileLabel(card)
     const id = label.startsWith(`${card.header.id} `) ? card.header.id : null
@@ -135,6 +148,7 @@ export function TabBar(props: TabBarProps) {
                 {tabs.map((tab) => (
                     <Tab
                         aria-label={tab.label}
+                        title={tab.label}
                         key={tab.key}
                         component="div"
                         label={(

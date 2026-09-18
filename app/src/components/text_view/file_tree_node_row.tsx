@@ -67,6 +67,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
     const statusColor = treeNode.status === null ? undefined : statusColors.get(treeNode.status) ?? defaultColumnAccent(0)
     const isDeletableFolder = treeNode.kind === 'folder'
     const isMenuOpen = !!menuAnchor || !!menuPosition
+    const structuralReadOnly = !!treeNode.structuralReadOnly
 
     const handleRowClick = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
@@ -184,7 +185,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
         return (
             <Box
                 data-selected={isSelected ? 'true' : undefined}
-                onContextMenu={openContextMenu}
+                onContextMenu={structuralReadOnly ? undefined : openContextMenu}
                 style={style}
                 sx={{
                     alignItems: 'center',
@@ -241,17 +242,19 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                         {visibleTitle}
                     </Typography>
                 </ListItemButton>
-                <Box
-                    className="rowActions"
-                    sx={{ alignItems: 'center', bgcolor: 'inherit', bottom: 0, display: 'flex', position: 'absolute', right: 0.5, top: 0 }}
-                >
-                    <Tooltip title="Delete file">
-                        <IconButton aria-label={`Delete ${treeNode.path}`} disabled={readOnly} onClick={deleteFile} size="small" sx={{ height: 24, width: 24 }}>
-                            <DeleteOutline sx={{ fontSize: 16 }} />
-                        </IconButton>
-                    </Tooltip>
-                    {itemMenu}
-                </Box>
+                {!structuralReadOnly ? (
+                    <Box
+                        className="rowActions"
+                        sx={{ alignItems: 'center', bgcolor: 'inherit', bottom: 0, display: 'flex', position: 'absolute', right: 0.5, top: 0 }}
+                    >
+                        <Tooltip title="Delete file">
+                            <IconButton aria-label={`Delete ${treeNode.path}`} disabled={readOnly} onClick={deleteFile} size="small" sx={{ height: 24, width: 24 }}>
+                                <DeleteOutline sx={{ fontSize: 16 }} />
+                            </IconButton>
+                        </Tooltip>
+                        {itemMenu}
+                    </Box>
+                ) : null}
             </Box>
         )
     }
@@ -259,7 +262,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
     return (
         <Box
             data-selected={isSelected ? 'true' : undefined}
-            onContextMenu={openContextMenu}
+            onContextMenu={structuralReadOnly ? undefined : openContextMenu}
             style={style}
             sx={{
                 alignItems: 'center',
@@ -317,25 +320,27 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                     }}
                 />
             </ListItemButton>
-            <Box
-                className="rowActions"
-                sx={{ alignItems: 'center', bgcolor: 'inherit', bottom: 0, display: 'flex', position: 'absolute', right: 0.5, top: 0 }}
-            >
-                {isDeletableFolder ? (
-                    <Tooltip title="Delete folder">
-                        <IconButton
-                            aria-label={`Delete ${treeNode.directoryPath}`}
-                            disabled={readOnly}
-                            onClick={deleteFolder}
-                            size="small"
-                            sx={{ height: 24, width: 24 }}
-                        >
-                            <DeleteOutline sx={{ fontSize: 16 }} />
-                        </IconButton>
-                    </Tooltip>
-                ) : null}
-                {itemMenu}
-            </Box>
+            {!structuralReadOnly ? (
+                <Box
+                    className="rowActions"
+                    sx={{ alignItems: 'center', bgcolor: 'inherit', bottom: 0, display: 'flex', position: 'absolute', right: 0.5, top: 0 }}
+                >
+                    {isDeletableFolder ? (
+                        <Tooltip title="Delete folder">
+                            <IconButton
+                                aria-label={`Delete ${treeNode.directoryPath}`}
+                                disabled={readOnly}
+                                onClick={deleteFolder}
+                                size="small"
+                                sx={{ height: 24, width: 24 }}
+                            >
+                                <DeleteOutline sx={{ fontSize: 16 }} />
+                            </IconButton>
+                        </Tooltip>
+                    ) : null}
+                    {itemMenu}
+                </Box>
+            ) : null}
         </Box>
     )
 }

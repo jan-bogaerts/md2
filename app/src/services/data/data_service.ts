@@ -296,12 +296,12 @@ export class DataService extends EventTarget {
     }
 
     /** Queues a repository file that is not part of loaded card state for the shared commit batch. */
-    scheduleFileCommit(file: MarkdownFile, message: string) {
+    scheduleFileCommit(file: MarkdownFile, message: string, saveReference?: OpenDocumentSaveReference) {
         const { commitBatcher } = this.requireDependencies()
         const currentProject = this.projectState.project
         if (!currentProject) throw new Error('Cannot save a file before a project is open')
 
-        commitBatcher.schedule(currentProject.branch, [{ ...file, kind: 'file' as const }], message)
+        commitBatcher.schedule(currentProject.branch, [{ ...file, kind: 'file' as const, saveReference }], message)
     }
 
     discardPendingFile(path: string) {

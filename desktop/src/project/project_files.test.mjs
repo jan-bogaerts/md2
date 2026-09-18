@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const { GitProcess } = require('../git/git_process');
 const {
     commitNow,
+    isWatchedProjectPath,
     listRepositoryFiles,
     loadProject,
     loadProjectRoot,
@@ -15,6 +16,13 @@ const {
 } = require('./project_files');
 
 describe('project-files', () => {
+    it('watches Markdown, JSON, and text files case-insensitively', () => {
+        expect(isWatchedProjectPath('README.MD')).toBe(true);
+        expect(isWatchedProjectPath('README.TXT')).toBe(true);
+        expect(isWatchedProjectPath('action.json')).toBe(true);
+        expect(isWatchedProjectPath('image.png')).toBe(false);
+    });
+
     it('writes move target and stages tracked source deletion when source is already absent', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
 
