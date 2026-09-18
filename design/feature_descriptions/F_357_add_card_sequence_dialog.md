@@ -3,7 +3,7 @@ author:
 id: F_357
 internalId: 23d124ec-a23c-442f-af4d-f678be48084c
 title: Add card sequence dialog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,29 @@ policy:
 after: b750c85a-ac60-4608-b6e4-beb186e6ca60
 branch: f_357_add_card_sequence_dialog
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_selector.tsx
+  - app/src/components/actions/run/popup/action_selector_styles.ts
+  - app/src/components/actions/run/schedule/action_schedule_form.tsx
+  - app/src/components/actions/run/schedule/schedule_trigger_fields.tsx
+  - app/src/components/actions/run/sequence/card_sequence_action_selector.tsx
+  - app/src/components/actions/run/sequence/card_sequence_actions.node.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_actions.ts
+  - app/src/components/actions/run/sequence/card_sequence_card_picker.tsx
+  - app/src/components/actions/run/sequence/card_sequence_dialog.test.tsx
+  - app/src/components/actions/run/sequence/card_sequence_dialog.tsx
+  - app/src/components/actions/run/sequence/card_sequence_dnd.ts
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.node.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_draft_service.ts
+  - app/src/components/actions/run/sequence/card_sequence_registration.node.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_registration.ts
+  - app/src/components/actions/run/sequence/card_sequence_row.tsx
+  - app/src/components/card_view/card_view.test.tsx
+  - app/src/components/card_view/card_view.tsx
+  - app/src/components/card_view/mobile_card_view.tsx
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/data/electron_action_bridge.ts
 ---
 Add Run-menu sequence builder for engine from [F_356](F_356_add_scheduled_card_sequence_engine.md).
 
