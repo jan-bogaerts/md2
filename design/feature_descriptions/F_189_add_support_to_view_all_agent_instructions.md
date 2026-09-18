@@ -11,7 +11,8 @@ policy:
 ---
 when loading the project, we should also search for markdown files that contain agent instructions:
 
-* root readme.md
+* root readme.md and variations like readme.txt, ...
+* if there are sub projects, those readme.md files as well. Make certain not from a folder in gitignore
 * all agents.md, every folder that contains this file can be presumed to be a project, so if that folder also contains a readme.md, that can also be loaded
 * copilot instructions
 * claude specific files
