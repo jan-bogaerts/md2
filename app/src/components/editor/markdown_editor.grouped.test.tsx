@@ -736,6 +736,19 @@ describe('MarkdownEditor', () => {
         expect(screen.queryByTestId('mdx-editor-toolbar')).not.toBeInTheDocument()
     })
 
+    it('pairs the attachment control with a link control and no insert image control', () => {
+        const attachmentHandler = vi.fn(async () => {})
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor attachmentHandler={attachmentHandler} markdown="" onChange={vi.fn()} />
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
+        expect(screen.getByTestId('create-link')).toBeInTheDocument()
+        expect(screen.queryByTestId('insert-image')).not.toBeInTheDocument()
+    })
+
     it('keeps attachment control visible when formatting toolbar is hidden and handles file drops', async () => {
         const attachmentHandler = vi.fn(async (_files: File[], insertMarkdown: (markdown: string) => void) => {
             insertMarkdown('[report](<report.pdf>)')

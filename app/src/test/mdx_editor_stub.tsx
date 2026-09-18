@@ -416,8 +416,8 @@ export const UndoRedo = NoopControl
 export const BoldItalicUnderlineToggles = NoopControl
 export const ListsToggle = () => <span data-testid="lists-toggle" />
 export const BlockTypeSelect = () => <span data-testid="block-type-select" />
-export const CreateLink = NoopControl
-export const InsertImage = NoopControl
+export const CreateLink = () => <span data-testid="create-link" />
+export const InsertImage = () => <span data-testid="insert-image" />
 export const InsertTable = NoopControl
 export const InsertThematicBreak = NoopControl
 export const InsertCodeBlock = () => <span data-testid="insert-code-block" />

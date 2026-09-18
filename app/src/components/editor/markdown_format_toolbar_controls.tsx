@@ -1,5 +1,5 @@
 import {
-    BlockTypeSelect, BoldItalicUnderlineToggles, CreateLink, InsertCodeBlock, InsertImage, InsertTable,
+    BlockTypeSelect, BoldItalicUnderlineToggles, CreateLink, InsertCodeBlock, InsertTable,
     InsertThematicBreak, ListsToggle, Separator, UndoRedo,
 } from '@mdxeditor/editor'
 import type { ReactNode } from 'react'
@@ -34,7 +34,6 @@ export function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarContro
                     <BlockTypeSelect />
                     <Separator />
                     <CreateLink />
-                    <InsertImage />
                     <Separator />
                     <InsertTable />
                     <InsertThematicBreak />
