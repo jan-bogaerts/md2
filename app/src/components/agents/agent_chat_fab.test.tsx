@@ -6,9 +6,22 @@ import type { AgentConversation } from '../../data/data_types'
 import { actionRunRegistry } from '../../services/actions/action_run_registry'
 import { agentAcknowledgementService } from '../../services/agents/agent_acknowledgement_service'
 import { configService } from '../../services/config/config_service'
+import { cardPopupService } from '../../services/card_popup_service'
 import { dataService } from '../../services/data/data_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
+import { CardActionPopupHost } from '../actions/run/popup/card_action_popup_host'
 import { AgentChatFab } from './agent_chat_fab'
+
+/** The fab owns no popup of its own; the service-owned host renders it. */
+function renderFabWithPopupHost() {
+    return render(
+        <>
+            <AgentChatFab />
+            <CardActionPopupHost />
+        </>,
+        { wrapper: AppThemeProvider },
+    )
+}
 
 describe('AgentChatFab', () => {
     let actionRunListener: ((event: ActionRunEvent) => void) | null = null
@@ -35,6 +48,7 @@ describe('AgentChatFab', () => {
 
     afterEach(() => {
         cleanup()
+        cardPopupService.clear()
         actionRunRegistry.stop()
         agentAcknowledgementService.reset()
         delete window.md2Actions
@@ -43,7 +57,7 @@ describe('AgentChatFab', () => {
     })
 
     it('opens and closes project-wide run form on plain clicks', async () => {
-        render(<AgentChatFab />, { wrapper: AppThemeProvider })
+        renderFabWithPopupHost()
         const button = screen.getByRole('button', { name: 'Project agent' })
 
         fireEvent.click(button)
@@ -60,8 +74,28 @@ describe('AgentChatFab', () => {
         expect(screen.queryByRole('dialog', { name: 'Run actions for Project' })).not.toBeInTheDocument()
     })
 
-    it('moves without opening popup when pointer gesture crosses drag threshold', () => {
+    it('delegates opening to the popup service and renders no popup of its own', () => {
+        const toggleAction = vi.spyOn(cardPopupService, 'toggleAction')
+        const closeAction = vi.spyOn(cardPopupService, 'closeAction')
         render(<AgentChatFab />, { wrapper: AppThemeProvider })
+        const button = screen.getByRole('button', { name: 'Project agent' })
+
+        fireEvent.click(button)
+
+        expect(toggleAction).toHaveBeenCalledWith({ kind: 'project' }, button)
+        expect(cardPopupService.getSnapshot()).toHaveLength(1)
+        expect(screen.queryByRole('dialog', { name: 'Run actions for Project' })).not.toBeInTheDocument()
+
+        fireEvent.pointerDown(button, { clientX: 1140, clientY: 740, pointerId: 1 })
+        fireEvent.pointerMove(button, { clientX: 900, clientY: 500, pointerId: 1 })
+        fireEvent.pointerUp(button, { pointerId: 1 })
+
+        expect(closeAction).toHaveBeenCalledWith({ kind: 'project' })
+        expect(cardPopupService.getSnapshot()).toEqual([])
+    })
+
+    it('moves without opening popup when pointer gesture crosses drag threshold', () => {
+        renderFabWithPopupHost()
         const button = screen.getByRole('button', { name: 'Project agent' })
 
         fireEvent.pointerDown(button, { clientX: 1140, clientY: 740, pointerId: 1 })
@@ -77,7 +111,7 @@ describe('AgentChatFab', () => {
     })
 
     it('detaches the draggable popup while keeping its far corner fixed when resized from the top-left', () => {
-        render(<AgentChatFab />, { wrapper: AppThemeProvider })
+        renderFabWithPopupHost()
         const button = screen.getByRole('button', { name: 'Project agent' })
         fireEvent.click(button)
         const dialog = screen.getByRole('dialog', { name: 'Run actions for Project' })
@@ -95,7 +129,7 @@ describe('AgentChatFab', () => {
     })
 
     it('shows queued, running, and waiting live states with waiting priority', () => {
-        render(<AgentChatFab />, { wrapper: AppThemeProvider })
+        renderFabWithPopupHost()
         if (!actionRunListener) throw new Error('Missing action run listener')
         const emit = actionRunListener as (event: ActionRunEvent) => void
         const baseEvent = {
@@ -139,7 +173,7 @@ describe('AgentChatFab', () => {
         const waitingConversation = { ...unseenConversation, id: 'waiting-project', status: 'waitingForInput' as const, viewed: true }
         projectConversations = [unseenConversation, runningConversation, waitingConversation]
         vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(unseenConversation)
-        render(<AgentChatFab />, { wrapper: AppThemeProvider })
+        renderFabWithPopupHost()
 
         expect(screen.getByRole('button', { name: 'Project agent — Agent is waiting for input' })).toBeInTheDocument()
         projectConversations = [unseenConversation, runningConversation]

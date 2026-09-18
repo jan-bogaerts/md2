@@ -99,7 +99,9 @@ export class CardPopupService extends EventTarget {
             this.close(existing.id)
             return
         }
-        if (!context.cardInternalId) throw new Error('Cannot open a card action popup without a card internal ID')
+        if (context.kind !== 'project' && !context.cardInternalId) {
+            throw new Error('Cannot open a card action popup without a card internal ID')
+        }
 
         const entry: CardActionPopupEntry = {
             anchorElement,
@@ -112,6 +114,13 @@ export class CardPopupService extends EventTarget {
         }
         this.nextId += 1
         this.setEntries([...this.entries, entry])
+    }
+
+    closeAction(context: ActionContext) {
+        const contextIdentity = actionContextIdentity(context)
+        this.removeEntries((entry) => (
+            entry.kind === 'action' && actionContextIdentity(entry.context) === contextIdentity
+        ))
     }
 
     openActionRun(context: ActionContext, actionId: string, runId: string, anchorElement: HTMLElement) {

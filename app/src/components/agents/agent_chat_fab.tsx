@@ -2,22 +2,20 @@ import { Box } from '@mui/material'
 import Circle from 'mdi-material-ui/Circle'
 import HelpCircleOutline from 'mdi-material-ui/HelpCircleOutline'
 import RobotOutline from 'mdi-material-ui/RobotOutline'
-import { useEffect, useId, useState } from 'react'
+import { useEffect } from 'react'
 import { projectContext } from '../../data/action_context'
+import { cardPopupService } from '../../services/card_popup_service'
 import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { agentStateDescription } from '../../services/agents/card_agent_state'
 import { useProjectAgentState } from '../hooks/use_agent_acknowledgements'
 import { useActiveActionRunsForContext } from '../hooks/use_action_runs'
-import { ActionPopup } from '../actions/run/popup/action_popup'
 import { MovableFab } from '../movable_fab'
 
 const PROJECT_CONTEXT = projectContext()
 
 /** Project-wide free-form agent launcher, movable anywhere in application viewport. */
 export function AgentChatFab() {
-    const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
-    const popupEntryId = useId()
     const agentState = useProjectAgentState()
     const activeRuns = useActiveActionRunsForContext(PROJECT_CONTEXT)
     const isWaiting = activeRuns.some(({ status }) => status === 'waitingForInput')
@@ -36,12 +34,8 @@ export function AgentChatFab() {
                 ? 'Action is running'
                 : agentStateDescription(agentState)
     const label = stateDescription ? `Project agent — ${stateDescription}` : 'Project agent'
-    const handleActivate = (nextAnchorElement: HTMLElement) => setAnchorElement((current) => current ? null : nextAnchorElement)
-    const handleDragStart = () => setAnchorElement(null)
-
-    const handleClose = () => {
-        setAnchorElement(null)
-    }
+    const handleActivate = (nextAnchorElement: HTMLElement) => cardPopupService.toggleAction(PROJECT_CONTEXT, nextAnchorElement)
+    const handleDragStart = () => cardPopupService.closeAction(PROJECT_CONTEXT)
 
     useEffect(() => {
         void dataService.listAgentConversations(PROJECT_CONTEXT).catch((error: unknown) => {
@@ -86,15 +80,6 @@ export function AgentChatFab() {
                     ) : null}
                 </Box>
             </MovableFab>
-            {anchorElement ? (
-                <ActionPopup
-                    anchorElement={anchorElement}
-                    context={PROJECT_CONTEXT}
-                    draggable
-                    onClose={handleClose}
-                    popupEntryId={popupEntryId}
-                />
-            ) : null}
         </>
     )
 }
