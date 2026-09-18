@@ -3379,6 +3379,46 @@
       "startedAt": "2026-09-18T17:13:50.211Z",
       "status": "completed",
       "rootConversationId": "agent-e5e2c522-5515-46c1-a488-f2bc779dd811"
+    },
+    {
+      "commits": [
+        {
+          "commit": "9acead9fba4e3ea6518d29d190a39c3f94e24a2d",
+          "committedAt": "2026-09-18T20:14:47+02:00",
+          "deletions": 33,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup_defaults.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_defaults.ts",
+            "app/src/components/actions/run/schedule/active_schedules_dialog.test.tsx",
+            "app/src/components/actions/run/schedule/active_schedules_dialog.tsx",
+            "app/src/components/hooks/use_active_schedules.ts",
+            "app/src/components/project_workspace.tsx",
+            "app/src/components/project_workspace_rendering.test.tsx",
+            "app/src/components/shell/menu/app_menu.test.tsx",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/services/actions/active_schedule_projection.node.test.ts",
+            "app/src/services/actions/active_schedule_projection.ts",
+            "app/src/services/actions/active_schedule_service.node.test.ts",
+            "app/src/services/actions/active_schedule_service.ts",
+            "app/src/services/application_startup_service.ts",
+            "app/src/services/card_popup_service.test.ts",
+            "app/src/services/card_popup_service.ts",
+            "app/src/services/project/workspace_navigation_service.node.test.ts",
+            "app/src/services/project/workspace_navigation_service.ts"
+          ],
+          "filesChanged": 19,
+          "insertions": 1147,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-18T20:14:47+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "57ceeeca-6732-42a3-b77f-b1c459a2f268",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
