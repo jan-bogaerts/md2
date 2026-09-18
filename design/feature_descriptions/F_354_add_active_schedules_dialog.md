@@ -3,7 +3,7 @@ author:
 id: F_354
 internalId: 57ceeeca-6732-42a3-b77f-b1c459a2f268
 title: Add active schedules dialog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

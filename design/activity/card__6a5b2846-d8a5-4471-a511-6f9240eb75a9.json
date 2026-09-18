@@ -1887,11 +1887,11 @@
         "agent-ee36a1c5-535e-4ebc-81c0-6a01cca0d2ef"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-291d3232-1d36-48d1-a5b0-fb963246efd5",
       "origin": {
@@ -1900,9 +1900,9 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-ee36a1c5-535e-4ebc-81c0-6a01cca0d2ef",
       "startedAt": "2026-09-18T17:46:41.634Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-ee36a1c5-535e-4ebc-81c0-6a01cca0d2ef"
     }
   ],
   "version": 5
