@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__3a0d1119-4bc6-4bba-b47d-ddfabe12d56d.json
 policy:
+branch: f_189_add_support_to_view_all_agent_instructions
+worktree: 2
 ---
 when loading the project, we should also search for markdown files that contain agent instructions:
 
