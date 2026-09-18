@@ -3,7 +3,7 @@ author:
 id: J_42
 internalId: b4c6118b-6976-41ec-b33e-bd93e66eda89
 title: run history command actions order
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,9 @@ policy:
 after: 421a382c-ec00-4741-a8f7-eab2a949fcfe
 branch: j_42_run_history_command_actions_order
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/state/action_run_history.test.tsx
+  - app/src/components/actions/run/state/action_run_history.tsx
 ---
 
 the run history in the command actions popup is from oldest to newest, it should be the other way round, newest at the top.&#x20;
