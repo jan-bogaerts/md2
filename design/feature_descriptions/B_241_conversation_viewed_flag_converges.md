@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - desktop/src/actions/activity/conversation_view_events.js
+after: d268cc88-c21e-4d97-a7bb-1491da4852b3
 ---
 Let the backend announce conversation view state so every window agrees. Split from [B\_235](B_235_end_of_action_not_logged.md).
 

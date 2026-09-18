@@ -18,6 +18,7 @@ changedFiles:
   - desktop/src/shell/local_bridge_dispatch.test.mjs
   - desktop/src/shell/preload.js
   - desktop/src/shell/preload.test.mjs
+after: e92293d1-a775-46d9-ab48-57a8123b7c56
 ---
 Detect the card state transition that ends an action on the backend instead of routing it through a renderer. Split from [B\_235](B_235_end_of_action_not_logged.md).
 

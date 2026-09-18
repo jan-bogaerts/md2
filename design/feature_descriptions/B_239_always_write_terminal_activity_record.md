@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__d268cc88-c21e-4d97-a7bb-1491da4852b3.json
 policy:
+after: 0f3edcd4-a27e-45e8-a6f1-4f3cf25cb096
 ---
 Guarantee that every finished action leaves a terminal record on disk. This is the directly reported symptom of [B\_235](B_235_end_of_action_not_logged.md).
 
