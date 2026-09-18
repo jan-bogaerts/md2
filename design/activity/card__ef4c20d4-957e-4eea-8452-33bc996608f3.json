@@ -2595,6 +2595,44 @@
       "startedAt": "2026-09-18T17:31:25.150Z",
       "status": "completed",
       "rootConversationId": "agent-1f362044-1c6f-457b-8b3c-c144d1045b3d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "8af0c262e17a8a33c639dbf00fd758f6e155ec96",
+          "committedAt": "2026-09-18T19:47:18+02:00",
+          "deletions": 19,
+          "filePaths": [
+            "app/src/data/action_schedule_types.node.test.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/action/action_runner_service.test.mjs",
+            "desktop/src/actions/action/action_scheduler_service.js",
+            "desktop/src/actions/action/action_scheduler_service.test.mjs",
+            "desktop/src/actions/schedule/schedule_store.js",
+            "desktop/src/actions/schedule/scheduled_card_context.js",
+            "desktop/src/actions/schedule/scheduled_card_context.test.mjs",
+            "desktop/src/actions/schedule/scheduled_card_sequence_engine.js",
+            "desktop/src/actions/schedule/scheduled_card_sequence_engine.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs",
+            "shared/action_schedules.d.mts",
+            "shared/action_schedules.mjs"
+          ],
+          "filesChanged": 17,
+          "insertions": 811,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-18T19:47:18+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "ef4c20d4-957e-4eea-8452-33bc996608f3",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
