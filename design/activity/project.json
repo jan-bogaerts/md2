@@ -3897,6 +3897,232 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": null,
+      "cardPath": null,
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 50242
+      },
+      "entries": [
+        {
+          "content": "Question: this app can run a small webserver. It only supports http though and is ment for home use. But is there a way to temporarilly access the server over the internet?",
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-18T18:23:01.713Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-2",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0673906b45dec4c6016aad818d083887d2a2f5c88f4c6bbfd4",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-18T18:23:08.188Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll check how this app exposes its local server, then outline the safest temporary internet-access options and their tradeoffs.\n\n",
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 3,
+          "timestamp": "2026-09-18T18:23:08.702Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -S \\\"http|webserver|web server|listen\\\\(|localhost|0\\\\.0\\\\.0\\\\.0|express|server\\\\.listen|port\\\" app desktop package.json README* design\"",
+          "content": " sourceValue = source.headerFields[key]\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.ts:515:            const currentValue = headerFields[key]\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.ts:527:        const headerFields = parseHeaderFields(rawHeader)\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.ts:531:            header: parseCardHeader(headerFields, file, body),\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.ts:532:            headerFields: cloneHeaderFields(headerFields),\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.ts:567:    rewriteHeader(content: string, updates: Record<string, string>) {\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.ts:653:    buildCardMarkdown(header: NewCardHeader, body: string) {\\napp/src\\\\services\\\\data\\\\card_operations.ts:91:    updateCardHeaderFields(path: string, updates: Record<string, string>, saveReference?: OpenDocumentSaveReference) {\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:39:    it('treats unclosed frontmatter as body without dropping text', () => {\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:48:    it('parses files without frontmatter as pure body', () => {\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:57:    it('parses frontmatter and marks root files as active', () => {\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:106:        expect(card).not.toHaveProperty('headerFields')\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:282:describe('markdownParsingService worktree frontmatter', () => {\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:307:    it('removes worktree frontmatter when assigning Primary', () => {\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:388:describe('markdownParsingService.buildCardMarkdown', () => {\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:390:        const content = markdownParsingService.buildCardMarkdown(\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:415:        const content = markdownParsingService.buildCardMarkdown(\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:430:        expect(() => markdownParsingService.buildCardMarkdown({ id: '', internalId: 'uuid', title: 'x' }, 'Body')).toThrow()\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:431:        expect(() => markdownParsingService.buildCardMarkdown({ id: 'F-1', internalId: '', title: 'x' }, 'Body')).toThrow()\\napp/src\\\\services\\\\data\\\\markdown_parsing_service.node.test.ts:432:        expect(() => markdownParsingService.buildCardMarkdown({ id: 'F-1', internalId: 'uuid', title: '' }, 'Body')).toThrow()\\napp/src\\\\services\\\\data\\\\card_operations.test.ts:515:    it('persists dirty body, worktree, ordering, and unknown frontmatter together', async () => {\\napp/src\\\\services\\\\data\\\\card_operations.test.ts:1171:    it('preserves the frontmatter header when a card body is edited', async () => {\\napp/src\\\\services\\\\data\\\\card_mutations.ts:23:/** Mutates scalar frontmatter fields while keeping parsed header values synchronized. */\\napp/src\\\\services\\\\data\\\\card_mutations.ts:24:export function setCardHeaderFields(card: Card, updates: Record<string, string>) {\\napp/src\\\\components\\\\shell\\\\menu\\\\main_toolbar.test.tsx:15:    return (element.style as unknown as Record<string, string>).WebkitAppRegion\\napp/src\\\\components\\\\card_view\\\\card_commit_diff_panel.test.tsx:81:    it('reports a frontmatter-only commit without mounting a historical editor', async () => {\\napp/src\\\\components\\\\actions\\\\agent\\\\action_agent_question.tsx:16:    const [answers, setAnswers] = useState<Record<string, string>>({})\\n\",\ndesign\\releases\\0_6_0\\project.json:2597:          \"content\": \"    /**\\r\\n     * Parses a markdown file into a card. `isActive` marks the working folder root files,\\r\\n     * which are the only ones that are always cards and always get an `internalId`.\\r\\n     * Archived and released files are cards when they already carry an `internalId`;\\r\\n     * all other markdown is a regula\n[1040172 characters omitted]\n:3:import { formatDuration } from './conversation_duration'\napp\\src\\components\\actions\\conversation\\conversation_timer.grouped.test.tsx:4:import { ConversationTimer } from './conversation_timer'\napp\\src\\components\\actions\\conversation\\conversation_timer.grouped.test.tsx:153:    it('reports a conversation without a breakdown as unmeasured', async () => {\napp\\src\\components\\actions\\conversation\\action_conversation_command_service.node.test.ts:1:import { afterEach, describe, expect, it, vi } from 'vitest'\napp\\src\\components\\actions\\conversation\\action_conversation_command_service.node.test.ts:2:import type { AgentConversation, AgentConversationMessageEntry } from '../../../data/data_types'\napp\\src\\components\\actions\\conversation\\action_conversation_command_service.node.test.ts:3:import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'\napp\\src\\components\\actions\\conversation\\action_conversation_command_service.node.test.ts:4:import { actionService } from '../../../services/actions/action_service'\napp\\src\\components\\actions\\conversation\\action_conversation_command_service.node.test.ts:5:import { dataService } from '../../../services/data/data_service'\napp\\src\\components\\actions\\conversation\\action_conversation_command_service.node.test.ts:6:import { projectAccessService } from '../../../services/project/project_access_service'\napp\\src\\components\\actions\\conversation\\action_conversation_command_service.node.test.ts:7:import * as popupDefaults from '../run/popup/action_popup_defaults'\napp\\src\\components\\actions\\conversation\\action_conversation_command_service.node.test.ts:8:import {\napp\\src\\components\\actions\\conversation\\action_conversation_command_service.node.test.ts:12:import type { ActionConversationStore } from './action_conversation_store'\napp\\src\\components\\actions\\conversation\\agent_tool_event.tsx:1:import BuildOutlined from '@mui/icons-material/BuildOutlined'\napp\\src\\components\\actions\\conversation\\agent_tool_event.tsx:2:import { Box, Button, Stack, Typography } from '@mui/material'\napp\\src\\components\\actions\\conversation\\agent_tool_event.tsx:3:import { useState } from 'react'\napp\\src\\components\\actions\\conversation\\agent_tool_event.tsx:4:import type { AgentConversationEvent } from '../../../data/data_types'\napp\\src\\components\\actions\\conversation\\agent_tool_event.tsx:5:import { eventHasError, eventStatusLabel, readableEventText } from './event_display'\napp\\src\\components\\actions\\conversation\\agent_tool_event.tsx:15:export function AgentToolEvent({ event, grouped }: AgentToolEventProps) {\napp\\src\\components\\actions\\conversation\\conversation_duration.ts:6:export function formatDuration(ms: number) {\napp\\src\\components\\actions\\conversation\\conversation_timer.tsx:1:import { Tooltip, Typography } from '@mui/material'\napp\\src\\components\\actions\\conversation\\conversation_timer.tsx:2:import { useEffect, useState } from 'react'\napp\\src\\components\\actions\\conversation\\conversation_timer.tsx:3:import type { AgentConversationTimer } from '../../../data/data_types'\napp\\src\\components\\actions\\conversation\\conversation_timer.tsx:4:import type { PopupRunStatus } from '../run/popup/action_popup_defaults'\napp\\src\\components\\actions\\conversation\\conversation_timer.tsx:5:import { formatDuration } from './conversation_duration'\napp\\src\\components\\actions\\conversation\\conversation_timer.tsx:50:export function ConversationTimer({ status, timer }: ConversationTimerProps) {\napp\\src\\components\\actions\\conversation\\commit_reference_row.tsx:1:import { Box, Button, Stack, Typography } from '@mui/material'\napp\\src\\components\\actions\\conversation\\commit_reference_row.tsx:2:import { useState } from 'react'\napp\\src\\components\\actions\\conversation\\commit_reference_row.tsx:3:import type { CommitReference } from '../../../data/electron_action_bridge'\napp\\src\\components\\actions\\conversation\\commit_reference_row.tsx:4:import { DiffView } from './diff_view'\napp\\src\\components\\actions\\conversation\\commit_reference_row.tsx:11:export function CommitReferenceRow(props: CommitReferenceRowProps) {\n",
+          "durationMs": 1235,
+          "exitCode": 1,
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-4",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -S \\\"http|webserver|web server|listen\\\\(|localhost|0\\\\.0\\\\.0\\\\.0|express|server\\\\.listen|port\\\" app desktop package.json README* design\"",
+          "providerItemId": "exec-0ee9f025-d6de-4a62-b8cd-8fbbd51dcc1d",
+          "sequence": 4,
+          "status": "failed",
+          "timestamp": "2026-09-18T18:23:13.197Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-5",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0673906b45dec4c6016aad8194a4f487d2af514f3d958eee7d",
+          "sequence": 5,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-18T18:23:14.919Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw desktop\\\\src\\\\integrations\\\\remote_control_service.js; Get-ChildItem design\\\\feature_descriptions -Filter '*remote*' | Select-Object -ExpandProperty FullName\"",
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_158_remotecontrolconnectionerror_remote_control_connection_was_replaced.md\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_198_remotecontrolconnectionerror_remote_control_connection_closed.md\r\n",
+          "durationMs": 18,
+          "exitCode": 0,
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-6",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw desktop\\\\src\\\\integrations\\\\remote_control_service.js; Get-ChildItem design\\\\feature_descriptions -Filter '*remote*' | Select-Object -ExpandProperty FullName\"",
+          "providerItemId": "exec-e73c489b-794a-4149-99f8-9d118550dd36",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-09-18T18:23:16.987Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-7",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0673906b45dec4c6016aad8198826c87d280a09f2cf5a2cb5d",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-18T18:23:22.593Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "site:developers.cloudflare.com cloudflare tunnel quick tunnels websocket localhost official ...",
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-8",
+          "kind": "event",
+          "label": "Web search",
+          "output": "{\"type\":\"search\",\"query\":null,\"queries\":[\"site:developers.cloudflare.com cloudflare tunnel quick tunnels websocket localhost official\",\"site:tailscale.com/kb serve funnel websocket https official\",\"site:ngrok.com/docs http tunnels websocket oauth official\"]}",
+          "providerItemId": "exec-1d679e02-6c78-46bf-873e-eb2257d27496",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-09-18T18:23:25.644Z",
+          "type": "webSearch"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-9",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0673906b45dec4c6016aad81a25cbc87d2b2434a7a9f1cb8c2",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-18T18:23:28.896Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -S \\\"WebSocket\\\\(|location\\\\.protocol|ws:|wss:|remote-control|remote control\\\" app\\\\src desktop\\\\src | Select-Object -First 200\"",
+          "content": "desktop\\src\\shell\\close_coordinator.test.mjs:31:        getWindows: () => windows.map(({ browserWindow }) => browserWindow),\r\ndesktop\\src\\shell\\close_coordinator.test.mjs:126:            getWindows: () => [target.browserWindow],\r\ndesktop\\src\\shell\\config.test.mjs:286:        ['remote-control port below range', { ...validConfig, remoteControlPort: 0 }, 'must be an integer from 1 through 65535'],\r\ndesktop\\src\\shell\\config.test.mjs:287:        ['remote-control port above range', { ...validConfig, remoteControlPort: 65536 }, 'must be an integer from 1 through 65535'],\r\ndesktop\\src\\shell\\config.test.mjs:288:        ['remote-control port decimal', { ...validConfig, remoteControlPort: 20877.5 }, 'must be an integer from 1 through 65535'],\r\ndesktop\\src\\shell\\ipc_channels.js:16:const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status';\r\ndesktop\\src\\shell\\ipc_channels.js:17:const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start';\r\ndesktop\\src\\shell\\ipc_channels.js:18:const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status';\r\ndesktop\\src\\shell\\ipc_channels.js:19:const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';\r\ndesktop\\src\\shell\\renderer_security.js:21:/** Directory holding the bundled React build, served over http by the remote-control server (F-045). */\r\ndesktop\\src\\shell\\preload.js:17:const REMOTE_CONTROL_GET_STATUS_CHANNEL = 'md2-remote-control:get-status';\r\ndesktop\\src\\shell\\preload.js:18:const REMOTE_CONTROL_START_CHANNEL = 'md2-remote-control:start';\r\ndesktop\\src\\shell\\preload.js:19:const REMOTE_CONTROL_STATUS_CHANNEL = 'md2-remote-control:status';\r\ndesktop\\src\\shell\\preload.js:20:const REMOTE_CONTROL_STOP_CHANNEL = 'md2-remote-control:stop';\r\ndesktop\\src\\shell\\local_bridge_dispatch.js:687:            if (!handler) throw new Error(`Unknown remote-control method: ${method}`);\r\ndesktop\\src\\shell\\preload.test.mjs:262:        const snapshot = { available: true, observedAt: 10, windows: [] };\r\ndesktop\\src\\shell\\preload.test.mjs:284:    it('wraps remote-control callbacks without exposing ipcRenderer', () => {\r\ndesktop\\src\\shell\\preload.test.mjs:290:        listener({ sender: 'internal' }, { endpoint: 'ws://localhost:3555', running: true });\r\ndesktop\\src\\shell\\preload.test.mjs:293:        expect(electron.ipcRenderer.on).toHaveBeenCalledWith('md2-remote-control:status', expect.any(Function));\r\ndesktop\\src\\shell\\preload.test.mjs:294:        expect(callback).toHaveBeenCalledWith({ endpoint: 'ws://localhost:3555', running: true });\r\ndesktop\\src\\shell\\preload.test.mjs:295:        expect(electron.ipcRenderer.removeListener).toHaveBeenCalledWith('md2-remote-control:status', listener);\r\ndesktop\\src\\shell\\local_bridge_dispatch.test.mjs:53:        getSnapshot: vi.fn(() => ({ available: true, observedAt: 11, windows: [] })),\r\ndesktop\\src\\shell\\local_bridge_dispatch.test.mjs:326:        expect(dispatch.claudeRuntimeBridge.getClaudeRateLimits()).toEqual({ available: true, observedAt: 11, windows: [] });\r\ndesktop\\src\\shell\\local_bridge_dispatch.test.mjs:953:    it('invokes shared method table for remote control', async () => {\r\ndesktop\\src\\integrations\\remote_control_service.test.mjs:15:        const socket = new WebSocket(status.endpoint);\r\ndesktop\\src\\integrations\\remote_control_service.test.mjs:64:        const claudeSnapshot = { available: true, observedAt: 11, windows: [] };\r\ndesktop\\src\\integrations\\remote_control_service.js:126:        const hostnameEndpoint = loopback ? null : `ws://${os.hostname().toLowerCase()}.local:${port}`;\r\ndesktop\\src\\integrations\\remote_control_service.js:127:        const ipEndpoints = loopback ? [] : lanIpv4Addresses().map((ip) => `ws://${ip}:${port}`);\r\ndesktop\\src\\integrations\\remote_control_service.js:132:            endpoint: hostnameEndpoint ?? `ws://${this.host}:${port}`,\r\ndesktop\\src\\integrations\\remote_control_service.js:263:            sendJson(client, { error: { message: 'Invalid remote-control JSON message' }, id: null });\r\napp\\src\\data\\bridge_error_rehydration.ts:7: * Electron IPC and the remote-control socket both reduce a rejection to it\n[15957 characters omitted]\nrol_storage_service.node.test.ts:391:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:463:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:498:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:514:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:539:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:566:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:637:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:673:    it('prepares action prompts through remote control', async () => {\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:674:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:690:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:720:    it('lists agent conversation references through remote control', async () => {\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:721:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:736:    it('loads one activity file through remote control', async () => {\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:737:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:754:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:773:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:791:    it('reserves card agent conversations through remote control', async () => {\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:792:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:812:    it('routes streaming interaction methods through remote control', async () => {\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:813:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:864:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:886:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:908:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:947:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:978:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:993:                snapshot: { available: true, observedAt: 10, windows: [] },\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1006:        const snapshot = { available: true, observedAt: 11, windows: [] }\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1017:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1033:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1058:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1136:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1159:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1221:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1241:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1268:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1284:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1311:        installWebSocket()\r\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1318:        expect(socket.url).toBe('ws://127.0.0.1:1234')\r\n",
+          "durationMs": 113,
+          "exitCode": 0,
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-10",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -S \\\"WebSocket\\\\(|location\\\\.protocol|ws:|wss:|remote-control|remote control\\\" app\\\\src desktop\\\\src | Select-Object -First 200\"",
+          "providerItemId": "exec-24e9dbd7-8dad-4459-855f-2889191e738a",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-09-18T18:23:31.149Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw app\\\\src\\\\data\\\\remote_connect_string.ts; Get-Content -Raw app\\\\src\\\\data\\\\remote_control_connection.ts; Get-Content desktop\\\\src\\\\shell\\\\local_bridge_dispatch.js | Select-Object -Skip 620 -First 85; Get-Content app\\\\src\\\\services\\\\config\\\\config_entries.ts | Select-Object -Skip 330 -First 30\"",
+          "content": "import type { RemoteControlConnectionSettings } from './remote_control_connection'\n\n/**\n * Stable connect URL shared via copy/QR. Parsing lets the web connect dialog accept the same URL.\n */\nexport function buildRemoteConnectUrl(host: string, port: number): string {\n    return `http://${host}:${port}/`\n}\n\n/** Derives the shareable connect URL from a `ws(s)://host:port` endpoint. */\nexport function connectUrlFromEndpoint(endpoint: string): string | null {\n    let url: URL\n    try {\n        url = new URL(endpoint)\n    } catch {\n        return null\n    }\n\n    if (url.protocol !== 'ws:' && url.protocol !== 'wss:') return null\n    const scheme = url.protocol === 'wss:' ? 'https' : 'http'\n\n    return `${scheme}://${url.host}/`\n}\n\n/**\n * Auto-connect settings for the Electron-served web app. Plain HTTP yields same-origin `ws://`.\n */\nexport function deriveAutoConnectSettings(host: string, protocol: string): RemoteControlConnectionSettings | null {\n    if (!host) return null\n\n    const scheme = protocol === 'https:' ? 'wss' : 'ws'\n\n    return { endpoint: `${scheme}://${host}` }\n}\n\n/** Turns an HTTP connect URL back into a WebSocket endpoint, or null when input is not one. */\nexport function parseRemoteConnectString(value: string): RemoteControlConnectionSettings | null {\n    const trimmed = value.trim()\n    let url: URL\n    try {\n        url = new URL(trimmed)\n    } catch {\n        return null\n    }\n\n    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null\n    if (!url.host || url.hash.length > 0) return null\n\n    const scheme = url.protocol === 'https:' ? 'wss' : 'ws'\n\n    return { endpoint: `${scheme}://${url.host}` }\n}\n\r\nimport { applicationStorage } from '../services/storage/application_storage'\n\nexport const REMOTE_CONTROL_ENDPOINT_KEY = 'md2.remoteControl.endpoint'\n\nexport interface RemoteControlConnectionSettings {\n    endpoint: string\n}\n\nexport function configureRemoteControlConnection(settings: RemoteControlConnectionSettings) {\n    applicationStorage.setItem(REMOTE_CONTROL_ENDPOINT_KEY, settings.endpoint)\n}\n\nexport function tryReadRemoteControlConnection(): RemoteControlConnectionSettings | null {\n    const endpoint = applicationStorage.getItem(REMOTE_CONTROL_ENDPOINT_KEY)\n    if (!endpoint) return null\n\n    return { endpoint }\n}\n\nexport function readRemoteControlConnection(): RemoteControlConnectionSettings {\n    const endpoint = applicationStorage.getItem(REMOTE_CONTROL_ENDPOINT_KEY)\n    if (!endpoint) throw new Error('Missing remote-control endpoint')\n\n    return { endpoint }\n}\n\r\n                prompt: `${SEARCH_AGENT_PROMPT_PREFIX}${input}`,\r\n                projectFolder,\r\n                releasesFolder,\r\n                title: 'Search RegExp',\r\n            };\r\n            const result = await agentRunnerService.run(currentLocalProject, request, callback);\r\n\r\n            return result.stdout;\r\n        },\r\n        sendActionMessage: (runId, content) => {\r\n            if (!actionRunnerService) throw new Error('Action runner is not available');\r\n\r\n            return actionRunnerService.sendAgentMessage(runId, content);\r\n        },\r\n        splitActionConversation: (reference, messageId) => (\r\n            localGitService.splitActivityConversation(currentLocalProject, reference, messageId)\r\n        ),\r\n        startAction: (request) => {\r\n            if (!actionRunnerService) throw new Error('Action runner is not available');\r\n\r\n            return actionRunnerService.start(request);\r\n        },\r\n        startUnattendedAction: (request) => {\r\n            if (!actionRunnerService) throw new Error('Action runner is not available');\r\n\r\n            return actionRunnerService.start(request, { interactive: false });\r\n        },\r\n    };\r\n\r\n    const codexRuntimeBridge = {\r\n        getCodexRateLimits: () => codexRuntimeService?.getSnapshot() ?? null,\r\n        onCodexRateLimits: (callback) => {\r\n            if (!codexRuntimeService) throw new Error('Codex runtime service is not available');\r\n\r\n            return codexRuntimeService.subscribe(callback);\r\n        },\r\n        onCodexUpdateRequired: (callback) => {\r\n            if (!codexRuntimeService) throw new Error('Codex runtime service is not available');\r\n\r\n            return codexRuntimeService.subscribeUpdateRequired(callback);\r\n        },\r\n        updateCodexCli: async () => {\r\n            if (!updateCodexCli) throw new Error('Codex CLI update is not available');\r\n\r\n            await updateCodexCli();\r\n        },\r\n    };\r\n\r\n    const claudeRuntimeBridge = {\r\n        getClaudeRateLimits: () => claudeRuntimeService?.getSnapshot() ?? null,\r\n        onClaudeRateLimits: (callback) => {\r\n            if (!claudeRuntimeService) throw new Error('Claude runtime service is not available');\r\n\r\n            return claudeRuntimeService.subscribe(callback);\r\n        },\r\n    };\r\n\r\n    const methods = { ...dataBridge, ...actionBridge, ...claudeRuntimeBridge, ...codexRuntimeBridge };\r\n\r\n    return {\r\n        actionBridge,\r\n        claudeRuntimeBridge,\r\n        codexRuntimeBridge,\r\n        dataBridge,\r\n        invoke: (method, params = []) => {\r\n            const handler = methods[method];\r\n            if (!handler) throw new Error(`Unknown remote-control method: ${method}`);\r\n            if (!Array.isArray(params)) throw new Error('Remote-control params must be an array');\r\n\r\n            return handler(...params);\r\n        },\r\n    };\r\n}\r\n\r\nmodule.exports = { createLocalBridgeDispatch };\r\n        key: 'desktop.editorCommand',\r\n        label: 'Editor command',\r\n        section: 'desktop',\r\n        source: 'desktop',\r\n        type: 'string',\r\n    },\r\n    {\r\n        defaultValue: DEFAULT_MERGE_CONFLICT_RESOLVER_COMMAND,\r\n        description: 'Command template used to resolve conflicted files. Required placeholder when configured: {{file}}. Optional placeholder: {{repository-folder}}. Leave empty to disable external resolver controls.',\r\n        editable: true,\r\n        key: 'desktop.mergeConflictResolverCommand',\r\n        label: 'Merge conflict resolver command',\r\n        section: 'desktop',\r\n        source: 'desktop',\r\n        type: 'string',\r\n    },\r\n    {\r\n        defaultValue: DEFAULT_REMOTE_CONTROL_PORT,\r\n        description: 'LAN port used to serve the web app and remote-control WebSocket.',\r\n        editable: true,\r\n        integer: true,\r\n        key: 'desktop.remoteControlPort',\r\n        label: 'Remote-control port',\r\n        max: 65535,\r\n        min: 1,\r\n        section: 'desktop',\r\n        source: 'desktop',\r\n        step: 1,\r\n        type: 'number',\r\n    },\r\n",
+          "durationMs": 84,
+          "exitCode": 0,
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-11",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw app\\\\src\\\\data\\\\remote_connect_string.ts; Get-Content -Raw app\\\\src\\\\data\\\\remote_control_connection.ts; Get-Content desktop\\\\src\\\\shell\\\\local_bridge_dispatch.js | Select-Object -Skip 620 -First 85; Get-Content app\\\\src\\\\services\\\\config\\\\config_entries.ts | Select-Object -Skip 330 -First 30\"",
+          "providerItemId": "exec-2ce15660-8414-4249-84ea-d92db929b204",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-09-18T18:23:36.533Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-12",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0673906b45dec4c6016aad81abf07487d2ba926862a73d85b6",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-18T18:23:42.936Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"DEFAULT_REMOTE_CONTROL_PORT\" app desktop shared'",
+          "content": "app\\src\\services\\config\\config_entries.ts:102:export const DEFAULT_REMOTE_CONTROL_PORT = 20877\napp\\src\\services\\config\\config_entries.ts:348:        defaultValue: DEFAULT_REMOTE_CONTROL_PORT,\n",
+          "durationMs": 25,
+          "exitCode": 0,
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-13",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"DEFAULT_REMOTE_CONTROL_PORT\" app desktop shared'",
+          "providerItemId": "exec-0b607f6e-93c3-48c0-b3c2-cc9217502b01",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-09-18T18:23:44.408Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-event-14",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0673906b45dec4c6016aad81b556a487d2b033de6be7687fae",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-18T18:23:50.933Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. An HTTPS tunnel can expose the app’s HTTP server temporarily; the tunnel handles HTTPS externally and forwards to local HTTP. The app already derives `wss://` automatically when loaded over HTTPS, so its WebSocket connection should work through a compatible tunnel.\n\nFor the quickest test:\n\n```powershell\ncloudflared tunnel --url http://127.0.0.1:20877\n```\n\nCloudflare prints a temporary `https://…trycloudflare.com` address. Keep that process running and press `Ctrl+C` to close the tunnel. No router configuration or port forwarding is required. [Cloudflare Quick Tunnels](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/)\n\nImportant warning: the app’s remote-control server currently has no authentication or authorization. It exposes powerful operations such as reading/writing project data and starting agents. A Quick Tunnel makes it accessible to anyone who obtains the URL, so I would only use that briefly with non-sensitive projects.\n\nFor personal access from your own phone/laptop, my stronger recommendation is Tailscale Serve:\n\n```powershell\ntailscale serve 20877\n```\n\nThat provides HTTPS access only to authenticated devices in your Tailscale network, with access controls applied. [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve)\n\nAvoid router port-forwarding entirely. If you need to share access with another person who cannot join your Tailscale network, use a named Cloudflare Tunnel protected by Cloudflare Access rather than an anonymous Quick Tunnel.\n\n",
+          "id": "agent-turn-58575a6f-c6a3-4cb7-afe1-1ea77df3fd20-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 15,
+          "timestamp": "2026-09-18T18:23:57.845Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-8679436b-d7f8-4889-8224-05018292bdab",
+      "providerSessions": [],
+      "startedAt": "2026-09-18T18:23:01.713Z",
+      "status": "running",
+      "timer": {
+        "breakdown": {
+          "reasoningMs": 14665,
+          "toolMs": 3413
+        },
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-18T18:23:01.713Z"
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 230400,
+        "inputTokens": 39441,
+        "outputTokens": 951,
+        "reasoningTokens": 650,
+        "totalTokens": 271442
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -4025,11 +4251,11 @@
         "agent-93524d81-50bd-4229-affd-1cd7beee3423"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-df6f5e19-d9e1-4f2e-89ad-aebf0592b064",
       "origin": {
@@ -4037,9 +4263,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-93524d81-50bd-4229-affd-1cd7beee3423",
       "startedAt": "2026-09-17T15:19:06.781Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-93524d81-50bd-4229-affd-1cd7beee3423"
     }
   ],
   "version": 5
