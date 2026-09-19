@@ -1169,7 +1169,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "1d937bde-19d5-467d-ad73-67ef587493fe",
       "cardPath": "design/feature_descriptions/B_213_double_add_link_and_add_image_buttons.md",
-      "completedAt": null,
+      "completedAt": "2026-09-19T12:58:42.173Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 55426
@@ -1813,7 +1813,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 51,
-          "timestamp": "2026-09-19T12:57:57.308Z"
+          "timestamp": "2026-09-19T12:58:42.173Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1823,12 +1823,12 @@
           "agent": "claude",
           "conversationId": "b0af8c1b-431f-46c7-8807-7a1e1d6f3ba2",
           "createdAt": "2026-09-19T12:23:06.459Z",
-          "lastUsedAt": "2026-09-19T12:57:57.308Z",
+          "lastUsedAt": "2026-09-19T12:58:42.173Z",
           "synchronizedThroughMessageId": "agent-turn-76237667-0017-41ad-aee1-f0dc62bec01a-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-09-19T12:22:11.471Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 17512,
