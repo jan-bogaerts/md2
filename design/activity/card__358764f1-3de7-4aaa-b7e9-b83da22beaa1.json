@@ -6595,6 +6595,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
+      "cardPath": "design/feature_descriptions/F_349_pin_conversations.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "design/feature_descriptions/F_349_pin_conversations.md has been implemented incorrectly: instead of saving a boolean on every conversation, we need to store a separate list, at the level of the project, containing the conversation ids that are pinned. so we need to inverse the ownership of who is pinned: it is not the conversation that manages this, but the pin service. so we need to refactor the feature",
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-19T14:34:53.046Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-4c8894ee-6106-4636-9e9f-dbd1843e04dd",
+      "providerSessions": [],
+      "startedAt": "2026-09-19T14:34:53.046Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-19T14:34:53.046Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -6693,11 +6721,11 @@
         "agent-2573f749-240f-4721-a2c6-379eeff98d77"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-77362e99-6450-49c9-b7e8-2536ff223e84",
       "origin": {
@@ -6706,9 +6734,9 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-2573f749-240f-4721-a2c6-379eeff98d77",
       "startedAt": "2026-09-19T14:07:38.032Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-2573f749-240f-4721-a2c6-379eeff98d77"
     }
   ],
   "version": 5
