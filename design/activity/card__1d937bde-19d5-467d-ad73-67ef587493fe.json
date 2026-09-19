@@ -1510,16 +1510,24 @@
       ],
       "hasExplicitTitle": true,
       "id": "agent-d3e79e01-fd4c-41c5-acf6-e951ae904fac",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "b0af8c1b-431f-46c7-8807-7a1e1d6f3ba2",
+          "createdAt": "2026-09-19T12:23:06.459Z",
+          "lastUsedAt": "2026-09-19T12:23:06.459Z",
+          "synchronizedThroughMessageId": "agent-turn-76237667-0017-41ad-aee1-f0dc62bec01a-turn-1-assistant-1"
+        }
+      ],
       "startedAt": "2026-09-19T12:22:11.471Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 12920,
           "toolMs": 17944
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-19T12:22:11.471Z"
+        "elapsedMs": 54988,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
