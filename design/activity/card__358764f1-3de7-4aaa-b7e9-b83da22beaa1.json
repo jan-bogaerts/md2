@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
+      "cardPath": "design/feature_descriptions/F_349_pin_conversations.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_349_pin_conversations.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-893c3cba-e45a-4371-af9b-41eda9405606-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-19T12:56:50.054Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-c938879d-d18f-4eed-8c57-6f8fe5d4598f",
+      "providerSessions": [],
+      "startedAt": "2026-09-19T12:56:50.054Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-19T12:56:50.054Z"
+      },
+      "title": "complete",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
