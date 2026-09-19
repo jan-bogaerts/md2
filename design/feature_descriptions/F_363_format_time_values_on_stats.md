@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__b5b62998-1de2-4ebd-ba9c-9f6e68b2d180.json
 policy:
-branch: f_363_format_time_values_on_stats
-worktree: 2
 changedFiles:
   - app/src/services/stats/project_stats_service.node.test.ts
 ---
