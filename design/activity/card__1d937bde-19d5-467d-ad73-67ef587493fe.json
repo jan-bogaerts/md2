@@ -1823,19 +1823,19 @@
           "agent": "claude",
           "conversationId": "b0af8c1b-431f-46c7-8807-7a1e1d6f3ba2",
           "createdAt": "2026-09-19T12:23:06.459Z",
-          "lastUsedAt": "2026-09-19T12:23:06.459Z",
-          "synchronizedThroughMessageId": "agent-turn-76237667-0017-41ad-aee1-f0dc62bec01a-turn-1-assistant-1"
+          "lastUsedAt": "2026-09-19T12:57:57.308Z",
+          "synchronizedThroughMessageId": "agent-turn-76237667-0017-41ad-aee1-f0dc62bec01a-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-09-19T12:22:11.471Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 17512,
           "toolMs": 159335
         },
-        "elapsedMs": 54988,
-        "runningStartedAt": "2026-09-19T12:55:06.358Z"
+        "elapsedMs": 225938,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
