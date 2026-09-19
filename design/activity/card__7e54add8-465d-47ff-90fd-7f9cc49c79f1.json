@@ -503,6 +503,14 @@
           "role": "assistant",
           "sequence": 36,
           "timestamp": "2026-09-19T14:12:34.102Z"
+        },
+        {
+          "content": "all 6.",
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-user-36",
+          "kind": "message",
+          "role": "user",
+          "sequence": 37,
+          "timestamp": "2026-09-19T14:14:13.558Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -517,14 +525,14 @@
         }
       ],
       "startedAt": "2026-09-19T14:11:02.822Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 22437,
           "toolMs": 1279
         },
         "elapsedMs": 91280,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-19T14:14:13.558Z"
       },
       "title": "complete",
       "usage": {
@@ -535,7 +543,7 @@
         "totalTokens": 487856
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
