@@ -23,7 +23,7 @@ import {
 } from './stats_duration_components';
 import { modelIdentity } from './stats_identities';
 import { bucketContexts, bucketDomain, inRange, indexByBucket, type StatsBucketContext } from './stats_time_buckets';
-import { accessibleStatsTooltip, formatBucketRange, formatCount, statsTooltip, type StatsTooltipLine } from './stats_tooltip';
+import { accessibleStatsTooltip, formatBucketRange, formatCount, formatDurationHms, statsTooltip, type StatsTooltipLine } from './stats_tooltip';
 
 export interface EligibleSample {
     actionId: string;
@@ -121,7 +121,7 @@ function aggregationLabel(aggregation: StatsPerformanceAggregation, metric: Stat
 }
 
 function formattedMetricValue(value: number, unit: StatsUnit) {
-    if (unit === 'milliseconds') return `${formatCount(value / 1_000)} seconds`;
+    if (unit === 'milliseconds') return formatDurationHms(value);
 
     return `${formatCount(value)} ${unit === 'toolCalls' ? 'tool calls' : unit}`;
 }

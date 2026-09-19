@@ -444,6 +444,31 @@ describe('StatsBarChart', () => {
         expect(screen.getByText(formatTokenCount(428913))).toBeInTheDocument();
     });
 
+    it('labels a duration bar in HH:MM:SS and leaves token bars alone', () => {
+        renderChart(<StatsBarChart mode="grouped" rows={[
+            row({ identity: 'run', metric: 'duration', seriesIdentity: 'run', unit: 'milliseconds', value: 5_400_000 }),
+            row({ identity: 'brief', seriesIdentity: 'brief', unit: 'milliseconds', value: 900 }),
+            row({ identity: 'gone', available: false, seriesIdentity: 'gone', unit: 'milliseconds', value: 5_400_000 }),
+            row({ identity: 'tokens', seriesIdentity: 'tokens', value: 4_000 }),
+        ]} />);
+
+        expect(screen.getByText('01:30:00')).toBeInTheDocument();
+        // Sub-second durations floor to zero: one rule for every duration surface.
+        expect(screen.getByText('00:00:00')).toBeInTheDocument();
+        expect(screen.getByText('Unavailable')).toBeInTheDocument();
+        expect(screen.getByText(new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(4_000))).toBeInTheDocument();
+    });
+
+    it('labels a stacked duration total in HH:MM:SS instead of a grouped number', () => {
+        renderChart(<StatsBarChart mode="stacked" rows={[
+            row({ identity: 'a', seriesIdentity: 'a', stackIdentity: 'stack', unit: 'milliseconds', value: 3_600_000 }),
+            row({ identity: 'b', seriesIdentity: 'b', stackIdentity: 'stack', unit: 'milliseconds', value: 1_800_000 }),
+        ]} />);
+
+        expect(screen.getByText('01:30:00')).toBeInTheDocument();
+        expect(screen.queryByText(new Intl.NumberFormat().format(5_400_000))).not.toBeInTheDocument();
+    });
+
     it('keeps agent colors stable across value-only rerenders', () => {
         const theme = createAppTheme('light');
         const rows = [agentRow('claude'), agentRow('codex')];

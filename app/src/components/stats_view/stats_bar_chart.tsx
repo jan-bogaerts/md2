@@ -1,6 +1,7 @@
 import { Box, Stack, Tooltip, Typography, useTheme } from '@mui/material';
 import { useContext, useMemo } from 'react';
 import type { StatsChartRow, StatsUnit } from '../../services/stats/project_stats_types';
+import { formatDurationHms } from '../../services/stats/stats_tooltip';
 import { formatTokenCount } from '../agents/token_count_format';
 import { StatsSeriesColorsContext } from './stats_series_colors_context';
 import { assignSeriesColorsFromKeys, seriesColorInputs, seriesColorKey, type StatsSeriesPalettes } from './stats_series_colors';
@@ -43,9 +44,7 @@ function abbreviatesTokens(unit: StatsUnit, shortTokenCounts: boolean) {
 function formattedValue(row: StatsChartRow, shortTokenCounts: boolean) {
     if (!row.available) return 'Unavailable';
     if (abbreviatesTokens(row.unit, shortTokenCounts)) return formatTokenCount(row.value);
-    if (row.unit === 'milliseconds') {
-        return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(row.value / 1_000)} seconds`;
-    }
+    if (row.unit === 'milliseconds') return formatDurationHms(row.value);
     if (row.unit === 'percent') {
         return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(row.value)}%`;
     }
@@ -54,6 +53,14 @@ function formattedValue(row: StatsChartRow, shortTokenCounts: boolean) {
     }
 
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(row.value);
+}
+
+/** Stacked bars label their full height; duration stacks read HH:MM:SS like their individual rows. */
+function stackTotalLabel(bar: BarRows, total: number, shortTokenCounts: boolean) {
+    if (abbreviatesTokens(bar.rows[0].unit, shortTokenCounts)) return formatTokenCount(total);
+    if (bar.rows[0].unit === 'milliseconds') return formatDurationHms(total);
+
+    return new Intl.NumberFormat().format(total);
 }
 
 function bucketRows(rows: StatsChartRow[]) {
@@ -226,9 +233,7 @@ export function StatsBarChart({ ariaLabel = 'Stats bar chart', mode = 'single', 
                                 >
                                     {bars.map((bar) => {
                                         const total = barTotal(bar);
-                                        const totalLabel = abbreviatesTokens(bar.rows[0].unit, shortTokenCounts)
-                                            ? formatTokenCount(total)
-                                            : new Intl.NumberFormat().format(total);
+                                        const totalLabel = stackTotalLabel(bar, total, shortTokenCounts);
                                         const stacked = mode === 'stacked' || mode === 'groupedStacked';
                                         const barMagnitude = scaledPosition(total, maximum, domainPercentage);
 

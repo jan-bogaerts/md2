@@ -727,7 +727,7 @@ describe('ProjectStatsService aggregation', () => {
     })
 
     it('aggregates performance runs and filters selected actions', async () => {
-        const elapsedValues = [100, 200, 300, 500]
+        const elapsedValues = [100_000, 200_000, 300_000, 500_000]
         const conversations = elapsedValues.map((elapsedMs, index) => conversation({
             actionId: index < 2 ? 'review' : 'test',
             id: `conversation-${index}`,
@@ -742,26 +742,26 @@ describe('ProjectStatsService aggregation', () => {
         await openService(service, storage({'design/activity/card__card-1.json': activityContent({ conversations, records })}))
         service.setControls({ dataset: 'agentPerformance' })
 
-        expect(service.getSnapshot().rows[3]).toMatchObject({aggregation: 'average', deviation: null, sampleCount: 4, value: 275})
-        expect(service.getSnapshot().rows.reduce((total, row) => total + row.value, 0)).toBe(275)
+        expect(service.getSnapshot().rows[3]).toMatchObject({aggregation: 'average', deviation: null, sampleCount: 4, value: 275_000})
+        expect(service.getSnapshot().rows.reduce((total, row) => total + row.value, 0)).toBe(275_000)
 
         service.setControls({ performanceAggregation: 'averageWithDeviation' })
-        expect(service.getSnapshot().rows[0].value).toBe(275)
-        expect(service.getSnapshot().rows[0].deviation).toBeCloseTo(Math.sqrt(21_875))
-        expect(service.getSnapshot().rows[0].tooltip).toMatch(/Average duration per run: 0[,.]28 seconds\nStd dev: 0[,.]15 seconds/u)
+        expect(service.getSnapshot().rows[0].value).toBe(275_000)
+        expect(service.getSnapshot().rows[0].deviation).toBeCloseTo(Math.sqrt(21_875_000_000))
+        expect(service.getSnapshot().rows[0].tooltip).toContain('Average duration per run: 00:04:35\nStd dev: 00:02:27')
 
         service.setControls({ performanceAggregation: 'sum' })
-        expect(service.getSnapshot().rows[3]).toMatchObject({ aggregation: 'sum', deviation: null, value: 1_100 })
+        expect(service.getSnapshot().rows[3]).toMatchObject({ aggregation: 'sum', deviation: null, value: 1_100_000 })
 
         // Median keeps one unsplit bar, because medians of the parts do not add up to the median total.
         service.setControls({ performanceAggregation: 'median' })
-        expect(service.getSnapshot().rows).toMatchObject([{ aggregation: 'median', deviation: null, value: 250 }])
+        expect(service.getSnapshot().rows).toMatchObject([{ aggregation: 'median', deviation: null, value: 250_000 }])
 
         service.setControls({ performanceActionIds: ['review'], performanceAggregation: 'average' })
-        expect(service.getSnapshot().rows[3]).toMatchObject({ sampleCount: 2, value: 150 })
+        expect(service.getSnapshot().rows[3]).toMatchObject({ sampleCount: 2, value: 150_000 })
 
         service.setControls({ performanceActionIds: [] })
-        expect(service.getSnapshot().rows[3]).toMatchObject({ sampleCount: 4, value: 275 })
+        expect(service.getSnapshot().rows[3]).toMatchObject({ sampleCount: 4, value: 275_000 })
     })
 
     it('reports running, waiting, missing timer, attribution, mixed, and nested exclusions', async () => {
