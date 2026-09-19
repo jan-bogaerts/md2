@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
       "cardPath": "design/feature_descriptions/F_349_pin_conversations.md",
-      "completedAt": "2026-09-19T12:59:45.863Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 86788
+        "usedTokens": 87172
       },
       "entries": [
         {
@@ -963,6 +963,36 @@
           "role": "assistant",
           "sequence": 68,
           "timestamp": "2026-09-19T12:59:45.863Z"
+        },
+        {
+          "content": "explain to me how you want to implement this. be short and to the point. I am mostly looking to see if you followed design guide lines",
+          "id": "agent-turn-66c0fcc4-f433-4d49-b39f-6af9f357909e-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 69,
+          "timestamp": "2026-09-19T13:03:28.540Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-66c0fcc4-f433-4d49-b39f-6af9f357909e-event-70",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0406ee3dad81cec2016aae88278ea487d28eb6cb1f01f56528",
+          "sequence": 70,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T13:03:36.461Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Implementation follows design rules:\n\n- Add `pinned: boolean` to canonical `AgentConversation`. Persist in activity JSON. Existing records migrate to `false`.\n- Backend performs atomic pin updates. Later agent checkpoints preserve stored pin value.\n- `AgentIntegration` owns pinned state. React owns no domain state.\n- Notify through granular `EventTarget` event keyed by conversation ID. UI subscribes with `useSyncExternalStore`.\n- Use `AgentConversation.id` as identity. Use path only for persistence and opening saved conversation.\n- Picker leaf component subscribes and renders pin button/markers. No state hoisted through layout components.\n- Separate `PinnedConversationsIndicator` component sits before `RunningAgentsIndicator`.\n- Reuse existing status-details surface and theme tokens. Icon controls get tooltip and `aria-label`; no raw colors.\n- Opening pinned card resolves current card through `cardInternalId`, then opens exact saved conversation. Rename/move remains safe.\n- Missing card/action and persistence failures go through `dialogService`; React render never throws.\n- Focused tests cover persistence, events, picker, status popup, cross-window updates, project reset, and historical opening.\n\n",
+          "id": "agent-turn-66c0fcc4-f433-4d49-b39f-6af9f357909e-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 71,
+          "timestamp": "2026-09-19T13:03:41.839Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -977,25 +1007,25 @@
         }
       ],
       "startedAt": "2026-09-19T12:56:50.054Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 41850,
+          "reasoningMs": 43945,
           "toolMs": 3571
         },
         "elapsedMs": 175809,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-19T13:03:28.540Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1112320,
-        "inputTokens": 78471,
-        "outputTokens": 3323,
-        "reasoningTokens": 1979,
-        "totalTokens": 1196093
+        "cachedInputTokens": 1198848,
+        "inputTokens": 78767,
+        "outputTokens": 3563,
+        "reasoningTokens": 2087,
+        "totalTokens": 1283265
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1022,11 +1052,11 @@
         "agent-c938879d-d18f-4eed-8c57-6f8fe5d4598f"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-ed84b583-1196-48d3-b365-07d781dbfa48",
       "origin": {
@@ -1035,9 +1065,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-c938879d-d18f-4eed-8c57-6f8fe5d4598f",
       "startedAt": "2026-09-19T12:56:50.050Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-c938879d-d18f-4eed-8c57-6f8fe5d4598f"
     }
   ],
   "version": 5
