@@ -19,6 +19,7 @@ changedFiles:
   - app/src/components/actions/conversation/action_conversation_chatlog_tracker.node.test.ts
   - app/src/components/actions/conversation/action_conversation_command_service.node.test.ts
   - app/src/components/actions/conversation/action_conversation_item_commands.test.tsx
+  - app/src/components/actions/conversation/action_conversation_link_navigation.node.test.ts
   - app/src/components/actions/conversation/action_conversation_picker.grouped.test.tsx
   - app/src/components/actions/conversation/action_conversation_picker.tsx
   - app/src/components/actions/conversation/action_conversation_picker_data.ts
@@ -46,6 +47,7 @@ changedFiles:
   - app/src/components/agents/agent_chat_fab.test.tsx
   - app/src/components/card_view/card_worktree_indicator.grouped.test.tsx
   - app/src/components/hooks/use_conversation_pinned.ts
+  - app/src/components/hooks/use_project_config.test.ts
   - app/src/components/shell/pinned_conversation_details_row.tsx
   - app/src/components/shell/pinned_conversations_details.tsx
   - app/src/components/shell/pinned_conversations_indicator.test.tsx
@@ -61,9 +63,15 @@ changedFiles:
   - app/src/services/agents/agent_integration.test.ts
   - app/src/services/agents/agent_integration.ts
   - app/src/services/agents/agent_usage.node.test.ts
+  - app/src/services/agents/conversation_pin_service.node.test.ts
+  - app/src/services/agents/conversation_pin_service.ts
   - app/src/services/agents/project_agent_token_usage_service.node.test.ts
   - app/src/services/card_popup_service.test.ts
   - app/src/services/card_popup_service.ts
+  - app/src/services/config/config_entries.ts
+  - app/src/services/config/config_service.service.test.ts
+  - app/src/services/config/config_service.ts
+  - app/src/services/data/data_service.ts
   - app/src/services/data/remote_control_storage_service.node.test.ts
   - app/src/services/data/remote_control_storage_service.ts
   - app/src/services/release_operations.service.test.ts
@@ -77,6 +85,8 @@ changedFiles:
   - desktop/src/actions/activity/conversation_pin_events.js
   - desktop/src/actions/agent/agent_conversation.js
   - desktop/src/actions/agent/agent_conversation.test.mjs
+  - desktop/src/project/project_files.js
+  - desktop/src/project/project_files.test.mjs
   - desktop/src/shell/local_bridge_dispatch.js
   - desktop/src/shell/local_bridge_dispatch.test.mjs
   - desktop/src/shell/preload.js
