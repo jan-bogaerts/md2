@@ -5704,7 +5704,7 @@
       "actionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
       "cardPath": "design/feature_descriptions/F_349_pin_conversations.md",
-      "completedAt": null,
+      "completedAt": "2026-09-19T14:34:52.607Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 102184
@@ -6561,7 +6561,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 62,
-          "timestamp": "2026-09-19T14:12:05.346Z"
+          "timestamp": "2026-09-19T14:34:52.607Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -6571,12 +6571,12 @@
           "agent": "codex",
           "conversationId": "01a0b9fe-811b-7ee1-bf9e-24e0020c0b0f",
           "createdAt": "2026-09-19T14:12:05.346Z",
-          "lastUsedAt": "2026-09-19T14:12:05.346Z",
+          "lastUsedAt": "2026-09-19T14:34:52.607Z",
           "synchronizedThroughMessageId": "agent-turn-76ac1140-9212-4e79-bb89-ac1479c390c0-turn-1-assistant-4"
         }
       ],
       "startedAt": "2026-09-19T14:07:38.034Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 111547,
@@ -6594,7 +6594,7 @@
         "totalTokens": 1339091
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
