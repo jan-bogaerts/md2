@@ -5707,7 +5707,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 173917
+        "usedTokens": 182489
       },
       "entries": [
         {
@@ -7511,6 +7511,127 @@
           "role": "assistant",
           "sequence": 132,
           "timestamp": "2026-09-19T15:31:57.650Z"
+        },
+        {
+          "content": "`conversationPath` no, not allowed, paths can change (release, archive,...). we need another way.",
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-user-132",
+          "kind": "message",
+          "role": "user",
+          "sequence": 133,
+          "timestamp": "2026-09-19T15:33:29.760Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-event-134",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0133a52aa743af07016aaeab4ca14c87d29c32c67b0ac6ef6f",
+          "sequence": 134,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T15:33:36.836Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-event-135",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0133a52aa743af07016aaeab5269ac87d2b250b19851a1ee15",
+          "sequence": 135,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T15:33:38.795Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The locator must be stable domain data, not a mutable filesystem path. I’m checking whether activity storage is already derivable from conversation ownership so the pin record can stay minimal.\n\n",
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-turn-4-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 136,
+          "timestamp": "2026-09-19T15:33:39.277Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 8 \\\"function resolveActivityPath|resolveActivityPath\\\\(\\\" desktop/src shared app/src -g '*.js' -g '*.mjs' -g '*.ts'; rg -n \\\"conversationActivityReference|card__|project__|project.json\\\" desktop/src/actions/activity shared -g '*.js' -g '*.mjs'\"",
+          "content": "",
+          "durationMs": 16,
+          "exitCode": 0,
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-event-137",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 8 \\\"function resolveActivityPath|resolveActivityPath\\\\(\\\" desktop/src shared app/src -g '*.js' -g '*.mjs' -g '*.ts'; rg -n \\\"conversationActivityReference|card__|project__|project.json\\\" desktop/src/actions/activity shared -g '*.js' -g '*.mjs'\"",
+          "providerItemId": "exec-859d688e-55da-4c89-965a-3ebc8bbbca4d",
+          "sequence": 137,
+          "status": "completed",
+          "timestamp": "2026-09-19T15:33:41.332Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-event-138",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0133a52aa743af07016aaeab581e3087d280b12e35d0487214",
+          "sequence": 138,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T15:33:43.870Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$file='\"'desktop/src/actions/activity/activity_files.test.mjs'; \"'$lines=Get-Content $file; for($number=690;$number -le 735;$number++){ '\"'{0,5}: {1}' -f \"'$number,$lines[$number-1] }; Get-Content -Raw '\"'shared/activity_paths.mjs'\"",
+          "content": "const ACTIVITY_ID_PATTERN = /^[a-zA-Z0-9._-]+$/u\n\nfunction normalizeFolderPath(folderPath) {\n    return folderPath.replace(/\\\\/gu, '/').replace(/^\\/+|\\/+$/gu, '')\n}\n\nfunction requireActivityId(value, fieldName) {\n    if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing ${fieldName}`)\n    if (!ACTIVITY_ID_PATTERN.test(value) || value === '.' || value === '..') throw new Error(`Invalid ${fieldName}: ${value}`)\n\n    return value\n}\n\nexport function projectActivityFolder(projectFolder) {\n    if (typeof projectFolder !== 'string') throw new Error('Missing projectFolder')\n    const normalizedProjectFolder = normalizeFolderPath(projectFolder)\n\n    return normalizedProjectFolder.length > 0 ? `${normalizedProjectFolder}/activity` : 'activity'\n}\n\nexport function cardActivityFileName(cardInternalId) {\n    return `card__${requireActivityId(cardInternalId, 'cardInternalId')}.json`\n}\n\nexport function projectActivityFileName() {\n    return 'project.json'\n}\n\nexport function activityFilePath(projectFolder, origin) {\n    if (!origin || typeof origin !== 'object') throw new Error('Missing activity origin')\n    const fileName = origin.kind === 'card'\n        ? cardActivityFileName(origin.cardInternalId)\n        : origin.kind === 'project' ? projectActivityFileName() : null\n    if (!fileName) throw new Error(`Invalid activity origin kind: ${String(origin.kind)}`)\n\n    return `${projectActivityFolder(projectFolder)}/${fileName}`\n}\n\n/** Derive canonical activity ownership from a recognized activity filename. */\nexport function activityOriginFromPath(activityPath) {\n    if (typeof activityPath !== 'string' || activityPath.length === 0) return null\n    const fileName = activityPath.replace(/\\\\/gu, '/').split('/').pop()\n    if (fileName === projectActivityFileName()) return { kind: 'project' }\n    const match = /^card__(.+)\\.json$/u.exec(fileName ?? '')\n    if (!match || !ACTIVITY_ID_PATTERN.test(match[1]) || match[1] === '.' || match[1] === '..') return null\n\n    return { cardInternalId: match[1], kind: 'card' }\n}\n\nexport function conversationActivityReference(activityPath, conversationId) {\n    if (typeof activityPath !== 'string' || activityPath.length === 0) throw new Error('Missing activity path')\n    const id = requireActivityId(conversationId, 'conversationId')\n\n    return `${activityPath}#conversation=${id}`\n}\n\nexport function parseConversationActivityReference(reference) {\n    if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing conversation activity reference')\n    const marker = '#conversation='\n    const markerIndex = reference.lastIndexOf(marker)\n    if (markerIndex <= 0) throw new Error(`Invalid conversation activity reference: ${reference}`)\n    const activityPath = reference.slice(0, markerIndex)\n    const conversationId = requireActivityId(reference.slice(markerIndex + marker.length), 'conversationId')\n\n    return { activityPath, conversationId }\n}\n\r\n",
+          "durationMs": 14,
+          "exitCode": 0,
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-event-139",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$file='\"'desktop/src/actions/activity/activity_files.test.mjs'; \"'$lines=Get-Content $file; for($number=690;$number -le 735;$number++){ '\"'{0,5}: {1}' -f \"'$number,$lines[$number-1] }; Get-Content -Raw '\"'shared/activity_paths.mjs'\"",
+          "providerItemId": "exec-bee42a63-dc33-4518-a01e-6a22eb22863b",
+          "sequence": 139,
+          "status": "completed",
+          "timestamp": "2026-09-19T15:33:46.450Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-event-140",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0133a52aa743af07016aaeab5d5d4c87d2a8ba239c50985bf3",
+          "sequence": 140,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T15:33:57.645Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-event-141",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0133a52aa743af07016aaeab673ad087d2bb92caecc12d9663",
+          "sequence": 141,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T15:34:03.681Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Correct. Do not persist paths.\n\nStore stable ownership with each pin:\n\n```ts\ntype PinnedConversationReference = {\n    conversationId: string;\n    origin:\n        | { kind: 'project' }\n        | { kind: 'card'; cardInternalId: string };\n};\n```\n\nResolution when popup opens:\n\n- Project origin resolves through the current project activity location.\n- Card origin resolves the current card by `cardInternalId`.\n- The card’s current `agentLogReferences` provide current persistence locations, including moves or archives.\n- Load only those activity files, then select matching conversation IDs.\n- Group pins by owner so one activity file is loaded once.\n\nThus paths remain transient persistence references and never enter pin state.\n\nOne limitation remains: if the card has been deleted, no current card exists to provide activity references. To keep that pin visible as unavailable after a cold reload, store a small immutable display snapshot with the pin, such as title, start time, and action ID. That snapshot is fallback display data, not conversation state or identity.\n\nThe persisted structure should therefore use stable conversation and owner identities, with optional fallback display metadata—not paths.\n\n",
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-turn-4-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 142,
+          "timestamp": "2026-09-19T15:34:07.813Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -7520,27 +7641,27 @@
           "agent": "codex",
           "conversationId": "01a0b9fe-811b-7ee1-bf9e-24e0020c0b0f",
           "createdAt": "2026-09-19T14:12:05.346Z",
-          "lastUsedAt": "2026-09-19T15:29:43.024Z",
-          "synchronizedThroughMessageId": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-turn-2-assistant-1"
+          "lastUsedAt": "2026-09-19T15:31:57.650Z",
+          "synchronizedThroughMessageId": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-turn-3-assistant-1"
         }
       ],
       "startedAt": "2026-09-19T14:07:38.034Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 216775,
-          "toolMs": 112777
+          "reasoningMs": 241762,
+          "toolMs": 112809
         },
-        "elapsedMs": 558269,
-        "runningStartedAt": "2026-09-19T15:31:41.791Z"
+        "elapsedMs": 574128,
+        "runningStartedAt": "2026-09-19T15:33:29.760Z"
       },
       "title": "review",
       "usage": {
-        "cachedInputTokens": 4899712,
-        "inputTokens": 258522,
-        "outputTokens": 9291,
-        "reasoningTokens": 9737,
-        "totalTokens": 5177262
+        "cachedInputTokens": 5426176,
+        "inputTokens": 267261,
+        "outputTokens": 9835,
+        "reasoningTokens": 11018,
+        "totalTokens": 5714290
       },
       "usageSchemaVersion": 1,
       "viewed": true
