@@ -1,6 +1,6 @@
 {
   "activePath": [
-    "15cbc9ca-d130-42b3-8c03-ff19e895d665"
+    "ade041f8-5ae0-498b-9c33-df4b25a87b72"
   ],
   "children": {
     "15cbc9ca-d130-42b3-8c03-ff19e895d665": {
@@ -37,6 +37,13 @@
       "id": "a1ff5b28-244b-4455-a5cd-20eb92556cc1",
       "label": "dependency",
       "path": "design/diagrams/dependency-20260905T171245503Z.json"
+    },
+    "ade041f8-5ae0-498b-9c33-df4b25a87b72": {
+      "actionId": "d24e878f-5914-4cf0-a8d5-f496927942a6",
+      "createdAt": "2026-09-19T13:14:25.317Z",
+      "id": "ade041f8-5ae0-498b-9c33-df4b25a87b72",
+      "label": "sequence",
+      "path": "design/diagrams/sequence-20260919T130727375Z.json"
     }
   },
   "roots": {
@@ -45,6 +52,9 @@
     ],
     "a7e1e1cd-c2d5-4b5e-8ea8-bb34cc058ad9": [
       "a1ff5b28-244b-4455-a5cd-20eb92556cc1"
+    ],
+    "d24e878f-5914-4cf0-a8d5-f496927942a6": [
+      "ade041f8-5ae0-498b-9c33-df4b25a87b72"
     ]
   },
   "version": 1
