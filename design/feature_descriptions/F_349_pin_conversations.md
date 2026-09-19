@@ -3,7 +3,7 @@ author:
 id: F_349
 internalId: 358764f1-3de7-4aaa-b7e9-b83da22beaa1
 title: pin conversations
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,77 @@ agents:
 policy:
 branch: f_349_pin_conversations
 worktree: 1
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
+  - app/src/components/actions/conversation/action_conversation_chat_integration.grouped.test.tsx
+  - app/src/components/actions/conversation/action_conversation_chat_selectors.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_chat_visibility.test.tsx
+  - app/src/components/actions/conversation/action_conversation_chatlog_tracker.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_command_service.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_item_commands.test.tsx
+  - app/src/components/actions/conversation/action_conversation_picker.grouped.test.tsx
+  - app/src/components/actions/conversation/action_conversation_picker.tsx
+  - app/src/components/actions/conversation/action_conversation_picker_data.ts
+  - app/src/components/actions/conversation/action_conversation_picker_option.tsx
+  - app/src/components/actions/conversation/action_conversation_picker_owner.tsx
+  - app/src/components/actions/conversation/action_conversation_pin_button.test.tsx
+  - app/src/components/actions/conversation/action_conversation_pin_button.tsx
+  - app/src/components/actions/conversation/action_conversation_rendering.test.tsx
+  - app/src/components/actions/conversation/action_conversation_store.node.test.ts
+  - app/src/components/actions/conversation/action_conversation_store.ts
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx
+  - app/src/components/actions/run/popup/action_popup_content.tsx
+  - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_runtime.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_runtime.ts
+  - app/src/components/actions/run/popup/action_popup_types.ts
+  - app/src/components/actions/run/popup/action_usage_summary.grouped.test.tsx
+  - app/src/components/actions/run/popup/action_usage_summary_data.node.test.ts
+  - app/src/components/actions/run/popup/action_usage_summary_owner.grouped.test.tsx
+  - app/src/components/actions/run/popup/card_action_popup_host_entry.test.tsx
+  - app/src/components/actions/run/popup/card_action_popup_host_entry.tsx
+  - app/src/components/actions/run/trigger/card_run_button.test.tsx
+  - app/src/components/agents/agent_chat_fab.test.tsx
+  - app/src/components/card_view/card_worktree_indicator.grouped.test.tsx
+  - app/src/components/hooks/use_conversation_pinned.ts
+  - app/src/components/shell/pinned_conversation_details_row.tsx
+  - app/src/components/shell/pinned_conversations_details.tsx
+  - app/src/components/shell/pinned_conversations_indicator.test.tsx
+  - app/src/components/shell/pinned_conversations_indicator.tsx
+  - app/src/components/shell/project_agent_usage_summary.test.tsx
+  - app/src/components/shell/running_agents_indicator.test.tsx
+  - app/src/components/shell/status_bar.tsx
+  - app/src/data/data_types.ts
+  - app/src/data/electron_action_bridge.ts
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/agents/agent_acknowledgement_service.node.test.ts
+  - app/src/services/agents/agent_conversation_service.node.test.ts
+  - app/src/services/agents/agent_integration.test.ts
+  - app/src/services/agents/agent_integration.ts
+  - app/src/services/agents/agent_usage.node.test.ts
+  - app/src/services/agents/project_agent_token_usage_service.node.test.ts
+  - app/src/services/card_popup_service.test.ts
+  - app/src/services/card_popup_service.ts
+  - app/src/services/data/remote_control_storage_service.node.test.ts
+  - app/src/services/data/remote_control_storage_service.ts
+  - app/src/services/release_operations.service.test.ts
+  - app/src/services/search/search_regexp_agent.node.test.ts
+  - app/src/services/stats/project_stats_schema.node.test.ts
+  - app/src/services/stats/project_stats_service.node.test.ts
+  - app/src/services/test_support/data_service_test_support.ts
+  - desktop/main.js
+  - desktop/src/actions/activity/activity_files.js
+  - desktop/src/actions/activity/activity_files.test.mjs
+  - desktop/src/actions/activity/conversation_pin_events.js
+  - desktop/src/actions/agent/agent_conversation.js
+  - desktop/src/actions/agent/agent_conversation.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
+  - shared/agent_conversations.mjs
 ---
 
 some conversations can remain valid for longer time. user should be able to find them fast. So user can 'pin a conversation: put a 'pin' / 'unpin' icon next to the 'conversation selector' at the top row of the action popup. Also, in the selection list, put a pin after all pinned conversations so the user can easily spot a pinned conversation in the list.
