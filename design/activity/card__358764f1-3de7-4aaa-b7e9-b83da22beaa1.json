@@ -6603,7 +6603,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 164471
+        "usedTokens": 171231
       },
       "entries": [
         {
@@ -8557,6 +8557,154 @@
           "role": "user",
           "sequence": 146,
           "timestamp": "2026-09-19T15:20:17.091Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-event-147",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_037b215828d596b2016aaea83c384087d28f67734bb915cd0c",
+          "sequence": 147,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T15:20:28.191Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll use the technical-writer skill to tighten the feature document around the implemented project-owned pin architecture and remove every residual conversation-owned design reference.\n\n",
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 148,
+          "timestamp": "2026-09-19T15:20:28.806Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents/skills/technical-writer/SKILL.md'; Get-Content -Raw 'design/feature_descriptions/F_349_pin_conversations.md'\"",
+          "content": "---\r\nname: technical-writer\r\ndescription: \"Use this agent when you need to create, improve, or maintain technical documentation including API references, user guides, SDK documentation, and getting-started guides.\"\r\ntools: Read, Write, Edit, Glob, Grep, WebFetch, WebSearch\r\nmodel: haiku\r\n---\r\n\r\nYou are a senior technical writer with expertise in creating comprehensive, user-friendly documentation. Your focus spans API references, user guides, tutorials, and technical content with emphasis on clarity, accuracy, and helping users succeed with technical products and services.\r\n\r\n\r\nWhen invoked:\r\n1. Query context manager for documentation needs and audience\r\n2. Review existing documentation, product features, and user feedback\r\n3. Analyze content gaps, clarity issues, and improvement opportunities\r\n4. Create documentation that empowers users and reduces support burden\r\n\r\nTechnical writing checklist:\r\n- Readability score > 60 achieved\r\n- Technical accuracy 100% verified\r\n- Examples provided comprehensively\r\n- Visuals included appropriately\r\n- Version controlled properly\r\n- Peer reviewed thoroughly\r\n- SEO optimized effectively\r\n- User feedback positive consistently\r\n\r\nDocumentation types:\r\n- Developer documentation\r\n- End-user guides\r\n- Administrator manuals\r\n- API references\r\n- SDK documentation\r\n- Integration guides\r\n- Best practices\r\n- Troubleshooting guides\r\n\r\nContent creation:\r\n- Information architecture\r\n- Content planning\r\n- Writing standards\r\n- Style consistency\r\n- Terminology management\r\n- Version control\r\n- Review processes\r\n- Publishing workflows\r\n\r\nAPI documentation:\r\n- Endpoint descriptions\r\n- Parameter documentation\r\n- Request/response examples\r\n- Authentication guides\r\n- Error references\r\n- Code samples\r\n- SDK guides\r\n- Integration tutorials\r\n\r\nUser guides:\r\n- Getting started\r\n- Feature documentation\r\n- Task-based guides\r\n- Troubleshooting\r\n- FAQs\r\n- Video tutorials\r\n- Quick references\r\n- Best practices\r\n\r\nWriting techniques:\r\n- Information architecture\r\n- Progressive disclosure\r\n- Task-based writing\r\n- Minimalist approach\r\n- Visual communication\r\n- Structured authoring\r\n- Single sourcing\r\n- Localization ready\r\n\r\nDocumentation tools:\r\n- Markdown mastery\r\n- Static site generators\r\n- API doc tools\r\n- Diagramming software\r\n- Screenshot tools\r\n- Version control\r\n- CI/CD integration\r\n- Analytics tracking\r\n\r\nContent standards:\r\n- Style guides\r\n- Writing principles\r\n- Formatting rules\r\n- Terminology consistency\r\n- Voice and tone\r\n- Accessibility standards\r\n- SEO guidelines\r\n- Legal compliance\r\n\r\nVisual communication:\r\n- Diagrams\r\n- Screenshots\r\n- Annotations\r\n- Flowcharts\r\n- Architecture diagrams\r\n- Infographics\r\n- Video content\r\n- Interactive elements\r\n\r\nReview processes:\r\n- Technical accuracy\r\n- Clarity checks\r\n- Completeness review\r\n- Consistency validation\r\n- Accessibility testing\r\n- User testing\r\n- Stakeholder approval\r\n- Continuous updates\r\n\r\nDocumentation automation:\r\n- API doc generation\r\n- Code snippet extraction\r\n- Changelog automation\r\n- Link checking\r\n- Build integration\r\n- Version synchronization\r\n- Translation workflows\r\n- Metrics tracking\r\n\r\n## Communication Protocol\r\n\r\n### Documentation Context Assessment\r\n\r\nInitialize technical writing by understanding documentation needs.\r\n\r\nDocumentation context query:\r\n```json\r\n{\r\n  \"requesting_agent\": \"technical-writer\",\r\n  \"request_type\": \"get_documentation_context\",\r\n  \"payload\": {\r\n    \"query\": \"Documentation context needed: product features, target audiences, existing docs, pain points, preferred formats, and success metrics.\"\r\n  }\r\n}\r\n```\r\n\r\n## Development Workflow\r\n\r\nExecute technical writing through systematic phases:\r\n\r\n### 1. Planning Phase\r\n\r\nUnderstand documentation requirements and audience.\r\n\r\nPlanning priorities:\r\n- Audience analysis\r\n- Content audit\r\n- Gap identification\r\n- Structure design\r\n- Tool selection\r\n- Timeline planning\r\n- Review process\r\n- Success metrics\r\n\r\nContent strategy:\r\n- Define objectives\r\n- Identify audiences\r\n- Map user journeys\r\n- Plan content types\r\n- Create outlines\r\n- Set standards\r\n- Establish workflows\r\n- Define\n[4597 characters omitted]\nils\n\n* Add `pinnedConversationIds: string[]` to project config and default a missing list to empty. Validate that entries are unique, non-empty conversation identities. Do not add pin state to `AgentConversation` or activity conversation JSON.\n* Add a dedicated conversation pin service that owns the current project's pinned identity list. It loads and resets the list with the project, persists changes before publishing them, and exposes aggregate and conversation-ID-scoped `EventTarget` subscriptions for `useSyncExternalStore`.\n* Add atomic `updateActionConversationPinned(conversationId, pinned)` storage and action-bridge APIs that update only the project config list. Publish the changed identity after the project write succeeds so local and remote windows converge without mutating conversation records.\n* Let `AgentIntegration` derive stable project-wide pinned conversation view data from the pin service. On first pinned-list request, load all current-project activity conversation references, including card- and project-origin records, and select them by `AgentConversation.id`; thereafter merge run updates with the service-owned identity list. Reset view data on project switch without taking ownership of pin state.\n* Put pin/unpin icon button directly after agent conversation picker. Disable it for `New conversation`; otherwise reflect displayed live or persisted conversation. Toggle through service, update only after backend success, and report failure through `dialogService`. Include tooltip and `aria-label`.\n* Keep the picker projection pin-agnostic and read marker state from the pin service by conversation identity. Append a pin icon to each pinned menu option without changing newest-first ordering or selection identity; paths remain persistence references, while `AgentConversation.id` remains conversation identity.\n* Add `PinnedConversationsIndicator` immediately before `RunningAgentsIndicator` in desktop status bar. Hide it when no conversations are pinned. Its button opens existing status-details surface with pinned conversations newest first; each row shows conversation title, start time, action label, and current card title when card-owned.\n* Add persisted-conversation opening to `CardPopupService`: resolve card ownership by `cardInternalId`, build context from current card data, select `actionId`, then initialize history selection from conversation path. Project-origin conversations use project context. If action or card no longer exists, keep row visible but unavailable and report reason through `dialogService` when selected.\n* Add parser/persistence, bridge/event, service projection, picker toggle/marker, status indicator, project reset, historical-open, missing-target, and error tests. Run affected app and desktop tests plus each subproject linter.\n\n## acceptance criteria\n\n* Selected persisted or live conversation can be pinned and unpinned from icon beside picker; `New conversation` cannot be pinned.\n* The project-level pinned identity list survives reload and project reopen. Later conversation checkpoints and changes from another window do not revert it, and activity conversation JSON contains no pin field.\n* Every pinned picker option shows pin marker; unpinned options do not. Existing newest-first order remains unchanged.\n* With at least one pinned conversation, status-bar pin appears immediately before running-agents control. With none, pin control is absent.\n* Status popup lists every pinned card- and project-origin conversation in current project, newest first, with enough action/card context to distinguish equal titles.\n* Selecting available row opens related action popup on exact conversation, including completed historical conversation with no live run.\n* Renamed or moved card still opens because ownership resolves through `cardInternalId`, not stored path. Missing card or action leaves row visible and produces clear error instead of opening wrong popup or throwing during render.\n* Pin write or load failure leaves last confirmed state intact and is reported through `dialogService`.\n\r\n",
+          "durationMs": 24,
+          "exitCode": 0,
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-event-149",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw '.agents/skills/technical-writer/SKILL.md'; Get-Content -Raw 'design/feature_descriptions/F_349_pin_conversations.md'\"",
+          "providerItemId": "exec-9ea252b7-6a08-473e-9a77-e20cb2c14cb8",
+          "sequence": 149,
+          "status": "completed",
+          "timestamp": "2026-09-19T15:20:30.920Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-event-150",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_037b215828d596b2016aaea8455fa087d28645f15dd90866c8",
+          "sequence": 150,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T15:20:41.561Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The technical-writer review found the remaining problem: the document still described a pre-implementation “Current state” and used contrastive language about the discarded model. I’m replacing that with a present-tense architecture and data-flow description that only documents the canonical project-owned design.\n\n",
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 151,
+          "timestamp": "2026-09-19T15:20:42.554Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\design\\feature_descriptions\\F_349_pin_conversations.md",
+          "deletions": 17,
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-event-152",
+          "insertions": 49,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-117029a3-3377-4a2c-a1b4-4f44f7d8d427",
+          "sequence": 152,
+          "status": "completed",
+          "timestamp": "2026-09-19T15:21:17.897Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-event-153",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_037b215828d596b2016aaea877de9c87d2b8a1ec5edbe8b9ff",
+          "sequence": 153,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T15:21:27.101Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_349_pin_conversations.md'; rg -n \\\"pinned: boolean|activity conversation JSON|original|instead|Do not add|without mutating|Current state|reference, pinned\\\" 'design/feature_descriptions/F_349_pin_conversations.md'; git diff --check -- 'design/feature_descriptions/F_349_pin_conversations.md'\"",
+          "content": "---\nauthor: \nid: F_349\ninternalId: 358764f1-3de7-4aaa-b7e9-b83da22beaa1\ntitle: pin conversations\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__358764f1-3de7-4aaa-b7e9-b83da22beaa1.json\npolicy:\nbranch: f_349_pin_conversations\nworktree: 1\n---\n\nSome conversations remain useful long after they finish. Pinning gives users a project-wide shortlist from which they can identify and reopen those conversations quickly. Pinning affects discoverability only; it does not change conversation lifetime or activity compaction.\n\n## User experience\n\n* A pin/unpin icon appears directly after the conversation picker in the action popup.\n* `New conversation` cannot be pinned.\n* Pinned entries in the conversation picker show a pin marker. Existing newest-first ordering remains unchanged.\n* When the project has pinned conversations, `PinnedConversationsIndicator` appears in the status bar immediately before `RunningAgentsIndicator`.\n* Selecting the indicator opens the existing status-details surface. It lists pinned conversations newest first with conversation title, start time, action label, and current card title for card-owned conversations.\n* Selecting an available row opens the related action popup with that exact persisted conversation selected.\n\n## Architecture\n\n### Ownership and persistence\n\n`ConversationPinService` is the single owner of pin state for the current project. Its canonical state is an ordered list of `AgentConversation.id` values.\n\nThe list is persisted as `pinnedConversationIds: string[]` in `md2.config.json`. A missing list loads as empty. Configuration parsing requires every entry to be a unique, non-empty string. The service resets from the loaded project configuration whenever the project changes.\n\n`AgentConversation.id` is the pin identity. Conversation paths remain persistence references used to load and open history; they are never used as pin identity.\n\n### Writes and cross-window synchronization\n\n`ConversationPinService.setPinned(conversationId, pinned)` calls the Electron action bridge. The backend serializes the project-config update, writes the complete updated ID list, and returns that confirmed list. The service publishes state only after the write succeeds, so a failed write leaves the last confirmed snapshot intact.\n\nAfter persistence, the backend emits `{ conversationId, pinned }` through `onActionConversationPinned`. Every attached window applies the event to its service-owned list. Aggregate and conversation-scoped `EventTarget` notifications support `useSyncExternalStore` subscriptions without republishing cards or conversation collections.\n\nProject-config drafts receive service-owned list changes as they occur. Saving an already-open settings draft therefore cannot restore an older pin list.\n\n### Pinned conversation projection\n\n`AgentIntegration` owns only the view projection used by the status popup. When that projection is first requested, it loads all current-project activity conversation references, including card- and project-origin conversations, and selects records whose `AgentConversation.id` occurs in `ConversationPinService`.\n\nThe projection is sorted by `startedAt`, newest first. Run updates refresh matching projected conversations, while pin-service events add or remove entries. Project changes clear the projection and its loaded candidates before the next project list is resolved.\n\n### UI subscriptions\n\nThe picker pin button and picker options subscribe to one conversation ID through `ConversationPinService`. The status indicator subscribes to the aggregate projected list from `AgentIntegration`. Subscriptions live in the smallest component that renders the changing value.\n\nThe pin button is disabled while its write is pending. Write and load failures are reported through `dialogService`.\n\n### Opening pinned history\n\n`CardPopupService` opens a pinned conversation by resolving its action and current context:\n\n* Card-owned conversations resolve the card through `cardInternalId`, build context from current card data, select `actionId`, and initialize history selection from the stored conversation path.\n* Project-owned conversations use project context and initialize the same persisted-history selection.\n* A renamed or moved card still resolves through `cardInternalId`.\n* Missing cards or actions leave the row visible but unavailable. Selecting it reports the reason through `dialogService`.\n\n## Verification\n\nCoverage includes project-config validation and persistence, pin-service state and events, bridge and cross-window synchronization, project reset, pinned projection, picker controls and markers, status indicator behavior, historical opening, missing targets, and write/load failures. Run the affected app and desktop tests and both subproject linters.\n\n## acceptance criteria\n\n* Selected persisted or live conversation can be pinned and unpinned from icon beside picker; `New conversation` cannot be pinned.\n* The project-level pinned identity list survives reload and project reopen.\n* Pin changes from another window appear without reloading the project.\n* Conversation updates do not change the project pin list.\n* Every pinned picker option shows pin marker; unpinned options do not. Existing newest-first order remains unchanged.\n* With at least one pinned conversation, status-bar pin appears immediately before running-agents control. With none, pin control is absent.\n* Status popup lists every pinned card- and project-origin conversation in current project, newest first, with enough action/card context to distinguish equal titles.\n* Selecting available row opens related action popup on exact conversation, including completed historical conversation with no live run.\n* Renamed or moved card still opens because ownership resolves through `cardInternalId`, not stored path. Missing card or action leaves row visible and produces clear error instead of opening wrong popup or throwing during render.\n* Pin write or load failure leaves last confirmed state intact and is reported through `dialogService`.\n\r\n80:* Renamed or moved card still opens because ownership resolves through `cardInternalId`, not stored path. Missing card or action leaves row visible and produces clear error instead of opening wrong popup or throwing during render.\n",
+          "durationMs": 95,
+          "exitCode": 0,
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-event-154",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design/feature_descriptions/F_349_pin_conversations.md'; rg -n \\\"pinned: boolean|activity conversation JSON|original|instead|Do not add|without mutating|Current state|reference, pinned\\\" 'design/feature_descriptions/F_349_pin_conversations.md'; git diff --check -- 'design/feature_descriptions/F_349_pin_conversations.md'\"",
+          "providerItemId": "exec-fde8e845-3efc-41d1-bd14-a5209589a1ed",
+          "sequence": 154,
+          "status": "completed",
+          "timestamp": "2026-09-19T15:21:30.385Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-event-155",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_037b215828d596b2016aaea88344a887d2a4226165308dcfd3",
+          "sequence": 155,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T15:21:40.539Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\design\\feature_descriptions\\F_349_pin_conversations.md",
+          "deletions": 1,
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-event-156",
+          "insertions": 1,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-4ff02ab1-f517-45d1-99f6-874b32183969",
+          "sequence": 156,
+          "status": "completed",
+          "timestamp": "2026-09-19T15:21:42.766Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-event-157",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_037b215828d596b2016aaea88d75cc87d28ca1272686c02f03",
+          "sequence": 157,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T15:21:48.448Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_349_pin_conversations.md](C:/Users/janbo/Documents/dev/md2_workers/dev1/design/feature_descriptions/F_349_pin_conversations.md).\n\nThe document now:\n\n- Describes only the project-owned `pinnedConversationIds` architecture.\n- Defines `ConversationPinService` as the canonical owner.\n- Documents persistence, cross-window events, projections, subscriptions, and history opening.\n- Removes the obsolete pre-implementation/current-state narrative and conversation-owned design references.\n- Updates acceptance criteria accordingly.\n\n",
+          "id": "agent-turn-3b4b8317-0c00-4c02-936c-8743a2286f7d-turn-2-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 158,
+          "timestamp": "2026-09-19T15:21:50.568Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -8574,19 +8722,19 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 202093,
-          "toolMs": 337641
+          "reasoningMs": 213477,
+          "toolMs": 339296
         },
         "elapsedMs": 1062934,
         "runningStartedAt": "2026-09-19T15:20:17.091Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 8199808,
-        "inputTokens": 164402,
-        "outputTokens": 22568,
-        "reasoningTokens": 8422,
-        "totalTokens": 8395200
+        "cachedInputTokens": 9039744,
+        "inputTokens": 167609,
+        "outputTokens": 24968,
+        "reasoningTokens": 9010,
+        "totalTokens": 9241331
       },
       "usageSchemaVersion": 1,
       "viewed": true
