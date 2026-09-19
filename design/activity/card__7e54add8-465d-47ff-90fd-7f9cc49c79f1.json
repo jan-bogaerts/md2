@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 69168
+        "usedTokens": 85099
       },
       "entries": [
         {
@@ -511,6 +511,220 @@
           "role": "user",
           "sequence": 37,
           "timestamp": "2026-09-19T14:14:13.558Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0aff8a99cd65bce0016aae98be200c87d2a2df26c9859dd102",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T14:14:30.710Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Scope clear: all six controls. Finalizing UI behavior against existing scale bounds, update paths, persistence, and test boundaries; then edit only feature markdown.\n\n",
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-09-19T14:14:31.817Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 12 \\\"DiagramFormatting|fontScalePercent|boxScalePercent|spacingScalePercent\\\" shared\\\\diagram_data.d.mts app\\\\src\\\\services\\\\diagrams\\\\diagram_view_service.test.ts app\\\\src\\\\services\\\\diagrams\\\\diagram_edit_session_service.test.ts\"",
+          "content": "app\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-120-}\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-121-\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-122-describe('DiagramEditSessionService', () => {\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-123-    it('tracks New formatting independently as scoped semantic changes', () => {\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-124-        const { service, sourceService } = createHarness()\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-125-        service.start()\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-126-        const sourceBefore = structuredClone(sourceService.getSourceSnapshot()?.diagram)\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-127-        const focalChanged = vi.fn()\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-128-        const connectionChanged = vi.fn()\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-129-        const fontScaleChanged = vi.fn()\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-130-        service.subscribeNodeRoleFormatting('focal', focalChanged)\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-131-        service.subscribeConnectionKindFormatting('connection', connectionChanged)\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts:132:        service.subscribeFormattingScale('fontScalePercent', fontScaleChanged)\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-133-\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-134-        service.setNodeRoleFormatting('focal', { font: { bold: true, color: '#112233' } })\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-135-        service.setConnectionKindFormatting('connection', { endMarker: 'open-arrow', line: { thickness: 3 } })\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts:136:        service.setFormattingScale('fontScalePercent', 110)\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-137-\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-138-        expect(service.getNodeRoleFormattingSnapshot('focal')).toEqual({ font: { bold: true, color: '#112233' } })\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-139-        expect(service.getConnectionKindFormattingSnapshot('connection')).toEqual({ endMarker: 'open-arrow', line: { thickness: 3 } })\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts:140:        expect(service.getFormattingScaleSnapshot('fontScalePercent')).toBe(110)\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-141-        expect(service.getDirtySnapshot()).toBe(true)\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-142-        expect(service.getChangeIdsSnapshot()).toEqual([\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-143-            'diagram:formatting:nodeRole:focal',\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-144-            'diagram:formatting:connectionKind:connection',\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts:145:            'diagram:formatting:scale:fontScalePercent',\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-146-        ])\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-147-        expect(focalChanged).toHaveBeenCalledOnce()\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-148-        expect(connectionChanged).toHaveBeenCalledOnce()\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-149-        expect(fontScaleChanged).toHaveBeenCalledOnce()\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-150-        expect(sourceService.getSourceSnapshot()?.diagram).toEqual(sourceBefore)\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-151-    })\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-152-\napp\\src\\services\\diagrams\\diagram_edit_session_service.test.ts-153-    it('clears a \n[5765 characters omitted]\npp\\src\\services\\diagrams\\diagram_view_service.test.ts-78-describe('DiagramViewService', () => {\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-79-    it('formats Current in place and schedules canonical content for captured active path', async () => {\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-80-        const { run, scheduleCommit, service } = createHarness()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-81-        const boxScaleChanged = vi.fn()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-82-        const roleChanged = vi.fn()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-83-        await service.open()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-84-        run(completedEvent())\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-85-        await vi.waitFor(() => expect(service.getSourceSnapshot()?.record.id).toBe('root-1'))\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-86-        scheduleCommit.mockClear()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-87-        const sourceBefore = service.getSourceSnapshot()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-88-        service.subscribeNodeRoleFormatting('focal', roleChanged)\napp\\src\\services\\diagrams\\diagram_view_service.test.ts:89:        service.subscribeFormattingScale('boxScalePercent', boxScaleChanged)\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-90-\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-91-        service.setNodeRoleFormatting('focal', { box: { fillColor: '#112233' } })\napp\\src\\services\\diagrams\\diagram_view_service.test.ts:92:        service.setFormattingScale('fontScalePercent', 110)\napp\\src\\services\\diagrams\\diagram_view_service.test.ts:93:        service.setFormattingScale('boxScalePercent', 120)\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-94-\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-95-        expect(service.getSourceSnapshot()).toBe(sourceBefore)\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-96-        expect(service.getNodeRoleFormattingSnapshot('focal')).toEqual({ box: { fillColor: '#112233' } })\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-97-        expect(roleChanged).toHaveBeenCalledOnce()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-98-        expect(boxScaleChanged).toHaveBeenCalledOnce()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-99-        expect(scheduleCommit).toHaveBeenCalledTimes(3)\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-100-        expect(scheduleCommit.mock.calls[0][0].path).toBe('design/diagrams/overview.json')\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-101-        expect(JSON.parse(scheduleCommit.mock.calls[2][0].content).formatting).toEqual({\napp\\src\\services\\diagrams\\diagram_view_service.test.ts:102:            boxScalePercent: 120,\napp\\src\\services\\diagrams\\diagram_view_service.test.ts:103:            fontScalePercent: 110,\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-104-            nodeRoles: { focal: { box: { fillColor: '#112233' } } },\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-105-        })\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-106-    })\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-107-\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-108-    it('ignores completed regular actions in diagram context', async () => {\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-109-        const { reportError, run, scheduleCommit, service } = createHarness()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-110-        await service.open()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-111-\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-112-        run(completedEvent({ output: null }))\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-113-        await Promise.resolve()\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-114-\napp\\src\\services\\diagrams\\diagram_view_service.test.ts-115-        expect(scheduleCommit).not.toHaveBeenCalled()\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-40",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 12 \\\"DiagramFormatting|fontScalePercent|boxScalePercent|spacingScalePercent\\\" shared\\\\diagram_data.d.mts app\\\\src\\\\services\\\\diagrams\\\\diagram_view_service.test.ts app\\\\src\\\\services\\\\diagrams\\\\diagram_edit_session_service.test.ts\"",
+          "providerItemId": "exec-0fb608fc-7f35-459f-bba8-55d7890e42d5",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-09-19T14:14:38.225Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 20 \\\"scheduleCurrentFormatting|finishFormattingChange\\\" app\\\\src\\\\services\\\\diagrams\\\\diagram_view_service.ts app\\\\src\\\\services\\\\diagrams\\\\diagram_edit_session_service.ts\"",
+          "content": "app\\src\\services\\diagrams\\diagram_view_service.ts-655-        this.requireReady()\napp\\src\\services\\diagrams\\diagram_view_service.ts-656-        if (!Number.isInteger(index) || index < 0 || index >= this.snapshot.index.activePath.length) {\napp\\src\\services\\diagrams\\diagram_view_service.ts-657-            throw new Error(`Invalid diagram breadcrumb index: ${index}`)\napp\\src\\services\\diagrams\\diagram_view_service.ts-658-        }\napp\\src\\services\\diagrams\\diagram_view_service.ts-659-        await this.applyActivePath(this.snapshot.index.activePath.slice(0, index + 1))\napp\\src\\services\\diagrams\\diagram_view_service.ts-660-    }\napp\\src\\services\\diagrams\\diagram_view_service.ts-661-\napp\\src\\services\\diagrams\\diagram_view_service.ts-662-    async navigateBack() {\napp\\src\\services\\diagrams\\diagram_view_service.ts-663-        this.requireReady()\napp\\src\\services\\diagrams\\diagram_view_service.ts-664-        if (this.snapshot.index.activePath.length <= 1) return\napp\\src\\services\\diagrams\\diagram_view_service.ts-665-        await this.applyActivePath(this.snapshot.index.activePath.slice(0, -1))\napp\\src\\services\\diagrams\\diagram_view_service.ts-666-    }\napp\\src\\services\\diagrams\\diagram_view_service.ts-667-\napp\\src\\services\\diagrams\\diagram_view_service.ts-668-    setFormattingScale(field: DiagramScaleField, value: number) {\napp\\src\\services\\diagrams\\diagram_view_service.ts-669-        const source = this.requireFormattingSource()\napp\\src\\services\\diagrams\\diagram_view_service.ts-670-        source.diagram.formatting = withDiagramScale(source.diagram, field, value)\napp\\src\\services\\diagrams\\diagram_view_service.ts-671-        if (field === 'boxScalePercent' || field === 'spacingScalePercent') {\napp\\src\\services\\diagrams\\diagram_view_service.ts-672-            this.setCurrentDiagram(layout(source.diagram))\napp\\src\\services\\diagrams\\diagram_view_service.ts-673-        }\napp\\src\\services\\diagrams\\diagram_view_service.ts-674-        this.dispatchEvent(new Event(formattingScaleChangedEvent(field)))\napp\\src\\services\\diagrams\\diagram_view_service.ts:675:        this.scheduleCurrentFormatting(source)\napp\\src\\services\\diagrams\\diagram_view_service.ts-676-    }\napp\\src\\services\\diagrams\\diagram_view_service.ts-677-\napp\\src\\services\\diagrams\\diagram_view_service.ts-678-    setNodeRoleFormatting(role: DiagramRole, value: DiagramNodeRoleFormatting) {\napp\\src\\services\\diagrams\\diagram_view_service.ts-679-        const source = this.requireFormattingSource()\napp\\src\\services\\diagrams\\diagram_view_service.ts-680-        source.diagram.formatting = withNodeRoleFormatting(source.diagram, role, value)\napp\\src\\services\\diagrams\\diagram_view_service.ts-681-        this.dispatchEvent(new Event(formattingCategoryChangedEvent('nodeRole', role)))\napp\\src\\services\\diagrams\\diagram_view_service.ts:682:        this.scheduleCurrentFormatting(source)\napp\\src\\services\\diagrams\\diagram_view_service.ts-683-    }\napp\\src\\services\\diagrams\\diagram_view_service.ts-684-\napp\\src\\services\\diagrams\\diagram_view_service.ts-685-    setConnectionKindFormatting(kind: DiagramEdgeKind, value: DiagramConnectionKindFormatting) {\napp\\src\\services\\diagrams\\diagram_view_service.ts-686-        const source = this.requireFormattingSource()\napp\\src\\services\\diagrams\\diagram_view_service.ts-687-        source.diagram.formatting = withConnectionKindFormatting(source.diagram, kind, value)\napp\\src\\services\\diagrams\\diagram_view_service.ts-688-        this.dispatchEvent(new Event(formattingCategoryChangedEvent('connectionKind', kind)))\napp\\src\\services\\diagrams\\diagram_view_service.ts:689:        this.scheduleCurrentFormatting(source)\napp\\src\\services\\diagrams\\diagram_view_service.ts-690-    }\napp\\src\\services\\diagrams\\diagram_view_service.ts-691-\napp\\src\\services\\diagrams\\diagram_view_service.ts-692-    /** Persists canonical edited data and its record in one shared commit batch. */\napp\\src\\services\\diagrams\\diagram_view_service.ts-693-    async saveEditedDiagramCopy(request: SaveEditedDiagramCopyRequest) {\napp\\src\\services\\diagrams\\diagram_view_service.ts-694-        const \n[13289 characters omitted]\nn_service.ts-2598-        value: unknown,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2599-    ) {\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2600-        const change: DiagramChange = {\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2601-            category: 'field',\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2602-            field,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2603-            id: changeId,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2604-            objectId,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2605-            objectKind,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2606-            originalValue,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2607-            ownerId: null,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2608-            regionIndex: null,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2609-            value,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2610-        }\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2611-        this.setChange(change, ownerKey, Object.is(originalValue, value))\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2612-        this.commitTransaction([])\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2613-        const detail = { field, objectId, objectKind, previousValue, value }\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2614-        this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(changeId, { detail }))\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2615-    }\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2616-\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts:2617:    private finishFormattingChange(\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2618-        changeId: string,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2619-        objectId: string,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2620-        field: string,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2621-        originalValue: unknown,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2622-        previousValue: unknown,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2623-        value: unknown,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2624-    ) {\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2625-        const change: DiagramChange = {\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2626-            category: 'field', field, id: changeId, objectId, objectKind: 'formatting',\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2627-            originalValue, ownerId: null, regionIndex: null, value,\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2628-        }\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2629-        this.setChange(change, `formatting:${objectId}:${field}`, sameFormattingValue(originalValue, value))\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2630-        this.commitTransaction([])\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2631-        const detail = { field, objectId, objectKind: 'formatting' as const, previousValue, value }\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2632-        this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(changeId, { detail }))\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2633-    }\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2634-\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2635-    /** Republishes only the legend key-list view, then dispatches one legend membership event. */\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2636-    private finishLegendMembershipChange(addedKeys: readonly string[], removedKeys: readonly string[]) {\napp\\src\\services\\diagrams\\diagram_edit_session_service.ts-2637-        const diagram = this.requireEditableDiagram()\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-41",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 20 \\\"scheduleCurrentFormatting|finishFormattingChange\\\" app\\\\src\\\\services\\\\diagrams\\\\diagram_view_service.ts app\\\\src\\\\services\\\\diagrams\\\\diagram_edit_session_service.ts\"",
+          "providerItemId": "exec-99abc5ef-f620-43b5-acdd-73032e093412",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-09-19T14:14:38.224Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\diagram_view\\\\diagram_comparison_menu_control.tsx'; Get-Content -Raw 'app\\\\src\\\\components\\\\diagram_view\\\\diagram_comparison_menu_control.test.tsx'\"",
+          "content": "import { ToggleButton, ToggleButtonGroup, Tooltip, useMediaQuery, useTheme } from '@mui/material';\nimport ViewColumnOutlined from '@mui/icons-material/ViewColumnOutlined';\nimport ViewStreamOutlined from '@mui/icons-material/ViewStreamOutlined';\nimport TabOutlined from '@mui/icons-material/TabOutlined';\nimport { useCallback, useSyncExternalStore, type ReactNode, type SyntheticEvent } from 'react';\nimport {\n    diagramComparisonLayoutService,\n    type DiagramComparisonLayoutService,\n    type DiagramComparisonMode,\n} from './diagram_comparison_layout_service';\n\nconst MODE_ICONS: Record<DiagramComparisonMode, ReactNode> = {\n    horizontal: <ViewStreamOutlined fontSize=\"small\" />,\n    tabbed: <TabOutlined fontSize=\"small\" />,\n    vertical: <ViewColumnOutlined fontSize=\"small\" />,\n};\nconst MODES: readonly { label: string, value: DiagramComparisonMode }[] = [\n    { label: 'Vertical', value: 'vertical' },\n    { label: 'Horizontal', value: 'horizontal' },\n    { label: 'Tabbed', value: 'tabbed' },\n];\n\n/** Comparison-layout selector bound only to layout service state. */\nexport function DiagramComparisonMenuControl({ layoutService = diagramComparisonLayoutService }: {\n    layoutService?: DiagramComparisonLayoutService;\n}) {\n    const theme = useTheme();\n    const isMobile = useMediaQuery(theme.breakpoints.down('md'));\n    const comparisonMode = useSyncExternalStore(\n        layoutService.subscribeComparisonMode,\n        layoutService.getComparisonModeSnapshot,\n        layoutService.getComparisonModeSnapshot,\n    );\n    const renderedMode = isMobile ? 'tabbed' : comparisonMode;\n    const handleChange = useCallback((_event: SyntheticEvent, mode: DiagramComparisonMode | null) => {\n        if (mode) layoutService.setComparisonMode(mode);\n    }, [layoutService]);\n\n    return (\n        <ToggleButtonGroup aria-label=\"Diagram comparison layout\" exclusive onChange={handleChange} size=\"small\" value={renderedMode}>\n            {MODES.map(({ label, value }) => (\n                <Tooltip key={value} title={`${label} comparison`}>\n                    <span>\n                        <ToggleButton aria-label={label} disabled={isMobile && value !== 'tabbed'} sx={{ height: 34, width: 34 }} value={value}>\n                            {MODE_ICONS[value]}\n                        </ToggleButton>\n                    </span>\n                </Tooltip>\n            ))}\n        </ToggleButtonGroup>\n    );\n}\n\r\nimport { cleanup, render, screen } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';\nimport { DiagramComparisonLayoutService } from './diagram_comparison_layout_service';\nimport { DiagramComparisonMenuControl } from './diagram_comparison_menu_control';\n\nfunction setMobile(matches: boolean) {\n    Object.defineProperty(window, 'matchMedia', {\n        configurable: true,\n        value: vi.fn(() => ({ addEventListener: vi.fn(), matches, removeEventListener: vi.fn() })),\n    });\n}\n\nbeforeEach(() => setMobile(false));\nafterEach(() => {\n    cleanup();\n    vi.restoreAllMocks();\n});\n\ndescribe('DiagramComparisonMenuControl', () => {\n    it('changes comparison mode through labelled icon controls', async () => {\n        const layoutService = new DiagramComparisonLayoutService();\n        const user = userEvent.setup();\n        render(<DiagramComparisonMenuControl layoutService={layoutService} />);\n\n        expect(screen.getByRole('button', { name: 'Vertical' })).toHaveAttribute('aria-pressed', 'true');\n        await user.click(screen.getByRole('button', { name: 'Horizontal' }));\n        expect(layoutService.getComparisonModeSnapshot()).toBe('horizontal');\n        await user.click(screen.getByRole('button', { name: 'Tabbed' }));\n        expect(layoutService.getComparisonModeSnapshot()).toBe('tabbed');\n    });\n\n    it('forces Tabbed and disables split controls on mobile without changing stored mode', () => {\n        setMobile(true);\n        const layoutService = new DiagramComparisonLayoutService();\n        render(<DiagramComparisonMenuControl layoutService={layoutService} />);\n\n        expect(screen.getByRole('button', { name: 'Vertical' })).toBeDisabled();\n        expect(screen.getByRole('button', { name: 'Horizontal' })).toBeDisabled();\n        expect(screen.getByRole('button', { name: 'Tabbed' })).toHaveAttribute('aria-pressed', 'true');\n        expect(layoutService.getComparisonModeSnapshot()).toBe('vertical');\n    });\n});\n\r\n",
+          "durationMs": 21,
+          "exitCode": 0,
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-42",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app\\\\src\\\\components\\\\diagram_view\\\\diagram_comparison_menu_control.tsx'; Get-Content -Raw 'app\\\\src\\\\components\\\\diagram_view\\\\diagram_comparison_menu_control.test.tsx'\"",
+          "providerItemId": "exec-aaf9317a-9dc9-45ae-8be8-6c2fece59cd0",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-09-19T14:14:38.310Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"FormatSizeOutlined|AspectRatioOutlined|SpaceBarOutlined|WidthNormalOutlined|OpenInFullOutlined\\\" app\\\\src package.json app\\\\package.json\"",
+          "content": "",
+          "durationMs": 0,
+          "exitCode": 1,
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-43",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"FormatSizeOutlined|AspectRatioOutlined|SpaceBarOutlined|WidthNormalOutlined|OpenInFullOutlined\\\" app\\\\src package.json app\\\\package.json\"",
+          "providerItemId": "exec-e58d7d7d-a20c-446a-acf8-2da97131739f",
+          "sequence": 43,
+          "status": "failed",
+          "timestamp": "2026-09-19T14:14:38.538Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-44",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0aff8a99cd65bce0016aae98d1293887d2804b138f45a9c576",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T14:14:51.757Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0aff8a99cd65bce0016aae98dd1b5c87d28e0257346f1e0a5d",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T14:15:01.243Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-46",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0aff8a99cd65bce0016aae98e69fd087d2985376bbfcdda9b5",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T14:15:01.471Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_365_diagram_toolbar_improvements.md",
+          "deletions": 2,
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-47",
+          "insertions": 33,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-a13c7209-9dc6-40c5-babb-a20af0369151",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-09-19T14:15:21.424Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-48",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0aff8a99cd65bce0016aae98fc152c87d2b8ba6534c7d64da7",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T14:15:23.675Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git status --short -- 'design/feature_descriptions/F_365_diagram_toolbar_improvements.md'\"",
+          "content": "warning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n M design/feature_descriptions/F_365_diagram_toolbar_improvements.md\n",
+          "durationMs": 165,
+          "exitCode": 0,
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-49",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git status --short -- 'design/feature_descriptions/F_365_diagram_toolbar_improvements.md'\"",
+          "providerItemId": "exec-04a39a85-0f65-4d38-9797-f23d8949a2cb",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-09-19T14:15:28.386Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/F_365_diagram_toolbar_improvements.md'\"",
+          "content": "diff --git a/design/feature_descriptions/F_365_diagram_toolbar_improvements.md b/design/feature_descriptions/F_365_diagram_toolbar_improvements.md\nindex d4313cf8..88d0feca 100644\n--- a/design/feature_descriptions/F_365_diagram_toolbar_improvements.md\n+++ b/design/feature_descriptions/F_365_diagram_toolbar_improvements.md\n@@ -3,11 +3,42 @@ author:\n id: F_365\n internalId: 7e54add8-465d-47ff-90fd-7f9cc49c79f1\n title: diagram toolbar improvements\n-status: design\n+status: ready for implementation\n owner: \n affects:\n agents:\n   - design/activity/card__7e54add8-465d-47ff-90fd-7f9cc49c79f1.json\n policy:\n ---\n-On the diagram tab of the app menu, we show: current font size, current box size, current spacing with an up and down button and a value in between. we should change this: instead of `current font size`, use an icon, instead of a up and down button, the icon button should open a popup with a slider that increases or decreases the value. This should be done for all 3. include a tooltip that explains the function on the icon button.\n\\ No newline at end of file\n+On the diagram tab of the app menu, we show: current font size, current box size, current spacing with an up and down button and a value in between. we should change this: instead of `current font size`, use an icon, instead of a up and down button, the icon button should open a popup with a slider that increases or decreases the value. This should be done for all 3. include a tooltip that explains the function on the icon button.\n+\n+## Current state\n+\n+`DiagramMenuTab` renders `DiagramFormattingControls` in its Formatting section. Outside edit mode it renders three `Current` controls. During an edit session it renders those controls plus three independent `New` controls. Each set covers font size, box size, and spacing, so edit mode shows six controls.\n+\n+`DiagramFormattingScaleControl` currently renders each value as a text label, decrease button, percentage, and increase button. Changes use 10-percentage-point steps within the shared 50% to 200% bounds; a missing formatting value reads as 100%.\n+\n+Each control subscribes only to its field through `useDiagramFormattingScale`. `Current` changes call `DiagramViewService.setFormattingScale`, which updates the active diagram, relayouts box-size or spacing changes, and schedules the diagram file for persistence. `New` changes call `DiagramEditSessionService.setFormattingScale`, which updates only the editable diagram and records or clears its scoped formatting change against the edit baseline.\n+\n+## implementation details\n+\n+* Replace each `DiagramFormattingScaleControl` stepper with one outlined MUI icon button: `FormatSizeOutlined` for font size, `AspectRatioOutlined` for box size, and `FormatLineSpacingOutlined` for spacing. Remove visible `Current`/`New` labels, percentage text, and decrease/increase buttons from the toolbar itself.\n+* Keep `DiagramFormattingControls` as the shared owner of the three field definitions and use the same control for both surfaces. Do not duplicate Current and New implementations.\n+* Give every icon button a tooltip and matching accessible name in the form `Adjust Current font size` or `Adjust New spacing`. Surface name remains necessary because all six controls can appear together.\n+* Clicking an icon button opens a MUI `Popover` anchored to that button. Popover shows the surface and field name, current percentage, and one horizontal MUI `Slider`. Transient anchor element may stay inside the control; formatting value remains owned by the supplied service.\n+* Configure slider from existing constants: minimum `DIAGRAM_FORMATTING_SCALE_MINIMUM` (50), maximum `DIAGRAM_FORMATTING_SCALE_MAXIMUM` (200), and step `DIAGRAM_FORMATTING_SCALE_STEP` (10). Show percentage as slider value text and an always-visible value beside the slider.\n+* Apply each pointer or keyboard slider change immediately through existing `store.setFormattingScale(field, value)`. Keep current service behavior: Current changes update and persist active diagram; New changes update editable draft and its review change. No service, diagram schema, validation, layout, or persistence changes are required.\n+* Close popover through Escape or outside click. Closing keeps selected value. Reopening reads latest service snapshot, including changes made elsewhere while popover was closed.\n+* Update `diagram_menu_tab.test.tsx` and add focused `DiagramFormattingScaleControl` coverage. Test six distinct buttons in edit mode, tooltips and accessible names, correct popover/slider identity, 50%/200% bounds, 10-point keyboard and pointer changes, Current/New isolation, live percentage display, and close/reopen behavior. Remove assertions for deleted decrease/increase controls.\n+\n+## acceptance criteria\n+\n+* Outside edit mode, Formatting section shows three icon buttons for Current font size, box size, and spacing. During edit mode it also shows three corresponding New icon buttons, for six controls total.\n+* Toolbar shows no formatting text labels, percentage values, or decrease/increase buttons.\n+* Each icon communicates its field visually and exposes a tooltip plus accessible name that identifies both surface and function.\n+* Clicking any formatting icon opens its anchored popover with correct field name, current percentage, and one slider.\n+* Every slider uses 50% minimum, 200% maximum, and 10-percentage-point steps. Pointer and keyboard interaction cannot move value outside those bounds.\n+* Slider changes update diagram live. Font size changes update rendered text; box-size and spacing changes trigger existing layout behavior.\n+* Current slider changes update and schedule persistence for active diagram. New slider changes affect only editable diagram and remain represented as scoped review changes until accepted or reverted.\n+* Closing popover does not undo selected value. Reopening shows latest value from corresponding service.\n+* Existing diagram formatting validation, serialization, layout, dirty-state, and persistence tests remain passing, together with updated toolbar control tests.\n",
+          "durationMs": 160,
+          "exitCode": 0,
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-50",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/F_365_diagram_toolbar_improvements.md'\"",
+          "providerItemId": "exec-867ac569-3056-4f92-bf48-d19d1b1085e6",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-09-19T14:15:28.420Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_365_diagram_toolbar_improvements.md'\"",
+          "content": "---\nauthor: \nid: F_365\ninternalId: 7e54add8-465d-47ff-90fd-7f9cc49c79f1\ntitle: diagram toolbar improvements\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__7e54add8-465d-47ff-90fd-7f9cc49c79f1.json\npolicy:\n---\nOn the diagram tab of the app menu, we show: current font size, current box size, current spacing with an up and down button and a value in between. we should change this: instead of `current font size`, use an icon, instead of a up and down button, the icon button should open a popup with a slider that increases or decreases the value. This should be done for all 3. include a tooltip that explains the function on the icon button.\n\n## Current state\n\n`DiagramMenuTab` renders `DiagramFormattingControls` in its Formatting section. Outside edit mode it renders three `Current` controls. During an edit session it renders those controls plus three independent `New` controls. Each set covers font size, box size, and spacing, so edit mode shows six controls.\n\n`DiagramFormattingScaleControl` currently renders each value as a text label, decrease button, percentage, and increase button. Changes use 10-percentage-point steps within the shared 50% to 200% bounds; a missing formatting value reads as 100%.\n\nEach control subscribes only to its field through `useDiagramFormattingScale`. `Current` changes call `DiagramViewService.setFormattingScale`, which updates the active diagram, relayouts box-size or spacing changes, and schedules the diagram file for persistence. `New` changes call `DiagramEditSessionService.setFormattingScale`, which updates only the editable diagram and records or clears its scoped formatting change against the edit baseline.\n\n## implementation details\n\n* Replace each `DiagramFormattingScaleControl` stepper with one outlined MUI icon button: `FormatSizeOutlined` for font size, `AspectRatioOutlined` for box size, and `FormatLineSpacingOutlined` for spacing. Remove visible `Current`/`New` labels, percentage text, and decrease/increase buttons from the toolbar itself.\n* Keep `DiagramFormattingControls` as the shared owner of the three field definitions and use the same control for both surfaces. Do not duplicate Current and New implementations.\n* Give every icon button a tooltip and matching accessible name in the form `Adjust Current font size` or `Adjust New spacing`. Surface name remains necessary because all six controls can appear together.\n* Clicking an icon button opens a MUI `Popover` anchored to that button. Popover shows the surface and field name, current percentage, and one horizontal MUI `Slider`. Transient anchor element may stay inside the control; formatting value remains owned by the supplied service.\n* Configure slider from existing constants: minimum `DIAGRAM_FORMATTING_SCALE_MINIMUM` (50), maximum `DIAGRAM_FORMATTING_SCALE_MAXIMUM` (200), and step `DIAGRAM_FORMATTING_SCALE_STEP` (10). Show percentage as slider value text and an always-visible value beside the slider.\n* Apply each pointer or keyboard slider change immediately through existing `store.setFormattingScale(field, value)`. Keep current service behavior: Current changes update and persist active diagram; New changes update editable draft and its review change. No service, diagram schema, validation, layout, or persistence changes are required.\n* Close popover through Escape or outside click. Closing keeps selected value. Reopening reads latest service snapshot, including changes made elsewhere while popover was closed.\n* Update `diagram_menu_tab.test.tsx` and add focused `DiagramFormattingScaleControl` coverage. Test six distinct buttons in edit mode, tooltips and accessible names, correct popover/slider identity, 50%/200% bounds, 10-point keyboard and pointer changes, Current/New isolation, live percentage display, and close/reopen behavior. Remove assertions for deleted decrease/increase controls.\n\n## acceptance criteria\n\n* Outside edit mode, Formatting section shows three icon buttons for Current font size, box size, and spacing. During edit mode it also shows three corresponding New icon buttons, for six controls total.\n* Toolbar shows no formatting text labels, percentage values, or decrease/increase buttons.\n* Each icon communicates its field visually and exposes a tooltip plus accessible name that identifies both surface and function.\n* Clicking any formatting icon opens its anchored popover with correct field name, current percentage, and one slider.\n* Every slider uses 50% minimum, 200% maximum, and 10-percentage-point steps. Pointer and keyboard interaction cannot move value outside those bounds.\n* Slider changes update diagram live. Font size changes update rendered text; box-size and spacing changes trigger existing layout behavior.\n* Current slider changes update and schedule persistence for active diagram. New slider changes affect only editable diagram and remain represented as scoped review changes until accepted or reverted.\n* Closing popover does not undo selected value. Reopening shows latest value from corresponding service.\n* Existing diagram formatting validation, serialization, layout, dirty-state, and persistence tests remain passing, together with updated toolbar control tests.\n\r\n",
+          "durationMs": 118,
+          "exitCode": 0,
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-51",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'design\\\\feature_descriptions\\\\F_365_diagram_toolbar_improvements.md'\"",
+          "providerItemId": "exec-95f7057f-9b4a-49da-b2a9-12dbc5280305",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-09-19T14:15:28.501Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-event-52",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0aff8a99cd65bce0016aae99032bd087d2acaf91623f3a6f0d",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-19T14:15:32.577Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_365_diagram_toolbar_improvements.md](C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_365_diagram_toolbar_improvements.md).\n\nAdded:\n\n- `Current state`\n- `implementation details`\n- `acceptance criteria`\n- All six Current/New controls covered\n- Status: `ready for implementation`\n\nNo tests run; documentation-only change. Nothing staged or committed.\n\n",
+          "id": "agent-turn-54a8bfc0-d6a0-4736-beb7-2f68c0a2969b-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 53,
+          "timestamp": "2026-09-19T14:15:34.072Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -528,19 +742,19 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 22437,
-          "toolMs": 1279
+          "reasoningMs": 57828,
+          "toolMs": 2191
         },
         "elapsedMs": 91280,
         "runningStartedAt": "2026-09-19T14:14:13.558Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 425344,
-        "inputTokens": 59362,
-        "outputTokens": 2173,
-        "reasoningTokens": 977,
-        "totalTokens": 487856
+        "cachedInputTokens": 787712,
+        "inputTokens": 81969,
+        "outputTokens": 4099,
+        "reasoningTokens": 2976,
+        "totalTokens": 876756
       },
       "usageSchemaVersion": 1,
       "viewed": true
