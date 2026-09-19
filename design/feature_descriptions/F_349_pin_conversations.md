@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__358764f1-3de7-4aaa-b7e9-b83da22beaa1.json
 policy:
+branch: f_349_pin_conversations
+worktree: 1
 ---
 
 some conversations can remain valid for longer time. user should be able to find them fast. So user can 'pin a conversation: put a 'pin' / 'unpin' icon next to the 'conversation selector' at the top row of the action popup. Also, in the selection list, put a pin after all pinned conversations so the user can easily spot a pinned conversation in the list.
