@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { Popover } from '@mui/material'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ProjectSnapshot } from '../../../../data/data_types'
 import type { ActionDefinition } from '../../../../data/action_types'
@@ -14,6 +15,8 @@ import { accountTrackerOptions, cardScheduleOptions, scheduleTargetStates } from
 import { canRegisterSchedule, createScheduleTrigger, type ActionScheduleTriggerSources } from './action_schedule_trigger'
 
 const EMPTY_CARDS: ProjectSnapshot['activeCards'] = []
+const SCHEDULE_POPOVER_ELEVATION = 8
+const SCHEDULE_POPOVER_WIDTH = 360
 
 function subscribeActiveCards(listener: () => void) {
     dataService.addEventListener('changed', listener)
@@ -63,17 +66,37 @@ export function ActionScheduleOwner({ action, context, store }: ActionScheduleOw
             dialogService.error(error, { fallbackMessage: 'Could not register schedule' })
         }
     }
+    const handleClose = () => store.close()
 
     return (
-        <ActionScheduleForm
-            accountTrackers={sources.accountTrackers}
-            canRegister={canRegisterSchedule(snapshot, sources)}
-            cards={sources.cards}
-            message={snapshot.message}
-            onChange={handleChange}
-            onRegister={handleRegister}
-            snapshot={snapshot}
-            targetStates={sources.targetStates}
-        />
+        <Popover
+            anchorEl={snapshot.anchorElement}
+            anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+            onClose={handleClose}
+            open={snapshot.open}
+            slotProps={{
+                paper: {
+                    'aria-label': 'Schedule action',
+                    elevation: SCHEDULE_POPOVER_ELEVATION,
+                    role: 'dialog',
+                    sx: {
+                        bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
+                        maxWidth: (theme) => `calc(100vw - ${theme.spacing(4)})`, p: 2, width: SCHEDULE_POPOVER_WIDTH,
+                    },
+                },
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+            <ActionScheduleForm
+                accountTrackers={sources.accountTrackers}
+                canRegister={canRegisterSchedule(snapshot, sources)}
+                cards={sources.cards}
+                message={snapshot.message}
+                onChange={handleChange}
+                onRegister={handleRegister}
+                snapshot={snapshot}
+                targetStates={sources.targetStates}
+            />
+        </Popover>
     )
 }

@@ -5,7 +5,7 @@ const CARD_ID_PATTERN = /^(.+?)[-_]\d+$/u;
 function requireCardField(fields, fieldName, cardInternalId) {
     const value = fields[fieldName];
     if (typeof value !== 'string' || value.trim().length === 0) {
-        throw new Error(`Sequence card ${cardInternalId} has no ${fieldName}`);
+        throw new Error(`Scheduled card ${cardInternalId} has no ${fieldName}`);
     }
 
     return value.trim();
@@ -25,7 +25,7 @@ function resolveCardType(cardId, cardTypes, cardInternalId) {
     const idPrefix = cardId.match(CARD_ID_PATTERN)?.[1];
     const cardType = cardTypes.find((candidate) => candidate?.idPrefix === idPrefix);
     if (!cardType || typeof cardType.type !== 'string' || cardType.type.length === 0) {
-        throw new Error(`Sequence card ${cardInternalId} has no configured type`);
+        throw new Error(`Scheduled card ${cardInternalId} has no configured type`);
     }
 
     return cardType.type;
@@ -34,8 +34,8 @@ function resolveCardType(cardId, cardTypes, cardInternalId) {
 /** Resolves current card fields by stable internal identity and builds a fresh action context. */
 function resolveScheduledCardContext(files, cardTypes, cardInternalId) {
     const matches = files.map(parseCard).filter((card) => card?.fields.internalId.trim() === cardInternalId);
-    if (matches.length === 0) throw new Error(`Sequence card not found: ${cardInternalId}`);
-    if (matches.length > 1) throw new Error(`Duplicate sequence card identity: ${cardInternalId}`);
+    if (matches.length === 0) throw new Error(`Scheduled card not found: ${cardInternalId}`);
+    if (matches.length > 1) throw new Error(`Duplicate scheduled card identity: ${cardInternalId}`);
     const { fields, path } = matches[0];
     const id = requireCardField(fields, 'id', cardInternalId);
     const state = requireCardField(fields, 'status', cardInternalId);
@@ -44,6 +44,9 @@ function resolveScheduledCardContext(files, cardTypes, cardInternalId) {
     const context = { cardInternalId, file: path, kind: 'card', state, title, type };
     if (typeof fields.worktree === 'string' && fields.worktree.trim().length > 0) {
         context.worktree = fields.worktree.trim();
+    }
+    if (typeof fields.worktreeError === 'string' && fields.worktreeError.trim().length > 0) {
+        context.worktreeError = fields.worktreeError.trim();
     }
 
     return context;

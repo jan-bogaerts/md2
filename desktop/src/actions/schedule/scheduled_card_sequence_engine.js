@@ -38,12 +38,22 @@ class ScheduledCardSequenceEngine {
     }
 
     async cancel(scheduleId) {
+        const runId = await this.enqueue(scheduleId, () => this.cancelLocked(scheduleId));
+        const completion = runId ? this.runCompletions.get(runId) : null;
+        if (completion) await completion;
+    }
+
+    async cancelLocked(scheduleId) {
         const schedules = await this.loadSchedules();
         const schedule = schedules.find((candidate) => candidate.id === scheduleId);
         if (!schedule || schedule.kind !== 'sequence' || !schedule.currentRunId) return;
-        this.actionRunnerService.cancel(schedule.currentRunId);
-        const completion = this.runCompletions.get(schedule.currentRunId);
-        if (completion) await completion;
+        try {
+            this.actionRunnerService.cancel(schedule.currentRunId);
+        } catch (error) {
+            if (!errorMessage(error).startsWith('Unknown action run:')) throw error;
+        }
+
+        return schedule.currentRunId;
     }
 
     enqueue(scheduleId, operation) {

@@ -6,9 +6,9 @@ const { resolveScheduledCardContext } = require('./scheduled_card_context');
 
 const cardTypes = [{ idPrefix: 'F', type: 'feature' }];
 
-function cardFile(path, title = 'Renamed card') {
+function cardFile(path, title = 'Renamed card', worktreeError = '') {
     return {
-        content: `---\nid: F_356\ninternalId: stable-card\nstatus: ready\ntitle: ${title}\nworktree: 2\n---\n\n# Card`,
+        content: `---\nid: F_356\ninternalId: stable-card\nstatus: ready\ntitle: ${title}\nworktree: 2\nworktreeError: ${worktreeError}\n---\n\n# Card`,
         path,
     };
 }
@@ -28,11 +28,17 @@ describe('resolveScheduledCardContext', () => {
         });
     });
 
+    it('includes current worktree errors when present', () => {
+        const context = resolveScheduledCardContext([cardFile('cards/renamed.md', 'Renamed card', 'Needs repair')], cardTypes, 'stable-card');
+
+        expect(context.worktreeError).toBe('Needs repair');
+    });
+
     it('fails clearly for missing and duplicate card identities', () => {
-        expect(() => resolveScheduledCardContext([], cardTypes, 'missing')).toThrow('Sequence card not found: missing');
+        expect(() => resolveScheduledCardContext([], cardTypes, 'missing')).toThrow('Scheduled card not found: missing');
         expect(() => resolveScheduledCardContext([
             cardFile('cards/first.md'),
             cardFile('cards/second.md'),
-        ], cardTypes, 'stable-card')).toThrow('Duplicate sequence card identity: stable-card');
+        ], cardTypes, 'stable-card')).toThrow('Duplicate scheduled card identity: stable-card');
     });
 });

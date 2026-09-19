@@ -29,6 +29,8 @@ export type ActionScheduleSnapshot =
     | AtActionScheduleSnapshot
     | CardStateActionScheduleSnapshot
 
+export type ActionScheduleStoreSnapshot = ActionScheduleSnapshot & { anchorElement: HTMLElement | null }
+
 interface AccountResetDraft {
     agent: string
     limitId: string
@@ -40,7 +42,8 @@ interface CardStateDraft {
     targetState: string
 }
 
-const INITIAL_SNAPSHOT: AtActionScheduleSnapshot = {
+const INITIAL_SNAPSHOT: ActionScheduleStoreSnapshot = {
+    anchorElement: null,
     message: null,
     open: false,
     timestamp: '',
@@ -51,10 +54,11 @@ const INITIAL_SNAPSHOT: AtActionScheduleSnapshot = {
 export class ActionScheduleStore extends EventTarget {
     private readonly accountResetDraft: AccountResetDraft = { agent: '', limitId: '', windowId: '' }
     private readonly cardStateDraft: CardStateDraft = { cardInternalId: '', targetState: '' }
-    private snapshot: ActionScheduleSnapshot = INITIAL_SNAPSHOT
+    private snapshot: ActionScheduleStoreSnapshot = INITIAL_SNAPSHOT
     private timestamp = ''
 
     readonly getSnapshot = () => this.snapshot
+    readonly getOpenSnapshot = () => this.snapshot.open
 
     readonly subscribe = (listener: () => void) => {
         this.addEventListener('changed', listener)
@@ -62,14 +66,26 @@ export class ActionScheduleStore extends EventTarget {
         return () => this.removeEventListener('changed', listener)
     }
 
-    toggle() {
-        this.publish({ ...this.snapshot, message: null, open: !this.snapshot.open })
+    toggle(anchorElement: HTMLElement) {
+        if (this.snapshot.open) {
+            this.close()
+            return
+        }
+
+        this.publish({ ...this.snapshot, anchorElement, message: null, open: true })
+    }
+
+    close() {
+        const { anchorElement, message, open } = this.snapshot
+        if (!open && anchorElement === null && message === null) return
+
+        this.publish({ ...this.snapshot, anchorElement: null, message: null, open: false })
     }
 
     setTriggerType(triggerType: ActionScheduleTriggerType) {
         if (triggerType === this.snapshot.triggerType) return
 
-        const common = { message: null, open: this.snapshot.open }
+        const common = { anchorElement: this.snapshot.anchorElement, message: null, open: this.snapshot.open }
         if (triggerType === 'at') {
             this.publish({ ...common, timestamp: this.timestamp, triggerType })
             return
@@ -122,7 +138,7 @@ export class ActionScheduleStore extends EventTarget {
         this.publish({ ...this.snapshot, message })
     }
 
-    private publish(snapshot: ActionScheduleSnapshot) {
+    private publish(snapshot: ActionScheduleStoreSnapshot) {
         this.snapshot = snapshot
         this.dispatchEvent(new Event('changed'))
     }

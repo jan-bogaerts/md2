@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { dataService } from '../../../../services/data/data_service'
@@ -25,12 +25,24 @@ function configureSources() {
     vi.spyOn(dataService, 'getState').mockReturnValue({ project: null, runningAgents: [], snapshot: null })
 }
 
-function openDateStore() {
+function createDateStore() {
     const store = new ActionScheduleStore()
     store.setTimestamp('2099-07-07T10:30')
-    store.toggle()
 
     return store
+}
+
+function renderOpenOwner(store = createDateStore()) {
+    render(
+        <div data-testid="action-popup-scroll-body">
+            <button type="button">Schedule anchor</button>
+            <ActionScheduleOwner action={action} context={context} store={store} />
+        </div>,
+    )
+    const anchorElement = screen.getByRole('button', { name: 'Schedule anchor' })
+    act(() => store.toggle(anchorElement))
+
+    return { anchorElement, store }
 }
 
 describe('ActionScheduleOwner registration', () => {
@@ -42,7 +54,7 @@ describe('ActionScheduleOwner registration', () => {
     it('registers selected trigger and keeps success inline', async () => {
         configureSources()
         vi.mocked(defaultScheduleAction).mockResolvedValue(undefined)
-        render(<ActionScheduleOwner action={action} context={context} store={openDateStore()} />)
+        renderOpenOwner()
 
         fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
 
@@ -59,12 +71,40 @@ describe('ActionScheduleOwner registration', () => {
         const error = new Error('Backend unavailable')
         vi.mocked(defaultScheduleAction).mockRejectedValue(error)
         const reportError = vi.spyOn(dialogService, 'error')
-        render(<ActionScheduleOwner action={action} context={context} store={openDateStore()} />)
+        renderOpenOwner()
 
         fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
 
         await waitFor(() => expect(reportError).toHaveBeenCalledWith(error, { fallbackMessage: 'Could not register schedule' }))
         expect(screen.getByRole('button', { name: 'Schedule action' })).toBeInTheDocument()
         expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    })
+
+    it('renders an accessible portal outside the action popup scroll body', () => {
+        configureSources()
+        renderOpenOwner()
+
+        const scrollBody = screen.getByTestId('action-popup-scroll-body')
+        const popover = screen.getByRole('dialog', { name: 'Schedule action' })
+
+        expect(scrollBody.contains(popover)).toBe(false)
+        expect(screen.getByRole('button', { name: 'Schedule action' })).toBeInTheDocument()
+    })
+
+    it('closes on Escape and backdrop click while keeping its parent mounted', async () => {
+        configureSources()
+        const { anchorElement, store } = renderOpenOwner()
+
+        fireEvent.keyDown(screen.getByRole('dialog', { name: 'Schedule action' }), { key: 'Escape' })
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())
+        expect(screen.getByTestId('action-popup-scroll-body')).toBeInTheDocument()
+
+        act(() => store.toggle(anchorElement))
+        const backdrop = document.querySelector('.MuiBackdrop-root')
+        if (!(backdrop instanceof HTMLElement)) throw new Error('Expected schedule popover backdrop')
+        fireEvent.click(backdrop)
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())
+        expect(screen.getByTestId('action-popup-scroll-body')).toBeInTheDocument()
     })
 })

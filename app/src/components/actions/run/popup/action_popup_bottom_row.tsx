@@ -3,7 +3,7 @@ import StopOutlined from '@mui/icons-material/StopOutlined'
 import { Box, Button, IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material'
 import CalendarOutline from 'mdi-material-ui/CalendarOutline'
 import Play from 'mdi-material-ui/Play'
-import { useSyncExternalStore } from 'react'
+import { useEffect, useSyncExternalStore, type MouseEvent } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'
@@ -79,6 +79,11 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         conversationStore.getSnapshot,
         conversationStore.getSnapshot,
     )
+    const scheduleOpen = useSyncExternalStore(
+        scheduleStore.subscribe,
+        scheduleStore.getOpenSnapshot,
+        scheduleStore.getOpenSnapshot,
+    )
     const sessionActive = runStatus === 'queued' || runStatus === 'running' || runStatus === 'waitingForInput'
     const browsingHistory = isBrowsingHistoricalConversation(
         liveConversationId ? { id: liveConversationId } : null,
@@ -93,6 +98,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const showStop = running || (runStatus === 'waitingForInput' && !agentActive)
     const showFinish = waitingForAgentInput
     const showSchedule = (!sessionActive && !orphanWaiting) || (waitingForAgentInput && promptHasText)
+    const scheduleAvailable = showSchedule && settings.backendAvailable
     const showAgentSend = (!sessionActive && !orphanWaiting && action.type === 'agent')
         || (waitingForAgentInput && promptHasText)
         || (agentActive && interactionReady && promptHasText)
@@ -148,7 +154,13 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
 
         void finishPopupAction(action, bindingStore, assignmentContext, conversationStore)
     }
-    const handleToggleSchedule = () => scheduleStore.toggle()
+    const handleToggleSchedule = (event: MouseEvent<HTMLButtonElement>) => scheduleStore.toggle(event.currentTarget)
+
+    useEffect(() => {
+        if (!scheduleAvailable) scheduleStore.close()
+
+        return () => scheduleStore.close()
+    }, [scheduleAvailable, scheduleStore])
 
     return (
         <Box
@@ -193,6 +205,8 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                         <Tooltip title="Schedule">
                             <span>
                                 <IconButton
+                                    aria-expanded={scheduleOpen}
+                                    aria-haspopup="dialog"
                                     aria-label="Schedule"
                                     disabled={!settings.backendAvailable}
                                     onClick={handleToggleSchedule}

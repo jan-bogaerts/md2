@@ -336,11 +336,51 @@ describe('ActionSchedulerService', () => {
             ...createSchedule(`schedule-${index + 3}`, 'implement', { timestamp: '2026-07-06T10:03:00.000Z', type: 'at' }),
             status,
         }));
-        const localGitService = createLocalGitService([pendingSchedule, runningSchedule, ...terminalSchedules]);
+        const localGitService = createLocalGitService([pendingSchedule, ...terminalSchedules]);
+        const scheduler = createScheduler(localGitService);
+        await startProject(scheduler, localGitService);
+        localGitService.setSchedules([pendingSchedule, runningSchedule, ...terminalSchedules]);
+
+        await expect(scheduler.listActiveSchedules()).resolves.toEqual([pendingSchedule, runningSchedule]);
+    });
+
+    it('marks an interrupted running action schedule failed during startup', async () => {
+        const runningSchedule = { ...createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:02:00.000Z', type: 'at' }), status: 'running' };
+        const localGitService = createLocalGitService([runningSchedule]);
+        const errorReporter = vi.fn();
+        const scheduler = createScheduler(localGitService, { errorReporter });
+
+        await startProject(scheduler, localGitService);
+
+        expect(localGitService.schedules()).toEqual([{ ...runningSchedule, status: 'failed' }]);
+        expect(errorReporter).toHaveBeenCalledWith(expect.objectContaining({ message: 'Action schedule schedule-1 could not recover its interrupted run and was marked failed' }));
+    });
+
+    it('reports and rejects malformed schedule persistence during startup', async () => {
+        const localGitService = createLocalGitService([]);
+        const error = new Error('Invalid schedule file');
+        localGitService.loadActionSchedules.mockRejectedValue(error);
+        const errorReporter = vi.fn();
+        const scheduler = createScheduler(localGitService, { errorReporter });
+        const config = await localGitService.loadProjectConfig(project);
+        const paths = resolveProjectPaths(config);
+        await scheduler.actionRunnerService.startProject(project, paths, config.states);
+
+        await expect(scheduler.startProject(project, paths, config)).rejects.toThrow('Invalid schedule file');
+        expect(errorReporter).toHaveBeenCalledWith(error);
+    });
+
+    it('preserves concurrent schedule registrations through one mutation queue', async () => {
+        const localGitService = createLocalGitService([]);
         const scheduler = createScheduler(localGitService);
         await startProject(scheduler, localGitService);
 
-        await expect(scheduler.listActiveSchedules()).resolves.toEqual([pendingSchedule, runningSchedule]);
+        await Promise.all([
+            scheduler.registerActionSchedule({ actionId: 'implement', context, trigger: { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' } }),
+            scheduler.registerActionSchedule({ actionId: 'implement', context, trigger: { timestamp: '2026-07-06T10:02:00.000Z', type: 'at' } }),
+        ]);
+
+        expect(localGitService.schedules()).toHaveLength(2);
     });
 
     it('deletes a pending schedule and its timer', async () => {
@@ -450,6 +490,34 @@ describe('ActionSchedulerService', () => {
 
         expect(actionRunnerService.start).toHaveBeenCalledOnce();
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+    });
+
+    it.each([
+        [true, 'completed'],
+        [false, 'cancelled'],
+    ])('asks before continuing an offline card-state transition: continue=%s', async (shouldRun, expectedStatus) => {
+        const trigger = { cardInternalId: 'card-source', registrationState: 'todo', targetState: 'ready', type: 'card-state' };
+        const schedule = createSchedule('schedule-1', 'implement', trigger);
+        const localGitService = createLocalGitService([schedule]);
+        localGitService.loadProject.mockResolvedValue({
+            files: [
+                {
+                    content: '---\nid: F_023\ninternalId: card-source\nstatus: ready\ntitle: Source\n---\n',
+                    path: 'design/F-023-source.md',
+                },
+                {
+                    content: '---\nid: F_022\ninternalId: card-022\nstatus: ready\ntitle: Card 22\n---\n',
+                    path: 'design/F-022.md',
+                },
+            ],
+        });
+        const confirmCardStateScheduleContinuation = vi.fn(async () => shouldRun);
+        const scheduler = createScheduler(localGitService, { confirmCardStateScheduleContinuation });
+
+        await startProject(scheduler, localGitService);
+        await vi.waitFor(() => expect(localGitService.schedules()[0].status).toBe(expectedStatus));
+
+        expect(confirmCardStateScheduleContinuation).toHaveBeenCalledWith(schedule, 'ready');
     });
 
     it('waits for a later transition when the card already has target state at registration', async () => {
@@ -605,7 +673,7 @@ describe('ActionSchedulerService', () => {
         const completion = createDeferred();
         const actionRunnerService = {
             cancel: vi.fn(),
-            start: vi.fn(async () => 'action-1'),
+            start: vi.fn(async (_request, options) => options.runId),
             startProject: vi.fn(),
             wait: vi.fn(async () => completion.promise),
         };
@@ -782,6 +850,41 @@ describe('ActionSchedulerService', () => {
         ]);
     });
 
+    it('resolves current card fields by internal ID before running a scheduled action', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
+        const localGitService = createLocalGitService([schedule]);
+        localGitService.loadProject.mockResolvedValue({
+            files: [{
+                content: '---\nid: F_022\ninternalId: card-022\nstatus: in progress\ntitle: Renamed card\nworktree: 7\n---\n',
+                path: 'design/renamed/F-022-renamed.md',
+            }],
+        });
+        const actionRunnerService = {
+            cancel: vi.fn(),
+            start: vi.fn(async (_request, options) => options.runId),
+            startProject: vi.fn(),
+            wait: vi.fn(async (runId) => ({ failure: null, runId, status: 'completed' })),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+
+        await scheduler.fireSchedule(schedule.id);
+
+        expect(actionRunnerService.start).toHaveBeenCalledWith({
+            actionId: 'implement',
+            context: {
+                cardInternalId: 'card-022',
+                file: 'design/renamed/F-022-renamed.md',
+                kind: 'card',
+                state: 'in progress',
+                title: 'Renamed card',
+                type: 'feature',
+                worktree: '7',
+            },
+            runInput: {},
+        }, { interactive: false, runId: expect.stringMatching(/^action-/u) });
+    });
+
     it.each([
         ['completed', 'completed'],
         ['failed', 'failed'],
@@ -817,12 +920,13 @@ describe('ActionSchedulerService', () => {
         const scheduler = createScheduler(localGitService, { actionRunnerService });
         await startProject(scheduler, localGitService);
         const firing = scheduler.fireSchedule(schedule.id);
-        await vi.waitFor(() => expect(actionRunnerService.wait).toHaveBeenCalledWith('action-1'));
+        await vi.waitFor(() => expect(actionRunnerService.wait).toHaveBeenCalledOnce());
+        const runId = actionRunnerService.wait.mock.calls[0][0];
 
         await scheduler.cancelActionSchedule(schedule.id);
-        expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1');
+        expect(actionRunnerService.cancel).toHaveBeenCalledWith(runId);
 
-        completion.resolve({ runId: 'action-1', failure: 'Action cancelled', status: 'cancelled' });
+        completion.resolve({ runId, failure: 'Action cancelled', status: 'cancelled' });
         await firing;
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'cancelled' }]);
     });
@@ -833,26 +937,54 @@ describe('ActionSchedulerService', () => {
         const completion = createDeferred();
         const actionRunnerService = {
             cancel: vi.fn(),
-            start: vi.fn(async () => 'action-1'),
+            start: vi.fn(async (_request, options) => options.runId),
             startProject: vi.fn(),
             wait: vi.fn(async () => completion.promise),
         };
         const scheduler = createScheduler(localGitService, { actionRunnerService });
         await startProject(scheduler, localGitService);
         const firing = scheduler.fireSchedule(schedule.id);
-        await vi.waitFor(() => expect(actionRunnerService.wait).toHaveBeenCalledWith('action-1'));
+        await vi.waitFor(() => expect(actionRunnerService.wait).toHaveBeenCalledOnce());
+        const runId = actionRunnerService.wait.mock.calls[0][0];
 
         const deletion = scheduler.deleteSchedule(schedule.id);
-        await vi.waitFor(() => expect(actionRunnerService.cancel).toHaveBeenCalledWith('action-1'));
+        await vi.waitFor(() => expect(actionRunnerService.cancel).toHaveBeenCalledWith(runId));
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'running' }]);
 
-        completion.resolve({ runId: 'action-1', failure: 'Action cancelled', status: 'cancelled' });
+        completion.resolve({ runId, failure: 'Action cancelled', status: 'cancelled' });
         await firing;
         await expect(deletion).resolves.toEqual([]);
         expect(localGitService.schedules()).toEqual([]);
         expect(scheduler.runIdsByScheduleId.size).toBe(0);
         expect(scheduler.scheduleCompletionsByScheduleId.size).toBe(0);
         expect(scheduler.timers.size).toBe(0);
+    });
+
+    it('waits for an in-flight action start and then cancels it before deletion', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
+        const localGitService = createLocalGitService([schedule]);
+        const startCompletion = createDeferred();
+        const runCompletion = createDeferred();
+        const actionRunnerService = {
+            cancel: vi.fn(),
+            start: vi.fn(async () => startCompletion.promise),
+            startProject: vi.fn(),
+            wait: vi.fn(async () => runCompletion.promise),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+        const firing = scheduler.fireSchedule(schedule.id);
+        await vi.waitFor(() => expect(actionRunnerService.start).toHaveBeenCalledOnce());
+        const runId = actionRunnerService.start.mock.calls[0][1].runId;
+
+        const deletion = scheduler.deleteSchedule(schedule.id);
+        expect(actionRunnerService.cancel).not.toHaveBeenCalled();
+        startCompletion.resolve(runId);
+        await vi.waitFor(() => expect(actionRunnerService.cancel).toHaveBeenCalledWith(runId));
+        runCompletion.resolve({ failure: 'Action cancelled', runId, status: 'cancelled' });
+
+        await firing;
+        await expect(deletion).resolves.toEqual([]);
     });
 
     it('produces same phase ordering and result for direct and scheduled entry points', async () => {

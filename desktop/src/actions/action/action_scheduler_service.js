@@ -2,6 +2,7 @@ const { normalizeFolderPath } = require('../../../../shared/project_config_defau
 const {
     activeSchedules,
     appendActionSchedule,
+    cancelPendingActionSchedule,
     deleteScheduleRecord,
     findPendingSchedule,
     replaceScheduleRecord,
@@ -15,6 +16,24 @@ const { allocateActionRunId } = require('./action_runner_service');
 
 function createScheduleId() {
     return `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function createScheduleExecutionControl() {
+    let resolveStartedPromise;
+    let startedResolved = false;
+    const started = new Promise((resolve) => {
+        resolveStartedPromise = resolve;
+    });
+
+    return {
+        cancelRequested: false,
+        resolveStarted: (runId) => {
+            if (startedResolved) return;
+            startedResolved = true;
+            resolveStartedPromise(runId);
+        },
+        started,
+    };
 }
 
 function scheduleStatusFromResult(status) {
@@ -72,6 +91,7 @@ function requireProject(project) {
 class ActionSchedulerService {
     constructor(dependencies) {
         this.actionRunnerService = dependencies?.actionRunnerService;
+        this.confirmCardStateScheduleContinuation = dependencies?.confirmCardStateScheduleContinuation ?? null;
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
         this.clearTimeout = dependencies?.clearTimeout ?? clearTimeout;
         this.localGitService = dependencies?.localGitService;
@@ -87,6 +107,8 @@ class ActionSchedulerService {
         this.projectGeneration = 0;
         this.runIdsByScheduleId = new Map();
         this.scheduleCompletionsByScheduleId = new Map();
+        this.scheduleExecutionControls = new Map();
+        this.scheduleMutation = Promise.resolve();
         this.sequenceEngine = null;
         this.runningScheduleIds = new Set();
         this.timers = new Map();
@@ -129,7 +151,7 @@ class ActionSchedulerService {
             saveSequence: (sequence) => this.saveSequence(sequence, executionContext),
             states: this.configuredStates,
         });
-        await this.reconcile();
+        await this.reconcile({ startup: true });
     }
 
     stop() {
@@ -139,6 +161,7 @@ class ActionSchedulerService {
         this.runningScheduleIds.clear();
         this.runIdsByScheduleId.clear();
         this.scheduleCompletionsByScheduleId.clear();
+        this.scheduleExecutionControls.clear();
         this.project = null;
         this.actionsFolder = null;
         this.activeCardsFolder = null;
@@ -164,9 +187,6 @@ class ActionSchedulerService {
 
     async registerActionSchedule(request) {
         const registration = validateRegistrationRequest(request, this.now());
-        const project = this.requireCurrentProject();
-        const actionsFolder = this.requireActionsFolder();
-        const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder);
         const schedule = {
             actionId: registration.actionId,
             context: registration.context,
@@ -176,8 +196,7 @@ class ActionSchedulerService {
             status: 'pending',
             trigger: registration.trigger,
         };
-        const nextSchedules = appendActionSchedule(schedules, schedule);
-        await this.localGitService.saveActionSchedules(project, actionsFolder, nextSchedules);
+        await this.mutateSchedules(null, (schedules) => appendActionSchedule(schedules, schedule));
         await this.reconcile();
 
         return schedule;
@@ -185,9 +204,6 @@ class ActionSchedulerService {
 
     async registerSequenceSchedule(request) {
         const registration = validateSequenceRegistrationRequest(request);
-        const project = this.requireCurrentProject();
-        const actionsFolder = this.requireActionsFolder();
-        const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder);
         const schedule = {
             actionCompleted: false,
             actionId: registration.actionId,
@@ -203,8 +219,7 @@ class ActionSchedulerService {
             status: 'pending',
             trigger: registration.trigger,
         };
-        const nextSchedules = appendActionSchedule(schedules, schedule);
-        await this.localGitService.saveActionSchedules(project, actionsFolder, nextSchedules);
+        await this.mutateSchedules(null, (schedules) => appendActionSchedule(schedules, schedule));
         if (schedule.trigger.type === 'now') await this.fireSchedule(schedule.id);
         else await this.reconcile();
 
@@ -224,18 +239,13 @@ class ActionSchedulerService {
         const sequence = schedules.find((schedule) => schedule.id === scheduleId && schedule.kind === 'sequence');
         if (sequence) await this.sequenceEngine.cancel(scheduleId);
         const scheduleKey = this.scheduleKey(scheduleId);
-        const runId = this.runIdsByScheduleId.get(scheduleKey);
-        if (runId) this.actionRunnerService.cancel(runId);
+        await this.cancelRunningActionSchedule(scheduleKey);
         const completion = this.scheduleCompletionsByScheduleId.get(scheduleKey);
         if (completion) await completion;
 
-        const currentSchedules = await this.loadSchedules();
-        const nextSchedules = deleteScheduleRecord(currentSchedules, scheduleId);
-        await this.localGitService.saveActionSchedules(
-            this.requireCurrentProject(),
-            this.requireActionsFolder(),
-            nextSchedules,
-        );
+        const nextSchedules = await this.mutateSchedules(null, (currentSchedules) => (
+            deleteScheduleRecord(currentSchedules, scheduleId)
+        ));
         await this.reconcile();
 
         return nextSchedules;
@@ -244,20 +254,17 @@ class ActionSchedulerService {
     async cancelActionSchedule(scheduleId) {
         if (typeof scheduleId !== 'string' || scheduleId.length === 0) throw new Error('Missing action schedule id');
 
-        const runId = this.runIdsByScheduleId.get(this.scheduleKey(scheduleId));
-        if (runId) {
-            this.actionRunnerService.cancel(runId);
-
+        const scheduleKey = this.scheduleKey(scheduleId);
+        const cancelledRunningSchedule = await this.cancelRunningActionSchedule(scheduleKey);
+        if (cancelledRunningSchedule) {
             return this.loadSchedules();
         }
 
         cancelScheduleTimer(this.timers, scheduleId, this.clearTimeout);
 
-        const schedules = await this.localGitService.cancelActionSchedule(
-            this.requireCurrentProject(),
-            this.requireActionsFolder(),
-            scheduleId,
-        );
+        const schedules = await this.mutateSchedules(null, (currentSchedules) => (
+            cancelPendingActionSchedule(currentSchedules, scheduleId)
+        ));
         await this.reconcile();
 
         return schedules;
@@ -271,7 +278,11 @@ class ActionSchedulerService {
         const normalizedActionsFolder = normalizeFolderPath(this.actionsFolder);
         if (!event || event.path !== `${normalizedActionsFolder}/.md2-schedules.json`) return;
 
-        await this.reconcile();
+        try {
+            await this.reconcile();
+        } catch {
+            // Reconcile reports the failure. The project watcher must remain active for a later repair.
+        }
     }
 
     async handleCardStateChange(cardInternalId, state) {
@@ -321,9 +332,20 @@ class ActionSchedulerService {
         }
     }
 
-    async reconcile() {
-        const schedules = await this.loadSchedulesForReconcile();
-        this.reconcileCardObservations(schedules);
+    async reconcile(options = {}) {
+        let schedules;
+        try {
+            schedules = await this.loadSchedules();
+        } catch (error) {
+            this.reportError(error);
+            throw error;
+        }
+        if (options.startup) schedules = await this.reconcileInterruptedActionSchedules(schedules);
+        const startupCardStates = options.startup
+            ? await this.reconcileStartupCardStateSchedules(schedules)
+            : null;
+        if (startupCardStates?.schedulesChanged) schedules = await this.loadSchedules();
+        this.reconcileCardObservations(schedules, startupCardStates);
         const dependencies = this.createTimerDependencies(this.projectGeneration);
 
         await reconcileScheduleTimers(schedules, dependencies);
@@ -332,9 +354,12 @@ class ActionSchedulerService {
             if (schedule.status === 'running') await this.sequenceEngine.activate(schedule.id);
             if (schedule.status === 'pending' && schedule.trigger.type === 'now') await this.fireSchedule(schedule.id);
         }
+        for (const scheduleId of startupCardStates?.confirmedScheduleIds ?? []) {
+            void this.fireSchedule(scheduleId).catch((error) => this.reportError(error));
+        }
     }
 
-    reconcileCardObservations(schedules) {
+    reconcileCardObservations(schedules, startupCardStates = null) {
         const pendingCardScheduleIds = new Set();
         for (const schedule of schedules) {
             if (schedule.status !== 'pending' || schedule.trigger.type !== 'card-state') continue;
@@ -348,7 +373,7 @@ class ActionSchedulerService {
             this.cardObservationsByScheduleId.set(schedule.id, {
                 cardInternalId: schedule.trigger.cardInternalId,
                 registrationState: schedule.trigger.registrationState,
-                state: schedule.trigger.registrationState,
+                state: startupCardStates?.statesByScheduleId.get(schedule.id) ?? schedule.trigger.registrationState,
                 targetState: schedule.trigger.targetState,
             });
         }
@@ -357,12 +382,49 @@ class ActionSchedulerService {
         }
     }
 
-    async loadSchedulesForReconcile() {
-        try {
-            return await this.loadSchedules();
-        } catch {
-            return [];
+    async reconcileInterruptedActionSchedules(schedules) {
+        const interruptedSchedules = schedules.filter((schedule) => schedule.kind === 'action' && schedule.status === 'running');
+        for (const schedule of interruptedSchedules) {
+            const error = new Error(`Action schedule ${schedule.id} could not recover its interrupted run and was marked failed`);
+            this.reportError(error);
+            await this.updateScheduleStatus(schedule.id, 'failed');
         }
+
+        return interruptedSchedules.length > 0 ? this.loadSchedules() : schedules;
+    }
+
+    async reconcileStartupCardStateSchedules(schedules) {
+        const confirmedScheduleIds = [];
+        let schedulesChanged = false;
+        const statesByScheduleId = new Map();
+        const pendingSchedules = schedules.filter((schedule) => (
+            schedule.status === 'pending' && schedule.trigger.type === 'card-state'
+        ));
+        for (const schedule of pendingSchedules) {
+            let context;
+            try {
+                context = await this.resolveCardContext(schedule.trigger.cardInternalId);
+            } catch (error) {
+                this.reportError(error);
+                continue;
+            }
+            statesByScheduleId.set(schedule.id, context.state);
+            const missedTargetTransition = context.state === schedule.trigger.targetState
+                && schedule.trigger.registrationState !== schedule.trigger.targetState;
+            if (!missedTargetTransition) continue;
+            if (!this.confirmCardStateScheduleContinuation) {
+                this.reportError(new Error(`Card-state schedule ${schedule.id} requires user confirmation before it can continue`));
+                continue;
+            }
+            const shouldRun = await this.confirmCardStateScheduleContinuation(schedule, context.state);
+            if (shouldRun) confirmedScheduleIds.push(schedule.id);
+            else {
+                await this.updateScheduleStatus(schedule.id, 'cancelled');
+                schedulesChanged = true;
+            }
+        }
+
+        return { confirmedScheduleIds, schedulesChanged, statesByScheduleId };
     }
 
     createTimerDependencies(generation) {
@@ -382,21 +444,26 @@ class ActionSchedulerService {
         if (this.runningScheduleIds.has(scheduleKey)) return this.scheduleCompletionsByScheduleId.get(scheduleKey);
         const executionContext = {
             actionsFolder: this.requireActionsFolder(),
+            activeCardsFolder: this.activeCardsFolder,
+            cardTypes: this.cardTypes,
             generation,
             project: this.requireCurrentProject(),
         };
+        const executionControl = createScheduleExecutionControl();
+        this.scheduleExecutionControls.set(scheduleKey, executionControl);
 
-        const completion = this.executeSchedule(scheduleId, scheduleKey, executionContext);
+        const completion = this.executeSchedule(scheduleId, scheduleKey, executionContext, executionControl);
         this.scheduleCompletionsByScheduleId.set(scheduleKey, completion);
 
         try {
             await completion;
         } finally {
             this.scheduleCompletionsByScheduleId.delete(scheduleKey);
+            this.scheduleExecutionControls.delete(scheduleKey);
         }
     }
 
-    async executeSchedule(scheduleId, scheduleKey, executionContext) {
+    async executeSchedule(scheduleId, scheduleKey, executionContext, executionControl) {
         cancelScheduleTimer(this.timers, scheduleId, this.clearTimeout);
         this.runningScheduleIds.add(scheduleKey);
 
@@ -405,24 +472,37 @@ class ActionSchedulerService {
             if (!schedule || executionContext.generation !== this.projectGeneration) return;
 
             if (schedule.kind === 'sequence') {
+                executionControl.resolveStarted(null);
                 await this.sequenceEngine.activate(scheduleId);
                 return;
             }
 
-            await this.updateScheduleStatus(scheduleId, 'running', executionContext);
-            if (executionContext.generation !== this.projectGeneration) {
-                await this.updateScheduleStatus(scheduleId, 'pending', executionContext);
+            if (executionControl.cancelRequested) {
+                executionControl.resolveStarted(null);
                 return;
             }
-            const result = await this.runScheduledAction(schedule, scheduleKey);
+            const runId = allocateActionRunId();
+            this.runIdsByScheduleId.set(scheduleKey, runId);
+            await this.updateScheduleStatus(scheduleId, 'running', executionContext);
+            if (executionContext.generation !== this.projectGeneration || executionControl.cancelRequested) {
+                await this.updateScheduleStatus(scheduleId, 'pending', executionContext);
+                executionControl.resolveStarted(null);
+                return;
+            }
+            await this.startScheduledAction(schedule, runId, executionContext);
+            executionControl.resolveStarted(runId);
+            if (executionControl.cancelRequested) this.actionRunnerService.cancel(runId);
+            const result = await this.actionRunnerService.wait(runId);
             const status = scheduleStatusFromResult(result.status);
             await this.updateScheduleStatus(scheduleId, status, executionContext);
         } catch {
+            executionControl.resolveStarted(null);
             const schedule = await this.findRunningSchedule(scheduleId, executionContext);
             if (schedule) {
                 await this.updateScheduleStatus(scheduleId, 'failed', executionContext);
             }
         } finally {
+            executionControl.resolveStarted(null);
             this.runIdsByScheduleId.delete(scheduleKey);
             this.runningScheduleIds.delete(scheduleKey);
         }
@@ -444,19 +524,15 @@ class ActionSchedulerService {
     }
 
     async updateScheduleStatus(scheduleId, status, executionContext = null) {
-        const project = executionContext?.project ?? this.requireCurrentProject();
-        const actionsFolder = executionContext?.actionsFolder ?? this.requireActionsFolder();
-        const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder);
-        const nextSchedules = updateActionScheduleStatus(schedules, scheduleId, status);
-        await this.localGitService.saveActionSchedules(project, actionsFolder, nextSchedules);
+        await this.mutateSchedules(executionContext, (schedules) => updateActionScheduleStatus(schedules, scheduleId, status));
     }
 
-    async runScheduledAction(schedule, scheduleKey) {
-        const request = { actionId: schedule.actionId, context: schedule.context, runInput: {} };
-        const runId = await this.actionRunnerService.start(request, { interactive: false });
-        this.runIdsByScheduleId.set(scheduleKey, runId);
-
-        return this.actionRunnerService.wait(runId);
+    async startScheduledAction(schedule, runId, executionContext) {
+        const context = schedule.context.cardInternalId
+            ? { ...await this.resolveCardContext(schedule.context.cardInternalId, executionContext), kind: schedule.context.kind }
+            : schedule.context;
+        const request = { actionId: schedule.actionId, context, runInput: {} };
+        await this.actionRunnerService.start(request, { interactive: false, runId });
     }
 
     async resolveCardContext(cardInternalId, executionContext = null) {
@@ -470,13 +546,26 @@ class ActionSchedulerService {
     }
 
     async saveSequence(sequence, executionContext = null) {
-        const project = executionContext?.project ?? this.requireCurrentProject();
-        const actionsFolder = executionContext?.actionsFolder ?? this.requireActionsFolder();
-        const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder);
-        const nextSchedules = replaceScheduleRecord(schedules, sequence);
-        await this.localGitService.saveActionSchedules(project, actionsFolder, nextSchedules);
+        const nextSchedules = await this.mutateSchedules(executionContext, (schedules) => (
+            replaceScheduleRecord(schedules, sequence)
+        ));
 
         return nextSchedules.find(({ id }) => id === sequence.id);
+    }
+
+    async cancelRunningActionSchedule(scheduleKey) {
+        const executionControl = this.scheduleExecutionControls.get(scheduleKey);
+        if (executionControl) executionControl.cancelRequested = true;
+        const startedRunId = executionControl ? await executionControl.started : null;
+        const runId = startedRunId ?? this.runIdsByScheduleId.get(scheduleKey);
+        if (!runId) return false;
+        try {
+            this.actionRunnerService.cancel(runId);
+        } catch (error) {
+            if (!(error instanceof Error) || !error.message.startsWith('Unknown action run:')) throw error;
+        }
+
+        return true;
     }
 
     async findRunningSchedule(scheduleId, executionContext) {
@@ -504,6 +593,29 @@ class ActionSchedulerService {
         const actionsFolder = executionContext?.actionsFolder ?? this.requireActionsFolder();
 
         return this.localGitService.loadActionSchedules(project, actionsFolder);
+    }
+
+    mutateSchedules(executionContext, mutation) {
+        const project = executionContext?.project ?? this.requireCurrentProject();
+        const actionsFolder = executionContext?.actionsFolder ?? this.requireActionsFolder();
+        const operation = this.scheduleMutation.then(async () => {
+            const schedules = await this.localGitService.loadActionSchedules(project, actionsFolder);
+            const nextSchedules = mutation(schedules);
+            await this.localGitService.saveActionSchedules(project, actionsFolder, nextSchedules);
+
+            return nextSchedules;
+        });
+        this.scheduleMutation = operation.then(() => undefined, () => undefined);
+
+        return operation;
+    }
+
+    reportError(error) {
+        try {
+            this.errorReporter(error);
+        } catch {
+            // Error reporting must not affect schedule reconciliation.
+        }
     }
 
 }

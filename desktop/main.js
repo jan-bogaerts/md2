@@ -113,10 +113,30 @@ const actionRunnerService = new ActionRunnerService({
     mergeConflictService,
     usageMetricsService,
 });
+
+async function confirmCardStateScheduleContinuation(schedule, currentState) {
+    const browserWindow = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    const options = {
+        buttons: ['Run now', 'Cancel schedule'],
+        cancelId: 1,
+        defaultId: 1,
+        detail: `Schedule ${schedule.id} was waiting for card ${schedule.trigger.cardInternalId} to enter "${schedule.trigger.targetState}". The card is now "${currentState}", but the transition happened while MD² was not observing it.`,
+        message: 'Continue this card-state schedule?',
+        noLink: true,
+        type: 'warning',
+    };
+    const result = browserWindow
+        ? await dialog.showMessageBox(browserWindow, options)
+        : await dialog.showMessageBox(options);
+
+    return result.response === 0;
+}
+
 const actionSchedulerService = new ActionSchedulerService({
     actionRunnerService,
     claudeRuntimeService,
     codexRuntimeService,
+    confirmCardStateScheduleContinuation,
     errorReporter: captureError,
     localGitService,
 });

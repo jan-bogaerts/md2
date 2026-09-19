@@ -10,6 +10,7 @@ import { actionService } from '../../../../services/actions/action_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { actionRunSettingsService } from '../../../../services/actions/action_run_settings_service'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
+import { activeScheduleService } from '../../../../services/actions/active_schedule_service'
 import { agentCapabilitiesService } from '../../../../services/agents/agent_capabilities_service'
 import { agentAcknowledgementService } from '../../../../services/agents/agent_acknowledgement_service'
 import { dialogService } from '../../../../services/dialog_service'
@@ -399,6 +400,73 @@ describe('ActionPopup', () => {
         expect(prepareActionPrompt).not.toHaveBeenCalled()
     })
 
+    it('opens scheduling outside the scroll body and closes only scheduling from all close paths', async () => {
+        const { onClose } = renderPopup()
+        const parentPopup = screen.getByRole('dialog', { name: 'Run actions' })
+        const scrollBody = screen.getByTestId('action-popup-scroll-body')
+        const scheduleButton = screen.getByRole('button', { name: 'Schedule' })
+        const secondAction = within(screen.getByRole('group', { name: 'Actions' }))
+            .getByRole('button', { name: 'Second action' })
+        expect(scheduleButton).toHaveAttribute('aria-expanded', 'false')
+        expect(scheduleButton).toHaveAttribute('aria-haspopup', 'dialog')
+
+        fireEvent.click(scheduleButton)
+
+        const schedulePopover = screen.getByRole('dialog', { name: 'Schedule action' })
+        expect(scrollBody.contains(schedulePopover)).toBe(false)
+        expect(scheduleButton).toHaveAttribute('aria-expanded', 'true')
+        fireEvent.change(screen.getByLabelText('Date and time'), { target: { value: '2099-07-07T10:30' } })
+        fireEvent.click(scheduleButton)
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())
+
+        fireEvent.click(scheduleButton)
+        expect(screen.getByLabelText('Date and time')).toHaveValue('2099-07-07T10:30')
+        fireEvent.keyDown(screen.getByRole('dialog', { name: 'Schedule action' }), { key: 'Escape' })
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())
+        expect(parentPopup).toBeInTheDocument()
+        expect(onClose).not.toHaveBeenCalled()
+
+        fireEvent.click(scheduleButton)
+        const backdrops = document.querySelectorAll('.MuiBackdrop-root')
+        const scheduleBackdrop = backdrops.item(backdrops.length - 1)
+        if (!(scheduleBackdrop instanceof HTMLElement)) throw new Error('Expected schedule popover backdrop')
+        fireEvent.click(scheduleBackdrop)
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())
+        expect(parentPopup).toBeInTheDocument()
+        expect(onClose).not.toHaveBeenCalled()
+
+        fireEvent.click(scheduleButton)
+        fireEvent.click(secondAction)
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())
+        expect(screen.getByRole('button', { name: 'Schedule' })).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    it('registers scheduling with base context instead of selected worktree assignment', async () => {
+        const registerActionSchedule = vi.fn(async () => undefined)
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
+            registerActionSchedule,
+        } as unknown as typeof window.md2Actions
+        vi.spyOn(activeScheduleService, 'refresh').mockResolvedValue(undefined)
+        worktreeService.setProjectActionWorktree(1)
+        actionService.loadFromFiles([
+            file(commandDefinition('project-command', { appliesTo: { kind: 'project' }, label: 'Project command' })),
+        ])
+        renderPopup({ kind: 'project' })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
+        fireEvent.change(screen.getByLabelText('Date and time'), { target: { value: '2099-07-07T10:30' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
+
+        await waitFor(() => expect(registerActionSchedule).toHaveBeenCalledWith({
+            actionId: 'project-command',
+            context: { kind: 'project' },
+            trigger: { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
+        }))
+        expect(screen.getByRole('status')).toHaveTextContent('Schedule registered')
+    })
+
     it('submits the edited command and resets it only after Electron accepts the run', async () => {
         const acceptance = deferredValue<string>()
         const startAction = vi.fn(() => acceptance.promise)
@@ -645,8 +713,16 @@ describe('ActionPopup', () => {
         expect(renderProbes.agentPrompt).toHaveBeenCalledWith(stackPosition)
     })
 
-    it('uses literal text for agent prompts', () => {
+    it('keeps markdown editing for agent prompts', () => {
         actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup()
+
+        expect(renderProbes.agentPromptPlainText).toHaveBeenCalledWith(false)
+    })
+
+    it('uses literal text for command prompts', () => {
+        actionService.loadFromFiles([file(commandDefinition('build', { label: 'Build' }))])
 
         renderPopup()
 
@@ -1797,6 +1873,12 @@ describe('ActionPopup', () => {
         act(() => actionPromptDraftService.getDraft('stream', context, activeRun.runId, { prepare: false }).edit('Continue'))
         expect(screen.getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Schedule' }))
+        expect(screen.getByRole('dialog', { name: 'Schedule action' })).toBeInTheDocument()
+        act(() => actionPromptDraftService.getDraft('stream', context, activeRun.runId, { prepare: false }).edit(''))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())
+        expect(screen.queryByRole('button', { name: 'Schedule' })).not.toBeInTheDocument()
+        act(() => actionPromptDraftService.getDraft('stream', context, activeRun.runId, { prepare: false }).edit('Continue'))
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         await waitFor(() => expect(finishActionRun).toHaveBeenCalledWith('run-1'))
     })
