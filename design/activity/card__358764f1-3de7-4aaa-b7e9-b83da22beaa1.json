@@ -5704,7 +5704,7 @@
       "actionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
       "cardPath": "design/feature_descriptions/F_349_pin_conversations.md",
-      "completedAt": "2026-09-19T14:34:52.607Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 102184
@@ -6562,6 +6562,14 @@
           "role": "assistant",
           "sequence": 62,
           "timestamp": "2026-09-19T14:34:52.607Z"
+        },
+        {
+          "content": "we did a major architectural change on how this feature works, conversations no longer store the pinned state. can you redo your analysis",
+          "id": "agent-turn-5a4895a8-8e1a-4429-8fef-835b9e3c5bd8-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 63,
+          "timestamp": "2026-09-19T15:22:58.837Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -6576,14 +6584,14 @@
         }
       ],
       "startedAt": "2026-09-19T14:07:38.034Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 111547,
           "toolMs": 50466
         },
         "elapsedMs": 267312,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-19T15:22:58.837Z"
       },
       "title": "review",
       "usage": {
@@ -8860,11 +8868,11 @@
         "agent-4c8894ee-6106-4636-9e9f-dbd1843e04dd"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-ca2b91eb-8201-46ce-aadd-c2e0883e3d15",
       "origin": {
@@ -8873,9 +8881,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-4c8894ee-6106-4636-9e9f-dbd1843e04dd",
       "startedAt": "2026-09-19T14:34:41.974Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-4c8894ee-6106-4636-9e9f-dbd1843e04dd"
     }
   ],
   "version": 5
