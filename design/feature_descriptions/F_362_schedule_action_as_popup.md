@@ -3,7 +3,7 @@ author:
 id: F_362
 internalId: faf847ea-ef5f-4ace-a894-9a30c39692b4
 title: schedule action as popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,16 @@ agents:
 policy:
 branch: f_362_schedule_action_as_popup
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
+  - app/src/components/actions/run/schedule/action_schedule_form.test.tsx
+  - app/src/components/actions/run/schedule/action_schedule_owner.test.tsx
+  - app/src/components/actions/run/schedule/action_schedule_owner.tsx
+  - app/src/components/actions/run/schedule/action_schedule_store.node.test.ts
+  - app/src/components/actions/run/schedule/action_schedule_store.ts
+  - app/src/components/actions/run/schedule/action_schedule_trigger.node.test.ts
 ---
 
 we have a 'schedule' button on the action popup. currently it shows / hides a box on the same popup when clicked. This should be moved into a popup. when the user clicks on the schedule icon, open/close the new popup.
