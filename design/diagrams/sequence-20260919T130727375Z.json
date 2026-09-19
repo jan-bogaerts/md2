@@ -1,0 +1,477 @@
+{
+  "meta": {
+    "version": 1,
+    "type": "sequence",
+    "title": "Action popup prompt to agent backend",
+    "description": "Representative runtime path from popup data loading and prepared prompt composition through Markdown editor input, Electron IPC, backend prompt resolution, agent execution, persistence, and live UI updates."
+  },
+  "nodes": [
+    {
+      "id": "user",
+      "label": "User",
+      "role": "input",
+      "kind": "participant"
+    },
+    {
+      "id": "action_popup",
+      "label": "Action popup",
+      "role": "focal",
+      "kind": "participant"
+    },
+    {
+      "id": "renderer_services",
+      "label": "Renderer action services",
+      "role": "boundary",
+      "kind": "participant"
+    },
+    {
+      "id": "electron_bridge",
+      "label": "Electron preload / IPC bridge",
+      "role": "boundary",
+      "kind": "participant"
+    },
+    {
+      "id": "action_backend",
+      "label": "Desktop action backend",
+      "role": "backend",
+      "kind": "participant"
+    },
+    {
+      "id": "project_store",
+      "label": "Project and activity files",
+      "role": "store",
+      "kind": "participant"
+    },
+    {
+      "id": "agent_provider",
+      "label": "Configured agent process",
+      "role": "external",
+      "kind": "participant"
+    }
+  ],
+  "edges": [
+    {
+      "id": "open_popup",
+      "from": "user",
+      "to": "action_popup",
+      "kind": "call",
+      "label": "Open an agent action for a context"
+    },
+    {
+      "id": "load_popup_data",
+      "from": "action_popup",
+      "to": "renderer_services",
+      "kind": "call",
+      "label": "Create scoped stores; load conversations and run history"
+    },
+    {
+      "id": "request_persisted_data",
+      "from": "renderer_services",
+      "to": "electron_bridge",
+      "kind": "call",
+      "label": "loadActivityConversations / loadActionRunHistory"
+    },
+    {
+      "id": "dispatch_persisted_data",
+      "from": "electron_bridge",
+      "to": "action_backend",
+      "kind": "call",
+      "label": "Dispatch local bridge methods"
+    },
+    {
+      "id": "read_persisted_data",
+      "from": "action_backend",
+      "to": "project_store",
+      "kind": "call",
+      "label": "Read card/project activity and action history"
+    },
+    {
+      "id": "return_persisted_data",
+      "from": "project_store",
+      "to": "action_backend",
+      "kind": "return",
+      "label": "Conversation records and history entries"
+    },
+    {
+      "id": "bridge_persisted_data",
+      "from": "action_backend",
+      "to": "electron_bridge",
+      "kind": "return",
+      "label": "Loaded popup data"
+    },
+    {
+      "id": "publish_persisted_data",
+      "from": "electron_bridge",
+      "to": "renderer_services",
+      "kind": "return",
+      "label": "Resolve bridge requests"
+    },
+    {
+      "id": "render_persisted_data",
+      "from": "renderer_services",
+      "to": "action_popup",
+      "kind": "success",
+      "label": "Publish selected conversation, history, and usage snapshots"
+    },
+    {
+      "id": "prepare_prompt",
+      "from": "action_popup",
+      "to": "renderer_services",
+      "kind": "call",
+      "label": "Prepare untouched new-conversation draft"
+    },
+    {
+      "id": "flush_before_prepare",
+      "from": "renderer_services",
+      "to": "project_store",
+      "kind": "call",
+      "label": "Flush pending project and action changes"
+    },
+    {
+      "id": "request_prepared_prompt",
+      "from": "renderer_services",
+      "to": "electron_bridge",
+      "kind": "call",
+      "label": "prepareActionPrompt(actionId, context)"
+    },
+    {
+      "id": "dispatch_prepare_prompt",
+      "from": "electron_bridge",
+      "to": "action_backend",
+      "kind": "call",
+      "label": "ActionRunnerService.prepareActionPrompt"
+    },
+    {
+      "id": "load_prompt_sources",
+      "from": "action_backend",
+      "to": "project_store",
+      "kind": "call",
+      "label": "Load action definition, resolve worktree/context, and read current card references"
+    },
+    {
+      "id": "return_prompt_sources",
+      "from": "project_store",
+      "to": "action_backend",
+      "kind": "return",
+      "label": "Action prompt template, project paths, and card frontmatter references"
+    },
+    {
+      "id": "compose_prepared_prompt",
+      "from": "action_backend",
+      "to": "electron_bridge",
+      "kind": "return",
+      "label": "Prepared prompt with resolved placeholders and references"
+    },
+    {
+      "id": "replace_prompt_draft",
+      "from": "electron_bridge",
+      "to": "renderer_services",
+      "kind": "return",
+      "label": "PreparedActionPrompt"
+    },
+    {
+      "id": "show_prepared_prompt",
+      "from": "renderer_services",
+      "to": "action_popup",
+      "kind": "success",
+      "label": "Replace ActionPromptDraft and editor content"
+    },
+    {
+      "id": "edit_markdown",
+      "from": "user",
+      "to": "action_popup",
+      "kind": "call",
+      "label": "Type or edit Markdown prompt text"
+    },
+    {
+      "id": "update_prompt_draft",
+      "from": "action_popup",
+      "to": "renderer_services",
+      "kind": "async",
+      "label": "MDXEditor onChange -> MarkdownDraft.edit(serialized Markdown)"
+    },
+    {
+      "id": "submit_prompt",
+      "from": "user",
+      "to": "action_popup",
+      "kind": "call",
+      "label": "Select Run/Send or press Ctrl/Cmd+Enter"
+    },
+    {
+      "id": "read_draft",
+      "from": "action_popup",
+      "to": "renderer_services",
+      "kind": "call",
+      "label": "runPopupAction reads the current draft snapshot"
+    },
+    {
+      "id": "reserve_conversation",
+      "from": "renderer_services",
+      "to": "electron_bridge",
+      "kind": "call",
+      "label": "reserveActionConversation for a new card conversation"
+    },
+    {
+      "id": "allocate_conversation",
+      "from": "electron_bridge",
+      "to": "action_backend",
+      "kind": "call",
+      "label": "Allocate canonical conversation ID and activity reference"
+    },
+    {
+      "id": "conversation_reservation",
+      "from": "action_backend",
+      "to": "renderer_services",
+      "kind": "return",
+      "label": "Conversation reservation"
+    },
+    {
+      "id": "flush_before_run",
+      "from": "renderer_services",
+      "to": "project_store",
+      "kind": "call",
+      "label": "Flush pending project changes before execution"
+    },
+    {
+      "id": "start_action",
+      "from": "renderer_services",
+      "to": "electron_bridge",
+      "kind": "call",
+      "label": "startAction or restartActionRun with context and runInput.prompt"
+    },
+    {
+      "id": "dispatch_start",
+      "from": "electron_bridge",
+      "to": "action_backend",
+      "kind": "call",
+      "label": "ActionRunnerService.start"
+    },
+    {
+      "id": "load_execution_sources",
+      "from": "action_backend",
+      "to": "project_store",
+      "kind": "call",
+      "label": "Resolve action, worktree, continuation conversation, and card references"
+    },
+    {
+      "id": "execution_sources",
+      "from": "project_store",
+      "to": "action_backend",
+      "kind": "return",
+      "label": "Definition and persisted context data"
+    },
+    {
+      "id": "launch_agent",
+      "from": "action_backend",
+      "to": "agent_provider",
+      "kind": "call",
+      "label": "Spawn/resume configured agent with resolved editor prompt"
+    },
+    {
+      "id": "enqueue_prompt",
+      "from": "renderer_services",
+      "to": "electron_bridge",
+      "kind": "call",
+      "label": "enqueueActionPrompt(runId, editor snapshot)"
+    },
+    {
+      "id": "queue_prompt_backend",
+      "from": "electron_bridge",
+      "to": "action_backend",
+      "kind": "call",
+      "label": "Validate, resolve placeholders, and queue prompt"
+    },
+    {
+      "id": "queued_prompt_event",
+      "from": "action_backend",
+      "to": "renderer_services",
+      "kind": "async",
+      "label": "agentPromptQueued run event"
+    },
+    {
+      "id": "dispatch_queued_prompt",
+      "from": "action_backend",
+      "to": "agent_provider",
+      "kind": "call",
+      "label": "Send when streaming agent is ready and no interaction is pending"
+    },
+    {
+      "id": "provider_event",
+      "from": "agent_provider",
+      "to": "action_backend",
+      "kind": "async",
+      "label": "Stream output, state, question, approval, usage, or file-change event"
+    },
+    {
+      "id": "persist_checkpoint",
+      "from": "action_backend",
+      "to": "project_store",
+      "kind": "async",
+      "label": "Persist conversation checkpoint or successful turn"
+    },
+    {
+      "id": "publish_run_event",
+      "from": "action_backend",
+      "to": "electron_bridge",
+      "kind": "async",
+      "label": "Publish ordered ActionRunEvent"
+    },
+    {
+      "id": "route_run_event",
+      "from": "electron_bridge",
+      "to": "renderer_services",
+      "kind": "async",
+      "label": "onActionRun subscription callback"
+    },
+    {
+      "id": "update_popup",
+      "from": "renderer_services",
+      "to": "action_popup",
+      "kind": "async",
+      "label": "Update run registry; render transcript and status"
+    },
+    {
+      "id": "provider_complete",
+      "from": "agent_provider",
+      "to": "action_backend",
+      "kind": "return",
+      "label": "Turn/process completes"
+    },
+    {
+      "id": "persist_terminal_conversation",
+      "from": "action_backend",
+      "to": "project_store",
+      "kind": "call",
+      "label": "Persist terminal conversation and action history"
+    },
+    {
+      "id": "terminal_run_event",
+      "from": "action_backend",
+      "to": "electron_bridge",
+      "kind": "async",
+      "label": "Publish agentClosed and terminal result"
+    },
+    {
+      "id": "terminal_registry_update",
+      "from": "electron_bridge",
+      "to": "renderer_services",
+      "kind": "async",
+      "label": "Resolve run waiter and reload persisted data"
+    },
+    {
+      "id": "render_terminal_state",
+      "from": "renderer_services",
+      "to": "action_popup",
+      "kind": "success",
+      "label": "Render final conversation, status, history, and usage"
+    }
+  ],
+  "groups": [
+    {
+      "id": "renderer_group",
+      "label": "Renderer",
+      "nodeIds": [
+        "action_popup",
+        "renderer_services"
+      ]
+    },
+    {
+      "id": "desktop_group",
+      "label": "Electron desktop",
+      "nodeIds": [
+        "electron_bridge",
+        "action_backend",
+        "project_store"
+      ]
+    }
+  ],
+  "fragments": [
+    {
+      "id": "optional_default_prompt_preparation",
+      "operator": "opt",
+      "regions": [
+        {
+          "guard": "New agent conversation, untouched draft, and backend connection ready",
+          "edgeIds": [
+            "prepare_prompt",
+            "flush_before_prepare",
+            "request_prepared_prompt",
+            "dispatch_prepare_prompt",
+            "load_prompt_sources",
+            "return_prompt_sources",
+            "compose_prepared_prompt",
+            "replace_prompt_draft",
+            "show_prepared_prompt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "optional_conversation_reservation",
+      "operator": "opt",
+      "regions": [
+        {
+          "guard": "New card/file conversation with canonical card identity and no continuation",
+          "edgeIds": [
+            "reserve_conversation",
+            "allocate_conversation",
+            "conversation_reservation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "optional_pending_save_flush",
+      "operator": "opt",
+      "regions": [
+        {
+          "guard": "Project persistence reports pending saves before a new or restarted run",
+          "edgeIds": [
+            "flush_before_run"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "new_or_active_agent_run",
+      "operator": "alt",
+      "regions": [
+        {
+          "guard": "No active agent session, or changed settings require restart",
+          "edgeIds": [
+            "start_action",
+            "dispatch_start",
+            "load_execution_sources",
+            "execution_sources",
+            "launch_agent"
+          ]
+        },
+        {
+          "guard": "Active agent session accepts another prompt",
+          "edgeIds": [
+            "enqueue_prompt",
+            "queue_prompt_backend",
+            "queued_prompt_event",
+            "dispatch_queued_prompt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "streamed_run_updates",
+      "operator": "loop",
+      "regions": [
+        {
+          "guard": "For each provider/runtime event while the run is active",
+          "edgeIds": [
+            "provider_event",
+            "persist_checkpoint",
+            "publish_run_event",
+            "route_run_event",
+            "update_popup"
+          ]
+        }
+      ]
+    }
+  ]
+}
