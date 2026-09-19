@@ -438,24 +438,32 @@
           "sequence": 31,
           "timestamp": "2026-09-19T13:01:53.550Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Always HH:MM:SS (Recommended)\nclaude-question-1: Keep raw milliseconds (Recommended)",
+          "id": "agent-turn-65c63b8b-50cf-4551-92c3-f31ba9932989-answer-31",
+          "kind": "message",
+          "role": "user",
+          "sequence": 32,
+          "timestamp": "2026-09-19T13:06:49.466Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-e2c2464d-35e1-4a2e-81a5-85c67707ee9c",
       "providerSessions": [],
       "startedAt": "2026-09-19T13:00:49.383Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 11021,
           "toolMs": 25637
         },
         "elapsedMs": 64167,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-19T13:06:49.466Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
