@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 515b2369-553d-4556-b99c-e01eb575777d
+after: 6b01f79a-7950-42c5-b09b-4f77086aa427
 ---
 
 Show it in hamburger menu
