@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: eb1707b3-15c4-4a42-b86e-db35fbfd9060
 ---
 
 When on small screen, show the stats as tables instead of charts. This is easier to read

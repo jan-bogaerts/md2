@@ -3,12 +3,11 @@ author:
 id: F_349
 internalId: 358764f1-3de7-4aaa-b7e9-b83da22beaa1
 title: pin conversations
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: f8789999-e317-4713-b43f-c4c737979d19
 ---
 
 some conversations can remain valid for longer time. user should be able to find them fast. So user can 'pin a conversation: put a 'pin' / 'unpin' icon next to the 'conversation selector' at the top row of the action popup. Also, in the selection list, put a pin after all pinned conversations so the user can easily spot a pinned conversation in the list.

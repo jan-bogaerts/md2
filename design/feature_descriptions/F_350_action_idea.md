@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 358764f1-3de7-4aaa-b7e9-b83da22beaa1
+after: f8789999-e317-4713-b43f-c4c737979d19
 ---
 
 Write a script that accepts a version number and updates the code files so that the new version number is applied. Exif there is a package.json, update the version field.
