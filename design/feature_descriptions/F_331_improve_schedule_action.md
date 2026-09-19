@@ -16,6 +16,12 @@ changedFiles:
   - design/feature_descriptions/F_355_add_schedule_trigger_controls.md
   - design/feature_descriptions/F_356_add_scheduled_card_sequence_engine.md
   - design/feature_descriptions/F_357_add_card_sequence_dialog.md
+  - desktop/main.js
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/schedule/scheduled_card_context.js
+  - desktop/src/actions/schedule/scheduled_card_context.test.mjs
+  - desktop/src/actions/schedule/scheduled_card_sequence_engine.js
 after: b4c6118b-6976-41ec-b33e-bd93e66eda89
 ---
 Improve scheduled actions with account-reset and card-state triggers, active-schedule management, and ordered card sequences. This umbrella splits implementation into focused jobs.
