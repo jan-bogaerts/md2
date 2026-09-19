@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__faf847ea-ef5f-4ace-a894-9a30c39692b4.json
 policy:
+branch: f_362_schedule_action_as_popup
+worktree: 1
 ---
 
 we have a 'schedule' button on the action popup. currently it shows / hides a box on the same popup when clicked. This should be moved into a popup. when the user clicks on the schedule icon, open/close the new popup.
