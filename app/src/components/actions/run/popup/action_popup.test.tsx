@@ -28,6 +28,7 @@ import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
 
 const renderProbes = vi.hoisted(() => ({
     agentPrompt: vi.fn(),
+    agentPromptPlainText: vi.fn(),
     agentSelectors: vi.fn(),
     chat: vi.fn(),
     conversationPicker: vi.fn(),
@@ -49,6 +50,7 @@ vi.mock('../../agent/action_agent_prompt', async (importOriginal) => {
         ...actual,
         ActionAgentPrompt: function ActionAgentPromptRenderProbe(props: Parameters<typeof actual.ActionAgentPrompt>[0]) {
             renderProbes.agentPrompt(useMarkdownTypeaheadStackPosition())
+            renderProbes.agentPromptPlainText(props.plainText)
 
             return actual.ActionAgentPrompt(props)
         },
@@ -641,6 +643,14 @@ describe('ActionPopup', () => {
         renderPopup(context, vi.fn(), stackPosition)
 
         expect(renderProbes.agentPrompt).toHaveBeenCalledWith(stackPosition)
+    })
+
+    it('uses literal text for agent prompts', () => {
+        actionService.loadFromFiles([file(agentDefinition('review', { label: 'Review' }))])
+
+        renderPopup()
+
+        expect(renderProbes.agentPromptPlainText).toHaveBeenCalledWith(true)
     })
 
     it('renders the agent bottom row inside the prompt surface below the scrolling editor', () => {
@@ -2641,7 +2651,7 @@ describe('ActionPopup', () => {
                 ...newEvent,
                 status: 'completed',
                 type: 'update',
-                update: { conversation: switchedConversation, kind: 'agentClosed' },
+                update: { conversation: switchedConversation, kind: 'agentClosed', persisted: true },
             })
             runListener?.({ ...newEvent, status: 'completed', type: 'run' })
 

@@ -5,6 +5,7 @@ import { AppThemeProvider } from '../../theme/theme_provider'
 import { MarkdownEditor, type MarkdownEditorHandle } from './markdown_editor'
 
 const COMMAND = String.raw`powershell.exe -NoProfile -File "C:\Users\janbo\dev\tools\release_electron.ps1"`
+const WINDOWS_PATH = String.raw`C:\Users\janbo\Documents\testmodels\pipe_inspector9\indexes\pipe details\data.db`
 
 function renderEditor(markdown: string, plainText: boolean) {
     const handle = createRef<MarkdownEditorHandle>()
@@ -36,6 +37,12 @@ describe('MarkdownEditor plain text mode with installed MDXEditor', () => {
         const handle = renderEditor(command, true)
 
         expect(handle.current?.getMarkdown()).toBe(command)
+    })
+
+    it('does not escape an underscore in a Windows path', () => {
+        const handle = renderEditor(WINDOWS_PATH, true)
+
+        expect(handle.current?.getMarkdown()).toBe(WINDOWS_PATH)
     })
 
     it('still serializes markdown source when plain text mode is off', () => {

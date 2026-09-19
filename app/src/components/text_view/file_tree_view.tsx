@@ -10,6 +10,8 @@ import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { useActionFileTreeActions } from '../hooks/use_action_file_tree_actions'
 import { useProjectState } from '../hooks/use_project_state'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
+import { useAgentInstructions } from '../hooks/use_agent_instructions'
+import { agentInstructionsService } from '../../services/agent_instructions/agent_instructions_service'
 import { CreateTreeItemDialog, type CreateTreeItemKind } from './create_tree_item_dialog'
 import { FileTreeContext, type FileTreeContextValue } from './file_tree_context'
 import { FileTreeNodeRow } from './file_tree_node_row'
@@ -119,6 +121,7 @@ export function FileTreeView(props: FileTreeViewProps) {
     const backgroundCards = snapshot?.backgroundCards ?? EMPTY_CARDS
     const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES
     const actions = useActionFileTreeActions()
+    const { files: agentInstructionFiles } = useAgentInstructions()
     const specialFolderPaths = useMemo(
         () => [actionsFolder, workingFolder, releasesFolder, archivedFolder],
         [actionsFolder, archivedFolder, releasesFolder, workingFolder],
@@ -126,11 +129,15 @@ export function FileTreeView(props: FileTreeViewProps) {
     const hiddenFolderPaths = useMemo(() => [folderPath(projectFolder, LOGS_FOLDER_NAME)], [projectFolder])
     const nodes = useMemo(() => buildFileTree(activeCards, backgroundCards, workingFolder, {
         actions,
+        agentInstructionPaths: agentInstructionFiles.map(({ path }) => path),
         hiddenFolderPaths,
         projectFolder,
         repositoryFiles,
         specialFolderPaths,
-    }), [actions, activeCards, backgroundCards, hiddenFolderPaths, projectFolder, repositoryFiles, specialFolderPaths, workingFolder])
+    }), [
+        actions, activeCards, agentInstructionFiles, backgroundCards, hiddenFolderPaths,
+        projectFolder, repositoryFiles, specialFolderPaths, workingFolder,
+    ])
     const cardsByPath = useMemo(() => new Map(
         [...activeCards, ...backgroundCards].map((card) => [card.path, card]),
     ), [activeCards, backgroundCards])
@@ -165,7 +172,9 @@ export function FileTreeView(props: FileTreeViewProps) {
     const handleActivateNode = useCallback((node: NodeApi<TreeNode>) => {
         try {
             if (node.data.path) {
-                const object = cardsByPath.get(node.data.path) ?? actionService.getActionByPath(node.data.path)
+                const object = cardsByPath.get(node.data.path)
+                    ?? actionService.getActionByPath(node.data.path)
+                    ?? agentInstructionsService.getFile(node.data.path)
                 if (!object) throw new Error(`Cannot open unknown document: ${node.data.path}`)
                 setSelectedNodeId(null)
                 openFilesService.openDocument(object)

@@ -36,6 +36,7 @@ function findChild(nodes: TreeNode[], label: string): TreeNode | undefined {
 function treeOptions(overrides: Partial<FileTreeOptions> = {}): FileTreeOptions {
     return {
         actions: [],
+        agentInstructionPaths: [],
         hiddenFolderPaths: ['design/logs'],
         projectFolder: 'design',
         repositoryFiles: [],
@@ -181,6 +182,7 @@ describe('buildFileTree', () => {
     it('excludes root logs when projectFolder is empty', () => {
         const tree = buildFileTree([], [], '', {
             actions: [],
+            agentInstructionPaths: [],
             hiddenFolderPaths: ['logs'],
             projectFolder: '',
             repositoryFiles: ['logs/conversation__project__one.json', 'notes/readme.md'],
@@ -189,6 +191,18 @@ describe('buildFileTree', () => {
 
         expect(findChild(tree, 'logs')).toBeUndefined()
         expect(findChild(tree, 'notes')).toBeDefined()
+    })
+
+    it('builds one flat structurally read-only instruction folder', () => {
+        const tree = buildFileTree([], [], 'design/active', treeOptions({agentInstructionPaths: ['.github/copilot-instructions.md', 'docs/AGENTS.md']}))
+        const instructions = findChild(tree, 'agent instructions')
+
+        expect(instructions).toMatchObject({ kind: 'virtual', structuralReadOnly: true })
+        expect(instructions?.children).toEqual([
+            expect.objectContaining({ label: '.github/copilot-instructions.md', path: '.github/copilot-instructions.md', structuralReadOnly: true }),
+            expect.objectContaining({ label: 'docs/AGENTS.md', path: 'docs/AGENTS.md', structuralReadOnly: true }),
+        ])
+        expect(instructions?.children.every(({ children }) => children.length === 0)).toBe(true)
     })
 })
 

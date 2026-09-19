@@ -21,6 +21,8 @@ import { CardDragOverlay } from './card_drag_overlay'
 import { attachmentChoiceService } from '../../services/attachments/attachment_choice_service'
 import { projectAccessService } from '../../services/project/project_access_service'
 import { cardPopupService } from '../../services/card_popup_service'
+import { cardSequenceDraftService } from '../actions/run/sequence/card_sequence_draft_service'
+import { CARD_SEQUENCE_DROP_ID } from '../actions/run/sequence/card_sequence_dnd'
 
 const dragContextHandlers = vi.hoisted(() => ({
     onDragCancel: null as DndContextProps['onDragCancel'] | null,
@@ -120,6 +122,7 @@ describe('CardView', () => {
         projectAccessService.setReadOnly(false)
         workspaceViewService.setViewMode('cards')
         cardDragDropService.endDrag()
+        cardSequenceDraftService.close()
         vi.spyOn(dataService, 'getState')
         setCards(cards)
         vi.spyOn(dataService.cards, 'deleteCard').mockResolvedValue(null)
@@ -323,6 +326,25 @@ describe('CardView', () => {
 
         expect(setDropPreview).toHaveBeenCalledOnce()
         expect(setDropPreview).toHaveBeenCalledWith({ targetIndex: 0, targetStatus: 'done' })
+    })
+
+    it('adds a board card to an open sequence without moving the board card', () => {
+        cardSequenceDraftService.open()
+        renderCardView()
+
+        act(() => dragContextHandlers.onDragStart?.({
+            active: {
+                id: 'design/F-1.md',
+                rect: { current: { initial: { height: 107, width: 235 } } },
+            },
+        } as Parameters<NonNullable<DndContextProps['onDragStart']>>[0]))
+        act(() => dragContextHandlers.onDragEnd?.({
+            active: { id: 'design/F-1.md' },
+            over: { id: CARD_SEQUENCE_DROP_ID },
+        } as Parameters<NonNullable<DndContextProps['onDragEnd']>>[0]))
+
+        expect(cardSequenceDraftService.getSnapshot().cardInternalIds).toEqual(['f-1'])
+        expect(dataService.cards.moveCard).not.toHaveBeenCalled()
     })
 
     it('renders one policy led per policy flag and toggles on click', () => {

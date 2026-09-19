@@ -15,16 +15,7 @@ export function hasUnseenConversation(conversations: AgentConversation[]) {
 }
 
 function isConversationWaiting(conversations: AgentConversation[]) {
-    return conversations.some((conversation) => {
-        if (conversation.status === 'waitingForInput') return true
-        if (conversation.status !== 'running') return false
-
-        const stateEvent = conversation.entries.findLast((entry) => (
-            entry.kind === 'event' && (entry.type === 'waiting' || entry.type === 'resumed')
-        ))
-
-        return stateEvent?.kind === 'event' && stateEvent.type === 'waiting'
-    })
+    return conversations.some(({ status }) => status === 'waitingForInput')
 }
 
 /** True when the card has at least one agent conversation still running. */

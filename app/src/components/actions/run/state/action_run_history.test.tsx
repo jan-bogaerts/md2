@@ -49,6 +49,50 @@ describe('ActionRunHistory', () => {
         expect(screen.queryByText('run')).not.toBeInTheDocument()
     })
 
+    it('renders command runs newest first with localized completion times without changing source order', () => {
+        const oldestCompletedAt = '2026-07-05T10:00:00.000Z';
+        const newestCompletedAt = '2026-07-05T12:00:00.000Z';
+        const entries: ActionRunHistoryEntry[] = [
+            {
+                command: 'oldest command',
+                completedAt: oldestCompletedAt,
+                output: 'oldest output',
+                startedAt: '2026-07-05T09:00:00.000Z',
+                status: 'completed',
+                type: 'command',
+            },
+            {
+                command: 'first tied command',
+                completedAt: newestCompletedAt,
+                output: 'first tied output',
+                startedAt: '2026-07-05T11:00:00.000Z',
+                status: 'completed',
+                type: 'command',
+            },
+            {
+                command: 'later tied command',
+                completedAt: newestCompletedAt,
+                output: 'later tied output',
+                startedAt: '2026-07-05T11:30:00.000Z',
+                status: 'failed',
+                type: 'command',
+            },
+        ];
+        const sourceOrder = [...entries];
+
+        render(<ActionRunHistory entries={entries} error={null} />);
+
+        const oldestCompletion = new Date(oldestCompletedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+        const newestCompletion = new Date(newestCompletedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+        const summaries = screen.getAllByText(/^(completed|failed):/);
+        expect(summaries.map(({ textContent }) => textContent)).toEqual([
+            `failed: later tied output · ${newestCompletion}`,
+            `completed: first tied output · ${newestCompletion}`,
+            `completed: oldest output · ${oldestCompletion}`,
+        ]);
+        expect(entries).toEqual(sourceOrder);
+    })
+
     it('shows commit date, performer, short hash, and independent diff toggles', () => {
         const firstCommittedAt = '2026-07-05T10:00:00.000Z'
         const secondCommittedAt = '2026-07-05T11:00:00.000Z'

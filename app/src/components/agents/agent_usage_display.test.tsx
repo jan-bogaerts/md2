@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { AgentUsageDisplay } from './agent_usage_display'
-import { formatTokenCount } from './token_count'
+import { formatTokenCount } from './token_count_format'
 
 describe('AgentUsageDisplay', () => {
     it('shows only total inline and complete reported-cost detail on focus', async () => {

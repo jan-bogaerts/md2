@@ -418,7 +418,7 @@ describe('CardRunButton', () => {
 
         expect(firstDialog.parentElement).toHaveStyle({ zIndex: '1300' })
         expect(secondDialog.parentElement).toHaveStyle({ zIndex: '1301' })
-        expect(secondDialog).toHaveFocus()
+        expect(secondDialog).toContainElement(document.activeElement as HTMLElement)
 
         fireEvent.pointerDown(firstDialog)
 
@@ -561,7 +561,7 @@ describe('CardRunButton', () => {
 
     it('distinguishes waiting, running, unseen and acknowledged agent states', async () => {
         window.localStorage.clear()
-        const waiting = conversation('running', [{ content: '', id: 'wait', timestamp: '2026-01-01T00:00:30.000Z', type: 'waiting' }])
+        const waiting = conversation('waitingForInput')
         const { rerender } = render(
             <AppThemeProvider>
                 <CardRunButton
@@ -576,10 +576,7 @@ describe('CardRunButton', () => {
         rerender(
             <AppThemeProvider>
                 <CardRunButton
-                    card={cardWith([conversation('running', [
-                        { content: '', id: 'wait', timestamp: '2026-01-01T00:00:20.000Z', type: 'waiting' },
-                        { content: '', id: 'resume', timestamp: '2026-01-01T00:00:30.000Z', type: 'resumed' },
-                    ])])}
+                    card={cardWith([conversation('running')])}
                     context={cardContext(card, DEFAULT_CARD_TYPES)}
                 />
                 <CardActionPopupHost />

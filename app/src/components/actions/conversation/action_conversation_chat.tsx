@@ -46,7 +46,7 @@ export function ActionConversationChat(
     )
     const conversation = resolveDisplayedConversation(liveConversation, selectedConversation)
     const scope = context.cardInternalId ?? null
-    const popupVisible = context.kind === 'project' || popupEntries.at(-1)?.id === popupEntryId
+    const popupVisible = popupEntries.at(-1)?.id === popupEntryId
     const visible = !!popupEntryId && popupVisible && !!conversation
 
     useEffect(() => {

@@ -4,13 +4,18 @@ const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { createPhaseTracker } = require('./agent_conversation_phases');
 const { createProviderEventEntryIndexes } = require('./agent_run_transcript');
 
+/**
+ * The single place agent run status is derived for consumers: every emitted event carries the status the
+ * conversation holds right now. Handlers call `transitionConversationStatus` before they emit, so provider
+ * traffic during a pending question or approval reports `waitingForInput` instead of `running`.
+ */
 function emitRunEvent(run, event) {
     if (!run.onEvent) return;
 
     // `agentEvent` carries the timer too so the chat log tooltip stays fresh during a long
     // uninterrupted run, when no status transition happens to publish it.
     const timer = event.type === 'state' || event.type === 'agentEvent' ? run.conversation.timer : undefined;
-    run.onEvent({ ...event, ...(timer ? { timer } : {}), runId: run.id });
+    run.onEvent({ ...event, ...(timer ? { timer } : {}), runId: run.id, status: run.conversation.status });
 }
 
 function hasPendingInteraction(run) {

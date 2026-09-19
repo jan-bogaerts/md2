@@ -15,7 +15,7 @@ function subscribeToOpenFiles(onStoreChange: () => void) {
 
 function documentPath(document: OpenDocument | null) {
     if (!document) return null
-    if (document.kind === 'card') return document.getObject().path
+    if (document.kind !== 'action') return document.getObject().path
     const { id, sourcePath } = document.getObject()
     if (!sourcePath) return `${INVALID_ACTION_PATH_PREFIX}${id}`
 

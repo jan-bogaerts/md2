@@ -29,6 +29,7 @@ const {
     createRun,
     createRunResult,
     emitRunEvent,
+    hasPendingInteraction,
 } = require('./agent_run_state');
 const {
     appendAssistantOutput,
@@ -51,6 +52,7 @@ const { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/
 
 const AGENT_FINISH_GRACE_MS = 5_000;
 const AGENT_USAGE_POLL_TICK_MS = 120_000;
+const TERMINAL_PERSIST_ATTEMPTS = 3;
 
 class AgentRunnerService {
     constructor(dependencies = {}) {
@@ -117,6 +119,7 @@ class AgentRunnerService {
         readOptionalString(request?.actionId, 'actionId');
         const cardPath = readOptionalString(request?.cardPath, 'cardPath');
         const prompt = requireString(request?.prompt, 'prompt');
+        console.log('[agent prompt]', prompt);
         const agent = requireString(request?.agent ?? 'generic', 'agent');
         const streaming = request.streaming === true;
         requireProjectFolder(request?.projectFolder);
@@ -237,7 +240,18 @@ class AgentRunnerService {
         return this.ensureTermination(run);
     }
 
+    /**
+     * Whether the run still owes the user an answer: an unanswered structured question or an open approval.
+     * The action run asks instead of mirroring the flags, so pending interaction is tracked in one place.
+     */
+    hasPendingInteraction(runId) {
+        const run = this.processes.get(runId);
+
+        return !!run && hasPendingInteraction(run);
+    }
+
     sendMessage(runId, content) {
+        console.log('[agent prompt]', content);
         return agentInteractions.sendMessage(this, this.requireStreamingRun(runId), content);
     }
 
@@ -730,11 +744,6 @@ class AgentRunnerService {
                 ? 'waitingForInput'
                 : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
             transitionConversationStatus(run.conversation, status, completedAt, run.phases);
-            const continuedTurnFailedBeforeStart = !!run.request.conversation
-                && !run.turnStarted
-                && !succeeded
-                && !run.cancelled
-                && !run.suspended;
             logAgentEvent('[agent:complete]', {
                 completedAt,
                 durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),
@@ -744,17 +753,16 @@ class AgentRunnerService {
                 runId,
             });
             await run.persistence;
-            let persistenceError = null;
-            if (!continuedTurnFailedBeforeStart) {
-                try {
-                    await this.persistConversation(run);
-                } catch (error) {
-                    persistenceError = error;
-                }
-            }
+            // Every close writes the terminal conversation, continued turns that never started included:
+            // the renderer already shows the terminal status, so a skipped write leaves `running` on disk.
+            const persistenceError = await this.persistTerminalConversation(run);
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
-            emitRunEvent(run, { conversation: run.conversation, type: 'closed' });
+            emitRunEvent(run, {
+                conversation: run.conversation,
+                persisted: !persistenceError,
+                type: 'closed',
+            });
             this.requestUsagePoll(run);
             if (persistenceError) {
                 if (run.onCompletionError) run.onCompletionError(persistenceError);
@@ -767,6 +775,39 @@ class AgentRunnerService {
             this.processes.delete(runId);
             this.runningConversationIds.delete(run.conversation.id);
         }
+    }
+
+    /**
+     * Writes the terminal conversation, retrying a bounded number of times. Returns the last error when
+     * every attempt failed so the caller can report it; the failure is never swallowed.
+     */
+    async persistTerminalConversation(run) {
+        for (let attempt = 1; attempt <= TERMINAL_PERSIST_ATTEMPTS; attempt += 1) {
+            try {
+                await this.persistConversation(run);
+                logAgentEvent('[agent:terminalPersist]', {
+                    attempt,
+                    conversationId: run.conversation.id,
+                    runId: run.id,
+                    status: run.conversation.status,
+                    persisted: true,
+                });
+
+                return null;
+            } catch (error) {
+                logAgentEvent('[agent:terminalPersist]', {
+                    attempt,
+                    conversationId: run.conversation.id,
+                    error: error instanceof Error ? error.message : String(error),
+                    runId: run.id,
+                    status: run.conversation.status,
+                    persisted: false,
+                });
+                if (attempt === TERMINAL_PERSIST_ATTEMPTS) return error;
+            }
+        }
+
+        return null;
     }
 
     requireRun(runId) {

@@ -2,7 +2,7 @@ import { groupByStatus, UNASSIGNED_STATUS } from './card_ordering'
 import type { Card } from './data_types'
 
 /** The kinds of node the text-view tree can contain. */
-export type TreeNodeKind = 'status' | 'folder' | 'special' | 'file'
+export type TreeNodeKind = 'status' | 'folder' | 'special' | 'virtual' | 'file'
 
 /** A single node in the text-view tree. `path` is set only on file leaves. */
 export interface TreeNode {
@@ -13,6 +13,7 @@ export interface TreeNode {
     label: string
     path: string | null
     status: string | null
+    structuralReadOnly?: boolean
 }
 
 export interface FileTreeAction {
@@ -23,6 +24,7 @@ export interface FileTreeAction {
 
 export interface FileTreeOptions {
     actions: FileTreeAction[]
+    agentInstructionPaths: string[]
     hiddenFolderPaths: string[]
     projectFolder: string
     repositoryFiles: string[]
@@ -32,6 +34,7 @@ export interface FileTreeOptions {
 const UNASSIGNED_STATUS_LABEL = 'Unassigned'
 const DEFAULT_IMPORTED_ID = 'F-0'
 const UNTITLED_TITLE = 'Untitled'
+export const AGENT_INSTRUCTIONS_FOLDER_LABEL = 'agent instructions'
 
 function getFileName(path: string) {
     return path.replace(/\\/g, '/').split('/').at(-1) ?? path
@@ -170,6 +173,30 @@ function buildFolderRoots(
     return root
 }
 
+function buildAgentInstructionsFolder(paths: string[]): TreeNode | null {
+    if (paths.length === 0) return null
+
+    return {
+        children: paths.map((path) => ({
+            children: [],
+            directoryPath: '',
+            id: path,
+            kind: 'file',
+            label: path,
+            path,
+            status: null,
+            structuralReadOnly: true,
+        })),
+        directoryPath: '',
+        id: 'agent-instructions',
+        kind: 'virtual',
+        label: AGENT_INSTRUCTIONS_FOLDER_LABEL,
+        path: null,
+        status: null,
+        structuralReadOnly: true,
+    }
+}
+
 /**
  * Build the text-view tree: status groups for the active root cards first, then
  * the real/special folder tree derived from the background cards.
@@ -180,12 +207,14 @@ export function buildFileTree(
     workingFolder: string,
     options: FileTreeOptions,
 ): TreeNode[] {
-    const { actions, hiddenFolderPaths, projectFolder, repositoryFiles, specialFolderPaths } = options
+    const { actions, agentInstructionPaths, hiddenFolderPaths, projectFolder, repositoryFiles, specialFolderPaths } = options
     const hiddenPathSet = new Set(hiddenFolderPaths)
     const specialPathSet = new Set(specialFolderPaths)
     const root = buildFolderRoots(actions, backgroundCards, projectFolder, repositoryFiles, hiddenPathSet, specialPathSet)
     const statusGroups = buildStatusGroups(activeCards, projectFolder)
-    if (workingFolder === projectFolder) return [...statusGroups, ...root.children]
+    const instructionFolder = buildAgentInstructionsFolder(agentInstructionPaths)
+    const topLevelNodes = instructionFolder ? [instructionFolder, ...root.children] : root.children
+    if (workingFolder === projectFolder) return [...statusGroups, ...topLevelNodes]
 
     const workingFolderSegments = relativeSegmentsInside(workingFolder, projectFolder)
     if (workingFolderSegments.length === 0) throw new Error(`Working folder is outside the project folder: ${workingFolder}`)
@@ -193,5 +222,5 @@ export function buildFileTree(
     const workingFolderNode = ensureFolderSegments(root, workingFolderSegments, specialPathSet)
     workingFolderNode.children.unshift(...statusGroups)
 
-    return root.children
+    return instructionFolder ? [instructionFolder, ...root.children] : root.children
 }

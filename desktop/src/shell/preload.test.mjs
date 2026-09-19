@@ -118,6 +118,7 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Actions.prepareActionPrompt).toEqual(expect.any(Function));
         expect(exposed.md2Actions.deleteSchedule).toEqual(expect.any(Function));
         expect(exposed.md2Actions.listActiveSchedules).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.registerSequenceSchedule).toEqual(expect.any(Function));
         expect(exposed.md2Actions.startAction).toEqual(expect.any(Function));
         expect(exposed.md2Actions.sendActionMessage).toEqual(expect.any(Function));
         expect(exposed.md2Actions.splitActionConversation).toEqual(expect.any(Function));
@@ -132,7 +133,7 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Actions.generateWorktreeDiff).toEqual(expect.any(Function));
         expect(exposed.md2Actions.restartActionRun).toEqual(expect.any(Function));
         expect(exposed.md2Actions.loadActionRunRecoverySnapshot).toEqual(expect.any(Function));
-        expect(exposed.md2Actions.notifyActionCardStateChange).toEqual(expect.any(Function));
+        expect(exposed.md2Actions.notifyActionCardStateChange).toBeUndefined();
         expect(exposed.md2Actions.runCommand).toBeUndefined();
         expect(exposed.md2Lifecycle.onFlushRequested).toEqual(expect.any(Function));
         expect(exposed.md2RemoteControl.onStatusChange).toEqual(expect.any(Function));
@@ -214,6 +215,23 @@ describe('preload desktop agent bridge', () => {
 
         expect(subscriptionRequest).toEqual(expect.objectContaining({ method: 'onWorktreesChanged', params: [] }));
         expect(callback).toHaveBeenCalledWith({ error: null, primaryStatus: null, project: null, records: [] });
+        expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-local-bridge:unsubscribe', subscriptionRequest.subscriptionId);
+    });
+
+    it('subscribes and unsubscribes conversation view state through validated IPC channels', () => {
+        const { electron, exposed } = createPreloadHarness();
+        const callback = vi.fn();
+        const unsubscribe = exposed.md2Actions.onActionConversationViewed(callback);
+        const listenerCall = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === 'md2-local-bridge:event');
+        const listener = listenerCall[1];
+        const subscriptionRequest = electron.ipcRenderer.send.mock.calls.find(([channel]) => channel === 'md2-local-bridge:subscribe')[1];
+        const event = { conversationId: 'conversation-1', viewed: false };
+
+        listener({}, { eventId: subscriptionRequest.subscriptionId, payload: event });
+        unsubscribe();
+
+        expect(subscriptionRequest).toEqual(expect.objectContaining({ method: 'onActionConversationViewed', params: [] }));
+        expect(callback).toHaveBeenCalledWith(event);
         expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-local-bridge:unsubscribe', subscriptionRequest.subscriptionId);
     });
 

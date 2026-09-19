@@ -62,6 +62,10 @@ export class ProjectPersistenceService extends EventTarget {
             if (document.kind === 'card' && document.dirty) {
                 dataService.cards.updateCardBody(document.path, document.getDraft().content, document.createSaveReference())
             }
+            if (document.kind === 'instruction' && document.dirty) {
+                const file = { content: document.getDraft().content, path: document.path }
+                dataService.scheduleFileCommit(file, `Update ${file.path}`, document.createSaveReference())
+            }
         }
         if (dataService.getPersistenceSnapshot().hasPendingFileCommit) await dataService.cards.flushPendingCommits()
         await dataService.drainPendingStorageWrites()

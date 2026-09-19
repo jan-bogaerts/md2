@@ -98,7 +98,6 @@ const ACTION_METHODS = [
     'listActiveSchedules',
     'loadActionRunHistory',
     'loadActionRunRecoverySnapshot',
-    'notifyActionCardStateChange',
     'loadCardActivity',
     'loadAgentAvailability',
     'openInEditor',
@@ -106,6 +105,7 @@ const ACTION_METHODS = [
     'readFileAtCommit',
     'releaseReleaseCardLocks',
     'registerActionSchedule',
+    'registerSequenceSchedule',
     'reserveActionConversation',
     'restartActionRun',
     'runSearchRegexpAgent',
@@ -281,6 +281,7 @@ if (!isAllowedOrigin()) {
     };
     const actionBridge = {
         ...createBridge(ACTION_METHODS),
+        onActionConversationViewed: (callback) => subscribeBridge('onActionConversationViewed', [], callback),
         onActionRun: (callback) => subscribeBridge('onActionRun', [], callback),
     };
     const codexRuntimeBridge = {

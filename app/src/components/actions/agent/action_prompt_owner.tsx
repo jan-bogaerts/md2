@@ -169,7 +169,7 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
             convertMessage={inputSnapshot.convertMessage}
             monospace={action.type === 'command'}
             onRunShortcut={handleRunShortcut}
-            plainText={action.type === 'command'}
+            plainText
             promptDraft={promptDraft}
             questionsEnabled={props.questionsEnabled}
             restoredQuestions={restored}

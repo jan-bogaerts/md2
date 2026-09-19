@@ -3,7 +3,7 @@ author:
 id: F_331
 internalId: 67d4a581-6ded-4a41-a489-d079644e3e5b
 title: Improve schedule action
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -16,7 +16,7 @@ changedFiles:
   - design/feature_descriptions/F_355_add_schedule_trigger_controls.md
   - design/feature_descriptions/F_356_add_scheduled_card_sequence_engine.md
   - design/feature_descriptions/F_357_add_card_sequence_dialog.md
-after: 96236df6-2c3a-4846-9d52-f29b7ee9041d
+after: b4c6118b-6976-41ec-b33e-bd93e66eda89
 ---
 Improve scheduled actions with account-reset and card-state triggers, active-schedule management, and ordered card sequences. This umbrella splits implementation into focused jobs.
 

@@ -34,6 +34,12 @@ import {
     ExpectedPersistenceOutcomes,
     type ObservedPersistenceOutcome,
 } from './expected_persistence_outcomes'
+import { agentInstructionsService } from '../agent_instructions/agent_instructions_service'
+import {
+    excludeAgentInstructionFiles,
+    excludeAgentInstructionPaths,
+    findAgentInstructionPaths,
+} from '../agent_instructions/agent_instruction_paths'
 
 const ACTION_RELOAD_DEBOUNCE_MS = 150
 const JSON_EXTENSION = '.json'
@@ -183,6 +189,7 @@ export class ProjectLoading {
         projectStatsService.clear()
         diagramEditSessionService.clear()
         diagramViewService.clear()
+        agentInstructionsService.clear()
     }
 
     /** Rebind repository watching after storage transport replacement without reloading project data. */
@@ -223,6 +230,7 @@ export class ProjectLoading {
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath = new Map()
         this.dependencies.replaceProject(project)
+        agentInstructionsService.setProject(project)
 
         try {
             const projectConfig = await this.loadProjectConfig(project)
@@ -245,8 +253,9 @@ export class ProjectLoading {
 
             await this.loadActions(project, config.actionsFolder)
             const projectFiles = await storage.loadProjectRoot(project, config.workingFolder)
+            const cardFiles = excludeAgentInstructionFiles(projectFiles.files, projectFiles.files.map(({ path }) => path))
             const repositoryFiles: string[] = []
-            this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
+            this.dependencies.replaceProjectFiles(cardFiles, config.workingFolder, repositoryFiles)
             await this.ensureCardInternalIds()
             await this.dependencies.migrateAgentLogReferences()
             this.tryStartProjectWatch()
@@ -366,7 +375,11 @@ export class ProjectLoading {
         this.prepareAgentConversationLoading(projectLoadToken)
         const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
-        this.dependencies.replaceProjectFiles(projectFiles.files, config.workingFolder, repositoryFiles)
+        await agentInstructionsService.load(currentProject, repositoryFiles, storage)
+        if (!this.dependencies.isCurrentLoad(currentProject, projectLoadToken)) return this.dependencies.snapshot()
+        const cardFiles = excludeAgentInstructionFiles(projectFiles.files, repositoryFiles)
+        const cardRepositoryFiles = excludeAgentInstructionPaths(repositoryFiles)
+        this.dependencies.replaceProjectFiles(cardFiles, config.workingFolder, cardRepositoryFiles)
         await this.ensureCardInternalIds()
         await this.dependencies.migrateAgentLogReferences()
         this.dependencies.markFullProjectLoaded()
@@ -405,6 +418,7 @@ export class ProjectLoading {
         projectStatsService.clear()
         diagramEditSessionService.clear()
         diagramViewService.clear()
+        agentInstructionsService.clear()
         this.dependencies.clearLoadedProject()
         this.actionReloadChangesByPath.clear()
         this.markdownReloadEventsByPath.clear()
@@ -561,7 +575,11 @@ export class ProjectLoading {
         let projectFilesLoaded = false
         if (projectFilesResult.status === 'fulfilled') {
             try {
-                const loadedFiles = mergeFiles(projectFilesResult.value.files, this.dependencies.files())
+                const classificationPaths = repositoryFilesResult.status === 'fulfilled'
+                    ? repositoryFilesResult.value
+                    : projectFilesResult.value.files.map(({ path }) => path)
+                const projectCardFiles = excludeAgentInstructionFiles(projectFilesResult.value.files, classificationPaths)
+                const loadedFiles = mergeFiles(projectCardFiles, this.dependencies.files())
                 const importedFiles = await this.importExternalCardFiles(loadedFiles, workingFolder)
                 if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
@@ -591,7 +609,10 @@ export class ProjectLoading {
         if (!projectFilesLoaded && repositoryFilesResult.status === 'rejected') return
         if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
 
-        this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, repositoryFiles)
+        await agentInstructionsService.load(project, repositoryFiles, storage)
+        if (!this.shouldApplyProjectLoad(project, projectLoadToken)) return
+        const cardRepositoryFiles = excludeAgentInstructionPaths(repositoryFiles)
+        this.dependencies.mergeBackgroundProjectFiles(nextFiles, workingFolder, cardRepositoryFiles)
         await this.ensureCardInternalIds()
         await this.dependencies.migrateAgentLogReferences()
         if (projectFilesLoaded) this.dependencies.markFullProjectLoaded()
@@ -673,6 +694,13 @@ export class ProjectLoading {
     }
 
     private handleExternalProjectWatchEvent(event: ProjectWatchEvent) {
+        if (agentInstructionsService.hasFile(event.path)) {
+            this.dependencies.updateRepositoryFile(event)
+            this.dependencies.dispatchRepositoryChanged(event)
+            void this.reloadAgentInstructionFromWatch(event)
+            return
+        }
+
         this.dependencies.updateRepositoryFile(event)
         this.dependencies.dispatchRepositoryChanged(event)
         if (event.path === PROJECT_CONFIG_PATH) {
@@ -680,6 +708,11 @@ export class ProjectLoading {
             return
         }
         const { config } = this.dependencies.requireDependencies()
+        const repositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []
+        const knownInstructionPaths = agentInstructionsService.getSnapshot().files.map(({ path }) => path)
+        const normalizedEventPath = normalizePath(event.path).toLowerCase()
+        if (findAgentInstructionPaths([...repositoryFiles, ...knownInstructionPaths])
+            .some((path) => normalizePath(path).toLowerCase() === normalizedEventPath)) return
         if (isActionDefinitionPath(event.path, config.actionsFolder)) {
             const change: ActionReloadChange = { origin: 'external', path: event.path }
             this.scheduleActionReload(change)
@@ -689,6 +722,36 @@ export class ProjectLoading {
         if (!isProjectMarkdownPath(event.path, config.projectFolder)) return
 
         this.scheduleMarkdownReload(event)
+    }
+
+    private async reloadAgentInstructionFromWatch(event: ProjectWatchEvent) {
+        const { commitBatcher, storage } = this.dependencies.requireDependencies()
+        const currentProject = this.dependencies.project()
+        if (!currentProject) return
+        const projectLoadToken = this.dependencies.projectToken()
+        const dirtyOpenDocument = openFilesService.getRegisteredDocuments().some((document) => (
+            document.kind === 'instruction' && normalizePath(document.path) === normalizePath(event.path) && document.dirty
+        ))
+        if (commitBatcher.hasPendingFile(event.path) || dirtyOpenDocument) {
+            reportMarkdownWatchConflict(event.path)
+            return
+        }
+        if (event.changeKind === 'removed') {
+            agentInstructionsService.remove(event.path)
+            return
+        }
+        if (!storage.loadTextFile) {
+            reportOptionalProjectLoadFailure('Agent instruction reload', new Error('Storage does not support text-file loading'))
+            return
+        }
+
+        try {
+            const file = await storage.loadTextFile(currentProject, event.path)
+            if (!this.dependencies.isCurrentLoad(currentProject, projectLoadToken)) return
+            agentInstructionsService.updateContent(event.path, file.content)
+        } catch (error) {
+            reportOptionalProjectLoadFailure(`Agent instruction ${event.path}`, error)
+        }
     }
 
     private async classifyExpectedWatchEvent(expectedOutcome: ExpectedPersistenceOutcome) {

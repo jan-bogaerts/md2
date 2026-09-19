@@ -31,8 +31,10 @@ function createDispatch(options = {}) {
     };
     const actionSchedulerService = {
         deleteSchedule: vi.fn(async () => []),
+        handleCardStateChange: vi.fn(),
         listActiveSchedules: vi.fn(async () => []),
         registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),
+        registerSequenceSchedule: vi.fn(async () => ({ id: 'sequence-1' })),
         startProject: vi.fn(),
         subscribeRunEvents: vi.fn(() => vi.fn()),
     };
@@ -58,7 +60,11 @@ function createDispatch(options = {}) {
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
         closeWaitingActivityConversation: vi.fn(async (_project, reference, status) => ({ path: reference, status })),
         dismissWaitingActivityConversationQuestions: vi.fn(async (_project, reference) => ({ path: reference })),
-        updateActivityConversationViewed: vi.fn(async (_project, reference, viewed) => ({ path: reference, viewed })),
+        updateActivityConversationViewed: vi.fn(async (_project, reference, viewed) => ({
+            id: 'conversation-1',
+            path: reference,
+            viewed,
+        })),
         updateCardActionSettings: vi.fn(async () => undefined),
         commit: vi.fn(async () => []),
         createProject: vi.fn(async (project) => project),
@@ -198,6 +204,31 @@ function createDispatch(options = {}) {
     };
 }
 
+const CARD_PATH = 'design/F-1.md';
+
+function cardFile(internalId, status) {
+    return `---\nid: F-1\ninternalId: ${internalId}\nstatus: ${status}\ntitle: Card\n---\n\n# Card\n`;
+}
+
+/** Activates a project holding one card, which seeds the backend card state tracker. */
+async function activateCardProject(status = 'in progress') {
+    const dispatchSetup = createDispatch();
+    dispatchSetup.localGitService.loadProject.mockResolvedValue({
+        files: [{ content: cardFile('card-1', status), path: CARD_PATH }],
+        workingFolder: 'design',
+    });
+    await dispatchSetup.dispatch.invoke('loadProject', [{ branch: 'main', id: 'local', rootPath: 'C:/repo' }, 'design']);
+
+    return dispatchSetup;
+}
+
+/** The backend registers its own project watcher during activation, ahead of any renderer. */
+function backendCardWatcher(localGitService) {
+    const [, onChange] = localGitService.watchProject.mock.calls[0];
+
+    return onChange;
+}
+
 describe('createLocalBridgeDispatch', () => {
     it('forwards project watcher failures to the bridge subscriber', () => {
         const { dispatch, localGitService } = createDispatch();
@@ -335,7 +366,11 @@ describe('createLocalBridgeDispatch', () => {
 
         expect(localGitService.resolveLocalProject).toHaveBeenCalledWith('C:/repo/nested');
         expect(project).toEqual({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' });
-        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project, 'design/actions');
+        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(
+            project,
+            expect.objectContaining({ actionsFolder: 'design/actions', activeCardsFolder: 'design/active' }),
+            expect.objectContaining({ projectFolder: 'design', states: [{ state: 'ready' }] }),
+        );
         expect(localGitService.commit).toHaveBeenCalledWith(expect.any(Object), project);
     });
 
@@ -379,7 +414,8 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadProject(project, 'design');
         await dispatch.dataBridge.loadProjectRoot(project, 'design');
 
-        expect(localGitService.loadProject).toHaveBeenCalledTimes(2);
+        // Two renderer loads, plus the single card state seeding read that activation performs.
+        expect(localGitService.loadProject).toHaveBeenCalledTimes(3);
         expect(localGitService.loadProjectRoot).toHaveBeenCalledOnce();
         expect(actionSchedulerService.startProject).toHaveBeenCalledOnce();
         expect(worktreeService.startProject).toHaveBeenCalledOnce();
@@ -403,7 +439,11 @@ describe('createLocalBridgeDispatch', () => {
             }),
             [{ state: 'ready' }],
         );
-        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project, 'design/actions');
+        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(
+            project,
+            expect.objectContaining({ actionsFolder: 'design/actions', activeCardsFolder: 'design/active' }),
+            expect.objectContaining({ projectFolder: 'design', states: [{ state: 'ready' }] }),
+        );
         // A reconciled schedule can fire immediately, and firing calls into the runner.
         expect(actionRunnerService.startProject.mock.invocationCallOrder[0])
             .toBeLessThan(actionSchedulerService.startProject.mock.invocationCallOrder[0]);
@@ -696,7 +736,11 @@ describe('createLocalBridgeDispatch', () => {
 
         expect(localGitService.resolveLocalProject).toHaveBeenCalledWith(storedProject.rootPath);
         expect(project).toEqual({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' });
-        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(project, 'design/actions');
+        expect(actionSchedulerService.startProject).toHaveBeenCalledWith(
+            project,
+            expect.objectContaining({ actionsFolder: 'design/actions', activeCardsFolder: 'design/active' }),
+            expect.objectContaining({ projectFolder: 'design', states: [{ state: 'ready' }] }),
+        );
     });
 
     it('delegates safe action start requests to the shared runner', async () => {
@@ -774,8 +818,51 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadProject(project, 'design');
 
         await expect(dispatch.actionBridge.updateActionConversationViewed(reference, false))
-            .resolves.toEqual({ path: reference, viewed: false });
+            .resolves.toEqual({ id: 'conversation-1', path: reference, viewed: false });
         expect(localGitService.updateActivityConversationViewed).toHaveBeenCalledWith(project, reference, false);
+    });
+
+    it('announces a completed view-state write to every subscribed window', async () => {
+        const { dispatch } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
+        await dispatch.dataBridge.loadProject(project, 'design');
+        const firstWindow = vi.fn();
+        const secondWindow = vi.fn();
+        dispatch.actionBridge.onActionConversationViewed(firstWindow);
+        dispatch.actionBridge.onActionConversationViewed(secondWindow);
+
+        await dispatch.actionBridge.updateActionConversationViewed(reference, false);
+
+        expect(firstWindow).toHaveBeenCalledWith({ conversationId: 'conversation-1', viewed: false });
+        expect(secondWindow).toHaveBeenCalledWith({ conversationId: 'conversation-1', viewed: false });
+    });
+
+    it('announces nothing when the view-state write fails', async () => {
+        const { dispatch, localGitService } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
+        await dispatch.dataBridge.loadProject(project, 'design');
+        localGitService.updateActivityConversationViewed.mockRejectedValueOnce(new Error('disk failed'));
+        const listener = vi.fn();
+        dispatch.actionBridge.onActionConversationViewed(listener);
+
+        await expect(dispatch.actionBridge.updateActionConversationViewed(reference, true)).rejects.toThrow('disk failed');
+        expect(listener).not.toHaveBeenCalled();
+    });
+
+    it('stops announcing view-state writes to a window that unsubscribed', async () => {
+        const { dispatch } = createDispatch();
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        const reference = 'design/activity/card__card-1.json#conversation=conversation-1';
+        await dispatch.dataBridge.loadProject(project, 'design');
+        const listener = vi.fn();
+        const stop = dispatch.actionBridge.onActionConversationViewed(listener);
+
+        stop();
+        await dispatch.actionBridge.updateActionConversationViewed(reference, true);
+
+        expect(listener).not.toHaveBeenCalled();
     });
 
     it('delegates conversation splits through current project', async () => {
@@ -797,12 +884,47 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.restart).toHaveBeenCalledWith('action-1', request);
     });
 
-    it('delegates card-state auto-finish events to every local run', async () => {
-        const { actionRunnerService, dispatch } = createDispatch();
+    it('no longer exposes card-state notification to the renderer', () => {
+        const { dispatch } = createDispatch();
 
-        await dispatch.actionBridge.notifyActionCardStateChange('card-1', 'ready');
+        expect(dispatch.actionBridge.notifyActionCardStateChange).toBeUndefined();
+    });
 
+    it('detects a card state transition from the card file and reports it once, with no renderer attached', async () => {
+        const { actionRunnerService, actionSchedulerService, localGitService } = await activateCardProject();
+        const onCardChange = backendCardWatcher(localGitService);
+
+        localGitService.loadFile.mockResolvedValue({ content: cardFile('card-1', 'ready'), path: CARD_PATH });
+        await onCardChange({ changeKind: 'changed', path: CARD_PATH });
+
+        expect(actionSchedulerService.handleCardStateChange).toHaveBeenCalledTimes(1);
+        expect(actionSchedulerService.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
+        expect(actionRunnerService.handleCardStateChange).toHaveBeenCalledTimes(1);
         expect(actionRunnerService.handleCardStateChange).toHaveBeenCalledWith('card-1', 'ready');
+    });
+
+    it('reports one transition for repeated writes of the same status', async () => {
+        const { actionRunnerService, actionSchedulerService, localGitService } = await activateCardProject();
+        const onCardChange = backendCardWatcher(localGitService);
+
+        localGitService.loadFile.mockResolvedValue({ content: cardFile('card-1', 'ready'), path: CARD_PATH });
+        await onCardChange({ changeKind: 'changed', path: CARD_PATH });
+        await onCardChange({ changeKind: 'changed', path: CARD_PATH });
+
+        expect(actionSchedulerService.handleCardStateChange).toHaveBeenCalledTimes(1);
+        expect(actionRunnerService.handleCardStateChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports no transition when a card is renamed with an unchanged status', async () => {
+        const { actionRunnerService, actionSchedulerService, localGitService } = await activateCardProject();
+        const onCardChange = backendCardWatcher(localGitService);
+
+        localGitService.loadFile.mockResolvedValue({ content: cardFile('card-1', 'in progress'), path: 'design/F-1-renamed.md' });
+        await onCardChange({ changeKind: 'changed', path: 'design/F-1-renamed.md' });
+        await onCardChange({ changeKind: 'removed', path: CARD_PATH });
+
+        expect(actionSchedulerService.handleCardStateChange).not.toHaveBeenCalled();
+        expect(actionRunnerService.handleCardStateChange).not.toHaveBeenCalled();
     });
 
     it('marks unattended starts before delegating to the runner', async () => {
@@ -933,9 +1055,12 @@ describe('createLocalBridgeDispatch', () => {
 
         await expect(dispatch.actionBridge.listActiveSchedules()).resolves.toEqual([]);
         await expect(dispatch.actionBridge.deleteSchedule('schedule-1')).resolves.toEqual([]);
+        const request = { actionId: 'implement', cardInternalIds: ['card-1'], readyState: 'ready', trigger: { type: 'now' } };
+        await expect(dispatch.actionBridge.registerSequenceSchedule(request)).resolves.toEqual({ id: 'sequence-1' });
 
         expect(actionSchedulerService.listActiveSchedules).toHaveBeenCalledOnce();
         expect(actionSchedulerService.deleteSchedule).toHaveBeenCalledWith('schedule-1');
+        expect(actionSchedulerService.registerSequenceSchedule).toHaveBeenCalledWith(request);
     });
 
     it('exposes worktree state subscriptions through the data bridge', () => {

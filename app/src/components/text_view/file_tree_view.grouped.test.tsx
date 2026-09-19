@@ -5,6 +5,8 @@ import { dataService, type DataServiceState } from '../../services/data/data_ser
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { FileTreeView } from './file_tree_view'
+import { actionService } from '../../services/actions/action_service'
+import { agentInstructionsService } from '../../services/agent_instructions/agent_instructions_service'
 
 function card(path: string, title: string, status: string | null = null): Card {
     return {
@@ -27,6 +29,7 @@ function renderTree(initialSnapshot: ProjectSnapshot | null, workingFolder = ini
         snapshot: initialSnapshot,
     }
     vi.spyOn(dataService, 'getState').mockImplementation(() => state)
+    openFilesService.init({ actionService, agentInstructionsService, dataService })
     render(
         <AppThemeProvider>
             <FileTreeView
@@ -63,6 +66,7 @@ describe('FileTreeView', () => {
     afterEach(() => {
         cleanup()
         openFilesService.clear()
+        agentInstructionsService.clear()
         vi.restoreAllMocks()
     })
 

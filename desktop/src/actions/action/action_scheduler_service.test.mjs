@@ -90,7 +90,12 @@ function createSchedule(id, actionId, trigger) {
 function createLocalGitService(
     initialSchedules,
     actionFiles = [createAction()],
-    projectConfig = { actionsFolder: 'actions', states: [{ state: 'ready' }] },
+    projectConfig = {
+        actionsFolder: 'actions',
+        cardTypes: [{ idPrefix: 'F', type: 'feature' }],
+        states: [{ state: 'ready' }],
+        workingFolder: 'feature_descriptions',
+    },
 ) {
     let schedules = initialSchedules;
     const histories = [];
@@ -124,14 +129,52 @@ function createLocalGitService(
         loadActionFiles: vi.fn(async () => actionFiles),
         loadActionSchedules: vi.fn(async () => schedules),
         loadFile: vi.fn(async () => ({ content: '# Card', path: context.file })),
-        loadProjectConfig: vi.fn(async () => ({ states: [{ state: 'ready' }], ...projectConfig })),
+        loadProject: vi.fn(async () => ({
+            files: [{
+                content: '---\nid: F_022\ninternalId: card-022\nstatus: ready\ntitle: Card 22\n---\n\n# Card',
+                path: context.file,
+            }],
+        })),
+        loadProjectConfig: vi.fn(async () => ({
+            cardTypes: [{ idPrefix: 'F', type: 'feature' }],
+            states: [{ state: 'ready' }],
+            ...projectConfig,
+        })),
         runCommand: vi.fn(async (_project, command) => ({ command, exitCode: 0, stderr: '', stdout: 'done' })),
         saveActionSchedules: vi.fn(async (_project, _actionsFolder, nextSchedules) => {
             schedules = nextSchedules;
 
             return schedules;
         }),
+        setSchedules: (nextSchedules) => {
+            schedules = nextSchedules;
+        },
         schedules: () => schedules,
+    };
+}
+
+function codexSnapshot(limitId, primaryResetsAt, secondaryResetsAt = null) {
+    return {
+        available: true,
+        buckets: [{
+            limitId,
+            primary: { resetsAt: primaryResetsAt, usedPercent: 10, windowDurationMins: 300 },
+            secondary: secondaryResetsAt === null
+                ? null
+                : { resetsAt: secondaryResetsAt, usedPercent: 20, windowDurationMins: 10080 },
+        }],
+        observedAt: now,
+    };
+}
+
+function claudeSnapshot(fiveHourResetsAt, weeklyResetsAt) {
+    return {
+        available: true,
+        observedAt: now,
+        windows: [
+            { id: 'five_hour', resetsAt: fiveHourResetsAt, usedPercent: 10 },
+            { id: 'weekly', resetsAt: weeklyResetsAt, usedPercent: 20 },
+        ],
     };
 }
 
@@ -181,7 +224,7 @@ async function startProject(scheduler, localGitService) {
     const config = await localGitService.loadProjectConfig(project);
     const paths = resolveProjectPaths(config);
     await scheduler.actionRunnerService.startProject(project, paths, config?.states);
-    await scheduler.startProject(project, paths.actionsFolder);
+    await scheduler.startProject(project, paths, config);
 }
 
 describe('ActionSchedulerService', () => {
@@ -336,6 +379,249 @@ describe('ActionSchedulerService', () => {
         expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 5000);
     });
 
+    it('registers account-reset and card-state schedules from the shared contract', async () => {
+        const localGitService = createLocalGitService([]);
+        const setTimeout = vi.fn(() => 'timer-1');
+        const scheduler = createScheduler(localGitService, { setTimeout });
+        await startProject(scheduler, localGitService);
+        const accountTrigger = {
+            agent: 'codex', expectedResetAt: '2026-07-06T10:00:05.000Z',
+            limitId: 'codex,pro', type: 'account-reset', windowId: 'primary',
+        };
+        const cardTrigger = {cardInternalId: 'card-source', registrationState: 'todo', targetState: 'ready', type: 'card-state'};
+
+        const accountSchedule = await scheduler.registerActionSchedule({ actionId: 'implement', context, trigger: accountTrigger });
+        const cardSchedule = await scheduler.registerActionSchedule({ actionId: 'implement', context, trigger: cardTrigger });
+
+        expect(localGitService.schedules()).toEqual([accountSchedule, cardSchedule]);
+        expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 5000);
+    });
+
+    it('registers a sequence and fires its now trigger immediately', async () => {
+        const localGitService = createLocalGitService([]);
+        const completion = createDeferred();
+        const actionRunnerService = {
+            allocateRunId: vi.fn(() => 'sequence-run-1'),
+            cancel: vi.fn(),
+            start: vi.fn(async () => 'sequence-run-1'),
+            startProject: vi.fn(),
+            wait: vi.fn(() => completion.promise),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+
+        const schedule = await scheduler.registerSequenceSchedule({
+            actionId: 'implement',
+            cardInternalIds: ['card-022'],
+            readyState: 'ready',
+            trigger: { type: 'now' },
+        });
+
+        expect(schedule).toMatchObject({ actionId: 'implement', cardInternalIds: ['card-022'], status: 'pending' });
+        expect(actionRunnerService.start).toHaveBeenCalledWith(
+            { actionId: 'implement', context: expect.objectContaining({ cardInternalId: 'card-022' }), runInput: {} },
+            { interactive: false, runId: expect.stringMatching(/^action-/u) },
+        );
+        const sequenceRunId = actionRunnerService.start.mock.calls[0][1].runId;
+        expect(localGitService.schedules()[0]).toMatchObject({
+            currentRunId: sequenceRunId,
+            readyStateMet: true,
+            status: 'running',
+        });
+    });
+
+    it('fires only when the configured card later enters its target state', async () => {
+        const trigger = {cardInternalId: 'card-source', registrationState: 'todo', targetState: 'ready', type: 'card-state'};
+        const schedule = createSchedule('schedule-1', 'implement', trigger);
+        const localGitService = createLocalGitService([schedule]);
+        const actionRunnerService = {
+            cancel: vi.fn(),
+            start: vi.fn(async () => 'action-1'),
+            startProject: vi.fn(),
+            wait: vi.fn(async () => ({ failure: null, runId: 'action-1', status: 'completed' })),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+
+        await scheduler.handleCardStateChange('other-card', 'ready');
+        await scheduler.handleCardStateChange('card-source', 'todo');
+        await scheduler.handleCardStateChange('card-source', 'ready');
+        await scheduler.handleCardStateChange('card-source', 'ready');
+
+        expect(actionRunnerService.start).toHaveBeenCalledOnce();
+        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+    });
+
+    it('waits for a later transition when the card already has target state at registration', async () => {
+        const trigger = {cardInternalId: 'card-source', registrationState: 'ready', targetState: 'ready', type: 'card-state'};
+        const schedule = createSchedule('schedule-1', 'implement', trigger);
+        const localGitService = createLocalGitService([schedule]);
+        const actionRunnerService = {
+            cancel: vi.fn(),
+            start: vi.fn(async () => 'action-1'),
+            startProject: vi.fn(),
+            wait: vi.fn(async () => ({ failure: null, runId: 'action-1', status: 'completed' })),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+
+        await scheduler.handleCardStateChange('card-source', 'ready');
+        expect(actionRunnerService.start).not.toHaveBeenCalled();
+        await scheduler.handleCardStateChange('card-source', 'todo');
+        await scheduler.handleCardStateChange('card-source', 'ready');
+
+        expect(actionRunnerService.start).toHaveBeenCalledOnce();
+    });
+
+    it('fires a due account reset only for the selected agent, limit, and window', async () => {
+        let currentTime = now;
+        const expectedResetAt = now + 5000;
+        const trigger = {
+            agent: 'codex', expectedResetAt: new Date(expectedResetAt).toISOString(),
+            limitId: 'codex,pro', type: 'account-reset', windowId: 'primary',
+        };
+        const schedule = createSchedule('schedule-1', 'implement', trigger);
+        const localGitService = createLocalGitService([schedule]);
+        const actionRunnerService = {
+            cancel: vi.fn(),
+            start: vi.fn(async () => 'action-1'),
+            startProject: vi.fn(),
+            wait: vi.fn(async () => ({ failure: null, runId: 'action-1', status: 'completed' })),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService, now: () => currentTime });
+        await startProject(scheduler, localGitService);
+
+        await scheduler.handleAccountUsageChange('codex', codexSnapshot('codex,pro', (expectedResetAt + 60000) / 1000));
+        expect(actionRunnerService.start).not.toHaveBeenCalled();
+        currentTime = expectedResetAt;
+        await scheduler.handleAccountUsageChange('claude', claudeSnapshot(expectedResetAt, expectedResetAt));
+        await scheduler.handleAccountUsageChange('codex', codexSnapshot('other-limit', expectedResetAt / 1000));
+        await scheduler.handleAccountUsageChange('codex', codexSnapshot('codex,pro', null, expectedResetAt / 1000));
+        expect(actionRunnerService.start).not.toHaveBeenCalled();
+        await scheduler.handleAccountUsageChange('codex', codexSnapshot('codex,pro', expectedResetAt / 1000));
+
+        expect(actionRunnerService.start).toHaveBeenCalledOnce();
+    });
+
+    it('keeps persisted account reset deadline when later snapshots estimate another reset', async () => {
+        const expectedResetAt = now + 5000;
+        const trigger = {
+            agent: 'codex', expectedResetAt: new Date(expectedResetAt).toISOString(),
+            limitId: 'codex,pro', type: 'account-reset', windowId: 'primary',
+        };
+        const localGitService = createLocalGitService([createSchedule('schedule-1', 'implement', trigger)]);
+        const setTimeout = vi.fn(() => 'timer-1');
+        const scheduler = createScheduler(localGitService, { setTimeout });
+        await startProject(scheduler, localGitService);
+
+        await scheduler.handleAccountUsageChange('codex', codexSnapshot('codex,pro', (expectedResetAt + 60000) / 1000));
+
+        expect(setTimeout).toHaveBeenCalledOnce();
+        expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 5000);
+        expect(localGitService.schedules()[0].trigger.expectedResetAt).toBe(new Date(expectedResetAt).toISOString());
+    });
+
+    it('fires an overdue persisted account reset from its startup timer once', async () => {
+        const trigger = {
+            agent: 'claude', expectedResetAt: '2026-07-06T09:59:00.000Z',
+            limitId: 'default', type: 'account-reset', windowId: 'weekly',
+        };
+        const schedule = createSchedule('schedule-1', 'implement', trigger);
+        const localGitService = createLocalGitService([schedule]);
+        const setTimeout = vi.fn(() => 'timer-1');
+        const scheduler = createScheduler(localGitService, { setTimeout });
+
+        await startProject(scheduler, localGitService);
+        expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 0);
+        setTimeout.mock.calls[0][0]();
+        setTimeout.mock.calls[0][0]();
+        await vi.waitFor(() => expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]));
+
+        expect(localGitService.runCommand).toHaveBeenCalledOnce();
+    });
+
+    it('ignores a card event whose schedule load finishes after a project switch', async () => {
+        const trigger = {cardInternalId: 'card-source', registrationState: 'todo', targetState: 'ready', type: 'card-state'};
+        const staleSchedule = createSchedule('schedule-old', 'implement', trigger);
+        const nextSchedule = createSchedule('schedule-new', 'implement', trigger);
+        const delayedSchedules = createDeferred();
+        const localGitService = createLocalGitService([staleSchedule]);
+        let loadCount = 0;
+        localGitService.loadActionSchedules.mockImplementation(async () => {
+            loadCount += 1;
+            if (loadCount === 1) return [staleSchedule];
+            if (loadCount === 2) return delayedSchedules.promise;
+
+            return [nextSchedule];
+        });
+        const actionRunnerService = {cancel: vi.fn(), start: vi.fn(), startProject: vi.fn(), wait: vi.fn()};
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+
+        const staleEvent = scheduler.handleCardStateChange('card-source', 'ready');
+        const nextProject = { branch: 'next', id: 'next', rootPath: 'C:/next' };
+        const nextConfig = await localGitService.loadProjectConfig(nextProject);
+        await scheduler.startProject(nextProject, resolveProjectPaths(nextConfig), nextConfig);
+        delayedSchedules.resolve([staleSchedule]);
+        await staleEvent;
+
+        expect(actionRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it('ignores an account event whose schedule load finishes after a project switch', async () => {
+        const trigger = {
+            agent: 'codex', expectedResetAt: '2026-07-06T09:59:00.000Z',
+            limitId: 'codex,pro', type: 'account-reset', windowId: 'primary',
+        };
+        const staleSchedule = createSchedule('schedule-old', 'implement', trigger);
+        const nextSchedule = createSchedule('schedule-new', 'implement', trigger);
+        const delayedSchedules = createDeferred();
+        const localGitService = createLocalGitService([staleSchedule]);
+        let loadCount = 0;
+        localGitService.loadActionSchedules.mockImplementation(async () => {
+            loadCount += 1;
+            if (loadCount === 1) return [staleSchedule];
+            if (loadCount === 2) return delayedSchedules.promise;
+
+            return [nextSchedule];
+        });
+        const actionRunnerService = {cancel: vi.fn(), start: vi.fn(), startProject: vi.fn(), wait: vi.fn()};
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+
+        const staleEvent = scheduler.handleAccountUsageChange('codex', codexSnapshot('codex,pro', (now + 60000) / 1000));
+        const nextProject = { branch: 'next', id: 'next', rootPath: 'C:/next' };
+        const nextConfig = await localGitService.loadProjectConfig(nextProject);
+        await scheduler.startProject(nextProject, resolveProjectPaths(nextConfig), nextConfig);
+        delayedSchedules.resolve([staleSchedule]);
+        await staleEvent;
+
+        expect(actionRunnerService.start).not.toHaveBeenCalled();
+    });
+
+    it('shares one execution across concurrent fire attempts', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });
+        const localGitService = createLocalGitService([schedule]);
+        const completion = createDeferred();
+        const actionRunnerService = {
+            cancel: vi.fn(),
+            start: vi.fn(async () => 'action-1'),
+            startProject: vi.fn(),
+            wait: vi.fn(async () => completion.promise),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        await startProject(scheduler, localGitService);
+
+        const first = scheduler.fireSchedule(schedule.id);
+        const second = scheduler.fireSchedule(schedule.id);
+        await vi.waitFor(() => expect(actionRunnerService.start).toHaveBeenCalledOnce());
+        completion.resolve({ failure: null, runId: 'action-1', status: 'completed' });
+        await Promise.all([first, second]);
+
+        expect(actionRunnerService.start).toHaveBeenCalledOnce();
+        expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+    });
+
     it.each([
         [{ timestamp: '2026-07-06T10:00:05.000Z', type: 'agentSlot' }, 'Unsupported action schedule trigger'],
         [{ timestamp: 'not-a-date', type: 'at' }, 'Invalid action schedule timestamp'],
@@ -458,7 +744,7 @@ describe('ActionSchedulerService', () => {
                 settingsByAgent: { custom: { model: 'fast', thinkingLevel: 'high' } },
             },
         }, 'Agent profile does not support thinking levels: custom'],
-    ])('rejects %s scheduled thinking-level resolution before process start', async (_label, actionFiles, agentConfig) => {
+    ])('rejects %s scheduled thinking-level resolution before process start', async (label, actionFiles, agentConfig) => {
         const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' });
         const localGitService = createLocalGitService([schedule], actionFiles);
         const agentRunner = vi.fn(async (_project, request) => successfulAgentResult(request));
@@ -471,7 +757,10 @@ describe('ActionSchedulerService', () => {
         await scheduler.fireSchedule('schedule-1');
 
         expect(agentRunner).not.toHaveBeenCalled();
-        expect(localGitService.histories).toEqual([]);
+        if (label === 'invalid') expect(localGitService.histories).toEqual([]);
+        else {
+            expect(localGitService.histories).toEqual([expect.objectContaining({entry: expect.objectContaining({status: 'failed', type: 'command'})})]);
+        }
     });
 
     it('rejects invalid actions without a fake run record and continues other schedules', async () => {

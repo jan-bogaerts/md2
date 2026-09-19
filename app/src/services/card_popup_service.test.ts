@@ -59,6 +59,10 @@ function actionContext(cardInternalId: string): ActionContext {
     return { cardInternalId, file: `design/${cardInternalId}.md`, kind: 'card' }
 }
 
+function projectActionContext(): ActionContext {
+    return { kind: 'project' }
+}
+
 function anchor() {
     return document.createElement('button')
 }
@@ -148,6 +152,19 @@ describe('CardPopupService', () => {
         })
     })
 
+    it('shows existing card details without toggling them closed', () => {
+        const { service } = createService()
+        const firstAnchor = anchor()
+        service.showCardDetails('card-1', firstAnchor)
+        const firstEntry = service.getSnapshot()[0]
+        service.toggleAction(actionContext('card-2'), anchor())
+
+        service.showCardDetails('card-1', anchor())
+
+        expect(service.getSnapshot()).toHaveLength(2)
+        expect(service.getSnapshot().at(-1)).toMatchObject({ id: firstEntry.id, kind: 'card-details' })
+    })
+
     it('closes only matching card details by stable identity', () => {
         const { service } = createService()
         service.toggleAction(actionContext('card-1'), anchor())
@@ -183,6 +200,66 @@ describe('CardPopupService', () => {
 
         expect(service.getSnapshot()).toEqual([])
         expect(changed).toHaveBeenCalledTimes(3)
+    })
+
+    it('toggles a project popup open and closed without duplicating its entry', () => {
+        const { service } = createService()
+
+        service.toggleAction(projectActionContext(), anchor())
+
+        expect(service.getSnapshot()).toHaveLength(1)
+        expect(service.getSnapshot()[0]).toMatchObject({ context: { kind: 'project' }, kind: 'action' })
+
+        service.toggleAction(projectActionContext(), anchor())
+
+        expect(service.getSnapshot()).toEqual([])
+    })
+
+    it('closes a project popup by context and stays a no-op when none is open', () => {
+        const { service } = createService()
+
+        service.closeAction(projectActionContext())
+
+        expect(service.getSnapshot()).toEqual([])
+
+        service.toggleAction(projectActionContext(), anchor())
+        service.toggleAction(actionContext('card-1'), anchor())
+        service.closeAction(projectActionContext())
+
+        expect(service.getSnapshot()).toHaveLength(1)
+        expect(service.getSnapshot()[0]).toMatchObject({ context: { cardInternalId: 'card-1' } })
+
+        service.closeAction(projectActionContext())
+
+        expect(service.getSnapshot()).toHaveLength(1)
+    })
+
+    it('still rejects a card action popup without a card internal ID', () => {
+        const { service } = createService()
+
+        expect(() => service.toggleAction({ kind: 'card' }, anchor()))
+            .toThrow('Cannot open a card action popup without a card internal ID')
+    })
+
+    it('raises a project popup above card popups on activation', () => {
+        const { service } = createService()
+        service.toggleAction(projectActionContext(), anchor())
+        const projectEntry = service.getSnapshot()[0]
+        service.toggleAction(actionContext('card-1'), anchor())
+
+        service.activate(projectEntry.id)
+
+        expect(service.getSnapshot().at(-1)).toBe(projectEntry)
+    })
+
+    it('clears a project popup when project identity changes', () => {
+        const { owner, service } = createService()
+        service.toggleAction(projectActionContext(), anchor())
+        owner.project = { branch: 'feature', id: 'project-1' }
+
+        owner.dispatchEvent(new Event('changed'))
+
+        expect(service.getSnapshot()).toEqual([])
     })
 
     it('registers only while mobile back dismissal is enabled', async () => {

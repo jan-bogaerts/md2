@@ -3,13 +3,23 @@ author:
 id: F_353
 internalId: 03616c27-a15f-43f5-8ba8-523c9e9a56d1
 title: Run schedules from account and card events
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__03616c27-a15f-43f5-8ba8-523c9e9a56d1.json
 policy:
-after: 67d4a581-6ded-4a41-a489-d079644e3e5b
+after: ce82acf0-7a8f-4201-ac60-7c43b28f4e82
+changedFiles:
+  - desktop/main.js
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/schedule/schedule_account_snapshots.js
+  - desktop/src/actions/schedule/schedule_account_snapshots.test.mjs
+  - desktop/src/actions/schedule/schedule_store.js
+  - desktop/src/actions/schedule/schedule_timers.js
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
 ---
 Execute new event triggers defined by [F\_352](F_352_extend_schedule_contract_and_apis.md).
 

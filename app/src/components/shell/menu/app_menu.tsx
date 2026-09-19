@@ -14,6 +14,8 @@ import FolderOpen from 'mdi-material-ui/FolderOpen'
 import TextBoxOutline from 'mdi-material-ui/TextBoxOutline'
 import BarChartOutlined from '@mui/icons-material/BarChartOutlined'
 import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
+import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined'
+import PlaylistAddOutlined from '@mui/icons-material/PlaylistAddOutlined'
 import {
     findAgentProfile,
     mergeAgentProfiles,
@@ -75,9 +77,12 @@ import { MobileCreateMenu } from './mobile_create_menu'
 import { Section } from './section'
 import { Tab } from './tab'
 import { DiagramMenuTab } from '../../diagram_view/diagram_menu_tab'
+import { ActiveSchedulesDialog } from '../../actions/run/schedule/active_schedules_dialog'
+import { hasActiveScheduleBackend, hasSequenceScheduleBackend } from '../../../data/electron_action_bridge'
+import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
 
 type AppMenuTab = 'home' | 'agents' | 'diagram'
-type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
+type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release' | 'schedules'
 
 interface AppMenuProps {
     accessToken: string | null
@@ -222,6 +227,14 @@ export function AppMenu(props: AppMenuProps) {
 
     const handleOpenCardDialog = () => {
         actions.openNewCardDialog()
+    }
+
+    const handleOpenActiveSchedules = () => {
+        openDialog('schedules')
+    }
+
+    const handleOpenCardSequence = () => {
+        cardSequenceDraftService.open()
     }
 
     const handleCommit = useCallback(async () => {
@@ -554,6 +567,20 @@ export function AppMenu(props: AppMenuProps) {
                     <Section label="Actions">
                         <ActionEntryPoints context={PROJECT_CONTEXT} variant="icons" visibility="explicit-context" />
                         <MenuIconButton
+                            disabled={readOnly || !actions.isProjectOpen || !hasSequenceScheduleBackend()}
+                            label="Add sequence"
+                            onClick={handleOpenCardSequence}
+                        >
+                            <PlaylistAddOutlined fontSize="small" />
+                        </MenuIconButton>
+                        <MenuIconButton
+                            disabled={!actions.isProjectOpen || !hasActiveScheduleBackend()}
+                            label="View active schedules"
+                            onClick={handleOpenActiveSchedules}
+                        >
+                            <ScheduleOutlined fontSize="small" />
+                        </MenuIconButton>
+                        <MenuIconButton
                             disabled={readOnly || !actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}
                             label="Complete release"
                             onClick={handleOpenReleaseDialog}
@@ -604,6 +631,11 @@ export function AppMenu(props: AppMenuProps) {
                 pendingGithubConflictProject={actions.pendingGithubConflictProject}
                 recentLocalRepositories={actions.recentLocalRepositories}
                 repositories={actions.repositories}
+            />
+            <ActiveSchedulesDialog
+                onClose={closeDialog}
+                open={dialogMode === 'schedules'}
+                readOnly={readOnly}
             />
             <BranchSwitchDialog
                 branches={actions.branches}

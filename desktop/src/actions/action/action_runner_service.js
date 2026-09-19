@@ -15,6 +15,10 @@ function createRunId() {
     return `action-${crypto.randomUUID()}`;
 }
 
+function allocateActionRunId() {
+    return createRunId();
+}
+
 const TERMINAL_RECOVERY_RETENTION_MS = 5 * 60 * 1000;
 
 // Activity ownership follows the presence of cardInternalId, not the context kind.
@@ -163,7 +167,9 @@ class ActionRunnerService {
             throw new Error(`Streaming action requires an interactive manual run: ${rootAction.label}`);
         }
         const conversationReservation = this.consumeConversationReservation(startRequest, rootAction);
-        const runId = createRunId();
+        const runId = options.runId ?? createRunId();
+        if (typeof runId !== 'string' || runId.length === 0) throw new Error('Invalid reserved action run ID');
+        if (this.runs.has(runId) || this.completedRunResults.has(runId)) throw new Error(`Action run already exists: ${runId}`);
         const run = new ActionRun({
             activeCardsFolder: this.activeCardsFolder,
             actionsFolder,
@@ -457,4 +463,4 @@ class ActionRunnerService {
     }
 }
 
-module.exports = { ActionRunnerService };
+module.exports = { ActionRunnerService, allocateActionRunId };

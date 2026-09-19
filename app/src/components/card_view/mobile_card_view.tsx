@@ -18,6 +18,13 @@ import { cardDragDropService } from './card_drag_drop_service'
 import { useCardViewColumns } from './use_card_view_columns'
 import { useMobileCardViewColumn } from './use_mobile_card_view_column'
 import { resolveMobileCardDragEvent } from './mobile_card_drag'
+import { CardSequenceDialog } from '../actions/run/sequence/card_sequence_dialog'
+import { cardSequenceDraftService } from '../actions/run/sequence/card_sequence_draft_service'
+import {
+    CARD_SEQUENCE_DROP_ID,
+    cardInternalIdFromSequenceItem,
+    isCardSequenceDropId,
+} from '../actions/run/sequence/card_sequence_dnd'
 
 const LONG_PRESS_DELAY_MS = 500
 const LONG_PRESS_TOLERANCE = 5
@@ -91,6 +98,8 @@ export function MobileCardView(props: MobileCardViewProps) {
     useEffect(() => () => cardPopupService.closeCardDetails(), [])
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
+        if (cardInternalIdFromSequenceItem(String(event.active.id))) return
+
         cardDragDropService.startDrag(
             String(event.active.id),
             event.active.rect.current.initial?.height ?? null,
@@ -99,15 +108,42 @@ export function MobileCardView(props: MobileCardViewProps) {
     }, [])
 
     const handleDragMove = useCallback((event: DragMoveEvent) => {
+        const activeId = String(event.active.id)
+        const overId = event.over ? String(event.over.id) : null
+        if (cardInternalIdFromSequenceItem(activeId) || (overId && isCardSequenceDropId(overId))) {
+            cardDragDropService.setDropPreview(null)
+            return
+        }
         if (!selectedColumn) return
 
         cardDragDropService.setDropPreview(resolveMobileCardDragEvent(currentCardColumns(states), selectedColumn.status, event))
     }, [selectedColumn, states])
 
     const handleDragEnd = useCallback((event: DragEndEvent) => {
+        const activeId = String(event.active.id)
+        const overId = event.over ? String(event.over.id) : null
+        const sequenceCardInternalId = cardInternalIdFromSequenceItem(activeId)
+        if (sequenceCardInternalId) {
+            const beforeCardInternalId = overId === CARD_SEQUENCE_DROP_ID
+                ? null
+                : overId ? cardInternalIdFromSequenceItem(overId) : null
+            if (overId && isCardSequenceDropId(overId)) {
+                cardSequenceDraftService.reorderCard(sequenceCardInternalId, beforeCardInternalId)
+            }
+            clearActiveCard()
+            return
+        }
+        if (overId && isCardSequenceDropId(overId)) {
+            const card = currentCardColumns(states).flatMap(({ cards }) => cards).find(({ path }) => path === activeId)
+            if (card?.header.internalId) {
+                cardSequenceDraftService.addCard(card.header.internalId, cardInternalIdFromSequenceItem(overId))
+            }
+            clearActiveCard()
+            return
+        }
         const drop = selectedColumn ? resolveMobileCardDragEvent(currentCardColumns(states), selectedColumn.status, event) : null
         clearActiveCard()
-        const path = String(event.active.id)
+        const path = activeId
         if (drop) void runCardEdit(() => dataService.cards.moveCard(path, drop.targetStatus, drop.targetIndex), `Card move failed: ${path}`)
     }, [clearActiveCard, selectedColumn, states])
 
@@ -192,6 +228,7 @@ export function MobileCardView(props: MobileCardViewProps) {
                     ) : null}
                 </Box>
                 <DragOverlay><CardDragOverlay cardTypes={cardTypes} /></DragOverlay>
+                <CardSequenceDialog />
                 <CardBodyPopover
                     cardTypes={cardTypes}
                     isMobile

@@ -4,6 +4,7 @@ import { ListActionEditor } from '../actions/editor/list_action_editor'
 import { useOpenFiles } from '../hooks/use_open_files'
 import { CardEditor } from './card_editor'
 import { TabBar } from './tab_bar'
+import { InstructionEditor } from './instruction_editor'
 
 interface TextEditorPaneProps {
     actionsFolder: string
@@ -19,10 +20,12 @@ export function TextEditorPane(props: TextEditorPaneProps) {
         actionsFolder, cardTypes,
         specialContextTypes, states, statusColors,
     } = props
-    const { activeDocument } = useOpenFiles()
+    const { activeDocument, documents } = useOpenFiles()
     const hasActiveAction = activeDocument?.kind === 'action'
     const hasActiveCard = activeDocument?.kind === 'card'
-    const hasActiveDocument = hasActiveAction || hasActiveCard
+    const hasActiveInstruction = activeDocument?.kind === 'instruction'
+    const hasOpenInstruction = documents.some(({ kind }) => kind === 'instruction')
+    const hasActiveDocument = hasActiveAction || hasActiveCard || hasActiveInstruction
 
     return (
         <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
@@ -37,7 +40,7 @@ export function TextEditorPane(props: TextEditorPaneProps) {
                         flexDirection: 'column',
                         justifyContent: hasActiveCard ? undefined : 'center',
                         minHeight: 0,
-                        overflow: hasActiveAction ? 'hidden' : 'auto',
+                        overflow: hasActiveAction || hasActiveInstruction ? 'hidden' : 'auto',
                         p: hasActiveDocument ? 0 : 2,
                     }}
                 >
@@ -57,6 +60,14 @@ export function TextEditorPane(props: TextEditorPaneProps) {
                     >
                         <CardEditor cardTypes={cardTypes} statusColors={statusColors} />
                     </Box>
+                    {hasOpenInstruction ? (
+                        <Box
+                            hidden={!hasActiveInstruction}
+                            sx={{ display: hasActiveInstruction ? 'flex' : 'none', flex: 1, flexDirection: 'column', minHeight: 0, width: '100%' }}
+                        >
+                            <InstructionEditor />
+                        </Box>
+                    ) : null}
                 </Box>
             </Box>
         </Box>

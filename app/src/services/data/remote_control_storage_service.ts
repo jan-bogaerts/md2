@@ -15,6 +15,7 @@ import type {
     ActionRunHistoryRequest,
     ActionRunRecoverySnapshot,
     ActiveActionRun,
+    ActionConversationViewedEvent,
     CardActivityRequest,
     CardActionSettingsRequest,
     DiffRequest,
@@ -121,6 +122,12 @@ interface ActionRunPayload {
     subscriptionId: string
 }
 
+interface ConversationViewedPayload {
+    event: ActionConversationViewedEvent
+    requestId: string
+    subscriptionId: string
+}
+
 interface CodexRateLimitsPayload {
     requestId: string
     snapshot: CodexRateLimitSnapshot
@@ -192,6 +199,9 @@ export class RemoteControlStorageService implements
     private actionRunCallbacks: Map<string, (event: ActionRunEvent) => void>
     private actionRunListeners: Set<(event: ActionRunEvent) => void>
     private actionRunSubscriptions: Map<(event: ActionRunEvent) => void, string>
+    private conversationViewedCallbacks: Map<string, (event: ActionConversationViewedEvent) => void>
+    private conversationViewedListeners: Set<(event: ActionConversationViewedEvent) => void>
+    private conversationViewedSubscriptions: Map<(event: ActionConversationViewedEvent) => void, string>
     private connectPromise: Promise<void> | null
     private connectReject: ((error: Error) => void) | null
     private connectionListeners: Set<(connected: boolean) => void>
@@ -211,6 +221,7 @@ export class RemoteControlStorageService implements
     private pending: Map<string, PendingRequest>
     private requestAgentEvents: Map<string, (event: AgentRunEvent) => void>
     private requestActionRunEvents: Map<string, (event: ActionRunEvent) => void>
+    private requestConversationViewedEvents: Map<string, (event: ActionConversationViewedEvent) => void>
     private requestClaudeRateLimitEvents: Map<string, (snapshot: ClaudeRateLimitSnapshot) => void>
     private requestCodexRateLimitEvents: Map<string, (snapshot: CodexRateLimitSnapshot) => void>
     private requestWatchEvents: Map<string, ProjectWatchSubscription>
@@ -231,6 +242,9 @@ export class RemoteControlStorageService implements
         this.actionRunCallbacks = new Map()
         this.actionRunListeners = new Set()
         this.actionRunSubscriptions = new Map()
+        this.conversationViewedCallbacks = new Map()
+        this.conversationViewedListeners = new Set()
+        this.conversationViewedSubscriptions = new Map()
         this.connectPromise = null
         this.connectReject = null
         this.connectionListeners = new Set()
@@ -250,6 +264,7 @@ export class RemoteControlStorageService implements
         this.pending = new Map()
         this.requestAgentEvents = new Map()
         this.requestActionRunEvents = new Map()
+        this.requestConversationViewedEvents = new Map()
         this.requestClaudeRateLimitEvents = new Map()
         this.requestCodexRateLimitEvents = new Map()
         this.requestMergeConflictEvents = new Map()
@@ -708,10 +723,6 @@ export class RemoteControlStorageService implements
         return this.request<ClaudeRateLimitSnapshot | null>('getClaudeRateLimits', [])
     }
 
-    async notifyActionCardStateChange(cardInternalId: string, state: string): Promise<void> {
-        await this.request('notifyActionCardStateChange', [cardInternalId, state])
-    }
-
     async loadCardActivity(request: CardActivityRequest): Promise<CardActivityFile> {
         return this.request<CardActivityFile>('loadCardActivity', [request])
     }
@@ -742,6 +753,24 @@ export class RemoteControlStorageService implements
 
             this.actionRunSubscriptions.delete(callback)
             this.actionRunCallbacks.delete(subscriptionId)
+            this.unsubscribeBestEffort(subscriptionId)
+        }
+    }
+
+    onActionConversationViewed(callback: (event: ActionConversationViewedEvent) => void): () => void {
+        this.conversationViewedListeners.add(callback)
+        void this.subscribeConversationViewed(callback).catch(() => undefined)
+
+        return () => {
+            this.conversationViewedListeners.delete(callback)
+            for (const [requestId, pendingCallback] of this.requestConversationViewedEvents) {
+                if (pendingCallback === callback) this.requestConversationViewedEvents.delete(requestId)
+            }
+            const subscriptionId = this.conversationViewedSubscriptions.get(callback)
+            if (!subscriptionId) return
+
+            this.conversationViewedSubscriptions.delete(callback)
+            this.conversationViewedCallbacks.delete(subscriptionId)
             this.unsubscribeBestEffort(subscriptionId)
         }
     }
@@ -891,6 +920,7 @@ export class RemoteControlStorageService implements
                 resolve()
                 for (const listener of this.connectionListeners) listener(true)
                 void this.restoreActionRunSubscriptions()
+                void this.restoreConversationViewedSubscriptions()
                 void this.restoreClaudeRateLimitSubscriptions()
                 void this.restoreCodexRateLimitSubscriptions()
                 void this.restoreMergeConflictSubscriptions()
@@ -949,6 +979,10 @@ export class RemoteControlStorageService implements
             this.handleActionRunEvent(message.payload as ActionRunPayload)
             return
         }
+        if (message.event === 'conversationViewed') {
+            this.handleConversationViewedEvent(message.payload as ConversationViewedPayload)
+            return
+        }
         if (message.event === 'codexRateLimits') {
             this.handleCodexRateLimitsEvent(message.payload as CodexRateLimitsPayload)
             return
@@ -979,6 +1013,12 @@ export class RemoteControlStorageService implements
         callback?.(payload.event)
     }
 
+    private handleConversationViewedEvent(payload: ConversationViewedPayload) {
+        const callback = this.conversationViewedCallbacks.get(payload.subscriptionId)
+            ?? this.requestConversationViewedEvents.get(payload.requestId)
+        callback?.(payload.event)
+    }
+
     private handleCodexRateLimitsEvent(payload: CodexRateLimitsPayload) {
         const callback = this.codexRateLimitCallbacks.get(payload.subscriptionId)
             ?? this.requestCodexRateLimitEvents.get(payload.requestId)
@@ -995,6 +1035,32 @@ export class RemoteControlStorageService implements
         const pendingCallbacks = new Set(this.requestActionRunEvents.values())
         const callbacks = [...this.actionRunListeners].filter((callback) => !pendingCallbacks.has(callback))
         await Promise.allSettled(callbacks.map((callback) => this.subscribeActionRun(callback)))
+    }
+
+    private async restoreConversationViewedSubscriptions() {
+        const pendingCallbacks = new Set(this.requestConversationViewedEvents.values())
+        const callbacks = [...this.conversationViewedListeners].filter((callback) => !pendingCallbacks.has(callback))
+        await Promise.allSettled(callbacks.map((callback) => this.subscribeConversationViewed(callback)))
+    }
+
+    private async subscribeConversationViewed(callback: (event: ActionConversationViewedEvent) => void) {
+        const id = this.createRequestId()
+        this.requestConversationViewedEvents.set(id, callback)
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'onActionConversationViewed',
+                params: [],
+            })
+            if (!this.conversationViewedListeners.has(callback)) {
+                this.unsubscribeBestEffort(result.subscriptionId)
+                return
+            }
+            this.conversationViewedSubscriptions.set(callback, result.subscriptionId)
+            this.conversationViewedCallbacks.set(result.subscriptionId, callback)
+        } finally {
+            this.requestConversationViewedEvents.delete(id)
+        }
     }
 
     private async subscribeActionRun(callback: (event: ActionRunEvent) => void) {

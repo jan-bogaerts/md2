@@ -6,7 +6,7 @@ import {
     DEFAULT_PROJECT_FOLDER,
 } from '../../data/data_types'
 import { projectAgentTokenUsage } from '../../services/agents/agent_usage'
-import { formatTokenCount } from '../agents/token_count'
+import { formatTokenCount } from '../agents/token_count_format'
 import { projectAgentTokenUsageService } from '../../services/agents/project_agent_token_usage_service'
 import { useProjectConfig } from '../hooks/use_project_config'
 import { useProjectState } from '../hooks/use_project_state'

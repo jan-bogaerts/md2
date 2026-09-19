@@ -25,6 +25,7 @@ import { telemetryService } from '../services/telemetry/telemetry_service'
 import { workspaceViewService } from '../services/project/workspace_view_service'
 import {
     workspaceNavigationService,
+    type WorkspaceOpenCardRequest,
     type WorkspaceOpenRequest,
     type WorkspaceRevealCardRequest,
 } from '../services/project/workspace_navigation_service'
@@ -51,7 +52,7 @@ import { DiagramView } from './diagram_view/diagram_view'
 const WORKSPACE_PANEL_PADDING = 3
 
 function openDocumentPath(document: OpenDocument) {
-    return document.kind === 'card' ? document.getObject().path : document.getObject().sourcePath
+    return document.kind === 'action' ? document.getObject().sourcePath : document.getObject().path
 }
 
 function flushPendingCommits() {
@@ -215,6 +216,46 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
     useEffect(() => {
         let pendingScrollFrame: number | null = null
 
+        const openCardDetails = (path: string, cardInternalId: string) => {
+            if (pendingScrollFrame !== null) cancelAnimationFrame(pendingScrollFrame)
+            pendingScrollFrame = requestAnimationFrame(() => {
+                pendingScrollFrame = null
+                const cardElement = [...document.querySelectorAll<HTMLElement>('[data-card-path]')]
+                    .find((element) => element.dataset.cardPath === path)
+                if (!cardElement) {
+                    dialogService.error(new Error(`Active card element was not found: ${path}`), { fallbackMessage: 'Card could not be opened' })
+                    return
+                }
+
+                cardElement.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+                cardPopupService.showCardDetails(cardInternalId, cardElement)
+            })
+        }
+
+        const handleOpenCard = (event: Event) => {
+            const { cardInternalId } = (event as CustomEvent<WorkspaceOpenCardRequest>).detail
+            const { snapshot } = dataService.getState()
+            const card = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+                .find((candidate) => candidate.header.internalId === cardInternalId)
+            if (!card) {
+                dialogService.displayError(`Card is no longer available: ${cardInternalId}`, { title: 'Card could not be opened' })
+                return
+            }
+
+            if (workspaceViewService.getSnapshot().viewMode !== 'cards') {
+                workspaceNavigationService.open(card.path)
+                return
+            }
+            if (!snapshot?.activeCards.includes(card)) {
+                dialogService.displayError(`Card is not active: ${card.header.id}`, { title: 'Card could not be opened' })
+                return
+            }
+
+            workspaceViewService.selectPath(card.path)
+            openCardDetails(card.path, cardInternalId)
+            telemetryService.trackEvent('navigation')
+        }
+
         const handleRevealCard = (event: Event) => {
             const { path } = (event as CustomEvent<WorkspaceRevealCardRequest>).detail
             const card = dataService.getState().snapshot?.activeCards.find((candidate) => candidate.path === path)
@@ -248,9 +289,11 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         }
 
         workspaceNavigationService.addEventListener('revealCard', handleRevealCard)
+        workspaceNavigationService.addEventListener('openCard', handleOpenCard)
 
         return () => {
             workspaceNavigationService.removeEventListener('revealCard', handleRevealCard)
+            workspaceNavigationService.removeEventListener('openCard', handleOpenCard)
             if (pendingScrollFrame !== null) cancelAnimationFrame(pendingScrollFrame)
         }
     }, [isMobile])

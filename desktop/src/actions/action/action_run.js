@@ -47,9 +47,9 @@ class ActionRun {
         this.activeActionPhase = null;
         this.activeAgentProject = null;
         this.activeAgentRunId = null;
-        this.activeAgentQuestion = false;
+        // Pending interaction itself lives once, in the agent run state; only the question request id is
+        // mirrored here, because the queued-prompt dispatcher must know which question just cleared.
         this.activeAgentQuestionRequestId = null;
-        this.activeAgentApprovals = new Map();
         this.autoFinishPending = false;
         this.diagramWatcherFailure = null;
         this.commitReferenceKeys = new Set();
@@ -85,8 +85,9 @@ class ActionRun {
 
     sendAgentMessage(content) {
         if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
-        if (this.activeAgentQuestion) throw new Error('Answer pending structured question before sending queued prompt');
-        if (this.activeAgentApprovals.size > 0) throw new Error('Answer pending approval before sending queued prompt');
+        if (this.agentInteractionPending()) {
+            throw new Error('Answer pending agent question or approval before sending queued prompt');
+        }
         const prompt = this.resolveActiveAgentPrompt(content);
 
         return this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt);
@@ -143,26 +144,26 @@ class ActionRun {
     async answerAgentQuestion(requestId, answers) {
         if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
         await this.agentRunnerService.answerQuestion(this.activeAgentRunId, requestId, answers);
-        if (this.activeAgentQuestionRequestId === requestId) {
-            this.activeAgentQuestion = false;
-            this.activeAgentQuestionRequestId = null;
-        }
+        if (this.activeAgentQuestionRequestId === requestId) this.activeAgentQuestionRequestId = null;
     }
 
     async dismissAgentQuestions(requestId) {
         if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
         await this.agentRunnerService.dismissQuestions(this.activeAgentRunId, requestId);
-        if (this.activeAgentQuestionRequestId === requestId) {
-            this.activeAgentQuestion = false;
-            this.activeAgentQuestionRequestId = null;
-        }
+        if (this.activeAgentQuestionRequestId === requestId) this.activeAgentQuestionRequestId = null;
     }
 
     answerAgentApproval(requestId, decision) {
         if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);
-        if (!this.activeAgentApprovals.has(requestId)) throw new Error(`Unknown or stale action approval request id: ${requestId}`);
 
         return this.agentRunnerService.answerApproval(this.activeAgentRunId, requestId, decision);
+    }
+
+    /** Asks the agent run state whether a question or approval is still unanswered; no local copy of that state. */
+    agentInteractionPending() {
+        if (!this.activeAgentRunId) return false;
+
+        return this.agentRunnerService.hasPendingInteraction(this.activeAgentRunId);
     }
 
     finishAgent() {
@@ -217,8 +218,7 @@ class ActionRun {
             if (
                 !this.activeAgentRunId
                 || !this.activeAction?.streaming
-                || this.activeAgentQuestion
-                || this.activeAgentApprovals.size > 0
+                || this.agentInteractionPending()
             ) return false;
             const entry = this.promptQueue.find(({ dispatchState }) => dispatchState === 'queued');
             if (!entry) return false;
@@ -231,8 +231,7 @@ class ActionRun {
 
             return !!this.activeAgentRunId
                 && !!this.activeAction?.streaming
-                && !this.activeAgentQuestion
-                && this.activeAgentApprovals.size === 0
+                && !this.agentInteractionPending()
                 && this.promptQueue.some(({ dispatchState }) => dispatchState === 'queued');
         });
         void operation.then((dispatchNext) => {
@@ -487,11 +486,10 @@ class ActionRun {
 
             return persisted;
         });
-        if (this.rootAction.type === 'agent' && typeof this.rootConversationId !== 'string') {
-            return false;
-        }
+        // An agent root that failed before a conversation existed still gets a record: command-shaped
+        // details carry the failure cause, because agent details require a root conversation id.
         const details = this.rootDetails ?? {
-            command: this.rootAction.command,
+            command: this.rootAction.command ?? '',
             output: failure ? errorMessage(failure, 'Action failed') : '',
             type: 'command',
         };
@@ -575,9 +573,7 @@ class ActionRun {
                 if (this.diagramWatcherFailure) this.agentRunnerService.stop(runId);
             }
             else {
-                this.activeAgentQuestion = false;
                 this.activeAgentQuestionRequestId = null;
-                this.activeAgentApprovals.clear();
                 this.publish(action, phase, 'running', { interactionReady: false, type: 'agentState' });
             }
         };
@@ -585,44 +581,45 @@ class ActionRun {
             if (agentEvent.type === 'started') {
                 const { continued, conversation } = agentEvent;
                 const update = { continued, conversation, kind: 'agentStarted' };
-                this.publish(action, phase, 'running', { type: 'update', update });
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'closed') {
-                const update = { conversation: agentEvent.conversation, kind: 'agentClosed' };
-                this.publish(action, phase, agentEvent.conversation.status, { type: 'update', update });
+                const update = {
+                    conversation: agentEvent.conversation,
+                    kind: 'agentClosed',
+                    persisted: agentEvent.persisted,
+                };
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'state') {
-                this.publish(action, phase, agentEvent.state, {
+                this.publish(action, phase, agentEvent.status, {
                     interactionReady: true,
                     ...(agentEvent.timer ? { timer: agentEvent.timer } : {}),
                     type: 'agentState',
                 });
-                if (agentEvent.state === 'waitingForInput') void this.dispatchStreamingPrompt().catch(() => undefined);
+                if (agentEvent.status === 'waitingForInput') void this.dispatchStreamingPrompt().catch(() => undefined);
                 return;
             }
             if (agentEvent.type === 'question') {
-                this.activeAgentQuestion = true;
                 this.activeAgentQuestionRequestId = agentEvent.requestId;
                 const update = {
                     kind: 'agentQuestion',
                     questions: agentEvent.questions,
                     requestId: agentEvent.requestId,
                 };
-                this.publish(action, phase, 'waitingForInput', { type: 'update', update });
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'userMessage') {
                 const update = { kind: 'agentUserMessage', userMessage: agentEvent.userMessage };
-                const state = this.activeAgentQuestion || this.activeAgentApprovals.size > 0 ? 'waitingForInput' : 'running';
-                this.publish(action, phase, state, { type: 'update', update });
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'questionAnswered') {
                 let questionCleared = false;
                 if (this.activeAgentQuestionRequestId === agentEvent.requestId) {
-                    this.activeAgentQuestion = false;
                     this.activeAgentQuestionRequestId = null;
                     questionCleared = true;
                 }
@@ -631,48 +628,40 @@ class ActionRun {
                     requestId: agentEvent.requestId,
                     userMessage: agentEvent.userMessage,
                 };
-                this.publish(action, phase, agentEvent.state, { type: 'update', update });
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 if (questionCleared) void this.dispatchStreamingPrompt().catch(() => undefined);
                 return;
             }
             if (agentEvent.type === 'questionDismissed') {
-                if (this.activeAgentQuestionRequestId === agentEvent.requestId) {
-                    this.activeAgentQuestion = false;
-                    this.activeAgentQuestionRequestId = null;
-                }
+                if (this.activeAgentQuestionRequestId === agentEvent.requestId) this.activeAgentQuestionRequestId = null;
                 const update = {
                     event: agentEvent.event,
                     kind: 'agentQuestionDismissed',
                     requestId: agentEvent.requestId,
                 };
-                this.publish(action, phase, agentEvent.state, { type: 'update', update });
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 void this.dispatchStreamingPrompt().catch(() => undefined);
                 return;
             }
             if (agentEvent.type === 'approval') {
-                this.activeAgentApprovals.set(agentEvent.approval.requestId, { ...agentEvent.approval, submitted: false });
                 const update = { approval: agentEvent.approval, kind: 'agentApproval' };
-                this.publish(action, phase, 'waitingForInput', { type: 'update', update });
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'approvalSubmitted') {
-                const approval = this.activeAgentApprovals.get(agentEvent.requestId);
-                if (!approval) return;
-                approval.submitted = true;
                 const update = { kind: 'agentApprovalSubmitted', requestId: agentEvent.requestId };
-                this.publish(action, phase, 'waitingForInput', { type: 'update', update });
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
             if (agentEvent.type === 'approvalResolved') {
-                if (!this.activeAgentApprovals.delete(agentEvent.requestId)) return;
                 const update = { kind: 'agentApprovalResolved', requestId: agentEvent.requestId };
-                this.publish(action, phase, agentEvent.state, { type: 'update', update });
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 void this.dispatchStreamingPrompt().catch(() => undefined);
                 return;
             }
             if (agentEvent.type === 'agentEvent') {
                 const update = { entryIndex: agentEvent.entryIndex, event: agentEvent.event, kind: 'agentEvent' };
-                this.publish(action, phase, 'running', {
+                this.publish(action, phase, agentEvent.status, {
                     ...(agentEvent.timer ? { timer: agentEvent.timer } : {}),
                     type: 'update',
                     update,
@@ -687,7 +676,7 @@ class ActionRun {
                     kind: 'agentUsage',
                     usage: agentEvent.usage,
                 };
-                this.publish(action, phase, 'running', { type: 'update', update });
+                this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
 
@@ -702,7 +691,7 @@ class ActionRun {
                     sequence: agentEvent.sequence,
                 }
                 : { content: agentEvent.content, kind: 'error' };
-            this.publish(action, phase, 'running', { type: 'update', update });
+            this.publish(action, phase, agentEvent.status, { type: 'update', update });
         };
         const runInput = isRoot ? this.runInput : { extraPrompt: '' };
         const diagramFile = action.output?.kind === 'diagram' && this.diagramPath

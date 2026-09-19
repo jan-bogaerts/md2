@@ -69,6 +69,7 @@ const { ProjectStatsWorkerService } = require('./src/stats/project_stats_worker_
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
 const SUBSCRIPTION_METHODS = new Set([
+    'onActionConversationViewed',
     'onActionRun',
     'onClaudeRateLimits',
     'onCodexRateLimits',
@@ -114,6 +115,9 @@ const actionRunnerService = new ActionRunnerService({
 });
 const actionSchedulerService = new ActionSchedulerService({
     actionRunnerService,
+    claudeRuntimeService,
+    codexRuntimeService,
+    errorReporter: captureError,
     localGitService,
 });
 const projectStatsWorkerService = new ProjectStatsWorkerService();

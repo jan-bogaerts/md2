@@ -1,7 +1,7 @@
 import { Box, Stack, Tooltip, Typography, useTheme } from '@mui/material';
 import { useContext, useMemo } from 'react';
 import type { StatsChartRow, StatsUnit } from '../../services/stats/project_stats_types';
-import { formatTokenCount } from '../agents/token_count';
+import { formatTokenCount } from '../agents/token_count_format';
 import { StatsSeriesColorsContext } from './stats_series_colors_context';
 import { assignSeriesColorsFromKeys, seriesColorInputs, seriesColorKey, type StatsSeriesPalettes } from './stats_series_colors';
 

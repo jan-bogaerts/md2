@@ -254,6 +254,47 @@ describe('AgentAcknowledgementService', () => {
         expect(updateActionConversationViewed).toHaveBeenCalledTimes(2)
     })
 
+    it('announces the view change before the backend write resolves', async () => {
+        let resolveWrite: ((conversation: AgentConversation) => void) | null = null
+        const updateActionConversationViewed = vi.fn(() => new Promise((resolve) => {
+            resolveWrite = resolve as (conversation: AgentConversation) => void
+        }))
+        setActionBridgeOverride({
+            onActionRun: vi.fn(() => vi.fn()),
+            updateActionConversationViewed,
+        } as unknown as ElectronActionBridge)
+        actionRunRegistry.start()
+        const unseen = conversation('conversation-1', false)
+        const changed = vi.fn()
+        agentAcknowledgementService.addEventListener(cardAcknowledgementEvent(cardInternalId), changed)
+
+        const pending = agentAcknowledgementService.setViewed(cardInternalId, actionId, unseen, true)
+
+        expect(unseen.viewed).toBe(true)
+        expect(changed).toHaveBeenCalledOnce()
+        if (!resolveWrite) throw new Error('Missing pending write')
+        ;(resolveWrite as (value: AgentConversation) => void)({ ...unseen })
+        await pending
+        expect(unseen.viewed).toBe(true)
+        agentAcknowledgementService.removeEventListener(cardAcknowledgementEvent(cardInternalId), changed)
+    })
+
+    it('reverts a failed write to the view state the backend last reported', async () => {
+        const updateActionConversationViewed = vi.fn().mockRejectedValue(new Error('disk failed'))
+        setActionBridgeOverride({
+            onActionRun: vi.fn(() => vi.fn()),
+            updateActionConversationViewed,
+        } as unknown as ElectronActionBridge)
+        actionRunRegistry.start()
+        const stored = conversation('conversation-1', true)
+        agentAcknowledgementService.recordBackendViewed(stored.id, true)
+        agentAcknowledgementService.connectConversationStore(() => stored)
+
+        await expect(agentAcknowledgementService.setViewed(cardInternalId, actionId, stored, false)).rejects.toThrow('disk failed')
+
+        expect(stored.viewed).toBe(true)
+    })
+
     it('ignores transitions without a card conversation identity', () => {
         const { publish, updateActionConversationViewed } = startRunRegistry(null)
 

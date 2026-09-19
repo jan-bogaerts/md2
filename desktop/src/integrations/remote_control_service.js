@@ -275,6 +275,7 @@ class RemoteControlService {
 
     async invoke(client, method, params, id) {
         if (method === 'unsubscribe') return this.unsubscribe(client, params);
+        if (method === 'onActionConversationViewed') return this.onActionConversationViewed(client, id);
         if (method === 'onActionRun') return this.onActionRun(client, id);
         if (method === 'onClaudeRateLimits') return this.onClaudeRateLimits(client, id);
         if (method === 'onCodexRateLimits') return this.onCodexRateLimits(client, id);
@@ -309,6 +310,18 @@ class RemoteControlService {
         const subscriptionId = crypto.randomUUID();
         const cleanup = this.dispatcher.invoke('onActionRun', [
             (event) => sendJson(client, { event: 'actionRun', payload: { event, requestId: id, subscriptionId } }),
+        ]);
+        this.addSubscription(client, subscriptionId, cleanup);
+
+        return { subscriptionId };
+    }
+
+    onActionConversationViewed(client, id) {
+        if (!this.dispatcher) throw new Error('Remote-control dispatch is not configured');
+
+        const subscriptionId = crypto.randomUUID();
+        const cleanup = this.dispatcher.invoke('onActionConversationViewed', [
+            (event) => sendJson(client, { event: 'conversationViewed', payload: { event, requestId: id, subscriptionId } }),
         ]);
         this.addSubscription(client, subscriptionId, cleanup);
 

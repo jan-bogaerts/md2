@@ -5,7 +5,7 @@ import { DEFAULT_PROJECT_CONFIG, type ProjectConfig, type StorageService } from 
 import { projectStatsService } from '../../services/stats/project_stats_service'
 import { completedReleaseIdentity } from '../../services/stats/stats_options'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { formatTokenCount } from '../agents/token_count'
+import { formatTokenCount } from '../agents/token_count_format'
 import { DialogDisplay } from '../dialog_display'
 import { StatsContent } from './stats_content'
 

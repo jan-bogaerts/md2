@@ -16,6 +16,7 @@ const { normalizePath } = require('../../../shared/path_utils.mjs');
 const { createMissingProjectFolders, PROJECT_README_TEMPLATE } = require('./project_folder_creation');
 
 const MARKDOWN_EXTENSION = '.md';
+const TEXT_EXTENSION = '.txt';
 const JSON_EXTENSION = '.json';
 const PROJECT_CONFIG_PATH = 'md2.config.json';
 const GIT_FOLDER = '.git';
@@ -427,7 +428,7 @@ function watchProject(project, onChange, onError) {
             const fullPath = ensureInsideRoot(rootPath, event.path);
             const normalizedPath = normalizePath(path.relative(rootPath, fullPath));
             const lowerPath = normalizedPath.toLowerCase();
-            if (!lowerPath.endsWith(MARKDOWN_EXTENSION) && !lowerPath.endsWith(JSON_EXTENSION)) continue;
+            if (!isWatchedProjectPath(lowerPath)) continue;
 
             const pendingTimer = settleTimersByPath.get(normalizedPath);
             if (pendingTimer) clearTimeout(pendingTimer);
@@ -450,6 +451,14 @@ function watchProject(project, onChange, onError) {
     return closeWatcher;
 }
 
+function isWatchedProjectPath(filePath) {
+    const lowerPath = filePath.toLowerCase();
+
+    return lowerPath.endsWith(MARKDOWN_EXTENSION)
+        || lowerPath.endsWith(JSON_EXTENSION)
+        || lowerPath.endsWith(TEXT_EXTENSION);
+}
+
 module.exports = {
     commit,
     commitNow,
@@ -464,6 +473,7 @@ module.exports = {
     loadProjectConfig,
     loadProjectRoot,
     loadTextFile,
+    isWatchedProjectPath,
     moveFiles,
     PROJECT_README_TEMPLATE,
     saveProjectConfig,

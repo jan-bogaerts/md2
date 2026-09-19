@@ -1,6 +1,6 @@
 import type { ActionContext } from './action_context'
 import type { ActionSettings, CardActivityFile } from '../../../shared/card_activity.mjs'
-import type { ActionScheduleTrigger, AnySchedule } from './action_schedule_types'
+import type { ActionScheduleTrigger, AnySchedule, ScheduleTrigger } from './action_schedule_types'
 import type { AgentConversation, AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
@@ -59,6 +59,13 @@ export interface ActionScheduleRegistrationRequest {
     actionId: string
     context: ActionContext
     trigger: ActionScheduleTrigger
+}
+
+export interface SequenceScheduleRegistrationRequest {
+    actionId: string
+    cardInternalIds: string[]
+    readyState: string
+    trigger: ScheduleTrigger
 }
 
 /** Commit produced during an action chain and owned by its root run. */
@@ -152,6 +159,12 @@ export interface ActiveActionRun {
     runId: string
 }
 
+/** One conversation's view state as the backend just wrote it; only the changed field travels. */
+export interface ActionConversationViewedEvent {
+    conversationId: string
+    viewed: boolean
+}
+
 export interface ElectronActionBridge {
     acquireReleaseCardLocks?(cardInternalIds: string[]): Promise<string>
     answerActionApproval?(runId: string, requestId: AgentApprovalRequestId, decision: AgentApprovalDecision): Promise<void>
@@ -171,15 +184,16 @@ export interface ElectronActionBridge {
     listActiveSchedules?(): Promise<AnySchedule[]>
     loadActionRunHistory(request: ActionRunHistoryRequest): Promise<ActionRunHistoryEntry[]>
     loadActionRunRecoverySnapshot?(rendererRunIds: string[]): Promise<ActionRunRecoverySnapshot>
-    notifyActionCardStateChange?(cardInternalId: string, state: string): Promise<void>
     loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
+    onActionConversationViewed?(callback: (event: ActionConversationViewedEvent) => void): () => void
     onActionRun(callback: (event: ActionRunEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>
     prepareActionPrompt(request: ActionPromptRequest): Promise<PreparedActionPrompt>
     readFileAtCommit?(request: ReadFileAtCommitRequest): Promise<HistoricalFileContent>
     releaseReleaseCardLocks?(leaseId: string): Promise<void>
     registerActionSchedule?(request: ActionScheduleRegistrationRequest): Promise<void>
+    registerSequenceSchedule?(request: SequenceScheduleRegistrationRequest): Promise<void>
     reserveActionConversation?(request: ActionStartRequest): Promise<AgentConversationReservation>
     restartActionRun?(runId: string, request: ActionStartRequest): Promise<string>
     runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>
@@ -211,4 +225,14 @@ export function getElectronActionBridge() {
 
 export function hasActionRunBackend() {
     return getElectronActionBridge() !== null
+}
+
+export function hasActiveScheduleBackend() {
+    const bridge = getElectronActionBridge()
+
+    return !!bridge?.listActiveSchedules && !!bridge.deleteSchedule
+}
+
+export function hasSequenceScheduleBackend() {
+    return !!getElectronActionBridge()?.registerSequenceSchedule
 }

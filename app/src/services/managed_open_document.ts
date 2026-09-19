@@ -16,8 +16,14 @@ function isCardObject(object: OpenDocumentObject) {
     return 'header' in object
 }
 
-function objectPath(object: OpenDocumentObject) {
+function isActionObject(object: OpenDocumentObject) {
+    return 'id' in object
+}
+
+function objectPath(kind: ManagedOpenDocument['kind'], object: OpenDocumentObject) {
     if (isCardObject(object)) return object.path
+    if (!isActionObject(object)) return object.path
+    if (kind === 'instruction') throw new Error('Instruction document requires an instruction object')
     if (!object.sourcePath) throw new Error(`Action document requires a source path: ${object.id}`)
 
     return object.sourcePath
@@ -26,14 +32,14 @@ function objectPath(object: OpenDocumentObject) {
 /** Stable document identity with revision-based draft persistence state. */
 export class ManagedOpenDocument extends EventTarget {
     readonly identity: string
-    readonly kind: 'action' | 'card'
+    readonly kind: 'action' | 'card' | 'instruction'
     private acknowledgedRevision = 0
     private draft: OpenDocumentDraft
     private editRevision = 0
     private object: OpenDocumentObject
 
     constructor(
-        kind: 'action' | 'card',
+        kind: 'action' | 'card' | 'instruction',
         identity: string,
         object: OpenDocumentObject,
         draft: OpenDocumentDraft,
@@ -46,7 +52,7 @@ export class ManagedOpenDocument extends EventTarget {
     }
 
     get dirty() { return this.editRevision !== this.acknowledgedRevision }
-    get path() { return objectPath(this.object) }
+    get path() { return objectPath(this.kind, this.object) }
 
     getDraft() {
         return this.draft
@@ -83,7 +89,7 @@ export class ManagedOpenDocument extends EventTarget {
 
     renew(identity: string, object: OpenDocumentObject, draft: OpenDocumentDraft) {
         if (this.identity !== identity) throw new Error(`Cannot renew open ${this.kind} document with a different object`)
-        const sameDraft = this.kind === 'card'
+        const sameDraft = this.kind !== 'action'
             ? isCardDraft(this.draft) && isCardDraft(draft) && this.draft.content === draft.content
             : this.draft === draft
         if (this.object === object && sameDraft) return
@@ -107,8 +113,9 @@ export class ManagedOpenDocument extends EventTarget {
     }
 
     private applyDraft(draft: OpenDocumentDraft) {
-        if (this.kind === 'card') {
-            if (!isCardObject(this.object) || !('content' in draft)) throw new Error('Cannot update card document with a different draft kind')
+        if (this.kind !== 'action') {
+            if (!('content' in draft)) throw new Error(`Cannot update ${this.kind} document with a different draft kind`)
+            if (this.kind === 'card' && !isCardObject(this.object)) throw new Error('Cannot update card document with a different object kind')
             this.draft = draft
             return
         }

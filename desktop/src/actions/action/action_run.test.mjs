@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it, vi } from 'vitest';
+import { createActivityFile, parseActivityValue } from '../../../../shared/card_activity.mjs';
 
 const require = createRequire(import.meta.url);
 const { ActionRun } = require('./action_run');
@@ -24,6 +25,21 @@ function deferred() {
     const { promise, resolve } = Promise.withResolvers();
 
     return { promise, resolve };
+}
+
+/**
+ * Stand-in for the backend agent run state that `ActionRun` now queries. Tests flip `question` and
+ * `approvals` exactly where the real streaming handlers do, so `hasPendingInteraction` answers what
+ * the backend would answer at that point in the sequence.
+ */
+function agentRunState() {
+    const state = {
+        approvals: new Set(),
+        question: false,
+    };
+    state.hasPendingInteraction = vi.fn(() => state.question || state.approvals.size > 0);
+
+    return state;
 }
 
 function createRun(rootAction, overrides = {}) {
@@ -67,7 +83,10 @@ function createRun(rootAction, overrides = {}) {
         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
         ...overrides.actionWorktreeRunService,
     };
-    const agentRunnerService = overrides.agentRunnerService ?? { stop: vi.fn() };
+    const agentRunnerService = {
+        hasPendingInteraction: () => false,
+        ...(overrides.agentRunnerService ?? { stop: vi.fn() }),
+    };
     const agentExecutor = overrides.agentExecutor ?? { execute: vi.fn() };
     const run = new ActionRun({
         activeCardsFolder: 'design/feature_descriptions',
@@ -370,6 +389,29 @@ describe('ActionRun', () => {
         expect(events.every((event) => event.context === context)).toBe(true);
     });
 
+    it('records a failure activity when the agent fails before a conversation exists', async () => {
+        const rootAction = action('main', { command: undefined, prompt: 'main', type: 'agent' });
+        const agentExecutor = {
+            execute: vi.fn(async () => {
+                throw new Error('Agent executable is missing');
+            }),
+        };
+        const { run, localGitService } = createRun(rootAction, { agentExecutor });
+
+        await expect(run.completion).resolves.toMatchObject({ status: 'failed' });
+
+        expect(localGitService.appendAndCommitActionActivity).toHaveBeenCalledOnce();
+        const record = localGitService.appendAndCommitActionActivity.mock.calls[0][3];
+        expect(record).toMatchObject({
+            conversationIds: [],
+            details: { command: '', output: 'Agent executable is missing', type: 'command' },
+            runId: 'run-1',
+            status: 'failed',
+        });
+        expect(record).not.toHaveProperty('rootConversationId');
+        expect(parseActivityValue({ ...createActivityFile(record.origin), records: [record] }).records[0]).toEqual(record);
+    });
+
     it('publishes accumulated agent paths only after activity persistence', async () => {
         const rootAction = action('main', {
             onAfter: [action('after', { prompt: 'after', type: 'agent' })],
@@ -493,7 +535,13 @@ describe('ActionRun', () => {
         const agentStarted = deferred();
         const answerApproval = vi.fn(async () => undefined);
         const sendMessage = vi.fn(async () => undefined);
-        const agentRunnerService = { answerApproval, sendMessage, stop: vi.fn() };
+        const runState = agentRunState();
+        const agentRunnerService = {
+            answerApproval,
+            hasPendingInteraction: runState.hasPendingInteraction,
+            sendMessage,
+            stop: vi.fn(),
+        };
         let agentInput;
         const agentExecutor = {
             execute: vi.fn(async (input) => {
@@ -514,15 +562,19 @@ describe('ActionRun', () => {
         await agentStarted.promise;
         const firstApproval = { itemId: 'command-1', kind: 'commandExecution', requestId: 41, threadId: 'thread-1', turnId: 'turn-1' };
         const secondApproval = { itemId: 'file-1', kind: 'fileChange', requestId: 42, threadId: 'thread-1', turnId: 'turn-1' };
-        agentInput.onEvent({ approval: firstApproval, type: 'approval' });
-        agentInput.onEvent({ approval: secondApproval, type: 'approval' });
+        runState.approvals.add(41);
+        agentInput.onEvent({ approval: firstApproval, status: 'waitingForInput', type: 'approval' });
+        runState.approvals.add(42);
+        agentInput.onEvent({ approval: secondApproval, status: 'waitingForInput', type: 'approval' });
 
-        expect(() => run.sendAgentMessage('next')).toThrow('pending approval');
+        expect(() => run.sendAgentMessage('next')).toThrow('pending agent question or approval');
         await run.answerAgentApproval(41, 'accept');
-        agentInput.onEvent({ requestId: 41, type: 'approvalSubmitted' });
-        agentInput.onEvent({ requestId: 41, state: 'waitingForInput', type: 'approvalResolved' });
-        expect(() => run.sendAgentMessage('still blocked')).toThrow('pending approval');
-        agentInput.onEvent({ requestId: 42, state: 'running', type: 'approvalResolved' });
+        agentInput.onEvent({ requestId: 41, status: 'waitingForInput', type: 'approvalSubmitted' });
+        runState.approvals.delete(41);
+        agentInput.onEvent({ requestId: 41, state: 'waitingForInput', status: 'waitingForInput', type: 'approvalResolved' });
+        expect(() => run.sendAgentMessage('still blocked')).toThrow('pending agent question or approval');
+        runState.approvals.delete(42);
+        agentInput.onEvent({ requestId: 42, state: 'running', status: 'running', type: 'approvalResolved' });
         await run.sendAgentMessage('next');
         agentCompletion.resolve();
         await run.completion;
@@ -580,7 +632,7 @@ describe('ActionRun', () => {
         const entry = await run.enqueueAgentPrompt('Queued {{worktree-folder}} {{card-file}}');
         await expect(run.enqueueAgentPrompt('Broken {{card-title}}')).rejects.toThrow('without a card title');
         expect(events).toContainEqual(expect.objectContaining({update: { entry, kind: 'agentPromptQueued' }}));
-        agentInput.onEvent({ state: 'waitingForInput', type: 'state' });
+        agentInput.onEvent({ state: 'waitingForInput', status: 'waitingForInput', type: 'state' });
         await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(2));
 
         expect(sendMessage).toHaveBeenCalledWith('agent-run', 'Direct C:/worktrees/2 C:/repo design/card.md  {{unknown}}');
@@ -595,6 +647,7 @@ describe('ActionRun', () => {
         const agentCompletion = deferred();
         const agentStarted = deferred();
         const sendMessage = vi.fn(async () => undefined);
+        const runState = agentRunState();
         let agentInput;
         const dismissQuestions = vi.fn(async (_runId, requestId) => {
             const event = {
@@ -606,9 +659,15 @@ describe('ActionRun', () => {
                 timestamp: 'now',
                 type: 'questionsDismissed',
             };
-            agentInput.onEvent({ event, requestId, state: 'running', type: 'questionDismissed' });
+            runState.question = false;
+            agentInput.onEvent({ event, requestId, state: 'running', status: 'running', type: 'questionDismissed' });
         });
-        const agentRunnerService = { dismissQuestions, sendMessage, stop: vi.fn() };
+        const agentRunnerService = {
+            dismissQuestions,
+            hasPendingInteraction: runState.hasPendingInteraction,
+            sendMessage,
+            stop: vi.fn(),
+        };
         const agentExecutor = {
             execute: vi.fn(async (input) => {
                 agentInput = input;
@@ -626,8 +685,9 @@ describe('ActionRun', () => {
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
         const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
         await agentStarted.promise;
-        agentInput.onEvent({ state: 'waitingForInput', type: 'state' });
-        agentInput.onEvent({ questions: [{ id: 'confirm', question: 'Proceed?' }], requestId: 7, type: 'question' });
+        runState.question = true;
+        agentInput.onEvent({ state: 'waitingForInput', status: 'waitingForInput', type: 'state' });
+        agentInput.onEvent({questions: [{ id: 'confirm', question: 'Proceed?' }], requestId: 7, status: 'waitingForInput', type: 'question'});
         await run.enqueueAgentPrompt('Continue differently');
         await Promise.resolve();
         expect(sendMessage).not.toHaveBeenCalled();
@@ -640,15 +700,21 @@ describe('ActionRun', () => {
             status: 'running',
             update: expect.objectContaining({ kind: 'agentQuestionDismissed', requestId: 7 }),
         }));
-        agentInput.onEvent({ questions: [{ id: 'next', question: 'Next?' }], requestId: 8, type: 'question' });
+        runState.question = true;
+        agentInput.onEvent({questions: [{ id: 'next', question: 'Next?' }], requestId: 8, status: 'waitingForInput', type: 'question'});
         agentInput.onEvent({
+            status: 'waitingForInput',
             type: 'userMessage',
             userMessage: { content: 'Continue differently', id: 'message-1', kind: 'message', role: 'user', timestamp: 'now' },
         });
         await run.enqueueAgentPrompt('Wait for next answer');
         await Promise.resolve();
-        expect(run.activeAgentQuestion).toBe(true);
         expect(run.activeAgentQuestionRequestId).toBe(8);
+        expect(run.agentInteractionPending()).toBe(true);
+        expect(events).toContainEqual(expect.objectContaining({
+            status: 'waitingForInput',
+            update: expect.objectContaining({ kind: 'agentUserMessage' }),
+        }));
         expect(sendMessage).toHaveBeenCalledOnce();
         agentCompletion.resolve();
         await run.completion;
@@ -785,11 +851,17 @@ describe('ActionRun', () => {
                     return finalResult;
                 }),
         };
-        const agentRunnerService = { sendMessage: vi.fn(), stop: vi.fn() };
+        const runState = agentRunState();
+        const agentRunnerService = {
+            hasPendingInteraction: runState.hasPendingInteraction,
+            sendMessage: vi.fn(),
+            stop: vi.fn(),
+        };
         const rootAction = action('main', { agent: 'claude', model: 'claude', prompt: 'run', streaming: true, type: 'agent' });
         const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
         await firstStarted.promise;
-        firstInput.onEvent({ approval: { requestId: 41 }, type: 'approval' });
+        runState.approvals.add(41);
+        firstInput.onEvent({ approval: { requestId: 41 }, status: 'waitingForInput', type: 'approval' });
         const firstEntryPromise = run.enqueueAgentPrompt('First follow-up');
         const secondEntryPromise = run.enqueueAgentPrompt('Second follow-up');
         firstCompletion.resolve();
@@ -829,6 +901,7 @@ describe('ActionRun', () => {
             agent: 'claude', conversationId: 'conversation', exitCode: 0, model: 'claude', prompt: 'run',
             reference: 'first.json', stderr: '', stdout: '', thinkingLevel: 'none',
         };
+        const runState = agentRunState();
         let firstInput;
         const agentExecutor = {
             execute: vi.fn()
@@ -842,7 +915,8 @@ describe('ActionRun', () => {
                     return firstResult;
                 })
                 .mockImplementationOnce(async (input) => {
-                    input.onEvent({ approval: { requestId: 42 }, type: 'approval' });
+                    runState.approvals.add(42);
+                    input.onEvent({ approval: { requestId: 42 }, status: 'waitingForInput', type: 'approval' });
                     input.onActiveRunChange('agent-run-2');
                     followUpStarted.resolve();
                     await followUpCompletion.promise;
@@ -851,11 +925,16 @@ describe('ActionRun', () => {
                     return { ...firstResult, exitCode: 1, prompt: 'First follow-up', stderr: 'failed' };
                 }),
         };
-        const agentRunnerService = { sendMessage: vi.fn(), stop: vi.fn() };
+        const agentRunnerService = {
+            hasPendingInteraction: runState.hasPendingInteraction,
+            sendMessage: vi.fn(),
+            stop: vi.fn(),
+        };
         const rootAction = action('main', { agent: 'claude', model: 'claude', prompt: 'run', streaming: true, type: 'agent' });
         const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
         await firstStarted.promise;
-        firstInput.onEvent({ approval: { requestId: 41 }, type: 'approval' });
+        runState.approvals.add(41);
+        firstInput.onEvent({ approval: { requestId: 41 }, status: 'waitingForInput', type: 'approval' });
         const firstEntry = await run.enqueueAgentPrompt('First follow-up');
         const laterEntry = await run.enqueueAgentPrompt('Later follow-up');
         firstCompletion.resolve();
@@ -891,7 +970,8 @@ describe('ActionRun', () => {
             await sendCompletions[sendIndex].promise;
             activeWrites -= 1;
         });
-        const agentRunnerService = { sendMessage, stop: vi.fn() };
+        const runState = agentRunState();
+        const agentRunnerService = { hasPendingInteraction: runState.hasPendingInteraction, sendMessage, stop: vi.fn() };
         let agentInput;
         const agentExecutor = {
             execute: vi.fn(async (input) => {
@@ -910,12 +990,14 @@ describe('ActionRun', () => {
         const rootAction = action('main', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
         const { events, run } = createRun(rootAction, { agentExecutor, agentRunnerService });
         await agentStarted.promise;
-        agentInput.onEvent({ approval: { requestId: 41 }, type: 'approval' });
+        runState.approvals.add(41);
+        agentInput.onEvent({ approval: { requestId: 41 }, status: 'waitingForInput', type: 'approval' });
         const first = await run.enqueueAgentPrompt('First');
         const second = await run.enqueueAgentPrompt('Second');
         expect(sendMessage).not.toHaveBeenCalled();
 
-        agentInput.onEvent({ requestId: 41, state: 'running', type: 'approvalResolved' });
+        runState.approvals.delete(41);
+        agentInput.onEvent({ requestId: 41, state: 'running', status: 'running', type: 'approvalResolved' });
         await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
         expect(sendMessage).toHaveBeenLastCalledWith('agent-run', 'First');
         expect(run.promptQueue.map(({ content }) => content)).toEqual(['Second']);
@@ -1119,15 +1201,17 @@ describe('ActionRun', () => {
         const completedConversation = { ...runningConversation, completedAt: 'later', status: 'completed' };
         const agentExecutor = {
             execute: vi.fn(async (input) => {
-                input.onEvent({ continued: false, conversation: runningConversation, type: 'started' });
+                input.onEvent({ continued: false, conversation: runningConversation, status: 'running', type: 'started' });
                 input.onEvent({
                     state: 'waitingForInput',
+                    status: 'waitingForInput',
                     timer: { elapsedMs: 10_000, runningStartedAt: null },
                     type: 'state',
                 });
-                input.onEvent({ content: 'chunk', entryIndex: 0, messageId: 'assistant-1', sequence: 2, type: 'output' });
+                input.onEvent({content: 'chunk', entryIndex: 0, messageId: 'assistant-1', sequence: 2, status: 'running', type: 'output'});
                 input.onEvent({
                     contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+                    status: 'running',
                     type: 'usage',
                     usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
                 });
@@ -1137,9 +1221,10 @@ describe('ActionRun', () => {
                         content: 'running', id: 'activity-1', label: 'Command', providerItemId: 'command-1',
                         sequence: 3, status: 'inProgress', timestamp: 'now', type: 'commandExecution',
                     },
+                    status: 'running',
                     type: 'agentEvent',
                 });
-                input.onEvent({ conversation: completedConversation, type: 'closed' });
+                input.onEvent({ conversation: completedConversation, persisted: false, status: 'completed', type: 'closed' });
 
                 return {
                     agent: 'codex', exitCode: 0, model: 'gpt', permissionMode: 'ask-for-approval', prompt: 'run',
@@ -1179,7 +1264,7 @@ describe('ActionRun', () => {
         expect(events).toContainEqual(expect.objectContaining({
             status: 'completed',
             type: 'update',
-            update: { conversation: completedConversation, kind: 'agentClosed' },
+            update: { conversation: completedConversation, kind: 'agentClosed', persisted: false },
         }));
         expect(events).toContainEqual(expect.objectContaining({
             status: 'running',

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { formatTokenCount, TokenCount } from './token_count'
+import { TokenCount } from './token_count'
+import { formatTokenCount } from './token_count_format'
 
 /**
  * `formatTokenCount` formats in the user's default locale, so the decimal separator is whatever the

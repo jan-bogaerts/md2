@@ -3,13 +3,33 @@ author:
 id: F_354
 internalId: 57ceeeca-6732-42a3-b77f-b1c459a2f268
 title: Add active schedules dialog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__57ceeeca-6732-42a3-b77f-b1c459a2f268.json
 policy:
-after: 03616c27-a15f-43f5-8ba8-523c9e9a56d1
+after: 3a0d1119-4bc6-4bba-b47d-ddfabe12d56d
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup_defaults.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_defaults.ts
+  - app/src/components/actions/run/schedule/active_schedules_dialog.test.tsx
+  - app/src/components/actions/run/schedule/active_schedules_dialog.tsx
+  - app/src/components/hooks/use_active_schedules.ts
+  - app/src/components/project_workspace.tsx
+  - app/src/components/project_workspace_rendering.test.tsx
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/data/electron_action_bridge.ts
+  - app/src/services/actions/active_schedule_projection.node.test.ts
+  - app/src/services/actions/active_schedule_projection.ts
+  - app/src/services/actions/active_schedule_service.node.test.ts
+  - app/src/services/actions/active_schedule_service.ts
+  - app/src/services/application_startup_service.ts
+  - app/src/services/card_popup_service.test.ts
+  - app/src/services/card_popup_service.ts
+  - app/src/services/project/workspace_navigation_service.node.test.ts
+  - app/src/services/project/workspace_navigation_service.ts
 ---
 Add active-schedule management UI for [F\_331](F_331_improve_schedule_action.md), using APIs from [F\_352](F_352_extend_schedule_contract_and_apis.md).
 

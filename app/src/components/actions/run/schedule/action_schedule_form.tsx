@@ -1,33 +1,46 @@
-import { Button, Stack, TextField, Typography } from '@mui/material'
-import type { ChangeEvent } from 'react'
+import { Button, Stack, Typography } from '@mui/material'
+import type { ActionScheduleAccountTracker, ActionScheduleCardOption } from './action_schedule_options'
+import type { ActionScheduleSnapshot, ActionScheduleTriggerType } from './action_schedule_store'
+import { ScheduleTriggerFields, type ScheduleTriggerFieldsChange } from './schedule_trigger_fields'
+
+export type ActionScheduleFormChange =
+    | { agent: string; type: 'agent' }
+    | { cardInternalId: string; type: 'card' }
+    | { limitId: string; type: 'tracker'; windowId: string }
+    | { targetState: string; type: 'target-state' }
+    | { timestamp: string; type: 'timestamp' }
+    | { triggerType: ActionScheduleTriggerType; type: 'trigger-type' }
 
 interface ActionScheduleFormProps {
+    accountTrackers: ActionScheduleAccountTracker[]
+    canRegister: boolean
+    cards: ActionScheduleCardOption[]
     message: string | null
-    onRegister: () => void
-    onTimestampChange: (event: ChangeEvent<HTMLInputElement>) => void
-    timestamp: string
+    onChange(change: ActionScheduleFormChange): void
+    onRegister(): void
+    snapshot: ActionScheduleSnapshot
+    targetStates: string[]
 }
 
-/** Presentation-only scheduled action registration form. */
+/** Trigger selection and trigger-specific schedule fields. */
 export function ActionScheduleForm(props: ActionScheduleFormProps) {
-    const {
-        message,
-        onRegister,
-        onTimestampChange,
-        timestamp,
-    } = props
+    const { accountTrackers, canRegister, cards, message, onChange, onRegister, snapshot, targetStates } = props
+    const handleChange = (change: ScheduleTriggerFieldsChange) => {
+        if (change.type === 'trigger-type' && change.triggerType === 'now') return
+        onChange(change as ActionScheduleFormChange)
+    }
 
     return (
-        <Stack spacing={1}>
-            <TextField autoFocus label="Date and time" onChange={onTimestampChange} required size="small" type="datetime-local" value={timestamp} />
-            <Button onClick={onRegister} size="small" variant="contained">
-                Schedule action
-            </Button>
-            {message ? (
-                <Typography color="text.secondary" role="status" variant="caption">
-                    {message}
-                </Typography>
-            ) : null}
+        <Stack spacing={1.5}>
+            <ScheduleTriggerFields
+                accountTrackers={accountTrackers}
+                cards={cards}
+                onChange={handleChange}
+                snapshot={snapshot}
+                targetStates={targetStates}
+            />
+            <Button disabled={!canRegister} onClick={onRegister} size="small" variant="contained">Schedule action</Button>
+            {message ? <Typography color="text.secondary" role="status" variant="caption">{message}</Typography> : null}
         </Stack>
     )
 }
