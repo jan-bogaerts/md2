@@ -995,13 +995,50 @@
         "totalTokens": 1196093
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "5bd44f1fa48105a545e4050bd44420c16d098722",
+          "committedAt": "2026-09-19T14:59:46+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_349_pin_conversations.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 30
+        }
+      ],
+      "completedAt": "2026-09-19T12:59:46.973Z",
+      "conversationIds": [
+        "agent-c938879d-d18f-4eed-8c57-6f8fe5d4598f"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-5.6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-ed84b583-1196-48d3-b365-07d781dbfa48",
+      "origin": {
+        "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-c938879d-d18f-4eed-8c57-6f8fe5d4598f",
+      "startedAt": "2026-09-19T12:56:50.050Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
