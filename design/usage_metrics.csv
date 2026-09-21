@@ -4822,3 +4822,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-21T17:47:27.871Z,account_usage,claude,default,weekly,10080,2026-09-27T17:00:00.000Z,,,,,,8,0
 2026-09-21T17:51:27.883Z,account_usage,claude,default,weekly,10080,2026-09-27T16:59:00.000Z,,,,,,8,0
 2026-09-21T17:54:58.431Z,account_usage,claude,default,weekly,10080,2026-09-27T17:00:00.000Z,,,,,,8,0
+2026-09-21T17:55:27.902Z,account_usage,claude,default,weekly,10080,2026-09-27T17:00:00.000Z,,,,,,9,1

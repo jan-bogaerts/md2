@@ -105,14 +105,58 @@ describe('ConfigPage', () => {
     it('renders typed editors with descriptions', () => {
         mockMatchMedia(false)
         configService.init()
+        configService.loadProjectConfig(null)
 
         renderConfigPage('')
 
-        expect(screen.getByRole('switch', { name: 'Startup splash' })).toBeInTheDocument()
+        expect(screen.getByRole('switch', { name: 'Delete integrated card branch' })).toBeInTheDocument()
         expect(screen.getByRole('slider', { name: 'Auto commit delay' })).toBeInTheDocument()
         expect(screen.getByText('Delay before editor changes are committed after typing stops.')).toBeInTheDocument()
-        expect(screen.getByRole('region', { name: 'React app' })).not.toHaveClass('MuiPaper-root')
+        expect(screen.getByRole('region', { name: 'Project' })).not.toHaveClass('MuiPaper-root')
         expect(screen.queryByLabelText('GitHub scopes')).toBeNull()
+    })
+
+    it('lists the config tabs without a React app tab and defaults to the project tab', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+
+        renderConfigPage('#react')
+
+        expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Project', 'Sentry', 'Markdown', 'Desktop'])
+        expect(screen.queryByRole('tab', { name: 'React app' })).toBeNull()
+        expect(screen.queryByRole('switch', { name: 'Startup splash' })).toBeNull()
+        expect(screen.getByRole('tab', { name: 'Project' })).toHaveAttribute('aria-selected', 'true')
+        expect(screen.getByRole('region', { name: 'Project' })).toBeInTheDocument()
+    })
+
+    it('holds diff command, push mode, branch cleanup and the auto commit delay in the git group', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+
+        renderConfigPage('#project')
+        const gitGroup = screen.getByRole('region', { name: 'Git' })
+
+        expect(within(gitGroup).getByText(/branch cleanup/u)).toBeInTheDocument()
+        expect(within(gitGroup).getByText(/auto-commit waits/u)).toBeInTheDocument()
+        expect(within(gitGroup).getByRole('textbox', { name: 'Diff command' })).toBeInTheDocument()
+        expect(within(gitGroup).getByRole('combobox', { name: 'Push mode' })).toBeInTheDocument()
+        expect(within(gitGroup).getByRole('switch', { name: 'Delete integrated card branch' })).toBeInTheDocument()
+        expect(within(gitGroup).getByRole('switch', { name: 'Delete released card branches' })).toBeInTheDocument()
+        expect(within(gitGroup).getByRole('slider', { name: 'Auto commit delay' })).toBeInTheDocument()
+
+        const groupText = gitGroup.textContent ?? ''
+        const fieldOrder = [
+            'Diff command',
+            'Push mode',
+            'Delete integrated card branch',
+            'Delete released card branches',
+            'Auto commit delay',
+        ].map((label) => groupText.indexOf(label))
+
+        expect(fieldOrder.every((position) => position >= 0)).toBe(true)
+        expect(fieldOrder).toEqual([...fieldOrder].sort((first, second) => first - second))
     })
 
     it('renders only the section selected by the hash route', () => {
@@ -122,8 +166,8 @@ describe('ConfigPage', () => {
         renderConfigPage('#desktop')
 
         expect(screen.getByLabelText('Agent')).toBeInTheDocument()
-        expect(screen.queryByRole('switch', { name: 'Startup splash' })).toBeNull()
-        expect(screen.getByRole('tab', { name: 'React app' })).toHaveAttribute('href', '#/config/react')
+        expect(screen.queryByRole('switch', { name: 'Delete integrated card branch' })).toBeNull()
+        expect(screen.getByRole('tab', { name: 'Desktop' })).toHaveAttribute('href', '#/config/desktop')
     })
 
     it('renders global markdown settings in a dedicated tab', () => {
@@ -189,10 +233,12 @@ describe('ConfigPage', () => {
         configService.init()
         const loadDraft = vi.spyOn(configService, 'loadDraft')
 
+        configService.loadProjectConfig(null)
+
         renderConfigPage('', true)
 
         expect(loadDraft).toHaveBeenCalledTimes(1)
-        expect(screen.getByRole('switch', { name: 'Startup splash' })).toBeInTheDocument()
+        expect(screen.getByRole('switch', { name: 'Delete integrated card branch' })).toBeInTheDocument()
     })
 
     it('keeps the draft through StrictMode remount and discards it on real unmount', () => {
@@ -220,21 +266,26 @@ describe('ConfigPage', () => {
     it('saves draft edits into active config', () => {
         mockMatchMedia(false)
         configService.init()
+        configService.loadProjectConfig(null)
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
 
         renderConfigPage('')
-        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.click(screen.getByRole('switch', { name: 'Delete integrated card branch' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-        expect(configService.get('react.showStartupSplash')).toBe(false)
+        expect(configService.get('project.deleteBranchAfterIntegration')).toBe(true)
+        saveProjectConfig.mockRestore()
     })
 
     it('reports success and closes the config page after saving', async () => {
         mockMatchMedia(false)
         configService.init()
+        configService.loadProjectConfig(null)
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
         const reportSuccess = vi.spyOn(dialogService, 'success')
 
         renderConfigPage('')
-        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.click(screen.getByRole('switch', { name: 'Delete integrated card branch' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         await waitFor(() => {
@@ -243,27 +294,32 @@ describe('ConfigPage', () => {
         })
 
         reportSuccess.mockRestore()
+        saveProjectConfig.mockRestore()
     })
 
     it('saves slider draft edits into active config', () => {
-        mockMatchMedia(false)
-        configService.init()
-
-        renderConfigPage('')
-        fireEvent.change(screen.getByRole('slider', { name: 'Auto commit delay' }), { target: { value: '5000' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-
-        expect(configService.get('react.autoCommitDelayMs')).toBe(5000)
-    })
-
-    it('does not save project config when only React config changed', () => {
         mockMatchMedia(false)
         configService.init()
         configService.loadProjectConfig(null)
         const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
 
         renderConfigPage('')
-        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.change(screen.getByRole('slider', { name: 'Auto commit delay' }), { target: { value: '5000' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(configService.get('project.autoCommitDelayMs')).toBe(5000)
+        saveProjectConfig.mockRestore()
+    })
+
+    it('does not save project config when only the markdown style changed', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
+
+        renderConfigPage('#markdown')
+        fireEvent.click(screen.getByRole('button', { name: 'Body' }))
+        fireEvent.change(screen.getByRole('textbox', { name: 'Font size for Body' }), { target: { value: '1.2rem' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(saveProjectConfig).not.toHaveBeenCalled()
@@ -556,14 +612,15 @@ describe('ConfigPage', () => {
     it('cancels draft edits without changing active config', () => {
         mockMatchMedia(false)
         configService.init()
+        configService.loadProjectConfig(null)
 
         renderConfigPage('')
-        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.click(screen.getByRole('switch', { name: 'Delete integrated card branch' }))
         fireEvent.change(screen.getByRole('slider', { name: 'Auto commit delay' }), { target: { value: '5000' } })
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
-        expect(configService.get('react.showStartupSplash')).toBe(true)
-        expect(configService.get('react.autoCommitDelayMs')).toBe(30000)
+        expect(configService.get('project.deleteBranchAfterIntegration')).toBe(false)
+        expect(configService.get('project.autoCommitDelayMs')).toBe(30000)
         expect(window.location.hash).toBe('')
     })
 
@@ -605,13 +662,14 @@ describe('ConfigPage', () => {
     it('discards edits and closes from Escape', async () => {
         mockMatchMedia(false)
         configService.init()
+        configService.loadProjectConfig(null)
 
         renderConfigPage('')
-        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.click(screen.getByRole('switch', { name: 'Delete integrated card branch' }))
         fireEvent.keyDown(screen.getByRole('dialog', { name: 'Config' }), { key: 'Escape' })
 
         await waitFor(() => expect(window.location.hash).toBe(''))
-        expect(configService.get('react.showStartupSplash')).toBe(true)
+        expect(configService.get('project.deleteBranchAfterIntegration')).toBe(false)
     })
 
     it('pushes desktop config edits through the electron bridge on save', () => {
@@ -974,11 +1032,14 @@ describe('ConfigPage', () => {
     it('never touches the desktop bridge in web mode', () => {
         mockMatchMedia(false)
         configService.init()
+        configService.loadProjectConfig(null)
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
 
         renderConfigPage('')
-        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.click(screen.getByRole('switch', { name: 'Delete integrated card branch' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(window.md2Config).toBeUndefined()
+        saveProjectConfig.mockRestore()
     })
 })
