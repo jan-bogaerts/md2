@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__be40e266-2bca-497c-8bf8-9fb7992ca89a.json
 policy:
 ---
 The react tab of the config dialog needs to be removed:
