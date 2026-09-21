@@ -6,6 +6,7 @@ import { DiagramViewService } from './diagram_view_service'
 import { serializeDiagramIndex, type DiagramIndex } from './diagram_index'
 import { serializeDiagramData } from './diagram_data'
 import { DEFAULT_DIAGRAM_ZOOM, MINIMUM_DIAGRAM_ZOOM } from './diagram_zoom'
+import { EMPTY_DIAGRAM_CHOICES } from './empty_diagram_factory'
 
 const INDEX_PATH = 'design/diagrams/diagram-view.json'
 const DIAGRAM_JSON = JSON.stringify({
@@ -31,6 +32,7 @@ function createHarness(repositoryFiles: string[] = []) {
     } as unknown as StorageService
     const flushCommits = vi.fn(async () => undefined)
     const reportError = vi.fn()
+    const requireWritable = vi.fn()
     const scheduleCommit = vi.fn<(file: MarkdownFile, message: string) => void>()
     const service = new DiagramViewService({
         createId: vi.fn().mockReturnValueOnce('root-1').mockReturnValueOnce('root-2').mockReturnValueOnce('child-1'),
@@ -42,6 +44,7 @@ function createHarness(repositoryFiles: string[] = []) {
             { appliesTo: { kind: 'diagram', type: 'child' }, builtin: false, id: 'detail', label: 'Detail' },
         ] as ActionDefinition[],
         reportError,
+        requireWritable,
         scheduleCommit,
         subscribeRunEvents: (listener) => {
             runListener = listener
@@ -51,7 +54,15 @@ function createHarness(repositoryFiles: string[] = []) {
     })
     service.bindProject({ config, project, storage })
 
-    return { flushCommits, reportError, run: (event: ActionRunEvent) => runListener?.(event), scheduleCommit, service, storage }
+    return {
+        flushCommits,
+        reportError,
+        requireWritable,
+        run: (event: ActionRunEvent) => runListener?.(event),
+        scheduleCommit,
+        service,
+        storage,
+    }
 }
 
 function scheduledIndex(scheduleCommit: { mock: { calls: [MarkdownFile, string][] } }) {
@@ -76,6 +87,106 @@ function completedEvent(overrides: Partial<ActionRunEvent> = {}): ActionRunEvent
 }
 
 describe('DiagramViewService', () => {
+    it('persists an empty diagram and its active user-created root in one flush before publishing', async () => {
+        const { flushCommits, requireWritable, scheduleCommit, service } = createHarness()
+        const architecture = EMPTY_DIAGRAM_CHOICES.find(({ id }) => id === 'architecture')
+        if (!architecture) throw new Error('Architecture choice is required')
+        await service.open()
+        const sourceChanged = vi.fn()
+        service.subscribeSource(sourceChanged)
+
+        const record = await service.createEmptyDiagram(architecture)
+
+        expect(requireWritable).toHaveBeenCalledOnce()
+        expect(flushCommits).toHaveBeenCalledOnce()
+        expect(scheduleCommit).toHaveBeenCalledTimes(2)
+        expect(record).toEqual({
+            actionId: 'user-created',
+            createdAt: '2026-09-01T10:00:00.000Z',
+            id: 'root-1',
+            label: 'New architecture',
+            path: 'design/diagrams/architecture-root-1.json',
+        })
+        expect(JSON.parse(scheduleCommit.mock.calls[0][0].content)).toEqual({
+            edges: [],
+            groups: [],
+            meta: {
+                description: 'New architecture diagram',
+                title: 'New architecture',
+                type: 'architecture',
+                version: 1,
+            },
+            nodes: [],
+        })
+        expect(scheduledIndex(scheduleCommit)).toMatchObject({
+            activePath: ['root-1'],
+            roots: { 'user-created': ['root-1'] },
+        })
+        expect(service.getSourceSnapshot()).toEqual({ diagram: expect.objectContaining({ nodes: [] }), record })
+        expect(service.getCurrentDiagramSnapshot()).toMatchObject({ nodes: [] })
+        expect(sourceChanged).toHaveBeenCalledOnce()
+    })
+
+    it('retries IDs whose diagram paths collide with repository files', async () => {
+        const { service } = createHarness(['design/diagrams/architecture-root-1.json'])
+        const architecture = EMPTY_DIAGRAM_CHOICES.find(({ id }) => id === 'architecture')
+        if (!architecture) throw new Error('Architecture choice is required')
+        await service.open()
+
+        const record = await service.createEmptyDiagram(architecture)
+
+        expect(record).toMatchObject({ id: 'root-2', path: 'design/diagrams/architecture-root-2.json' })
+        expect(service.getIndexSnapshot().activePath).toEqual(['root-2'])
+    })
+
+    it('makes each new diagram the sole active path while retaining earlier user-created roots', async () => {
+        const { service } = createHarness()
+        const architecture = EMPTY_DIAGRAM_CHOICES.find(({ id }) => id === 'architecture')
+        const sequence = EMPTY_DIAGRAM_CHOICES.find(({ id }) => id === 'sequence')
+        if (!architecture || !sequence) throw new Error('Diagram choices are required')
+        await service.open()
+        await service.createEmptyDiagram(architecture)
+
+        await service.createEmptyDiagram(sequence)
+
+        expect(service.getIndexSnapshot().activePath).toEqual(['root-2'])
+        expect(service.getIndexSnapshot().roots['user-created']).toEqual(['root-1', 'root-2'])
+        expect(service.getSourceSnapshot()?.record.id).toBe('root-2')
+    })
+
+    it('keeps diagram state unchanged when empty-diagram persistence fails', async () => {
+        const harness = createHarness()
+        const architecture = EMPTY_DIAGRAM_CHOICES.find(({ id }) => id === 'architecture')
+        const sequence = EMPTY_DIAGRAM_CHOICES.find(({ id }) => id === 'sequence')
+        if (!architecture || !sequence) throw new Error('Diagram choices are required')
+        await harness.service.open()
+        await harness.service.createEmptyDiagram(architecture)
+        const snapshot = harness.service.getSnapshot()
+        const source = harness.service.getSourceSnapshot()
+        harness.flushCommits.mockRejectedValueOnce(new Error('commit failed'))
+
+        await expect(harness.service.createEmptyDiagram(sequence)).rejects.toThrow('commit failed')
+
+        expect(harness.service.getSnapshot()).toBe(snapshot)
+        expect(harness.service.getSourceSnapshot()).toBe(source)
+        expect(harness.service.getIndexSnapshot().activePath).toEqual(['root-1'])
+        expect(Object.keys(harness.service.getIndexSnapshot().diagrams)).toEqual(['root-1'])
+    })
+
+    it('checks writable access before creating files', async () => {
+        const harness = createHarness()
+        const architecture = EMPTY_DIAGRAM_CHOICES.find(({ id }) => id === 'architecture')
+        if (!architecture) throw new Error('Architecture choice is required')
+        harness.requireWritable.mockImplementationOnce(() => { throw new Error('read only') })
+        await harness.service.open()
+        vi.mocked(harness.storage.listRepositoryFiles).mockClear()
+
+        await expect(harness.service.createEmptyDiagram(architecture)).rejects.toThrow('read only')
+
+        expect(harness.storage.listRepositoryFiles).not.toHaveBeenCalled()
+        expect(harness.scheduleCommit).not.toHaveBeenCalled()
+    })
+
     it('formats Current in place and schedules canonical content for captured active path', async () => {
         const { run, scheduleCommit, service } = createHarness()
         const boxScaleChanged = vi.fn()

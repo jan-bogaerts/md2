@@ -380,8 +380,6 @@ function requireUniqueIds(items, field) {
 }
 function validateReferences(data) {
     const nodeIds = requireUniqueIds(data.nodes, 'nodes');
-    if (nodeIds.size === 0)
-        malformed('nodes', 'empty array');
     const edgeIds = requireUniqueIds(data.edges, 'edges');
     const duplicateSelectableId = [...edgeIds].find((id) => nodeIds.has(id));
     if (duplicateSelectableId)

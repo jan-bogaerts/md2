@@ -7,6 +7,9 @@ import { setActionBridgeOverride, type ElectronActionBridge } from '../../../dat
 import { actionService } from '../../../services/actions/action_service'
 import { configService } from '../../../services/config/config_service'
 import { dataService } from '../../../services/data/data_service'
+import { dialogService } from '../../../services/dialog_service'
+import { diagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
+import { diagramViewService } from '../../../services/diagrams/diagram_view_service'
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { workspaceViewService } from '../../../services/project/workspace_view_service'
 import { projectAccessService } from '../../../services/project/project_access_service'
@@ -204,6 +207,7 @@ describe('AppMenu', () => {
         expect(screen.getByRole('button', { name: 'Diagrams view' })).toHaveTextContent('Diagrams')
         expect(screen.getByRole('button', { name: 'Stats view' })).toHaveTextContent('Stats')
         expect(screen.getByRole('button', { name: 'New action' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'New diagram' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'New card' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'GitHub account' })).toBeInTheDocument()
 
@@ -221,6 +225,7 @@ describe('AppMenu', () => {
         expect(completeReleaseButton).toBeInTheDocument()
         expect(newCardButton).not.toBeVisible()
         expect(screen.getByRole('button', { name: 'New action', hidden: true })).not.toBeVisible()
+        expect(screen.getByRole('button', { name: 'New diagram', hidden: true })).not.toBeVisible()
     })
 
     it('opens active schedules from the Run menu when backend API is available', async () => {
@@ -357,6 +362,7 @@ describe('AppMenu', () => {
         expect(viewSection.compareDocumentPosition(projectSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(openProjectButton.compareDocumentPosition(branchSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(screen.queryByRole('button', { name: 'New action' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'New diagram' })).toBeNull()
         expect(screen.queryByRole('button', { name: 'New card' })).toBeNull()
         expect(screen.queryByRole('button', { name: 'GitHub account' })).toBeNull()
         expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument()
@@ -368,6 +374,7 @@ describe('AppMenu', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Create' }))
         expect(screen.getByRole('menuitem', { name: 'New action' })).toHaveAttribute('aria-disabled', 'true')
         expect(screen.getByRole('menuitem', { name: 'New card' })).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByRole('menuitem', { name: 'New diagram' })).toHaveAttribute('aria-disabled', 'true')
         fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
 
         fireEvent.click(screen.getByRole('tab', { name: 'Run' }))
@@ -477,6 +484,102 @@ describe('AppMenu', () => {
             sourcePath: actionFile.path,
         })
         workspaceNavigationService.removeEventListener('open', listener)
+    })
+
+    it('creates the selected diagram, switches view, starts editing, and focuses the editor', async () => {
+        await activateLocalProject(createBridge())
+        const record = {
+            actionId: 'user-created',
+            createdAt: '2026-09-21T12:00:00.000Z',
+            id: 'diagram-1',
+            label: 'New sequence',
+            path: 'design/diagrams/sequence-diagram-1.json',
+        }
+        vi.spyOn(diagramViewService, 'open').mockResolvedValue()
+        const createDiagram = vi.spyOn(diagramViewService, 'createEmptyDiagram').mockResolvedValue(record)
+        const startEditing = vi.spyOn(diagramEditSessionService, 'start').mockImplementation(() => undefined)
+        const editor = document.createElement('div')
+        editor.setAttribute('data-diagram-editor', 'true')
+        editor.tabIndex = -1
+        document.body.append(editor)
+        renderMenu()
+
+        fireEvent.click(screen.getByRole('button', { name: 'New diagram' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Sequence' }))
+
+        await waitFor(() => expect(createDiagram).toHaveBeenCalledWith(expect.objectContaining({ id: 'sequence' })))
+        expect(workspaceViewService.getSnapshot().viewMode).toBe('diagrams')
+        expect(startEditing).toHaveBeenCalledOnce()
+        await waitFor(() => expect(document.activeElement).toBe(editor))
+    })
+
+    it('blocks diagram creation before persistence when current edit session is dirty', async () => {
+        await activateLocalProject(createBridge())
+        const open = vi.spyOn(diagramViewService, 'open').mockResolvedValue()
+        const createDiagram = vi.spyOn(diagramViewService, 'createEmptyDiagram')
+        vi.spyOn(diagramEditSessionService, 'getDirtySnapshot').mockReturnValue(true)
+        const warning = vi.spyOn(dialogService, 'warning')
+        renderMenu()
+
+        fireEvent.click(screen.getByRole('button', { name: 'New diagram' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Entity' }))
+
+        expect(warning).toHaveBeenCalledWith(
+            'Save or discard current diagram changes before creating another diagram.',
+            { title: 'Unsaved diagram changes' },
+        )
+        expect(open).not.toHaveBeenCalled()
+        expect(createDiagram).not.toHaveBeenCalled()
+    })
+
+    it('reports persistence failure without switching view or starting editing', async () => {
+        await activateLocalProject(createBridge())
+        vi.spyOn(diagramViewService, 'open').mockResolvedValue()
+        vi.spyOn(diagramViewService, 'createEmptyDiagram').mockRejectedValue(new Error('commit failed'))
+        const startEditing = vi.spyOn(diagramEditSessionService, 'start')
+        const reportError = vi.spyOn(dialogService, 'error')
+        workspaceViewService.setViewMode('stats')
+        renderMenu()
+
+        fireEvent.click(screen.getByRole('button', { name: 'New diagram' }))
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Architecture' }))
+
+        await waitFor(() => expect(reportError).toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'commit failed' }),
+            { fallbackMessage: 'Diagram could not be created' },
+        ))
+        expect(workspaceViewService.getSnapshot().viewMode).toBe('stats')
+        expect(startEditing).not.toHaveBeenCalled()
+    })
+
+    it('disables new diagram for read-only projects and while creation is running', async () => {
+        await activateLocalProject(createBridge())
+        const record = {
+            actionId: 'user-created',
+            createdAt: '2026-09-21T12:00:00.000Z',
+            id: 'diagram-1',
+            label: 'New entity',
+            path: 'design/diagrams/entity-diagram-1.json',
+        }
+        let finishCreation: (value: typeof record) => void = () => { throw new Error('Diagram creation did not start') }
+        vi.spyOn(diagramViewService, 'open').mockResolvedValue()
+        vi.spyOn(diagramViewService, 'createEmptyDiagram').mockImplementation(async () => (
+            await new Promise<typeof record>((resolve) => { finishCreation = resolve })
+        ))
+        vi.spyOn(diagramEditSessionService, 'start').mockImplementation(() => undefined)
+        renderMenu()
+        const newDiagramButton = screen.getByRole('button', { name: 'New diagram' })
+
+        expect(newDiagramButton).toBeEnabled()
+        act(() => projectAccessService.setReadOnly(true))
+        expect(newDiagramButton).toBeDisabled()
+        act(() => projectAccessService.setReadOnly(false))
+
+        fireEvent.click(newDiagramButton)
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Entity' }))
+        await waitFor(() => expect(newDiagramButton).toBeDisabled())
+        finishCreation(record)
+        await waitFor(() => expect(newDiagramButton).toBeEnabled())
     })
 
     it('shows a Run button for every explicitly project-scoped action', async () => {

@@ -1,4 +1,5 @@
 export const DIAGRAM_INDEX_VERSION = 1
+export const USER_CREATED_DIAGRAM_GROUP_KEY = 'user-created'
 
 export interface DiagramParentReference {
     diagramId: string

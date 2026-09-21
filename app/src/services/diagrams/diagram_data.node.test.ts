@@ -186,8 +186,8 @@ describe('parseDiagramData', () => {
             .toThrow('nodes[0].width has invalid number')
         expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), edges: [{ ...validDiagram().edges[0], id: 'api' }] })))
             .toThrow('nodes and edges has duplicate id api')
-        expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), edges: [], groups: [], nodes: [] })))
-            .toThrow('nodes has empty array')
+        expect(parseDiagramData(JSON.stringify({ ...validDiagram(), edges: [], groups: [], nodes: [] })))
+            .toMatchObject({ edges: [], groups: [], nodes: [] })
     })
 
     it('rejects type-specific fields outside their diagram type', () => {

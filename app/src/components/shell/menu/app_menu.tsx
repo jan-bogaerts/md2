@@ -46,6 +46,9 @@ import { workspaceViewService, type WorkspaceViewMode } from '../../../services/
 import { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'
 import { actionService } from '../../../services/actions/action_service'
 import { dialogService } from '../../../services/dialog_service'
+import { diagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
+import type { EmptyDiagramChoice } from '../../../services/diagrams/empty_diagram_factory'
+import { diagramViewService } from '../../../services/diagrams/diagram_view_service'
 import { sentryImportService } from '../../../services/sentry/sentry_import_service'
 import { isSentryConfigurationComplete } from '../../../services/sentry/sentry_types'
 import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
@@ -74,11 +77,13 @@ import { BranchMenuSelect } from './branch_menu_select'
 import { MenuIconButton } from './menu_icon_button'
 import { MenuSelect } from './menu_select'
 import { MobileCreateMenu } from './mobile_create_menu'
+import { NewDiagramMenu } from './new_diagram_menu'
 import { Section } from './section'
 import { Tab } from './tab'
 import { DiagramMenuTab } from '../../diagram_view/diagram_menu_tab'
 import { StatsMenuTab } from '../../stats_view/stats_menu_tab'
 import { ActiveSchedulesDialog } from '../../actions/run/schedule/active_schedules_dialog'
+import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../../diagram_view/use_diagram_delete_key'
 import { hasActiveScheduleBackend, hasSequenceScheduleBackend } from '../../../data/electron_action_bridge'
 import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
 
@@ -153,6 +158,7 @@ export function AppMenu(props: AppMenuProps) {
     const { viewMode } = useWorkspaceView()
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(initialProjectOpenResolution ? 'open' : null)
+    const [isCreatingDiagram, setIsCreatingDiagram] = useState(false)
     const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
     const agentSelection = useConfigValue('desktop.agentSelection')
     const selectedAgent = agentSelection.activeAgent
@@ -339,6 +345,26 @@ export function AppMenu(props: AppMenuProps) {
         }
     }
 
+    const handleCreateDiagram = async (choice: EmptyDiagramChoice) => {
+        if (diagramEditSessionService.getDirtySnapshot()) {
+            dialogService.warning('Save or discard current diagram changes before creating another diagram.', {title: 'Unsaved diagram changes'})
+
+            return
+        }
+        setIsCreatingDiagram(true)
+        try {
+            await diagramViewService.open()
+            await diagramViewService.createEmptyDiagram(choice)
+            workspaceViewService.setViewMode('diagrams')
+            diagramEditSessionService.start()
+            queueMicrotask(() => document.querySelector<HTMLElement>(`[${DIAGRAM_EDITOR_ROOT_ATTRIBUTE}]`)?.focus())
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Diagram could not be created' })
+        } finally {
+            setIsCreatingDiagram(false)
+        }
+    }
+
     const handleDiscardGithubPendingCommits = () => {
         if (!actions.pendingGithubConflictProject) return
 
@@ -484,6 +510,10 @@ export function AppMenu(props: AppMenuProps) {
                             {viewSection}
                             <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                             <Button disabled={!project || readOnly} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
+                            <NewDiagramMenu
+                                disabled={!actions.isProjectOpen || readOnly || isCreatingDiagram}
+                                onCreateDiagram={handleCreateDiagram}
+                            />
                             <Button
                                 disabled={!actions.isProjectOpen || readOnly}
                                 onClick={handleOpenCardDialog}
@@ -697,8 +727,10 @@ export function AppMenu(props: AppMenuProps) {
                 <MobileCreateMenu
                     isNewActionDisabled={!project || readOnly}
                     isNewCardDisabled={!actions.isProjectOpen || readOnly}
+                    isNewDiagramDisabled={!actions.isProjectOpen || readOnly || isCreatingDiagram}
                     onCreateAction={handleCreateAction}
                     onCreateCard={handleOpenCardDialog}
+                    onCreateDiagram={handleCreateDiagram}
                 />
             ) : null}
             onOpenMenu={onOpenMobileMenu}

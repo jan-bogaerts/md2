@@ -6,6 +6,7 @@ import { actionRunRegistry } from '../actions/action_run_registry'
 import { actionService } from '../actions/action_service'
 import { dataService } from '../data/data_service'
 import { dialogService } from '../dialog_service'
+import { projectAccessService } from '../project/project_access_service'
 import { register } from '../service_injector'
 import {
     diagramIndexPath,
@@ -13,6 +14,7 @@ import {
     isPathInsideDiagramsFolder,
     parseDiagramIndex,
     serializeDiagramIndex,
+    USER_CREATED_DIAGRAM_GROUP_KEY,
     type DiagramIndex,
     type DiagramRecord,
 } from './diagram_index'
@@ -37,11 +39,14 @@ import {
 } from './diagram_formatting'
 import { layout, type PositionedDiagramData } from './diagram_layout'
 import { DEFAULT_DIAGRAM_ZOOM } from './diagram_zoom'
+import { createEmptyDiagramData, type EmptyDiagramChoice } from './empty_diagram_factory'
 
 const DIAGRAM_INDEX_COMMIT_MESSAGE = 'Update diagram view'
+const EMPTY_DIAGRAM_COMMIT_MESSAGE = 'Create empty diagram'
 const DIAGRAM_COPY_COMMIT_MESSAGE = 'Save edited diagram copy'
 const DIAGRAM_FORMATTING_COMMIT_MESSAGE = 'Update diagram formatting'
 const MAXIMUM_COPY_PATH_ATTEMPTS = 100
+const MAXIMUM_EMPTY_DIAGRAM_PATH_ATTEMPTS = 100
 const CURRENT_DIAGRAM_CHANGED_EVENT = 'currentDiagramChanged'
 const CURRENT_DIAGRAM_ERROR_CHANGED_EVENT = 'currentDiagramErrorChanged'
 const CURRENT_SELECTION_CHANGED_EVENT_PREFIX = 'currentSelectionChanged'
@@ -138,6 +143,7 @@ interface DiagramViewDependencies {
     flushCommits: () => Promise<void>
     loadActions: () => ReturnType<typeof actionService.getActions>
     reportError: (error: unknown, fallbackMessage: string) => void
+    requireWritable: () => void
     scheduleCommit: (file: MarkdownFile, message: string) => void
     subscribeRunEvents: (listener: (event: ActionRunEvent) => void) => () => void
 }
@@ -202,6 +208,7 @@ function defaultDependencies(): DiagramViewDependencies {
         flushCommits: () => dataService.cards.flushPendingCommits(),
         loadActions: () => actionService.getActions(),
         reportError: (error, fallbackMessage) => dialogService.error(error, { fallbackMessage }),
+        requireWritable: () => projectAccessService.requireWritable(),
         scheduleCommit: (file, message) => dataService.scheduleFileCommit(file, message),
         subscribeRunEvents: (listener) => actionRunRegistry.subscribeActiveRunEvents(listener),
     }
@@ -716,6 +723,29 @@ export class DiagramViewService extends EventTarget {
         return record
     }
 
+    /** Persists one empty root diagram and publishes it only after both files flush. */
+    async createEmptyDiagram(choice: EmptyDiagramChoice) {
+        const binding = this.requireBinding()
+        this.requireReady()
+        this.dependencies.requireWritable()
+        const diagram = createEmptyDiagramData(choice)
+        const content = serializeDiagramData(diagram)
+        const record = await this.createEmptyDiagramRecord(binding, choice)
+        const index = addRecord(this.snapshot.index, record)
+        validateDiagramPaths(index, binding.config.diagramsFolder)
+        this.dependencies.scheduleCommit({ content, path: record.path }, EMPTY_DIAGRAM_COMMIT_MESSAGE)
+        this.scheduleIndexCommit(index)
+        await this.dependencies.flushCommits()
+        this.navigationToken += 1
+        const sourceSnapshot = { diagram, record }
+        this.applySnapshot(
+            { ...this.snapshot, currentDiagram: layout(diagram), currentDiagramError: null, index, menu: null, popup: null },
+            sourceSnapshot,
+        )
+
+        return record
+    }
+
     private readonly handleRunEvent = (event: ActionRunEvent) => {
         if (event.type !== 'run' || event.output?.kind !== 'diagram') return
         if (event.context.kind !== 'diagram') return
@@ -817,6 +847,27 @@ export class DiagramViewService extends EventTarget {
         }
 
         throw new Error(`Could not generate a collision-free copy path for diagram ${sourceRecord.id}`)
+    }
+
+    private async createEmptyDiagramRecord(binding: DiagramProjectBinding, choice: EmptyDiagramChoice) {
+        const repositoryPaths = new Set((await binding.storage.listRepositoryFiles(binding.project)).map(normalizedPathKey))
+        Object.values(this.snapshot.index.diagrams).forEach(({ path }) => repositoryPaths.add(normalizedPathKey(path)))
+        const normalizedFolder = normalizeSlashes(binding.config.diagramsFolder).replace(/^\/+|\/+$/gu, '')
+        for (let attempt = 0; attempt < MAXIMUM_EMPTY_DIAGRAM_PATH_ATTEMPTS; attempt += 1) {
+            const id = this.dependencies.createId()
+            const path = `${normalizedFolder}/${choice.id}-${id}.json`
+            if (this.snapshot.index.diagrams[id] || repositoryPaths.has(normalizedPathKey(path))) continue
+
+            return {
+                actionId: USER_CREATED_DIAGRAM_GROUP_KEY,
+                createdAt: this.dependencies.createTimestamp(),
+                id,
+                label: choice.title,
+                path,
+            }
+        }
+
+        throw new Error(`Could not generate a collision-free path for new ${choice.label} diagram`)
     }
 
     /** Shows the requested path once its JSON resolves, discarding results of superseded navigations. */
