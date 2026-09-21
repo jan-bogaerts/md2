@@ -459,20 +459,28 @@
           "sequence": 32,
           "timestamp": "2026-09-21T14:34:35.311Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Become real project config\nclaude-question-1: Keep, still write back (Recommended)",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-answer-32",
+          "kind": "message",
+          "role": "user",
+          "sequence": 33,
+          "timestamp": "2026-09-21T15:44:05.887Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-133153de-a389-409c-b15e-74389a1eabe6",
       "providerSessions": [],
       "startedAt": "2026-09-21T14:32:59.292Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 33945,
           "toolMs": 38275
         },
         "elapsedMs": 96019,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-21T15:44:05.887Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
