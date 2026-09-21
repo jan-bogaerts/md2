@@ -3,7 +3,7 @@ author:
 id: F_372
 internalId: c06d609b-025a-4540-a69a-ad451e272b15
 title: Improve legend config editor
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,15 @@ agents:
 policy:
 branch: f_372_improve_legend_config_editor
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_connection_formatting_popover.test.tsx
+  - app/src/components/diagram_view/diagram_connection_formatting_popover.tsx
+  - app/src/components/diagram_view/diagram_formatting_popover.test.tsx
+  - app/src/components/diagram_view/diagram_formatting_popover.tsx
+  - app/src/components/diagram_view/diagram_optional_formatting_fields.test.tsx
+  - app/src/components/diagram_view/diagram_session_legend_entries.test.tsx
+  - app/src/components/diagram_view/optional_color_picker_field.tsx
+  - app/src/components/diagram_view/optional_slider_field.tsx
 ---
 Through the items on the legend on the diagrams  it is possible to configure the style of the items. When hovered over item, it show a gear, this opens a popup with config fields like font, size, color, fill, border. There is however little info on the popup (labels, helper text). And rhe inputs are not ok.
 

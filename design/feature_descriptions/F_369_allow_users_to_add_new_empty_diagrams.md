@@ -3,7 +3,7 @@ author:
 id: F_369
 internalId: 522e73f4-0c67-4c35-8ce2-f6a570562479
 title: allow users to add new empty diagrams
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,21 @@ policy:
 after: 530bdc1a-985f-434a-bfe7-acb2f7ca06b8
 branch: f_369_allow_users_to_add_new_empty_diagrams
 worktree: 1
+changedFiles:
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/components/shell/menu/menu_components_no_mock.test.tsx
+  - app/src/components/shell/menu/mobile_create_menu.grouped.test.tsx
+  - app/src/components/shell/menu/mobile_create_menu.tsx
+  - app/src/components/shell/menu/new_diagram_menu.test.tsx
+  - app/src/components/shell/menu/new_diagram_menu.tsx
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_index.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
+  - app/src/services/diagrams/empty_diagram_factory.test.ts
+  - app/src/services/diagrams/empty_diagram_factory.ts
+  - shared/diagram_data.mjs
 ---
 users should be able to create new empty diagrams like cards and actions.
 
