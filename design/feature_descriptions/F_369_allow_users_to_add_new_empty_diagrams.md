@@ -17,6 +17,6 @@ We currently have 2 buttons on the appbar: new card, new action. we need to add 
 
 This adds a new diagram, switches the view to diagrams if not already there and puts it in edit mode, no section needed for read-only versions.
 
-The new diagram button opens a context menu containing all the supported diagram types. Each context menu item creates its respzctive diagram type.
+The new diagram button opens a context menu containing all the supported diagram types. Each context menu item creates its respective diagram type.
 
 Legend is already filled in, a title also ex, new sequence
