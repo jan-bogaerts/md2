@@ -517,19 +517,19 @@
           "agent": "codex",
           "conversationId": "01a0c502-b91d-7f43-b2e4-62fe41108b1a",
           "createdAt": "2026-09-21T17:30:45.372Z",
-          "lastUsedAt": "2026-09-21T17:30:45.372Z",
-          "synchronizedThroughMessageId": "agent-turn-cc308b7b-994f-4da6-b08d-cf9a4c38329a-turn-1-assistant-3"
+          "lastUsedAt": "2026-09-21T17:34:45.743Z",
+          "synchronizedThroughMessageId": "agent-turn-cc308b7b-994f-4da6-b08d-cf9a4c38329a-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-09-21T17:28:03.876Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 57225,
           "toolMs": 478
         },
-        "elapsedMs": 161496,
-        "runningStartedAt": "2026-09-21T17:34:36.925Z"
+        "elapsedMs": 170314,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
