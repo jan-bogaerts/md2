@@ -4793,3 +4793,7 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-21T13:09:30.924Z,token_usage,claude,,,,,34,945700,15097,0,960831,,
 2026-09-21T13:13:18.678Z,token_usage,claude,,,,,28,1232625,6607,0,1239260,,
 2026-09-21T13:13:25.379Z,account_usage,claude,default,weekly,10080,2026-09-27T17:00:00.000Z,,,,,,3,1
+2026-09-21T13:18:59.737Z,account_usage,codex,codex,primary,10080,2026-09-26T11:59:09.000Z,,,,,,12,2
+2026-09-21T13:20:40.857Z,token_usage,claude,,,,,36,1003972,5639,0,1009647,,
+2026-09-21T13:25:25.420Z,account_usage,claude,default,weekly,10080,2026-09-27T17:00:00.000Z,,,,,,4,1
+2026-09-21T13:32:28.019Z,token_usage,claude,,,,,90,4871617,39175,0,4910882,,
