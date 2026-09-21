@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__358764f1-3de7-4aaa-b7e9-b83da22beaa1.json
 policy:
-branch: f_349_pin_conversations
-worktree: 1
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
   - app/src/components/actions/conversation/action_conversation_chat_integration.grouped.test.tsx
