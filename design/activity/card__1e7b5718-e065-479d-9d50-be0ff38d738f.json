@@ -2826,20 +2826,28 @@
           "sequence": 34,
           "timestamp": "2026-09-21T14:00:24.375Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: First we need to research now this field is used to see if we expect any fixed values, then we can decide. it could be that we drop it cause it is never used",
+          "id": "agent-turn-4a3ad11b-b207-4930-9a20-33fec5503629-answer-34",
+          "kind": "message",
+          "role": "user",
+          "sequence": 35,
+          "timestamp": "2026-09-21T14:01:23.346Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-df60dbac-325b-42a1-a999-8df3a6a00ba2",
       "providerSessions": [],
       "startedAt": "2026-09-21T13:53:26.749Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 19987,
           "toolMs": 31372
         },
         "elapsedMs": 82725,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-21T14:01:23.346Z"
       },
       "title": "+",
       "usageSchemaVersion": 1,
