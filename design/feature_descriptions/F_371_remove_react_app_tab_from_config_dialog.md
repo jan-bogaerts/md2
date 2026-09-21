@@ -9,4 +9,6 @@ affects:
 agents:
 policy:
 ---
+The react tab of the config dialog needs to be removed:
 
+*
