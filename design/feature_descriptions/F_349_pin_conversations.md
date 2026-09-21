@@ -46,6 +46,8 @@ changedFiles:
   - app/src/components/actions/run/trigger/card_run_button.test.tsx
   - app/src/components/agents/agent_chat_fab.test.tsx
   - app/src/components/card_view/card_worktree_indicator.grouped.test.tsx
+  - app/src/components/config/config_page.test.tsx
+  - app/src/components/config/config_page.tsx
   - app/src/components/hooks/use_conversation_pinned.ts
   - app/src/components/hooks/use_project_config.test.ts
   - app/src/components/shell/pinned_conversation_details_row.tsx
@@ -74,6 +76,8 @@ changedFiles:
   - app/src/services/data/data_service.ts
   - app/src/services/data/remote_control_storage_service.node.test.ts
   - app/src/services/data/remote_control_storage_service.ts
+  - app/src/services/project/project_loading.ts
+  - app/src/services/project/project_read_only_guards.service.test.ts
   - app/src/services/release_operations.service.test.ts
   - app/src/services/search/search_regexp_agent.node.test.ts
   - app/src/services/stats/project_stats_schema.node.test.ts
