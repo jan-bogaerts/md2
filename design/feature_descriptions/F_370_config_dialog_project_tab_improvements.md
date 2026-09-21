@@ -9,6 +9,9 @@ affects:
 agents:
   - design/activity/card__1e7b5718-e065-479d-9d50-be0ff38d738f.json
 policy:
+changedFiles:
+  - app/src/components/color_picker_field.tsx
+  - app/src/components/config/card_type_edit_dialog.tsx
 ---
 we need to improve the layout of the project tab on the config dialog:
 
