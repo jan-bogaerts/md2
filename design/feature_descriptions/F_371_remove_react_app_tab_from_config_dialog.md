@@ -3,7 +3,7 @@ author:
 id: F_371
 internalId: be40e266-2bca-497c-8bf8-9fb7992ca89a
 title: remove react app tab from config dialog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - app/src/services/config/config_persistence.service.test.ts
+  - tmp_f371_config_page.py
   - tmp_f371_tests.py
 ---
 The react tab of the config dialog needs to be removed:
