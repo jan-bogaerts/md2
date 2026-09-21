@@ -508,6 +508,14 @@
           "role": "assistant",
           "sequence": 38,
           "timestamp": "2026-09-21T17:34:45.743Z"
+        },
+        {
+          "content": "Separate menu items is ok",
+          "id": "agent-turn-cc308b7b-994f-4da6-b08d-cf9a4c38329a-user-38",
+          "kind": "message",
+          "role": "user",
+          "sequence": 39,
+          "timestamp": "2026-09-21T17:35:40.656Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -522,14 +530,14 @@
         }
       ],
       "startedAt": "2026-09-21T17:28:03.876Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 57225,
           "toolMs": 478
         },
         "elapsedMs": 170314,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-21T17:35:40.656Z"
       },
       "title": "complete",
       "usage": {
