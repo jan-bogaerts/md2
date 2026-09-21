@@ -21,6 +21,10 @@
       "cardInternalId": "be40e266-2bca-497c-8bf8-9fb7992ca89a",
       "cardPath": "design/feature_descriptions/F_371_remove_react_app_tab_from_config_dialog.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 97764
+      },
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_371_remove_react_app_tab_from_config_dialog.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\nDo not stage or commit changes. You have no need for get at this time.",
@@ -410,10 +414,11 @@
           "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-31",
           "kind": "event",
           "label": "AskUserQuestion",
+          "output": "The user answered: \"The three moved entries (`react.deleteBranchAfterIntegration`, `react.deleteBranchesAfterRelease`, `react.autoCommitDelayMs`) are currently `source: 'react'`, stored in localStorage and shared by every project. Moving them to the project tab's Git group — does the storage move too?\"=\"Become real project config\", \"`react.deleteBranchAfterIntegration` and `react.deleteBranchesAfterRelease` are today invisible in the config UI (`editable: false`); they only remember the checkbox state in the worktree-integration and complete-release dialogs. After the move they become visible fields in the Git group. Keep the dialog checkboxes?\"=\"Keep, still write back (Recommended)\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
           "providerItemId": "toolu_01WVHgXpfDvUZvTgGKY6ycjw",
           "sequence": 31,
-          "status": "inProgress",
-          "timestamp": "2026-09-21T14:34:35.310Z",
+          "status": "completed",
+          "timestamp": "2026-09-21T15:44:05.907Z",
           "type": "tool.AskUserQuestion"
         },
         {
@@ -467,6 +472,368 @@
           "role": "user",
           "sequence": 33,
           "timestamp": "2026-09-21T15:44:05.887Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-34",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGqnjsUKyu4QXGEA6Vny:thinking:0",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T15:44:08.631Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNeed the project-config write path before I spec dialog write-back.",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 35,
+          "timestamp": "2026-09-21T15:44:09.098Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"saveProjectConfig\\|applyProjectConfig\\|projectLoaded\\|ReactConfigKey\\|replaceProjectConfig\\|setProjectValue\\|hasProjectConfig\" -B3 -A18 app/src/services/config/config_service.ts | sed -n '1,170p'",
+          "content": "48-}\n49-\n50-interface ProjectConfigPersistence {\n51:    saveProjectConfig(config: ProjectConfig): Promise<void>\n52-}\n53-\n54-interface DeferredSave {\n55-    promise: Promise<void>\n56-    release(): void\n57-}\n58-\n59-function createDeferredSave(): DeferredSave {\n60-    let release: () => void = () => undefined\n61-    const promise = new Promise<void>((resolve) => {\n62-        release = resolve\n63-    })\n64-\n65-    return { promise, release }\n66-}\n67-\n68:type ReactConfigKey = Extract<ConfigKey, `react.${string}`>\n69-\n70-function requireString(value: unknown, fieldName: string) {\n71-    if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing config field: ${fieldName}`)\n72-\n73-    return value\n74-}\n75-\n76-function requireNumber(value: unknown, fieldName: string) {\n77-    if (typeof value !== 'number' || Number.isNaN(value)) throw new Error(`Missing config field: ${fieldName}`)\n78-\n79-    return value\n80-}\n81-\n82-function requireBoolean(value: unknown, fieldName: string) {\n83-    if (typeof value !== 'boolean') throw new Error(`Missing config field: ${fieldName}`)\n84-\n85-    return value\n86-}\n--\n332-    private initialized: boolean\n333-    private projectConfigPersistence: ProjectConfigPersistence | null = null\n334-    private projectConfigSaveTail: Promise<void> = Promise.resolve()\n335:    private projectLoaded: boolean\n336-    private values: ConfigValues\n337-\n338-    constructor() {\n339-        super()\n340-        this.desktopAvailable = false\n341-        this.draftValues = null\n342-        this.initialized = false\n343:        this.projectLoaded = false\n344-        this.values = createDefaultValues()\n345-        register('configService', this)\n346-    }\n347-\n348-    init(dependencies: ConfigServiceInitDependencies = {}) {\n349-        let nextValues = createDefaultValues()\n350-        const { desktopConfig } = dependencies\n351-        this.desktopAvailable = !!desktopConfig\n352-        this.projectConfigPersistence = null\n353-        this.projectConfigSaveTail = Promise.resolve()\n354:        this.projectLoaded = false\n355-        this.draftValues = null\n356-\n357-        nextValues = mergeStoredReactValues(nextValues, mergeValue)\n358-\n359-        nextValues = replaceDesktopValues(nextValues, desktopConfig ?? null)\n360-\n361-        this.initialized = true\n362-        this.values = nextValues\n363-        this.dispatchChanged()\n364-    }\n365-\n366-    getEntries(): ConfigEntry[] {\n367-        this.requireInitialized()\n368-\n369-        return CONFIG_ENTRIES.filter((entry) => {\n370-            if (entry.source === 'desktop') return true\n371:            if (entry.source === 'project') return this.projectLoaded\n372-\n373-            return true\n374-        })\n375-    }\n376-\n377-    get<K extends ConfigKey>(key: K): ConfigValueTypes[K] {\n378-        this.requireInitialized()\n379-\n380-        return this.values[key]\n381-    }\n382-\n383-    set<K extends ConfigKey>(key: K, value: ConfigValueTypes[K]) {\n384-        this.requireInitialized()\n385-        this.values = mergeValue(this.values, key, value)\n386-        this.dispatchChanged()\n387-    }\n388-\n389-    connectProjectConfigPersistence(projectConfigPersistence: ProjectConfigPersistence) {\n--\n395-    }\n396-\n397-    /** Serializes current canonical project config through its active storage boundary. */\n398:    async saveProjectConfig() {\n399-        return this.withProjectConfigSave(async () => {\n400:            await this.requireProjectConfigPersistence().saveProjectConfig(this.getProjectConfig())\n401-        })\n402-    }\n403-\n404-    /** Persists one pin mutation against latest canonical config before publishing it. */\n405-    async setConversationPinned(locator: PinnedConversationLocator, pinned: boolean) {\n406-        return this.withProjectConfigSave(async () => {\n407-            const current = this.getProjectConfig().pinnedConversations\n408-            const pinnedConversations = pinned\n409-                ? [...current.filter(({ conversationId }) => conversationId !== locator.conversationId), locator]\n410-                : current.filter(({ conversationId }) => conversationId !== locator.conversationId)\n411-            const validated = validatePinnedConversations(pinnedConversations)\n412-            const nextValues = mergeValue(this.values, 'project.pinnedConversations', validated)\n413:            await this.requireProjectConfigPersistence().saveProjectConfig(readProjectConfig(nextValues))\n414-            this.values = mergeValue(this.values, 'project.pinnedConversations', validated)\n415-            if (this.draftValues) {\n416-                this.draftValues = mergeValue(this.draftValues, 'project.pinnedConversations', validated)\n417-            }\n418-            this.dispatchChanged()\n419-\n420-            return validated\n421-        })\n422-    }\n423-\n424:    setReactPreference<K extends ReactConfigKey>(key: K, value: ConfigValueTypes[K]) {\n425-        this.requireInitialized()\n426-        this.values = mergeValue(this.values, key, value)\n427-        writeStoredReactValues(this.values)\n428-        this.dispatchChanged()\n429-    }\n430-\n431-    clear() {\n432-        this.values = createDefaultValues()\n433-        this.draftValues = null\n434-        this.desktopAvailable = false\n435:        this.projectLoaded = false\n436-        this.initialized = false\n437-        this.dispatchChanged()\n438-    }\n439-\n440-    replaceDesktopConfig(desktopConfig: Partial<DesktopConfigValues>) {\n441-        this.requireInitialized()\n442-        this.values = replaceDesktopValues(this.values, desktopConfig)\n443-        if (this.draftValues) this.draftValues = replaceDesktopValues(this.draftValues, desktopConfig)\n444-        this.desktopAvailable = true\n445-        this.dispatchChanged()\n446-    }\n447-\n448-    clearDesktopConfig() {\n449-        this.requireInitialized()\n450-        this.values = replaceDesktopValues(this.values, null)\n451-        if (this.draftValues) this.draftValues = replaceDesktopValues(this.draftValues, null)\n452-        this.desktopAvailable = false\n453-        this.dispatchChanged()\n--\n500-                nextValues['project.pinnedConversations'],\n501-            )\n502-        }\n503:        this.projectLoaded = true\n504-        this.dispatchChanged()\n505-    }\n506-\n507-    getProjectConfig(): ProjectConfig {\n508-        this.requireInitialized()\n509-\n510-        return readProjectConfig(this.values)",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-36",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"saveProjectConfig\\|applyProjectConfig\\|projectLoaded\\|ReactConfigKey\\|replaceProjectConfig\\|setProjectValue\\|hasProjectConfig\" -B3 -A18 app/src/services/config/config_service.ts | sed -n '1,170p'",
+          "providerItemId": "toolu_01BVpFXvNmcgZcnaQDeTno4g",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:44:11.415Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-37",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGqo8RYJRpaXVMDk35ZP:thinking:0",
+          "sequence": 37,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T15:44:13.647Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"readProjectConfig\" -A45 app/src/services/config/config_service.ts | head -70 && echo \"=====TYPE=====\" && grep -n \"interface ProjectConfig\" -A30 app/src/data/data_types.ts",
+          "content": "272:function readProjectConfig(values: ConfigValues): ProjectConfig {\n273-    return {\n274-        actionsFolder: values['project.actionsFolder'],\n275-        archivedFolder: values['project.archivedFolder'],\n276-        backgroundShade: values['project.backgroundShade'],\n277-        cardSeparator: values['project.cardSeparator'],\n278-        cardTypes: values['project.cardTypes'],\n279-        diffCommand: values['project.diffCommand'],\n280-        diagramFooter: values['project.diagramFooter'],\n281-        diagramsFolder: values['project.diagramsFolder'],\n282-        pinnedConversations: values['project.pinnedConversations'],\n283-        projectFolder: values['project.projectFolder'],\n284-        pushMode: values['project.pushMode'],\n285-        releasesFolder: values['project.releasesFolder'],\n286-        states: values['project.states'],\n287-        workingFolder: values['project.workingFolder'],\n288-    }\n289-}\n290-\n291-function readDesktopConfig(values: ConfigValues): DesktopConfigValues {\n292-    return {\n293-        agentSelection: values['desktop.agentSelection'],\n294-        agentProfiles: values['desktop.agentProfiles'],\n295-        codexSearchEnabled: values['desktop.codexSearchEnabled'],\n296-        editorCommand: values['desktop.editorCommand'],\n297-        mergeConflictResolverCommand: values['desktop.mergeConflictResolverCommand'],\n298-        remoteControlPort: values['desktop.remoteControlPort'],\n299-    }\n300-}\n301-\n302-function isConfigValueEqual(first: ConfigValue, second: ConfigValue) {\n303-    if (Object.is(first, second)) return true\n304-\n305-    return JSON.stringify(first) === JSON.stringify(second)\n306-}\n307-\n308-function replaceDesktopValues(values: ConfigValues, desktopConfig: Partial<DesktopConfigValues> | null) {\n309-    const defaults = createDefaultValues()\n310-    let nextValues = values\n311-    for (const key of DESKTOP_KEYS) nextValues = { ...nextValues, [key]: defaults[key] }\n312-\n313-    if (!desktopConfig) return nextValues\n314-    if (desktopConfig.agentSelection !== undefined) {\n315-        nextValues = mergeValue(nextValues, 'desktop.agentSelection', desktopConfig.agentSelection)\n316-    }\n317-    if (desktopConfig.agentProfiles !== undefined) nextValues = mergeValue(nextValues, 'desktop.agentProfiles', desktopConfig.agentProfiles)\n--\n413:            await this.requireProjectConfigPersistence().saveProjectConfig(readProjectConfig(nextValues))\n414-            this.values = mergeValue(this.values, 'project.pinnedConversations', validated)\n415-            if (this.draftValues) {\n416-                this.draftValues = mergeValue(this.draftValues, 'project.pinnedConversations', validated)\n417-            }\n418-            this.dispatchChanged()\n419-\n420-            return validated\n421-        })\n422-    }\n423-\n424-    setReactPreference<K extends ReactConfigKey>(key: K, value: ConfigValueTypes[K]) {\n425-        this.requireInitialized()\n426-        this.values = mergeValue(this.values, key, value)\n427-        writeStoredReactValues(this.values)\n428-        this.dispatchChanged()\n429-    }\n430-\n431-    clear() {\n432-        this.values = createDefaultValues()\n433-        this.draftValues = null\n434-        this.desktopAvailable = false\n435-        this.projectLoaded = false\n=====TYPE=====\n55:export interface ProjectConfig {\n56-    actionsFolder: string\n57-    archivedFolder: string\n58-    backgroundShade: ProjectBackgroundShade\n59-    cardSeparator: CardSeparator\n60-    cardTypes: CardTypeConfig[]\n61-    diffCommand: string\n62-    diagramFooter: string\n63-    diagramsFolder: string\n64-    pinnedConversations: PinnedConversationLocator[]\n65-    projectFolder: string\n66-    pushMode: PushMode\n67-    releasesFolder: string\n68-    states: StateConfig[]\n69-    workingFolder: string\n70-}\n71-\n72-/** Stable identity and activity ownership needed to resolve one pinned conversation without storing a path. */\n73-export interface PinnedConversationLocator {\n74-    cardInternalId?: string\n75-    contextKind: ActionContextKind\n76-    conversationId: string\n77-}\n78-\n79-/** How a file's `content` is encoded for the storage write path. Binary assets use base64. */\n80-export type FileEncoding = 'utf-8' | 'base64'\n81-\n82-export interface MarkdownFile {\n83-    content: string\n84-    encoding?: FileEncoding\n85-    path: string",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-38",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"readProjectConfig\" -A45 app/src/services/config/config_service.ts | head -70 && echo \"=====TYPE=====\" && grep -n \"interface ProjectConfig\" -A30 app/src/data/data_types.ts",
+          "providerItemId": "toolu_01TECrB5hpNiCfabLw5Qg2Rf",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:44:16.132Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-39",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGqoUeTiL6WAAsnHzWDt:thinking:0",
+          "sequence": 39,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T15:44:20.255Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '455,522p' app/src/services/config/config_service.ts && echo \"=====LOADER=====\" && grep -rn \"cardSeparator\" --include=*.ts app/src/services/data app/src/services/project | grep -i \"config\" | head -20",
+          "content": "    loadProjectConfig(projectConfig: Partial<ProjectConfig> | null) {\n        this.requireInitialized()\n        let nextValues = this.values\n        for (const key of PROJECT_KEYS) {\n            nextValues = { ...nextValues, [key]: requireConfigEntry(key).defaultValue }\n        }\n\n        if (projectConfig && projectConfig.cardSeparator === undefined) {\n            nextValues = mergeValue(nextValues, 'project.cardSeparator', LEGACY_CARD_SEPARATOR)\n        }\n\n        if (projectConfig?.workingFolder !== undefined) nextValues = mergeValue(nextValues, 'project.workingFolder', projectConfig.workingFolder)\n        if (projectConfig?.actionsFolder !== undefined) nextValues = mergeValue(nextValues, 'project.actionsFolder', projectConfig.actionsFolder)\n        if (projectConfig?.archivedFolder !== undefined) {\n            nextValues = mergeValue(nextValues, 'project.archivedFolder', projectConfig.archivedFolder)\n        }\n        if (projectConfig?.backgroundShade !== undefined) {\n            nextValues = mergeValue(nextValues, 'project.backgroundShade', projectConfig.backgroundShade)\n        }\n        if (projectConfig?.projectFolder !== undefined) nextValues = mergeValue(nextValues, 'project.projectFolder', projectConfig.projectFolder)\n        if (projectConfig?.diffCommand !== undefined) nextValues = mergeValue(nextValues, 'project.diffCommand', projectConfig.diffCommand)\n        if (projectConfig?.diagramFooter !== undefined) nextValues = mergeValue(nextValues, 'project.diagramFooter', projectConfig.diagramFooter)\n        if (projectConfig?.diagramsFolder !== undefined) {\n            nextValues = mergeValue(nextValues, 'project.diagramsFolder', projectConfig.diagramsFolder)\n        }\n        if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)\n        if (projectConfig?.releasesFolder !== undefined) {\n            nextValues = mergeValue(nextValues, 'project.releasesFolder', projectConfig.releasesFolder)\n        }\n        if (projectConfig?.cardSeparator !== undefined) {\n            nextValues = mergeValue(nextValues, 'project.cardSeparator', projectConfig.cardSeparator)\n        }\n        if (projectConfig?.cardTypes !== undefined) nextValues = mergeValue(nextValues, 'project.cardTypes', projectConfig.cardTypes)\n        if (projectConfig?.states !== undefined) nextValues = mergeValue(nextValues, 'project.states', projectConfig.states)\n        if (projectConfig?.pinnedConversations !== undefined) {\n            nextValues = mergeValue(nextValues, 'project.pinnedConversations', projectConfig.pinnedConversations)\n        }\n\n        validateProjectFolderPaths(nextValues)\n        this.values = nextValues\n        if (this.draftValues) {\n            this.draftValues = mergeValue(\n                this.draftValues,\n                'project.pinnedConversations',\n                nextValues['project.pinnedConversations'],\n            )\n        }\n        this.projectLoaded = true\n        this.dispatchChanged()\n    }\n\n    getProjectConfig(): ProjectConfig {\n        this.requireInitialized()\n\n        return readProjectConfig(this.values)\n    }\n\n    getDesktopValues(): DesktopConfigValues {\n        this.requireInitialized()\n\n        return readDesktopConfig(this.values)\n    }\n\n    getDraftDesktopValues(): DesktopConfigValues {\n        return readDesktopConfig(this.requireDraft())\n    }\n\n=====LOADER=====\napp/src/services/data/card_operations.test.ts:257:        const storage = createStorage({loadProjectConfig: vi.fn(async () => ({ cardSeparator: '_' as const, projectFolder: '', workingFolder: 'design' }))});\napp/src/services/data/card_operations.test.ts:1352:            loadProjectConfig: vi.fn(async () => ({ cardSeparator: '_' as const, projectFolder: '', workingFolder: 'design' })),\napp/src/services/data/card_operations.ts:100:            config.cardSeparator,\napp/src/services/data/card_operations.ts:148:                config.cardSeparator,\napp/src/services/data/card_rename_operations.ts:80:        const id = buildCardId(cardType.idPrefix, number, config.cardSeparator)\napp/src/services/data/card_rename_operations.ts:81:        const targetPath = cardPathForId(path, id, card.header.title, config.cardSeparator)\napp/src/services/data/data_service.ts:212:            cardSeparatorProvider: () => this.requireDependencies().config.cardSeparator,\napp/src/services/project/project_loading.test.ts:660:            loadProjectConfig: vi.fn(async () => ({ backgroundShade: 'blue' as const, cardSeparator: '-' as const, projectFolder: '', pushMode: 'auto' as const, workingFolder: 'design' })),\napp/src/services/project/project_loading.ts:512:        const plan = planExternalCardImports(nextFiles, workingFolder, config.cardSeparator, config.cardTypes, config.states[0].state)",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-40",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '455,522p' app/src/services/config/config_service.ts && echo \"=====LOADER=====\" && grep -rn \"cardSeparator\" --include=*.ts app/src/services/data app/src/services/project | grep -i \"config\" | head -20",
+          "providerItemId": "toolu_014f6wSVrRT11ePdnqitDiYX",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:44:22.843Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-41",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGqoyQadqymhopgekSXN:thinking:0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T15:44:31.710Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"setReactPreference\\|REACT_CONFIG_STORAGE_KEY\\|mergeStoredReactValues\\|writeStoredReactValues\\|readStoredReactValues\\|LOCAL_STORAGE_KEYS\\|'react'\" --include=*.ts --include=*.tsx app/src | grep -v \"\\.test\\.\" && echo \"=====AUTOCOMMIT=====\" && sed -n '205,235p' app/src/services/data/data_service.ts",
+          "content": "<persisted-output>\nOutput too large (46.7KB). Full output saved to: C:\\Users\\janbo\\.claude\\projects\\C--Users-janbo-Documents-dev-md2\\f733fddd-06b9-426a-80ef-461c39821c16\\tool-results\\boohi19pd.txt\n\nPreview (first 2KB):\napp/src/app/app_navigation.ts:1:import { useEffect, useState } from 'react'\napp/src/app/use_app_bootstrap.ts:1:import { useSyncExternalStore } from 'react'\napp/src/app.tsx:1:import { useEffect, useRef } from 'react'\napp/src/auth/use_github_auth.ts:1:﻿import { useEffect, useState } from 'react'\napp/src/components/actions/agent/action_agent_approval.tsx:2:import { useState } from 'react'\napp/src/components/actions/agent/action_agent_approval.tsx:3:import type { MouseEvent } from 'react'\napp/src/components/actions/agent/action_agent_capability_fields.tsx:2:import type { ChangeEvent } from 'react'\napp/src/components/actions/agent/action_agent_capability_fields.tsx:3:import { useEffect } from 'react'\napp/src/components/actions/agent/action_agent_preset_name.tsx:2:import type { ChangeEvent, KeyboardEvent } from 'react'\napp/src/components/actions/agent/action_agent_preset_name_owner.tsx:1:import { useSyncExternalStore, type ChangeEvent } from 'react'\napp/src/components/actions/agent/action_agent_prompt.tsx:5:} from 'react'\napp/src/components/actions/agent/action_agent_question.tsx:2:import { useState } from 'react'\napp/src/components/actions/agent/action_agent_question.tsx:3:import type { ChangeEvent, MouseEvent } from 'react'\napp/src/components/actions/agent/action_agent_selectors.tsx:12:import { useState, type KeyboardEvent, type MouseEvent } from 'react'\napp/src/components/actions/agent/action_prompt_owner.tsx:1:import { useCallback, useEffect, useSyncExternalStore } from 'react'\napp/src/components/actions/conversation/action_conversation_chat.tsx:2:import { useEffect, useMemo, useSyncExternalStore } from 'react'\napp/src/components/actions/conversation/action_conversation_event_row.tsx:2:import { memo } from 'react'\napp/src/components/actions/conversation/action_conversation_evolving_groups.tsx:1:import { memo, useSyncExternalStore } from 'react'\napp/src/components/actions/conversation/action_conversation_history.tsx:1:import { memo, useSyncExternalStore } from 'react'\n...\n</persisted-output>",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-42",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"setReactPreference\\|REACT_CONFIG_STORAGE_KEY\\|mergeStoredReactValues\\|writeStoredReactValues\\|readStoredReactValues\\|LOCAL_STORAGE_KEYS\\|'react'\" --include=*.ts --include=*.tsx app/src | grep -v \"\\.test\\.\" && echo \"=====AUTOCOMMIT=====\" && sed -n '205,235p' app/src/services/data/data_service.ts",
+          "providerItemId": "toolu_018FwHLVeF9B3bg2xrzTMNZm",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:44:34.720Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"setReactPreference\\|REACT_CONFIG_STORAGE_KEY\\|mergeStoredReactValues\\|writeStoredReactValues\\|readStoredReactValues\\|LOCAL_STORAGE_KEYS\\|source: 'react'\\|source === 'react'\" --include=*.ts --include=*.tsx app/src | grep -v \"\\.test\\.\" && echo \"=====AUTOCOMMIT=====\" && sed -n '205,235p' app/src/services/data/data_service.ts",
+          "content": "app/src/components/shell/project/use_project_toolbar_menu_actions.ts:391:        configService.setReactPreference('react.deleteBranchesAfterRelease', selected)\napp/src/components/shell/project/use_project_toolbar_menu_actions.ts:395:        configService.setReactPreference('react.includeProjectActivityInRelease', included)\napp/src/components/worktree_selector.tsx:286:        configService.setReactPreference('react.deleteBranchAfterIntegration', deleteBranch)\napp/src/services/config/config_entries.ts:123:        source: 'react',\napp/src/services/config/config_entries.ts:133:        source: 'react',\napp/src/services/config/config_entries.ts:143:        source: 'react',\napp/src/services/config/config_entries.ts:153:        source: 'react',\napp/src/services/config/config_entries.ts:166:        source: 'react',\napp/src/services/config/config_entries.ts:416:export const LOCAL_STORAGE_KEYS: ConfigKey[] = CONFIG_ENTRIES.filter(\napp/src/services/config/config_entries.ts:417:    (entry) => entry.source === 'react',\napp/src/services/config/config_persistence.ts:2:    LOCAL_STORAGE_KEYS,\napp/src/services/config/config_persistence.ts:11:export const REACT_CONFIG_STORAGE_KEY = 'md2.reactConfig'\napp/src/services/config/config_persistence.ts:15:export function readStoredReactValues(): Partial<Record<ConfigKey, unknown>> {\napp/src/services/config/config_persistence.ts:16:    const raw = applicationStorage.getItem(REACT_CONFIG_STORAGE_KEY)\napp/src/services/config/config_persistence.ts:28:export function writeStoredReactValues(values: ConfigValues) {\napp/src/services/config/config_persistence.ts:30:    for (const key of LOCAL_STORAGE_KEYS) stored[key] = values[key]\napp/src/services/config/config_persistence.ts:32:    applicationStorage.setItem(REACT_CONFIG_STORAGE_KEY, JSON.stringify(stored))\napp/src/services/config/config_persistence.ts:35:export function mergeStoredReactValues(values: ConfigValues, mergeValue: MergeConfigValue): ConfigValues {\napp/src/services/config/config_persistence.ts:37:    const stored = readStoredReactValues()\napp/src/services/config/config_persistence.ts:39:    for (const key of LOCAL_STORAGE_KEYS) {\napp/src/services/config/config_persistence.ts:54:    const stored = readStoredReactValues()['react.showStartupSplash']\napp/src/services/config/config_service.ts:26:    mergeStoredReactValues,\napp/src/services/config/config_service.ts:27:    writeStoredReactValues,\napp/src/services/config/config_service.ts:44:export { REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_persistence'\napp/src/services/config/config_service.ts:357:        nextValues = mergeStoredReactValues(nextValues, mergeValue)\napp/src/services/config/config_service.ts:424:    setReactPreference<K extends ReactConfigKey>(key: K, value: ConfigValueTypes[K]) {\napp/src/services/config/config_service.ts:427:        writeStoredReactValues(this.values)\napp/src/services/config/config_service.ts:553:        writeStoredReactValues(this.values)\n=====AUTOCOMMIT=====\n        this.fullProjectLoaded = false\n        this.remarkableBridge = dependencies.remarkableBridge ?? null\n        this.storage = this.trackStorage(dependencies.storage)\n        configService.connectProjectConfigPersistence({ saveProjectConfig: (config) => this.projectLoading.saveProjectConfig(config) })\n        this.initializeStorageServices()\n        worktreeService.init({\n            assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),\n            cardSeparatorProvider: () => this.requireDependencies().config.cardSeparator,\n            clearCardBranch: (path) => this.cards.clearCardBranch(path),\n            flushPendingChanges: flushAggregatePendingChanges,\n            projectFolderProvider: () => this.requireDependencies().config.projectFolder,\n            projectProvider: () => this.projectState.project,\n            snapshotProvider: () => this.projectState.snapshot,\n            storageProvider: () => this.storage,\n            unassignCardWorktree: (path) => this.cards.updateCardWorktree(path, null),\n        })\n        this.agents.startScheduledRunWatch()\n        this.conversationPins.start()\n        const delayMs = configService.get('react.autoCommitDelayMs')\n        this.commitBatcher = new CommitBatcher(this.cards, delayMs)\n        this.commitBatcher.addEventListener(\n            COMMIT_BATCHER_FLUSH_FAILED_EVENT,\n            (event) => this.reportCommitFlushFailure((event as CustomEvent<unknown>).detail),\n        )\n        this.commitBatcher.addEventListener(\n            COMMIT_BATCHER_PENDING_CHANGED_EVENT,\n            () => this.dispatchPersistenceChanged(),\n        )\n        this.dispatchChanged()\n        this.dispatchPersistenceChanged()\n    }",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-43",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"setReactPreference\\|REACT_CONFIG_STORAGE_KEY\\|mergeStoredReactValues\\|writeStoredReactValues\\|readStoredReactValues\\|LOCAL_STORAGE_KEYS\\|source: 'react'\\|source === 'react'\" --include=*.ts --include=*.tsx app/src | grep -v \"\\.test\\.\" && echo \"=====AUTOCOMMIT=====\" && sed -n '205,235p' app/src/services/data/data_service.ts",
+          "providerItemId": "toolu_01WbGv2zMzuB6qGwgXahdV36",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:44:38.122Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-44",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGqq6cTYvcQEeBC2CxWS:thinking:0",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T15:44:43.640Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"delayMs\\|class CommitBatcher\" app/src/services/data/commit_batcher.ts | head -20 && echo \"=====VALIDATE=====\" && grep -n \"function validateValue\" -A40 app/src/services/config/config_service.ts",
+          "content": "grep: app/src/services/data/commit_batcher.ts: No such file or directory\n=====VALIDATE=====\n207:function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValueTypes[K] {\n208-    const entry = requireConfigEntry(key)\n209-\n210-    if (entry.type === 'boolean') return requireBoolean(value, entry.key) as ConfigValueTypes[K]\n211-    if (entry.type === 'number') {\n212-        const numberValue = requireNumber(value, entry.key)\n213-        if (entry.integer && !Number.isInteger(numberValue)) throw new Error(`Config value ${entry.key} must be an integer`)\n214-        if (entry.min !== undefined && numberValue < entry.min) throw new Error(`Config value ${entry.key} is below ${entry.min}`)\n215-        if (entry.max !== undefined && numberValue > entry.max) throw new Error(`Config value ${entry.key} is above ${entry.max}`)\n216-\n217-        return numberValue as ConfigValueTypes[K]\n218-    }\n219-    if (entry.type === 'json' && key === 'project.cardTypes') return validateCardTypes(value) as ConfigValueTypes[K]\n220-    if (entry.type === 'json' && key === 'project.states') return validateStates(value) as ConfigValueTypes[K]\n221-    if (entry.type === 'json' && key === 'project.pinnedConversations') {\n222-        return validatePinnedConversations(value) as ConfigValueTypes[K]\n223-    }\n224-    if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value) as ConfigValueTypes[K]\n225-    if (entry.type === 'json' && key === 'desktop.agentSelection') {\n226-        return validateAgentSelectionState(value, entry.key) as ConfigValueTypes[K]\n227-    }\n228-    if (key === 'project.projectFolder') {\n229-        if (typeof value !== 'string') throw new Error(`Missing config field: ${entry.key}`)\n230-\n231-        return normalizeConfigPath(value, entry.key, true) as ConfigValueTypes[K]\n232-    }\n233-    if (\n234-        key === 'project.workingFolder'\n235-        || key === 'project.actionsFolder'\n236-        || key === 'project.releasesFolder'\n237-        || key === 'project.archivedFolder'\n238-        || key === 'project.diagramsFolder'\n239-    ) {\n240-        return normalizeConfigPath(requireString(value, entry.key), entry.key) as ConfigValueTypes[K]\n241-    }\n242-    if (key === 'project.diagramFooter') {\n243-        const diagramFooter = requireString(value, entry.key)\n244-        if (!diagramFooter.includes('{{diagram-file}}')) {\n245-            throw new Error('Config field project.diagramFooter requires {{diagram-file}} placeholder')\n246-        }\n247-",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-45",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"delayMs\\|class CommitBatcher\" app/src/services/data/commit_batcher.ts | head -20 && echo \"=====VALIDATE=====\" && grep -n \"function validateValue\" -A40 app/src/services/config/config_service.ts",
+          "providerItemId": "toolu_019bGKXmZxbY5UQDPqUvDHtx",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:44:45.720Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rln \"CommitBatcher\" app/src | head && grep -rn \"constructor\\|delay\" app/src/services/data/*commit*batch* 2>/dev/null | head -20",
+          "content": "app/src/data/commit_batcher.test.ts\napp/src/data/commit_batcher.ts\napp/src/services/data/data_service.ts\napp/src/services/data/data_service_context.ts",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-46",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rln \"CommitBatcher\" app/src | head && grep -rn \"constructor\\|delay\" app/src/services/data/*commit*batch* 2>/dev/null | head -20",
+          "providerItemId": "toolu_01TQ2bmAMtY4sixKVxLt4N77",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:44:48.636Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"delay\\|constructor\" app/src/data/commit_batcher.ts | head -20",
+          "content": "112:    private readonly delayMs\n117:    constructor(cardOperations: CommitBatcherOperations, delayMs = AUTO_COMMIT_DELAY_MS) {\n122:        this.delayMs = delayMs\n162:        this.scheduledDelayId = window.setTimeout(this.createFlushCallback(), this.delayMs)",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-47",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -n \"delay\\|constructor\" app/src/data/commit_batcher.ts | head -20",
+          "providerItemId": "toolu_01K4QxxhaKMYFh6SJ7kQYjcK",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:44:50.571Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-48",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGqr1tiihReKYkHoMdKW:thinking:0",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T15:45:07.170Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"saveProjectConfig\\|loadProjectConfig\" --include=*.ts app/src/services/project/project_loading.ts app/src/services/storage 2>/dev/null | head -20",
+          "content": "app/src/services/project/project_loading.ts:216:        await storage.saveProjectConfig(currentProject, rawConfig)\napp/src/services/project/project_loading.ts:236:            const projectConfig = await this.loadProjectConfig(project)\napp/src/services/project/project_loading.ts:284:    async saveProjectConfig(config: ProjectConfig) {\napp/src/services/project/project_loading.ts:290:        await storage.saveProjectConfig(currentProject, config)\napp/src/services/project/project_loading.ts:430:    private async loadProjectConfig(project: ProjectReference) {\napp/src/services/project/project_loading.ts:434:            const projectConfig = await storage.loadProjectConfig(project)\napp/src/services/project/project_loading.ts:435:            configService.loadProjectConfig(projectConfig)\napp/src/services/project/project_loading.ts:441:            configService.loadProjectConfig(null)\napp/src/services/project/project_loading.ts:453:            await storage.saveProjectConfig(project, configService.getProjectConfig())\napp/src/services/project/project_loading.ts:707:            void this.reloadProjectConfigFromWatch()\napp/src/services/project/project_loading.ts:864:    private async reloadProjectConfigFromWatch() {\napp/src/services/project/project_loading.ts:870:            configService.loadProjectConfig(await storage.loadProjectConfig(currentProject))",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-49",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"saveProjectConfig\\|loadProjectConfig\" --include=*.ts app/src/services/project/project_loading.ts app/src/services/storage 2>/dev/null | head -20",
+          "providerItemId": "toolu_01QH57aMvKdJ9TMmTzgWR7d5",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:45:08.595Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-50",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGqsM9cXDd6Zrj7cC8GG:thinking:0",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T15:45:11.009Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"saveProjectConfig\" -A12 --include=*.ts app/src/services/storage/*.ts | head -50",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-51",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"saveProjectConfig\" -A12 --include=*.ts app/src/services/storage/*.ts | head -50",
+          "providerItemId": "toolu_01PMr3rcmu5Q5JEsgAy8oy51",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:45:12.115Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rln \"saveProjectConfig\" --include=*.ts app/src | grep -v test",
+          "content": "app/src/data/data_types.ts\napp/src/data/electron_data_bridge.ts\napp/src/services/config/config_service.ts\napp/src/services/data/data_service.ts\napp/src/services/data/local_git_storage_service.ts\napp/src/services/data/remote_control_storage_service.ts\napp/src/services/github/github_project_config_storage.ts\napp/src/services/github/github_storage_service.ts\napp/src/services/project/project_loading.ts\napp/src/services/project/project_session_service.ts\napp/src/services/project/save_state_service.ts",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-52",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rln \"saveProjectConfig\" --include=*.ts app/src | grep -v test",
+          "providerItemId": "toolu_01ANotC3xGwXfuFpwy3MhNp3",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:45:13.915Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"saveProjectConfig\\|loadProjectConfig\" -A14 app/src/services/github/github_project_config_storage.ts | head -60",
+          "content": "18:    async loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null> {\n19-        this.context.requireGithubProject(project)\n20-        const file = await this.gitData.readOptionalFile(project, PROJECT_CONFIG_PATH)\n21-        if (!file) return null\n22-\n23-        return JSON.parse(file.content) as Partial<ProjectConfig>\n24-    }\n25-\n26:    async saveProjectConfig(project: ProjectReference, config: ProjectConfig) {\n27-        this.context.requireGithubProject(project)\n28-        const existingFile = await this.gitData.readOptionalFile(project, PROJECT_CONFIG_PATH)\n29-        await this.writer.commit({\n30-            branch: project.branch,\n31-            files: [{\n32-                content: `${JSON.stringify(config, null, 2)}\\n`,\n33-                path: PROJECT_CONFIG_PATH,\n34-                sha: existingFile?.sha,\n35-            }],\n36-            message: 'Update MD² project config',\n37-        })\n38-    }\n39-}",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-53",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"saveProjectConfig\\|loadProjectConfig\" -A14 app/src/services/github/github_project_config_storage.ts | head -60",
+          "providerItemId": "toolu_01NyPvnXmjzjzgsBpbqMBq4E",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:45:16.052Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-54",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGqstwK4mZWkmxbU58gR:thinking:0",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T15:45:19.232Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nEnough context. Writing the three sections.",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 55,
+          "timestamp": "2026-09-21T15:45:19.357Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '50,70p;275,300p' app/src/components/worktree_selector.tsx",
+          "content": "export function WorktreeSelector(props: WorktreeSelectorProps) {\n    const { assignment, assignmentTarget, disabled = false, labelPrefix, primaryPath } = props\n    const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)\n    const [commitMessage, setCommitMessage] = useState('')\n    const [commitAction, setCommitAction] = useState<CommitAction>('commit')\n    const [commitDialogOpen, setCommitDialogOpen] = useState(false)\n    const [integrationDialogOpen, setIntegrationDialogOpen] = useState(false)\n    const [unassignDialogOpen, setUnassignDialogOpen] = useState(false)\n    const deleteBranchPreference = useConfigValueOrFallback('react.deleteBranchAfterIntegration', false)\n    const cardPath = assignmentTarget.kind === 'card' ? assignmentTarget.path : null\n    const assignedWorktree = assignment.worktree ?? null\n    const {\n        preparing,\n        projectDirty: hasPendingProjectChanges,\n        record: assignedRecord,\n        records: worktrees,\n    } = useWorktreeSelectorState({ assignedWorktree, cardPath })\n    const selectorDisabled = disabled || preparing\n    const state = assignmentState(assignment, worktrees)\n    const hasActiveCardWorktree = assignmentTarget.kind === 'card' && assignedWorktree !== null\n        && !state.error && !!assignedRecord?.valid\n\n        try {\n            await worktreeService.setCardWorktree(assignmentTarget.path, null)\n            setUnassignDialogOpen(false)\n        } catch (error) {\n            setUnassignDialogOpen(false)\n            dialogService.error(error, { fallbackMessage: 'Changes were integrated, but the worktree could not be unassigned' })\n        }\n    }\n    const handleIntegrationClose = () => setIntegrationDialogOpen(false)\n    const handleDeleteBranchChange = (deleteBranch: boolean) => {\n        configService.setReactPreference('react.deleteBranchAfterIntegration', deleteBranch)\n    }\n    const handleIntegration = async () => {\n        if (assignmentTarget.kind !== 'card') return\n\n        const commitBeforeIntegration = !!assignedRecord?.status.dirty\n        if (commitBeforeIntegration) {\n            if (commitMessage.trim().length === 0) return\n\n            try {\n                await worktreeService.commitCardWorktree(assignmentTarget.path, commitMessage)\n            } catch (error) {\n                dialogService.error(error, { fallbackMessage: 'Could not commit worktree changes' })\n                return\n            }",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-56",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n '50,70p;275,300p' app/src/components/worktree_selector.tsx",
+          "providerItemId": "toolu_01Mz74KXgtwawf1AHU6CLDuv",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:45:20.653Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow writing the doc.",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-turn-1-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 57,
+          "timestamp": "2026-09-21T15:45:22.179Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np = 'design/feature_descriptions/F_371_remove_react_app_tab_from_config_dialog.md'\ntext = io.open(p, encoding='utf-8').read()\ntext = text.replace('status: design', 'status: ready for implementation', 1)\naddition = u'''\n\n## Current state\n\nThe config dialog's tab list comes from `CONFIG_SECTIONS` in `app/src/services/config/config_entries.ts`, today `react` (\"React app\"), `project` and `desktop`. `getVisibleSections` in `app/src/components/config/config_page.tsx` walks that list and appends the Markdown tab right after the `react` section and the Sentry tab right after the `project` section, so the Markdown tab exists today only because a `react` section exists. `getActiveSection` falls back to the first visible section when the hash names no known section, so the React app tab is also the default tab.\n\nEvery config entry carries two independent fields: `section`, which decides the tab it renders on, and `source` (`react` | `desktop` | `project`), which decides where the value is stored. Five entries currently use `section: 'react'` and `source: 'react'`:\n\n* `react.showStartupSplash` (default `true`, editable) — read by `app/src/app.tsx` through `readStartupSplashPreference()` in `app/src/services/config/config_persistence.ts`. That helper reads localStorage directly because `App` needs the value before `configService.init` runs; `app.tsx` renders `<StartupSplash />` only while `bootstrap.phase === 'starting'` and the preference is on.\n* `react.deleteBranchAfterIntegration` (default `false`, `editable: false`) — seeds the \"delete branch\" checkbox of the worktree integration dialog in `app/src/components/worktree_selector.tsx:58`, and is written back on every toggle at `worktree_selector.tsx:286`.\n* `react.deleteBranchesAfterRelease` (default `false`, `editable: false`) — seeds `defaultSelectAll` for the branch list of `CompleteReleaseDialog`, read at `app/src/components/shell/project/use_project_toolbar_menu_actions.ts:89` and written back at line 391.\n* `react.includeProjectActivityInRelease` (default `false`, `editable: false`) — seeds the \"Include project agent activity\" checkbox of `CompleteReleaseDialog`, read at `use_project_toolbar_menu_actions.ts:90` and written back at line 395. The checkbox value travels as the third argument of `onCompleteRelease` into `projectSessionService.completeRelease` and then `releaseOperations.completeRelease` (`app/src/services/release_operations.ts:162`), where it decides whether `loadArchivedProjectActivity` runs and the project agent activity is copied into the release folder.\n* `react.autoCommitDelayMs` (default 30000, editable slider, 1000–120000 step 1000) — read once in the `DataService` constructor (`app/src/services/data/data_service.ts:223`) and passed to `new CommitBatcher(this.cards, delayMs)`. `CommitBatcher.delayMs` (`app/src/data/commit_batcher.ts:112`) is `readonly` and only consulted in `window.setTimeout(..., this.delayMs)` at line 162, so today the delay is frozen at app start.\n\n`editable: false` does not hide an entry from the React app tab: `ReactConfigSection` passes every `section === 'react'` entry to `ConfigSectionLayout`, which renders them all. The flag is only consulted by `ProjectConfigSection` when deciding which ungrouped project entries to render. So the three branch/release booleans are visible in the React app tab today, and are simultaneously the remembered state of dialog checkboxes.\n\nStorage differs per source. React-source values live in one localStorage blob under `md2.reactConfig` (`REACT_CONFIG_STORAGE_KEY`), written by `writeStoredReactValues` from `LOCAL_STORAGE_KEYS`, which is itself derived from `source === 'react'`. `configService.setReactPreference` writes one value straight to that blob outside the config dialog draft; `configService.saveDraft` writes the blob again for the dialog path. Project-source values live in the project's config JSON file: `ConfigService.loadProjectConfig` resets every key in `PROJECT_KEYS` to its default and then merges each field the file actually defined, `readProjectConfig` maps the value map onto the `ProjectConfig` interface in `app/src/data/data_types.ts`, and each storage service serializes that whole object with `JSON.stringify` (see `app/src/services/github/github_project_config_storage.ts:26`), so a field added to `ProjectConfig` round-trips without a format change. `ConfigService.saveDraft` runs `validateValue` over `PROJECT_KEYS`, which already handles `type: 'number'` with `min`/`max`. `ConfigPage.handleSaveClick` calls `configService.saveProjectConfig()` when `hasDraftChangesForSource('project')` reported a change. `setConversationPinned` is the existing precedent for writing one project config value immediately, from outside the dialog draft: it merges the value, awaits the persistence boundary, then updates `values` and, when one is open, the draft.\n\n`ProjectConfigSection` already renders named groups from the `PROJECT_CONFIG_GROUPS` constant added by F_370; the Git group currently holds `project.diffCommand` and `project.pushMode`.\n\nTests that touch this area: `app/src/App.test.tsx:107-116` (splash shown by default, skipped when the stored preference is `false`), `config_page.test.tsx` (the \"Startup splash\" switch, the `React app` region and its `#/config/react` tab href), `main_window.test.tsx:303-311`, `config_persistence.service.test.ts` and `config_service.service.test.ts` (both use `react.showStartupSplash` as their sample react-source value).\n\n## implementation details\n\nDecisions taken for this feature: the three moved values become real project config, stored per project in the project config file, so two projects can differ; there is no migration of existing `md2.reactConfig` values, each project simply starts at the entry default; and the dialog checkboxes stay where they are and keep writing the value back, so the Git group shows and edits the same remembered default.\n\n* Delete `react.showStartupSplash` from `ConfigValueTypes` and `CONFIG_ENTRIES`. Delete `readStartupSplashPreference` from `config_persistence.ts` and its re-export from `config_service.ts`. In `app.tsx`, drop `showStartupSplash` and render `<StartupSplash />` unconditionally while `bootstrap.phase === 'starting'`.\n* Rename the three moved keys to the `project` namespace, keeping their labels, descriptions, defaults and slider bounds, and set both `section: 'project'` and `source: 'project'` on each:\n  * `react.deleteBranchAfterIntegration` → `project.deleteBranchAfterIntegration`\n  * `react.deleteBranchesAfterRelease` → `project.deleteBranchesAfterRelease`\n  * `react.autoCommitDelayMs` → `project.autoCommitDelayMs`\n  Set `editable: true` on all three, since they now render as fields the user edits directly. Add the three keys to `PROJECT_KEYS`, add the three fields to the `ProjectConfig` interface in `data_types.ts`, map them in `readProjectConfig`, and add the matching `if (projectConfig?.<field> !== undefined)` merge lines in `ConfigService.loadProjectConfig`. A project config file written before this feature defines none of them, so each falls back to the entry default the reset loop already applied — that is the intended no-migration behaviour.\n* Add the three keys to the Git group in `PROJECT_CONFIG_GROUPS` (`project_config_section.tsx`), after `project.diffCommand` and `project.pushMode`, and widen the group description so it covers branch cleanup and the auto-commit delay rather than only the diff command and push mode.\n* Delete `react.includeProjectActivityInRelease` entirely and make inclusion unconditional. Remove the `includeProjectActivity` parameter from `releaseOperations.completeRelease` and `projectSessionService.completeRelease`, so `loadArchivedProjectActivity` always runs and the archived project activity is always part of the release. Remove the third argument from `onCompleteRelease`, and remove the `defaultIncludeProjectActivity` and `onIncludeProjectActivityChange` props, the `includeProjectActivity` state, the change handler and the \"Include project agent activity\" `FormControlLabel` from `CompleteReleaseDialog`. Remove `releaseIncludeProjectActivityDefault` and `setReleaseIncludeProjectActivityDefault` from `use_project_toolbar_menu_actions.ts` and the prop wiring at the dialog's call site.\n* Add `ConfigService.setProjectPreference<K extends ProjectConfigKey>(key, value)` for the two dialog write-backs, shaped like the existing `setConversationPinned`: validate the value, merge it into `values`, persist through `withProjectConfigSave` → `requireProjectConfigPersistence().saveProjectConfig(readProjectConfig(nextValues))`, then commit it to `values`, mirror it into `draftValues` when a draft is open, and dispatch `changed`. It must be a no-op that does not throw when no project is loaded, because the dialogs that call it can only be open with a project open but the type does not enforce that. Point `worktree_selector.tsx:286` and `use_project_toolbar_menu_actions.ts:391` at it with the new keys, and update their `useConfigValueOrFallback` reads at `worktree_selector.tsx:58` and `use_project_toolbar_menu_actions.ts:89` to the new keys.\n* Make the auto-commit delay follow the project. `CommitBatcher` currently freezes the delay at construction, which was harmless for a global localStorage value but wrong for a per-project one — the value is still at its default when `DataService` builds the batcher, before any project config is loaded. Replace the `delayMs` constructor argument with a `delayMsProvider: () => number` (defaulting to `() => AUTO_COMMIT_DELAY_MS`) and call it at line 162 where the timeout is scheduled, so each scheduled flush uses the currently loaded project's value. In `data_service.ts`, pass `() => configService.get('project.autoCommitDelayMs')`. An already-scheduled timeout keeps the delay it was scheduled with; only the next scheduled flush picks the new value up.\n* Remove the React app tab and the now-dead react source. Delete `app/src/components/config/react_config_section.tsx` and its import and render branch in `config_page.tsx`. Drop `{ id: 'react', label: 'React app' }` from `CONFIG_SECTIONS`. No entry uses `source: 'react'` after this feature, so also remove `'react'` from the `ConfigSource` union, delete `LOCAL_STORAGE_KEYS`, `REACT_CONFIG_STORAGE_KEY`, `readStoredReactValues`, `writeStoredReactValues` and `mergeStoredReactValues` from `config_persistence.ts`, and delete `setReactPreference`, the `ReactConfigKey` type, the `mergeStoredReactValues` call in `init` and the `writeStoredReactValues` call in `saveDraft` from `config_service.ts`. Leave whatever `md2.reactConfig` blob is already in a user's localStorage alone; nothing reads it any more.\n* Reattach the Markdown tab in `getVisibleSections`. It currently hangs off the `react` section; hang it off `project` instead, after the Sentry tab, so the visible order becomes Project, Sentry, Markdown, Desktop and the default tab (the `getActiveSection` fallback to `sections[0]`) becomes Project rather than Markdown. An old `#/config/react` link no longer matches a section and therefore lands on the Project tab through that same fallback; the stale example in `design/releases/0_0_3/F_69_config_in_dialog.md` is release history and stays as written.\n* Tests: drop the `skips the startup splash when the preference is disabled` case in `App.test.tsx` and keep the default-on case; replace the React-app-tab cases in `config_page.test.tsx` with ones asserting the tab list is Project, Sentry, Markdown, Desktop, that no \"React app\" tab or \"Startup splash\" switch exists, and that the Git group holds diff command, push mode, both branch settings and the auto-commit delay slider; update the splash-switch case in `main_window.test.tsx`; move the react-source cases in `config_persistence.service.test.ts` and `config_service.service.test.ts` onto project-source keys, and add one asserting that `setProjectPreference` persists through the project config persistence boundary and updates an open draft. Add a `complete_release_dialog` case asserting the include-activity checkbox is gone and that a release always archives the project activity. Verify with `npm run typecheck` and the config, release, worktree and app vitest suites.\n\n## acceptance criteria\n\n* The config dialog has no \"React app\" tab; its tabs are Project, Sentry, Markdown and Desktop, in that order, and Project is the tab shown when config opens without a section in the hash. Opening `#/config/react` shows the Project tab instead of an empty dialog.\n* The startup splash always shows while the last project is restored, on a fresh install and on an install whose stored preference was `false`; no config field controls it and no code reads the preference.\n* The project tab's Git group holds, in order: diff command, push mode, delete integrated card branch, delete released card branches, auto commit delay. Each is editable there, and the group description mentions branch cleanup and the auto-commit delay.\n* Those three values are stored in the project config file, not in localStorage: saving them from the config dialog writes the project config, and two projects opened in turn each show their own values.\n* A project config file written before this feature still loads, and the three new fields fall back to their defaults (delete branch after integration `false`, delete branches after release `false`, auto commit delay 30000 ms) rather than to whatever was in `md2.reactConfig`.\n* Toggling the delete-branch checkbox in the worktree integration dialog, or the select-all-branches checkbox in the complete-release dialog, still remembers the choice: it is written to the open project's config immediately and the config dialog's Git group shows the new value the next time it is opened.\n* Changing the auto commit delay in the config dialog, or opening a project whose config sets a different delay, changes the delay actually used by the next scheduled auto-commit, with no app restart.\n* The complete-release dialog has no \"Include project agent activity\" checkbox, and every completed release archives the project agent activity into the release folder.\n* No config entry uses the `react` source and no code writes `md2.reactConfig`; an existing `md2.reactConfig` blob in localStorage is left untouched and ignored.\n* `npm run typecheck` passes and the config, release, worktree and app test suites pass.\n'''\nio.open(p, 'w', encoding='utf-8', newline='\\n').write(text.rstrip('\\n') + addition)\nPY\necho done",
+          "content": "Exit code 2\n/usr/bin/bash: -c: line 33: unexpected EOF while looking for matching `''",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-58",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np = 'design/feature_descriptions/F_371_remove_react_app_tab_from_config_dialog.md'\ntext = io.open(p, encoding='utf-8').read()\ntext = text.replace('status: design', 'status: ready for implementation', 1)\naddition = u'''\n\n## Current state\n\nThe config dialog's tab list comes from `CONFIG_SECTIONS` in `app/src/services/config/config_entries.ts`, today `react` (\"React app\"), `project` and `desktop`. `getVisibleSections` in `app/src/components/config/config_page.tsx` walks that list and appends the Markdown tab right after the `react` section and the Sentry tab right after the `project` section, so the Markdown tab exists today only because a `react` section exists. `getActiveSection` falls back to the first visible section when the hash names no known section, so the React app tab is also the default tab.\n\nEvery config entry carries two independent fields: `section`, which decides the tab it renders on, and `source` (`react` | `desktop` | `project`), which decides where the value is stored. Five entries currently use `section: 'react'` and `source: 'react'`:\n\n* `react.showStartupSplash` (default `true`, editable) — read by `app/src/app.tsx` through `readStartupSplashPreference()` in `app/src/services/config/config_persistence.ts`. That helper reads localStorage directly because `App` needs the value before `configService.init` runs; `app.tsx` renders `<StartupSplash />` only while `bootstrap.phase === 'starting'` and the preference is on.\n* `react.deleteBranchAfterIntegration` (default `false`, `editable: false`) — seeds the \"delete branch\" checkbox of the worktree integration dialog in `app/src/components/worktree_selector.tsx:58`, and is written back on every toggle at `worktree_selector.tsx:286`.\n* `react.deleteBranchesAfterRelease` (default `false`, `editable: false`) — seeds `defaultSelectAll` for the branch list of `CompleteReleaseDialog`, read at `app/src/components/shell/project/use_project_toolbar_menu_actions.ts:89` and written back at line 391.\n* `react.includeProjectActivityInRelease` (default `false`, `editable: false`) — seeds the \"Include project agent activity\" checkbox of `CompleteReleaseDialog`, read at `use_project_toolbar_menu_actions.ts:90` and written back at line 395. The checkbox value travels as the third argument of `onCompleteRelease` into `projectSessionService.completeRelease` and then `releaseOperations.completeRelease` (`app/src/services/release_operations.ts:162`), where it decides whether `loadArchivedProjectActivity` runs and the project agent activity is copied into the release folder.\n* `react.autoCommitDelayMs` (default 30000, editable slider, 1000–120000 step 1000) — read once in the `DataService` constructor (`app/src/services/data/data_service.ts:223`) and passed to `new CommitBatcher(this.cards, delayMs)`. `CommitBatcher.delayMs` (`app/src/data/commit_batcher.ts:112`) is `readonly` and only consulted in `window.setTimeout(..., this.delayMs)` at line 162, so today the delay is frozen at app start.\n\n`editable: false` does not hide an entry from the React app tab: `ReactConfigSection` passes every `section === 'react'` entry to `ConfigSectionLayout`, which renders them all. The flag is only consulted by `ProjectConfigSection` when deciding which ungrouped project entries to render. So the three branch/release booleans are visible in the React app tab today, and are simultaneously the remembered state of dialog checkboxes.\n\nStorage differs per source. React-source values live in one localStorage blob under `md2.reactConfig` (`REACT_CONFIG_STORAGE_KEY`), written by `writeStoredReactValues` from `LOCAL_STORAGE_KEYS`, which is itself derived from `source === 'react'`. `configService.setReactPreference` writes one value straight to that blob outside the config dialog draft; `configService.saveDraft` writes the blob again for the dialog path. Project-source values live in the project's config JSON file: `ConfigService.loadProjectConfig` resets every key in `PROJECT_KEYS` to its default and then merges each field the file actually defined, `readProjectConfig` maps the value map onto the `ProjectConfig` interface in `app/src/data/data_types.ts`, and each storage service serializes that whole object with `JSON.stringify` (see `app/src/services/github/github_project_config_storage.ts:26`), so a field added to `ProjectConfig` round-trips without a format change. `ConfigService.saveDraft` runs `validateValue` over `PROJECT_KEYS`, which already handles `type: 'number'` with `min`/`max`. `ConfigPage.handleSaveClick` calls `configService.saveProjectConfig()` when `hasDraftChangesForSource('project')` reported a change. `setConversationPinned` is the existing precedent for writing one project config value immediately, from outside the dialog draft: it merges the value, awaits the persistence boundary, then updates `values` and, when one is open, the draft.\n\n`ProjectConfigSection` already renders named groups from the `PROJECT_CONFIG_GROUPS` constant added by F_370; the Git group currently holds `project.diffCommand` and `project.pushMode`.\n\nTests that touch this area: `app/src/App.test.tsx:107-116` (splash shown by default, skipped when the stored preference is `false`), `config_page.test.tsx` (the \"Startup splash\" switch, the `React app` region and its `#/config/react` tab href), `main_window.test.tsx:303-311`, `config_persistence.service.test.ts` and `config_service.service.test.ts` (both use `react.showStartupSplash` as their sample react-source value).\n\n## implementation details\n\nDecisions taken for this feature: the three moved values become real project config, stored per project in the project config file, so two projects can differ; there is no migration of existing `md2.reactConfig` values, each project simply starts at the entry default; and the dialog checkboxes stay where they are and keep writing the value back, so the Git group shows and edits the same remembered default.\n\n* Delete `react.showStartupSplash` from `ConfigValueTypes` and `CONFIG_ENTRIES`. Delete `readStartupSplashPreference` from `config_persistence.ts` and its re-export from `config_service.ts`. In `app.tsx`, drop `showStartupSplash` and render `<StartupSplash />` unconditionally while `bootstrap.phase === 'starting'`.\n* Rename the three moved keys to the `project` namespace, keeping their labels, descriptions, defaults and slider bounds, and set both `section: 'project'` and `source: 'project'` on each:\n  * `react.deleteBranchAfterIntegration` → `project.deleteBranchAfterIntegration`\n  * `react.deleteBranchesAfterRelease` → `project.deleteBranchesAfterRelease`\n  * `react.autoCommitDelayMs` → `project.autoCommitDelayMs`\n  Set `editable: true` on all three, since they now render as fields the user edits directly. Add the three keys to `PROJECT_KEYS`, add the three fields to the `ProjectConfig` interface in `data_types.ts`, map them in `readProjectConfig`, and add the matching `if (projectConfig?.<field> !== undefined)` merge lines in `ConfigService.loadProjectConfig`. A project config file written before this feature defines none of them, so each falls back to the entry default the reset loop already applied — that is the intended no-migration behaviour.\n* Add the three keys to the Git group in `PROJECT_CONFIG_GROUPS` (`project_config_section.tsx`), after `project.diffCommand` and `project.pushMode`, and widen the group description so it covers branch cleanup and the auto-commit delay rather than only the diff command and push mode.\n* Delete `react.includeProjectActivityInRelease` entirely and make inclusion unconditional. Remove the `includeProjectActivity` parameter from `releaseOperations.completeRelease` and `projectSessionService.completeRelease`, so `loadArchivedProjectActivity` always runs and the archived project activity is always part of the release. Remove the third argument from `onCompleteRelease`, and remove the `defaultIncludeProjectActivity` and `onIncludeProjectActivityChange` props, the `includeProjectActivity` state, the change handler and the \"Include project agent activity\" `FormControlLabel` from `CompleteReleaseDialog`. Remove `releaseIncludeProjectActivityDefault` and `setReleaseIncludeProjectActivityDefault` from `use_project_toolbar_menu_actions.ts` and the prop wiring at the dialog's call site.\n* Add `ConfigService.setProjectPreference<K extends ProjectConfigKey>(key, value)` for the two dialog write-backs, shaped like the existing `setConversationPinned`: validate the value, merge it into `values`, persist through `withProjectConfigSave` → `requireProjectConfigPersistence().saveProjectConfig(readProjectConfig(nextValues))`, then commit it to `values`, mirror it into `draftValues` when a draft is open, and dispatch `changed`. It must be a no-op that does not throw when no project is loaded, because the dialogs that call it can only be open with a project open but the type does not enforce that. Point `worktree_selector.tsx:286` and `use_project_toolbar_menu_actions.ts:391` at it with the new keys, and update their `useConfigValueOrFallback` reads at `worktree_selector.tsx:58` and `use_project_toolbar_menu_actions.ts:89` to the new keys.\n* Make the auto-commit delay follow the project. `CommitBatcher` currently freezes the delay at construction, which was harmless for a global localStorage value but wrong for a per-project one — the value is still at its default when `DataService` builds the batcher, before any project config is loaded. Replace the `delayMs` constructor argument with a `delayMsProvider: () => number` (defaulting to `() => AUTO_COMMIT_DELAY_MS`) and call it at line 162 where the timeout is scheduled, so each scheduled flush uses the currently loaded project's value. In `data_service.ts`, pass `() => configService.get('project.autoCommitDelayMs')`. An already-scheduled timeout keeps the delay it was scheduled with; only the next scheduled flush picks the new value up.\n* Remove the React app tab and the now-dead react source. Delete `app/src/components/config/react_config_section.tsx` and its import and render branch in `config_page.tsx`. Drop `{ id: 'react', label: 'React app' }` from `CONFIG_SECTIONS`. No entry uses `source: 'react'` after this feature, so also remove `'react'` from the `ConfigSource` union, delete `LOCAL_STORAGE_KEYS`, `REACT_CONFIG_STORAGE_KEY`, `readStoredReactValues`, `writeStoredReactValues` and `mergeStoredReactValues` from `config_persistence.ts`, and delete `setReactPreference`, the `ReactConfigKey` type, the `mergeStoredReactValues` call in `init` and the `writeStoredReactValues` call in `saveDraft` from `config_service.ts`. Leave whatever `md2.reactConfig` blob is already in a user's localStorage alone; nothing reads it any more.\n* Reattach the Markdown tab in `getVisibleSections`. It currently hangs off the `react` section; hang it off `project` instead, after the Sentry tab, so the visible order becomes Project, Sentry, Markdown, Desktop and the default tab (the `getActiveSection` fallback to `sections[0]`) becomes Project rather than Markdown. An old `#/config/react` link no longer matches a section and therefore lands on the Project tab through that same fallback; the stale example in `design/releases/0_0_3/F_69_config_in_dialog.md` is release history and stays as written.\n* Tests: drop the `skips the startup splash when the preference is disabled` case in `App.test.tsx` and keep the default-on case; replace the React-app-tab cases in `config_page.test.tsx` with ones asserting the tab list is Project, Sentry, Markdown, Desktop, that no \"React app\" tab or \"Startup splash\" switch exists, and that the Git group holds diff command, push mode, both branch settings and the auto-commit delay slider; update the splash-switch case in `main_window.test.tsx`; move the react-source cases in `config_persistence.service.test.ts` and `config_service.service.test.ts` onto project-source keys, and add one asserting that `setProjectPreference` persists through the project config persistence boundary and updates an open draft. Add a `complete_release_dialog` case asserting the include-activity checkbox is gone and that a release always archives the project activity. Verify with `npm run typecheck` and the config, release, worktree and app vitest suites.\n\n## acceptance criteria\n\n* The config dialog has no \"React app\" tab; its tabs are Project, Sentry, Markdown and Desktop, in that order, and Project is the tab shown when config opens without a section in the hash. Opening `#/config/react` shows the Project tab instead of an empty dialog.\n* The startup splash always shows while the last project is restored, on a fresh install and on an install whose stored preference was `false`; no config field controls it and no code reads the preference.\n* The project tab's Git group holds, in order: diff command, push mode, delete integrated card branch, delete released card branches, auto commit delay. Each is editable there, and the group description mentions branch cleanup and the auto-commit delay.\n* Those three values are stored in the project config file, not in localStorage: saving them from the config dialog writes the project config, and two projects opened in turn each show their own values.\n* A project config file written before this feature still loads, and the three new fields fall back to their defaults (delete branch after integration `false`, delete branches after release `false`, auto commit delay 30000 ms) rather than to whatever was in `md2.reactConfig`.\n* Toggling the delete-branch checkbox in the worktree integration dialog, or the select-all-branches checkbox in the complete-release dialog, still remembers the choice: it is written to the open project's config immediately and the config dialog's Git group shows the new value the next time it is opened.\n* Changing the auto commit delay in the config dialog, or opening a project whose config sets a different delay, changes the delay actually used by the next scheduled auto-commit, with no app restart.\n* The complete-release dialog has no \"Include project agent activity\" checkbox, and every completed release archives the project agent activity into the release folder.\n* No config entry uses the `react` source and no code writes `md2.reactConfig`; an existing `md2.reactConfig` blob in localStorage is left untouched and ignored.\n* `npm run typecheck` passes and the config, release, worktree and app test suites pass.\n'''\nio.open(p, 'w', encoding='utf-8', newline='\\n').write(text.rstrip('\\n') + addition)\nPY\necho done",
+          "providerItemId": "toolu_01A6qqaTxJrsAthQYSGayX9L",
+          "sequence": 58,
+          "status": "failed",
+          "timestamp": "2026-09-21T15:46:26.959Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-59",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGqy82VyiAFWmYzptXTZ:thinking:0",
+          "sequence": 59,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T15:46:31.121Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nHeredoc tripped the shell. Writing the file directly instead.",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-turn-1-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 60,
+          "timestamp": "2026-09-21T15:46:31.354Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_371_remove_react_app_tab_from_config_dialog.md",
+          "deletions": 2,
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-event-61",
+          "insertions": 54,
+          "kind": "event",
+          "label": "Write",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_371_remove_react_app_tab_from_config_dialog.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01SF6HukRvvc6PVBfpCSB7P9",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-09-21T15:47:18.400Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDoc written. `status: ready for implementation`. Nothing staged or committed.\n\nKey points beyond the bullet list:\n\n- **React source dies entirely.** After moving 3 keys and deleting 2, zero entries have `source: 'react'` — so `md2.reactConfig` localStorage, `setReactPreference`, `LOCAL_STORAGE_KEYS`, `mergeStoredReactValues` all become dead. Spec removes them. Old blobs left in place, ignored.\n- **Markdown tab hangs off the react section today.** `getVisibleSections` appends it after `react`; removing that section would kill the Markdown tab. Spec reattaches it after Sentry, which also makes Project the default tab.\n- **Auto-commit delay needs a provider.** `CommitBatcher.delayMs` is `readonly`, read once in the `DataService` constructor — before project config loads. As project config it would always be the default. Spec swaps it to `delayMsProvider` called at schedule time.\n- **Dialog write-backs need a new service method.** `setReactPreference` wrote localStorage instantly, outside the draft. Project config has no equivalent; spec adds `setProjectPreference`, modelled on the existing `setConversationPinned`.\n- **No migration**, per your \"become real project config\" choice: each project starts at defaults (`false`, `false`, 30000ms); existing global localStorage values are not carried over. Stated as an assumption — say if you want a migration instead.",
+          "id": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-turn-1-assistant-8",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 62,
+          "timestamp": "2026-09-21T15:47:26.473Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -476,13 +843,21 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 33945,
-          "toolMs": 38275
+          "reasoningMs": 72609,
+          "toolMs": 174103
         },
         "elapsedMs": 96019,
         "runningStartedAt": "2026-09-21T15:44:05.887Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 2045626,
+        "inputTokens": 62,
+        "outputTokens": 22037,
+        "reasoningTokens": 0,
+        "totalTokens": 2067725,
+        "costUsd": 2.8399135
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
