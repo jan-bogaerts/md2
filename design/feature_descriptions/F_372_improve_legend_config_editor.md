@@ -9,5 +9,6 @@ affects:
 agents:
 policy:
 ---
+Through the items on the legend on the diagrams  it is possible to configure the style of the items. When hovered over item, it show a gear, this opens a popup with config fields like font, size, color, fill, border. There is however little info on the popup (labels, helper text). And rhe inputs are not ok.
 
-The&#x20;
+We already created a custom color picker, lets reuse this for colors. Use sliders for numbers,...
