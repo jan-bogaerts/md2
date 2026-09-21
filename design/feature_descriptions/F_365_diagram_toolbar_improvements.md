@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__7e54add8-465d-47ff-90fd-7f9cc49c79f1.json
 policy:
-branch: f_365_diagram_toolbar_improvements
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/diagram_formatting_controls.tsx
   - app/src/components/diagram_view/diagram_formatting_scale_control.test.tsx
