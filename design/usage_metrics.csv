@@ -4833,3 +4833,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-21T18:18:25.426Z,token_usage,codex,,,,,45138,5008256,13904,5130,5072428,,
 2026-09-21T18:18:31.991Z,token_usage,codex,,,,,53633,3138176,19060,4743,3215612,,
 2026-09-21T18:18:57.653Z,token_usage,claude,,,,,60,1593207,20298,0,1613565,,
+2026-09-21T18:22:43.256Z,token_usage,claude,,,,,22,507277,4362,0,511661,,
