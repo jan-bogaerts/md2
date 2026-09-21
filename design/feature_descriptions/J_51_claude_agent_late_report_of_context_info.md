@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__9765373d-71ce-4870-91f2-c00af3cc1d5b.json
 policy:
+branch: j_51_claude_agent_late_report_of_context_info
+worktree: 3
 ---
 on the action popup, we show the running state, token count and used context info all on the same row at the bottom of the chat history.
 
