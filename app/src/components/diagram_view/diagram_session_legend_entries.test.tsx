@@ -66,22 +66,23 @@ describe('DiagramSessionLegendEntries', () => {
         expect(gear).toBeInTheDocument()
         await user.click(gear)
         expect(screen.getByRole('textbox', { name: 'Font family' })).toBeInTheDocument()
-        expect(screen.getByRole('spinbutton', { name: 'Font size' })).toBeInTheDocument()
-        expect(screen.getByRole('textbox', { name: 'Font color' })).toBeInTheDocument()
-        expect(screen.getByRole('textbox', { name: 'Fill color' })).toBeInTheDocument()
-        expect(screen.getByRole('textbox', { name: 'Border color' })).toBeInTheDocument()
+        expect(screen.getByRole('slider', { name: 'Font size' })).toHaveAttribute('aria-valuemin', '1')
+        expect(screen.getByText('Font color')).toBeInTheDocument()
+        expect(screen.getByText('Fill color')).toBeInTheDocument()
+        expect(screen.getByText('Border color')).toBeInTheDocument()
         expect(screen.getByRole('combobox', { name: 'Border style' })).toBeInTheDocument()
-        expect(screen.getByRole('spinbutton', { name: 'Border thickness' })).toBeInTheDocument()
-        expect(screen.getByRole('spinbutton', { name: 'Corner radius' })).toBeInTheDocument()
+        expect(screen.getByRole('slider', { name: 'Border thickness' })).toHaveAttribute('aria-valuemax', '20')
+        expect(screen.getByRole('slider', { name: 'Corner radius' })).toHaveAttribute('aria-valuemax', '100')
         expect(screen.getByRole('combobox', { name: 'Content position' })).toBeInTheDocument()
 
         await user.type(screen.getByRole('textbox', { name: 'Font family' }), 'Inter')
-        await user.type(screen.getByRole('textbox', { name: 'Fill color' }), '#112233')
+        await user.click(screen.getByRole('button', { name: 'Use custom color for Fill color' }))
+        await user.click(screen.getByRole('button', { name: 'Use colour #1976d2' }))
         await user.click(screen.getByRole('checkbox', { name: 'Bold' }))
         await user.click(screen.getByRole('button', { name: 'Apply' }))
 
         expect(session.getNodeRoleFormattingSnapshot('focal')).toMatchObject({
-            box: { contentPosition: 'center', fillColor: '#112233' },
+            box: { contentPosition: 'center', fillColor: '#1976d2' },
             font: { bold: true, family: 'Inter' },
         })
     })
@@ -94,7 +95,7 @@ describe('DiagramSessionLegendEntries', () => {
         await user.click(screen.getByRole('button', { name: 'Format Calls' }))
         const startMarker = screen.getByRole('combobox', { name: 'Start marker' })
         await user.click(startMarker)
-        for (const marker of ['none', 'filled-arrow', 'open-arrow', 'circle', 'diamond']) {
+        for (const marker of ['None', 'Filled arrow', 'Open arrow', 'Circle', 'Diamond']) {
             expect(screen.getByRole('option', { name: marker })).toBeInTheDocument()
         }
         await user.keyboard('{Escape}')
@@ -197,5 +198,37 @@ describe('DiagramLegend session tabs', () => {
 
         expect(screen.getByLabelText('Current diagram legend entries')).toHaveTextContent('focalstoreconnection')
         expect(screen.queryByLabelText('New diagram legend entries')).not.toBeInTheDocument()
+    })
+
+    it('applies formatting only through the store selected by the Current or New tab', async () => {
+        const session = startSession(legendDiagram)
+        const service = new DiagramViewService()
+        const setCurrentFormatting = vi.spyOn(service, 'setNodeRoleFormatting').mockImplementation(() => undefined)
+        const setNewFormatting = vi.spyOn(session, 'setNodeRoleFormatting')
+        const user = userEvent.setup()
+        render(
+            <ThemeProvider theme={theme}>
+                <div style={{ height: 400, position: 'relative', width: 300 }}>
+                    <DiagramLegend data={layout(diagram)} service={service} session={session} />
+                </div>
+            </ThemeProvider>,
+        )
+
+        await user.click(screen.getByRole('button', { name: 'Format Service' }))
+        await user.click(screen.getByRole('checkbox', { name: 'Bold' }))
+        await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+        expect(setNewFormatting).toHaveBeenCalledOnce()
+        expect(setNewFormatting).toHaveBeenCalledWith('focal', expect.objectContaining({ font: expect.objectContaining({ bold: true }) }))
+        expect(setCurrentFormatting).not.toHaveBeenCalled()
+
+        await user.click(screen.getByRole('tab', { name: 'Current' }))
+        await user.click(screen.getByRole('button', { name: 'Format focal' }))
+        await user.click(screen.getByRole('checkbox', { name: 'Italic' }))
+        await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+        expect(setCurrentFormatting).toHaveBeenCalledOnce()
+        expect(setCurrentFormatting).toHaveBeenCalledWith('focal', expect.objectContaining({ font: expect.objectContaining({ italic: true }) }))
+        expect(setNewFormatting).toHaveBeenCalledOnce()
     })
 })
