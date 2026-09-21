@@ -870,7 +870,7 @@
         "totalTokens": 2384358
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     },
     {
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
@@ -2831,7 +2831,7 @@
         "totalTokens": 6235465
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
