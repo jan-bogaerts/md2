@@ -13486,6 +13486,25 @@
       "rootActionLabel": "review",
       "startedAt": "2026-09-21T09:14:13.361Z",
       "status": "cancelled"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-09-21T09:18:51.456Z",
+      "conversationIds": [],
+      "details": {
+        "command": "",
+        "output": "Action cancelled",
+        "type": "command"
+      },
+      "runId": "action-e7f9a8a8-05a5-4919-a54b-99d8e26e4917",
+      "origin": {
+        "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
+        "kind": "card"
+      },
+      "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
+      "rootActionLabel": "review",
+      "startedAt": "2026-09-21T09:18:37.926Z",
+      "status": "cancelled"
     }
   ],
   "version": 5
