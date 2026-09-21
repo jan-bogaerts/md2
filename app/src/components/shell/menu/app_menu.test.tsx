@@ -415,6 +415,35 @@ describe('AppMenu', () => {
         expect(screen.getByRole('tab', { name: 'Home' })).toHaveAttribute('aria-selected', 'true')
     })
 
+    it('shows Stats tab only in stats view and falls back to Home when leaving', async () => {
+        renderMenu()
+
+        expect(screen.queryByRole('tab', { name: 'Stats' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Diagrams view' }))
+        expect(screen.queryByRole('tab', { name: 'Stats' })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Stats view' }))
+        expect(screen.queryByRole('tab', { name: 'Diagram' })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('tab', { name: 'Stats' }))
+
+        expect(screen.getByRole('tab', { name: 'Stats' })).toHaveAttribute('aria-selected', 'true')
+        expect(screen.getByRole('combobox', { name: 'Dataset' })).toBeInTheDocument()
+
+        // The awaited act lets the queued microtask that resets the selection run.
+        await act(async () => { workspaceViewService.setViewMode('cards') })
+
+        expect(screen.queryByRole('tab', { name: 'Stats' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('combobox', { name: 'Dataset' })).toBeNull()
+        expect(screen.getByRole('tab', { name: 'Home' })).toHaveAttribute('aria-selected', 'true')
+
+        // Coming back offers the tab again, unselected, with the stored dataset intact.
+        act(() => workspaceViewService.setViewMode('stats'))
+
+        expect(screen.getByRole('tab', { name: 'Stats' })).toHaveAttribute('aria-selected', 'false')
+        // The panel is mounted but hidden until its tab is picked again, and keeps its control values.
+        expect(screen.getByRole('combobox', { hidden: true, name: 'Dataset' })).toHaveTextContent('Activity over time')
+    })
+
     it('creates a valid action and opens its text-view tab from the Home tab', async () => {
         const bridge = createBridge()
         await activateLocalProject(bridge)

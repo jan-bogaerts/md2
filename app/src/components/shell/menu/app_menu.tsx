@@ -77,11 +77,12 @@ import { MobileCreateMenu } from './mobile_create_menu'
 import { Section } from './section'
 import { Tab } from './tab'
 import { DiagramMenuTab } from '../../diagram_view/diagram_menu_tab'
+import { StatsMenuTab } from '../../stats_view/stats_menu_tab'
 import { ActiveSchedulesDialog } from '../../actions/run/schedule/active_schedules_dialog'
 import { hasActiveScheduleBackend, hasSequenceScheduleBackend } from '../../../data/electron_action_bridge'
 import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
 
-type AppMenuTab = 'home' | 'agents' | 'diagram'
+type AppMenuTab = 'home' | 'agents' | 'diagram' | 'stats'
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release' | 'schedules'
 
 interface AppMenuProps {
@@ -101,6 +102,16 @@ const MENU_TABS: { label: string; value: AppMenuTab }[] = [
     { label: 'Run', value: 'agents' },
 ]
 const DIAGRAM_MENU_TAB: { label: string; value: AppMenuTab } = { label: 'Diagram', value: 'diagram' }
+const STATS_MENU_TAB: { label: string; value: AppMenuTab } = { label: 'Stats', value: 'stats' }
+/** View mode each view-scoped tab belongs to; such a tab is offered, and stays selected, only in that view. */
+const VIEW_SCOPED_TABS: { tab: { label: string; value: AppMenuTab }; viewMode: WorkspaceViewMode }[] = [
+    { tab: DIAGRAM_MENU_TAB, viewMode: 'diagrams' },
+    { tab: STATS_MENU_TAB, viewMode: 'stats' },
+]
+
+function scopedTabViewMode(tab: AppMenuTab) {
+    return VIEW_SCOPED_TABS.find((entry) => entry.tab.value === tab)?.viewMode ?? null
+}
 const PROJECT_CONTEXT = projectContext()
 
 function desktopSelectionError(
@@ -162,14 +173,19 @@ export function AppMenu(props: AppMenuProps) {
     const canShowSentryImport = !!project
         && sentryConnection.isAuthenticated
         && isSentryConfigurationComplete(sentryConnection.settings)
-    const visibleCurrentTab = currentTab === 'diagram' && viewMode !== 'diagrams' ? 'home' : currentTab
-    const availableMenuTabs = viewMode === 'diagrams' ? [...MENU_TABS, DIAGRAM_MENU_TAB] : MENU_TABS
+    const currentTabViewMode = scopedTabViewMode(currentTab)
+    const isCurrentTabOutOfView = !!currentTabViewMode && currentTabViewMode !== viewMode
+    const visibleCurrentTab = isCurrentTabOutOfView ? 'home' : currentTab
+    const availableMenuTabs = [
+        ...MENU_TABS,
+        ...VIEW_SCOPED_TABS.filter((entry) => entry.viewMode === viewMode).map((entry) => entry.tab),
+    ]
 
     useEffect(() => {
-        if (currentTab !== 'diagram' || viewMode === 'diagrams') return
+        if (!isCurrentTabOutOfView) return
 
         queueMicrotask(() => setCurrentTab('home'))
-    }, [currentTab, viewMode])
+    }, [isCurrentTabOutOfView])
 
     useEffect(() => {
         if (!hasActiveAgentSettings) {
@@ -603,6 +619,11 @@ export function AppMenu(props: AppMenuProps) {
             {viewMode === 'diagrams' ? (
                 <Box role="tabpanel" sx={{ display: visibleCurrentTab === 'diagram' ? 'block' : 'none' }}>
                     <DiagramMenuTab />
+                </Box>
+            ) : null}
+            {viewMode === 'stats' ? (
+                <Box role="tabpanel" sx={{ display: visibleCurrentTab === 'stats' ? 'block' : 'none' }}>
+                    <StatsMenuTab />
                 </Box>
             ) : null}
             <ProjectOpenDialog

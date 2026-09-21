@@ -5,7 +5,6 @@ import { projectStatsService } from '../../services/stats/project_stats_service'
 import type { StatsExclusionReason } from '../../services/stats/project_stats_types';
 import { isStackedDurationPerformance } from '../../services/stats/stats_performance_dataset';
 import { StatsBarChart, type StatsBarMode } from './stats_bar_chart';
-import { StatsControls } from './stats_controls';
 import { StatsUsageComparisonCharts } from './stats_usage_comparison_charts';
 
 const EXCLUSION_LABELS: Record<StatsExclusionReason, string> = {
@@ -62,7 +61,6 @@ export function StatsContent() {
     return (
         <Stack sx={{ flex: 1, minHeight: 0, p: 2.5, width: '100%' }} spacing={2}>
             <Typography component="h2" variant="h6">Project stats</Typography>
-            <StatsControls snapshot={snapshot} />
             {snapshot.warnings.map((warning) => <Typography color="warning.main" key={warning} variant="body2">{warning}</Typography>)}
             {snapshot.omittedTimerCount > 0 && controls.dataset === 'totals' && controls.totalsMetric === 'duration' ? (
                 <Typography color="text.secondary" variant="body2">

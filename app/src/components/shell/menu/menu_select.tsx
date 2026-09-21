@@ -3,20 +3,33 @@ import type { SelectChangeEvent } from '@mui/material'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-interface MenuSelectProps {
+interface MenuSelectProps<Value extends string | string[]> {
     children: ReactNode
     disabled?: boolean
     errorMessage?: string | null
     label: string
     minWidth?: number
-    onChange: (event: SelectChangeEvent) => void
+    multiple?: boolean
+    onChange: (event: SelectChangeEvent<Value>) => void
     onOpen?: () => void
-    value: string
+    renderValue?: (value: Value) => ReactNode
+    value: Value
 }
 
 /** Tooltip-wrapped compact select used by menu sections. */
-export function MenuSelect(props: MenuSelectProps) {
-    const { children, disabled = false, errorMessage = null, label, minWidth = 140, onChange, onOpen, value } = props
+export function MenuSelect<Value extends string | string[] = string>(props: MenuSelectProps<Value>) {
+    const {
+        children,
+        disabled = false,
+        errorMessage = null,
+        label,
+        minWidth = 140,
+        multiple = false,
+        onChange,
+        onOpen,
+        renderValue,
+        value,
+    } = props
     const [isSelectOpen, setIsSelectOpen] = useState(false)
     const [isTooltipOpen, setIsTooltipOpen] = useState(false)
 
@@ -40,12 +53,15 @@ export function MenuSelect(props: MenuSelectProps) {
     return (
         <Tooltip onClose={closeTooltip} onOpen={openTooltip} open={isTooltipOpen && !isSelectOpen} title={errorMessage ?? label}>
             <FormControl error={!!errorMessage} size="small" sx={{ minWidth }}>
-                <Select
+                <Select<Value>
                     aria-label={label}
                     disabled={disabled}
+                    displayEmpty={!!renderValue}
+                    multiple={multiple}
                     onChange={onChange}
                     onClose={closeSelect}
                     onOpen={openSelect}
+                    renderValue={renderValue}
                     size="small"
                     value={value}
                 >

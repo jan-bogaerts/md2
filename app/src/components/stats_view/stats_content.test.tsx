@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
 import { DEFAULT_PROJECT_CONFIG, type ProjectConfig, type StorageService } from '../../data/data_types'
@@ -51,7 +51,7 @@ describe('StatsContent', () => {
         projectStatsService.clear()
     })
 
-    it('shows controls, local accessibility text, and current chart values', async () => {
+    it('shows local accessibility text and current chart values', async () => {
         const metrics = `${metricsHeader}\r\n2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,10,,\r\n`
         projectStatsService.setControls({activityGranularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime', endUtc: null, startUtc: null})
         projectStatsService.bindProject({ config, project: { branch: 'main', id: 'project' }, storage: metricsStorage(metrics) })
@@ -59,17 +59,13 @@ describe('StatsContent', () => {
         renderContent()
 
         expect(screen.getByRole('heading', { name: 'Project stats' })).toBeInTheDocument()
-        expect(screen.getByRole('combobox', { name: 'Dataset' })).toHaveTextContent('Activity over time')
+        expect(screen.queryByRole('combobox', { name: 'Dataset' })).toBeNull()
         expect(screen.getByRole('listitem')).toHaveAccessibleName(/Project tokens: 10/u)
         expect(screen.getByRole('listitem')).not.toHaveAccessibleName(/2026-08-12T00:00:00.000Z/u)
         expect(screen.getByTestId('stats-chart-panel')).toHaveStyle({ flex: '1' })
-
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Activity granularity' }))
-        fireEvent.click(screen.getByRole('option', { name: 'Month' }))
-        expect(projectStatsService.getSnapshot().controls.activityGranularity).toBe('month')
     })
 
-    it('offers the token number format for every dataset and abbreviates the chart on demand', async () => {
+    it('abbreviates or spells out token counts as the stored format changes', async () => {
         const metrics = `${metricsHeader}
 2026-08-12T10:00:00.000Z,token_usage,codex,,,,,300000,100000,28913,0,428913,,
 `
@@ -78,19 +74,11 @@ describe('StatsContent', () => {
         await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
 
-        expect(screen.getByRole('combobox', { name: 'Token number format' })).toHaveTextContent('Shortened (1.2K)')
         expect(screen.getByText(formatTokenCount(428913))).toBeInTheDocument()
 
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Token number format' }))
-        fireEvent.click(screen.getByRole('option', { name: 'Exact (1,234)' }))
+        act(() => projectStatsService.setControls({ shortTokenCounts: false }))
 
-        expect(projectStatsService.getSnapshot().controls.shortTokenCounts).toBe(false)
-        expect(screen.getByText(new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(428913))).toBeInTheDocument()
-
-        // The control belongs to no single dataset, so it survives a dataset switch.
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
-        fireEvent.click(screen.getByRole('option', { name: 'Totals by Card/Action' }))
-        expect(screen.getByRole('combobox', { name: 'Token number format' })).toHaveTextContent('Exact (1,234)')
+        await waitFor(() => expect(screen.getByText(new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(428913))).toBeInTheDocument())
     })
 
     it('renders and reports malformed-source errors without partial chart data', async () => {
@@ -120,42 +108,23 @@ describe('StatsContent', () => {
         await waitFor(() => expect(screen.getByLabelText('Error message')).toHaveTextContent('Malformed account_usage row 2 was skipped.'))
     })
 
-    it('shows only controls belonging to selected dataset and preserves activity selection', async () => {
+    it('renders the chart surface belonging to the selected dataset', async () => {
         const metrics = `${metricsHeader}\r\n2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,10,,\r\n`
         projectStatsService.setControls({ activityGranularity: 'month', activityMetric: 'tokens', dataset: 'activityOverTime' })
         projectStatsService.bindProject({ config, project: { branch: 'main', id: 'controls' }, storage: metricsStorage(metrics) })
         await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
 
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
-        fireEvent.click(screen.getByRole('option', { name: 'Agent/model performance' }))
-        expect(screen.getByRole('combobox', { name: 'Performance metric' })).toBeInTheDocument()
-        expect(screen.getByRole('combobox', { name: 'Performance aggregation' })).toHaveTextContent('Average')
-        expect(screen.getByRole('combobox', { name: 'Action filter' })).toBeInTheDocument()
         expect(screen.queryByRole('combobox', { name: 'Activity metric' })).toBeNull()
+        expect(screen.getByRole('list')).toBeInTheDocument()
 
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Performance aggregation' }))
-        fireEvent.click(screen.getByRole('option', { name: 'Median' }))
-        expect(projectStatsService.getSnapshot().controls.performanceAggregation).toBe('median')
+        act(() => projectStatsService.setControls({ dataset: 'usageComparison' }))
 
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
-        fireEvent.click(screen.getByRole('option', { name: 'Activity over time' }))
-        expect(screen.getByRole('combobox', { name: 'Activity granularity' })).toHaveTextContent('Month')
-
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
-        fireEvent.click(screen.getByRole('option', { name: 'Project usage vs account usage' }))
-        expect(screen.queryByRole('combobox', { name: 'Token values' })).toBeNull()
-        expect(screen.getByRole('heading', { name: 'Project token usage (totals)' })).toBeInTheDocument()
+        await waitFor(() => expect(screen.getByRole('heading', { name: 'Project token usage (totals)' })).toBeInTheDocument())
         expect(screen.getByRole('heading', { name: 'Project token usage (average per action)' })).toBeInTheDocument()
-
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Dataset' }))
-        fireEvent.click(screen.getByRole('option', { name: 'Totals by Card/Action' }))
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Totals metric' }))
-        fireEvent.click(screen.getByRole('option', { name: 'Estimated cost' }))
-        expect(projectStatsService.getSnapshot().controls.totalsMetric).toBe('cost')
     })
 
-    it('offers sorted releases, selects one release, and shows its empty state', async () => {
+    it('shows the empty state for a release without activity', async () => {
         const origin = { cardInternalId: 'card-1', kind: 'card' }
         const currentRecord = {
             commits: [], completedAt: '2026-08-12T10:00:00.000Z', conversationIds: [],
@@ -182,17 +151,13 @@ describe('StatsContent', () => {
         await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
 
-        expect(screen.getByRole('combobox', { name: 'Releases' })).toHaveTextContent('Current release')
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Releases' }))
-        expect(screen.getAllByRole('option').map(({ textContent }) => textContent)).toEqual(['Current release', 'empty', 'v1'])
-        expect(screen.queryByRole('option', { name: 'All releases' })).toBeNull()
-        fireEvent.click(screen.getByRole('option', { name: 'v1' }))
-        expect(projectStatsService.getSnapshot().controls.releaseIdentity).toBe(completedReleaseIdentity('v1'))
-        expect(projectStatsService.getSnapshot().rows).toEqual([expect.objectContaining({ actionId: 'ship', value: 1 })])
+        act(() => projectStatsService.setControls({ releaseIdentity: completedReleaseIdentity('v1') }))
 
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Releases' }))
-        fireEvent.click(screen.getByRole('option', { name: 'empty' }))
-        expect(screen.getByText('No stats data matches current filters.')).toBeInTheDocument()
+        await waitFor(() => expect(projectStatsService.getSnapshot().rows).toEqual([expect.objectContaining({ actionId: 'ship', value: 1 })]))
+
+        act(() => projectStatsService.setControls({ releaseIdentity: completedReleaseIdentity('empty') }))
+
+        await waitFor(() => expect(screen.getByText('No stats data matches current filters.')).toBeInTheDocument())
     })
 
     it('shows all account series and scope warning without account selectors', async () => {
