@@ -6,7 +6,7 @@ import {
     ApplicationStartupService,
     type ApplicationStartupDependencies,
 } from './services/application_startup_service'
-import { configService, REACT_CONFIG_STORAGE_KEY } from './services/config/config_service'
+import { configService } from './services/config/config_service'
 import { dataService } from './services/data/data_service'
 import { createDeferred } from './services/test_support/data_service_test_support'
 
@@ -110,16 +110,6 @@ describe('App', () => {
         render(<App startupService={startupService} />)
 
         expect(screen.getByText('Starting MD²...')).toBeInTheDocument()
-    })
-
-    it('skips the startup splash when the preference is disabled', () => {
-        window.localStorage.setItem(REACT_CONFIG_STORAGE_KEY, JSON.stringify({ 'react.showStartupSplash': false }))
-        const startupService = createPendingStartupService()
-        void startupService.start()
-
-        render(<App startupService={startupService} />)
-
-        expect(screen.queryByText('Starting MD²...')).not.toBeInTheDocument()
     })
 
     it('shows a dismissible restore error when the last project fails to open', async () => {

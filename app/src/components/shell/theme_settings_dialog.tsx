@@ -6,11 +6,11 @@ import {
     DialogContent,
     DialogTitle,
     Stack,
-    TextField,
     ThemeProvider,
     Typography,
 } from '@mui/material'
 import { useMemo, useState } from 'react'
+import { ColorPickerField } from '../color_picker_field'
 import { createAppTheme } from '../../theme/app_theme'
 import {
     COLOR_ROLES,
@@ -63,12 +63,11 @@ export function ThemeSettingsDialog(props: ThemeSettingsDialogProps) {
                             <Typography variant="subtitle2">{roleLabel(role)}</Typography>
                             <Stack direction="row" spacing={2}>
                                 {COLOR_VARIANT_KEYS.map((variant) => (
-                                    <TextField
+                                    <ColorPickerField
                                         key={variant}
                                         label={variant}
-                                        onChange={(event) => handleColorChange(role, variant, event.target.value)}
-                                        slotProps={{ inputLabel: { shrink: true } }}
-                                        type="color"
+                                        name={`${role}-${variant}`}
+                                        onChange={(value) => handleColorChange(role, variant, value)}
                                         value={draftScheme[role][variant]}
                                     />
                                 ))}

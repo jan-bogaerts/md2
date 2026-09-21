@@ -9,7 +9,6 @@ import { StartupSplash } from './components/shell/startup_splash'
 import { RemoteControlButton } from './components/shell/remote_control_button'
 import { UpdateNotification } from './components/shell/update_notification'
 import { AppThemeProvider } from './theme/theme_provider'
-import { readStartupSplashPreference } from './services/config/config_service'
 import { dialogService } from './services/dialog_service'
 import type { ApplicationStartupService } from './services/application_startup_service'
 import { SentryImportConfirmationDialog } from './components/sentry_import_confirmation_dialog'
@@ -22,7 +21,6 @@ interface AppProps {
 export function App({ startupService }: AppProps = {}) {
     const auth = useGithubAuth()
     const bootstrap = useAppBootstrap(startupService)
-    const showStartupSplash = readStartupSplashPreference()
     const reportedBootstrapErrorRef = useRef<string | null>(null)
 
     useEffect(() => {
@@ -52,7 +50,7 @@ export function App({ startupService }: AppProps = {}) {
             <MergeConflictDialog />
             <SentryImportConfirmationDialog />
             {bootstrap.phase === 'starting' ? (
-                showStartupSplash ? <StartupSplash /> : null
+                <StartupSplash />
             ) : (
                 <MainWindow
                     auth={auth}

@@ -22,7 +22,7 @@ import { DEFAULT_AGENT_SELECTION, type AgentSelectionState } from '../../data/ag
 import type { ProjectBackgroundShade } from '../../theme/project_background_shade'
 import { DEFAULT_CARD_SEPARATOR, type CardSeparator } from '../../data/card_identifiers'
 
-export type ConfigSource = 'react' | 'desktop' | 'project'
+export type ConfigSource = 'desktop' | 'project'
 export type ConfigValueType = 'boolean' | 'number' | 'select' | 'string' | 'json'
 
 export interface ConfigValueTypes {
@@ -34,9 +34,12 @@ export interface ConfigValueTypes {
     'desktop.remoteControlPort': number
     'project.actionsFolder': string
     'project.archivedFolder': string
+    'project.autoCommitDelayMs': number
     'project.backgroundShade': ProjectBackgroundShade
     'project.cardSeparator': CardSeparator
     'project.cardTypes': CardTypeConfig[]
+    'project.deleteBranchAfterIntegration': boolean
+    'project.deleteBranchesAfterRelease': boolean
     'project.diffCommand': string
     'project.diagramFooter': string
     'project.diagramsFolder': string
@@ -46,11 +49,6 @@ export interface ConfigValueTypes {
     'project.releasesFolder': string
     'project.states': StateConfig[]
     'project.workingFolder': string
-    'react.autoCommitDelayMs': number
-    'react.deleteBranchAfterIntegration': boolean
-    'react.deleteBranchesAfterRelease': boolean
-    'react.includeProjectActivityInRelease': boolean
-    'react.showStartupSplash': boolean
 }
 
 export type ConfigKey = keyof ConfigValueTypes
@@ -99,7 +97,6 @@ export interface DesktopConfigValues {
 }
 
 export const CONFIG_SECTIONS = [
-    { id: 'react', label: 'React app' },
     { id: 'project', label: 'Project' },
     { id: 'desktop', label: 'Desktop' },
 ]
@@ -113,60 +110,6 @@ export const DEFAULT_REMOTE_CONTROL_PORT = 20877
 export const DEFAULT_DESKTOP_AGENT_SELECTION: AgentSelectionState = DEFAULT_AGENT_SELECTION
 
 export const CONFIG_ENTRIES: ConfigEntry[] = [
-    {
-        defaultValue: true,
-        description: 'Show the startup splash while the last project is restored.',
-        editable: true,
-        key: 'react.showStartupSplash',
-        label: 'Startup splash',
-        section: 'react',
-        source: 'react',
-        type: 'boolean',
-    },
-    {
-        defaultValue: false,
-        description: 'Delete card branch after successful worktree integration.',
-        editable: false,
-        key: 'react.deleteBranchAfterIntegration',
-        label: 'Delete integrated card branch',
-        section: 'react',
-        source: 'react',
-        type: 'boolean',
-    },
-    {
-        defaultValue: false,
-        description: 'Select all pending card branches by default when completing a release.',
-        editable: false,
-        key: 'react.deleteBranchesAfterRelease',
-        label: 'Delete released card branches',
-        section: 'react',
-        source: 'react',
-        type: 'boolean',
-    },
-    {
-        defaultValue: false,
-        description: 'Include the project agent activity in the release folder by default.',
-        editable: false,
-        key: 'react.includeProjectActivityInRelease',
-        label: 'Include project agent activity in release',
-        section: 'react',
-        source: 'react',
-        type: 'boolean',
-    },
-    {
-        defaultValue: DEFAULT_AUTO_COMMIT_DELAY_MS,
-        description: 'Delay before editor changes are committed after typing stops.',
-        editable: true,
-        key: 'react.autoCommitDelayMs',
-        label: 'Auto commit delay',
-        input: 'slider',
-        max: MAX_AUTO_COMMIT_DELAY_MS,
-        min: MIN_AUTO_COMMIT_DELAY_MS,
-        section: 'react',
-        source: 'react',
-        step: 1000,
-        type: 'number',
-    },
     {
         defaultValue: DEFAULT_PROJECT_FOLDER,
         description: 'Project root folder containing actions, releases, archives, and the working folder. Leave empty to use the repository root.',
@@ -279,6 +222,40 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         section: 'project',
         source: 'project',
         type: 'select',
+    },
+    {
+        defaultValue: false,
+        description: 'Delete card branch after successful worktree integration.',
+        editable: true,
+        key: 'project.deleteBranchAfterIntegration',
+        label: 'Delete integrated card branch',
+        section: 'project',
+        source: 'project',
+        type: 'boolean',
+    },
+    {
+        defaultValue: false,
+        description: 'Select all pending card branches by default when completing a release.',
+        editable: true,
+        key: 'project.deleteBranchesAfterRelease',
+        label: 'Delete released card branches',
+        section: 'project',
+        source: 'project',
+        type: 'boolean',
+    },
+    {
+        defaultValue: DEFAULT_AUTO_COMMIT_DELAY_MS,
+        description: 'Delay before editor changes are committed after typing stops.',
+        editable: true,
+        key: 'project.autoCommitDelayMs',
+        label: 'Auto commit delay',
+        input: 'slider',
+        max: MAX_AUTO_COMMIT_DELAY_MS,
+        min: MIN_AUTO_COMMIT_DELAY_MS,
+        section: 'project',
+        source: 'project',
+        step: 1000,
+        type: 'number',
     },
     {
         defaultValue: DEFAULT_CARD_SEPARATOR,
@@ -403,6 +380,9 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.diffCommand',
     'project.diagramFooter',
     'project.pushMode',
+    'project.deleteBranchAfterIntegration',
+    'project.deleteBranchesAfterRelease',
+    'project.autoCommitDelayMs',
     'project.cardSeparator',
     'project.cardTypes',
     'project.states',
@@ -411,10 +391,6 @@ export const PROJECT_KEYS: ConfigKey[] = [
 
 export const DESKTOP_KEYS: ConfigKey[] = CONFIG_ENTRIES.filter(
     (entry) => entry.source === 'desktop',
-).map((entry) => entry.key)
-
-export const LOCAL_STORAGE_KEYS: ConfigKey[] = CONFIG_ENTRIES.filter(
-    (entry) => entry.source === 'react',
 ).map((entry) => entry.key)
 
 export function createDefaultValues(): ConfigValues {

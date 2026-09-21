@@ -55,9 +55,12 @@ export interface StateConfig {
 export interface ProjectConfig {
     actionsFolder: string
     archivedFolder: string
+    autoCommitDelayMs: number
     backgroundShade: ProjectBackgroundShade
     cardSeparator: CardSeparator
     cardTypes: CardTypeConfig[]
+    deleteBranchAfterIntegration: boolean
+    deleteBranchesAfterRelease: boolean
     diffCommand: string
     diagramFooter: string
     diagramsFolder: string

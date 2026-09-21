@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardTypeConfig } from '../../data/data_types'
+import { COLOR_PICKER_PALETTE } from '../color_picker_palette'
 import { CardTypesEditor } from './card_types_editor'
 
 const cardTypes: CardTypeConfig[] = [
@@ -31,7 +32,6 @@ describe('CardTypesEditor', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Add card type' }))
         fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Bug' } })
-        fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'bug' } })
         fireEvent.change(screen.getByLabelText('ID prefix'), { target: { value: 'B' } })
         fireEvent.change(screen.getByLabelText('Color'), { target: { value: '#ff0000' } })
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -51,17 +51,47 @@ describe('CardTypesEditor', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         expect(onChange).toHaveBeenCalledWith([
-            { color: '#00ff00', idPrefix: 'F', label: 'Epic', type: 'feature' },
+            { color: '#00ff00', idPrefix: 'F', label: 'Epic', type: 'epic' },
             cardTypes[1],
         ])
     })
 
-    it('warns that renaming a type leaves existing cards behind', () => {
+    it('derives the type from the label and warns once it changes', () => {
         renderEditor(cardTypes)
 
         fireEvent.click(screen.getByRole('button', { name: 'Feature' }))
 
+        expect(screen.getByLabelText('Type')).toHaveValue('feature')
+        expect(screen.getByLabelText('Type')).toBeDisabled()
+        expect(screen.queryByText(/lose their colour and ID prefix/u)).not.toBeInTheDocument()
+
+        fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Epic story' } })
+
+        expect(screen.getByLabelText('Type')).toHaveValue('epic-story')
         expect(screen.getByText(/lose their colour and ID prefix/u)).toBeInTheDocument()
+    })
+
+    it('blocks a label that derives a reserved type', () => {
+        renderEditor(cardTypes)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Feature' }))
+        fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Root' } })
+
+        expect(screen.getByRole('alert')).toHaveTextContent('Reserved card type: root')
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    })
+
+    it('picks a colour from the preset swatches', () => {
+        const { onChange } = renderEditor(cardTypes)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Feature' }))
+        fireEvent.click(screen.getByRole('button', { name: `Use colour ${COLOR_PICKER_PALETTE[0]}` }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        expect(onChange).toHaveBeenCalledWith([
+            { ...cardTypes[0]!, color: COLOR_PICKER_PALETTE[0] },
+            cardTypes[1],
+        ])
     })
 
     it('discards an edit when the popup is cancelled', () => {
@@ -94,19 +124,19 @@ describe('CardTypesEditor', () => {
         renderEditor(cardTypes)
 
         fireEvent.click(screen.getByRole('button', { name: 'Feature' }))
-        fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'job' } })
+        fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Job' } })
 
         expect(screen.getByRole('alert')).toHaveTextContent('Duplicate card type: job')
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
 
-        fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'feature' } })
+        fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Feature' } })
         fireEvent.change(screen.getByLabelText('ID prefix'), { target: { value: 'J' } })
 
         expect(screen.getByRole('alert')).toHaveTextContent('Duplicate ID prefix: J')
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
     })
 
-    it('blocks saving empty label, type or ID prefix values', () => {
+    it('blocks saving empty label or ID prefix values', () => {
         renderEditor(cardTypes)
 
         fireEvent.click(screen.getByRole('button', { name: 'Feature' }))

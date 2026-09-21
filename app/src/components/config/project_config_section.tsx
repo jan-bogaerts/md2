@@ -38,9 +38,15 @@ const PROJECT_CONFIG_GROUPS: ProjectConfigGroup[] = [
         label: 'Cards',
     },
     {
-        description: 'How MD² talks to Git for this project.',
+        description: 'How MD² talks to Git for this project: diff command, push mode, branch cleanup, and how long auto-commit waits.',
         id: 'project-git',
-        keys: ['project.diffCommand', 'project.pushMode'],
+        keys: [
+            'project.diffCommand',
+            'project.pushMode',
+            'project.deleteBranchAfterIntegration',
+            'project.deleteBranchesAfterRelease',
+            'project.autoCommitDelayMs',
+        ],
         label: 'Git',
     },
     {
@@ -82,37 +88,35 @@ export function ProjectConfigSection(props: ProjectConfigSectionProps) {
     )
 
     return (
-        <>
-            <Box
-                aria-labelledby={headingId}
-                component="section"
-                id={PROJECT_CONFIG_SECTION_ID}
-                sx={{ scrollMarginTop: CONFIG_SECTION_SCROLL_MARGIN_TOP }}
-            >
-                <Stack spacing={4}>
-                    <Typography component="h3" id={headingId} variant="h6">
-                        {PROJECT_CONFIG_SECTION_LABEL}
-                    </Typography>
-                    {PROJECT_CONFIG_GROUPS.map((group) => {
-                        const groupEntries = group.keys
-                            .map((key) => sectionEntries.find((entry) => entry.key === key))
-                            .filter((entry): entry is ConfigEntry => !!entry)
-                        if (groupEntries.length === 0) return null
+        <Box
+            aria-labelledby={headingId}
+            component="section"
+            id={PROJECT_CONFIG_SECTION_ID}
+            sx={{ scrollMarginTop: CONFIG_SECTION_SCROLL_MARGIN_TOP }}
+        >
+            <Stack spacing={4}>
+                <Typography component="h3" id={headingId} variant="h6">
+                    {PROJECT_CONFIG_SECTION_LABEL}
+                </Typography>
+                {PROJECT_CONFIG_GROUPS.map((group) => {
+                    const groupEntries = group.keys
+                        .map((key) => sectionEntries.find((entry) => entry.key === key))
+                        .filter((entry): entry is ConfigEntry => !!entry)
+                    if (groupEntries.length === 0) return null
 
-                        return (
-                            <ConfigSubsection description={group.description} id={group.id} key={group.id} label={group.label}>
-                                {groupEntries.map(renderEntry)}
-                            </ConfigSubsection>
-                        )
-                    })}
-                    {ungroupedEntries.length > 0 ? (
-                        <Stack spacing={3}>
-                            {ungroupedEntries.map(renderEntry)}
-                        </Stack>
-                    ) : null}
-                </Stack>
-            </Box>
-            {worktreeService.isSupported() && !disabled ? <WorktreeConfigList /> : null}
-        </>
+                    return (
+                        <ConfigSubsection description={group.description} id={group.id} key={group.id} label={group.label}>
+                            {groupEntries.map(renderEntry)}
+                        </ConfigSubsection>
+                    )
+                })}
+                {ungroupedEntries.length > 0 ? (
+                    <Stack spacing={3}>
+                        {ungroupedEntries.map(renderEntry)}
+                    </Stack>
+                ) : null}
+                {worktreeService.isSupported() && !disabled ? <WorktreeConfigList /> : null}
+            </Stack>
+        </Box>
     )
 }

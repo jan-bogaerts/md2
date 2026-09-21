@@ -179,7 +179,7 @@ describe('DataService', () => {
     it('coalesces every action text category and pushes once per configured batch interval', async () => {
         vi.useFakeTimers()
         configService.init()
-        configService.set('react.autoCommitDelayMs', 2000)
+        configService.set('project.autoCommitDelayMs', 2000)
         const storage = createStorage()
         const service = createDataService()
         service.init({ storage })
@@ -247,7 +247,7 @@ describe('DataService', () => {
     it('finishes an action rename when watcher reload wins the race with commit completion', async () => {
         vi.useFakeTimers()
         configService.init()
-        configService.set('react.autoCommitDelayMs', 2000)
+        configService.set('project.autoCommitDelayMs', 2000)
         const originalDefinition = {
             command: 'echo test',
             description: 'Test action',

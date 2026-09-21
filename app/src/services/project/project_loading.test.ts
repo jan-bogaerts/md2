@@ -894,7 +894,7 @@ describe('ProjectLoading', () => {
 
     it('merges a stale background load without replacing newer owned card state', async () => {
         configService.init()
-        configService.set('react.autoCommitDelayMs', 30000)
+        configService.set('project.autoCommitDelayMs', 30000)
         const rootFile = files[0]
         const backgroundFile = files[1]
         const fullProject = createDeferred<StorageProjectFiles>()
@@ -1146,7 +1146,7 @@ describe('ProjectLoading', () => {
     it('marks an action watcher event during its commit as a local publication echo', async () => {
         vi.useFakeTimers()
         configService.init()
-        configService.set('react.autoCommitDelayMs', 1000)
+        configService.set('project.autoCommitDelayMs', 1000)
         const initialFile = { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' }
         const commit = createDeferred<StorageProjectFiles['files']>()
         let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
@@ -1181,7 +1181,7 @@ describe('ProjectLoading', () => {
     it('ignores a markdown watcher event received during its local commit', async () => {
         vi.useFakeTimers()
         configService.init()
-        configService.set('react.autoCommitDelayMs', 1000)
+        configService.set('project.autoCommitDelayMs', 1000)
         const commit = createDeferred<StorageProjectFiles['files']>()
         const loadFile = vi.fn(async () => files[0])
         let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
@@ -1960,7 +1960,7 @@ describe('ProjectLoading', () => {
     it('drops the watcher echo of a flushed save without reporting a conflict for newer pending edits', async () => {
         vi.useFakeTimers()
         configService.init()
-        configService.set('react.autoCommitDelayMs', 1000)
+        configService.set('project.autoCommitDelayMs', 1000)
         let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
             throw new Error('Watcher not registered')
         }

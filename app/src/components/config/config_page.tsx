@@ -21,7 +21,6 @@ import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { DesktopConfigSection } from './desktop_config_section'
 import { ProjectConfigSection } from './project_config_section'
-import { ReactConfigSection } from './react_config_section'
 import { useAppTheme } from '../../theme/use_app_theme'
 import {
     cloneMarkdownStyleConfig,
@@ -67,8 +66,7 @@ function getActiveSection(hash: string, sections: typeof CONFIG_SECTIONS) {
 function getVisibleSections(entries: ConfigEntry[]) {
     return CONFIG_SECTIONS.flatMap((section) => {
         const visibleSection = entries.some((entry) => entry.section === section.id) ? [section] : []
-        if (section.id === 'react') return [...visibleSection, MARKDOWN_CONFIG_SECTION]
-        if (section.id === 'project') return [...visibleSection, SENTRY_CONFIG_SECTION]
+        if (section.id === 'project') return [...visibleSection, SENTRY_CONFIG_SECTION, MARKDOWN_CONFIG_SECTION]
 
         return visibleSection
     })
@@ -314,7 +312,6 @@ export function ConfigPage(props: ConfigPageProps) {
                     <Stack spacing={3} sx={{ maxWidth: CONFIG_FORM_MAX_WIDTH }}>
                         {isMobile ? sectionTabs : null}
 
-                        {activeSection === 'react' ? <ReactConfigSection {...sectionProps} /> : null}
                         {activeSection === 'markdown' ? (
                             <MarkdownConfigSection
                                 config={markdownStyleDraft.config}

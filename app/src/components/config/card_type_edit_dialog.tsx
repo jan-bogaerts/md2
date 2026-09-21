@@ -11,9 +11,10 @@ import {
 } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import type { CardTypeConfig } from '../../data/data_types'
+import { ColorPickerField } from '../color_picker_field'
 
-const CARD_TYPE_RENAME_WARNING = 'Cards already using the old value keep it, and lose their colour and ID prefix until it is set back.'
-const COLOR_INPUT_SLOT_PROPS = { inputLabel: { shrink: true } }
+const CARD_TYPE_RENAME_WARNING = 'Renaming the label changes the type actions match on. Cards already using the old value keep it, and lose their colour and ID prefix until the label is set back.'
+const CARD_TYPE_ID_HELPER = 'Derived from the label. Actions match on this value.'
 
 interface CardTypeEditDialogProps {
     disabled: boolean
@@ -21,15 +22,17 @@ interface CardTypeEditDialogProps {
     errors: string[]
     existing: boolean
     onCancel: () => void
+    onColorChange: (value: string) => void
     onDelete: () => void
     onFieldChange: (event: ChangeEvent<HTMLInputElement>) => void
     onSave: () => void
     removable: boolean
+    renamed: boolean
 }
 
 /** Popup that edits one card type as a local draft, so cancelling discards every field at once. */
 export function CardTypeEditDialog(props: CardTypeEditDialogProps) {
-    const { disabled, draft, errors, existing, onCancel, onDelete, onFieldChange, onSave, removable } = props
+    const { disabled, draft, errors, existing, onCancel, onColorChange, onDelete, onFieldChange, onSave, removable, renamed } = props
     const titleId = 'card-type-edit-dialog-title'
 
     return (
@@ -40,23 +43,15 @@ export function CardTypeEditDialog(props: CardTypeEditDialogProps) {
                     {errors.length > 0 ? <Alert severity="error">{errors.join(' ')}</Alert> : null}
                     <TextField disabled={disabled} fullWidth label="Label" name="label" onChange={onFieldChange} size="small" value={draft.label} />
                     <Stack spacing={0.5}>
-                        <TextField disabled={disabled} fullWidth label="Type" name="type" onChange={onFieldChange} size="small" value={draft.type} />
-                        {existing ? (
+                        <TextField disabled fullWidth helperText={CARD_TYPE_ID_HELPER} label="Type" name="type" size="small" value={draft.type} />
+                        {renamed ? (
                             <Typography color="warning.main" variant="caption">{CARD_TYPE_RENAME_WARNING}</Typography>
                         ) : null}
                     </Stack>
-                    <TextField disabled={disabled} fullWidth label="ID prefix" name="idPrefix" onChange={onFieldChange} size="small" value={draft.idPrefix} />
-                    <TextField
-                        disabled={disabled}
-                        fullWidth
-                        label="Color"
-                        name="color"
-                        onChange={onFieldChange}
-                        size="small"
-                        slotProps={COLOR_INPUT_SLOT_PROPS}
-                        type="color"
-                        value={draft.color}
-                    />
+                    <Stack direction="row" spacing={2} sx={{ '& > *': { flex: 1, minWidth: 0 } }}>
+                        <TextField disabled={disabled} fullWidth label="ID prefix" name="idPrefix" onChange={onFieldChange} size="small" value={draft.idPrefix} />
+                        <ColorPickerField disabled={disabled} label="Color" onChange={onColorChange} value={draft.color} />
+                    </Stack>
                 </Stack>
             </DialogContent>
             <DialogActions>

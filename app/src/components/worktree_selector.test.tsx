@@ -569,7 +569,8 @@ describe('WorktreeSelector', () => {
     })
 
     it('restores and applies the persisted delete-branch integration choice', async () => {
-        configService.setReactPreference('react.deleteBranchAfterIntegration', true)
+        configService.connectProjectConfigPersistence({ saveProjectConfig: vi.fn(async () => undefined) })
+        configService.loadProjectConfig({ deleteBranchAfterIntegration: true })
         const aheadWorktree = { ...worktrees[0], status: { ...worktrees[0].status, baseAhead: 1 } }
         const integrateCardWorktree = vi.spyOn(worktreeService, 'integrateCardWorktree').mockResolvedValue({ status: 'completed' })
         renderAssignedWorktree(aheadWorktree)
@@ -579,9 +580,9 @@ describe('WorktreeSelector', () => {
 
         expect(screen.getByRole('checkbox', { name: 'Delete branch' })).toBeChecked()
         fireEvent.click(screen.getByRole('checkbox', { name: 'Delete branch' }))
-        expect(configService.get('react.deleteBranchAfterIntegration')).toBe(false)
+        await vi.waitFor(() => expect(configService.get('project.deleteBranchAfterIntegration')).toBe(false))
         fireEvent.click(screen.getByRole('checkbox', { name: 'Delete branch' }))
-        expect(configService.get('react.deleteBranchAfterIntegration')).toBe(true)
+        await vi.waitFor(() => expect(configService.get('project.deleteBranchAfterIntegration')).toBe(true))
         fireEvent.click(screen.getByRole('button', { name: 'Integrate' }))
         await vi.waitFor(() => expect(integrateCardWorktree).toHaveBeenCalledWith('design/F-1.md', true))
     })

@@ -220,8 +220,7 @@ export class DataService extends EventTarget {
         })
         this.agents.startScheduledRunWatch()
         this.conversationPins.start()
-        const delayMs = configService.get('react.autoCommitDelayMs')
-        this.commitBatcher = new CommitBatcher(this.cards, delayMs)
+        this.commitBatcher = new CommitBatcher(this.cards, () => configService.get('project.autoCommitDelayMs'))
         this.commitBatcher.addEventListener(
             COMMIT_BATCHER_FLUSH_FAILED_EVENT,
             (event) => this.reportCommitFlushFailure((event as CustomEvent<unknown>).detail),

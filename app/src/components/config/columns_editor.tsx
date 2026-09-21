@@ -102,10 +102,16 @@ export function ColumnsEditor(props: ColumnsEditorProps) {
     }
 
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const field = event.target.name as 'color' | 'defaultActionId' | 'state'
+        const field = event.target.name as 'defaultActionId' | 'state'
         const nextValue = event.target.value
         setEditState((currentState) => (currentState
             ? { ...currentState, draft: { ...currentState.draft, [field]: nextValue } }
+            : currentState))
+    }
+
+    const handleColorChange = (color: string) => {
+        setEditState((currentState) => (currentState
+            ? { ...currentState, draft: { ...currentState.draft, color } }
             : currentState))
     }
 
@@ -174,6 +180,7 @@ export function ColumnsEditor(props: ColumnsEditorProps) {
                     existing={editState.index !== null}
                     onAlwaysVisibleChange={handleAlwaysVisibleChange}
                     onCancel={cancelEdit}
+                    onColorChange={handleColorChange}
                     onDelete={deleteColumn}
                     onFieldChange={handleFieldChange}
                     onMoveLeft={moveColumnLeft}

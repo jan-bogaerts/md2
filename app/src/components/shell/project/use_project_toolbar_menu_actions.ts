@@ -86,8 +86,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const states = projectConfig?.states ?? DEFAULT_STATES
     const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
-    const releaseSelectAllDefault = useConfigValueOrFallback('react.deleteBranchesAfterRelease', false)
-    const releaseIncludeProjectActivityDefault = useConfigValueOrFallback('react.includeProjectActivityInRelease', false)
+    const releaseSelectAllDefault = useConfigValueOrFallback('project.deleteBranchesAfterRelease', false)
 
     const closeDialog = useCallback(() => {
         onCloseDialog()
@@ -375,10 +374,10 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         }
     }
 
-    const completeRelease = async (releaseName: string, selectedBranchNames: string[], includeProjectActivity: boolean) => {
+    const completeRelease = async (releaseName: string, selectedBranchNames: string[]) => {
         setIsReleaseCompleting(true)
         try {
-            await projectSessionService.completeRelease(releaseName, selectedBranchNames, includeProjectActivity)
+            await projectSessionService.completeRelease(releaseName, selectedBranchNames)
             closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.
@@ -388,11 +387,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     }
 
     const setReleaseSelectAllDefault = (selected: boolean) => {
-        configService.setReactPreference('react.deleteBranchesAfterRelease', selected)
-    }
-
-    const setReleaseIncludeProjectActivityDefault = (included: boolean) => {
-        configService.setReactPreference('react.includeProjectActivityInRelease', included)
+        void configService.setProjectPreference('project.deleteBranchesAfterRelease', selected)
     }
 
     const createCard = async (draft: CardDraft, initialState: string) => {
@@ -440,9 +435,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         removeRecentLocalProject,
         repositories,
         releaseBranchCandidates,
-        releaseIncludeProjectActivityDefault,
         releaseSelectAllDefault,
-        setReleaseIncludeProjectActivityDefault,
         setReleaseSelectAllDefault,
         setSwitchBranch,
         states,

@@ -109,17 +109,17 @@ export class CommitBatcher extends EventTarget {
     private activeFlush: Promise<void> | null
     private automaticFlushDeferrals: number
     private readonly cardOperations: CommitBatcherOperations
-    private readonly delayMs
+    private readonly delayMsProvider: () => number
     private pendingBranch: string | null
     private pendingChanges: Map<string, PendingChange>
     private scheduledDelayId: DelayId | null
 
-    constructor(cardOperations: CommitBatcherOperations, delayMs = AUTO_COMMIT_DELAY_MS) {
+    constructor(cardOperations: CommitBatcherOperations, delayMsProvider: () => number = () => AUTO_COMMIT_DELAY_MS) {
         super()
         this.activeFlush = null
         this.automaticFlushDeferrals = 0
         this.cardOperations = cardOperations
-        this.delayMs = delayMs
+        this.delayMsProvider = delayMsProvider
         this.pendingBranch = null
         this.pendingChanges = new Map()
         this.scheduledDelayId = null
@@ -159,7 +159,7 @@ export class CommitBatcher extends EventTarget {
             this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
             return
         }
-        this.scheduledDelayId = window.setTimeout(this.createFlushCallback(), this.delayMs)
+        this.scheduledDelayId = window.setTimeout(this.createFlushCallback(), this.delayMsProvider())
         this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
     }
 

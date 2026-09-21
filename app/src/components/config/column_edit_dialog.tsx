@@ -12,11 +12,10 @@ import {
     TextField,
 } from '@mui/material'
 import type { ChangeEvent } from 'react'
+import { ColorPickerField } from '../color_picker_field'
 import { useActions } from '../hooks/use_actions'
 
 export const NO_DEFAULT_ACTION_VALUE = ''
-
-const COLOR_INPUT_SLOT_PROPS = { inputLabel: { shrink: true } }
 
 export interface ColumnDraft {
     alwaysVisible: boolean
@@ -34,6 +33,7 @@ interface ColumnEditDialogProps {
     existing: boolean
     onAlwaysVisibleChange: (event: ChangeEvent<HTMLInputElement>) => void
     onCancel: () => void
+    onColorChange: (value: string) => void
     onDelete: () => void
     onFieldChange: (event: ChangeEvent<HTMLInputElement>) => void
     onMoveLeft: () => void
@@ -53,6 +53,7 @@ export function ColumnEditDialog(props: ColumnEditDialogProps) {
         existing,
         onAlwaysVisibleChange,
         onCancel,
+        onColorChange,
         onDelete,
         onFieldChange,
         onMoveLeft,
@@ -70,21 +71,13 @@ export function ColumnEditDialog(props: ColumnEditDialogProps) {
                 <Stack spacing={2} sx={{ pt: 1 }}>
                     {errors.length > 0 ? <Alert severity="error">{errors.join(' ')}</Alert> : null}
                     <TextField disabled={disabled} fullWidth label="Name" name="state" onChange={onFieldChange} size="small" value={draft.state} />
-                    <TextField
-                        disabled={disabled}
-                        fullWidth
-                        label="Color"
-                        name="color"
-                        onChange={onFieldChange}
-                        size="small"
-                        slotProps={COLOR_INPUT_SLOT_PROPS}
-                        type="color"
-                        value={draft.color}
-                    />
-                    <FormControlLabel
-                        control={<Switch checked={draft.alwaysVisible} disabled={disabled} onChange={onAlwaysVisibleChange} />}
-                        label="Always visible"
-                    />
+                    <Stack direction="row" spacing={2} sx={{ '& > *': { flex: 1, minWidth: 0 } }}>
+                        <ColorPickerField disabled={disabled} label="Color" onChange={onColorChange} value={draft.color} />
+                        <FormControlLabel
+                            control={<Switch checked={draft.alwaysVisible} disabled={disabled} onChange={onAlwaysVisibleChange} />}
+                            label="Always visible"
+                        />
+                    </Stack>
                     <TextField
                         disabled={disabled}
                         fullWidth

@@ -22,9 +22,9 @@ describe('ConfigValueEditor', () => {
             description: 'Invalid slider.',
             editable: true,
             input: 'slider',
-            key: 'react.autoCommitDelayMs',
+            key: 'project.autoCommitDelayMs',
             label: 'Auto commit delay',
-            section: 'react',
+            section: 'project',
             source: 'react',
             type: 'number',
         }
@@ -32,7 +32,7 @@ describe('ConfigValueEditor', () => {
 
         render(<ConfigValueEditor entry={entry} onChange={vi.fn()} value={30000} />)
 
-        expect(reportError).toHaveBeenCalledWith('Slider config entry react.autoCommitDelayMs requires min and max')
+        expect(reportError).toHaveBeenCalledWith('Slider config entry project.autoCommitDelayMs requires min and max')
         expect(screen.queryByRole('slider')).not.toBeInTheDocument()
     })
 
@@ -41,11 +41,11 @@ describe('ConfigValueEditor', () => {
             defaultValue: 30000,
             description: 'Delay before editor changes are committed after typing stops.',
             editable: true,
-            key: 'react.autoCommitDelayMs',
+            key: 'project.autoCommitDelayMs',
             label: 'Auto commit delay',
             max: 120000,
             min: 1000,
-            section: 'react',
+            section: 'project',
             source: 'react',
             type: 'number',
         }
@@ -87,11 +87,11 @@ describe('ConfigValueEditor', () => {
             description: 'Delay before editor changes are committed after typing stops.',
             editable: true,
             input: 'slider',
-            key: 'react.autoCommitDelayMs',
+            key: 'project.autoCommitDelayMs',
             label: 'Auto commit delay',
             max: 120000,
             min: 1000,
-            section: 'react',
+            section: 'project',
             source: 'react',
             step: 1000,
             type: 'number',
@@ -104,7 +104,7 @@ describe('ConfigValueEditor', () => {
 
         expect(slider).toHaveAttribute('aria-valuemax', '120000')
         expect(slider).toHaveAttribute('aria-valuemin', '1000')
-        expect(handleChange).toHaveBeenCalledWith('react.autoCommitDelayMs', 5000)
+        expect(handleChange).toHaveBeenCalledWith('project.autoCommitDelayMs', 5000)
     })
 
     it('renders placeholder tokens as code in helper text', () => {

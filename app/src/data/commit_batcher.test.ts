@@ -18,7 +18,7 @@ function createBatcher(
 ) {
     const cardOperations = { commitFiles: commit, pushCommittedFiles: push, requireCardByInternalId }
 
-    return new CommitBatcher(cardOperations, delayMs)
+    return new CommitBatcher(cardOperations, () => delayMs)
 }
 
 describe('CommitBatcher', () => {

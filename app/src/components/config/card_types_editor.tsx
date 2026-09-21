@@ -5,9 +5,11 @@ import { useEffect, useState } from 'react'
 import type { CardTypeConfig } from '../../data/data_types'
 import { DEFAULT_CARD_TYPES } from '../../data/data_types'
 import { CardTypeButton } from './card_type_button'
+import { cardTypeIdFromLabel } from './card_type_id'
 import { CardTypeEditDialog } from './card_type_edit_dialog'
 
 const NEW_CARD_TYPE_COLOR = DEFAULT_CARD_TYPES[0]!.color
+const RESERVED_CARD_TYPES = ['root', 'child']
 
 interface CardTypesEditorProps {
     disabled?: boolean
@@ -19,6 +21,7 @@ interface CardTypesEditorProps {
 interface CardTypeEditState {
     draft: CardTypeConfig
     index: number | null
+    storedType: string
 }
 
 function newCardType(): CardTypeConfig {
@@ -32,8 +35,8 @@ function draftErrors(draft: CardTypeConfig, otherCardTypes: CardTypeConfig[]) {
     const idPrefix = draft.idPrefix.trim()
 
     if (label.length === 0) errors.push('Label is required.')
-    if (type.length === 0) errors.push('Type is required.')
     if (idPrefix.length === 0) errors.push('ID prefix is required.')
+    if (RESERVED_CARD_TYPES.includes(type)) errors.push(`Reserved card type: ${type}`)
     if (draft.color.length === 0) errors.push('Color is required.')
     if (type.length > 0 && otherCardTypes.some((cardType) => cardType.type === type)) {
         errors.push(`Duplicate card type: ${type}`)
@@ -72,14 +75,14 @@ export function CardTypesEditor(props: CardTypesEditorProps) {
     }, [onValidityChange, valid])
 
     const startAdd = () => {
-        setEditState({ draft: newCardType(), index: null })
+        setEditState({ draft: newCardType(), index: null, storedType: '' })
     }
 
     const startEdit = (index: number) => {
         const cardType = value[index]
         if (!cardType) return
 
-        setEditState({ draft: { ...cardType }, index })
+        setEditState({ draft: { ...cardType }, index, storedType: cardType.type })
     }
 
     const cancelEdit = () => {
@@ -87,10 +90,19 @@ export function CardTypesEditor(props: CardTypesEditorProps) {
     }
 
     const handleFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const field = event.target.name as keyof CardTypeConfig
+        const field = event.target.name as 'idPrefix' | 'label'
         const nextValue = event.target.value
+        setEditState((currentState) => {
+            if (!currentState) return currentState
+            const draft = { ...currentState.draft, [field]: nextValue }
+
+            return { ...currentState, draft: field === 'label' ? { ...draft, type: cardTypeIdFromLabel(nextValue) } : draft }
+        })
+    }
+
+    const handleColorChange = (color: string) => {
         setEditState((currentState) => (currentState
-            ? { ...currentState, draft: { ...currentState.draft, [field]: nextValue } }
+            ? { ...currentState, draft: { ...currentState.draft, color } }
             : currentState))
     }
 
@@ -139,10 +151,12 @@ export function CardTypesEditor(props: CardTypesEditorProps) {
                     errors={errors}
                     existing={editState.index !== null}
                     onCancel={cancelEdit}
+                    onColorChange={handleColorChange}
                     onDelete={deleteCardType}
                     onFieldChange={handleFieldChange}
                     onSave={saveCardType}
                     removable={value.length > 1}
+                    renamed={editState.index !== null && editState.draft.type !== editState.storedType}
                 />
             ) : null}
         </Stack>

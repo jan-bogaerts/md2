@@ -55,7 +55,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const [commitDialogOpen, setCommitDialogOpen] = useState(false)
     const [integrationDialogOpen, setIntegrationDialogOpen] = useState(false)
     const [unassignDialogOpen, setUnassignDialogOpen] = useState(false)
-    const deleteBranchPreference = useConfigValueOrFallback('react.deleteBranchAfterIntegration', false)
+    const deleteBranchPreference = useConfigValueOrFallback('project.deleteBranchAfterIntegration', false)
     const cardPath = assignmentTarget.kind === 'card' ? assignmentTarget.path : null
     const assignedWorktree = assignment.worktree ?? null
     const {
@@ -283,7 +283,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     }
     const handleIntegrationClose = () => setIntegrationDialogOpen(false)
     const handleDeleteBranchChange = (deleteBranch: boolean) => {
-        configService.setReactPreference('react.deleteBranchAfterIntegration', deleteBranch)
+        void configService.setProjectPreference('project.deleteBranchAfterIntegration', deleteBranch)
     }
     const handleIntegration = async () => {
         if (assignmentTarget.kind !== 'card') return

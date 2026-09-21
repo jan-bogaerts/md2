@@ -159,7 +159,7 @@ export class ReleaseOperations {
             })
     }
 
-    async completeRelease(releaseName: string, selectedBranchNames: string[], includeProjectActivity = false) {
+    async completeRelease(releaseName: string, selectedBranchNames: string[]) {
         projectAccessService.requireWritable()
         const { config, storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
@@ -203,9 +203,12 @@ export class ReleaseOperations {
             if (calculatedStats.warnings.length > 0) {
                 throw new Error(`Cannot calculate released stats: ${calculatedStats.warnings.join('; ')}`)
             }
-            const archivedProjectActivity = includeProjectActivity
-                ? await this.loadArchivedProjectActivity(config.projectFolder, config.releasesFolder, safeReleaseName, repositoryFiles)
-                : null
+            const archivedProjectActivity = await this.loadArchivedProjectActivity(
+                config.projectFolder,
+                config.releasesFolder,
+                safeReleaseName,
+                repositoryFiles,
+            )
             const moves = buildReleaseMoves(
                 [...files, ...assetFiles],
                 releaseCards,

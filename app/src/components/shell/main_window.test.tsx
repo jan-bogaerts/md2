@@ -297,10 +297,12 @@ describe('MainWindow', () => {
 
     it('closes the config page and confirms a successful save', async () => {
         mockMatchMedia(false)
+        configService.loadProjectConfig(null)
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
         renderWindow()
 
         fireEvent.click(screen.getByRole('button', { name: 'Config' }))
-        fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
+        fireEvent.click(screen.getByRole('switch', { name: 'Delete integrated card branch' }))
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
         await waitFor(() => {
@@ -308,7 +310,9 @@ describe('MainWindow', () => {
             expect(screen.getByRole('alert')).toHaveTextContent('Config saved')
         })
         expect(window.location.hash).toBe('')
-        expect(configService.get('react.showStartupSplash')).toBe(false)
+        expect(configService.get('project.deleteBranchAfterIntegration')).toBe(true)
+
+        saveProjectConfig.mockRestore()
     })
 
     it('opens the config page directly from the URL', () => {

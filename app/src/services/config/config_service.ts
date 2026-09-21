@@ -22,10 +22,6 @@ import {
     type ConfigValues,
     type DesktopConfigValues,
 } from './config_entries'
-import {
-    mergeStoredReactValues,
-    writeStoredReactValues,
-} from './config_persistence'
 import { register } from '../service_injector'
 
 export {
@@ -41,7 +37,6 @@ export {
     type ConfigValueType,
     type DesktopConfigValues,
 } from './config_entries'
-export { REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_persistence'
 
 interface ConfigServiceInitDependencies {
     desktopConfig?: Partial<DesktopConfigValues> | null
@@ -65,7 +60,7 @@ function createDeferredSave(): DeferredSave {
     return { promise, release }
 }
 
-type ReactConfigKey = Extract<ConfigKey, `react.${string}`>
+type ProjectConfigKey = Extract<ConfigKey, `project.${string}`>
 
 function requireString(value: unknown, fieldName: string) {
     if (typeof value !== 'string' || value.length === 0) throw new Error(`Missing config field: ${fieldName}`)
@@ -273,9 +268,12 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
     return {
         actionsFolder: values['project.actionsFolder'],
         archivedFolder: values['project.archivedFolder'],
+        autoCommitDelayMs: values['project.autoCommitDelayMs'],
         backgroundShade: values['project.backgroundShade'],
         cardSeparator: values['project.cardSeparator'],
         cardTypes: values['project.cardTypes'],
+        deleteBranchAfterIntegration: values['project.deleteBranchAfterIntegration'],
+        deleteBranchesAfterRelease: values['project.deleteBranchesAfterRelease'],
         diffCommand: values['project.diffCommand'],
         diagramFooter: values['project.diagramFooter'],
         diagramsFolder: values['project.diagramsFolder'],
@@ -354,8 +352,6 @@ export class ConfigService extends EventTarget {
         this.projectLoaded = false
         this.draftValues = null
 
-        nextValues = mergeStoredReactValues(nextValues, mergeValue)
-
         nextValues = replaceDesktopValues(nextValues, desktopConfig ?? null)
 
         this.initialized = true
@@ -421,11 +417,19 @@ export class ConfigService extends EventTarget {
         })
     }
 
-    setReactPreference<K extends ReactConfigKey>(key: K, value: ConfigValueTypes[K]) {
+    /** Persists one project preference set outside the config dialog, ignored while no project is open. */
+    async setProjectPreference<K extends ProjectConfigKey>(key: K, value: ConfigValueTypes[K]) {
         this.requireInitialized()
-        this.values = mergeValue(this.values, key, value)
-        writeStoredReactValues(this.values)
-        this.dispatchChanged()
+        if (!this.projectLoaded) return
+
+        return this.withProjectConfigSave(async () => {
+            const validated = validateValue(key, value)
+            const nextValues = mergeValue(this.values, key, validated)
+            await this.requireProjectConfigPersistence().saveProjectConfig(readProjectConfig(nextValues))
+            this.values = mergeValue(this.values, key, validated)
+            if (this.draftValues) this.draftValues = mergeValue(this.draftValues, key, validated)
+            this.dispatchChanged()
+        })
     }
 
     clear() {
@@ -479,6 +483,15 @@ export class ConfigService extends EventTarget {
             nextValues = mergeValue(nextValues, 'project.diagramsFolder', projectConfig.diagramsFolder)
         }
         if (projectConfig?.pushMode !== undefined) nextValues = mergeValue(nextValues, 'project.pushMode', projectConfig.pushMode)
+        if (projectConfig?.autoCommitDelayMs !== undefined) {
+            nextValues = mergeValue(nextValues, 'project.autoCommitDelayMs', projectConfig.autoCommitDelayMs)
+        }
+        if (projectConfig?.deleteBranchAfterIntegration !== undefined) {
+            nextValues = mergeValue(nextValues, 'project.deleteBranchAfterIntegration', projectConfig.deleteBranchAfterIntegration)
+        }
+        if (projectConfig?.deleteBranchesAfterRelease !== undefined) {
+            nextValues = mergeValue(nextValues, 'project.deleteBranchesAfterRelease', projectConfig.deleteBranchesAfterRelease)
+        }
         if (projectConfig?.releasesFolder !== undefined) {
             nextValues = mergeValue(nextValues, 'project.releasesFolder', projectConfig.releasesFolder)
         }
@@ -550,7 +563,6 @@ export class ConfigService extends EventTarget {
         validateProjectFolderPaths(draft)
         this.values = draft
         this.draftValues = null
-        writeStoredReactValues(this.values)
         this.dispatchChanged()
 
         return this.values
