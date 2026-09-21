@@ -2338,7 +2338,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "1e7b5718-e065-479d-9d50-be0ff38d738f",
       "cardPath": "design/feature_descriptions/F_370_config_dialog_project_tab_improvements.md",
-      "completedAt": null,
+      "completedAt": "2026-09-21T14:13:02.552Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 98134
@@ -3900,21 +3900,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 117,
-          "timestamp": "2026-09-21T14:10:13.777Z"
+          "timestamp": "2026-09-21T14:13:02.552Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-df60dbac-325b-42a1-a999-8df3a6a00ba2",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "f4f92a79-e50f-4b0f-bd60-e44f8eadaaa1",
+          "createdAt": "2026-09-21T14:10:13.777Z",
+          "lastUsedAt": "2026-09-21T14:13:02.552Z",
+          "synchronizedThroughMessageId": "agent-turn-bcedab23-60b3-4bec-8f5a-f0d722918c31-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-09-21T13:53:26.749Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 96470,
           "toolMs": 392366
         },
-        "elapsedMs": 134372,
-        "runningStartedAt": "2026-09-21T14:02:39.641Z"
+        "elapsedMs": 588508,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
