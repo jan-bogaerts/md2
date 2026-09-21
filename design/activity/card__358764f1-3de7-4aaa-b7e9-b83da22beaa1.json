@@ -11576,7 +11576,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 175592
+        "usedTokens": 175953
       },
       "entries": [
         {
@@ -16003,6 +16003,36 @@
           "role": "assistant",
           "sequence": 328,
           "timestamp": "2026-09-21T10:03:37.563Z"
+        },
+        {
+          "content": "`Later pin changes can trigger background loading while popup is closed.` this is the only thing I see as a problem. what is loaded in the background whine popup is closed?",
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-user-328",
+          "kind": "message",
+          "role": "user",
+          "sequence": 329,
+          "timestamp": "2026-09-21T10:04:50.568Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-330",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0613de794e90c1b7016ab10145003487d2989fb757f69231ed",
+          "sequence": 330,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T10:04:57.266Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "After popup has been opened once, `pinnedLoadRequested` remains `true`.\n\nWhen a new pin cannot be resolved from existing memory, `handlePinsChanged()` calls `ensurePinnedConversationsLoaded()` even while popup is closed. That loads:\n\n- Every distinct activity file referenced by all current pinned locators.\n- Every conversation contained in those activity files.\n- Matching pinned conversations are then selected; other loaded conversations remain as candidates.\n\nUnpinning does not normally trigger this. Pinning an already-known conversation also avoids loading.\n\nFix: clear `pinnedLoadRequested` when popup closes, or track popup-open state explicitly and only resolve new pins while open.\n\n",
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-turn-6-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 331,
+          "timestamp": "2026-09-21T10:05:00.729Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -16012,27 +16042,27 @@
           "agent": "codex",
           "conversationId": "01a0c343-9a9c-79b2-b6e0-ec5c7db26e8f",
           "createdAt": "2026-09-21T09:20:15.120Z",
-          "lastUsedAt": "2026-09-21T10:00:34.266Z",
-          "synchronizedThroughMessageId": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-turn-4-assistant-5"
+          "lastUsedAt": "2026-09-21T10:03:37.563Z",
+          "synchronizedThroughMessageId": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-turn-5-assistant-1"
         }
       ],
       "startedAt": "2026-09-21T09:13:14.105Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 351896,
+          "reasoningMs": 356890,
           "toolMs": 261572
         },
-        "elapsedMs": 1190626,
-        "runningStartedAt": "2026-09-21T10:03:18.397Z"
+        "elapsedMs": 1209792,
+        "runningStartedAt": "2026-09-21T10:04:50.568Z"
       },
       "title": "review (split)",
       "usage": {
-        "cachedInputTokens": 11800192,
-        "inputTokens": 179818,
-        "outputTokens": 23021,
-        "reasoningTokens": 12783,
-        "totalTokens": 12015814
+        "cachedInputTokens": 11974912,
+        "inputTokens": 180732,
+        "outputTokens": 23160,
+        "reasoningTokens": 12963,
+        "totalTokens": 12191767
       },
       "usageSchemaVersion": 1,
       "viewed": true
