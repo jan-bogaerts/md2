@@ -1943,6 +1943,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "be94932a-4808-47eb-aa34-e52dd9504e7f",
+      "cardPath": "design/feature_descriptions/B_236_backend_owns_agent_run_status.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "We implemented design/feature_descriptions/B_236_backend_owns_agent_run_status.md, it works, but we forgot about the action buttons on the action popup. They dont appear to update correctly yet.",
+          "id": "agent-turn-940e867f-4c82-461e-8405-16777ec9c4e7-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-21T18:00:46.939Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-1a57586a-3ef9-4d8c-8027-82978d474dc1",
+      "providerSessions": [],
+      "startedAt": "2026-09-21T18:00:46.939Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-21T18:00:46.939Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -1957,11 +1985,11 @@
         "agent-150156aa-a08d-42e5-b1db-8cb09c4368c0"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-dd9df26a-920b-4dc1-8c5f-34eeefb55619",
       "origin": {
@@ -1970,9 +1998,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-150156aa-a08d-42e5-b1db-8cb09c4368c0",
       "startedAt": "2026-09-16T11:31:36.942Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-150156aa-a08d-42e5-b1db-8cb09c4368c0"
     }
   ],
   "version": 5
