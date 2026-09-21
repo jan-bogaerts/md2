@@ -11574,6 +11574,10 @@
       "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
       "cardPath": "design/feature_descriptions/F_349_pin_conversations.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 32296
+      },
       "entries": [
         {
           "content": "we just implemented the feature description  `design/feature_descriptions/F_349_pin_conversations.md`.\r\nCheck that:  everything is fully and correctly implemented code wise.\r\nlist all:\n* missing stuff\n* shortcuts\n* incorrectly implemented\n* bad design\n* not following architectural design\n* code smells\r\nbe short and to the point, use /caveman skill but report back with full normal sentences\nwe don't care about missing tests.\nfor each problem, include how you will fix it",
@@ -13316,18 +13320,125 @@
           "role": "assistant",
           "sequence": 126,
           "timestamp": "2026-09-19T15:27:39.397Z"
+        },
+        {
+          "content": "lets focus on 1 first\nthe status popup should not expect to receive full conversations. this is the wrong approach. when the popup is opened, it should asks for the conversations, not sooner",
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 127,
+          "timestamp": "2026-09-21T09:19:42.466Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-128",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0613de794e90c1b7016ab0f6b2e19887d2b48a17b1c4a36edf",
+          "sequence": 128,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T09:19:48.125Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Agreed. The pinned state should contain only conversation IDs; opening the popup should resolve those IDs into conversation details on demand. I’ll trace the popup-open path and identify the smallest correction to ownership and loading.\n\n",
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 129,
+          "timestamp": "2026-09-21T09:19:49.638Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/services/agents/agent_integration.ts'; Get-Content -Raw 'app/src/components/shell/pinned_conversations_indicator.tsx'; Get-Content -Raw 'design/feature_descriptions/F_349_pin_conversations.md'\"",
+          "content": "import { cardContext, type ActionContext } from '../../data/action_context'\nimport { type ActionDefinition } from '../../data/action_types'\nimport type { ActionRunEvent, ActionRunTerminalStatus } from '../../data/action_run_types'\nimport {\n    type AgentConversation,\n    type AgentConversationError,\n    type AgentConversationStatus,\n    type Card,\n    type ProjectReference,\n    type ProjectSnapshot,\n    type StorageService,\n} from '../../data/data_types'\nimport { actionService } from '../actions/action_service'\nimport { actionRunRegistry } from '../actions/action_run_registry'\nimport { getElectronActionBridge, type ActionConversationViewedEvent } from '../../data/electron_action_bridge'\nimport { agentAcknowledgementService } from './agent_acknowledgement_service'\nimport { listAgentConversationReferences, loadActivityConversations, loadAgentConversation } from './agent_conversation_service'\nimport { runElectronAction } from '../actions/electron_action_runner'\nimport { mapWithConcurrency } from '../concurrency'\nimport { type RequiredDataServiceDependencies } from '../data/data_service_context'\nimport { telemetryService } from '../telemetry/telemetry_service'\nimport { dialogService } from '../dialog_service'\nimport type { ConversationPinService } from './conversation_pin_service'\nimport { activityFilePath } from '../../../../shared/activity_paths.mjs'\n\nconst AGENT_CONVERSATION_LOAD_CONCURRENCY = 8\n/** Terminal run status as the conversation records it; a run that ended after its after-phase check still completed. */\nconst TERMINAL_CONVERSATION_STATUS: Record<ActionRunTerminalStatus, AgentConversationStatus> = {\n    cancelled: 'cancelled',\n    completed: 'completed',\n    failed: 'failed',\n    okButNotAfter: 'completed',\n}\nconst MAX_REPORTED_LOAD_ERROR_KEYS = 200\nconst PINNED_CONVERSATIONS_CHANGED_EVENT = 'pinned-conversations'\n\nfunction conversationTimestamp(conversation: AgentConversation) {\n    const timestamp = Date.parse(conversation.startedAt)\n\n    return Number.isNaN(timestamp) ? 0 : timestamp\n}\n\nfunction sortPinnedConversations(conversations: AgentConversation[]) {\n    return conversations.sort((left, right) => conversationTimestamp(right) - conversationTimestamp(left))\n}\n\ninterface ResolvedAgentConversations {\n    conversations: AgentConversation[]\n    errors: AgentConversationError[]\n    /** Activity files that loaded without failing, so an empty card is distinguishable from a failed one. */\n    loadedActivityCount: number\n}\n\nexport interface AgentIntegrationDeps {\n    conversationsChanged(cardPath: string): void\n    findCardByInternalId(cardInternalId: string): Card | null\n    isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean\n    pins: ConversationPinService\n    project(): ProjectReference | null\n    requireDependencies(): RequiredDataServiceDependencies\n    snapshot(): ProjectSnapshot | null\n}\n\nfunction isOnStateActionError(error: AgentConversationError) {\n    return error.kind === 'onStateAction'\n}\n\nasync function resolveCardConversations(\n    card: Card,\n    project: ProjectReference,\n    storage: StorageService,\n): Promise<ResolvedAgentConversations> {\n    const activityPaths = [...new Set(card.header.agentLogReferences)]\n    const results = await mapWithConcurrency(activityPaths, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (activityPath) => {\n        try {\n            const conversations = await loadActivityConversations(storage, project, activityPath)\n\n            return { conversations, error: null }\n        } catch (error) {\n            telemetryService.captureError(error)\n            const message = error instanceof Error ? error.message : 'Agent conversation failed to load'\n\n            return { conversations: null, error: { message, path: activityPath } }\n        }\n    })\n\n    return {\n        conversations: results.flatMap(({ conversations }) => conversations ?? []),\n        errors: results.flatMap(({ error }) => error ? [error] : []),\n        loadedActivityCount: results.filter(({ error }) => !error).length,\n    }\n}\n\nexport class AgentIntegration {\n    private rea\n[34376 characters omitted]\ne project-config update, writes the complete updated locator list, and returns that confirmed list. The service publishes state only after the write succeeds, so a failed write leaves the last confirmed snapshot intact.\n\nAfter persistence, the backend emits `{ locator, pinned }` through `onActionConversationPinned`. Every attached window applies the event to its service-owned list. Aggregate and conversation-scoped `EventTarget` notifications support `useSyncExternalStore` subscriptions without republishing cards or conversation collections.\n\nProject-config drafts receive service-owned list changes as they occur. Saving an already-open settings draft therefore cannot restore an older pin list.\n\n### Pinned conversation projection\n\n`AgentIntegration` owns only the view projection used by the status popup. Opening the popup requests that projection. It resolves each locator through the current card's activity references or the project activity path, loads only those distinct activity files, and selects records whose `AgentConversation.id` occurs in `ConversationPinService`.\n\nThe projection is sorted by `startedAt`, newest first. Run updates refresh matching projected conversations, while pin-service events add or remove entries. Project changes clear the projection and its loaded candidates before the next project list is resolved.\n\n### UI subscriptions\n\nThe picker pin button and picker options subscribe to one conversation ID through `ConversationPinService`. The status indicator subscribes to the locator list for visibility and count, and the open popup subscribes to the projected records from `AgentIntegration`. Subscriptions live in the smallest component that renders the changing value.\n\nThe pin button is disabled while its write is pending. Write and load failures are reported through `dialogService`.\n\n### Opening pinned history\n\n`CardPopupService` opens a pinned conversation by resolving its action and current context:\n\n* Card-owned conversations resolve the card through `cardInternalId`, build context from current card data, select `actionId`, and initialize history selection from the stored conversation path.\n* Project-owned conversations use project context and initialize the same persisted-history selection.\n* A renamed or moved card still resolves through `cardInternalId`.\n* Missing cards or actions leave the row visible but unavailable. Selecting it reports the reason through `dialogService`.\n\n## Verification\n\nCoverage includes project-config validation and persistence, pin-service state and events, bridge and cross-window synchronization, project reset, pinned projection, picker controls and markers, status indicator behavior, historical opening, missing targets, and write/load failures. Run the affected app and desktop tests and both subproject linters.\n\n## Acceptance criteria\n\n* Selected persisted or live conversation can be pinned and unpinned from icon beside picker; `New conversation` cannot be pinned.\n* The project-level pinned identity list survives reload and project reopen.\n* Pin changes from another window appear without reloading the project.\n* Conversation updates do not change the project pin list.\n* Every pinned picker option shows pin marker; unpinned options do not. Existing newest-first order remains unchanged.\n* With at least one pinned conversation, status-bar pin appears immediately before running-agents control. With none, pin control is absent.\n* Status popup lists every pinned card- and project-origin conversation in current project, newest first, with enough action/card context to distinguish equal titles.\n* Selecting available row opens related action popup on exact conversation, including completed historical conversation with no live run.\n* Renamed or moved card still opens because ownership resolves through `cardInternalId`, not stored path. Missing card or action leaves row visible and produces clear error instead of opening wrong popup or throwing during render.\n* Pin write or load failure leaves last confirmed state intact and is reported through `dialogService`.\n\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-130",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -Raw 'app/src/services/agents/agent_integration.ts'; Get-Content -Raw 'app/src/components/shell/pinned_conversations_indicator.tsx'; Get-Content -Raw 'design/feature_descriptions/F_349_pin_conversations.md'\"",
+          "providerItemId": "exec-4fb8c818-7c25-4e2d-8345-df9bf781286c",
+          "sequence": 130,
+          "status": "completed",
+          "timestamp": "2026-09-21T09:19:52.705Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-131",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0613de794e90c1b7016ab0f6bad50887d296dfe017b1834a83",
+          "sequence": 131,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T09:19:55.349Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"ensurePinnedConversationsLoaded|pinnedLoadRequested|pinnedActivityPaths|subscribePinnedConversations|getPinnedConversationsSnapshot|hydrateActiveCardConversations\" app/src; rg -n \"PinnedConversationsIndicator|RunningAgentsIndicator\" app/src/components'",
+          "content": "app/src\\services\\project\\project_loading.ts:140:    hydrateActiveCardConversations(): Promise<void>\napp/src\\services\\project\\project_loading.ts:267:            void this.hydrateActiveCardConversations()\napp/src\\services\\project\\project_loading.ts:387:        void this.hydrateActiveCardConversations()\napp/src\\services\\project\\project_loading.ts:626:    private async hydrateActiveCardConversations() {\napp/src\\services\\project\\project_loading.ts:628:            await this.dependencies.hydrateActiveCardConversations()\napp/src\\services\\agents\\agent_integration.test.ts:428:        expect(service.agents.getPinnedConversationsSnapshot()).toEqual([])\napp/src\\services\\agents\\agent_integration.test.ts:429:        await service.agents.ensurePinnedConversationsLoaded()\napp/src\\services\\agents\\agent_integration.test.ts:434:        expect(service.agents.getPinnedConversationsSnapshot().map(({ id }) => id))\napp/src\\services\\agents\\agent_integration.test.ts:438:        expect(service.agents.getPinnedConversationsSnapshot()).toEqual([])\napp/src\\services\\agents\\agent_integration.test.ts:461:        await service.agents.ensurePinnedConversationsLoaded()\napp/src\\services\\agents\\agent_integration.test.ts:469:        expect(service.agents.getPinnedConversationsSnapshot()).toHaveLength(1)\napp/src\\services\\agents\\agent_integration.test.ts:474:        expect(service.agents.getPinnedConversationsSnapshot()).toEqual([])\napp/src\\services\\agents\\agent_integration.test.ts:498:        await service.agents.ensurePinnedConversationsLoaded()\napp/src\\services\\agents\\agent_integration.test.ts:501:        expect(service.agents.getPinnedConversationsSnapshot()).toEqual([stored])\napp/src\\services\\agents\\agent_integration.test.ts:512:        await failedService.agents.ensurePinnedConversationsLoaded()\napp/src\\services\\agents\\agent_integration.test.ts:513:        expect(failedService.agents.getPinnedConversationsSnapshot()).toEqual([])\napp/src\\services\\agents\\agent_integration.ts:112:    private pinnedLoadRequested = false\napp/src\\services\\agents\\agent_integration.ts:144:    readonly getPinnedConversationsSnapshot = () => this.pinnedConversations\napp/src\\services\\agents\\agent_integration.ts:146:    readonly subscribePinnedConversations = (listener: () => void) => {\napp/src\\services\\agents\\agent_integration.ts:153:    async ensurePinnedConversationsLoaded() {\napp/src\\services\\agents\\agent_integration.ts:165:        this.pinnedLoadRequested = true\napp/src\\services\\agents\\agent_integration.ts:268:        if (this.pinnedLoadRequested && this.pinnedLoadCompleted && unresolvedPin) {\napp/src\\services\\agents\\agent_integration.ts:270:            void this.ensurePinnedConversationsLoaded()\napp/src\\services\\agents\\agent_integration.ts:315:    async hydrateActiveCardConversations() {\napp/src\\services\\agents\\agent_integration.ts:390:        const activityPaths = this.pinnedActivityPaths(config.projectFolder)\napp/src\\services\\agents\\agent_integration.ts:403:    private pinnedActivityPaths(projectFolder: string) {\napp/src\\services\\agents\\agent_integration.ts:652:        if (!this.pinnedLoadRequested) return\napp/src\\services\\agents\\agent_integration.ts:674:        this.pinnedLoadRequested = false\napp/src\\components\\shell\\pinned_conversations_indicator.tsx:15:        dataService.agents.subscribePinnedConversations,\napp/src\\components\\shell\\pinned_conversations_indicator.tsx:16:        dataService.agents.getPinnedConversationsSnapshot,\napp/src\\components\\shell\\pinned_conversations_indicator.tsx:17:        dataService.agents.getPinnedConversationsSnapshot,\napp/src\\components\\shell\\pinned_conversations_indicator.tsx:55:        await dataService.agents.ensurePinnedConversationsLoaded()\napp/src\\components\\shell\\pinned_conversations_indicator.test.tsx:45:        vi.spyOn(dataService.agents, 'subscribePinnedConversations').mockReturnValue(() => undefined)\napp/src\\components\\shell\\pinned_conversations_indicator.test.tsx:47:        vi.spyOn(dataService.agents, 'ensurePinnedConversationsLoaded').mockResolvedValue([])\napp/src\\components\\shell\\pinned_conversations_indicator.test.tsx:56:        vi.spyOn(dataService.agents, 'getPinnedConversationsSnapshot').mockReturnValue([])\napp/src\\components\\shell\\pinned_conversations_indicator.test.tsx:62:        expect(dataService.agents.ensurePinnedConversationsLoaded).not.toHaveBeenCalled()\napp/src\\components\\shell\\pinned_conversations_indicator.test.tsx:70:        vi.spyOn(dataService.agents, 'getPinnedConversationsSnapshot').mockReturnValue(conversations)\napp/src\\components\\shell\\pinned_conversations_indicator.test.tsx:80:        expect(dataService.agents.ensurePinnedConversationsLoaded).toHaveBeenCalledOnce()\napp/src\\components\\shell\\pinned_conversations_indicator.test.tsx:89:        vi.spyOn(dataService.agents, 'getPinnedConversationsSnapshot').mockReturnValue([conversation])\napp/src\\components\\shell\\pinned_conversations_indicator.test.tsx:106:        vi.spyOn(dataService.agents, 'getPinnedConversationsSnapshot').mockReturnValue([conversation])\napp/src\\services\\data\\data_service.ts:416:            hydrateActiveCardConversations: () => this.agents.hydrateActiveCardConversations(),\napp/src/components\\shell\\mobile_project_status.tsx:4:import { RunningAgentsIndicator } from './running_agents_indicator'\napp/src/components\\shell\\mobile_project_status.tsx:20:            <RunningAgentsIndicator mobile />\napp/src/components\\shell\\pinned_conversations_indicator.tsx:13:export function PinnedConversationsIndicator() {\napp/src/components\\shell\\pinned_conversations_indicator.test.tsx:6:import { PinnedConversationsIndicator } from './pinned_conversations_indicator'\napp/src/components\\shell\\pinned_conversations_indicator.test.tsx:42:describe('PinnedConversationsIndicator', () => {\napp/src/components\\shell\\pinned_conversations_indicator.test.tsx:59:        render(<PinnedConversationsIndicator />)\napp/src/components\\shell\\pinned_conversations_indicator.test.tsx:76:        render(<PinnedConversationsIndicator />)\napp/src/components\\shell\\pinned_conversations_indicator.test.tsx:94:        render(<PinnedConversationsIndicator />)\napp/src/components\\shell\\pinned_conversations_indicator.test.tsx:111:        render(<PinnedConversationsIndicator />)\napp/src/components\\shell\\running_agents_indicator.tsx:23:interface RunningAgentsIndicatorProps {\napp/src/components\\shell\\running_agents_indicator.tsx:27:export function RunningAgentsIndicator({ mobile = false }: RunningAgentsIndicatorProps) {\napp/src/components\\shell\\running_agents_indicator.test.tsx:7:import { RunningAgentsIndicator } from './running_agents_indicator'\napp/src/components\\shell\\running_agents_indicator.test.tsx:44:describe('RunningAgentsIndicator', () => {\napp/src/components\\shell\\running_agents_indicator.test.tsx:60:        render(<RunningAgentsIndicator />)\napp/src/components\\shell\\running_agents_indicator.test.tsx:67:        render(<RunningAgentsIndicator />)\napp/src/components\\shell\\running_agents_indicator.test.tsx:75:        render(<RunningAgentsIndicator />)\napp/src/components\\shell\\running_agents_indicator.test.tsx:83:        render(<RunningAgentsIndicator />)\napp/src/components\\shell\\running_agents_indicator.test.tsx:91:        render(<RunningAgentsIndicator mobile />)\napp/src/components\\shell\\running_agents_indicator.test.tsx:105:        render(<RunningAgentsIndicator />)\napp/src/components\\shell\\running_agents_indicator.test.tsx:120:        render(<RunningAgentsIndicator />)\napp/src/components\\shell\\running_agents_indicator.test.tsx:135:        render(<RunningAgentsIndicator />)\napp/src/components\\shell\\running_agents_indicator.test.tsx:152:        render(<RunningAgentsIndicator />)\napp/src/components\\shell\\running_agents_indicator.test.tsx:165:        render(<RunningAgentsIndicator mobile />)\napp/src/components\\shell\\status_bar.tsx:4:import { RunningAgentsIndicator } from './running_agents_indicator'\napp/src/components\\shell\\status_bar.tsx:10:import { PinnedConversationsIndicator } from './pinned_conversations_indicator'\napp/src/components\\shell\\status_bar.tsx:39:            <PinnedConversationsIndicator />\napp/src/components\\shell\\status_bar.tsx:40:            <RunningAgentsIndicator />\n",
+          "durationMs": 382,
+          "exitCode": 0,
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-132",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"ensurePinnedConversationsLoaded|pinnedLoadRequested|pinnedActivityPaths|subscribePinnedConversations|getPinnedConversationsSnapshot|hydrateActiveCardConversations\" app/src; rg -n \"PinnedConversationsIndicator|RunningAgentsIndicator\" app/src/components'",
+          "providerItemId": "exec-be32b6ef-ba01-440e-a748-04dca2703729",
+          "sequence": 132,
+          "status": "completed",
+          "timestamp": "2026-09-21T09:19:57.714Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-133",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0613de794e90c1b7016ab0f6bf785887d2bd3c072493ead845",
+          "sequence": 133,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T09:20:12.350Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Correct. Issue 1 from my audit is invalid and should be removed.\n\nThe current implementation follows the intended flow:\n\n- The status indicator receives only pinned locators for visibility and count.\n- Clicking it calls `ensurePinnedConversationsLoaded()`.\n- `AgentIntegration` then resolves locator-owned activity files and loads matching conversations.\n- Full conversations are not required during project loading.\n\nNo fix is needed for issue 1. I will evaluate the remaining findings against this lazy popup-loading architecture.\n\n",
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 134,
+          "timestamp": "2026-09-21T09:20:15.120Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "58a7ee32-deda-4cc4-a1b1-344623dc7f96",
       "providerSessions": [],
       "startedAt": "2026-09-21T09:13:14.105Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 16483,
+          "toolMs": 383
+        },
         "elapsedMs": 0,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-21T09:19:42.466Z"
       },
       "title": "review (split)",
+      "usage": {
+        "cachedInputTokens": 62336,
+        "inputTokens": 20573,
+        "outputTokens": 386,
+        "reasoningTokens": 587,
+        "totalTokens": 83882
+      },
+      "usageSchemaVersion": 1,
       "viewed": true
     }
   ],
@@ -13513,11 +13624,11 @@
         "agent-2573f749-240f-4721-a2c6-379eeff98d77"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-5.6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-68306b5d-1967-40d0-9019-9f04b39847d4",
       "origin": {
@@ -13526,9 +13637,9 @@
       },
       "rootActionId": "32eceaf6-37d1-48b4-9bc1-c3f051eb7d8e",
       "rootActionLabel": "review",
-      "rootConversationId": "agent-2573f749-240f-4721-a2c6-379eeff98d77",
       "startedAt": "2026-09-19T15:22:58.825Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-2573f749-240f-4721-a2c6-379eeff98d77"
     }
   ],
   "version": 5
