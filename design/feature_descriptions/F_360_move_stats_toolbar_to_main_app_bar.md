@@ -3,12 +3,18 @@ author:
 id: F_360
 internalId: 515b2369-553d-4556-b99c-e01eb575777d
 title: Move stats toolbar to main app bar
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__515b2369-553d-4556-b99c-e01eb575777d.json
 policy:
+changedFiles:
+  - app/patch_stats_content_test.py
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/menu/menu_select.tsx
+  - app/src/components/stats_view/stats_menu_tab.test.tsx
+  - app/src/components/stats_view/stats_menu_tab.tsx
 ---
 
 Similar like we did for diagrams, move the toolbar we show at the top of the stats page, to the main menu app bar. Only show the tab when in stats view.
