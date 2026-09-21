@@ -4,6 +4,7 @@ import type { ActionRunEvent } from '../../data/action_run_types'
 import { runElectronAction } from '../actions/electron_action_runner'
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { configService } from '../config/config_service'
+import { dialogService } from '../dialog_service'
 import {
     actionAcknowledgementEvent,
     agentAcknowledgementService,
@@ -22,6 +23,20 @@ describe('AgentIntegration', () => {
         vi.mocked(runElectronAction).mockClear()
         delete window.md2Actions
         configService.clear()
+    })
+
+    it('subscribes to pin changes only during its active lifecycle', () => {
+        const cleanup = vi.fn()
+        const service = createDataService()
+        const subscribe = vi.spyOn(service.conversationPins, 'subscribe').mockReturnValue(cleanup)
+
+        expect(subscribe).not.toHaveBeenCalled()
+        service.agents.startScheduledRunWatch()
+        expect(subscribe).toHaveBeenCalledOnce()
+
+        service.agents.reset()
+        expect(cleanup).toHaveBeenCalledOnce()
+        subscribe.mockRestore()
     })
 
     it('runs matching onState actions when a card changes to the configured state', async () => {
@@ -393,6 +408,162 @@ describe('AgentIntegration', () => {
         expect(actionListener).toHaveBeenCalledOnce()
         agentAcknowledgementService.removeEventListener(cardEvent, cardListener)
         agentAcknowledgementService.removeEventListener(actionEvent, actionListener)
+    })
+
+    it('loads pinned card and project conversations lazily in newest-first order', async () => {
+        configService.init()
+        const cardActivityPath = 'design/activity/card__root-card.json'
+        const projectActivityPath = 'design/activity/project.json'
+        const cardConversation = { ...conversation(`${cardActivityPath}#conversation=card-pinned`), id: 'card-pinned', startedAt: '2026-01-01T00:00:00.000Z' }
+        const projectConversation = {
+            ...conversation(`${projectActivityPath}#conversation=project-pinned`), cardInternalId: null, cardPath: null,
+            id: 'project-pinned', startedAt: '2026-01-02T00:00:00.000Z',
+        }
+        const agentFiles: MarkdownFile[] = [{
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${cardActivityPath}\n---\n\n# Root`,
+            path: 'design/F-1-root.md',
+        }]
+        const loadActivityConversations = vi.fn(async (_project, activityPath: string) => (
+            activityPath === cardActivityPath ? [cardConversation] : [projectConversation]
+        ))
+        const pinnedConversations = [
+            { cardInternalId: 'root-card', contextKind: 'card' as const, conversationId: 'card-pinned' },
+            { contextKind: 'project' as const, conversationId: 'project-pinned' },
+        ]
+        const storage = createStorage({
+            loadActivityConversations,
+            loadProjectConfig: vi.fn(async () => ({ pinnedConversations, projectFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: agentFiles, workingFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(service.agents.getPinnedConversationsSnapshot()).toEqual([])
+        await service.agents.ensurePinnedConversationsLoaded()
+
+        expect(loadActivityConversations).toHaveBeenCalledTimes(2)
+        expect(loadActivityConversations).toHaveBeenCalledWith(expect.anything(), cardActivityPath)
+        expect(loadActivityConversations).toHaveBeenCalledWith(expect.anything(), projectActivityPath)
+        expect(service.agents.getPinnedConversationsSnapshot().map(({ id }) => id))
+            .toEqual(['project-pinned', 'card-pinned'])
+        const pinnedListener = vi.fn()
+        const stopPinnedListener = service.agents.subscribePinnedConversations(pinnedListener)
+        service.agents.updateAgentConversation({ ...cardConversation, title: 'Updated pinned conversation' })
+        expect(pinnedListener).toHaveBeenCalledOnce()
+        stopPinnedListener()
+
+        await service.projectLoading.openProject({ branch: 'next', id: 'next-project' })
+        expect(service.agents.getPinnedConversationsSnapshot()).toEqual([])
+    })
+
+    it('defers unresolved pin loading until the popup opens again', async () => {
+        configService.init()
+        const projectActivityPath = 'design/activity/project.json'
+        const firstConversation = {
+            ...conversation(`${projectActivityPath}#conversation=first`),
+            cardInternalId: null,
+            cardPath: null,
+            id: 'first',
+        }
+        const secondConversation = {
+            ...conversation(`${projectActivityPath}#conversation=second`),
+            cardInternalId: null,
+            cardPath: null,
+            id: 'second',
+        }
+        let loadCount = 0
+        const loadActivityConversations = vi.fn(async () => {
+            loadCount += 1
+
+            return loadCount === 1 ? [firstConversation] : [firstConversation, secondConversation]
+        })
+        const firstLocator = { contextKind: 'project' as const, conversationId: firstConversation.id }
+        const secondLocator = { contextKind: 'project' as const, conversationId: secondConversation.id }
+        const storage = createStorage({
+            loadActivityConversations,
+            loadProjectConfig: vi.fn(async () => ({ pinnedConversations: [firstLocator], projectFolder: 'design' })),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.agents.setPinnedConversationsPopupOpen(true)
+        await service.agents.ensurePinnedConversationsLoaded()
+        service.agents.setPinnedConversationsPopupOpen(false)
+
+        configService.loadProjectConfig({ pinnedConversations: [firstLocator, secondLocator], projectFolder: 'design' })
+        await waitForWorkerTurn()
+        expect(loadActivityConversations).toHaveBeenCalledOnce()
+
+        service.agents.setPinnedConversationsPopupOpen(true)
+        await service.agents.ensurePinnedConversationsLoaded()
+        expect(loadActivityConversations).toHaveBeenCalledTimes(2)
+        expect(service.agents.getPinnedConversationsSnapshot().map(({ id }) => id)).toEqual(['first', 'second'])
+    })
+
+    it('applies confirmed local and remote pin changes through scoped events', async () => {
+        configService.init()
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+        const stored = { ...conversation(reference), cardInternalId: null, cardPath: null }
+        const locator = { contextKind: 'project' as const, conversationId: stored.id }
+        const storage = createStorage({loadActivityConversations: vi.fn(async () => [stored])})
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        service.agents.setPinnedConversationsPopupOpen(true)
+        await service.agents.ensurePinnedConversationsLoaded()
+        const listener = vi.fn()
+        const stop = service.conversationPins.subscribeConversation(stored.id, listener)
+
+        await service.conversationPins.setPinned(locator, true)
+        await waitForWorkerTurn()
+
+        expect(storage.saveProjectConfig).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ pinnedConversations: [locator] }),
+        )
+        expect(service.agents.getPinnedConversationsSnapshot()).toHaveLength(1)
+        expect(listener).toHaveBeenCalledOnce()
+        configService.loadProjectConfig({ pinnedConversations: [] })
+        expect(service.agents.getPinnedConversationsSnapshot()).toEqual([])
+        expect(listener).toHaveBeenCalledTimes(2)
+        stop()
+    })
+
+    it('keeps confirmed pinned projection when loading or writing fails', async () => {
+        configService.init()
+        const reportError = vi.spyOn(dialogService, 'error')
+        const reference = 'design/activity/project.json#conversation=agent-1'
+        const stored = { ...conversation(reference), cardInternalId: null, cardPath: null }
+        const locator = { contextKind: 'project' as const, conversationId: stored.id }
+        const storage = createStorage({
+            loadActivityConversations: vi.fn(async () => [stored]),
+            loadProjectConfig: vi.fn(async () => ({ pinnedConversations: [locator], projectFolder: 'design' })),
+            saveProjectConfig: vi.fn(async () => {
+                throw new Error('pin disk failed')
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.agents.ensurePinnedConversationsLoaded()
+
+        await expect(service.conversationPins.setPinned(locator, false)).rejects.toThrow('pin disk failed')
+        expect(service.agents.getPinnedConversationsSnapshot()).toEqual([stored])
+
+        const failedStorage = createStorage({
+            loadActivityConversations: vi.fn(async () => {
+                throw new Error('load disk failed')
+            }),
+            loadProjectConfig: vi.fn(async () => ({ pinnedConversations: [locator], projectFolder: 'design' })),
+        })
+        const failedService = createDataService()
+        failedService.init({ storage: failedStorage })
+        await failedService.projectLoading.openProject({ branch: 'main', id: 'failed-project' })
+        await failedService.agents.ensurePinnedConversationsLoaded()
+        expect(failedService.agents.getPinnedConversationsSnapshot()).toEqual([])
+        expect(reportError).toHaveBeenCalledWith(expect.objectContaining({ message: 'load disk failed' }), {fallbackMessage: 'Could not load pinned conversations'})
+        reportError.mockRestore()
     })
 
     it('lets a backend view state overrule the one a window set optimistically', async () => {

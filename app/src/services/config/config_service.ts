@@ -1,6 +1,7 @@
 import {
     defaultColumnAccent,
     type CardTypeConfig,
+    type PinnedConversationLocator,
     type ProjectConfig,
     type StateConfig,
 } from '../../data/data_types'
@@ -44,6 +45,24 @@ export { REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_
 
 interface ConfigServiceInitDependencies {
     desktopConfig?: Partial<DesktopConfigValues> | null
+}
+
+interface ProjectConfigPersistence {
+    saveProjectConfig(config: ProjectConfig): Promise<void>
+}
+
+interface DeferredSave {
+    promise: Promise<void>
+    release(): void
+}
+
+function createDeferredSave(): DeferredSave {
+    let release: () => void = () => undefined
+    const promise = new Promise<void>((resolve) => {
+        release = resolve
+    })
+
+    return { promise, release }
 }
 
 type ReactConfigKey = Extract<ConfigKey, `react.${string}`>
@@ -142,6 +161,38 @@ function validateStates(value: unknown): StateConfig[] {
     return states
 }
 
+const ACTION_CONTEXT_KINDS = new Set(['card', 'diagram', 'file', 'folder', 'merge-conflict', 'project'])
+
+function validatePinnedConversations(value: unknown): PinnedConversationLocator[] {
+    if (!Array.isArray(value)) throw new Error('Missing config field: project.pinnedConversations')
+    const locators = value.map((candidate) => {
+        if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+            throw new Error('Config field project.pinnedConversations must contain objects')
+        }
+        const { cardInternalId, contextKind, conversationId } = candidate as Partial<PinnedConversationLocator>
+        if (typeof conversationId !== 'string' || conversationId.length === 0) {
+            throw new Error('Config field project.pinnedConversations requires conversationId')
+        }
+        if (typeof contextKind !== 'string' || !ACTION_CONTEXT_KINDS.has(contextKind)) {
+            throw new Error('Config field project.pinnedConversations contains invalid contextKind')
+        }
+        if (cardInternalId !== undefined && (typeof cardInternalId !== 'string' || cardInternalId.length === 0)) {
+            throw new Error('Config field project.pinnedConversations contains invalid cardInternalId')
+        }
+        if (contextKind === 'card' && !cardInternalId) {
+            throw new Error('Config field project.pinnedConversations requires cardInternalId for card context')
+        }
+
+        return { ...(cardInternalId ? { cardInternalId } : {}), contextKind, conversationId } as PinnedConversationLocator
+    })
+    const conversationIds = locators.map(({ conversationId }) => conversationId)
+    if (new Set(conversationIds).size !== locators.length) {
+        throw new Error('Config field project.pinnedConversations contains duplicate conversation identities')
+    }
+
+    return locators
+}
+
 function validateDesktopAgentProfiles(value: unknown): AgentProfile[] {
     return validateAgentProfiles(migrateAgentProfiles(value))
 }
@@ -167,6 +218,9 @@ function validateValue<K extends ConfigKey>(key: K, value: unknown): ConfigValue
     }
     if (entry.type === 'json' && key === 'project.cardTypes') return validateCardTypes(value) as ConfigValueTypes[K]
     if (entry.type === 'json' && key === 'project.states') return validateStates(value) as ConfigValueTypes[K]
+    if (entry.type === 'json' && key === 'project.pinnedConversations') {
+        return validatePinnedConversations(value) as ConfigValueTypes[K]
+    }
     if (entry.type === 'json' && key === 'desktop.agentProfiles') return validateDesktopAgentProfiles(value) as ConfigValueTypes[K]
     if (entry.type === 'json' && key === 'desktop.agentSelection') {
         return validateAgentSelectionState(value, entry.key) as ConfigValueTypes[K]
@@ -225,6 +279,7 @@ function readProjectConfig(values: ConfigValues): ProjectConfig {
         diffCommand: values['project.diffCommand'],
         diagramFooter: values['project.diagramFooter'],
         diagramsFolder: values['project.diagramsFolder'],
+        pinnedConversations: values['project.pinnedConversations'],
         projectFolder: values['project.projectFolder'],
         pushMode: values['project.pushMode'],
         releasesFolder: values['project.releasesFolder'],
@@ -275,6 +330,8 @@ export class ConfigService extends EventTarget {
     private desktopAvailable: boolean
     private draftValues: ConfigValues | null
     private initialized: boolean
+    private projectConfigPersistence: ProjectConfigPersistence | null = null
+    private projectConfigSaveTail: Promise<void> = Promise.resolve()
     private projectLoaded: boolean
     private values: ConfigValues
 
@@ -292,6 +349,8 @@ export class ConfigService extends EventTarget {
         let nextValues = createDefaultValues()
         const { desktopConfig } = dependencies
         this.desktopAvailable = !!desktopConfig
+        this.projectConfigPersistence = null
+        this.projectConfigSaveTail = Promise.resolve()
         this.projectLoaded = false
         this.draftValues = null
 
@@ -325,6 +384,41 @@ export class ConfigService extends EventTarget {
         this.requireInitialized()
         this.values = mergeValue(this.values, key, value)
         this.dispatchChanged()
+    }
+
+    connectProjectConfigPersistence(projectConfigPersistence: ProjectConfigPersistence) {
+        this.projectConfigPersistence = projectConfigPersistence
+    }
+
+    async drainProjectConfigSaves() {
+        await this.projectConfigSaveTail
+    }
+
+    /** Serializes current canonical project config through its active storage boundary. */
+    async saveProjectConfig() {
+        return this.withProjectConfigSave(async () => {
+            await this.requireProjectConfigPersistence().saveProjectConfig(this.getProjectConfig())
+        })
+    }
+
+    /** Persists one pin mutation against latest canonical config before publishing it. */
+    async setConversationPinned(locator: PinnedConversationLocator, pinned: boolean) {
+        return this.withProjectConfigSave(async () => {
+            const current = this.getProjectConfig().pinnedConversations
+            const pinnedConversations = pinned
+                ? [...current.filter(({ conversationId }) => conversationId !== locator.conversationId), locator]
+                : current.filter(({ conversationId }) => conversationId !== locator.conversationId)
+            const validated = validatePinnedConversations(pinnedConversations)
+            const nextValues = mergeValue(this.values, 'project.pinnedConversations', validated)
+            await this.requireProjectConfigPersistence().saveProjectConfig(readProjectConfig(nextValues))
+            this.values = mergeValue(this.values, 'project.pinnedConversations', validated)
+            if (this.draftValues) {
+                this.draftValues = mergeValue(this.draftValues, 'project.pinnedConversations', validated)
+            }
+            this.dispatchChanged()
+
+            return validated
+        })
     }
 
     setReactPreference<K extends ReactConfigKey>(key: K, value: ConfigValueTypes[K]) {
@@ -393,9 +487,19 @@ export class ConfigService extends EventTarget {
         }
         if (projectConfig?.cardTypes !== undefined) nextValues = mergeValue(nextValues, 'project.cardTypes', projectConfig.cardTypes)
         if (projectConfig?.states !== undefined) nextValues = mergeValue(nextValues, 'project.states', projectConfig.states)
+        if (projectConfig?.pinnedConversations !== undefined) {
+            nextValues = mergeValue(nextValues, 'project.pinnedConversations', projectConfig.pinnedConversations)
+        }
 
         validateProjectFolderPaths(nextValues)
         this.values = nextValues
+        if (this.draftValues) {
+            this.draftValues = mergeValue(
+                this.draftValues,
+                'project.pinnedConversations',
+                nextValues['project.pinnedConversations'],
+            )
+        }
         this.projectLoaded = true
         this.dispatchChanged()
     }
@@ -477,6 +581,24 @@ export class ConfigService extends EventTarget {
 
     private requireInitialized() {
         if (!this.initialized) throw new Error('Config service is not initialized')
+    }
+
+    private requireProjectConfigPersistence() {
+        if (!this.projectConfigPersistence) throw new Error('Project config persistence is not connected')
+
+        return this.projectConfigPersistence
+    }
+
+    private async withProjectConfigSave<T>(operation: () => Promise<T>): Promise<T> {
+        const previousSave = this.projectConfigSaveTail
+        const deferredSave = createDeferredSave()
+        this.projectConfigSaveTail = deferredSave.promise
+        await previousSave
+        try {
+            return await operation()
+        } finally {
+            deferredSave.release()
+        }
     }
 
     private dispatchChanged() {

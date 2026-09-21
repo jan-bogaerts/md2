@@ -260,7 +260,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
         configService.loadProjectConfig(null)
-        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
 
         renderConfigPage('')
         fireEvent.click(screen.getByRole('switch', { name: 'Startup splash' }))
@@ -274,7 +274,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
         configService.loadProjectConfig(null)
-        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
 
         renderConfigPage('#project')
         configService.setDraftValue('project.pushMode', 'auto')
@@ -345,7 +345,7 @@ describe('ConfigPage', () => {
         configService.init()
         configService.loadProjectConfig({ workingFolder: 'design' })
         const updateCardSeparator = vi.spyOn(dataService.projectLoading, 'updateCardSeparator').mockResolvedValue(2)
-        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
 
         renderConfigPage('#project')
         fireEvent.mouseDown(screen.getByLabelText('Card separator'))
@@ -387,7 +387,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
         configService.loadProjectConfig(null)
-        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockReturnValue(new Promise(() => undefined))
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockReturnValue(new Promise(() => undefined))
 
         renderConfigPage('#project')
         configService.setDraftValue('project.pushMode', 'auto')
@@ -411,7 +411,7 @@ describe('ConfigPage', () => {
             selectWorktreeFolder: vi.fn(async () => 'C:\\two'),
         } as unknown as StorageService
         initWorktreeConfig(storage)
-        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
 
         renderConfigPage('#project')
         fireEvent.click(screen.getByRole('button', { name: 'Add linked worktree' }))
@@ -454,7 +454,7 @@ describe('ConfigPage', () => {
         } as unknown as StorageService
         initWorktreeConfig(storage, [worktreeRecord, secondRecord])
         const reportError = vi.spyOn(dialogService, 'error')
-        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockResolvedValue()
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
         const previousPushMode = configService.get('project.pushMode')
 
         renderConfigPage('#project')
@@ -505,7 +505,7 @@ describe('ConfigPage', () => {
         mockMatchMedia(false)
         configService.init()
         configService.loadProjectConfig(null)
-        const saveProjectConfig = vi.spyOn(dataService.projectLoading, 'saveProjectConfig').mockRejectedValue(new Error('GitHub save failed'))
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockRejectedValue(new Error('GitHub save failed'))
         const reportError = vi.spyOn(dialogService, 'error')
 
         renderConfigPage('#project')

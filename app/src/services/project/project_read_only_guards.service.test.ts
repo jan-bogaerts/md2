@@ -28,7 +28,7 @@ describe('read-only project service guards', () => {
 
         await expect(service.cards.createCard({ body: '', title: 'Blocked', type: 'feature' }, 'new')).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
         await expect(service.cards.createMarkdownFile('design', 'blocked')).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
-        await expect(service.projectLoading.saveProjectConfig()).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
+        await expect(configService.saveProjectConfig()).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
         await expect(service.releases.completeRelease('v1', [])).rejects.toThrow(READ_ONLY_PROJECT_ERROR)
         expect(storage.commit).not.toHaveBeenCalled()
         expect(storage.saveProjectConfig).not.toHaveBeenCalled()

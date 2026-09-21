@@ -15,6 +15,7 @@ import { type DataServiceDependencies, getProjectConfigOrNull, reportCommitFlush
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { actionService } from '../actions/action_service'
 import { AgentIntegration, type AgentIntegrationDeps } from '../agents/agent_integration'
+import { ConversationPinService } from '../agents/conversation_pin_service'
 import { ProjectLoading, type ProjectLoadingDeps } from '../project/project_loading'
 import { ProjectState } from '../project/project_state'
 import { ReleaseOperations, type ReleaseOperationsDeps } from '../release_operations'
@@ -136,6 +137,7 @@ async function flushAggregatePendingChanges() {
 export class DataService extends EventTarget {
     readonly agents: AgentIntegration
     readonly cards: CardOperations
+    readonly conversationPins: ConversationPinService
     readonly projectLoading: ProjectLoading
     readonly releases: ReleaseOperations
 
@@ -157,6 +159,17 @@ export class DataService extends EventTarget {
             (previousCards, nextCards) => this.dispatchCardChanges(previousCards, nextCards),
             reportCardParseErrors,
         )
+        this.conversationPins = new ConversationPinService({
+            getPinnedConversations: () => configService.isInitialized()
+                ? configService.getProjectConfig().pinnedConversations
+                : [],
+            saveConversationPinned: (locator, pinned) => configService.setConversationPinned(locator, pinned),
+            subscribeConfig: (listener) => {
+                configService.addEventListener('changed', listener)
+
+                return () => configService.removeEventListener('changed', listener)
+            },
+        })
         this.cards = new CardOperations(
             this.createCardOperationsDependencies(),
             (cardPath, state) => this.agents.triggerStateActions(cardPath, state),
@@ -186,10 +199,13 @@ export class DataService extends EventTarget {
     init(dependencies: DataServiceDependencies) {
         this.projectLoading.reset()
         this.agents.reset()
+        this.conversationPins.stop()
+        this.conversationPins.reset()
         this.projectState.resetLoadedProject()
         this.fullProjectLoaded = false
         this.remarkableBridge = dependencies.remarkableBridge ?? null
         this.storage = this.trackStorage(dependencies.storage)
+        configService.connectProjectConfigPersistence({ saveProjectConfig: (config) => this.projectLoading.saveProjectConfig(config) })
         this.initializeStorageServices()
         worktreeService.init({
             assignCardWorktree: (path, worktree, branch) => this.cards.assignCardWorktree(path, worktree, branch),
@@ -203,6 +219,7 @@ export class DataService extends EventTarget {
             unassignCardWorktree: (path) => this.cards.updateCardWorktree(path, null),
         })
         this.agents.startScheduledRunWatch()
+        this.conversationPins.start()
         const delayMs = configService.get('react.autoCommitDelayMs')
         this.commitBatcher = new CommitBatcher(this.cards, delayMs)
         this.commitBatcher.addEventListener(
@@ -249,6 +266,7 @@ export class DataService extends EventTarget {
     }
 
     async drainPendingStorageWrites() {
+        await configService.drainProjectConfigSaves()
         await this.saveStateService.drain()
     }
 
@@ -377,6 +395,7 @@ export class DataService extends EventTarget {
             },
             findCardByInternalId: (cardInternalId) => this.projectState.findCardByInternalId(cardInternalId),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
+            pins: this.conversationPins,
             project: () => this.projectState.project,
             requireDependencies: () => this.requireDependencies(),
             snapshot: () => this.projectState.snapshot,
@@ -429,7 +448,10 @@ export class DataService extends EventTarget {
             ),
             updateRepositoryFile: (event) => this.projectState.updateRepositoryFile(event),
             requireDependencies: () => this.requireDependencies(),
-            resetAgentConversations: () => this.agents.resetLoadedConversations(),
+            resetAgentConversations: () => {
+                this.agents.resetLoadedConversations()
+                this.conversationPins.reset()
+            },
             snapshot: () => this.projectState.snapshot,
             storage: () => this.storage,
         }

@@ -281,13 +281,13 @@ export class ProjectLoading {
         }
     }
 
-    async saveProjectConfig() {
+    async saveProjectConfig(config: ProjectConfig) {
         projectAccessService.requireWritable()
         const { storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
         if (!currentProject) throw new Error('Cannot save project config before a project is open')
 
-        await storage.saveProjectConfig(currentProject, configService.getProjectConfig())
+        await storage.saveProjectConfig(currentProject, config)
         this.dependencies.dispatchPersistenceChanged()
     }
 

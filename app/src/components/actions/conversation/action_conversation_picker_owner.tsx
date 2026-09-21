@@ -1,9 +1,11 @@
+import { Box } from '@mui/material'
 import { useEffect, useMemo, useSyncExternalStore, type ChangeEvent } from 'react'
 import type { ActionContext } from '../../../data/action_context'
 import type { AgentConversation } from '../../../data/data_types'
 import { useActionRunStores, useRunSelector } from '../../hooks/use_action_runs'
 import { useCardActionUnseenResults } from '../../hooks/use_card_action_unseen_results'
 import { ActionConversationPicker } from './action_conversation_picker'
+import { ActionConversationPinButton } from './action_conversation_pin_button'
 import type { ConversationPickerConversation } from './action_conversation_picker_data'
 import { resolveDisplayedConversation, type ActionConversationStore } from './action_conversation_store'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
@@ -81,13 +83,24 @@ export function ActionConversationPickerOwner(props: ActionConversationPickerOwn
         snapshot.selectedConversation,
     )
 
+    const handleTogglePinned = () => {
+        if (displayedConversation) void store.togglePinned(displayedConversation)
+    }
+
     return (
-        <ActionConversationPicker
-            conversations={store.conversationOptions(pickerConversations)}
-            disabled={false}
-            loading={snapshot.loading}
-            onChange={handleChange}
-            selectedPath={displayedConversation?.path ?? ''}
-        />
+        <Box sx={{ alignItems: 'center', display: 'flex', gap: 0.5 }}>
+            <ActionConversationPicker
+                conversations={store.conversationOptions(pickerConversations)}
+                disabled={false}
+                loading={snapshot.loading}
+                onChange={handleChange}
+                selectedPath={displayedConversation?.path ?? ''}
+            />
+            <ActionConversationPinButton
+                conversation={displayedConversation}
+                disabled={snapshot.pinningConversationId !== null}
+                onToggle={handleTogglePinned}
+            />
+        </Box>
     )
 }

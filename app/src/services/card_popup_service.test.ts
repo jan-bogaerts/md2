@@ -1,14 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../data/action_context'
+import { DEFAULT_CARD_TYPES, type AgentConversation, type Card } from '../data/data_types'
 import type { DataService } from './data/data_service'
+import { actionService } from './actions/action_service'
 import { CardPopupService } from './card_popup_service'
+import { dialogService } from './dialog_service'
 import { MobileBackDismissService } from './mobile_back_dismiss_service'
 
 class PopupDataService extends EventTarget {
+    cards: Card[] = []
+    config = { cardTypes: DEFAULT_CARD_TYPES }
     project: { branch: string, id: string } | null = { branch: 'main', id: 'project-1' }
 
+    getConfig = () => {
+        return this.config
+    }
+
     getState() {
-        return { project: this.project }
+        return {
+            project: this.project,
+            snapshot: { activeCards: this.cards, backgroundCards: [] },
+        }
     }
 }
 
@@ -67,6 +79,25 @@ function anchor() {
     return document.createElement('button')
 }
 
+function card(id: string, internalId: string, title: string, path: string): Card {
+    return {
+        agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path,
+        header: {
+            affects: [], after: null, agentLogReferences: [], author: null, changedFiles: [], id, internalId,
+            owner: null, policy: {}, references: [], status: 'ready', title,
+        },
+    }
+}
+
+function conversation(overrides: Partial<AgentConversation> = {}): AgentConversation {
+    return {
+        actionId: 'review', cardInternalId: 'card-1', cardPath: 'design/old-card.md', completedAt: '2026-09-19T10:01:00.000Z',
+        entries: [], hasExplicitTitle: true, id: 'conversation-1', path: 'design/activity/card__card-1.json#conversation=conversation-1',
+        providerSessions: [], startedAt: '2026-09-19T10:00:00.000Z', status: 'completed', title: 'Review', viewed: true,
+        ...overrides,
+    }
+}
+
 beforeEach(() => {
     testWindow = installTestWindow()
 })
@@ -76,6 +107,8 @@ afterEach(async () => {
     services.forEach((service) => service.clear())
     await flushMicrotasks()
     services.length = 0
+    actionService.clear()
+    vi.restoreAllMocks()
     Object.defineProperty(globalThis, 'window', { configurable: true, value: originalWindow, writable: true })
 })
 
@@ -134,6 +167,61 @@ describe('CardPopupService', () => {
             requestedRunId: 'run-7',
         })
         expect(service.getSnapshot().at(-1)?.id).not.toBe(replacedEntry.id)
+    })
+
+    it('opens exact persisted conversation against current renamed card data', () => {
+        actionService.loadFromFiles([{
+            content: JSON.stringify({ description: 'Review', id: 'review', label: 'Review', prompt: 'Review', type: 'agent' }),
+            path: 'actions/review.json',
+        }])
+        const { owner, service } = createService()
+        owner.cards = [card('F-2', 'card-1', 'Renamed card', 'design/renamed-card.md')]
+        const persistedConversation = conversation({
+            cardInternalId: 'card-1',
+            cardPath: 'design/old-card.md',
+            path: 'design/activity/card__card-1.json#conversation=conversation-1',
+        })
+
+        expect(service.openPersistedConversation(persistedConversation, anchor())).toBe(true)
+        expect(service.getSnapshot()[0]).toMatchObject({
+            context: { cardInternalId: 'card-1', file: 'design/renamed-card.md', title: 'Renamed card' },
+            requestedActionId: 'review',
+            requestedConversationPath: persistedConversation.path,
+            requestedRunId: null,
+        })
+    })
+
+    it('opens project-origin persisted conversation in project context', () => {
+        actionService.loadFromFiles([{
+            content: JSON.stringify({ appliesTo: { kind: 'project' }, description: 'Review', id: 'review', label: 'Review', prompt: 'Review', type: 'agent' }),
+            path: 'actions/review.json',
+        }])
+        const { service } = createService()
+        const persistedConversation = conversation({ cardInternalId: null, cardPath: null })
+
+        expect(service.openPersistedConversation(persistedConversation, anchor())).toBe(true)
+        expect(service.getSnapshot()[0]).toMatchObject({
+            context: { kind: 'project' },
+            requestedConversationPath: persistedConversation.path,
+        })
+    })
+
+    it.each([
+        ['missing action', conversation({ actionId: 'missing' }), 'Action no longer exists'],
+        ['missing card', conversation({ cardInternalId: 'missing-card' }), 'Card no longer exists'],
+    ])('keeps popup closed and reports %s', (_label, persistedConversation, expectedMessage) => {
+        if (persistedConversation.actionId === 'review') {
+            actionService.loadFromFiles([{
+                content: JSON.stringify({ description: 'Review', id: 'review', label: 'Review', prompt: 'Review', type: 'agent' }),
+                path: 'actions/review.json',
+            }])
+        }
+        const reportWarning = vi.spyOn(dialogService, 'warning')
+        const { service } = createService()
+
+        expect(service.openPersistedConversation(persistedConversation, anchor())).toBe(false)
+        expect(service.getSnapshot()).toEqual([])
+        expect(reportWarning).toHaveBeenCalledWith(expect.stringContaining(expectedMessage), {title: 'Pinned conversation unavailable'})
     })
 
     it('selects worktree diff and activates an existing card-details entry', () => {

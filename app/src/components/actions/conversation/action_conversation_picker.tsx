@@ -1,6 +1,7 @@
 import { MenuItem, TextField } from '@mui/material'
 import type { ChangeEvent } from 'react'
-import { conversationPickerLabel, type ConversationPickerConversation } from './action_conversation_picker_data'
+import type { ConversationPickerConversation } from './action_conversation_picker_data'
+import { ActionConversationPickerOption } from './action_conversation_picker_option'
 
 interface ActionConversationPickerProps {
     conversations: ConversationPickerConversation[]
@@ -31,7 +32,7 @@ export function ActionConversationPicker(props: ActionConversationPickerProps) {
         >
             <MenuItem value="">New conversation</MenuItem>
             {conversations.map((conversation) => (
-                <MenuItem key={conversation.path} value={conversation.path}>{conversationPickerLabel(conversation)}</MenuItem>
+                <ActionConversationPickerOption conversation={conversation} key={conversation.path} value={conversation.path} />
             ))}
         </TextField>
     )

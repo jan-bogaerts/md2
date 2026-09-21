@@ -20,13 +20,18 @@ export function createActionPopupBindings(
     action: ActionDefinition,
     context: ActionContext,
     requestedRunId?: string,
+    requestedConversationPath?: string,
 ): ActionPopupBindings {
-    const initialRunId = requestedRunId
-        ?? actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId
-        ?? null
+    const initialRunId = requestedConversationPath
+        ? null
+        : requestedRunId
+            ?? actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot().runId
+            ?? null
     const bindingStore = new ActionRunBindingStore(initialRunId)
+    if (requestedConversationPath) bindingStore.setRunId(null)
     bindingStore.trackInitialRun(action.id, context)
     const conversationStore = new ActionConversationStore(action.id, context, bindingStore)
+    conversationStore.configureInitialSelection(requestedConversationPath ?? null)
     const historyStore = new ActionHistoryStore(action, context)
     const usageScopeStore = new ActionUsageScopeStore()
     const usageValuesService = new ActionUsageValuesService({

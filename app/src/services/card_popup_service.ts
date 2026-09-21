@@ -1,10 +1,13 @@
-import { actionContextIdentity, type ActionContext } from '../data/action_context'
+import { actionContextIdentity, cardContext, projectContext, type ActionContext } from '../data/action_context'
+import type { AgentConversation } from '../data/data_types'
+import { actionService } from './actions/action_service'
 import type { CardCommit } from './actions/card_commit_history'
 import {
     dataService,
     type DataService,
 } from './data/data_service'
 import { mobileBackDismissService, type MobileBackDismissService } from './mobile_back_dismiss_service'
+import { dialogService } from './dialog_service'
 import { register } from './service_injector'
 
 const CARD_POPUPS_CHANGED_EVENT = 'changed'
@@ -20,6 +23,7 @@ export interface CardActionPopupEntry extends CardPopupEntryBase {
     context: ActionContext
     kind: 'action'
     requestedActionId: string | null
+    requestedConversationPath: string | null
     requestedRunId: string | null
 }
 
@@ -110,6 +114,7 @@ export class CardPopupService extends EventTarget {
             id: `card-action-popup-${this.nextId}`,
             kind: 'action',
             requestedActionId: null,
+            requestedConversationPath: null,
             requestedRunId: null,
         }
         this.nextId += 1
@@ -140,10 +145,60 @@ export class CardPopupService extends EventTarget {
             id: `card-action-popup-${this.nextId}`,
             kind: 'action',
             requestedActionId: actionId,
+            requestedConversationPath: null,
             requestedRunId: runId,
         }
         this.nextId += 1
         this.setEntries([...this.entries.filter((candidate) => candidate.id !== existing?.id), entry])
+    }
+
+    /** Opens exact persisted conversation using current card data and stable card identity. */
+    openPersistedConversation(conversation: AgentConversation, anchorElement: HTMLElement) {
+        const actionId = conversation.actionId
+        if (!actionId || !actionService.getActionById(actionId)) {
+            dialogService.warning(`Action no longer exists for pinned conversation: ${conversation.title}`, {title: 'Pinned conversation unavailable'})
+            return false
+        }
+
+        const config = this.dataService.getConfig()
+        if (!config) {
+            dialogService.warning('Project configuration is not loaded.', { title: 'Pinned conversation unavailable' })
+            return false
+        }
+
+        let context: ActionContext
+        if (conversation.cardInternalId) {
+            const snapshot = this.dataService.getState().snapshot
+            const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+            const card = cards.find(({ header }) => header.internalId === conversation.cardInternalId)
+            if (!card) {
+                dialogService.warning(`Card no longer exists for pinned conversation: ${conversation.title}`, {title: 'Pinned conversation unavailable'})
+                return false
+            }
+            context = cardContext(card, config.cardTypes)
+        } else {
+            context = projectContext()
+        }
+
+        const contextIdentity = actionContextIdentity(context)
+        const existing = this.entries.find((entry) => (
+            entry.kind === 'action' && actionContextIdentity(entry.context) === contextIdentity
+        ))
+        existing?.fallbackAnchorElement.remove()
+        const entry: CardActionPopupEntry = {
+            anchorElement,
+            context,
+            fallbackAnchorElement: createFallbackAnchor(anchorElement),
+            id: `card-action-popup-${this.nextId}`,
+            kind: 'action',
+            requestedActionId: actionId,
+            requestedConversationPath: conversation.path,
+            requestedRunId: null,
+        }
+        this.nextId += 1
+        this.setEntries([...this.entries.filter((candidate) => candidate.id !== existing?.id), entry])
+
+        return true
     }
 
     toggleCardDetails(cardInternalId: string, anchorElement: HTMLElement) {

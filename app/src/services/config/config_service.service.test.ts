@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, DEFAULT_DIAGRAM_FOOTER, DEFAULT_STATES, defaultColumnAccent, resolveProjectConfigPaths } from '../../data/data_types'
 import { BUILTIN_AGENT_PROFILES, type AgentProfile } from '../../data/agent_profiles'
 import { CONFIG_ENTRIES, ConfigService, REACT_CONFIG_STORAGE_KEY, readStartupSplashPreference } from './config_service'
@@ -212,6 +212,69 @@ describe('ConfigService', () => {
         service.loadProjectConfig({ workingFolder: 'docs' })
 
         expect(service.getProjectConfig().backgroundShade).toBe('neutral')
+    })
+
+    it('loads and validates project-owned pinned conversation identities', () => {
+        service.init()
+        const pinnedConversations = [
+            { cardInternalId: 'card-1', contextKind: 'card' as const, conversationId: 'conversation-1' },
+            { contextKind: 'project' as const, conversationId: 'conversation-2' },
+        ]
+        service.loadProjectConfig({ pinnedConversations })
+
+        expect(service.getProjectConfig().pinnedConversations).toEqual(pinnedConversations)
+        expect(() => service.loadProjectConfig({ pinnedConversations: [pinnedConversations[0], pinnedConversations[0]] }))
+            .toThrow('contains duplicate conversation identities')
+        expect(() => service.loadProjectConfig({ pinnedConversations: [{ contextKind: 'project', conversationId: '' }] }))
+            .toThrow('requires conversationId')
+    })
+
+    it('defaults a missing pinned conversation identity list to empty', () => {
+        service.init()
+        service.loadProjectConfig({ workingFolder: 'docs' })
+
+        expect(service.getProjectConfig().pinnedConversations).toEqual([])
+    })
+
+    it('retains reloaded pin identities when an open settings draft is saved', () => {
+        service.init()
+        const firstLocator = { contextKind: 'project' as const, conversationId: 'conversation-1' }
+        const secondLocator = { contextKind: 'diagram' as const, conversationId: 'conversation-2' }
+        service.loadProjectConfig({ pinnedConversations: [firstLocator] })
+        service.loadDraft()
+
+        service.loadProjectConfig({ pinnedConversations: [secondLocator] })
+        service.saveDraft()
+
+        expect(service.getProjectConfig().pinnedConversations).toEqual([secondLocator])
+    })
+
+    it('serializes pin and settings saves using latest canonical config', async () => {
+        service.init()
+        service.loadProjectConfig({ pinnedConversations: [], pushMode: 'auto' })
+        let releaseFirstSave: () => void = () => undefined
+        const firstSavePending = new Promise<void>((resolve) => {
+            releaseFirstSave = resolve
+        })
+        const persistedConfigs = [] as ReturnType<ConfigService['getProjectConfig']>[]
+        service.connectProjectConfigPersistence({
+            saveProjectConfig: vi.fn(async (config) => {
+                persistedConfigs.push(config)
+                if (persistedConfigs.length === 1) await firstSavePending
+            }),
+        })
+        const locator = { contextKind: 'project' as const, conversationId: 'conversation-1' }
+        const pinSave = service.setConversationPinned(locator, true)
+        await vi.waitFor(() => expect(persistedConfigs).toHaveLength(1))
+        service.loadDraft()
+        service.setDraftValue('project.pushMode', 'manual')
+        service.saveDraft()
+        const settingsSave = service.saveProjectConfig()
+
+        releaseFirstSave()
+        await Promise.all([pinSave, settingsSave])
+
+        expect(persistedConfigs[1]).toMatchObject({ pinnedConversations: [locator], pushMode: 'manual' })
     })
 
     it('rejects unsupported project background shades', () => {

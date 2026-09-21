@@ -64,4 +64,16 @@ describe('createActionPopupBindings', () => {
         expect(bindings.bindingStore.getSnapshot()).toBe('run-2')
         bindings.bindingStore.dispose()
     })
+
+    it('keeps a persisted conversation detached from a current run', () => {
+        const emit = startRegistry()
+        emit(runEvent('run-1'))
+
+        const bindings = createActionPopupBindings(action, context, undefined, 'activity.json#conversation=history')
+
+        expect(bindings.bindingStore.getSnapshot()).toBeNull()
+        emit(runEvent('run-2'))
+        expect(bindings.bindingStore.getSnapshot()).toBeNull()
+        bindings.bindingStore.dispose()
+    })
 })

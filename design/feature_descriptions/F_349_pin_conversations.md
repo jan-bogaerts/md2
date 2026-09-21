@@ -98,33 +98,66 @@ changedFiles:
   - shared/agent_conversations.mjs
 ---
 
-some conversations can remain valid for longer time. user should be able to find them fast. So user can 'pin a conversation: put a 'pin' / 'unpin' icon next to the 'conversation selector' at the top row of the action popup. Also, in the selection list, put a pin after all pinned conversations so the user can easily spot a pinned conversation in the list.
+Some conversations remain useful long after they finish. Pinning gives users a project-wide shortlist from which they can identify and reopen those conversations quickly. Pinning affects discoverability only; it does not change conversation lifetime or activity compaction.
 
-When there are pinned conversations, put a pin in the status bar. when user clicks on the pin, a popup opens, very similar to the 'running agents' button on the status bar. The popup contains a list of all the pinned conversations. when user clicks on a conversation, the related action popup opens.
+## User experience
 
-Put the pin in front of the 'running agents' component.
+* A pin/unpin icon appears directly after the conversation picker in the action popup.
+* `New conversation` cannot be pinned.
+* Pinned entries in the conversation picker show a pin marker. Existing newest-first ordering remains unchanged.
+* When the project has pinned conversations, `PinnedConversationsIndicator` appears in the status bar immediately before `RunningAgentsIndicator`.
+* Selecting the indicator opens the existing status-details surface. It lists pinned conversations newest first with conversation title, start time, action label, and current card title for card-owned conversations.
+* Selecting an available row opens the related action popup with that exact persisted conversation selected.
 
-## Current state
+## Architecture
 
-`AgentConversation` has no pinned state. Activity JSON persists conversation data and `viewed`; parser defaults missing `viewed`, while atomic backend updates and cross-window events keep that field synchronized. Conversation picker lists current action/context conversations newest first. `AgentIntegration` loads card conversations by `cardInternalId` and project conversations from activity references, but exposes no project-wide pinned projection. Status bar ends with `RunningAgentsIndicator`; selecting its card run calls `CardPopupService`, which can open live runs but cannot target persisted conversation path.
+### Ownership and persistence
 
-Activity compaction only validates and canonicalizes data; it does not expire conversations. Pinning therefore preserves discoverability, not conversation lifetime.
+`ConfigService` owns the persisted ordered list of stable conversation locators. `ConversationPinService` exposes the pin-domain projection and scoped events used by conversation UI.
 
-## implementation details
+The list is persisted as `pinnedConversations: PinnedConversationLocator[]` in `md2.config.json`. Each locator stores the canonical conversation ID plus `cardInternalId` for card-owned conversations, or the action context kind for conversations without a card. Paths are not stored because release, archive, and other moves can change them. A missing list loads as empty. The service resets from the loaded project configuration whenever the project changes.
 
-* Add required runtime `pinned: boolean` to `AgentConversation`. Persist it in activity conversation JSON; migrate a missing value to `false`. New conversations start unpinned. Parsing and repair reject non-boolean values.
-* Add atomic `updateActionConversationPinned(reference, pinned)` storage and action-bridge APIs, matching viewed-state write serialization. Preserve stored `pinned` during later run checkpoints so stale live data cannot undo a user choice. Publish pinned changes after disk write; local and remote windows apply only that field before emitting a conversation-ID-scoped event.
-* Let `AgentIntegration` own stable project-wide pinned view data. On first pinned-list request, load all current-project activity conversation references, including card- and project-origin records; thereafter merge run updates and pin events by `AgentConversation.id`. Reset data on project switch. Expose it through `EventTarget` and `useSyncExternalStore` without republishing cards.
-* Put pin/unpin icon button directly after agent conversation picker. Disable it for `New conversation`; otherwise reflect displayed live or persisted conversation. Toggle through service, update only after backend success, and report failure through `dialogService`. Include tooltip and `aria-label`.
-* Include `pinned` in picker projection. Append pin icon to each pinned menu option without changing newest-first ordering or selection identity; paths remain persistence references, while `AgentConversation.id` remains conversation identity.
-* Add `PinnedConversationsIndicator` immediately before `RunningAgentsIndicator` in desktop status bar. Hide it when no conversations are pinned. Its button opens existing status-details surface with pinned conversations newest first; each row shows conversation title, start time, action label, and current card title when card-owned.
-* Add persisted-conversation opening to `CardPopupService`: resolve card ownership by `cardInternalId`, build context from current card data, select `actionId`, then initialize history selection from conversation path. Project-origin conversations use project context. If action or card no longer exists, keep row visible but unavailable and report reason through `dialogService` when selected.
-* Add parser/persistence, bridge/event, service projection, picker toggle/marker, status indicator, project reset, historical-open, missing-target, and error tests. Run affected app and desktop tests plus each subproject linter.
+`AgentConversation.id` is the pin identity. Conversation paths remain persistence references used to load and open history; they are never used as pin identity.
 
-## acceptance criteria
+### Writes and cross-window synchronization
+
+`ConversationPinService.setPinned(locator, pinned)` asks `ConfigService` to update the locator list. `ConfigService` serializes all project-config writes, applies each mutation to its latest canonical state, and persists the complete config through the active storage service. The pin service publishes state only after the write succeeds, so a failed write leaves the last confirmed snapshot intact.
+
+Project-file watching reloads externally changed config into `ConfigService`. `ConversationPinService` subscribes to config changes and refreshes its projection from the canonical locator list. Aggregate and conversation-scoped `EventTarget` notifications support `useSyncExternalStore` subscriptions without republishing cards or conversation collections.
+
+Project-config drafts exist only while the settings dialog is open. Reloaded or persisted pin identities are rebased into an open draft, so saving settings cannot restore an older pin list.
+
+### Pinned conversation projection
+
+`AgentIntegration` owns only the view projection used by the status popup. Opening the popup requests that projection. It resolves each locator through the current card's activity references or the project activity path, loads only those distinct activity files, and selects records whose `AgentConversation.id` occurs in `ConversationPinService`.
+
+The projection is sorted by `startedAt`, newest first. Run updates refresh matching projected conversations, while pin-service events add or remove entries. An unresolved pin reloads activity files only while the popup is open; otherwise the next popup opening performs the load. Project changes clear the projection and its loaded candidates before the next project list is resolved.
+
+### UI subscriptions
+
+The picker pin button and picker options subscribe to one conversation ID through `ConversationPinService`. The status indicator subscribes to the locator list for visibility and count, and the open popup subscribes to the projected records from `AgentIntegration`. Subscriptions live in the smallest component that renders the changing value.
+
+The pin button is disabled while its write is pending. Write and load failures are reported through `dialogService`.
+
+### Opening pinned history
+
+`CardPopupService` opens a pinned conversation by resolving its action and current context:
+
+* Card-owned conversations resolve the card through `cardInternalId`, build context from current card data, select `actionId`, and initialize history selection from the stored conversation path.
+* Project-owned conversations use project context and initialize the same persisted-history selection.
+* A renamed or moved card still resolves through `cardInternalId`.
+* Missing cards or actions leave the row visible but unavailable. Selecting it reports the reason through `dialogService`.
+
+## Verification
+
+Coverage includes project-config validation and serialized persistence, pin-service state and config-reload events, project reset, pinned projection, picker controls and markers, status indicator behavior, historical opening, missing targets, and write/load failures. Run the affected app and desktop tests and both subproject linters.
+
+## Acceptance criteria
 
 * Selected persisted or live conversation can be pinned and unpinned from icon beside picker; `New conversation` cannot be pinned.
-* Pin state survives reload and project reopen. Later conversation checkpoints and changes from another window do not revert it.
+* The project-level pinned identity list survives reload and project reopen.
+* Pin changes from another window appear without reloading the project.
+* Conversation updates do not change the project pin list.
 * Every pinned picker option shows pin marker; unpinned options do not. Existing newest-first order remains unchanged.
 * With at least one pinned conversation, status-bar pin appears immediately before running-agents control. With none, pin control is absent.
 * Status popup lists every pinned card- and project-origin conversation in current project, newest first, with enough action/card context to distinguish equal titles.

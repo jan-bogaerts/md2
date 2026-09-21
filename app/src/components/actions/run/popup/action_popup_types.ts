@@ -18,6 +18,7 @@ export interface ActionPopupContentProps {
     baseContext: ActionContext
     draggable?: boolean
     fullHeight: boolean
+    initialConversationPath?: string
     initialRunId?: string
     onActivate?: () => void
     onClose: () => void

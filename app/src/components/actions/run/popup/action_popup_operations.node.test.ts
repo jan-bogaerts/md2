@@ -55,7 +55,7 @@ function operationInput(
     settingsStore = new ActionRunSettingsStore(action.id, null),
     conversationStore: Pick<ActionPopupOperationInput['conversationStore'], 'continuationPath' | 'getSnapshot' | 'load'> = {
         continuationPath: () => 'conversation.json',
-        getSnapshot: () => ({ conversations: [], loading: false, selectedConversation: null }),
+        getSnapshot: () => ({ conversations: [], loading: false, pinningConversationId: null, selectedConversation: null }),
         load: vi.fn(async () => undefined),
     },
 ): ActionPopupOperationInput {
@@ -280,7 +280,10 @@ describe('runPopupAction waiting follow-up', () => {
         const previousConversation = storedConversation([{content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z'}])
         const conversationStore = {
             continuationPath: () => previousConversation.path,
-            getSnapshot: () => ({ conversations: [previousConversation], loading: false, selectedConversation: previousConversation }),
+            getSnapshot: () => ({
+                conversations: [previousConversation], loading: false,
+                pinningConversationId: null, selectedConversation: previousConversation,
+            }),
             load: vi.fn(async () => undefined),
         }
         const operation = operationInput(inputStore, settingsStore, conversationStore)
@@ -326,7 +329,10 @@ describe('runPopupAction waiting follow-up', () => {
         let selectedConversation = previousConversation
         const conversationStore = {
             continuationPath: () => previousConversation.path,
-            getSnapshot: () => ({ conversations: [selectedConversation], loading: false, selectedConversation }),
+            getSnapshot: () => ({
+                conversations: [selectedConversation], loading: false,
+                pinningConversationId: null, selectedConversation,
+            }),
             load: vi.fn(async () => { selectedConversation = failedConversation }),
         }
         actionPromptDraftService.getDraft(action.id, context, 'run-1', { prepare: false }).edit('Sent request')

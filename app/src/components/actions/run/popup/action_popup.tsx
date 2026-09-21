@@ -73,6 +73,7 @@ interface ActionPopupProps {
     context: ActionContext
     draggable?: boolean
     initialActionId?: string
+    initialConversationPath?: string
     initialRunId?: string
     onActivate?: () => void
     onClose: () => void
@@ -83,7 +84,7 @@ interface ActionPopupProps {
 
 /** Universal action selector and run popup for the supplied context. */
 export function ActionPopup(props: ActionPopupProps) {
-    const { anchorElement, context, initialActionId, initialRunId, onClose, open } = props
+    const { anchorElement, context, initialActionId, initialConversationPath, initialRunId, onClose, open } = props
     const { actions: loadedActions } = useActions()
     const { project, snapshot } = useProjectState()
     const projectActionWorktree = useProjectActionWorktree()
@@ -136,6 +137,7 @@ export function ActionPopup(props: ActionPopupProps) {
             assignmentContext={effectiveContext}
             baseContext={context}
             fullHeight={fullHeight}
+            initialConversationPath={selectedAction.id === initialActionId ? initialConversationPath : undefined}
             initialRunId={selectedAction.id === initialActionId ? initialRunId : undefined}
             onClose={handleClose}
             onSelectAction={handleSelectAction}

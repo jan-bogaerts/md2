@@ -10,6 +10,7 @@ import {
     DEFAULT_STATES,
     DEFAULT_WORKING_FOLDER,
     type CardTypeConfig,
+    type PinnedConversationLocator,
     type PushMode,
     type StateConfig,
 } from '../../data/data_types'
@@ -39,6 +40,7 @@ export interface ConfigValueTypes {
     'project.diffCommand': string
     'project.diagramFooter': string
     'project.diagramsFolder': string
+    'project.pinnedConversations': PinnedConversationLocator[]
     'project.projectFolder': string
     'project.pushMode': PushMode
     'project.releasesFolder': string
@@ -53,7 +55,15 @@ export interface ConfigValueTypes {
 
 export type ConfigKey = keyof ConfigValueTypes
 
-export type ConfigValue = boolean | number | string | AgentProfile[] | AgentSelectionState | CardTypeConfig[] | StateConfig[]
+export type ConfigValue = boolean
+    | number
+    | string
+    | string[]
+    | AgentProfile[]
+    | AgentSelectionState
+    | CardTypeConfig[]
+    | PinnedConversationLocator[]
+    | StateConfig[]
 
 export interface ConfigOption {
     label: string
@@ -305,6 +315,16 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         type: 'json',
     },
     {
+        defaultValue: [],
+        description: 'Stable conversation and context identities pinned for this project.',
+        editable: false,
+        key: 'project.pinnedConversations',
+        label: 'Pinned conversations',
+        section: 'project',
+        source: 'project',
+        type: 'json',
+    },
+    {
         defaultValue: DEFAULT_DESKTOP_AGENT_SELECTION,
         description: 'Active desktop agent and remembered model and reasoning level for each agent.',
         editable: true,
@@ -386,6 +406,7 @@ export const PROJECT_KEYS: ConfigKey[] = [
     'project.cardSeparator',
     'project.cardTypes',
     'project.states',
+    'project.pinnedConversations',
 ]
 
 export const DESKTOP_KEYS: ConfigKey[] = CONFIG_ENTRIES.filter(

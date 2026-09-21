@@ -207,7 +207,7 @@ export function ConfigPage(props: ConfigPageProps) {
             else if (markdownStyleChanged && isMarkdownStylePresetName(markdownStyleDraft.name)) {
                 setMarkdownStyle(markdownStyleDraft.name)
             }
-            if (shouldSaveProjectConfig && configService.hasProjectConfig()) await dataService.projectLoading.saveProjectConfig()
+            if (shouldSaveProjectConfig && configService.hasProjectConfig()) await configService.saveProjectConfig()
             navigateTo('/')
             if (shouldRestartRemoteControl) {
                 try {

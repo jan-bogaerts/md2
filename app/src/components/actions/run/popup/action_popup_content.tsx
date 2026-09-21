@@ -13,7 +13,7 @@ export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY }
 
 /** Selects the action-specific popup content while preserving its runtime for the selected action. */
 export function ActionPopupContent(props: ActionPopupContentProps) {
-    const { action, assignmentContext, initialRunId } = props
+    const { action, assignmentContext, initialConversationPath, initialRunId } = props
     const settingsContextIdentity = actionContextIdentity(assignmentContext)
     const settingsStore = useMemo(
         () => assignmentContext.cardInternalId
@@ -22,8 +22,8 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
         [action.id, assignmentContext.cardInternalId, settingsContextIdentity],
     )
     const bindings = useMemo(
-        () => createActionPopupBindings(action, assignmentContext, initialRunId),
-        [action, assignmentContext, initialRunId],
+        () => createActionPopupBindings(action, assignmentContext, initialRunId, initialConversationPath),
+        [action, assignmentContext, initialConversationPath, initialRunId],
     )
     useEffect(() => {
         bindings.usageValuesService.start()

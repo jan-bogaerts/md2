@@ -3,6 +3,7 @@ import type { AgentConversation } from '../../../data/data_types'
 import { actionPromptDraftService } from '../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../services/actions/action_run_registry'
 import { dialogService } from '../../../services/dialog_service'
+import { dataService } from '../../../services/data/data_service'
 import type { ConversationPickerConversation } from './action_conversation_picker_data'
 import { defaultLoadConversation, defaultLoadConversations } from '../run/popup/action_popup_defaults'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
@@ -10,7 +11,12 @@ import type { ActionRunBindingStore } from '../run/state/action_run_binding_stor
 interface ActionConversationSnapshot {
     conversations: AgentConversation[]
     loading: boolean
+    pinningConversationId: string | null
     selectedConversation: AgentConversation | null
+}
+
+function initialConversationSnapshot(): ActionConversationSnapshot {
+    return { conversations: [], loading: true, pinningConversationId: null, selectedConversation: null }
 }
 
 interface ConversationIdentity {
@@ -84,7 +90,7 @@ export class ActionConversationStore {
     private initialSelectionPath: string | null = null
     private loadRequest = 0
     private readonly listeners = new Set<Listener>()
-    private snapshot: ActionConversationSnapshot = { conversations: [], loading: true, selectedConversation: null }
+    private snapshot = initialConversationSnapshot()
 
     constructor(actionId: string, context: ActionContext, bindingStore: ActionRunBindingStore) {
         this.actionId = actionId
@@ -122,9 +128,7 @@ export class ActionConversationStore {
             const refreshedSelection = this.snapshot.selectedConversation
                 ? conversations.find(({ path }) => path === this.snapshot.selectedConversation?.path) ?? this.snapshot.selectedConversation
                 : null
-            let selectedConversation = runActive
-                ? refreshedSelection
-                : refreshedSelection ?? latestWaitingConversation(conversations, this.actionId, this.context)
+            let selectedConversation = refreshedSelection
             const initialSelectionPath = this.initialSelectionPath
             this.initialSelectionPath = null
             if (!runActive && !selectedConversation && initialSelectionPath) {
@@ -136,19 +140,22 @@ export class ActionConversationStore {
                 } catch (error) {
                     if (request !== this.loadRequest) return
 
-                    this.setSnapshot({ conversations, loading: false, selectedConversation: null })
+                    this.setSnapshot({ conversations, loading: false, pinningConversationId: null, selectedConversation: null })
                     dialogService.error(error, { fallbackMessage: 'Could not load agent conversation' })
                     return
                 }
             }
-            this.setSnapshot({ conversations, loading: false, selectedConversation })
+            if (!runActive && !selectedConversation) {
+                selectedConversation = latestWaitingConversation(conversations, this.actionId, this.context)
+            }
+            this.setSnapshot({ conversations, loading: false, pinningConversationId: null, selectedConversation })
             if (selectedConversation && !runActive) {
                 actionPromptDraftService.discardUneditedDraft(this.actionId, this.context, this.bindingStore.getSnapshot())
             }
         } catch (error) {
             if (request !== this.loadRequest) return
 
-            this.setSnapshot({ conversations: [], loading: false, selectedConversation: null })
+            this.setSnapshot({ conversations: [], loading: false, pinningConversationId: null, selectedConversation: null })
             dialogService.error(error, { fallbackMessage: 'Could not load agent conversations' })
         }
     }
@@ -197,6 +204,27 @@ export class ActionConversationStore {
 
     continuationPath(liveConversation: AgentConversation | null) {
         return liveConversation?.path ?? this.snapshot.selectedConversation?.path ?? null
+    }
+
+    async togglePinned(conversation: ConversationPickerConversation) {
+        if (this.snapshot.pinningConversationId) return
+
+        this.setSnapshot({ ...this.snapshot, pinningConversationId: conversation.id })
+        try {
+            const pinned = dataService.conversationPins.isPinned(conversation.id)
+            const locator = {
+                ...(this.context.cardInternalId ? { cardInternalId: this.context.cardInternalId } : {}),
+                contextKind: this.context.kind,
+                conversationId: conversation.id,
+            }
+            await dataService.conversationPins.setPinned(locator, !pinned)
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not update conversation pin' })
+        } finally {
+            if (this.snapshot.pinningConversationId === conversation.id) {
+                this.setSnapshot({ ...this.snapshot, pinningConversationId: null })
+            }
+        }
     }
 
     /** Applies one backend-returned conversation without another persistence round trip. */

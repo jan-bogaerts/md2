@@ -18,6 +18,15 @@ const context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md'
 const mergeConflictContext: ActionContext = { conflictSessionId: 'session-1', kind: 'merge-conflict' }
 const diagramContext: ActionContext = { diagramId: 'diagram-1', kind: 'diagram', type: 'root' }
 
+function createDeferred<T>() {
+    let resolve: (value: T) => void = () => undefined
+    const promise = new Promise<T>((resolvePromise) => {
+        resolve = resolvePromise
+    })
+
+    return { promise, resolve }
+}
+
 function projectConversation(path: string): AgentConversation {
     return { ...conversation(path), actionId: 'resolve-conflict', cardInternalId: null, cardPath: null }
 }
@@ -114,6 +123,24 @@ describe('ActionConversationStore', () => {
 
         expect(loadConversation).toHaveBeenCalledWith(unseenConversation.path)
         expect(store.getSnapshot().selectedConversation).toBe(unseenConversation)
+    })
+
+    it('opens a configured historical conversation instead of a different waiting conversation', async () => {
+        const requestedConversation = conversation('conversation-requested.json')
+        const waitingConversation = {
+            ...conversation('conversation-waiting.json'),
+            actionId: 'implement',
+            cardInternalId: 'card-1',
+            status: 'waitingForInput' as const,
+        }
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([waitingConversation, requestedConversation])
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(requestedConversation)
+        const { store } = createConversationStore()
+        store.configureInitialSelection(requestedConversation.path)
+
+        await store.load()
+
+        expect(store.getSnapshot().selectedConversation).toBe(requestedConversation)
     })
 
     it('keeps unseen conversation unselected and reports its load failure', async () => {
@@ -277,5 +304,40 @@ describe('ActionConversationStore', () => {
         expect(store.getSnapshot().selectedConversation).toBe(split)
         expect(store.getSnapshot().conversations).toContain(split)
         expect(loadConversation).not.toHaveBeenCalled()
+    })
+
+    it('keeps the pin control busy until project pin persistence is confirmed', async () => {
+        const source = conversation('conversation.json')
+        const deferred = createDeferred<void>()
+        vi.spyOn(dataService.conversationPins, 'isPinned').mockReturnValue(false)
+        const setPinned = vi.spyOn(dataService.conversationPins, 'setPinned').mockReturnValue(deferred.promise)
+        const { store } = createConversationStore()
+
+        const pending = store.togglePinned(source)
+        expect(store.getSnapshot().pinningConversationId).toBe(source.id)
+        expect(setPinned).toHaveBeenCalledWith({
+            cardInternalId: 'card-1',
+            contextKind: 'card',
+            conversationId: source.id,
+        }, true)
+
+        deferred.resolve()
+        await pending
+
+        expect(store.getSnapshot().pinningConversationId).toBeNull()
+    })
+
+    it('reports a project pin write failure', async () => {
+        const source = conversation('conversation.json')
+        const error = new Error('pin write failed')
+        vi.spyOn(dataService.conversationPins, 'isPinned').mockReturnValue(false)
+        vi.spyOn(dataService.conversationPins, 'setPinned').mockRejectedValue(error)
+        const reportError = vi.spyOn(dialogService, 'error')
+        const { store } = createConversationStore()
+
+        await store.togglePinned(source)
+
+        expect(store.getSnapshot().pinningConversationId).toBeNull()
+        expect(reportError).toHaveBeenCalledWith(error, { fallbackMessage: 'Could not update conversation pin' })
     })
 })

@@ -20,6 +20,8 @@ import { mapWithConcurrency } from '../concurrency'
 import { type RequiredDataServiceDependencies } from '../data/data_service_context'
 import { telemetryService } from '../telemetry/telemetry_service'
 import { dialogService } from '../dialog_service'
+import type { ConversationPinService } from './conversation_pin_service'
+import { activityFilePath } from '../../../../shared/activity_paths.mjs'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 /** Terminal run status as the conversation records it; a run that ended after its after-phase check still completed. */
@@ -30,6 +32,17 @@ const TERMINAL_CONVERSATION_STATUS: Record<ActionRunTerminalStatus, AgentConvers
     okButNotAfter: 'completed',
 }
 const MAX_REPORTED_LOAD_ERROR_KEYS = 200
+const PINNED_CONVERSATIONS_CHANGED_EVENT = 'pinned-conversations'
+
+function conversationTimestamp(conversation: AgentConversation) {
+    const timestamp = Date.parse(conversation.startedAt)
+
+    return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+function sortPinnedConversations(conversations: AgentConversation[]) {
+    return conversations.sort((left, right) => conversationTimestamp(right) - conversationTimestamp(left))
+}
 
 interface ResolvedAgentConversations {
     conversations: AgentConversation[]
@@ -42,6 +55,7 @@ export interface AgentIntegrationDeps {
     conversationsChanged(cardPath: string): void
     findCardByInternalId(cardInternalId: string): Card | null
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
+    pins: ConversationPinService
     project(): ProjectReference | null
     requireDependencies(): RequiredDataServiceDependencies
     snapshot(): ProjectSnapshot | null
@@ -90,8 +104,15 @@ export class AgentIntegration {
     private projectConversations: AgentConversation[] = []
     private projectLoad: Promise<void> | null = null
     private projectLoadCompleted = false
+    private pinnedConversations: AgentConversation[] = []
+    private readonly pinnedConversationCandidates: Map<string, AgentConversation> = new Map()
+    private readonly pinnedConversationEvents = new EventTarget()
+    private pinnedLoad: Promise<void> | null = null
+    private pinnedLoadCompleted = false
+    private pinnedPopupOpen = false
     private readonly reportedLoadErrorKeys: Set<string> = new Set()
     private conversationViewCleanup: (() => void) | null = null
+    private pinCleanup: (() => void) | null = null
     private scheduledRunCleanup: (() => void) | null = null
 
     constructor(dependencies: AgentIntegrationDeps) {
@@ -114,9 +135,52 @@ export class AgentIntegration {
         this.projectConversations = []
         this.projectLoad = null
         this.projectLoadCompleted = false
+        this.resetPinnedConversations()
         this.reportedLoadErrorKeys.clear()
         agentAcknowledgementService.reset()
         agentAcknowledgementService.announceConversationsChanged(null, [])
+    }
+
+    readonly getPinnedConversationsSnapshot = () => this.pinnedConversations
+
+    readonly subscribePinnedConversations = (listener: () => void) => {
+        this.pinnedConversationEvents.addEventListener(PINNED_CONVERSATIONS_CHANGED_EVENT, listener)
+
+        return () => this.pinnedConversationEvents.removeEventListener(PINNED_CONVERSATIONS_CHANGED_EVENT, listener)
+    }
+
+    /** Gates activity-file refreshes that only serve the pinned-conversation popup. */
+    setPinnedConversationsPopupOpen(open: boolean) {
+        this.pinnedPopupOpen = open
+    }
+
+    /** Loads conversations from activity files identified by current pin locators. */
+    async ensurePinnedConversationsLoaded() {
+        if (this.pinnedLoadCompleted) return this.pinnedConversations
+        if (this.pinnedLoad) {
+            await this.pinnedLoad
+
+            return this.pinnedConversations
+        }
+
+        const project = this.dependencies.project()
+        if (!project) throw new Error('Cannot load pinned conversations before a project is open')
+        const projectLoadToken = this.requireProjectLoadToken()
+        const generation = this.conversationLoadGeneration
+        const tracked = this.loadPinnedConversations(project, projectLoadToken, generation)
+        this.pinnedLoad = tracked
+        try {
+            await tracked
+            if (this.canApplyLoad(generation, project, projectLoadToken)) this.pinnedLoadCompleted = true
+        } catch (error) {
+            if (this.canApplyLoad(generation, project, projectLoadToken)) {
+                dialogService.error(error, { fallbackMessage: 'Could not load pinned conversations' })
+            }
+        } finally {
+            if (this.pinnedLoad === tracked) this.pinnedLoad = null
+        }
+
+        return this.pinnedConversations
     }
 
     /** Records an in-memory write, so a load that started before it cannot put an older copy back. */
@@ -155,6 +219,7 @@ export class AgentIntegration {
 
     startScheduledRunWatch() {
         this.stopScheduledRunWatch()
+        this.pinCleanup = this.dependencies.pins.subscribe(() => this.handlePinsChanged())
         this.scheduledRunCleanup = actionRunRegistry.subscribeActiveRunEvents((event) => {
             try {
                 this.handleActionRunEvent(event)
@@ -184,10 +249,35 @@ export class AgentIntegration {
             this.conversationViewCleanup()
             this.conversationViewCleanup = null
         }
+        if (this.pinCleanup) {
+            this.pinCleanup()
+            this.pinCleanup = null
+        }
         if (!this.scheduledRunCleanup) return
 
         this.scheduledRunCleanup()
         this.scheduledRunCleanup = null
+    }
+
+    private handlePinsChanged() {
+        const retained = this.pinnedConversations.filter(({ id }) => this.dependencies.pins.isPinned(id))
+        const pinnedLocators = this.dependencies.pins.getSnapshot()
+        const additions = pinnedLocators.flatMap(({ conversationId }) => {
+            if (retained.some(({ id }) => id === conversationId)) return []
+            const located = this.locateStoredConversation(conversationId)
+            const candidate = located?.conversation ?? this.pinnedConversationCandidates.get(conversationId)
+
+            return candidate ? [candidate] : []
+        })
+        this.pinnedConversations = sortPinnedConversations([...retained, ...additions])
+        this.pinnedConversationEvents.dispatchEvent(new Event(PINNED_CONVERSATIONS_CHANGED_EVENT))
+        const unresolvedPin = pinnedLocators.some(({ conversationId }) => (
+            !this.pinnedConversations.some(({ id }) => id === conversationId)
+        ))
+        if (this.pinnedLoadCompleted && unresolvedPin) {
+            this.pinnedLoadCompleted = false
+            if (this.pinnedPopupOpen) void this.ensurePinnedConversationsLoaded()
+        }
     }
 
     /**
@@ -265,6 +355,7 @@ export class AgentIntegration {
         this.loadedCardInternalIds.clear()
         this.projectLoad = null
         this.projectLoadCompleted = false
+        this.resetPinnedConversations()
     }
 
     private requireProjectLoadToken() {
@@ -300,6 +391,33 @@ export class AgentIntegration {
         const loadedProjectConversations = conversations.filter(({ cardInternalId }) => cardInternalId === null)
         this.projectConversations = this.preferExistingConversations(this.projectConversations, loadedProjectConversations, loadSequence)
         agentAcknowledgementService.announceConversationsChanged(null, [])
+    }
+
+    private async loadPinnedConversations(project: ProjectReference, projectLoadToken: number, generation: number) {
+        const loadSequence = this.conversationWriteSequence
+        const { config, storage } = this.dependencies.requireDependencies()
+        const activityPaths = this.pinnedActivityPaths(config.projectFolder)
+        const conversationGroups = await mapWithConcurrency(activityPaths, AGENT_CONVERSATION_LOAD_CONCURRENCY, async (activityPath) => (
+            loadActivityConversations(storage, project, activityPath)
+        ))
+        if (!this.canApplyLoad(generation, project, projectLoadToken)) return
+
+        const conversations = conversationGroups.flat()
+        const merged = this.preferExistingConversations(this.pinnedConversations, conversations, loadSequence)
+        for (const conversation of conversations) this.pinnedConversationCandidates.set(conversation.id, conversation)
+        this.pinnedConversations = sortPinnedConversations(merged.filter(({ id }) => this.dependencies.pins.isPinned(id)))
+        this.pinnedConversationEvents.dispatchEvent(new Event(PINNED_CONVERSATIONS_CHANGED_EVENT))
+    }
+
+    private pinnedActivityPaths(projectFolder: string) {
+        const paths = this.dependencies.pins.getSnapshot().flatMap(({ cardInternalId }) => {
+            if (!cardInternalId) return [activityFilePath(projectFolder, { kind: 'project' })]
+            const card = this.dependencies.findCardByInternalId(cardInternalId)
+
+            return card?.header.agentLogReferences ?? []
+        })
+
+        return [...new Set(paths)]
     }
 
     private loadCardConversations(cardInternalId: string, project: ProjectReference, projectLoadToken: number) {
@@ -512,6 +630,7 @@ export class AgentIntegration {
             current.id === conversation.id ? conversation : current
         ))
         this.markConversationWritten(conversation.id)
+        this.mergePinnedConversation(conversation)
         agentAcknowledgementService.announceConversationsChanged(null, [])
     }
 
@@ -520,6 +639,7 @@ export class AgentIntegration {
             ? this.projectConversations.map((current) => current.id === conversation.id ? conversation : current)
             : [...this.projectConversations, conversation]
         this.markConversationWritten(conversation.id)
+        this.mergePinnedConversation(conversation)
         agentAcknowledgementService.announceConversationsChanged(null, [])
     }
 
@@ -530,8 +650,36 @@ export class AgentIntegration {
             : [...conversations, conversation]
         this.conversationsByCardInternalId.set(cardInternalId, nextConversations)
         this.markConversationWritten(conversation.id)
+        this.mergePinnedConversation(conversation)
         this.notifyConversationsChanged(cardInternalId)
         const actionIds = conversation.actionId ? [conversation.actionId] : []
         agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
+    }
+
+    private mergePinnedConversation(conversation: AgentConversation) {
+        if (!this.pinnedLoadCompleted && !this.pinnedLoad) return
+        this.pinnedConversationCandidates.set(conversation.id, conversation)
+
+        const current = this.pinnedConversations.find(({ id }) => id === conversation.id)
+        const pinned = this.dependencies.pins.isPinned(conversation.id)
+        if (!pinned && !current) return
+
+        this.pinnedConversations = pinned
+            ? sortPinnedConversations([
+                ...this.pinnedConversations.filter(({ id }) => id !== conversation.id),
+                conversation,
+            ])
+            : this.pinnedConversations.filter(({ id }) => id !== conversation.id)
+        this.pinnedConversationEvents.dispatchEvent(new Event(PINNED_CONVERSATIONS_CHANGED_EVENT))
+    }
+
+    private resetPinnedConversations() {
+        const hadConversations = this.pinnedConversations.length > 0
+        this.pinnedConversations = []
+        this.pinnedConversationCandidates.clear()
+        this.pinnedLoad = null
+        this.pinnedLoadCompleted = false
+        this.pinnedPopupOpen = false
+        if (hadConversations) this.pinnedConversationEvents.dispatchEvent(new Event(PINNED_CONVERSATIONS_CHANGED_EVENT))
     }
 }

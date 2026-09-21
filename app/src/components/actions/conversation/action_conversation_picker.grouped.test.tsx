@@ -5,6 +5,7 @@ import type { AgentConversation } from '../../../data/data_types'
 import { ActionConversationPicker } from './action_conversation_picker'
 import { conversationOptions } from './action_conversation_store'
 import { conversationPickerLabel, formatConversationDateTime } from './action_conversation_picker_data'
+import { dataService } from '../../../services/data/data_service'
 
 function conversation(overrides: Partial<AgentConversation> = {}): AgentConversation {
     return {
@@ -26,7 +27,11 @@ function conversation(overrides: Partial<AgentConversation> = {}): AgentConversa
 }
 
 describe('conversation picker data', () => {
-    afterEach(cleanup)
+    afterEach(() => {
+        cleanup()
+        dataService.conversationPins.reset()
+        vi.restoreAllMocks()
+    })
 
     it('always allows selecting New conversation', () => {
         const onChange = vi.fn()
@@ -57,6 +62,29 @@ describe('conversation picker data', () => {
         expect(conversationPickerLabel(titled)).toBe(`Review — ${formatConversationDateTime(titled.startedAt)}`)
         expect(conversationPickerLabel(untitled)).toBe(formatConversationDateTime(untitled.startedAt))
         expect(formatConversationDateTime('invalid timestamp')).toBe('invalid timestamp')
+    })
+
+    it('marks only pinned options without changing option order', () => {
+        const pinned = conversation({ id: 'pinned', path: 'pinned.json', title: 'Pinned review' })
+        const unpinned = conversation({ id: 'unpinned', path: 'unpinned.json', title: 'Other review' })
+        vi.spyOn(dataService.conversationPins, 'isPinned').mockImplementation((conversationId) => conversationId === 'pinned')
+        render(
+            <ActionConversationPicker
+                conversations={[pinned, unpinned]}
+                disabled={false}
+                loading={false}
+                onChange={vi.fn()}
+                selectedPath={pinned.path}
+            />,
+        )
+
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Conversation history' }))
+        const options = within(screen.getByRole('listbox')).getAllByRole('option')
+
+        expect(options[1]).toHaveTextContent('Pinned review')
+        expect(within(options[1]).getByLabelText('Pinned')).toBeInTheDocument()
+        expect(options[2]).toHaveTextContent('Other review')
+        expect(within(options[2]).queryByLabelText('Pinned')).not.toBeInTheDocument()
     })
 
     it('filters context, sorts newest first, and replaces live duplicates', () => {
