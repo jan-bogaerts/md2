@@ -2426,6 +2426,31 @@
       "startedAt": "2026-09-19T15:23:59.280Z",
       "status": "completed",
       "rootConversationId": "agent-3f90dd42-2f15-41d6-8af4-ef40c357606c"
+    },
+    {
+      "commits": [
+        {
+          "commit": "ff1ab498d5d1f6c76625deaeed0920d07c342f6c",
+          "committedAt": "2026-09-21T15:18:34+02:00",
+          "deletions": 52,
+          "filePaths": [
+            "app/src/components/diagram_view/diagram_formatting_controls.tsx",
+            "app/src/components/diagram_view/diagram_formatting_scale_control.test.tsx",
+            "app/src/components/diagram_view/diagram_formatting_scale_control.tsx",
+            "app/src/components/diagram_view/diagram_menu_tab.test.tsx"
+          ],
+          "filesChanged": 4,
+          "insertions": 300,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-21T15:18:34+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "7e54add8-465d-47ff-90fd-7f9cc49c79f1",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
