@@ -16986,6 +16986,67 @@
       "startedAt": "2026-09-21T09:19:42.450Z",
       "status": "completed",
       "rootConversationId": "58a7ee32-deda-4cc4-a1b1-344623dc7f96"
+    },
+    {
+      "commits": [
+        {
+          "commit": "b6acd3d2f4f8d31a9a0cc8e15627e1e0e5c2aa16",
+          "committedAt": "2026-09-21T13:51:58+02:00",
+          "deletions": 60,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_link_navigation.node.test.ts",
+            "app/src/components/actions/conversation/action_conversation_picker.grouped.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_picker.tsx",
+            "app/src/components/actions/conversation/action_conversation_picker_option.tsx",
+            "app/src/components/actions/conversation/action_conversation_picker_owner.tsx",
+            "app/src/components/actions/conversation/action_conversation_pin_button.test.tsx",
+            "app/src/components/actions/conversation/action_conversation_pin_button.tsx",
+            "app/src/components/actions/conversation/action_conversation_store.node.test.ts",
+            "app/src/components/actions/conversation/action_conversation_store.ts",
+            "app/src/components/actions/run/popup/action_popup.tsx",
+            "app/src/components/actions/run/popup/action_popup_content.tsx",
+            "app/src/components/actions/run/popup/action_popup_operations.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_runtime.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_runtime.ts",
+            "app/src/components/actions/run/popup/action_popup_types.ts",
+            "app/src/components/actions/run/popup/card_action_popup_host_entry.test.tsx",
+            "app/src/components/actions/run/popup/card_action_popup_host_entry.tsx",
+            "app/src/components/config/config_page.test.tsx",
+            "app/src/components/config/config_page.tsx",
+            "app/src/components/hooks/use_conversation_pinned.ts",
+            "app/src/components/hooks/use_project_config.test.ts",
+            "app/src/components/shell/pinned_conversation_details_row.tsx",
+            "app/src/components/shell/pinned_conversations_details.tsx",
+            "app/src/components/shell/pinned_conversations_indicator.test.tsx",
+            "app/src/components/shell/pinned_conversations_indicator.tsx",
+            "app/src/components/shell/status_bar.tsx",
+            "app/src/data/data_types.ts",
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/agents/conversation_pin_service.node.test.ts",
+            "app/src/services/agents/conversation_pin_service.ts",
+            "app/src/services/card_popup_service.test.ts",
+            "app/src/services/card_popup_service.ts",
+            "app/src/services/config/config_entries.ts",
+            "app/src/services/config/config_service.service.test.ts",
+            "app/src/services/config/config_service.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/project/project_loading.ts",
+            "app/src/services/project/project_read_only_guards.service.test.ts",
+            "design/feature_descriptions/F_349_pin_conversations.md"
+          ],
+          "filesChanged": 40,
+          "insertions": 1555,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-21T13:51:58+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
