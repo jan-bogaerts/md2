@@ -11576,7 +11576,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 58598
+        "usedTokens": 70790
       },
       "entries": [
         {
@@ -13607,6 +13607,101 @@
           "role": "assistant",
           "sequence": 149,
           "timestamp": "2026-09-21T09:25:16.544Z"
+        },
+        {
+          "content": "draftValues should not be a problem, 'draft' it should only be valid while config dialog is opened, once config is saved, the draft no longer has a meaning.\nconversationPinService should not do anything with the config file, it should ask the config service for the value, save it back to the configservice, which is responsible for doing disk save.  configService also raises event when config reloaded, so pin service can also reload",
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-user-149",
+          "kind": "message",
+          "role": "user",
+          "sequence": 150,
+          "timestamp": "2026-09-21T09:40:53.664Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-151",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0613de794e90c1b7016ab0fba8acc087d2b0f44f145894eb29",
+          "sequence": 151,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T09:41:00.786Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. Draft lifetime is not core problem. I’m checking current `ConfigService` event and reload flow to restate exact architectural violation and required ownership change.\n\n",
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 152,
+          "timestamp": "2026-09-21T09:41:01.752Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"subscribe|getSnapshot|dispatchChanged|addEventListener|loadProjectConfig\\\\(|PROJECT_CONFIG_PATH|reload.*Config|config.*reload\\\" app/src/services/config app/src/services/project/project_loading.ts app/src --glob '\"'!**/*.test.*'\"'\"",
+          "content": "",
+          "durationMs": 6,
+          "exitCode": 0,
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-153",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"subscribe|getSnapshot|dispatchChanged|addEventListener|loadProjectConfig\\\\(|PROJECT_CONFIG_PATH|reload.*Config|config.*reload\\\" app/src/services/config app/src/services/project/project_loading.ts app/src --glob '\"'!**/*.test.*'\"'\"",
+          "providerItemId": "exec-c784e276-63b2-4c15-a393-53277a85e57e",
+          "sequence": 153,
+          "status": "completed",
+          "timestamp": "2026-09-21T09:41:03.925Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-154",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0613de794e90c1b7016ab0fbb2017c87d2a83a6ce277a36de1",
+          "sequence": 154,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T09:41:05.803Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$p='\"'app/src/services/config/config_service.ts';\"'$l=Get-Content $p;foreach($range in @(@(275,340),@(453,540))){for($i=$range[0];$i -le $range[1];$i++){\"$i`:$($l[$i-1])\"}}; $p='\"'app/src/services/project/project_loading.ts';\"'$l=Get-Content $p;for($i=690;$i -le 715;$i++){\"$i`:$($l[$i-1])\"};for($i=858;$i -le 877;$i++){\"$i`:$($l[$i-1])\"}'",
+          "content": "538:\r\n539:\r\n540:\r\n690:            return\r\n691:        }\r\n692:\r\n693:        this.handleExternalProjectWatchEvent(event)\r\n694:    }\r\n695:\r\n696:    private handleExternalProjectWatchEvent(event: ProjectWatchEvent) {\r\n697:        if (agentInstructionsService.hasFile(event.path)) {\r\n698:            this.dependencies.updateRepositoryFile(event)\r\n699:            this.dependencies.dispatchRepositoryChanged(event)\r\n700:            void this.reloadAgentInstructionFromWatch(event)\r\n701:            return\r\n702:        }\r\n703:\r\n704:        this.dependencies.updateRepositoryFile(event)\r\n705:        this.dependencies.dispatchRepositoryChanged(event)\r\n706:        if (event.path === PROJECT_CONFIG_PATH) {\r\n707:            void this.reloadProjectConfigFromWatch()\r\n708:            return\r\n709:        }\r\n710:        const { config } = this.dependencies.requireDependencies()\r\n711:        const repositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []\r\n712:        const knownInstructionPaths = agentInstructionsService.getSnapshot().files.map(({ path }) => path)\r\n713:        const normalizedEventPath = normalizePath(event.path).toLowerCase()\r\n714:        if (findAgentInstructionPaths([...repositoryFiles, ...knownInstructionPaths])\r\n715:            .some((path) => normalizePath(path).toLowerCase() === normalizedEventPath)) return\r\n858:    private publishObservedRepositoryChange(observedOutcome: ObservedPersistenceOutcome) {\r\n859:        const event = this.watchEventFromObserved(observedOutcome)\r\n860:        this.dependencies.updateRepositoryFile(event)\r\n861:        this.dependencies.dispatchRepositoryChanged(event)\r\n862:    }\r\n863:\r\n864:    private async reloadProjectConfigFromWatch() {\r\n865:        const { storage } = this.dependencies.requireDependencies()\r\n866:        const currentProject = this.dependencies.project()\r\n867:        if (!currentProject) return\r\n868:\r\n869:        try {\r\n870:            configService.loadProjectConfig(await storage.loadProjectConfig(currentProject))\r\n871:        } catch (error) {\r\n872:            reportOptionalProjectLoadFailure('Project configuration reload', error)\r\n873:        }\r\n874:    }\r\n875:\r\n876:    private scheduleActionReload(change: ActionReloadChange) {\r\n877:        this.actionReloadChangesByPath.set(change.path, change)\r\n",
+          "durationMs": 22,
+          "exitCode": 0,
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-155",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$p='\"'app/src/services/config/config_service.ts';\"'$l=Get-Content $p;foreach($range in @(@(275,340),@(453,540))){for($i=$range[0];$i -le $range[1];$i++){\"$i`:$($l[$i-1])\"}}; $p='\"'app/src/services/project/project_loading.ts';\"'$l=Get-Content $p;for($i=690;$i -le 715;$i++){\"$i`:$($l[$i-1])\"};for($i=858;$i -le 877;$i++){\"$i`:$($l[$i-1])\"}'",
+          "providerItemId": "exec-74248fb9-9c19-494a-bd9f-ae1377637b8c",
+          "sequence": 155,
+          "status": "completed",
+          "timestamp": "2026-09-21T09:41:09.816Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-event-156",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0613de794e90c1b7016ab0fbb7f86087d2bdad0b0e63d7473d",
+          "sequence": 156,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T09:41:24.977Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Agreed. My previous framing overemphasized `draftValues`.\n\nActual problem is split ownership:\n\n- `ConversationPinService.setPinned()` bypasses `ConfigService` and calls Electron directly.\n- Desktop independently reads and writes `md2.config.json`.\n- `ConfigService.setPinnedConversations()` only mirrors the completed write afterward.\n- Config reload updates `ConfigService`, but `ConversationPinService` does not subscribe to it.\n\nFix:\n\n- `ConversationPinService` reads and writes pin state only through `ConfigService`.\n- `ConfigService` becomes sole owner of config persistence and write serialization.\n- `ConversationPinService` subscribes to `ConfigService` changes and refreshes its snapshot after load/reload.\n- Remove `updateProjectConversationPinned()` as an independent config writer.\n- Keep drafts limited to dialog lifetime. If config changes while dialog is open, canonical non-editable values must remain authoritative when saving.\n\nThis also absorbs previous problem 3; config reload synchronization is part of the same ownership defect.\n\n",
+          "id": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 157,
+          "timestamp": "2026-09-21T09:41:30.429Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -13616,27 +13711,27 @@
           "agent": "codex",
           "conversationId": "01a0c343-9a9c-79b2-b6e0-ec5c7db26e8f",
           "createdAt": "2026-09-21T09:20:15.120Z",
-          "lastUsedAt": "2026-09-21T09:20:15.120Z",
-          "synchronizedThroughMessageId": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-turn-1-assistant-2"
+          "lastUsedAt": "2026-09-21T09:25:16.544Z",
+          "synchronizedThroughMessageId": "agent-turn-9ce0f26f-d2ab-4633-ac31-b0426d59c23f-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-09-21T09:13:14.105Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 51933,
-          "toolMs": 1020
+          "reasoningMs": 70856,
+          "toolMs": 1049
         },
-        "elapsedMs": 32654,
-        "runningStartedAt": "2026-09-21T09:24:02.574Z"
+        "elapsedMs": 106624,
+        "runningStartedAt": "2026-09-21T09:40:53.664Z"
       },
       "title": "review (split)",
       "usage": {
-        "cachedInputTokens": 305024,
-        "inputTokens": 47747,
-        "outputTokens": 1674,
-        "reasoningTokens": 1787,
-        "totalTokens": 356232
+        "cachedInputTokens": 488960,
+        "inputTokens": 60725,
+        "outputTokens": 2249,
+        "reasoningTokens": 2459,
+        "totalTokens": 554393
       },
       "usageSchemaVersion": 1,
       "viewed": true
