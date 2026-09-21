@@ -12,4 +12,4 @@ policy:
 The react tab of the config dialog needs to be removed:
 
 * startup splash has no real value, it should always be on, it should not be a configurable value
-* delete integrated card branch, delete released card branches, auto commit delay should move to&#x20;
+* delete integrated card branch, delete released card branches, auto commit delay should move to the 'project' tab,&#x20;
