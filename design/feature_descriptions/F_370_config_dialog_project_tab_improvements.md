@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__1e7b5718-e065-479d-9d50-be0ff38d738f.json
 policy:
 ---
 we need to improve the layout of the project tab on the config dialog:
