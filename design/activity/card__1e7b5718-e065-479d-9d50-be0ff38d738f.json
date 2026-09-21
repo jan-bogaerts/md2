@@ -27,6 +27,20 @@
           "thinkingLevel": "medium"
         }
       }
+    },
+    "md2.custom-prompt": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
     }
   },
   "conversations": [
@@ -2319,6 +2333,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "1e7b5718-e065-479d-9d50-be0ff38d738f",
+      "cardPath": "design/feature_descriptions/F_370_config_dialog_project_tab_improvements.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "we implemented design/feature_descriptions/F_370_config_dialog_project_tab_improvements.md, but we need to improve in a number of ways:\n- groups need to be put in cards\n- for card types, we have the field 'type', I think this has a fixed set of possible values, so use a select.\n- for card types, put id prefix and color next to each other\n- for columns, put color and always visible next to each other.\n- for linked worktrees, this is also a group, use a card, and same styling as the other groups.\n- for the color picker: lets add some default colors to select from\n",
+          "id": "agent-turn-4a3ad11b-b207-4930-9a20-33fec5503629-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-21T13:53:26.749Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-df60dbac-325b-42a1-a999-8df3a6a00ba2",
+      "providerSessions": [],
+      "startedAt": "2026-09-21T13:53:26.749Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-21T13:53:26.749Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -2449,6 +2491,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "bc1528b0f8c170cd77773f735cb014f8357ef28a",
           "committedAt": "2026-09-21T15:43:22+02:00",
           "deletions": 29,
@@ -2470,8 +2513,7 @@
             "app/src/components/config/project_config_section.tsx"
           ],
           "filesChanged": 15,
-          "insertions": 1216,
-          "branch": "dev_main"
+          "insertions": 1216
         }
       ],
       "completedAt": "2026-09-21T15:43:22+02:00",
