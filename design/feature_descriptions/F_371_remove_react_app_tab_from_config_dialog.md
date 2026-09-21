@@ -9,6 +9,9 @@ affects:
 agents:
   - design/activity/card__be40e266-2bca-497c-8bf8-9fb7992ca89a.json
 policy:
+changedFiles:
+  - app/src/services/config/config_persistence.service.test.ts
+  - tmp_f371_tests.py
 ---
 The react tab of the config dialog needs to be removed:
 
