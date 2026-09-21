@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__c06d609b-025a-4540-a69a-ad451e272b15.json
 policy:
-branch: f_372_improve_legend_config_editor
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/diagram_connection_formatting_popover.test.tsx
   - app/src/components/diagram_view/diagram_connection_formatting_popover.tsx
