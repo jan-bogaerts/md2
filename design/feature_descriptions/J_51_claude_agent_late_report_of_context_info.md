@@ -2,7 +2,7 @@
 author: 
 id: J_51
 internalId: 9765373d-71ce-4870-91f2-c00af3cc1d5b
-title: claude agent is missing used context info
+title: claude agent late report of context info
 status: design
 owner: 
 affects:
