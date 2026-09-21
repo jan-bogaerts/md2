@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { DiagramData, DiagramEdgeKind, DiagramRole } from '../../services/diagrams/diagram_data';
@@ -87,6 +87,10 @@ describe('DiagramMenuTab', () => {
 
         expect(screen.getByRole('button', { name: 'Edit diagram' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Select' })).not.toBeInTheDocument();
+        for (const label of ['font size', 'box size', 'spacing']) {
+            expect(screen.getByRole('button', { name: `Adjust Current ${label}` })).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: `Adjust New ${label}` })).not.toBeInTheDocument();
+        }
 
         await user.click(screen.getByRole('button', { name: 'Edit diagram' }));
 
@@ -106,24 +110,34 @@ describe('DiagramMenuTab', () => {
         expect(screen.queryByRole('button', { name: 'Edit diagram' })).not.toBeInTheDocument();
     });
 
-    it('changes New formatting in ten-point steps and disables controls at bounds', async () => {
+    it('shows six distinct formatting icon buttons without toolbar values in edit mode', async () => {
         const source = new SourceStub(sourceSnapshot());
         const session = createSession(source);
         const user = userEvent.setup();
         session.start();
         render(<DiagramMenuTab session={session} viewService={source as unknown as DiagramViewService} />);
 
-        const decrease = screen.getByRole('button', { name: 'Decrease New font size' });
-        const increase = screen.getByRole('button', { name: 'Increase New font size' });
-        await user.click(increase);
-        expect(screen.getByLabelText('New font size value')).toHaveTextContent('110%');
+        const labels = [
+            'Adjust New font size',
+            'Adjust New box size',
+            'Adjust New spacing',
+            'Adjust Current font size',
+            'Adjust Current box size',
+            'Adjust Current spacing',
+        ];
+        for (const label of labels) {
+            const button = screen.getByRole('button', { name: label });
+            await user.hover(button);
+            expect(await screen.findByRole('tooltip', { name: label })).toBeInTheDocument();
+            await user.unhover(button);
+            await waitFor(() => expect(screen.queryByRole('tooltip', { name: label })).not.toBeInTheDocument());
+        }
 
-        for (let index = 0; index < 9; index += 1) await user.click(increase);
-        expect(screen.getByLabelText('New font size value')).toHaveTextContent('200%');
-        expect(increase).toBeDisabled();
+        expect(screen.getAllByTestId('FormatSizeOutlinedIcon')).toHaveLength(2);
+        expect(screen.getAllByTestId('AspectRatioOutlinedIcon')).toHaveLength(2);
+        expect(screen.getAllByTestId('FormatLineSpacingOutlinedIcon')).toHaveLength(2);
+        expect(screen.queryByText('100%')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Decrease|Increase/u })).not.toBeInTheDocument();
 
-        for (let index = 0; index < 15; index += 1) await user.click(decrease);
-        expect(screen.getByLabelText('New font size value')).toHaveTextContent('50%');
-        expect(decrease).toBeDisabled();
     });
 });
