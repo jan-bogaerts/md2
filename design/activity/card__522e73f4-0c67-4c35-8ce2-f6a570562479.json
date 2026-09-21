@@ -631,6 +631,14 @@
           "role": "assistant",
           "sequence": 48,
           "timestamp": "2026-09-21T17:36:36.928Z"
+        },
+        {
+          "content": "Ok",
+          "id": "agent-turn-cc308b7b-994f-4da6-b08d-cf9a4c38329a-user-48",
+          "kind": "message",
+          "role": "user",
+          "sequence": 49,
+          "timestamp": "2026-09-21T17:41:14.853Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -645,14 +653,14 @@
         }
       ],
       "startedAt": "2026-09-21T17:28:03.876Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 88470,
           "toolMs": 491
         },
         "elapsedMs": 226586,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-21T17:41:14.853Z"
       },
       "title": "complete",
       "usage": {
