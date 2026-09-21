@@ -555,9 +555,12 @@ export function resolveProjectConfigPaths(config: ProjectConfig): ProjectConfig 
 export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     actionsFolder: DEFAULT_ACTIONS_FOLDER,
     archivedFolder: DEFAULT_ARCHIVED_FOLDER,
+    autoCommitDelayMs: AUTO_COMMIT_DELAY_MS,
     backgroundShade: 'neutral',
     cardSeparator: DEFAULT_CARD_SEPARATOR,
     cardTypes: DEFAULT_CARD_TYPES,
+    deleteBranchAfterIntegration: false,
+    deleteBranchesAfterRelease: false,
     diffCommand: DEFAULT_DIFF_COMMAND,
     diagramFooter: DEFAULT_DIAGRAM_FOOTER,
     diagramsFolder: DEFAULT_DIAGRAMS_FOLDER,

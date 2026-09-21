@@ -33,9 +33,12 @@ function mockLoadedProject() {
     vi.spyOn(dataService, 'getConfig').mockReturnValue({
         actionsFolder: 'design/actions',
         archivedFolder: 'design/archived',
+        autoCommitDelayMs: 30000,
         backgroundShade: 'blue',
         cardSeparator: '_',
         cardTypes: [],
+        deleteBranchAfterIntegration: false,
+        deleteBranchesAfterRelease: false,
         diagramFooter: 'Save to {{diagram-file}}.',
         diagramsFolder: 'design/diagrams',
         diffCommand: '',

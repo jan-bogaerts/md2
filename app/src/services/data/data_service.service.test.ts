@@ -179,11 +179,11 @@ describe('DataService', () => {
     it('coalesces every action text category and pushes once per configured batch interval', async () => {
         vi.useFakeTimers()
         configService.init()
-        configService.set('project.autoCommitDelayMs', 2000)
         const storage = createStorage()
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 2000)
         actionService.loadFromFiles([
             {
                 content: JSON.stringify({
@@ -247,7 +247,6 @@ describe('DataService', () => {
     it('finishes an action rename when watcher reload wins the race with commit completion', async () => {
         vi.useFakeTimers()
         configService.init()
-        configService.set('project.autoCommitDelayMs', 2000)
         const originalDefinition = {
             command: 'echo test',
             description: 'Test action',
@@ -276,6 +275,7 @@ describe('DataService', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 2000)
 
         actionService.draftStore.updateDraft('test-action', renamedDefinition)
         await actionService.draftStore.flushDrafts()

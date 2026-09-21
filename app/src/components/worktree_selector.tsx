@@ -56,6 +56,8 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     const [integrationDialogOpen, setIntegrationDialogOpen] = useState(false)
     const [unassignDialogOpen, setUnassignDialogOpen] = useState(false)
     const deleteBranchPreference = useConfigValueOrFallback('project.deleteBranchAfterIntegration', false)
+    // The remembered preference is saved through the project config file, so the dialog tracks the pending choice itself.
+    const [deleteBranch, setDeleteBranch] = useState(deleteBranchPreference)
     const cardPath = assignmentTarget.kind === 'card' ? assignmentTarget.path : null
     const assignedWorktree = assignment.worktree ?? null
     const {
@@ -173,6 +175,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         try {
             if (assignmentTarget.kind === 'card') {
                 if (assignedRecord?.status.dirty) setCommitMessage(getCommitMessage())
+                setDeleteBranch(deleteBranchPreference)
                 setIntegrationDialogOpen(true)
                 return
             }
@@ -282,8 +285,9 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         }
     }
     const handleIntegrationClose = () => setIntegrationDialogOpen(false)
-    const handleDeleteBranchChange = (deleteBranch: boolean) => {
-        void configService.setProjectPreference('project.deleteBranchAfterIntegration', deleteBranch)
+    const handleDeleteBranchChange = (nextDeleteBranch: boolean) => {
+        setDeleteBranch(nextDeleteBranch)
+        void configService.setProjectPreference('project.deleteBranchAfterIntegration', nextDeleteBranch)
     }
     const handleIntegration = async () => {
         if (assignmentTarget.kind !== 'card') return
@@ -301,7 +305,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         }
 
         try {
-            await worktreeService.integrateCardWorktree(assignmentTarget.path, deleteBranchPreference)
+            await worktreeService.integrateCardWorktree(assignmentTarget.path, deleteBranch)
             setIntegrationDialogOpen(false)
         } catch (error) {
             const fallbackMessage = commitBeforeIntegration
@@ -410,7 +414,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
             <WorktreeIntegrationDialog
                 busy={preparing}
                 commitMessage={assignedRecord?.status.dirty ? commitMessage : null}
-                deleteBranch={deleteBranchPreference}
+                deleteBranch={deleteBranch}
                 onClose={handleIntegrationClose}
                 onCommitMessageChange={setCommitMessage}
                 onDeleteBranchChange={handleDeleteBranchChange}

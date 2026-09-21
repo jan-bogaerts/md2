@@ -25,7 +25,7 @@ describe('ConfigValueEditor', () => {
             key: 'project.autoCommitDelayMs',
             label: 'Auto commit delay',
             section: 'project',
-            source: 'react',
+            source: 'project',
             type: 'number',
         }
         const reportError = vi.spyOn(dialogService, 'error')
@@ -46,7 +46,7 @@ describe('ConfigValueEditor', () => {
             max: 120000,
             min: 1000,
             section: 'project',
-            source: 'react',
+            source: 'project',
             type: 'number',
         }
         const handleChange = vi.fn()
@@ -92,7 +92,7 @@ describe('ConfigValueEditor', () => {
             max: 120000,
             min: 1000,
             section: 'project',
-            source: 'react',
+            source: 'project',
             step: 1000,
             type: 'number',
         }

@@ -7,9 +7,12 @@ import { useProjectConfig } from './use_project_config'
 const firstConfig: ProjectConfig = {
     actionsFolder: 'actions',
     archivedFolder: 'archived',
+    autoCommitDelayMs: 30000,
     backgroundShade: 'blue',
     cardSeparator: '_',
     cardTypes: [{ color: '#111111', idPrefix: 'F', label: 'Feature', type: 'feature' }],
+    deleteBranchAfterIntegration: false,
+    deleteBranchesAfterRelease: false,
     diagramFooter: 'Save to {{diagram-file}}.',
     diagramsFolder: 'diagrams',
     diffCommand: 'git show {{commit}}',

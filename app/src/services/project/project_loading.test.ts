@@ -1146,7 +1146,6 @@ describe('ProjectLoading', () => {
     it('marks an action watcher event during its commit as a local publication echo', async () => {
         vi.useFakeTimers()
         configService.init()
-        configService.set('project.autoCommitDelayMs', 1000)
         const initialFile = { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' }
         const commit = createDeferred<StorageProjectFiles['files']>()
         let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
@@ -1164,6 +1163,7 @@ describe('ProjectLoading', () => {
         const service = createDataService()
         service.init({ storage })
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 1000)
 
         actionService.draftStore.updateDraft('action-do', { ...actionDefinition('do'), label: 'Local edit' })
         await vi.advanceTimersByTimeAsync(1000)
@@ -1181,7 +1181,6 @@ describe('ProjectLoading', () => {
     it('ignores a markdown watcher event received during its local commit', async () => {
         vi.useFakeTimers()
         configService.init()
-        configService.set('project.autoCommitDelayMs', 1000)
         const commit = createDeferred<StorageProjectFiles['files']>()
         const loadFile = vi.fn(async () => files[0])
         let watchChange: (event: { changeKind: 'added' | 'changed' | 'removed' | 'unknown'; path: string }) => void = () => {
@@ -1200,6 +1199,7 @@ describe('ProjectLoading', () => {
         service.init({ storage })
         const conflicts = recordDialogMessages('error')
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 1000)
 
         try {
             service.cards.updateCardBody(files[0].path, '# Root\n\nLocal edit')
@@ -1960,7 +1960,6 @@ describe('ProjectLoading', () => {
     it('drops the watcher echo of a flushed save without reporting a conflict for newer pending edits', async () => {
         vi.useFakeTimers()
         configService.init()
-        configService.set('project.autoCommitDelayMs', 1000)
         let watchChange: (event: { changeKind: 'changed'; path: string }) => void = () => {
             throw new Error('Watcher not registered')
         }
@@ -1986,6 +1985,7 @@ describe('ProjectLoading', () => {
         service.init({ storage })
         const conflicts = recordDialogMessages('error')
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        configService.set('project.autoCommitDelayMs', 1000)
 
         try {
             service.cards.updateCardBody('design/F-1-root.md', '# Root\n\nFirst edit')

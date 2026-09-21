@@ -846,6 +846,7 @@ export class ActionRunRegistry extends EventTarget {
             status: 'running' as const,
         }
         let next = { ...current, context: event.context, rootActionId: event.rootActionId }
+        if (event.type === 'update') next = { ...next, status: event.status }
         if (event.type === 'run') {
             next = {
                 ...next,
@@ -963,7 +964,6 @@ export class ActionRunRegistry extends EventTarget {
             next = {
                 ...next,
                 question: { questions: event.update.questions, requestId: event.update.requestId },
-                status: event.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentQuestionDismissed' && next.conversation) {
@@ -976,7 +976,6 @@ export class ActionRunRegistry extends EventTarget {
                 },
                 conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
                 question: matchingQuestion ? null : next.question,
-                status: event.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentApproval') {
@@ -985,7 +984,6 @@ export class ActionRunRegistry extends EventTarget {
             next = {
                 ...next,
                 approvals: [...approvals, { ...event.update.approval, submitted: false }],
-                status: event.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentApprovalSubmitted') {
@@ -1003,7 +1001,6 @@ export class ActionRunRegistry extends EventTarget {
             next = {
                 ...next,
                 approvals,
-                status: event.status,
             }
         }
         if (
@@ -1018,7 +1015,6 @@ export class ActionRunRegistry extends EventTarget {
                     entries: [...next.conversation.entries, event.update.userMessage],
                 },
                 conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
-                status: event.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentQuestionAnswer' && next.conversation) {
@@ -1031,7 +1027,6 @@ export class ActionRunRegistry extends EventTarget {
                 },
                 conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
                 question: matchingQuestion ? null : next.question,
-                status: event.status,
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentOutput') {

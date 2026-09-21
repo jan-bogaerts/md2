@@ -1088,6 +1088,50 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('updates action-button snapshots from authoritative statuses on ordinary backend updates', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        const activeChanged = vi.fn()
+        service.subscribeContextActive(context, activeChanged)
+        service.start()
+
+        emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'update',
+            update: { conversation: agentConversation([]), kind: 'agentStarted' },
+        })
+        emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build',
+            status: 'waitingForInput', type: 'update',
+            update: {
+                contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+                kind: 'agentUsage',
+                usage: { cachedInputTokens: 1, inputTokens: 2, outputTokens: 3, reasoningTokens: 4, totalTokens: 10 },
+            },
+        })
+
+        expect(service.getContextActiveSnapshot(context)).toEqual([{
+            context,
+            rootActionId: 'build',
+            runId: 'run-1',
+            status: 'waitingForInput',
+        }])
+
+        emit({
+            actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build', status: 'running', type: 'update',
+            update: { content: 'resumed', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
+        })
+
+        expect(service.getContextActiveSnapshot(context)).toEqual([{
+            context,
+            rootActionId: 'build',
+            runId: 'run-1',
+            status: 'running',
+        }])
+        expect(activeChanged).toHaveBeenCalledTimes(3)
+        service.stop()
+    })
+
     it('replaces live conversation timer from authoritative agent state', () => {
         const { bridge, emit } = bridgeWithEvents()
         setActionBridgeOverride(bridge)
@@ -1138,7 +1182,11 @@ describe('ActionRunRegistry', () => {
             actionId: 'build', context, runId: 'run-1', phase: 'main', rootActionId: 'build',
             status: 'waitingForInput', type: 'agentState',
         })
-        emit({ ...event, update: { kind: 'agentPromptRemoved', promptId: first.id, revision: first.revision } })
+        emit({
+            ...event,
+            status: 'waitingForInput',
+            update: { kind: 'agentPromptRemoved', promptId: first.id, revision: first.revision },
+        })
 
         expect(getRun(service)).toMatchObject({
             queuedPrompts: [{ content: 'Edited second', id: 'prompt-2', revision: 1 }],
