@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "be40e266-2bca-497c-8bf8-9fb7992ca89a",
       "cardPath": "design/feature_descriptions/F_371_remove_react_app_tab_from_config_dialog.md",
-      "completedAt": null,
+      "completedAt": "2026-09-21T15:47:28.324Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 97764
@@ -833,21 +833,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 62,
-          "timestamp": "2026-09-21T15:47:26.473Z"
+          "timestamp": "2026-09-21T15:47:28.324Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-133153de-a389-409c-b15e-74389a1eabe6",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "f733fddd-06b9-426a-80ef-461c39821c16",
+          "createdAt": "2026-09-21T15:47:28.324Z",
+          "lastUsedAt": "2026-09-21T15:47:28.324Z",
+          "synchronizedThroughMessageId": "agent-turn-de39d46f-565e-4367-9f1c-b0b2991673ea-turn-1-assistant-8"
+        }
+      ],
       "startedAt": "2026-09-21T14:32:59.292Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 72609,
           "toolMs": 174103
         },
-        "elapsedMs": 96019,
-        "runningStartedAt": "2026-09-21T15:44:05.887Z"
+        "elapsedMs": 298456,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
