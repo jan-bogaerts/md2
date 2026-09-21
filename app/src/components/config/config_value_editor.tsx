@@ -37,6 +37,9 @@ import {
     type AgentSelectionState,
 } from '../../data/agent_selection'
 import { AgentProfilesEditor } from './agent_profiles_editor'
+import { CardTypesEditor } from './card_types_editor'
+import { ColumnsEditor } from './columns_editor'
+import type { CardTypeConfig, StateConfig } from '../../data/data_types'
 
 const CONFIG_PLACEHOLDER_PARTS_PATTERN = /(\{\{[^{}]+\}\})/u
 const CONFIG_PLACEHOLDER_PATTERN = /^\{\{[^{}]+\}\}$/u
@@ -44,10 +47,8 @@ const MULTILINE_CONFIG_FIELD_MIN_ROWS = 6
 const OUTLINED_FIELD_BLOCK_SX = { border: 1, borderColor: 'divider', borderRadius: 1, p: 2 }
 const MONOSPACE_INPUT_SLOT_PROPS = { htmlInput: { style: { fontFamily: 'monospace' } } }
 const MONOSPACE_CONFIG_KEYS = new Set<ConfigEntry['key']>([
-    'project.cardTypes',
     'project.diffCommand',
     'project.diagramFooter',
-    'project.states',
 ])
 
 function desktopSelectionError(selection: AgentSelectionState, profiles: AgentProfile[]) {
@@ -164,8 +165,16 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
         onChange(entry.key, nextValue)
     }
 
-    const handleAgentProfilesValidityChange = (valid: boolean) => {
+    const handleEditorValidityChange = (valid: boolean) => {
         onValidityChange?.(entry.key, valid)
+    }
+
+    const handleCardTypesChange = (nextValue: CardTypeConfig[]) => {
+        onChange(entry.key, nextValue)
+    }
+
+    const handleColumnsChange = (nextValue: StateConfig[]) => {
+        onChange(entry.key, nextValue)
     }
 
     if (sliderConfigurationError) return null
@@ -324,8 +333,42 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
                     <AgentProfilesEditor
                         disabled={disabled}
                         onChange={handleAgentProfilesChange}
-                        onValidityChange={handleAgentProfilesValidityChange}
+                        onValidityChange={handleEditorValidityChange}
                         value={value as AgentProfile[]}
+                    />
+                </Box>
+                <FormHelperText sx={{ m: 0, mt: 1 }}>{description}</FormHelperText>
+            </FormControl>
+        )
+    }
+
+    if (entry.key === 'project.cardTypes') {
+        return (
+            <FormControl disabled={disabled} fullWidth sx={OUTLINED_FIELD_BLOCK_SX}>
+                <FormLabel>{entry.label}</FormLabel>
+                <Box sx={{ mt: 2 }}>
+                    <CardTypesEditor
+                        disabled={disabled}
+                        onChange={handleCardTypesChange}
+                        onValidityChange={handleEditorValidityChange}
+                        value={value as CardTypeConfig[]}
+                    />
+                </Box>
+                <FormHelperText sx={{ m: 0, mt: 1 }}>{description}</FormHelperText>
+            </FormControl>
+        )
+    }
+
+    if (entry.key === 'project.states') {
+        return (
+            <FormControl disabled={disabled} fullWidth sx={OUTLINED_FIELD_BLOCK_SX}>
+                <FormLabel>{entry.label}</FormLabel>
+                <Box sx={{ mt: 2 }}>
+                    <ColumnsEditor
+                        disabled={disabled}
+                        onChange={handleColumnsChange}
+                        onValidityChange={handleEditorValidityChange}
+                        value={value as StateConfig[]}
                     />
                 </Box>
                 <FormHelperText sx={{ m: 0, mt: 1 }}>{description}</FormHelperText>

@@ -1,7 +1,7 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defaultColumnAccent } from '../../data/data_types'
+import { DEFAULT_STATES, defaultColumnAccent } from '../../data/data_types'
 import { ConfigPage } from './config_page'
 import { configService } from '../../services/config/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../data/agent_profiles'
@@ -363,24 +363,56 @@ describe('ConfigPage', () => {
         saveProjectConfig.mockRestore()
     })
 
-    it('edits project columns as ordered JSON definitions', () => {
+    it('edits project columns through the column editor', () => {
         mockMatchMedia(false)
         configService.init()
         configService.loadProjectConfig(null)
 
         renderConfigPage('#project')
-        const statesEditor = screen.getByRole('textbox', { name: 'Columns' })
-        const states = [
-            { alwaysVisible: true, state: 'backlog' },
-            { alwaysVisible: false, state: 'done' },
-        ]
-        fireEvent.change(statesEditor, { target: { value: JSON.stringify(states) } })
-        fireEvent.blur(statesEditor)
+        fireEvent.click(screen.getByRole('button', { name: 'new' }))
+        const columnPopup = within(screen.getByRole('dialog', { name: 'Edit column' }))
+        fireEvent.change(columnPopup.getByLabelText('Name'), { target: { value: 'backlog' } })
+        fireEvent.click(columnPopup.getByRole('button', { name: 'Save' }))
 
-        expect(configService.getDraft()?.['project.states']).toEqual(states.map((state, index) => ({
-            ...state,
-            color: defaultColumnAccent(index),
-        })))
+        const states = configService.getDraft()?.['project.states']
+
+        expect(states?.[0]).toEqual({ alwaysVisible: true, color: defaultColumnAccent(0), state: 'backlog' })
+        expect(states?.slice(1)).toEqual(DEFAULT_STATES.slice(1))
+    })
+
+    it('groups the project tab into folders, cards, git, appearance and diagrams', () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+
+        renderConfigPage('#project')
+        const groupHeadings = screen.getAllByRole('heading', { level: 4 }).map((heading) => heading.textContent)
+
+        expect(groupHeadings).toEqual(['Folders', 'Cards', 'Git', 'Appearance', 'Diagrams'])
+    })
+
+    it('warns once about removed card types when the draft is saved', async () => {
+        mockMatchMedia(false)
+        configService.init()
+        configService.loadProjectConfig(null)
+        const saveProjectConfig = vi.spyOn(configService, 'saveProjectConfig').mockResolvedValue()
+        const reportWarning = vi.spyOn(dialogService, 'warning')
+
+        renderConfigPage('#project')
+        fireEvent.click(screen.getByRole('button', { name: 'Bug' }))
+        fireEvent.click(within(screen.getByRole('dialog', { name: 'Edit card type' })).getByRole('button', { name: 'Delete' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => expect(saveProjectConfig).toHaveBeenCalledTimes(1))
+        expect(reportWarning).toHaveBeenCalledTimes(1)
+        expect(reportWarning).toHaveBeenCalledWith(
+            'Saving removes card types bug. Cards still using them render without a colour or ID prefix.',
+            { critical: true, title: 'Project config values removed' },
+        )
+        expect(configService.get('project.cardTypes').map((cardType) => cardType.type)).toEqual(['feature', 'job'])
+
+        reportWarning.mockRestore()
+        saveProjectConfig.mockRestore()
     })
 
     it('keeps the config page visible while project config save is pending', () => {
