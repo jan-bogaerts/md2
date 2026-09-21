@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__9765373d-71ce-4870-91f2-c00af3cc1d5b.json
 policy:
 ---
 on the action popup, we show the running state, token count and used context info all on the same row at the bottom of the chat history.
