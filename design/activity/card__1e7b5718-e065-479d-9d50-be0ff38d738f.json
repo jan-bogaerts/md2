@@ -20,10 +20,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "1e7b5718-e065-479d-9d50-be0ff38d738f",
       "cardPath": "design/feature_descriptions/F_370_config_dialog_project_tab_improvements.md",
-      "completedAt": "2026-09-21T13:09:31.602Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 80454
+        "usedTokens": 95743
       },
       "entries": [
         {
@@ -591,6 +591,273 @@
           "role": "assistant",
           "sequence": 41,
           "timestamp": "2026-09-21T13:09:31.602Z"
+        },
+        {
+          "content": "> You picked only \"Reorder\" for the columns editor, so alwaysVisible and defaultActionId get no UI. Once the JSON textarea is gone, those two fields are only editable by hand in the project config file. The spec requires the editor to carry them through unchanged, and records the gap. Say the word and I'll add them to the form.\nthis is no good. reorder should happen by dragging around, when clicked, open a popup to edit the other fields",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 42,
+          "timestamp": "2026-09-21T13:11:57.517Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-43",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGeC5NitdiL7fPLdzkom:thinking:0",
+          "sequence": 43,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T13:12:05.463Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Checking the existing `@dnd-kit` usage so the spec matches how drag is already done here.",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 44,
+          "timestamp": "2026-09-21T13:12:05.880Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app && grep -rln \"@dnd-kit\" src | head -20",
+          "content": "src/components/actions/run/sequence/card_sequence_dialog.test.tsx\nsrc/components/actions/run/sequence/card_sequence_dialog.tsx\nsrc/components/actions/run/sequence/card_sequence_row.tsx\nsrc/components/card_view/card_column.tsx\nsrc/components/card_view/card_column_end_drop_target.tsx\nsrc/components/card_view/card_drag.node.test.ts\nsrc/components/card_view/card_drag.ts\nsrc/components/card_view/card_view.test.tsx\nsrc/components/card_view/card_view.test.tsx.bak\nsrc/components/card_view/card_view.tsx\nsrc/components/card_view/card_view.tsx.bak\nsrc/components/card_view/mobile_card_drag.node.test.ts\nsrc/components/card_view/mobile_card_drag.ts\nsrc/components/card_view/mobile_card_view.tsx\nsrc/components/card_view/project_card_drag_container.tsx",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-45",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app && grep -rln \"@dnd-kit\" src | head -20",
+          "providerItemId": "toolu_016MJUAb4FwLcQSknoqfSBEy",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:08.291Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -n \"dnd-kit\" -A 6 src/components/actions/run/sequence/card_sequence_dialog.tsx | head -40; echo \"=== handlers ===\"; grep -n \"DndContext\\|SortableContext\\|onDragEnd\\|arrayMove\\|sensors\\|useSortable\\|strategy\" src/components/actions/run/sequence/card_sequence_dialog.tsx src/components/actions/run/sequence/card_sequence_row.tsx | head -30",
+          "content": "4:import { useDroppable } from '@dnd-kit/core'\n5:import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'\n6-import { useEffect, useMemo, useSyncExternalStore, type KeyboardEvent } from 'react'\n7-import type { ProjectSnapshot } from '../../../../data/data_types'\n8-import { dataService } from '../../../../services/data/data_service'\n9-import { dialogService } from '../../../../services/dialog_service'\n10-import { useActions } from '../../../hooks/use_actions'\n11-import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'\n=== handlers ===\nsrc/components/actions/run/sequence/card_sequence_dialog.tsx:5:import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'\nsrc/components/actions/run/sequence/card_sequence_dialog.tsx:162:                        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>\nsrc/components/actions/run/sequence/card_sequence_dialog.tsx:178:                        </SortableContext>\nsrc/components/actions/run/sequence/card_sequence_row.tsx:4:import { useSortable } from '@dnd-kit/sortable'\nsrc/components/actions/run/sequence/card_sequence_row.tsx:18:    const sortable = useSortable({ id: cardSequenceItemId(cardInternalId) })",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-46",
+          "kind": "event",
+          "label": "grep -n \"dnd-kit\" -A 6 src/components/actions/run/sequence/card_sequence_dialog.tsx | head -40; echo \"=== handlers ===\"; grep -n \"DndContext\\|SortableContext\\|onDragEnd\\|arrayMove\\|sensors\\|useSortable\\|strategy\" src/components/actions/run/sequence/card_sequence_dialog.tsx src/components/actions/run/sequence/card_sequence_row.tsx | head -30",
+          "providerItemId": "toolu_017uemJR3PfQJxvBUzRVC2r3",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:11.422Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -n \"dnd\\|Drag\\|drop\" -i src/components/actions/run/sequence/card_sequence_dialog.test.tsx | head -20",
+          "content": "1:import { DndContext } from '@dnd-kit/core'\n44:            <DndContext>\n46:            </DndContext>",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-47",
+          "kind": "event",
+          "label": "grep -n \"dnd\\|Drag\\|drop\" -i src/components/actions/run/sequence/card_sequence_dialog.test.tsx | head -20",
+          "providerItemId": "toolu_01Y6mxMLZc5gMBuGLkZGM398",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:12.337Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "sed -n '1,60p' src/components/actions/run/sequence/card_sequence_row.tsx; echo \"=== who owns DndContext/onDragEnd for sequence ===\"; grep -rn \"DndContext\\|onDragEnd\\|arrayMove\" src/components/card_view/project_card_drag_container.tsx src/components/card_view/card_drag.ts | head -20",
+          "content": "import { Box, IconButton, Tooltip, Typography } from '@mui/material'\nimport DragIndicatorOutlined from '@mui/icons-material/DragIndicatorOutlined'\nimport RemoveCircleOutline from '@mui/icons-material/RemoveCircleOutlineOutlined'\nimport { useSortable } from '@dnd-kit/sortable'\nimport type { Card } from '../../../../data/data_types'\nimport type { CardSequenceDraftService } from './card_sequence_draft_service'\nimport { cardSequenceItemId } from './card_sequence_dnd'\n\ninterface CardSequenceRowProps {\n    card: Card\n    selected: boolean\n    service: CardSequenceDraftService\n}\n\n/** One selectable and sortable card-sequence row. */\nexport function CardSequenceRow({ card, selected, service }: CardSequenceRowProps) {\n    const cardInternalId = card.header.internalId!\n    const sortable = useSortable({ id: cardSequenceItemId(cardInternalId) })\n    const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition } = sortable\n    const handleSelect = () => service.selectCard(cardInternalId)\n    const handleRemove = () => service.removeCard(cardInternalId)\n    const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, transition } : { transition }\n\n    return (\n        <Box\n            aria-selected={selected}\n            onClick={handleSelect}\n            ref={setNodeRef}\n            role=\"option\"\n            style={style}\n            sx={{\n                alignItems: 'center',\n                bgcolor: selected ? 'custom.primaryBg' : 'background.paper',\n                border: '1px solid',\n                borderColor: selected ? 'primary.main' : 'divider',\n                borderRadius: 1.25,\n                display: 'flex',\n                gap: 1,\n                px: 1,\n                py: 0.75,\n            }}\n        >\n            <Tooltip title={`Reorder ${card.header.id}`}>\n                <IconButton\n                    {...attributes}\n                    {...listeners}\n                    aria-label={`Reorder ${card.header.id}`}\n                    ref={setActivatorNodeRef}\n                    size=\"small\"\n                >\n                    <DragIndicatorOutlined fontSize=\"small\" />\n                </IconButton>\n            </Tooltip>\n            <Box sx={{ flex: 1, minWidth: 0 }}>\n                <Typography noWrap variant=\"subtitle2\">{card.header.id} · {card.header.title}</Typography>\n                <Typography color=\"custom.text3\" noWrap variant=\"caption\">{card.path}</Typography>\n            </Box>\n            <Tooltip title={`Remove ${card.header.id}`}>\n                <IconButton aria-label={`Remove ${card.header.id}`} onClick={handleRemove} size=\"small\">\n                    <RemoveCircleOutline fontSize=\"small\" />\n=== who owns DndContext/onDragEnd for sequence ===",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-48",
+          "kind": "event",
+          "label": "sed -n '1,60p' src/components/actions/run/sequence/card_sequence_row.tsx; echo \"=== who owns DndContext/onDragEnd for sequence ===\"; grep -rn \"DndContext\\|onDragEnd\\|arrayMove\" src/components/card_view/project_card_drag_container.tsx src/components/card_view/card_drag.ts | head -20",
+          "providerItemId": "toolu_01GGQjSP5e1hFvN4bAYrFoiy",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:14.911Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -rn \"DndContext\\|onDragEnd\\|handleDragEnd\\|KeyboardSensor\\|PointerSensor\\|useSensors\" src/components/actions/run/sequence/*.tsx src/components/actions/run/sequence/*.ts | head -20; echo \"=== dnd helper ===\"; cat src/components/actions/run/sequence/card_sequence_dnd.ts 2>/dev/null",
+          "content": "src/components/actions/run/sequence/card_sequence_dialog.test.tsx:1:import { DndContext } from '@dnd-kit/core'\nsrc/components/actions/run/sequence/card_sequence_dialog.test.tsx:44:            <DndContext>\nsrc/components/actions/run/sequence/card_sequence_dialog.test.tsx:46:            </DndContext>\n=== dnd helper ===\nexport const CARD_SEQUENCE_DROP_ID = 'card-sequence:drop'\nconst CARD_SEQUENCE_ITEM_PREFIX = 'card-sequence:item:'\n\nexport function cardSequenceItemId(cardInternalId: string) {\n    return `${CARD_SEQUENCE_ITEM_PREFIX}${cardInternalId}`\n}\n\nexport function cardInternalIdFromSequenceItem(id: string) {\n    return id.startsWith(CARD_SEQUENCE_ITEM_PREFIX) ? id.slice(CARD_SEQUENCE_ITEM_PREFIX.length) : null\n}\n\nexport function isCardSequenceDropId(id: string) {\n    return id === CARD_SEQUENCE_DROP_ID || id.startsWith(CARD_SEQUENCE_ITEM_PREFIX)\n}",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-49",
+          "kind": "event",
+          "label": "grep -rn \"DndContext\\|onDragEnd\\|handleDragEnd\\|KeyboardSensor\\|PointerSensor\\|useSensors\" src/components/actions/run/sequence/*.tsx src/components/actions/run/sequence/*.ts | head -20; echo \"=== dnd helper ===\"; cat src/components/actions/run/sequence/card_sequence_dnd.ts 2>/dev/null",
+          "providerItemId": "toolu_01ThreismoJPJqKT5j2PEL3g",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:18.471Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-50",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGeDLzN4shkT6rkvYLqY:thinking:0",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T13:12:20.676Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "grep -rn \"useSensors\\|PointerSensor\\|KeyboardSensor\\|TouchSensor\\|DndContext\" src/components/card_view/project_card_drag_container.tsx | head -20",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-51",
+          "kind": "event",
+          "label": "grep -rn \"useSensors\\|PointerSensor\\|KeyboardSensor\\|TouchSensor\\|DndContext\" src/components/card_view/project_card_drag_container.tsx | head -20",
+          "providerItemId": "toolu_01XHmnkFE2kFeByVa6h5FYqf",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:21.740Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "grep -rn \"useSensors\\|PointerSensor\\|KeyboardSensor\\|TouchSensor\\|<DndContext\" src/components src/app 2>/dev/null | grep -v test | head -20",
+          "content": "src/components/card_view/card_view.tsx:2:import { DndContext, DragOverlay, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'\nsrc/components/card_view/card_view.tsx:63:    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))\nsrc/components/card_view/card_view.tsx:240:            <DndContext\nsrc/components/card_view/card_view.tsx.bak:2:import { DndContext, DragOverlay, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'\nsrc/components/card_view/card_view.tsx.bak:60:    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))\nsrc/components/card_view/card_view.tsx.bak:183:            <DndContext\nsrc/components/card_view/mobile_card_view.tsx:2:import { DndContext, DragOverlay, MouseSensor, TouchSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'\nsrc/components/card_view/mobile_card_view.tsx:60:    const sensors = useSensors(\nsrc/components/card_view/mobile_card_view.tsx:62:        useSensor(TouchSensor, { activationConstraint: { delay: LONG_PRESS_DELAY_MS, tolerance: LONG_PRESS_TOLERANCE } }),\nsrc/components/card_view/mobile_card_view.tsx:208:            <DndContext",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-52",
+          "kind": "event",
+          "label": "grep -rn \"useSensors\\|PointerSensor\\|KeyboardSensor\\|TouchSensor\\|<DndContext\" src/components src/app 2>/dev/null | grep -v test | head -20",
+          "providerItemId": "toolu_01W1oGoSmx8tuz1sv2WEFCL5",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:24.390Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-53",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfGeDnxYtYC1a7ZUYxhPk:thinking:0",
+          "sequence": 53,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-21T13:12:27.709Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_370_config_dialog_project_tab_improvements.md\",\"offset\":38,\"limit\":14}",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-54",
+          "kind": "event",
+          "label": "Read",
+          "output": "38\t* Add a grouping wrapper `ConfigSubsection` in `app/src/components/config/config_subsection.tsx`: a `Box` with `component=\"section\"`, an `aria-labelledby` heading (`Typography component=\"h4\" variant=\"subtitle1\"`), a `Typography color=\"text.secondary\" variant=\"body2\"` explanation line, and its children in a `Stack spacing={3}`. It takes `children`, `description`, `id` and `label`, so it stays free of config knowledge and can be reused by other sections later.\n39\t* Rewrite `ProjectConfigSection` to place entries into named groups instead of handing the whole list to `ConfigSectionLayout`. Keep the existing `Typography variant=\"h6\"` \"Project\" heading and the `id=\"project\"` anchor that `ConfigPage` scrolls to, then render, in this order:\n40\t  * **Folders** — `project.projectFolder`, `project.workingFolder`, `project.actionsFolder`, `project.releasesFolder`, `project.diagramsFolder`, `project.archivedFolder`. Explanation: these paths say where MD² reads and writes this project's files; every folder except the project folder is relative to it.\n41\t  * **Cards** — `project.cardSeparator`, `project.cardTypes`, `project.states`.\n42\t  * **Git** — `project.diffCommand`, `project.pushMode`.\n43\t  * **Appearance** — `project.backgroundShade`.\n44\t  * **Diagrams** — `project.diagramFooter`, moved to the end of the tab as requested.\n45\t  * `WorktreeConfigList` stays last, under its existing condition.\n46\t* Drive the grouping from one module-level constant in `project_config_section.tsx`, for example `PROJECT_CONFIG_GROUPS: { description, id, keys, label }[]`, and render each group by filtering the section entries by `keys`. Any project entry that is editable and not listed in a group must still render, in a trailing ungrouped stack, so adding a config entry later cannot make it silently invisible.\n47\t* Add `CardTypesEditor` in `app/src/components/config/card_types_editor.tsx`, wired into `ConfigValueEditor` through an `entry.key === 'project.cardTypes'` branch that mirrors the existing `desktop.agentProfiles` branch (`FormControl` + `FormLabel` + editor + `FormHelperText` with the entry description). Its props are `disabled`, `onChange(value: CardTypeConfig[])`, `onValidityChange(valid: boolean)` and `value: CardTypeConfig[]`.\n48\t  * The collapsed view is a wrapping row of one `Button` per card type. Each button uses the type's `color` as its background, shows the type's `label`, and picks black or white text from the colour's relative luminance so a light accent stays readable. Clicking a button opens the detail form for that type; a trailing `Add card type` button with a `Plus` icon opens the form for a new one.\n49\t  * The detail form holds: `Label` (text), `Type` (text), `ID prefix` (text) and `Color` (`TextField type=\"color\"` with `slotProps={{ inputLabel: { shrink: true } }}`, matching `ThemeSettingsDialog`), plus `Save`, `Cancel` and `Delete`. `Type` stays editable for existing card types, as decided: renaming it does not migrate cards, so the form shows a warning line under the field stating that cards already using the old value keep it and lose their colour and prefix until it is set back.\n50\t  * Validation, surfaced as an `Alert severity=\"error\"` in the form the way `AgentProfilesEditor` does, and reported through `onValidityChange`: `label`, `type` and `idPrefix` are non-empty, `type` and `idPrefix` are unique across the list, `color` is a non-empty string, and at least one card type remains after a delete (`validateCardTypes` rejects an empty array).\n51\t  * Deleting is allowed without scanning cards. Instead, when the draft's card type list no longer contains a `type` value that the saved config had, `ConfigPage` raises `dialogService.warning` once on save, in the same place and shape as the existing card separator warning, stating that cards using the removed type will render without a colour or ID prefix.",
+          "providerItemId": "toolu_011N4CYsUCdYW8wg2FX3sFkD",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:28.210Z",
+          "type": "tool.Read"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow rewriting the two editor bullets for drag reorder and popup editing.",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 55,
+          "timestamp": "2026-09-21T13:12:29.769Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_370_config_dialog_project_tab_improvements.md",
+          "deletions": 3,
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-56",
+          "insertions": 3,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_370_config_dialog_project_tab_improvements.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_018x2BpkzGBmXaMY5RegkTmP",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:38.838Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_370_config_dialog_project_tab_improvements.md",
+          "deletions": 3,
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-57",
+          "insertions": 5,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_370_config_dialog_project_tab_improvements.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01KURVpBfwMHw4ZugtVhZFhV",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:52.946Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow updating the tests bullet and the acceptance criteria that named the old buttons-only reorder.",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 58,
+          "timestamp": "2026-09-21T13:12:54.599Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_370_config_dialog_project_tab_improvements.md",
+          "deletions": 1,
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-59",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_370_config_dialog_project_tab_improvements.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01RkHT1MPicN54qhPDVrwwbk",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:12:59.414Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_370_config_dialog_project_tab_improvements.md",
+          "deletions": 1,
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-60",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_370_config_dialog_project_tab_improvements.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_011sctCkqxuPcB1GN3v35bWZ",
+          "sequence": 60,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:13:02.718Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_370_config_dialog_project_tab_improvements.md",
+          "deletions": 3,
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-61",
+          "insertions": 5,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_370_config_dialog_project_tab_improvements.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_014RFxzwadRY63uDShu2ugUT",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:13:08.426Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2 && grep -n \"Move left\\|Move right\\|drag\\|Drag\\|popup\\|form\" design/feature_descriptions/F_370_config_dialog_project_tab_improvements.md | head -30",
+          "content": "30:A card type is `{ color, idPrefix, label, type }`, where `type` is the free-form string stored on each card. A column is `{ alwaysVisible, color?, defaultActionId?, state }`; `validateStates` fills a missing colour with `defaultColumnAccent(index)` and rejects duplicate `state` values. Array order is the board column order.\n32:Two precedents already exist for replacing a JSON blob with a real editor. `AgentProfilesEditor` in `app/src/components/config/agent_profiles_editor.tsx` is wired in through an `entry.key === 'desktop.agentProfiles'` branch in `ConfigValueEditor`: it renders a list of rows plus an inline add/edit form, computes its own error list, and reports it upward through `onValidityChange`, which `ConfigPage` collects into `invalidConfigKeys` to gate the Save button. `ThemeSettingsDialog` in `app/src/components/shell/theme_settings_dialog.tsx` already picks colours with a plain MUI `TextField type=\"color\"`; no colour-picker package is installed and none is needed.\n48:  * The collapsed view is a wrapping row of one `Button` per card type. Each button uses the type's `color` as its background, shows the type's `label`, and picks black or white text from the colour's relative luminance so a light accent stays readable. Clicking a button opens the edit popup for that type; a trailing `Add card type` button with a `Plus` icon opens the popup for a new one.\n49:  * The popup is a MUI `Dialog` holding: `Label` (text), `Type` (text), `ID prefix` (text) and `Color` (`TextField type=\"color\"` with `slotProps={{ inputLabel: { shrink: true } }}`, matching `ThemeSettingsDialog`), plus `Save`, `Cancel` and `Delete` in its `DialogActions`. It edits a local draft copy, so `Cancel` and Escape discard every field at once and only `Save` calls `onChange`. `Type` stays editable for existing card types, as decided: renaming it does not migrate cards, so the popup shows a warning line under the field stating that cards already using the old value keep it and lose their colour and prefix until it is set back.\n50:  * Validation, surfaced as an `Alert severity=\"error\"` inside the popup the way `AgentProfilesEditor` does, and reported through `onValidityChange`: `label`, `type` and `idPrefix` are non-empty, `type` and `idPrefix` are unique across the list, `color` is a non-empty string, and at least one card type remains after a delete (`validateCardTypes` rejects an empty array). Invalid fields disable `Save` in the popup, so the value handed to `onChange` is always valid and `onValidityChange` only ever has to report an invalid stored value it was given.\n53:  * The collapsed view is the same coloured-button row, one button per column showing `state`, in array order, since that order is the board column order. Clicking a button opens the edit popup; a trailing `Add column` button opens the popup for a new column whose colour defaults to `defaultColumnAccent(nextIndex)` and whose `alwaysVisible` defaults to `true`.\n54:  * Columns are reordered by dragging one button onto another. Wrap the button row in its own `DndContext` plus a `SortableContext` with `horizontalListSortingStrategy`, and give each button `useSortable` — the config dialog has no ancestor `DndContext`, unlike `CardSequenceRow`, which borrows the one `CardView` owns. Configure sensors as `useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }))`, matching `card_view.tsx`, so a short click still opens the popup and only a real drag starts a reorder. On `onDragEnd`, move the dragged column to the target's index with `arrayMove` from `@dnd-kit/sortable` and call `onChange` with the reordered array; a drop outside the row leaves the order untouched.\n55:  * Because a pointer drag is not reachable by keyboard, also give each button a `Move left` / `Move right` pair in its popup that shifts the column one position and is disabled at the ends. Those are the accessible equivalent of the drag, not the primary interaction.\n56:  * The popup is a MUI `Dialog` holding `Name` (the `state` string), `Color`, an `alwaysVisible` `Switch` labelled `Always visible`, and a `Default action` select filled from `useActions()` with a leading `None` option that clears `defaultActionId`, plus `Move left`, `Move right`, `Save`, `Cancel` and `Delete`. It edits a local draft copy, so `Cancel` and Escape discard the whole edit. Every `StateConfig` field is therefore editable from the dialog and nothing is left reachable only by hand-editing the project config file.\n60:* Leave `project.cardTypes` and `project.states` as `type: 'json'` entries in `config_entries.ts` and leave `validateCardTypes` / `validateStates` untouched, so the stored format and the file-load path do not change. Remove `'project.cardTypes'` and `'project.states'` from `MONOSPACE_CONFIG_KEYS` in `config_value_editor.tsx`, since neither renders as a textarea any more.\n61:* Tests: add `card_types_editor.grouped.test.tsx` and `columns_editor.grouped.test.tsx` next to the existing `*.grouped.test.tsx` files, covering add, edit, colour change, delete, that Cancel discards an edit, and the uniqueness and non-empty validation paths with the resulting disabled `Save`. For columns, also cover that `Move left` / `Move right` reorder the array, that `Always visible` and `Default action` round-trip through the popup, and that selecting `None` omits `defaultActionId` from the saved column. Test the drag reorder at the `onDragEnd` level: extract the reorder into a pure exported helper (`reorderColumns(states, activeId, overId)`) in `columns_editor.tsx` and assert on that directly, since jsdom cannot produce the pointer events `@dnd-kit` needs — `card_sequence_dialog.test.tsx` sidesteps the same limitation by wrapping the tree in a bare `DndContext` and never dragging. Replace the `edits project columns as ordered JSON definitions` case in `config_page.test.tsx` with one that drives the new column editor, and add a case asserting the Folders, Cards, Git, Appearance and Diagrams group headings appear in that order in the project tab. Verify with `npm run typecheck` and the config vitest suites.\n69:* Clicking a card type button opens a popup with Label, Type, ID prefix and a colour input; saving applies the change to the draft, and Cancel or Escape leaves the draft untouched.\n73:* Columns render the same way, in board order; clicking one opens a popup with Name, colour, Always visible, Default action, Move left, Move right, Save, Cancel and Delete.\n74:* Dragging a column button onto another column moves it to that position and persists the new order to the draft; a short click still opens the popup instead of starting a drag, and a drop outside the row leaves the order unchanged.\n75:* `Move left` and `Move right` change the column's position in the stored array and are disabled at the first and last position respectively, so reordering is possible without a pointer.\n76:* `Always visible` and `Default action` are editable from the popup; `Default action` lists the project's loaded actions plus `None`, and choosing `None` saves the column with no `defaultActionId` key at all.\n80:* Neither card types nor columns renders as a JSON textarea any more, and the stored project config format for both is byte-compatible with what the previous JSON editor produced.",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-event-62",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2 && grep -n \"Move left\\|Move right\\|drag\\|Drag\\|popup\\|form\" design/feature_descriptions/F_370_config_dialog_project_tab_improvements.md | head -30",
+          "providerItemId": "toolu_016APzGhiGs8pFp9t9sxX3uH",
+          "sequence": 62,
+          "status": "completed",
+          "timestamp": "2026-09-21T13:13:11.057Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nSpec updated. Both editors now use a popup; columns reorder by drag.\n\n**Columns editor:**\n- Drag one column button onto another to reorder. The editor owns its own `DndContext` + `SortableContext` with `horizontalListSortingStrategy` — the config dialog has no ancestor `DndContext` to borrow, unlike `CardSequenceRow`, which uses the one `CardView` provides.\n- `PointerSensor` with a distance activation constraint, copied from `card_view.tsx:63`. That's what keeps a short click opening the popup instead of starting a drag.\n- Click opens a MUI `Dialog` with Name, Color, **Always visible**, **Default action** (from `useActions()`, plus `None`), Delete, Save, Cancel. The gap I flagged last turn is gone — every `StateConfig` field is now editable from the dialog.\n- `None` for Default action omits `defaultActionId` from the saved column rather than storing `''`; `validateStates` rejects an empty string when the key is present.\n- Kept `Move left` / `Move right` inside the popup as the keyboard-reachable equivalent of the drag, now secondary rather than the primary interaction.\n\n**Card types editor:** same popup treatment (Label, Type, ID prefix, Color). Editing a local draft copy means Cancel and Escape discard the whole edit, not field by field.\n\nOne testing note: drag reorder is specified to be verified through a pure exported `reorderColumns(states, activeId, overId)` helper rather than a simulated drag. jsdom can't produce the pointer event sequence `@dnd-kit` needs — `card_sequence_dialog.test.tsx` hits the same wall and wraps the tree in a bare `DndContext` without ever dragging.",
+          "id": "agent-turn-5adb10cf-f828-4da7-8c78-a281cca75b3a-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 63,
+          "timestamp": "2026-09-21T13:13:18.678Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -605,26 +872,26 @@
         }
       ],
       "startedAt": "2026-09-21T13:02:25.209Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 18482,
-          "toolMs": 132476
+          "reasoningMs": 24231,
+          "toolMs": 179260
         },
         "elapsedMs": 182811,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-21T13:11:57.517Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 945700,
-        "inputTokens": 34,
-        "outputTokens": 15097,
+        "cachedInputTokens": 2178325,
+        "inputTokens": 62,
+        "outputTokens": 21704,
         "reasoningTokens": 0,
-        "totalTokens": 960831,
-        "costUsd": 1.4486314999999998
+        "totalTokens": 2200091,
+        "costUsd": 2.3755045
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -651,11 +918,11 @@
         "agent-4b0ab650-8c46-4467-a09c-80c118ff384d"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-587ce69b-7e99-4a75-a8b8-4fd9e2be5d9f",
       "origin": {
@@ -664,9 +931,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-4b0ab650-8c46-4467-a09c-80c118ff384d",
       "startedAt": "2026-09-21T13:02:25.207Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-4b0ab650-8c46-4467-a09c-80c118ff384d"
     }
   ],
   "version": 5
