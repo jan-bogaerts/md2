@@ -10,6 +10,8 @@ agents:
   - design/activity/card__be94932a-4808-47eb-aa34-e52dd9504e7f.json
 policy:
 changedFiles:
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
   - temp_b236.py
 after: 1d937bde-19d5-467d-ad73-67ef587493fe
 ---
