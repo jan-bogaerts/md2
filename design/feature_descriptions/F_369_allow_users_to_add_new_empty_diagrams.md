@@ -10,6 +10,8 @@ agents:
   - design/activity/card__522e73f4-0c67-4c35-8ce2-f6a570562479.json
 policy:
 after: 530bdc1a-985f-434a-bfe7-acb2f7ca06b8
+branch: f_369_allow_users_to_add_new_empty_diagrams
+worktree: 1
 ---
 users should be able to create new empty diagrams like cards and actions.
 
@@ -29,7 +31,7 @@ Do not prefill the legend. Give the diagram a type-specific title, for example `
 
 Valid diagram JSON requires non-empty `meta.title` and `meta.description`, a supported `meta.type`, version `1`, plus `nodes`, `edges` and `groups` arrays. Flow diagrams additionally require either the `flowchart` or `state` preset. Empty arrays are valid. A missing legend is valid and renders no entries until objects provide roles or connection kinds.
 
-Current `DIAGRAM_TYPES` are architecture, dependency, sequence, flow and entity. [F_368](F_368_add_mindmaps_to_diagrams.md), which precedes this feature, adds mindmap. Creation choices after that work are Architecture, Dependency, Sequence, Flowchart, State diagram, Entity and Mindmap. Flowchart and State diagram are separate choices because both use stored type `flow` but enable different node and edge rules.
+Current `DIAGRAM_TYPES` are architecture, dependency, sequence, flow and entity. [F\_368](F_368_add_mindmaps_to_diagrams.md), which precedes this feature, adds mindmap. Creation choices after that work are Architecture, Dependency, Sequence, Flowchart, State diagram, Entity and Mindmap. Flowchart and State diagram are separate choices because both use stored type `flow` but enable different node and edge rules.
 
 ## implementation details
 
