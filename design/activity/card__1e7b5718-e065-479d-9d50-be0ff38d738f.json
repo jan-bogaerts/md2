@@ -486,20 +486,28 @@
           "sequence": 33,
           "timestamp": "2026-09-21T13:03:34.296Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Editable, no migration\nclaude-question-1: Reorder (drag or up/down)\nclaude-question-2: Warn on save, allow (Recommended)",
+          "id": "agent-turn-8814ad08-97c6-4463-9d05-9996c9cc7ea8-answer-33",
+          "kind": "message",
+          "role": "user",
+          "sequence": 34,
+          "timestamp": "2026-09-21T13:07:37.878Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-4b0ab650-8c46-4467-a09c-80c118ff384d",
       "providerSessions": [],
       "startedAt": "2026-09-21T13:02:25.209Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 10929,
           "toolMs": 37622
         },
         "elapsedMs": 69087,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-21T13:07:37.878Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
