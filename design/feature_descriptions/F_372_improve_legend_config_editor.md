@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__c06d609b-025a-4540-a69a-ad451e272b15.json
 policy:
+branch: f_372_improve_legend_config_editor
+worktree: 2
 ---
 Through the items on the legend on the diagrams  it is possible to configure the style of the items. When hovered over item, it show a gear, this opens a popup with config fields like font, size, color, fill, border. There is however little info on the popup (labels, helper text). And rhe inputs are not ok.
 
