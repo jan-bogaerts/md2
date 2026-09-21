@@ -478,6 +478,14 @@
           "role": "assistant",
           "sequence": 35,
           "timestamp": "2026-09-21T17:30:45.372Z"
+        },
+        {
+          "content": "1. Nor certain if i understand. \n2. Skip legend prefill. Bad idea\n3. Can be saved immedtiately",
+          "id": "agent-turn-cc308b7b-994f-4da6-b08d-cf9a4c38329a-user-35",
+          "kind": "message",
+          "role": "user",
+          "sequence": 36,
+          "timestamp": "2026-09-21T17:34:36.925Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -492,14 +500,14 @@
         }
       ],
       "startedAt": "2026-09-21T17:28:03.876Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 52626,
           "toolMs": 478
         },
         "elapsedMs": 161496,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-21T17:34:36.925Z"
       },
       "title": "complete",
       "usage": {
