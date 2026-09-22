@@ -1592,6 +1592,31 @@
       "startedAt": "2026-09-22T17:32:06.333Z",
       "status": "completed",
       "rootConversationId": "agent-cc264791-3c12-431b-897a-f531be985f3a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "ec1dddc994622a58aed46ac9b64ef1dc3187cb76",
+          "committedAt": "2026-09-22T19:48:41+02:00",
+          "deletions": 6,
+          "filePaths": [
+            "desktop/src/actions/agent/agent_claude_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js"
+          ],
+          "filesChanged": 4,
+          "insertions": 227,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-22T19:48:41+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "9765373d-71ce-4870-91f2-c00af3cc1d5b",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
