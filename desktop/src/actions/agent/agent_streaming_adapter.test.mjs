@@ -94,6 +94,22 @@ function latestClaudeContextUsageRequest(writes) {
     return writes.findLast(({ request, type }) => type === 'control_request' && request?.subtype === 'get_context_usage');
 }
 
+function claudeRootAssistant(messageId, inputTokens, outputTokens) {
+    return {
+        message: {
+            content: [],
+            id: messageId,
+            usage: {
+                cache_creation_input_tokens: 0,
+                cache_read_input_tokens: 0,
+                input_tokens: inputTokens,
+                output_tokens: outputTokens,
+            },
+        },
+        type: 'assistant',
+    };
+}
+
 async function answerClaudeContextUsage(adapter, writes, response = { maxTokens: 258_400, totalTokens: 42_000 }) {
     const request = latestClaudeContextUsageRequest(writes);
     await adapter.handleMessage(claudeContextUsageResponse(request.request_id, response));
@@ -116,9 +132,15 @@ describe('ClaudeStreamingAdapter', () => {
 
         expect(writes).toEqual([
             { message: { content: 'plan', role: 'user' }, type: 'user' },
+            // The completed root assistant message samples context live, before the turn-boundary request.
             {
                 request: { subtype: 'get_context_usage' },
                 request_id: 'claude-context-usage-1',
+                type: 'control_request',
+            },
+            {
+                request: { subtype: 'get_context_usage' },
+                request_id: 'claude-context-usage-2',
                 type: 'control_request',
             },
             { message: { content: 'approved', role: 'user' }, type: 'user' },
@@ -206,6 +228,110 @@ describe('ClaudeStreamingAdapter', () => {
                 reasoningTokens: 0,
                 totalTokens: 57,
             },
+        });
+    });
+
+    it('samples context live when a root assistant message completes and reports the accumulated turn usage', async () => {
+        const { adapter, events, writes } = harness('claude');
+
+        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));
+
+        expect(writes).toEqual([{
+            request: { subtype: 'get_context_usage' },
+            request_id: 'claude-context-usage-1',
+            type: 'control_request',
+        }]);
+        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);
+
+        // A second message completes while the request is in flight, so its tokens must be counted too.
+        await adapter.handleMessage(claudeRootAssistant('message-2', 3, 4));
+        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {
+            maxTokens: 258_400,
+            totalTokens: 42_000,
+        }));
+
+        expect(events.filter(({ type }) => type === 'usage')).toEqual([{
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+            type: 'usage',
+            usage: expect.objectContaining({ inputTokens: 8, outputTokens: 11, totalTokens: 19 }),
+        }]);
+    });
+
+    it('issues no second live context request while the first is unanswered', async () => {
+        const { adapter, writes } = harness('claude');
+
+        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));
+        await adapter.handleMessage(claudeRootAssistant('message-2', 3, 4));
+
+        expect(writes.filter(({ type }) => type === 'control_request')).toHaveLength(1);
+    });
+
+    it('samples context again for the next root message once the live request expires', async () => {
+        vi.useFakeTimers();
+        try {
+            const { adapter, events, writes } = harness('claude');
+
+            await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));
+            await vi.advanceTimersByTimeAsync(10_000);
+            await adapter.handleMessage(claudeRootAssistant('message-2', 3, 4));
+
+            expect(writes.filter(({ type }) => type === 'control_request').map(({ request_id: id }) => id)).toEqual([
+                'claude-context-usage-1',
+                'claude-context-usage-2',
+            ]);
+            // The expired request reports nothing, so the ring keeps its last value.
+            expect(events.filter(({ type }) => type === 'usage')).toEqual([]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('issues no live context request for a sub agent assistant message', async () => {
+        const { adapter, writes } = harness('claude');
+
+        await adapter.handleMessage({
+            ...claudeRootAssistant('message-1', 5, 7),
+            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,
+        });
+
+        expect(writes.filter(({ type }) => type === 'control_request')).toEqual([]);
+    });
+
+    it.each([
+        ['a malformed payload', { maxTokens: 0, totalTokens: 42_000 }, 'success'],
+        ['an error subtype', { message: 'Unavailable' }, 'error'],
+    ])('reports nothing for a live context response with %s', async (description, response, subtype) => {
+        const { adapter, events } = harness('claude');
+
+        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));
+        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', response, subtype));
+
+        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);
+    });
+
+    it('discards a live context response that arrives after the turn ended', async () => {
+        const { adapter, events, writes } = harness('claude');
+
+        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));
+        await adapter.handleMessage({ total_cost_usd: 0.25, type: 'result', usage: { input_tokens: 9, output_tokens: 13 } });
+
+        // The turn-boundary request still withholds `turnCompleted` until its own response arrives.
+        expect(events.filter(({ type }) => type === 'turnCompleted')).toEqual([]);
+
+        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {
+            maxTokens: 100_000,
+            totalTokens: 90_000,
+        }));
+
+        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);
+        expect(events.filter(({ type }) => type === 'turnCompleted')).toEqual([]);
+
+        await answerClaudeContextUsage(adapter, writes, { maxTokens: 258_400, totalTokens: 42_000 });
+
+        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);
+        expect(events.at(-1)).toMatchObject({
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+            type: 'turnCompleted',
         });
     });
 
@@ -914,7 +1040,9 @@ describe('ClaudeStreamingAdapter', () => {
         });
 
         expect(events.some(({ type }) => type === 'turnCompleted')).toBe(false);
-        expect(latestClaudeContextUsageRequest(writes)).toBeUndefined();
+        // The only request so far is the root message's live sample; the sub-agent result adds no
+        // turn-boundary request of its own.
+        expect(writes.filter(({ type }) => type === 'control_request')).toHaveLength(1);
 
         await adapter.handleMessage({
             total_cost_usd: 0.01,

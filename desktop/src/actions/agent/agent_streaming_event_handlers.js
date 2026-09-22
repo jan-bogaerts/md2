@@ -30,8 +30,17 @@ function handleTurnStarted(service, run) {
     run.turnStarted = true;
 }
 
+/**
+ * A mid-turn usage sample. The turn usage stays provisional in `liveTurnUsage` until
+ * `handleTurnCompleted` commits the authoritative figure, but the context window usage is applied to
+ * the conversation right away so a popup opened mid-turn reads the current percentage.
+ */
 function handleUsage(service, run, event) {
     run.liveTurnUsage = event.usage;
+    if (event.contextWindowUsage !== undefined) {
+        if (event.contextWindowUsage) run.conversation.contextWindowUsage = event.contextWindowUsage;
+        else delete run.conversation.contextWindowUsage;
+    }
     const usage = accumulateUsage(run.conversation.usage, event.usage);
     emitRunEvent(run, {
         ...(event.contextWindowUsage !== undefined ? { contextWindowUsage: event.contextWindowUsage } : {}),

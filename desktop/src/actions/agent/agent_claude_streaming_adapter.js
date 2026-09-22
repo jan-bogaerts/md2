@@ -10,6 +10,9 @@ const { isMissingSession } = require('./agent_provider_protocol');
 
 const CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
 const CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;
+// The turn-boundary request withholds `turnCompleted` behind it, so it gives up after a second. A live
+// sample withholds nothing; its timeout only releases the single-flight slot when Claude never answers.
+const CLAUDE_LIVE_CONTEXT_USAGE_TIMEOUT_MS = 10_000;
 const CLAUDE_FILE_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit', 'Write']);
 const CLAUDE_QUESTION_TOOL = 'AskUserQuestion';
 const CLAUDE_SUB_AGENT_TOOL = 'Agent';
@@ -241,6 +244,7 @@ class ClaudeStreamingAdapter {
         this.protocolErrorSequence = 1;
         this.contextUsageRequestSequence = 1;
         this.pendingContextUsage = null;
+        this.pendingLiveContextUsage = null;
         this.fileResultDecoder = new ClaudeFileResultDecoder(rootPath);
         this.messageUsages = new Map();
         this.turnStarted = false;
@@ -545,6 +549,8 @@ class ClaudeStreamingAdapter {
     async handleAssistantCompletion(event, streamKey = null) {
         await this.ensureTurnStarted();
         recordClaudeAssistantUsage(this.messageUsages, event);
+        // Only the main agent's messages sample context: a sub agent's window is not the conversation's.
+        if (streamKey === null) await this.requestLiveContextWindowUsage();
         if (!Array.isArray(event.message?.content)) {
             await this.emitProtocolError('assistant message missing content', streamKey);
             return;
@@ -639,6 +645,7 @@ class ClaudeStreamingAdapter {
         this.fileResultDecoder.reset();
         this.streamedTextItems.clear();
         this.pendingQuestions.clear();
+        this.clearLiveContextUsageRequest();
         this.turnStarted = false;
         const usage = claudeUsage(event, accumulatedClaudeUsage(this.messageUsages));
         this.messageUsages.clear();
@@ -664,11 +671,46 @@ class ClaudeStreamingAdapter {
         }
     }
 
+    /**
+     * Samples the context window mid-turn, once per completed root assistant message. Single flight:
+     * a burst of messages cannot queue requests, and a failed write reports nothing rather than
+     * throwing into the message pump, because a lost sample is cosmetic while a throw ends the turn.
+     */
+    async requestLiveContextWindowUsage() {
+        if (this.pendingLiveContextUsage || !this.turnStarted) return;
+        const requestId = `claude-context-usage-${this.contextUsageRequestSequence}`;
+        this.contextUsageRequestSequence += 1;
+        const timeout = setTimeout(() => {
+            if (this.pendingLiveContextUsage?.requestId === requestId) this.pendingLiveContextUsage = null;
+        }, CLAUDE_LIVE_CONTEXT_USAGE_TIMEOUT_MS);
+        this.pendingLiveContextUsage = { requestId, timeout };
+        try {
+            await this.writeLine(claudeContextUsageRequest(requestId));
+        } catch {
+            if (this.pendingLiveContextUsage?.requestId === requestId) this.clearLiveContextUsageRequest();
+        }
+    }
+
+    clearLiveContextUsageRequest() {
+        if (!this.pendingLiveContextUsage) return;
+        clearTimeout(this.pendingLiveContextUsage.timeout);
+        this.pendingLiveContextUsage = null;
+    }
+
     async handleContextUsageResponse(event) {
         const requestId = event.response?.request_id;
-        if (requestId !== this.pendingContextUsage?.requestId) return;
-
-        await this.completeContextUsageRequest(requestId, claudeContextWindowUsage(event));
+        if (requestId === this.pendingContextUsage?.requestId) {
+            await this.completeContextUsageRequest(requestId, claudeContextWindowUsage(event));
+            return;
+        }
+        if (requestId !== this.pendingLiveContextUsage?.requestId) return;
+        this.clearLiveContextUsageRequest();
+        const contextWindowUsage = claudeContextWindowUsage(event);
+        // An unusable answer leaves the ring on its last value: `handleUsage` reads a null context
+        // usage as "delete it", which would blank the ring in the middle of a turn.
+        if (!contextWindowUsage) return;
+        // Read at response time, so a message that completed while the request was in flight counts.
+        await this.onEvent({ contextWindowUsage, type: 'usage', usage: accumulatedClaudeUsage(this.messageUsages) });
     }
 
     async completeContextUsageRequest(requestId, contextWindowUsage) {

@@ -565,7 +565,8 @@ describe('AgentRunnerService state handling', () => {
         });
 
         expect(run.conversation.usage).toEqual(persistedUsage);
-        expect(run.conversation).not.toHaveProperty('contextWindowUsage');
+        // Context usage is not turn usage: each sample lands on the conversation right away.
+        expect(run.conversation.contextWindowUsage).toEqual(latestContextWindowUsage);
         expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({
             contextWindowUsage: firstContextWindowUsage,
             type: 'usage',
@@ -634,8 +635,49 @@ describe('AgentRunnerService state handling', () => {
         service.failStreamingRun(run, new Error('Turn failed'));
 
         expect(run.conversation.usage).toBe(persistedUsage);
-        expect(run.conversation).not.toHaveProperty('contextWindowUsage');
         expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));
+    });
+
+    it('applies a mid-turn context window sample to the conversation without committing its usage', async () => {
+        const service = new AgentRunnerService();
+        const persistedUsage = {
+            cachedInputTokens: 0,
+            inputTokens: 10,
+            outputTokens: 0,
+            reasoningTokens: 0,
+            totalTokens: 10,
+        };
+        const run = {
+            conversation: { entries: [], status: 'running', usage: persistedUsage },
+            id: 'run-1',
+            liveTurnUsage: null,
+            nextSequence: 1,
+            onEvent: vi.fn(),
+            secretValues: new Set(),
+            waitingForQuestion: false,
+        };
+        service.processes.set('run-1', run);
+
+        await service.handleStreamingEvent('run-1', {
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+            type: 'usage',
+            usage: { cachedInputTokens: 0, inputTokens: 5, outputTokens: 0, reasoningTokens: 0, totalTokens: 5 },
+        });
+
+        // The popup reads the ring from the run conversation, so a mid-turn sample must land there.
+        expect(run.conversation.contextWindowUsage).toEqual({ capacityTokens: 258_400, usedTokens: 42_000 });
+        // The turn's tokens stay provisional until the turn completes.
+        expect(run.conversation.usage).toBe(persistedUsage);
+        expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));
+        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({
+            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },
+            type: 'usage',
+            usage: expect.objectContaining({ totalTokens: 15 }),
+        }));
+
+        await service.handleStreamingEvent('run-1', { contextWindowUsage: null, type: 'usage', usage: null });
+
+        expect(run.conversation).not.toHaveProperty('contextWindowUsage');
     });
 
     it('keeps streaming process stderr out of canonical conversation entries', () => {
