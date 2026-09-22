@@ -10,4 +10,4 @@ agents:
 policy:
 after: cdc16a08-2bb4-4abe-a270-d35616a7ca06
 ---
-When the react app is in small screen mode, dont show the project folder name in the top bar, next to the menu tabs, but show it in hamburger menu.
+When the react app is in small screen mode, dont show the project folder name in the top bar, next to the menu tabs, but show it in hamburger menu, instead of ´theme´
