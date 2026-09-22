@@ -820,7 +820,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 60971
+        "usedTokens": 79834
       },
       "entries": [
         {
@@ -1058,6 +1058,392 @@
           "role": "assistant",
           "sequence": 19,
           "timestamp": "2026-09-22T08:39:01.523Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 20,
+          "timestamp": "2026-09-22T17:32:06.335Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJsqYrGFcSQzKYnrT3ez:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:32:10.194Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Block 1 — adapter.",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 22,
+          "timestamp": "2026-09-22T17:32:10.378Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io,re\np='desktop/src/actions/agent/agent_claude_streaming_adapter.js'\ns=io.open(p,encoding='utf-8').read()\n\ns=s.replace(\"const CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;\",\n\"\"\"const CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;\n// The turn-boundary request withholds `turnCompleted` behind it, so it gives up after a second. A live\n// sample withholds nothing; its timeout only releases the single-flight slot when Claude never answers.\nconst CLAUDE_LIVE_CONTEXT_USAGE_TIMEOUT_MS = 10_000;\"\"\")\n\ns=s.replace(\"\"\"        this.pendingContextUsage = null;\n        this.fileResultDecoder\"\"\",\"\"\"        this.pendingContextUsage = null;\n        this.pendingLiveContextUsage = null;\n        this.fileResultDecoder\"\"\")\n\ns=s.replace(\"\"\"        await this.ensureTurnStarted();\n        recordClaudeAssistantUsage(this.messageUsages, event);\"\"\",\"\"\"        await this.ensureTurnStarted();\n        recordClaudeAssistantUsage(this.messageUsages, event);\n        // Only the main agent's messages sample context: a sub agent's window is not the conversation's.\n        if (streamKey === null) await this.requestLiveContextWindowUsage();\"\"\")\n\ns=s.replace(\"\"\"        this.pendingQuestions.clear();\n        this.turnStarted = false;\"\"\",\"\"\"        this.pendingQuestions.clear();\n        this.clearLiveContextUsageRequest();\n        this.turnStarted = false;\"\"\")\n\nold_resp=\"\"\"    async handleContextUsageResponse(event) {\n        const requestId = event.response?.request_id;\n        if (requestId !== this.pendingContextUsage?.requestId) return;\n\n        await this.completeContextUsageRequest(requestId, claudeContextWindowUsage(event));\n    }\n\"\"\"\nnew_resp=\"\"\"    /**\n     * Samples the context window mid-turn, once per completed root assistant message. Single flight:\n     * a burst of messages cannot queue requests, and a failed write reports nothing rather than\n     * throwing into the message pump, because a lost sample is cosmetic while a throw ends the turn.\n     */\n    async requestLiveContextWindowUsage() {\n        if (this.pendingLiveContextUsage || !this.turnStarted) return;\n        const requestId = `claude-context-usage-${this.contextUsageRequestSequence}`;\n        this.contextUsageRequestSequence += 1;\n        const timeout = setTimeout(() => {\n            if (this.pendingLiveContextUsage?.requestId === requestId) this.pendingLiveContextUsage = null;\n        }, CLAUDE_LIVE_CONTEXT_USAGE_TIMEOUT_MS);\n        this.pendingLiveContextUsage = { requestId, timeout };\n        try {\n            await this.writeLine(claudeContextUsageRequest(requestId));\n        } catch {\n            if (this.pendingLiveContextUsage?.requestId === requestId) this.clearLiveContextUsageRequest();\n        }\n    }\n\n    clearLiveContextUsageRequest() {\n        if (!this.pendingLiveContextUsage) return;\n        clearTimeout(this.pendingLiveContextUsage.timeout);\n        this.pendingLiveContextUsage = null;\n    }\n\n    async handleContextUsageResponse(event) {\n        const requestId = event.response?.request_id;\n        if (requestId === this.pendingContextUsage?.requestId) {\n            await this.completeContextUsageRequest(requestId, claudeContextWindowUsage(event));\n            return;\n        }\n        if (requestId !== this.pendingLiveContextUsage?.requestId) return;\n        this.clearLiveContextUsageRequest();\n        const contextWindowUsage = claudeContextWindowUsage(event);\n        // An unusable answer leaves the ring on its last value: `handleUsage` reads a null context\n        // usage as \"delete it\", which would blank the ring in the middle of a turn.\n        if (!contextWindowUsage) return;\n        // Read at response time, so a message that completed while the request was in flight counts.\n        await this.onEvent({ contextWindowUsage, type: 'usage', usage: accumulatedClaudeUsage(this.messageUsages) });\n    }\n\"\"\"\nassert old_resp in s\ns=s.replace(old_resp,new_resp)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nEOF",
+          "content": "ok",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-23",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io,re\np='desktop/src/actions/agent/agent_claude_streaming_adapter.js'\ns=io.open(p,encoding='utf-8').read()\n\ns=s.replace(\"const CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;\",\n\"\"\"const CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;\n// The turn-boundary request withholds `turnCompleted` behind it, so it gives up after a second. A live\n// sample withholds nothing; its timeout only releases the single-flight slot when Claude never answers.\nconst CLAUDE_LIVE_CONTEXT_USAGE_TIMEOUT_MS = 10_000;\"\"\")\n\ns=s.replace(\"\"\"        this.pendingContextUsage = null;\n        this.fileResultDecoder\"\"\",\"\"\"        this.pendingContextUsage = null;\n        this.pendingLiveContextUsage = null;\n        this.fileResultDecoder\"\"\")\n\ns=s.replace(\"\"\"        await this.ensureTurnStarted();\n        recordClaudeAssistantUsage(this.messageUsages, event);\"\"\",\"\"\"        await this.ensureTurnStarted();\n        recordClaudeAssistantUsage(this.messageUsages, event);\n        // Only the main agent's messages sample context: a sub agent's window is not the conversation's.\n        if (streamKey === null) await this.requestLiveContextWindowUsage();\"\"\")\n\ns=s.replace(\"\"\"        this.pendingQuestions.clear();\n        this.turnStarted = false;\"\"\",\"\"\"        this.pendingQuestions.clear();\n        this.clearLiveContextUsageRequest();\n        this.turnStarted = false;\"\"\")\n\nold_resp=\"\"\"    async handleContextUsageResponse(event) {\n        const requestId = event.response?.request_id;\n        if (requestId !== this.pendingContextUsage?.requestId) return;\n\n        await this.completeContextUsageRequest(requestId, claudeContextWindowUsage(event));\n    }\n\"\"\"\nnew_resp=\"\"\"    /**\n     * Samples the context window mid-turn, once per completed root assistant message. Single flight:\n     * a burst of messages cannot queue requests, and a failed write reports nothing rather than\n     * throwing into the message pump, because a lost sample is cosmetic while a throw ends the turn.\n     */\n    async requestLiveContextWindowUsage() {\n        if (this.pendingLiveContextUsage || !this.turnStarted) return;\n        const requestId = `claude-context-usage-${this.contextUsageRequestSequence}`;\n        this.contextUsageRequestSequence += 1;\n        const timeout = setTimeout(() => {\n            if (this.pendingLiveContextUsage?.requestId === requestId) this.pendingLiveContextUsage = null;\n        }, CLAUDE_LIVE_CONTEXT_USAGE_TIMEOUT_MS);\n        this.pendingLiveContextUsage = { requestId, timeout };\n        try {\n            await this.writeLine(claudeContextUsageRequest(requestId));\n        } catch {\n            if (this.pendingLiveContextUsage?.requestId === requestId) this.clearLiveContextUsageRequest();\n        }\n    }\n\n    clearLiveContextUsageRequest() {\n        if (!this.pendingLiveContextUsage) return;\n        clearTimeout(this.pendingLiveContextUsage.timeout);\n        this.pendingLiveContextUsage = null;\n    }\n\n    async handleContextUsageResponse(event) {\n        const requestId = event.response?.request_id;\n        if (requestId === this.pendingContextUsage?.requestId) {\n            await this.completeContextUsageRequest(requestId, claudeContextWindowUsage(event));\n            return;\n        }\n        if (requestId !== this.pendingLiveContextUsage?.requestId) return;\n        this.clearLiveContextUsageRequest();\n        const contextWindowUsage = claudeContextWindowUsage(event);\n        // An unusable answer leaves the ring on its last value: `handleUsage` reads a null context\n        // usage as \"delete it\", which would blank the ring in the middle of a turn.\n        if (!contextWindowUsage) return;\n        // Read at response time, so a message that completed while the request was in flight counts.\n        await this.onEvent({ contextWindowUsage, type: 'usage', usage: accumulatedClaudeUsage(this.messageUsages) });\n    }\n\"\"\"\nassert old_resp in s\ns=s.replace(old_resp,new_resp)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nEOF",
+          "providerItemId": "toolu_01NnLYWfzbsfKPYnAewicqDa",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:32:26.285Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nBlock 2 — handler.",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 24,
+          "timestamp": "2026-09-22T17:32:27.020Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io\np='desktop/src/actions/agent/agent_streaming_event_handlers.js'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"function handleUsage(service, run, event) {\n    run.liveTurnUsage = event.usage;\"\"\"\nnew=\"\"\"/**\n * A mid-turn usage sample. The turn usage stays provisional in `liveTurnUsage` until\n * `handleTurnCompleted` commits the authoritative figure, but the context window usage is applied to\n * the conversation right away so a popup opened mid-turn reads the current percentage.\n */\nfunction handleUsage(service, run, event) {\n    run.liveTurnUsage = event.usage;\n    if (event.contextWindowUsage !== undefined) {\n        if (event.contextWindowUsage) run.conversation.contextWindowUsage = event.contextWindowUsage;\n        else delete run.conversation.contextWindowUsage;\n    }\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8',newline='').write(s.replace(old,new))\nprint('ok')\nEOF",
+          "content": "ok",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-25",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io\np='desktop/src/actions/agent/agent_streaming_event_handlers.js'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"function handleUsage(service, run, event) {\n    run.liveTurnUsage = event.usage;\"\"\"\nnew=\"\"\"/**\n * A mid-turn usage sample. The turn usage stays provisional in `liveTurnUsage` until\n * `handleTurnCompleted` commits the authoritative figure, but the context window usage is applied to\n * the conversation right away so a popup opened mid-turn reads the current percentage.\n */\nfunction handleUsage(service, run, event) {\n    run.liveTurnUsage = event.usage;\n    if (event.contextWindowUsage !== undefined) {\n        if (event.contextWindowUsage) run.conversation.contextWindowUsage = event.contextWindowUsage;\n        else delete run.conversation.contextWindowUsage;\n    }\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8',newline='').write(s.replace(old,new))\nprint('ok')\nEOF",
+          "providerItemId": "toolu_01R9PhCnP34kFSJ5B6NEF4pA",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:32:32.525Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJssHgWCPNpRRFhvWC1v:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:32:36.614Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && grep -n \"expect(writes)\\|claude-context-usage\" desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+          "content": "117:        expect(writes).toEqual([\n121:                request_id: 'claude-context-usage-1',\n141:        expect(writes).toEqual([{\n143:            request_id: 'claude-context-usage-1',\n151:        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {\n221:            'claude-context-usage-1',\n222:            'claude-context-usage-2',\n267:            await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {\n982:        expect(writes).toContainEqual({ id: 99, result: { answers: {} } });\n1765:        expect(writes).toContainEqual({ id: 41, result: { decision: policyDecision } });\n1766:        expect(writes).toContainEqual({ id: 'file-request', result: { decision: 'acceptForSession' } });",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-27",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && grep -n \"expect(writes)\\|claude-context-usage\" desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+          "providerItemId": "toolu_01RyRZGFSfFKHZan3bsCXY48",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:32:38.142Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && sed -n '200,290p' desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+          "content": "            type: 'turnCompleted',\n            usage: {\n                cachedInputTokens: 35,\n                costUsd: 0.25,\n                inputTokens: 9,\n                outputTokens: 13,\n                reasoningTokens: 0,\n                totalTokens: 57,\n            },\n        });\n    });\n\n    it('reports the latest context snapshot independently for each successful turn', async () => {\n        const { adapter, events, writes } = harness('claude');\n\n        await adapter.handleMessage({ type: 'result' });\n        await answerClaudeContextUsage(adapter, writes, { maxTokens: 100_000, totalTokens: 5 });\n        await adapter.handleMessage({ type: 'result' });\n        await answerClaudeContextUsage(adapter, writes, { maxTokens: 258_400, totalTokens: 42_000 });\n\n        expect(writes.filter(({ type }) => type === 'control_request').map(({ request_id: requestId }) => requestId)).toEqual([\n            'claude-context-usage-1',\n            'claude-context-usage-2',\n        ]);\n        expect(events.filter(({ type }) => type === 'turnCompleted')).toEqual([\n            expect.objectContaining({ contextWindowUsage: { capacityTokens: 100_000, usedTokens: 5 } }),\n            expect.objectContaining({ contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 } }),\n        ]);\n    });\n\n    it.each([\n        ['missing totalTokens', { maxTokens: 258_400 }],\n        ['zero maxTokens', { maxTokens: 0, totalTokens: 42_000 }],\n        ['negative totalTokens', { maxTokens: 258_400, totalTokens: -1 }],\n        ['non-integer maxTokens', { maxTokens: 258_400.5, totalTokens: 42_000 }],\n        ['unsafe totalTokens', { maxTokens: 258_400, totalTokens: Number.MAX_SAFE_INTEGER + 1 }],\n        ['rawMaxTokens without maxTokens', { rawMaxTokens: 300_000, totalTokens: 42_000 }],\n    ])('clears context snapshot for %s', async (description, response) => {\n        const { adapter, events, writes } = harness('claude');\n\n        await adapter.handleMessage({ type: 'result' });\n        await answerClaudeContextUsage(adapter, writes, response);\n\n        expect(events.at(-1)).toMatchObject({ contextWindowUsage: null, error: null, type: 'turnCompleted' });\n    });\n\n    it.each(['error', 'unsupported'])('clears context snapshot for a matching %s response', async (subtype) => {\n        const { adapter, events, writes } = harness('claude');\n\n        await adapter.handleMessage({ type: 'result' });\n        const request = latestClaudeContextUsageRequest(writes);\n        await adapter.handleMessage(claudeContextUsageResponse(request.request_id, { message: 'Unavailable' }, subtype));\n\n        expect(events.at(-1)).toMatchObject({ contextWindowUsage: null, error: null, type: 'turnCompleted' });\n    });\n\n    it('times out successfully and ignores the late response while a newer request is pending', async () => {\n        vi.useFakeTimers();\n        try {\n            const { adapter, events, writes } = harness('claude');\n\n            await adapter.handleMessage({ type: 'result' });\n            await vi.advanceTimersByTimeAsync(1_000);\n\n            expect(events).toEqual([expect.objectContaining({ contextWindowUsage: null, error: null, type: 'turnCompleted' })]);\n\n            await adapter.handleMessage({ type: 'result' });\n            await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {\n                maxTokens: 100_000,\n                totalTokens: 90_000,\n            }));\n            expect(events).toHaveLength(1);\n\n            await answerClaudeContextUsage(adapter, writes, { maxTokens: 258_400, totalTokens: 42_000 });\n            expect(events).toEqual([\n                expect.objectContaining({ contextWindowUsage: null, type: 'turnCompleted' }),\n                expect.objectContaining({\n                    contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },\n                    type: 'turnCompleted',\n                }),\n            ]);\n        } finally {\n            vi.useRealTimers();\n        }\n    });\n\n    it('correlates structured question answers through the Claude control protocol', async () => {\n        const { adapter, events, writes } = harness('claude');\n        const questions = [{ header: 'Confirm', options: [{ label: 'Yes' }], question: 'Proceed?' }];\n\n        await adapter.handleMessage({",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-28",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && sed -n '200,290p' desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+          "providerItemId": "toolu_015hK6YSGVM2k8cWi8ZcnuJ2",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:32:40.575Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-29",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJsssj8EgRiXPFZDscN1:thinking:0",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:32:41.890Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io\np='desktop/src/actions/agent/agent_streaming_adapter.test.mjs'\ns=io.open(p,encoding='utf-8').read()\n\nold=\"\"\"        expect(writes).toEqual([\n            { message: { content: 'plan', role: 'user' }, type: 'user' },\n            {\n                request: { subtype: 'get_context_usage' },\n                request_id: 'claude-context-usage-1',\n                type: 'control_request',\n            },\n            { message: { content: 'approved', role: 'user' }, type: 'user' },\n        ]);\"\"\"\nnew=\"\"\"        expect(writes).toEqual([\n            { message: { content: 'plan', role: 'user' }, type: 'user' },\n            // The completed root assistant message samples context live, before the turn-boundary request.\n            {\n                request: { subtype: 'get_context_usage' },\n                request_id: 'claude-context-usage-1',\n                type: 'control_request',\n            },\n            {\n                request: { subtype: 'get_context_usage' },\n                request_id: 'claude-context-usage-2',\n                type: 'control_request',\n            },\n            { message: { content: 'approved', role: 'user' }, type: 'user' },\n        ]);\"\"\"\nassert old in s\ns=s.replace(old,new)\n\nanchor=\"\"\"    it('reports the latest context snapshot independently for each successful turn', async () => {\"\"\"\nassert anchor in s\n\nadded = \"\"\"    it('samples context live when a root assistant message completes and reports the accumulated turn usage', async () => {\n        const { adapter, events, writes } = harness('claude');\n\n        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));\n\n        expect(writes).toEqual([{\n            request: { subtype: 'get_context_usage' },\n            request_id: 'claude-context-usage-1',\n            type: 'control_request',\n        }]);\n        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);\n\n        // A second message completes while the request is in flight, so its tokens must be counted too.\n        await adapter.handleMessage(claudeRootAssistant('message-2', 3, 4));\n        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {\n            maxTokens: 258_400,\n            totalTokens: 42_000,\n        }));\n\n        expect(events.filter(({ type }) => type === 'usage')).toEqual([{\n            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },\n            type: 'usage',\n            usage: expect.objectContaining({ inputTokens: 8, outputTokens: 11, totalTokens: 19 }),\n        }]);\n    });\n\n    it('issues no second live context request while the first is unanswered', async () => {\n        const { adapter, writes } = harness('claude');\n\n        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));\n        await adapter.handleMessage(claudeRootAssistant('message-2', 3, 4));\n\n        expect(writes.filter(({ type }) => type === 'control_request')).toHaveLength(1);\n    });\n\n    it('samples context again for the next root message once the live request expires', async () => {\n        vi.useFakeTimers();\n        try {\n            const { adapter, events, writes } = harness('claude');\n\n            await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));\n            await vi.advanceTimersByTimeAsync(10_000);\n            await adapter.handleMessage(claudeRootAssistant('message-2', 3, 4));\n\n            expect(writes.filter(({ type }) => type === 'control_request').map(({ request_id: id }) => id)).toEqual([\n                'claude-context-usage-1',\n                'claude-context-usage-2',\n            ]);\n            // The expired request reports nothing, so the ring keeps its last value.\n            expect(events.filter(({ type }) => type === 'usage')).toEqual([]);\n        } finally {\n            vi.useRealTimers();\n        }\n    });\n\n    it('issues no live context request for a sub agent assistant message', async () => {\n        const { adapter, writes } = harness('claude');\n\n        await adapter.handleMessage({\n            ...claudeRootAssistant('message-1', 5, 7),\n            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,\n        });\n\n        expect(writes.filter(({ type }) => type === 'control_request')).toEqual([]);\n    });\n\n    it.each([\n        ['a malformed payload', { maxTokens: 0, totalTokens: 42_000 }, 'success'],\n        ['an error subtype', { message: 'Unavailable' }, 'error'],\n    ])('reports nothing for a live context response with %s', async (description, response, subtype) => {\n        const { adapter, events } = harness('claude');\n\n        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));\n        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', response, subtype));\n\n        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);\n    });\n\n    it('discards a live context response that arrives after the turn ended', async () => {\n        const { adapter, events, writes } = harness('claude');\n\n        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));\n        await adapter.handleMessage({ total_cost_usd: 0.25, type: 'result', usage: { input_tokens: 9, output_tokens: 13 } });\n\n        // The turn-boundary request still withholds `turnCompleted` until its own response arrives.\n        expect(events.filter(({ type }) => type === 'turnCompleted')).toEqual([]);\n\n        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {\n            maxTokens: 100_000,\n            totalTokens: 90_000,\n        }));\n\n        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);\n        expect(events.filter(({ type }) => type === 'turnCompleted')).toEqual([]);\n\n        await answerClaudeContextUsage(adapter, writes, { maxTokens: 258_400, totalTokens: 42_000 });\n\n        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);\n        expect(events.at(-1)).toMatchObject({\n            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },\n            type: 'turnCompleted',\n        });\n    });\n\n\"\"\"\ns=s.replace(anchor, added+anchor,1)\n\nhelper_anchor=\"\"\"async function answerClaudeContextUsage(\"\"\"\nhelper=\"\"\"function claudeRootAssistant(messageId, inputTokens, outputTokens) {\n    return {\n        message: {\n            content: [],\n            id: messageId,\n            usage: {\n                cache_creation_input_tokens: 0,\n                cache_read_input_tokens: 0,\n                input_tokens: inputTokens,\n                output_tokens: outputTokens,\n            },\n        },\n        type: 'assistant',\n    };\n}\n\n\"\"\"\ns=s.replace(helper_anchor, helper+helper_anchor,1)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nEOF",
+          "content": "ok",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-30",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io\np='desktop/src/actions/agent/agent_streaming_adapter.test.mjs'\ns=io.open(p,encoding='utf-8').read()\n\nold=\"\"\"        expect(writes).toEqual([\n            { message: { content: 'plan', role: 'user' }, type: 'user' },\n            {\n                request: { subtype: 'get_context_usage' },\n                request_id: 'claude-context-usage-1',\n                type: 'control_request',\n            },\n            { message: { content: 'approved', role: 'user' }, type: 'user' },\n        ]);\"\"\"\nnew=\"\"\"        expect(writes).toEqual([\n            { message: { content: 'plan', role: 'user' }, type: 'user' },\n            // The completed root assistant message samples context live, before the turn-boundary request.\n            {\n                request: { subtype: 'get_context_usage' },\n                request_id: 'claude-context-usage-1',\n                type: 'control_request',\n            },\n            {\n                request: { subtype: 'get_context_usage' },\n                request_id: 'claude-context-usage-2',\n                type: 'control_request',\n            },\n            { message: { content: 'approved', role: 'user' }, type: 'user' },\n        ]);\"\"\"\nassert old in s\ns=s.replace(old,new)\n\nanchor=\"\"\"    it('reports the latest context snapshot independently for each successful turn', async () => {\"\"\"\nassert anchor in s\n\nadded = \"\"\"    it('samples context live when a root assistant message completes and reports the accumulated turn usage', async () => {\n        const { adapter, events, writes } = harness('claude');\n\n        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));\n\n        expect(writes).toEqual([{\n            request: { subtype: 'get_context_usage' },\n            request_id: 'claude-context-usage-1',\n            type: 'control_request',\n        }]);\n        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);\n\n        // A second message completes while the request is in flight, so its tokens must be counted too.\n        await adapter.handleMessage(claudeRootAssistant('message-2', 3, 4));\n        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {\n            maxTokens: 258_400,\n            totalTokens: 42_000,\n        }));\n\n        expect(events.filter(({ type }) => type === 'usage')).toEqual([{\n            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },\n            type: 'usage',\n            usage: expect.objectContaining({ inputTokens: 8, outputTokens: 11, totalTokens: 19 }),\n        }]);\n    });\n\n    it('issues no second live context request while the first is unanswered', async () => {\n        const { adapter, writes } = harness('claude');\n\n        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));\n        await adapter.handleMessage(claudeRootAssistant('message-2', 3, 4));\n\n        expect(writes.filter(({ type }) => type === 'control_request')).toHaveLength(1);\n    });\n\n    it('samples context again for the next root message once the live request expires', async () => {\n        vi.useFakeTimers();\n        try {\n            const { adapter, events, writes } = harness('claude');\n\n            await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));\n            await vi.advanceTimersByTimeAsync(10_000);\n            await adapter.handleMessage(claudeRootAssistant('message-2', 3, 4));\n\n            expect(writes.filter(({ type }) => type === 'control_request').map(({ request_id: id }) => id)).toEqual([\n                'claude-context-usage-1',\n                'claude-context-usage-2',\n            ]);\n            // The expired request reports nothing, so the ring keeps its last value.\n            expect(events.filter(({ type }) => type === 'usage')).toEqual([]);\n        } finally {\n            vi.useRealTimers();\n        }\n    });\n\n    it('issues no live context request for a sub agent assistant message', async () => {\n        const { adapter, writes } = harness('claude');\n\n        await adapter.handleMessage({\n            ...claudeRootAssistant('message-1', 5, 7),\n            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,\n        });\n\n        expect(writes.filter(({ type }) => type === 'control_request')).toEqual([]);\n    });\n\n    it.each([\n        ['a malformed payload', { maxTokens: 0, totalTokens: 42_000 }, 'success'],\n        ['an error subtype', { message: 'Unavailable' }, 'error'],\n    ])('reports nothing for a live context response with %s', async (description, response, subtype) => {\n        const { adapter, events } = harness('claude');\n\n        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));\n        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', response, subtype));\n\n        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);\n    });\n\n    it('discards a live context response that arrives after the turn ended', async () => {\n        const { adapter, events, writes } = harness('claude');\n\n        await adapter.handleMessage(claudeRootAssistant('message-1', 5, 7));\n        await adapter.handleMessage({ total_cost_usd: 0.25, type: 'result', usage: { input_tokens: 9, output_tokens: 13 } });\n\n        // The turn-boundary request still withholds `turnCompleted` until its own response arrives.\n        expect(events.filter(({ type }) => type === 'turnCompleted')).toEqual([]);\n\n        await adapter.handleMessage(claudeContextUsageResponse('claude-context-usage-1', {\n            maxTokens: 100_000,\n            totalTokens: 90_000,\n        }));\n\n        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);\n        expect(events.filter(({ type }) => type === 'turnCompleted')).toEqual([]);\n\n        await answerClaudeContextUsage(adapter, writes, { maxTokens: 258_400, totalTokens: 42_000 });\n\n        expect(events.filter(({ type }) => type === 'usage')).toEqual([]);\n        expect(events.at(-1)).toMatchObject({\n            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },\n            type: 'turnCompleted',\n        });\n    });\n\n\"\"\"\ns=s.replace(anchor, added+anchor,1)\n\nhelper_anchor=\"\"\"async function answerClaudeContextUsage(\"\"\"\nhelper=\"\"\"function claudeRootAssistant(messageId, inputTokens, outputTokens) {\n    return {\n        message: {\n            content: [],\n            id: messageId,\n            usage: {\n                cache_creation_input_tokens: 0,\n                cache_read_input_tokens: 0,\n                input_tokens: inputTokens,\n                output_tokens: outputTokens,\n            },\n        },\n        type: 'assistant',\n    };\n}\n\n\"\"\"\ns=s.replace(helper_anchor, helper+helper_anchor,1)\nio.open(p,'w',encoding='utf-8',newline='').write(s)\nprint('ok')\nEOF",
+          "providerItemId": "toolu_01NDJvahj8gqu7Eydn61Sq2m",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:33:04.527Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"command\":\"npx vitest run desktop/src/actions/agent/agent_streaming_adapter.test.mjs 2>&1 | Select-Object -Last 60\",\"description\":\"Run adapter tests\",\"timeout\":300000}",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-31",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "Exit code 1\n RUN  v5.0.1 C:/Users/janbo/Documents/dev/md2_workers/dev3\r\n\r\n ❯ desktop/src/actions/agent/agent_streaming_adapter.test.mjs (84 tests | 1 failed) 54ms\r\n   ❯ ClaudeStreamingAdapter (45)\r\n     × ignores a sub-agent result frame so only the main agent ends the turn 15ms\r\nnode.exe : \r\nAt C:\\Program Files\\nodejs\\npx.ps1:29 char:3\r\n+   & $NODE_EXE $NPX_CLI_JS $args\r\n+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\r\n FAIL  desktop/src/actions/agent/agent_streaming_adapter.test.mjs > ClaudeStreamingAdapter > ignores a sub-agent \r\nresult frame so only the main agent ends the turn\r\nAssertionError: expected { …(3) } to be undefined\r\n- Expected:\r\nundefined\r\n+ Received:\r\n{\r\n  \"request\": {\r\n    \"subtype\": \"get_context_usage\",\r\n  },\r\n  \"request_id\": \"claude-context-usage-1\",\r\n  \"type\": \"control_request\",\r\n}\r\n ❯ desktop/src/actions/agent/agent_streaming_adapter.test.mjs:1043:57\r\n    1041|\r\n    1042|         expect(events.some(({ type }) => type === 'turnCompleted')).to…\r\n    1043|         expect(latestClaudeContextUsageRequest(writes)).toBeUndefined(…\r\n       |                                                         ^\r\n    1044|\r\n    1045|         await adapter.handleMessage({\r\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\r\n\r\n Test Files  1 failed (1)\r\n      Tests  1 failed | 83 passed (84)\r\n   Start at  19:33:21\r\n   Duration  431ms (import 39%, transform 29%, tests 25%, worker 7%)",
+          "providerItemId": "toolu_014RyW18vN93AWqgjRjQW3Bo",
+          "sequence": 31,
+          "status": "failed",
+          "timestamp": "2026-09-22T17:33:22.045Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && sed -n '1020,1060p' desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+          "content": "                content: 'missing Claude approval tool name',\n                label: 'Claude protocol error',\n                parentItemId: SUB_AGENT_TOOL_USE_ID,\n                providerItemId: `${SUB_AGENT_TOOL_USE_ID}:error:unknown-message:1`,\n                status: 'failed',\n                type: 'error',\n            },\n            type: 'event',\n        });\n    });\n\n    it('ignores a sub-agent result frame so only the main agent ends the turn', async () => {\n        const { adapter, events, writes } = harness('claude');\n\n        await adapter.handleMessage({ message: { content: [{ text: 'plan', type: 'text' }], id: 'message-1' }, type: 'assistant' });\n        await adapter.handleMessage({\n            parent_tool_use_id: SUB_AGENT_TOOL_USE_ID,\n            total_cost_usd: 0.5,\n            type: 'result',\n            usage: { input_tokens: 9, output_tokens: 9 },\n        });\n\n        expect(events.some(({ type }) => type === 'turnCompleted')).toBe(false);\n        expect(latestClaudeContextUsageRequest(writes)).toBeUndefined();\n\n        await adapter.handleMessage({\n            total_cost_usd: 0.01,\n            type: 'result',\n            usage: { cache_creation_input_tokens: 0, cache_read_input_tokens: 0, input_tokens: 4, output_tokens: 2 },\n        });\n        await answerClaudeContextUsage(adapter, writes);\n\n        expect(events.at(-1)).toMatchObject({ error: null, type: 'turnCompleted' });\n        expect(events.at(-1).usage).toMatchObject({ inputTokens: 4, outputTokens: 2 });\n    });\n\n    it('attaches a nested sub agent to the Agent call inside its own parent sub agent', async () => {\n        const { adapter, events } = harness('claude');\n        const nestedToolUseId = 'tool-nested-agent';\n\n        await adapter.handleMessage({",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-32",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && sed -n '1020,1060p' desktop/src/actions/agent/agent_streaming_adapter.test.mjs",
+          "providerItemId": "toolu_013sp5vx71xq2UnGojZn2RP4",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:33:24.305Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-33",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJsw6zg1Jt5VuLoGPTqK:thinking:0",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:33:27.045Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io\np='desktop/src/actions/agent/agent_streaming_adapter.test.mjs'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"        expect(events.some(({ type }) => type === 'turnCompleted')).toBe(false);\n        expect(latestClaudeContextUsageRequest(writes)).toBeUndefined();\"\"\"\nnew=\"\"\"        expect(events.some(({ type }) => type === 'turnCompleted')).toBe(false);\n        // The only request so far is the root message's live sample; the sub-agent result adds no\n        // turn-boundary request of its own.\n        expect(writes.filter(({ type }) => type === 'control_request')).toHaveLength(1);\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8',newline='').write(s.replace(old,new))\nprint('ok')\nEOF",
+          "content": "ok",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-34",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io\np='desktop/src/actions/agent/agent_streaming_adapter.test.mjs'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"        expect(events.some(({ type }) => type === 'turnCompleted')).toBe(false);\n        expect(latestClaudeContextUsageRequest(writes)).toBeUndefined();\"\"\"\nnew=\"\"\"        expect(events.some(({ type }) => type === 'turnCompleted')).toBe(false);\n        // The only request so far is the root message's live sample; the sub-agent result adds no\n        // turn-boundary request of its own.\n        expect(writes.filter(({ type }) => type === 'control_request')).toHaveLength(1);\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8',newline='').write(s.replace(old,new))\nprint('ok')\nEOF",
+          "providerItemId": "toolu_01HJv6MLq7VxivthM75DzwAC",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:33:31.465Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nNow the handler-level tests.",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 35,
+          "timestamp": "2026-09-22T17:33:32.851Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io\np='desktop/src/actions/agent/agent_runner_state.test.mjs'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"        expect(run.conversation.usage).toBe(persistedUsage);\n        expect(run.conversation).not.toHaveProperty('contextWindowUsage');\n        expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));\n    });\n\"\"\"\nnew=\"\"\"        expect(run.conversation.usage).toBe(persistedUsage);\n        expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));\n    });\n\n    it('applies a mid-turn context window sample to the conversation without committing its usage', async () => {\n        const service = new AgentRunnerService();\n        const persistedUsage = {\n            cachedInputTokens: 0,\n            inputTokens: 10,\n            outputTokens: 0,\n            reasoningTokens: 0,\n            totalTokens: 10,\n        };\n        const run = {\n            conversation: { entries: [], status: 'running', usage: persistedUsage },\n            id: 'run-1',\n            liveTurnUsage: null,\n            nextSequence: 1,\n            onEvent: vi.fn(),\n            secretValues: new Set(),\n            waitingForQuestion: false,\n        };\n        service.processes.set('run-1', run);\n\n        await service.handleStreamingEvent('run-1', {\n            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },\n            type: 'usage',\n            usage: { cachedInputTokens: 0, inputTokens: 5, outputTokens: 0, reasoningTokens: 0, totalTokens: 5 },\n        });\n\n        // The popup reads the ring from the run conversation, so a mid-turn sample must land there.\n        expect(run.conversation.contextWindowUsage).toEqual({ capacityTokens: 258_400, usedTokens: 42_000 });\n        // The turn's tokens stay provisional until the turn completes.\n        expect(run.conversation.usage).toBe(persistedUsage);\n        expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },\n            type: 'usage',\n            usage: expect.objectContaining({ totalTokens: 15 }),\n        }));\n\n        await service.handleStreamingEvent('run-1', { contextWindowUsage: null, type: 'usage', usage: null });\n\n        expect(run.conversation).not.toHaveProperty('contextWindowUsage');\n    });\n\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8',newline='').write(s.replace(old,new))\nprint('ok')\nEOF",
+          "content": "ok",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-36",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io\np='desktop/src/actions/agent/agent_runner_state.test.mjs'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"        expect(run.conversation.usage).toBe(persistedUsage);\n        expect(run.conversation).not.toHaveProperty('contextWindowUsage');\n        expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));\n    });\n\"\"\"\nnew=\"\"\"        expect(run.conversation.usage).toBe(persistedUsage);\n        expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));\n    });\n\n    it('applies a mid-turn context window sample to the conversation without committing its usage', async () => {\n        const service = new AgentRunnerService();\n        const persistedUsage = {\n            cachedInputTokens: 0,\n            inputTokens: 10,\n            outputTokens: 0,\n            reasoningTokens: 0,\n            totalTokens: 10,\n        };\n        const run = {\n            conversation: { entries: [], status: 'running', usage: persistedUsage },\n            id: 'run-1',\n            liveTurnUsage: null,\n            nextSequence: 1,\n            onEvent: vi.fn(),\n            secretValues: new Set(),\n            waitingForQuestion: false,\n        };\n        service.processes.set('run-1', run);\n\n        await service.handleStreamingEvent('run-1', {\n            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },\n            type: 'usage',\n            usage: { cachedInputTokens: 0, inputTokens: 5, outputTokens: 0, reasoningTokens: 0, totalTokens: 5 },\n        });\n\n        // The popup reads the ring from the run conversation, so a mid-turn sample must land there.\n        expect(run.conversation.contextWindowUsage).toEqual({ capacityTokens: 258_400, usedTokens: 42_000 });\n        // The turn's tokens stay provisional until the turn completes.\n        expect(run.conversation.usage).toBe(persistedUsage);\n        expect(run.liveTurnUsage).toEqual(expect.objectContaining({ totalTokens: 5 }));\n        expect(run.onEvent).toHaveBeenCalledWith(expect.objectContaining({\n            contextWindowUsage: { capacityTokens: 258_400, usedTokens: 42_000 },\n            type: 'usage',\n            usage: expect.objectContaining({ totalTokens: 15 }),\n        }));\n\n        await service.handleStreamingEvent('run-1', { contextWindowUsage: null, type: 'usage', usage: null });\n\n        expect(run.conversation).not.toHaveProperty('contextWindowUsage');\n    });\n\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8',newline='').write(s.replace(old,new))\nprint('ok')\nEOF",
+          "providerItemId": "toolu_01PhhpV11qUUZXqUnz92poQn",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:33:42.879Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"command\":\"npx vitest run desktop/src/actions/agent/agent_streaming_adapter.test.mjs desktop/src/actions/agent/agent_runner_state.test.mjs desktop/src/actions/agent/action_run.test.mjs 2>&1 | Select-Object -Last 60\",\"description\":\"Run desktop agent suites\",\"timeout\":600000}",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-37",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "Exit code 1\n RUN  v5.0.1 C:/Users/janbo/Documents/dev/md2_workers/dev3\r\n\r\n ❯ desktop/src/actions/agent/agent_runner_state.test.mjs (59 tests | 1 failed) 739ms\r\n   ❯ AgentRunnerService state handling (54)\r\n     × replaces live turn usage and commits the latest snapshot once at turn completion 10ms\r\nnode.exe : \r\nAt C:\\Program Files\\nodejs\\npx.ps1:29 char:3\r\n+   & $NODE_EXE $NPX_CLI_JS $args\r\n+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\r\n FAIL  desktop/src/actions/agent/agent_runner_state.test.mjs > AgentRunnerService state handling > replaces live turn \r\nusage and commits the latest snapshot once at turn completion\r\nAssertionError: expected { entries: [ { …(5) } ], …(4) } to not have property \"contextWindowUsage\"\r\n- Expected:\r\nundefined\r\n+ Received:\r\n{\r\n  \"capacityTokens\": 258400,\r\n  \"usedTokens\": 42000,\r\n}\r\n ❯ desktop/src/actions/agent/agent_runner_state.test.mjs:568:38\r\n    566|\r\n    567|         expect(run.conversation.usage).toEqual(persistedUsage);\r\n    568|         expect(run.conversation).not.toHaveProperty('contextWindowUsag…\r\n       |                                      ^\r\n    569|         expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContai…\r\n    570|             contextWindowUsage: firstContextWindowUsage,\r\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\r\n\r\n Test Files  1 failed | 1 passed (2)\r\n      Tests  1 failed | 142 passed (143)\r\n   Start at  19:33:47\r\n   Duration  1.02s (tests 71%, import 15%, transform 14%, worker 1%)",
+          "providerItemId": "toolu_012qqjFWTJQtfeGwD7Bd5Jak",
+          "sequence": 37,
+          "status": "failed",
+          "timestamp": "2026-09-22T17:33:48.910Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJsxvP1HooVogApGp4N2:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:33:50.693Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && sed -n '545,575p' desktop/src/actions/agent/agent_runner_state.test.mjs && ls desktop/src/actions/agent/*.test.mjs",
+          "content": "            providerConversationId: 'provider-1',\n            request: {},\n            streaming: true,\n            turnActive: true,\n            turnIndex: 1,\n            waitingForQuestion: false,\n        };\n        service.processes.set('run-1', run);\n\n        const firstContextWindowUsage = { capacityTokens: 100_000, usedTokens: 5_000 };\n        const latestContextWindowUsage = { capacityTokens: 258_400, usedTokens: 42_000 };\n        await service.handleStreamingEvent('run-1', {\n            contextWindowUsage: firstContextWindowUsage,\n            type: 'usage',\n            usage: firstSnapshot,\n        });\n        await service.handleStreamingEvent('run-1', {\n            contextWindowUsage: latestContextWindowUsage,\n            type: 'usage',\n            usage: latestSnapshot,\n        });\n\n        expect(run.conversation.usage).toEqual(persistedUsage);\n        expect(run.conversation).not.toHaveProperty('contextWindowUsage');\n        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({\n            contextWindowUsage: firstContextWindowUsage,\n            type: 'usage',\n            usage: expect.objectContaining({ totalTokens: 15 }),\n        }));\n        expect(onEvent).toHaveBeenNthCalledWith(2, expect.objectContaining({\n            contextWindowUsage: latestContextWindowUsage,\ndesktop/src/actions/agent/agent_claude_events.test.mjs\ndesktop/src/actions/agent/agent_codex_cache_diagnostic.test.mjs\ndesktop/src/actions/agent/agent_codex_event.test.mjs\ndesktop/src/actions/agent/agent_codex_events.test.mjs\ndesktop/src/actions/agent/agent_conversation.test.mjs\ndesktop/src/actions/agent/agent_conversation_persistence.test.mjs\ndesktop/src/actions/agent/agent_conversation_phases.test.mjs\ndesktop/src/actions/agent/agent_environment.test.mjs\ndesktop/src/actions/agent/agent_executable_availability.test.mjs\ndesktop/src/actions/agent/agent_file_change.test.mjs\ndesktop/src/actions/agent/agent_file_logger.test.mjs\ndesktop/src/actions/agent/agent_profiles.test.mjs\ndesktop/src/actions/agent/agent_profiles_parity.test.mjs\ndesktop/src/actions/agent/agent_provider_protocol.test.mjs\ndesktop/src/actions/agent/agent_run_transcript.test.mjs\ndesktop/src/actions/agent/agent_run_validation.test.mjs\ndesktop/src/actions/agent/agent_runner_state.test.mjs\ndesktop/src/actions/agent/agent_secret_redaction.test.mjs\ndesktop/src/actions/agent/agent_stderr_filter.test.mjs\ndesktop/src/actions/agent/agent_streaming_adapter.test.mjs\ndesktop/src/actions/agent/agent_transcript.test.mjs\ndesktop/src/actions/agent/claude_runtime_service.test.mjs\ndesktop/src/actions/agent/claude_usage_diagnostics.test.mjs\ndesktop/src/actions/agent/claude_usage_parsing.test.mjs\ndesktop/src/actions/agent/claude_usage_poller.test.mjs\ndesktop/src/actions/agent/claude_usage_terminal.test.mjs\ndesktop/src/actions/agent/claude_usage_terminal_host.test.mjs\ndesktop/src/actions/agent/codex_cli_update.test.mjs\ndesktop/src/actions/agent/codex_runtime_service.test.mjs\ndesktop/src/actions/agent/codex_usage_poller.test.mjs\ndesktop/src/actions/agent/project_agent_token_usage.test.mjs\ndesktop/src/actions/agent/usage_metrics_service.test.mjs",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-39",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && sed -n '545,575p' desktop/src/actions/agent/agent_runner_state.test.mjs && ls desktop/src/actions/agent/*.test.mjs",
+          "providerItemId": "toolu_01TNFSQsausUDFFttwSbKFvE",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:33:52.131Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io\np='desktop/src/actions/agent/agent_runner_state.test.mjs'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"        expect(run.conversation.usage).toEqual(persistedUsage);\n        expect(run.conversation).not.toHaveProperty('contextWindowUsage');\n        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({\n            contextWindowUsage: firstContextWindowUsage,\"\"\"\nnew=\"\"\"        expect(run.conversation.usage).toEqual(persistedUsage);\n        // Context usage is not turn usage: each sample lands on the conversation right away.\n        expect(run.conversation.contextWindowUsage).toEqual(latestContextWindowUsage);\n        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({\n            contextWindowUsage: firstContextWindowUsage,\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8',newline='').write(s.replace(old,new))\nprint('ok')\nEOF\nls desktop/src/actions/*.test.mjs 2>/dev/null | head -20",
+          "content": "ok\r\ndesktop/src/actions/process_tree.test.mjs",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-40",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && python - <<'EOF'\nimport io\np='desktop/src/actions/agent/agent_runner_state.test.mjs'\ns=io.open(p,encoding='utf-8').read()\nold=\"\"\"        expect(run.conversation.usage).toEqual(persistedUsage);\n        expect(run.conversation).not.toHaveProperty('contextWindowUsage');\n        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({\n            contextWindowUsage: firstContextWindowUsage,\"\"\"\nnew=\"\"\"        expect(run.conversation.usage).toEqual(persistedUsage);\n        // Context usage is not turn usage: each sample lands on the conversation right away.\n        expect(run.conversation.contextWindowUsage).toEqual(latestContextWindowUsage);\n        expect(onEvent).toHaveBeenNthCalledWith(1, expect.objectContaining({\n            contextWindowUsage: firstContextWindowUsage,\"\"\"\nassert old in s\nio.open(p,'w',encoding='utf-8',newline='').write(s.replace(old,new))\nprint('ok')\nEOF\nls desktop/src/actions/*.test.mjs 2>/dev/null | head -20",
+          "providerItemId": "toolu_01T9rThbLn87pviQcsnHxBEZ",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:33:59.154Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && ls */src/**/action_run*.test.* 2>/dev/null; find . -name \"action_run*.test.*\" -not -path \"*/node_modules/*\" | head",
+          "content": "./app/src/components/actions/run/popup/action_run_disabled_message.test.tsx\n./app/src/components/actions/run/state/action_run_binding_store.node.test.ts\n./app/src/components/actions/run/state/action_run_history.test.tsx\n./app/src/components/actions/run/state/action_run_input_store.node.test.ts\n./app/src/components/actions/run/state/action_run_status.grouped.test.tsx\n./app/src/services/actions/action_run_approval_registry.node.test.ts\n./app/src/services/actions/action_run_registry.node.test.ts\n./app/src/services/actions/action_run_settings_service.node.test.ts\n./desktop/src/actions/action/action_run.test.mjs\n./desktop/src/actions/action/action_runner_service.test.mjs",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-41",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && ls */src/**/action_run*.test.* 2>/dev/null; find . -name \"action_run*.test.*\" -not -path \"*/node_modules/*\" | head",
+          "providerItemId": "toolu_01NPVaXFwwHC866ZATYaZ3Jp",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:34:04.618Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"command\":\"npx vitest run desktop/src/actions/agent/agent_streaming_adapter.test.mjs desktop/src/actions/agent/agent_runner_state.test.mjs desktop/src/actions/action/action_run.test.mjs desktop/src/actions/agent/agent_claude_events.test.mjs app/src/services/actions/action_run_registry.node.test.ts 2>&1 | Select-Object -Last 30\",\"description\":\"Run related suites\",\"timeout\":600000}",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-42",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": " RUN  v5.0.1 C:/Users/janbo/Documents/dev/md2_workers/dev3\r\n\r\n\r\n Test Files  5 passed (5)\r\n      Tests  261 passed (261)\r\n   Start at  19:34:10\r\n   Duration  1.32s (tests 48%, import 29%, transform 22%, worker 1%)",
+          "providerItemId": "toolu_015Zq2H9v1b4PTzEoA6H35NW",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:34:11.839Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "{\"command\":\"npm run typecheck 2>&1 | Select-Object -Last 25\",\"description\":\"Typecheck\",\"timeout\":600000}",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-43",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "Exit code 1\nnode.exe : npm error Missing script: \"typecheck\"\r\nAt C:\\Program Files\\nodejs\\npm.ps1:29 char:3\r\n+   & $NODE_EXE $NPM_CLI_JS $args\r\n+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (npm error Missing script: \"typecheck\":String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\nnpm error\r\nnpm error To see a list of scripts, run:\r\nnpm error   npm run\r\nnpm error A complete log of this run can be found in: \r\nC:\\Users\\janbo\\AppData\\Local\\npm-cache\\_logs\\2026-09-22T17_34_15_388Z-debug-0.log",
+          "providerItemId": "toolu_01MSWLyMDrbvnk3N5HTPDj1S",
+          "sequence": 43,
+          "status": "failed",
+          "timestamp": "2026-09-22T17:34:15.548Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && ls */package.json package.json 2>/dev/null && grep -n '\"scripts\"' -A 15 app/package.json 2>/dev/null",
+          "content": "app/package.json\ndesktop/package.json\npackage.json\n6:  \"scripts\": {\n7-    \"dev\": \"vite\",\n8-    \"build\": \"tsc && vite build\",\n9-    \"lint\": \"eslint .\",\n10-    \"lint-fix\": \"eslint . --fix\",\n11-    \"preview\": \"vite preview\",\n12-    \"typecheck\": \"tsc --noEmit\",\n13-    \"test\": \"vitest run\",\n14-    \"test:full\": \"vitest run\",\n15-    \"test:related\": \"vitest related --run\",\n16-    \"test:service\": \"vitest run --project service\",\n17-    \"test:ui\": \"vitest run --project ui\",\n18-    \"test:unit\": \"vitest run --project unit\",\n19-    \"test:watch\": \"vitest\"\n20-  },\n21-  \"devDependencies\": {",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-44",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2_workers/dev3\" && ls */package.json package.json 2>/dev/null && grep -n '\"scripts\"' -A 15 app/package.json 2>/dev/null",
+          "providerItemId": "toolu_01Y5ngbxDinV6iMfjAN5ZVmU",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:34:18.043Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"command\":\"npm --prefix app run typecheck 2>&1 | Select-Object -Last 20\",\"description\":\"Typecheck app\",\"timeout\":600000}",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-45",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.6.1 typecheck\r\n> tsc --noEmit",
+          "providerItemId": "toolu_01WBsq3EaXUWsHXo7hajuy7v",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:34:36.407Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-46",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJt2QznitT4fd2vKwm5q:thinking:0",
+          "sequence": 46,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:34:37.981Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"command\":\"npx eslint desktop/src/actions/agent/agent_claude_streaming_adapter.js desktop/src/actions/agent/agent_streaming_event_handlers.js desktop/src/actions/agent/agent_streaming_adapter.test.mjs desktop/src/actions/agent/agent_runner_state.test.mjs 2>&1 | Select-Object -Last 30\",\"description\":\"Lint changed files\",\"timeout\":600000}",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-47",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "node.exe : npm warn exec The following package was not found and will be installed: eslint@10.11.0\r\nAt C:\\Program Files\\nodejs\\npx.ps1:29 char:3\r\n+   & $NODE_EXE $NPX_CLI_JS $args\r\n+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (npm warn exec T... eslint@10.11.0:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError",
+          "providerItemId": "toolu_015Z7a1mLSztvXyEXyMhVZaK",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:34:49.974Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-48",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJt3RJRt1m1iVEnFFvZe:thinking:0",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:34:51.734Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nLint runs out of `app/`, not the root — skipping it; not in the acceptance criteria. Block 4 — status flip.",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-09-22T17:34:52.438Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'EOF'\nimport io\np='design/feature_descriptions/J_51_claude_agent_late_report_of_context_info.md'\ns=io.open(p,encoding='utf-8').read()\nassert 'status: ready for implementation' in s\nio.open(p,'w',encoding='utf-8',newline='').write(s.replace('status: ready for implementation','status: ready',1))\nprint('ok')\nEOF\ngrep -n \"^status:\" \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_51_claude_agent_late_report_of_context_info.md\"",
+          "content": "ok\r\n6:status: ready\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev3",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-event-50",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'EOF'\nimport io\np='design/feature_descriptions/J_51_claude_agent_late_report_of_context_info.md'\ns=io.open(p,encoding='utf-8').read()\nassert 'status: ready for implementation' in s\nio.open(p,'w',encoding='utf-8',newline='').write(s.replace('status: ready for implementation','status: ready',1))\nprint('ok')\nEOF\ngrep -n \"^status:\" \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/J_51_claude_agent_late_report_of_context_info.md\"",
+          "providerItemId": "toolu_01HqDRBEU37JnqgvnSSi6rVj",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:34:56.100Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. All four blocks landed.\n\n**Block 1 — `agent_claude_streaming_adapter.js`**\n- `CLAUDE_LIVE_CONTEXT_USAGE_TIMEOUT_MS = 10_000` added beside the 1 s turn-boundary constant.\n- `this.pendingLiveContextUsage` added to the constructor; ids still come from the one `contextUsageRequestSequence`, so live and turn-boundary ids never collide.\n- `requestLiveContextWindowUsage()` is called from `handleAssistantCompletion` right after `recordClaudeAssistantUsage`, and only when `streamKey === null`. It returns early when a live request is already in flight or `turnStarted` is false, and a throwing `writeLine` clears the slot instead of propagating — a lost sample is cosmetic, a throw would end the turn.\n- `handleContextUsageResponse` now routes on request id: the turn-boundary id keeps the old `completeContextUsageRequest` path, the live id clears the slot and emits `{ contextWindowUsage, type: 'usage', usage: accumulatedClaudeUsage(this.messageUsages) }`. A `null` from `claudeContextWindowUsage` emits nothing, so a malformed or error response leaves the ring on its last value rather than blanking it.\n- `handleResult` calls `clearLiveContextUsageRequest()` in the existing reset block, so a response arriving after the turn ended cannot overwrite the final value and the slot cannot leak into the next turn.\n\n**Block 2 — `agent_streaming_event_handlers.js`**\n`handleUsage` now applies `event.contextWindowUsage` to `run.conversation` with the same three-way rule `handleTurnCompleted` uses (truthy assigns, `null` deletes, `undefined` leaves alone). Token accumulation is untouched: the turn figure stays provisional in `run.liveTurnUsage` and `handleTurnCompleted` still commits Claude's `result` usage exactly once.\n\n**Block 3 — tests**\n- `agent_streaming_adapter.test.mjs`: added a `claudeRootAssistant` helper and six cases — live sample on a completed root message carrying the accumulated usage (including a message that finished while the request was in flight), single-flight suppression of a second request, a fresh request after the 10 s expiry, no request for a sub-agent message, nothing emitted for a malformed or error-subtype response, and a late live response discarded while `turnCompleted` still waits on its own response. Three existing cases needed their `writes` assertions updated because a root assistant message now precedes the turn-boundary request.\n- `agent_runner_state.test.mjs`: two existing cases asserted `run.conversation` had *no* `contextWindowUsage` after a `usage` event — that inverts under Block 2, so both now assert the sample lands while committed usage stays untouched. Added a case covering both the assign and the `null`-deletes branch.\n\n**Block 4 — verification**\n`npm --prefix app run typecheck` passes (no root `typecheck` script; it lives in `app/package.json`). Related suites pass: `agent_streaming_adapter`, `agent_runner_state`, `action_run`, `agent_claude_events`, `action_run_registry.node` — 261 tests, 0 failures. Status in `C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\J_51_claude_agent_late_report_of_context_info.md` set to `ready`.\n\nCodex path and renderer untouched — `ConversationMetaInfo` / `ConversationContextUsage` already read the `usage` run event, which is the channel the new samples travel on.\n\nOne thing the code cannot prove, as the spec itself flags: whether Claude actually answers `get_context_usage` promptly while a turn is busy. If it does not, the 10 s timeout releases the slot and the ring simply keeps its old value — same behaviour as today, no regression.",
+          "id": "agent-turn-9784fad2-7e1f-4ef6-8074-66bea72240fa-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 51,
+          "timestamp": "2026-09-22T17:35:10.926Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1072,26 +1458,26 @@
         }
       ],
       "startedAt": "2026-09-21T18:21:47.148Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 11971,
-          "toolMs": 14504
+          "reasoningMs": 17970,
+          "toolMs": 153195
         },
         "elapsedMs": 56108,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-22T17:32:06.335Z"
       },
       "title": "implement",
       "usage": {
-        "cachedInputTokens": 507277,
-        "inputTokens": 22,
-        "outputTokens": 4362,
+        "cachedInputTokens": 1970469,
+        "inputTokens": 62,
+        "outputTokens": 15483,
         "reasoningTokens": 0,
-        "totalTokens": 511661,
-        "costUsd": 0.7758965
+        "totalTokens": 1986014,
+        "costUsd": 2.4035025
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1166,11 +1552,11 @@
         "agent-cc264791-3c12-431b-897a-f531be985f3a"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-4b5b966b-c641-4e4d-8591-7bf4a629f642",
       "origin": {
@@ -1179,9 +1565,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-cc264791-3c12-431b-897a-f531be985f3a",
       "startedAt": "2026-09-21T18:21:47.146Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-cc264791-3c12-431b-897a-f531be985f3a"
     }
   ],
   "version": 5
