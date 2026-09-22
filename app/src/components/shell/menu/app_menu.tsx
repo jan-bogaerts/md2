@@ -509,7 +509,6 @@ export function AppMenu(props: AppMenuProps) {
                             <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                             {viewSection}
                             <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
-                            <Button disabled={!project || readOnly} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
                             <NewDiagramMenu
                                 disabled={!actions.isProjectOpen || readOnly || isCreatingDiagram}
                                 onCreateDiagram={handleCreateDiagram}
@@ -524,6 +523,7 @@ export function AppMenu(props: AppMenuProps) {
                             >
                                 New card
                             </Button>
+                            <Button disabled={!project || readOnly} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
                             <Box sx={{ flex: 1 }} />
                             <Section label="Account">
                                 <GithubAuthToolbarButton auth={auth} />
