@@ -10,7 +10,6 @@ agents:
   - design/activity/card__530bdc1a-985f-434a-bfe7-acb2f7ca06b8.json
 policy:
 ---
-
 we already have a number of different diagrams that we support. 1 more should be added: mindmaps.
 
 These should support:
@@ -28,11 +27,11 @@ Diagram JSON supports `architecture`, `dependency`, `sequence`, `flow` and `enti
 
 Edit mode uses the same canonical `DiagramData`. `diagramCreationTools` exposes type-specific node and edge tools; placement, drawing, mutation validation and `DiagramGeometryService` update only affected objects. Current connection points describe rectangle sides, edge previews and persisted waypoints are orthogonal, and node resize permits different width and height. Those rules do not produce circular nodes or curved connections.
 
-Empty-diagram creation already derives its menu from `EMPTY_DIAGRAM_CHOICES`, but Mindmap is not present. [F_369](F_369_allow_users_to_add_new_empty_diagrams.md) depends on this feature and expects Mindmap as a creation choice.
+Empty-diagram creation already derives its menu from `EMPTY_DIAGRAM_CHOICES`, but Mindmap is not present. [F\_369](F_369_allow_users_to_add_new_empty_diagrams.md) depends on this feature and expects Mindmap as a creation choice.
 
 ## implementation details
 
-* Add `mindmap` to `DIAGRAM_TYPES` and the TypeScript declaration. Add node kinds `root` and `topic`; mindmaps allow only those kinds and `connection` edges. A non-empty mindmap must contain exactly one explicit `root`; an empty mindmap remains valid for F_369. Labels remain required on nodes and optional on connections. Groups remain supported. Entity fields, cardinalities, flow presets, sequence fragments, persisted waypoints and rectangle-side connection points are invalid on mindmaps.
+* Add `mindmap` to `DIAGRAM_TYPES` and the TypeScript declaration. Add node kinds `root` and `topic`; mindmaps allow only those kinds and `connection` edges. A non-empty mindmap must contain exactly one explicit `root`; an empty mindmap remains valid for F\_369. Labels remain required on nodes and optional on connections. Groups remain supported. Entity fields, cardinalities, flow presets, sequence fragments, persisted waypoints and rectangle-side connection points are invalid on mindmaps.
 * Define **radial layout** as concentric rings around the root. Put the root at the surface centre. Assign connected topics to rings by shortest undirected connection distance from the root, order peers deterministically by node-array order, and place disconnected topics on deterministic outer rings. Persisted node positions remain authoritative. This rule keeps a topic valid while a user places it before drawing its connection.
 * Give root and topic nodes equal width and height and render their text inside a circle. Named root/topic diameter constants provide missing sizes. Mindmap geometry validation requires supplied width and height together and requires them to be equal. Resize keeps the aspect ratio locked and writes both fields in one mutation.
 * Add mindmap edge geometry separate from orthogonal graph routing. Resolve endpoints where the centre-to-centre line meets each circle and derive one quadratic Bézier control point per connection. **Curved connection** means the rendered SVG path uses that control point; curve data is derived and never persisted. Place an optional label at the curve midpoint with the existing themed background.
@@ -50,6 +49,6 @@ Empty-diagram creation already derives its menu from `EMPTY_DIAGRAM_CHOICES`, bu
 * Every mindmap node renders as a circle containing its text. Persisted dimensions are equal, and resizing keeps width and height equal.
 * Every mindmap connection renders as a curved, marker-free line between circle boundaries. Optional connection text renders at the curve midpoint. Connections remain below nodes, so nodes cover crossing line segments.
 * Edit mode offers Root, Topic and Connection tools with a curved connection preview. It prevents a second root and prevents root deletion while topics remain. Existing selection, move, copy, paste, formatting, grouping, drill-down, review and save-copy flows work for mindmaps.
-* Creating a new empty Mindmap through desktop or mobile creation UI writes valid JSON, activates it and starts edit mode under the existing F_369 flow.
+* Creating a new empty Mindmap through desktop or mobile creation UI writes valid JSON, activates it and starts edit mode under the existing F\_369 flow.
 * Existing architecture, dependency, sequence, flow and entity parsing, layout, rendering and editing behavior remains unchanged.
 * Focused diagram tests, app type checking and `npm run lint` pass.
