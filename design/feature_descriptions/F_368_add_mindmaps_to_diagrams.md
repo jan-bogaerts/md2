@@ -3,7 +3,7 @@ author:
 id: F_368
 internalId: 530bdc1a-985f-434a-bfe7-acb2f7ca06b8
 title: add mindmaps to diagrams
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,48 @@ policy:
 branch: f_368_add_mindmaps_to_diagrams
 worktree: 1
 after: 96236df6-2c3a-4846-9d52-f29b7ee9041d
+changedFiles:
+  - app/src/components/diagram_view/current_diagram_edge.tsx
+  - app/src/components/diagram_view/current_diagram_node.tsx
+  - app/src/components/diagram_view/diagram.tsx
+  - app/src/components/diagram_view/diagram_add_control.tsx
+  - app/src/components/diagram_view/diagram_creation_tool_sample.tsx
+  - app/src/components/diagram_view/diagram_creation_tools.test.ts
+  - app/src/components/diagram_view/diagram_creation_tools.ts
+  - app/src/components/diagram_view/diagram_edge.tsx
+  - app/src/components/diagram_view/diagram_edge_drawing_preview.test.tsx
+  - app/src/components/diagram_view/diagram_edge_drawing_preview.tsx
+  - app/src/components/diagram_view/diagram_node.test.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_node_placement_preview.tsx
+  - app/src/components/diagram_view/diagram_path.node.test.ts
+  - app/src/components/diagram_view/diagram_path.ts
+  - app/src/components/diagram_view/diagram_renderer.test.tsx
+  - app/src/components/diagram_view/diagram_renderer.tsx
+  - app/src/components/diagram_view/editable_diagram_edge.tsx
+  - app/src/components/diagram_view/editable_diagram_leaves.test.tsx
+  - app/src/components/diagram_view/editable_diagram_node.tsx
+  - app/src/components/diagram_view/mindmap_diagram.tsx
+  - app/src/components/diagram_view/use_diagram_geometry.ts
+  - app/src/components/shell/menu/new_diagram_menu.test.tsx
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.test.ts
+  - app/src/services/diagrams/diagram_fragment_clipboard.ts
+  - app/src/services/diagrams/diagram_geometry_service.test.ts
+  - app/src/services/diagrams/diagram_geometry_service.ts
+  - app/src/services/diagrams/diagram_layout.node.test.ts
+  - app/src/services/diagrams/diagram_layout.ts
+  - app/src/services/diagrams/diagram_resize_service.test.ts
+  - app/src/services/diagrams/diagram_resize_service.ts
+  - app/src/services/diagrams/empty_diagram_factory.ts
+  - design/architecture/editable_diagram_contract.md
+  - shared/diagram_data.d.mts
+  - shared/diagram_data.mjs
+  - shared/project_config_defaults.mjs
 ---
 we already have a number of different diagrams that we support. 1 more should be added: mindmaps.
 
