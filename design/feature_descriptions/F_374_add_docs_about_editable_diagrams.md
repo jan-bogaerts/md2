@@ -9,6 +9,6 @@ affects:
 agents:
 policy:
 ---
-We just added dupport for edirable duagrams. See&#x20;
+We just added support for edirable duagrams and extended it with adding new diagrams from scratch. We need to document these features: add new and edut rebdered duagrams.
 
 Include short section on main readme, with screenshot from mindmap edit.
