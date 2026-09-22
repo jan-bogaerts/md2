@@ -21,6 +21,10 @@
       "cardInternalId": "7a30a632-0da6-49e7-9948-f57f7d08f01c",
       "cardPath": "design/feature_descriptions/F_361_on_mobile_dont_show_project_name_next_to_menu.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 56777
+      },
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_361_on_mobile_dont_show_project_name_next_to_menu.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\nDo not stage or commit changes. You have no need for get at this time.",
@@ -29,6 +33,381 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-09-22T17:51:29.696Z"
+        },
+        {
+          "agent": "claude",
+          "content": "I'll read the feature file first.",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-09-22T17:51:37.668Z"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_361_on_mobile_dont_show_project_name_next_to_menu.md\"",
+          "content": "---\nauthor: \nid: F_361\ninternalId: 7a30a632-0da6-49e7-9948-f57f7d08f01c\ntitle: On mobile dont show project name next to menu\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__7a30a632-0da6-49e7-9948-f57f7d08f01c.json\npolicy:\nafter: cdc16a08-2bb4-4abe-a270-d35616a7ca06\n---\nWhen the react app is in small screen mode, dont show the project folder name in the top bar, next to the menu tabs, but show it in hamburger menu, instead of ´theme´",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-3",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_361_on_mobile_dont_show_project_name_next_to_menu.md\"",
+          "providerItemId": "toolu_012MwGkM5yVPVyicJ4bsq7j4",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:39.437Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJuKqPpwrb4wrRZVtAga:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:51:40.845Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls && cat CLAUDE.md 2>/dev/null | head -60",
+          "content": "LICENSE\nREADME.md\nagents.md\napp\ndesign\ndesktop\ndocs\nmd2.config.json\nnode_modules\npackage-lock.json\npackage.json\nreadonlymarkdown.jpg\nrelease\nscreenshots\nshared\ntemp.jpg\ntofix.jpg",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-5",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls && cat CLAUDE.md 2>/dev/null | head -60",
+          "providerItemId": "toolu_011V64Brv9fQ6mzKzEDT2C46",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:41.713Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -ril \"hamburger\\|TopBar\\|topbar\" --include=*.tsx --include=*.ts --include=*.jsx --include=*.css -l . | grep -v node_modules | head -40",
+          "content": "./app/src/components/card_view/mobile_card_view_menu.tsx\n./app/src/components/shell/main_window.test.tsx\n./app/src/components/shell/menu/main_toolbar.grouped.test.tsx\n./app/src/components/shell/menu/mobile_menu_button.tsx\n./app/src/data/emojis.ts\n./app/src/services/project/mobile_card_view_service.ts",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-6",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -ril \"hamburger\\|TopBar\\|topbar\" --include=*.tsx --include=*.ts --include=*.jsx --include=*.css -l . | grep -v node_modules | head -40",
+          "providerItemId": "toolu_018oKUf3GVixcdiJn3FrQkAD",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:48.113Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls app/src/components/shell app/src/components/shell/menu",
+          "content": "app/src/components/shell:\nclaude_rate_limit_details.tsx\nclaude_rate_limit_status.grouped.test.tsx\nclaude_rate_limit_status.tsx\nclaude_rate_limit_status_data.ts\ncodex_rate_limit_details.tsx\ncodex_rate_limit_status.grouped.test.tsx\ncodex_rate_limit_status.tsx\ncodex_rate_limit_status_data.ts\ndrag_region.ts\ngithub_auth_toolbar_button.grouped.test.tsx\ngithub_auth_toolbar_button.tsx\nkeyboard_status.grouped.test.tsx\nkeyboard_status.tsx\nmain_window.test.tsx\nmain_window.tsx\nmenu\nmobile_layout.grouped.test.tsx\nmobile_layout.tsx\nmobile_main_window.grouped.test.tsx\nmobile_main_window.tsx\nmobile_project_status.tsx\nmobile_status_row.tsx\npinned_conversation_details_row.tsx\npinned_conversations_details.tsx\npinned_conversations_indicator.test.tsx\npinned_conversations_indicator.tsx\nproject\nproject_agent_usage_details.tsx\nproject_agent_usage_summary.test.tsx\nproject_agent_usage_summary.tsx\nproject_card_count_summary.test.tsx\nproject_card_count_summary.tsx\nproject_sync_status.test.tsx\nproject_sync_status.tsx\nproject_toolbar_menu.tsx\nremarkable_import_toolbar_button.grouped.test.tsx\nremarkable_import_toolbar_button.tsx\nremote_connect_button.grouped.test.tsx\nremote_connect_button.tsx\nremote_connect_dialog.tsx\nremote_control_button.grouped.test.tsx\nremote_control_button.tsx\nremote_control_connection_info.grouped.test.tsx\nremote_control_connection_info.tsx\nremote_control_status_indicator.grouped.test.tsx\nremote_control_status_indicator.tsx\nrunning_agent_details_row.tsx\nrunning_agents_details.tsx\nrunning_agents_indicator.test.tsx\nrunning_agents_indicator.tsx\nsearch\nshell_connections_no_mock.test.tsx\nshell_controls_no_mock.test.tsx\nsplit_layout.grouped.test.tsx\nsplit_layout.tsx\nstartup_splash.tsx\nstatus_bar.grouped.test.tsx\nstatus_bar.tsx\nstatus_details_surface.tsx\ntheme_controls.tsx\ntheme_settings_dialog.grouped.test.tsx\ntheme_settings_dialog.tsx\ntheme_toggle_button.grouped.test.tsx\ntheme_toggle_button.tsx\nupdate_notification.grouped.test.tsx\nupdate_notification.tsx\nuse_remote_control_status.ts\n\napp/src/components/shell/menu:\napp_menu.test.tsx\napp_menu.tsx\nbranch_menu_select.tsx\nmain_toolbar.grouped.test.tsx\nmain_toolbar.tsx\nmenu.grouped.test.tsx\nmenu.tsx\nmenu_components_no_mock.test.tsx\nmenu_icon_button.tsx\nmenu_select.grouped.test.tsx\nmenu_select.tsx\nmobile_create_menu.test.tsx\nmobile_create_menu.tsx\nmobile_menu_button.test.tsx\nmobile_menu_button.tsx\nnew_diagram_menu.test.tsx\nnew_diagram_menu.tsx\nproject_name.node.test.ts\nproject_name.ts\nproject_name_label.grouped.test.tsx\nproject_name_label.tsx\nsection.grouped.test.tsx\nsection.tsx\ntab.grouped.test.tsx\ntab.tsx\ntheme_mode_toggle.tsx",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-7",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls app/src/components/shell app/src/components/shell/menu",
+          "providerItemId": "toolu_011GgwLAvVBNypSrUfymNg7y",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:49.713Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"theme\" app/src/components/shell/menu/mobile_menu_button.tsx | head -20; echo ---; wc -l app/src/components/shell/menu/mobile_menu_button.tsx",
+          "content": "---\n49 app/src/components/shell/menu/mobile_menu_button.tsx",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-8",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"theme\" app/src/components/shell/menu/mobile_menu_button.tsx | head -20; echo ---; wc -l app/src/components/shell/menu/mobile_menu_button.tsx",
+          "providerItemId": "toolu_01PSTKPBbfPuGfywgiRQYe3F",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:50.769Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/menu/mobile_menu_button.tsx; echo ===PNL; cat app/src/components/shell/menu/project_name_label.tsx; echo ===PN; cat app/src/components/shell/menu/project_name.ts",
+          "content": "import WarningAmberOutlined from '@mui/icons-material/WarningAmberOutlined'\nimport { Badge, IconButton, Tooltip } from '@mui/material'\nimport Menu from 'mdi-material-ui/Menu'\nimport { useCodexRateLimits } from '../../hooks/use_codex_rate_limits'\nimport { useProjectPersistence } from '../../hooks/use_project_persistence'\nimport { useProjectSession } from '../../hooks/use_project_session'\nimport { codexRateLimitPresentation } from '../codex_rate_limit_status_data'\nimport { NO_DRAG_REGION } from '../drag_region'\nimport { useRemoteControlStatus } from '../use_remote_control_status'\n\ninterface MobileMenuButtonProps {\n    onOpenMenu: () => void\n}\n\n/** Mobile hamburger button with live attention state isolated from toolbar rendering. */\nexport function MobileMenuButton({ onOpenMenu }: MobileMenuButtonProps) {\n    const { hasPendingPush, hasPendingSave, localSaveState } = useProjectPersistence()\n    const { isPushing } = useProjectSession()\n    const codexPresentation = codexRateLimitPresentation(useCodexRateLimits())\n    const { status: remoteControlStatus } = useRemoteControlStatus()\n    const needsAttention = hasPendingSave\n        || localSaveState !== 'saved'\n        || hasPendingPush\n        || isPushing\n        || !!codexPresentation?.nearLimit\n        || !!codexPresentation?.reached\n        || remoteControlStatus.active\n\n    return (\n        <Tooltip title=\"Open menu\">\n            <IconButton aria-label=\"Open menu\" edge=\"start\" onClick={onOpenMenu} style={NO_DRAG_REGION} sx={{ mr: 1 }}>\n                <Badge\n                    badgeContent={needsAttention ? (\n                        <WarningAmberOutlined\n                            aria-hidden=\"true\"\n                            data-testid=\"mobile-menu-attention\"\n                            sx={{ fontSize: 12 }}\n                        />\n                    ) : null}\n                    color=\"warning\"\n                    overlap=\"circular\"\n                    sx={{ '& .MuiBadge-badge': { height: 16, minWidth: 16, p: 0 } }}\n                >\n                    <Menu />\n                </Badge>\n            </IconButton>\n        </Tooltip>\n    )\n}\n===PNL\nimport { Typography } from '@mui/material'\nimport { useProjectState } from '../../hooks/use_project_state'\nimport { dataService, type DataService } from '../../../services/data/data_service'\nimport { projectName } from './project_name'\n\ninterface ProjectNameLabelProps {\n    service?: DataService\n}\n\n/** Displays the active project name and updates when the project state changes. */\nexport function ProjectNameLabel({ service = dataService }: ProjectNameLabelProps) {\n    const { project } = useProjectState(service)\n    if (!project) return null\n\n    return (\n        <Typography\n            color=\"text.secondary\"\n            data-testid=\"project-name-label\"\n            noWrap\n            sx={{ fontWeight: 600, minWidth: 0 }}\n            variant=\"body2\"\n        >\n            {projectName(project)}\n        </Typography>\n    )\n}\n===PN\nimport type { ProjectReference } from '../../../data/data_types'\n\n/** Returns the user-facing project name without exposing its full location. */\nexport function projectName(project: ProjectReference): string {\n    if (project.owner !== undefined || project.repository !== undefined) {\n        if (!project.repository) throw new Error('Cannot derive GitHub project name without repository')\n\n        return project.repository\n    }\n    if (!project.rootPath) throw new Error('Cannot derive local or remote project name without rootPath')\n\n    const normalizedRootPath = project.rootPath.replace(/[\\\\/]+$/gu, '')\n    const name = normalizedRootPath.split(/[\\\\/]/gu).at(-1)\n    if (!name) throw new Error('Cannot derive project name from rootPath')\n\n    return name\n}",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-9",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/menu/mobile_menu_button.tsx; echo ===PNL; cat app/src/components/shell/menu/project_name_label.tsx; echo ===PN; cat app/src/components/shell/menu/project_name.ts",
+          "providerItemId": "toolu_016AWHRzdToUd8gPJqGBnnts",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:53.161Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/menu/main_toolbar.tsx",
+          "content": "import { AppBar, Box, Toolbar } from '@mui/material'\nimport type { ReactNode } from 'react'\nimport { DRAG_REGION, NO_DRAG_REGION } from '../drag_region'\nimport { ThemeToggleButton } from '../theme_toggle_button'\nimport { isElectron } from '../../../services/electron_lifecycle_bridge'\nimport { ProjectNameLabel } from './project_name_label'\nimport { MobileMenuButton } from './mobile_menu_button'\n\nconst MENU_ROW_HEIGHT = 44\nconst SEARCH_WIDTH = 286\nconst PROJECT_NAME_MAX_WIDTH = 240\nconst APPLICATION_ICON_SOURCE = `${import.meta.env.BASE_URL}favicon.svg`\n\ninterface MainToolbarProps {\n    isMobile: boolean\n    mobileAction: ReactNode\n    onOpenMenu: () => void\n    panel: ReactNode\n    search: ReactNode\n    tabs: ReactNode\n}\n\n/**\n * Top application toolbar; hosts menu tabs, search, and the desktop drag region.\n * Interactive controls opt out of dragging so the remaining row space can move the window.\n */\nexport function MainToolbar(props: MainToolbarProps) {\n    const { isMobile, mobileAction, onOpenMenu, panel, search, tabs } = props\n\n    return (\n        <AppBar\n            color=\"default\"\n            elevation={0}\n            position=\"static\"\n            sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}\n        >\n            <Toolbar\n                disableGutters\n                style={DRAG_REGION}\n                sx={{ gap: 0.5, height: MENU_ROW_HEIGHT, minHeight: `${MENU_ROW_HEIGHT}px !important`, px: 1.5 }}\n                variant=\"dense\"\n            >\n                {isMobile ? (\n                    <MobileMenuButton onOpenMenu={onOpenMenu} />\n                ) : null}\n                <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 0 }}>\n                    <Box\n                        alt=\"MD² application icon\"\n                        component=\"img\"\n                        src={APPLICATION_ICON_SOURCE}\n                        sx={{\n                            height: 24,\n                            width: 24,\n                        }}\n                    />\n                </Box>\n                <Box style={NO_DRAG_REGION} sx={{ alignSelf: 'stretch', display: 'flex', flexShrink: 0 }}>\n                    {tabs}\n                </Box>\n                <Box\n                    data-testid=\"project-name-region\"\n                    sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center', minWidth: 16, overflow: 'hidden' }}\n                >\n                    <Box sx={{ maxWidth: PROJECT_NAME_MAX_WIDTH, minWidth: 0 }}>\n                        <ProjectNameLabel />\n                    </Box>\n                </Box>\n                {isMobile ? (\n                    <Box style={NO_DRAG_REGION}>\n                        {mobileAction}\n                    </Box>\n                ) : null}\n                {isMobile ? (\n                    <Box style={NO_DRAG_REGION}>\n                        {search}\n                    </Box>\n                ) : (\n                    <Box style={NO_DRAG_REGION}>\n                        <ThemeToggleButton />\n                    </Box>\n                )}\n                {!isMobile ? (\n                    <Box\n                        style={NO_DRAG_REGION}\n                        sx={{ display: 'flex', flex: `0 0 ${SEARCH_WIDTH}px`, ml: 0.5, minWidth: 180, mr: isElectron() ? '130px' : 0 }}\n                    >\n                        {search}\n                    </Box>\n                ) : null}\n            </Toolbar>\n            <Box style={NO_DRAG_REGION}>\n                {panel}\n            </Box>\n        </AppBar>\n    )\n}",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-10",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/menu/main_toolbar.tsx",
+          "providerItemId": "toolu_019kz7WcPxHnM3R2gzebXkWa",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:53.542Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJuLsf34RBPvSVDLhpgi:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:51:55.087Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n 1,200p app/src/components/shell/menu/app_menu.tsx",
+          "content": "import { Box, Button, Divider, MenuItem, Tab as MuiTab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'\nimport type { SelectChangeEvent } from '@mui/material'\nimport type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode, SyntheticEvent } from 'react'\nimport { useCallback, useEffect, useState } from 'react'\nimport CardsOutline from 'mdi-material-ui/CardsOutline'\nimport BugOutline from 'mdi-material-ui/BugOutline'\nimport CheckCircleOutline from 'mdi-material-ui/CheckCircleOutline'\nimport CloudArrowDownOutline from 'mdi-material-ui/CloudArrowDownOutline'\nimport CloudArrowUpOutline from 'mdi-material-ui/CloudArrowUpOutline'\nimport Cog from 'mdi-material-ui/Cog'\nimport ContentSaveOutline from 'mdi-material-ui/ContentSaveOutline'\nimport FileDocumentPlusOutline from 'mdi-material-ui/FileDocumentPlusOutline'\nimport FolderOpen from 'mdi-material-ui/FolderOpen'\nimport TextBoxOutline from 'mdi-material-ui/TextBoxOutline'\nimport BarChartOutlined from '@mui/icons-material/BarChartOutlined'\nimport AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'\nimport ScheduleOutlined from '@mui/icons-material/ScheduleOutlined'\nimport PlaylistAddOutlined from '@mui/icons-material/PlaylistAddOutlined'\nimport {\n    findAgentProfile,\n    mergeAgentProfiles,\n    PERMISSION_MODE_OPTIONS,\n    supportsPermissionMode,\n    supportsThinkingLevel,\n    THINKING_LEVELS,\n    validateAgentSelection,\n    validatePermissionMode,\n    validateThinkingLevel,\n} from '../../../data/agent_profiles'\nimport {\n    projectAgentSelection,\n    selectAgent,\n    selectModel,\n    selectPermissionMode,\n    selectThinkingLevel,\n    type AgentSelectionState,\n} from '../../../data/agent_selection'\nimport { configService } from '../../../services/config/config_service'\nimport { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'\nimport {\n    projectSessionService,\n    type ProjectFolderValues,\n    type ProjectOpenResolution,\n} from '../../../services/project/project_session_service'\nimport { workspaceViewService, type WorkspaceViewMode } from '../../../services/project/workspace_view_service'\nimport { workspaceNavigationService } from '../../../services/project/workspace_navigation_service'\nimport { actionService } from '../../../services/actions/action_service'\nimport { dialogService } from '../../../services/dialog_service'\nimport { diagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'\nimport type { EmptyDiagramChoice } from '../../../services/diagrams/empty_diagram_factory'\nimport { diagramViewService } from '../../../services/diagrams/diagram_view_service'\nimport { sentryImportService } from '../../../services/sentry/sentry_import_service'\nimport { isSentryConfigurationComplete } from '../../../services/sentry/sentry_types'\nimport { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'\nimport { projectContext } from '../../../data/action_context'\nimport type { UseGithubAuthResult } from '../../../auth/use_github_auth'\nimport { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'\nimport { useProjectState } from '../../hooks/use_project_state'\nimport { useProjectPersistence } from '../../hooks/use_project_persistence'\nimport { useProjectConfig } from '../../hooks/use_project_config'\nimport { useProjectReadOnly } from '../../hooks/use_project_read_only'\nimport { useSentryConnection } from '../../hooks/use_sentry_connection'\nimport { useSentryImport } from '../../hooks/use_sentry_import'\nimport { usePrimaryWorktreeStatus } from '../../hooks/use_worktrees'\nimport { useWorkspaceView } from '../../hooks/use_workspace_view'\nimport { ActionEntryPoints } from '../../actions/run/trigger/action_entry_points'\nimport { MainToolbar } from './main_toolbar'\nimport { GithubAuthToolbarButton } from '../github_auth_toolbar_button'\nimport { NO_DRAG_REGION } from '../drag_region'\nimport { BranchSwitchDialog } from '../project/branch_switch_dialog'\nimport { CompleteReleaseDialog } from '../project/complete_release_dial\n[1776 characters omitted]\nlue: 'diagram' }\nconst STATS_MENU_TAB: { label: string; value: AppMenuTab } = { label: 'Stats', value: 'stats' }\n/** View mode each view-scoped tab belongs to; such a tab is offered, and stays selected, only in that view. */\nconst VIEW_SCOPED_TABS: { tab: { label: string; value: AppMenuTab }; viewMode: WorkspaceViewMode }[] = [\n    { tab: DIAGRAM_MENU_TAB, viewMode: 'diagrams' },\n    { tab: STATS_MENU_TAB, viewMode: 'stats' },\n]\n\nfunction scopedTabViewMode(tab: AppMenuTab) {\n    return VIEW_SCOPED_TABS.find((entry) => entry.tab.value === tab)?.viewMode ?? null\n}\nconst PROJECT_CONTEXT = projectContext()\n\nfunction desktopSelectionError(\n    selection: AgentSelectionState,\n    profiles: ReturnType<typeof mergeAgentProfiles>,\n) {\n    try {\n        validateAgentSelection(profiles, projectAgentSelection(selection, profiles), 'desktop agent selection')\n\n        return null\n    } catch (error) {\n        return error instanceof Error ? error.message : 'Invalid desktop agent selection'\n    }\n}\n\nfunction persistDesktopConfig() {\n    if (!configService.hasDesktopConfig()) return\n\n    writeDesktopConfigToBridge(configService.getDesktopValues())\n}\n\n/** Tabbed app menu hosting project, account and agent actions. */\nexport function AppMenu(props: AppMenuProps) {\n    const {\n        accessToken,\n        auth,\n        extraActions,\n        initialProjectOpenResolution,\n        isGithubAuthenticated,\n        isMobile,\n        onOpenConfig,\n        onOpenMobileMenu,\n        search,\n    } = props\n    const { project } = useProjectState()\n    const { hasPendingPush, hasPendingSave } = useProjectPersistence()\n    const primaryWorktreeStatus = usePrimaryWorktreeStatus()\n    const projectConfig = useProjectConfig()\n    const { viewMode } = useWorkspaceView()\n    const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')\n    const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(initialProjectOpenResolution ? 'open' : null)\n    const [isCreatingDiagram, setIsCreatingDiagram] = useState(false)\n    const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))\n    const agentSelection = useConfigValue('desktop.agentSelection')\n    const selectedAgent = agentSelection.activeAgent\n    const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)\n    const selectedModels = selectedProfile?.models ?? []\n    const activeAgentSettings = agentSelection.settingsByAgent[selectedAgent]\n    const hasActiveAgentSettings = !!activeAgentSettings\n    const selectedThinkingLevel = activeAgentSettings?.thinkingLevel ?? 'none'\n    const selectedPermissionMode = agentSelection.permissionMode\n    const desktopAvailable = useHasDesktopConfig()\n    const selectedModel = activeAgentSettings?.model ?? ''\n    const selectionError = hasActiveAgentSettings ? desktopSelectionError(agentSelection, agentProfiles) : null\n    const selectedModelAvailable = selectedModels.includes(selectedModel)\n    const projectBranch = project?.branch ?? ''\n    const readOnly = useProjectReadOnly()\n    const sentryConnection = useSentryConnection()\n    const sentryImport = useSentryImport()\n    const canShowSentryImport = !!project\n        && sentryConnection.isAuthenticated\n        && isSentryConfigurationComplete(sentryConnection.settings)\n    const currentTabViewMode = scopedTabViewMode(currentTab)\n    const isCurrentTabOutOfView = !!currentTabViewMode && currentTabViewMode !== viewMode\n    const visibleCurrentTab = isCurrentTabOutOfView ? 'home' : currentTab\n    const availableMenuTabs = [\n        ...MENU_TABS,\n        ...VIEW_SCOPED_TABS.filter((entry) => entry.viewMode === viewMode).map((entry) => entry.tab),\n    ]\n\n    useEffect(() => {\n        if (!isCurrentTabOutOfView) return\n\n        queueMicrotask(() => setCurrentTab('home'))\n    }, [isCurrentTabOutOfView])\n\n    useEffect(() => {\n        if (!hasActiveAgentSettings) {\n            const error = new Error(`Missing desktop settings for active agent: ${selectedAgent}`)\n            dialogService.error(error, { fallbackMessage: 'Desktop agent settings are invalid' })\n        }",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-12",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n 1,200p app/src/components/shell/menu/app_menu.tsx",
+          "providerItemId": "toolu_019BWUe9SbCTmQHf43TpLtWt",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:56.061Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"MainToolbar\\|ThemeModeToggle\\|AppMenu\" app/src --include=*.tsx -l | grep -v test",
+          "content": "app/src/components/shell/main_window.tsx\napp/src/components/shell/menu/app_menu.tsx\napp/src/components/shell/menu/main_toolbar.tsx\napp/src/components/shell/menu/theme_mode_toggle.tsx\napp/src/components/shell/mobile_main_window.tsx",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-13",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"MainToolbar\\|ThemeModeToggle\\|AppMenu\" app/src --include=*.tsx -l | grep -v test",
+          "providerItemId": "toolu_01QDSN691kJiv1H1dVxNzpKF",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:56.698Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-14",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJuM7A94zUr9h6SfkTx9:thinking:0",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:51:58.054Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/mobile_layout.tsx",
+          "content": "import { Box } from '@mui/material'\nimport type { ReactNode } from 'react'\nimport { useEffect, useRef } from 'react'\nimport { dialogService } from '../../services/dialog_service'\nimport { workspaceViewService } from '../../services/project/workspace_view_service'\n\ninterface MobileLayoutProps {\n    content: ReactNode\n}\n\n/** Mobile body layout: a single panel that is only visible while the text view mode is active. */\nexport function MobileLayout(props: MobileLayoutProps) {\n    const { content } = props\n    const containerRef = useRef<HTMLDivElement>(null)\n    const missingContainerReportedRef = useRef(false)\n\n    useEffect(() => {\n        const updateVisibility = () => {\n            const container = containerRef.current\n            if (!container) {\n                if (!missingContainerReportedRef.current) {\n                    missingContainerReportedRef.current = true\n                    dialogService.error(new Error('Missing mobile layout container'), {fallbackMessage: 'Mobile layout could not be displayed'})\n                }\n                return\n            }\n\n            container.style.display = workspaceViewService.getSnapshot().viewMode === 'text' ? 'flex' : 'none'\n        }\n\n        updateVisibility()\n        workspaceViewService.addEventListener('changed', updateVisibility)\n\n        return () => workspaceViewService.removeEventListener('changed', updateVisibility)\n    }, [])\n\n    return (\n        <Box ref={containerRef} sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'auto' }}>\n            <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto' }}>\n                {content}\n            </Box>\n        </Box>\n    )\n}",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-15",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/mobile_layout.tsx",
+          "providerItemId": "toolu_015CPnk5aT3eumEHNYcpLydq",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:58.963Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/menu/theme_mode_toggle.tsx; echo ===; grep -rn \"ThemeModeToggle\" app/src --include=*.tsx",
+          "content": "import { ToggleButton, Tooltip } from '@mui/material'\nimport WeatherNight from 'mdi-material-ui/WeatherNight'\nimport WeatherSunny from 'mdi-material-ui/WeatherSunny'\nimport { useAppTheme } from '../../../theme/use_app_theme'\n\n/** Toggle button for the global light/dark palette mode. */\nexport function ThemeModeToggle() {\n    const { mode, toggleMode } = useAppTheme()\n    const label = mode === 'light' ? 'Switch to dark theme' : 'Switch to light theme'\n\n    return (\n        <Tooltip title={label}>\n            <ToggleButton aria-label={label} onChange={toggleMode} selected={mode === 'dark'} size=\"small\" value=\"dark-mode\">\n                {mode === 'light' ? <WeatherNight fontSize=\"small\" /> : <WeatherSunny fontSize=\"small\" />}\n            </ToggleButton>\n        </Tooltip>\n    )\n}\n===\napp/src/components/shell/menu/theme_mode_toggle.tsx:7:export function ThemeModeToggle() {\napp/src/components/shell/mobile_main_window.tsx:7:import { ThemeModeToggle } from './menu/theme_mode_toggle'\napp/src/components/shell/mobile_main_window.tsx:62:                        <ThemeModeToggle />",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-16",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/menu/theme_mode_toggle.tsx; echo ===; grep -rn \"ThemeModeToggle\" app/src --include=*.tsx",
+          "providerItemId": "toolu_018uahLbawLhgQXdTu8DwUoD",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:51:59.747Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/mobile_main_window.tsx",
+          "content": "import { Box, Divider, Drawer, Typography } from '@mui/material'\nimport type { ReactNode, RefObject } from 'react'\nimport { useCallback, useEffect, useRef } from 'react'\nimport type { UseGithubAuthResult } from '../../auth/use_github_auth'\nimport { workspaceViewService } from '../../services/project/workspace_view_service'\nimport { GithubAuthToolbarButton } from './github_auth_toolbar_button'\nimport { ThemeModeToggle } from './menu/theme_mode_toggle'\nimport { MobileProjectStatus } from './mobile_project_status'\n\nconst MOBILE_DRAWER_WIDTH = 300\n\ninterface MobileMainWindowProps {\n    auth: UseGithubAuthResult\n    cardNavigation: ReactNode | null\n    isMenuOpen: boolean\n    leftPanel: ReactNode\n    onCloseMenu: () => void\n    rightPanel: ReactNode\n    rightPanelContainerRef: RefObject<HTMLDivElement | null>\n    showNavigationInCards: boolean\n}\n\n/** Mobile window layout with navigation drawer and workspace content. */\nexport function MobileMainWindow(props: MobileMainWindowProps) {\n    const { auth, cardNavigation, isMenuOpen, leftPanel, onCloseMenu } = props\n    const { rightPanel, rightPanelContainerRef, showNavigationInCards } = props\n    const cardNavigationElementRef = useRef<HTMLDivElement>(null)\n    const navigationElementRef = useRef<HTMLDivElement>(null)\n    const updateDrawerVisibility = useCallback(() => {\n        const viewMode = workspaceViewService.getSnapshot().viewMode\n        const isTextView = viewMode === 'text'\n        const isFullWorkspaceView = viewMode === 'diagrams' || viewMode === 'stats'\n        if (navigationElementRef.current) {\n            navigationElementRef.current.style.display = !isFullWorkspaceView && (isTextView || showNavigationInCards) ? 'flex' : 'none'\n        }\n        if (cardNavigationElementRef.current) {\n            cardNavigationElementRef.current.style.display = !isFullWorkspaceView && !isTextView && !showNavigationInCards ? 'block' : 'none'\n        }\n    }, [showNavigationInCards])\n    const handleNavigationElement = useCallback((element: HTMLDivElement | null) => {\n        navigationElementRef.current = element\n        updateDrawerVisibility()\n    }, [updateDrawerVisibility])\n    const handleCardNavigationElement = useCallback((element: HTMLDivElement | null) => {\n        cardNavigationElementRef.current = element\n        updateDrawerVisibility()\n    }, [updateDrawerVisibility])\n\n    useEffect(() => {\n        updateDrawerVisibility()\n        workspaceViewService.addEventListener('changed', updateDrawerVisibility)\n\n        return () => workspaceViewService.removeEventListener('changed', updateDrawerVisibility)\n    }, [updateDrawerVisibility])\n\n    return (\n        <>\n            <Drawer onClose={onCloseMenu} open={isMenuOpen}>\n                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: MOBILE_DRAWER_WIDTH }}>\n                    <Box sx={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', p: 1.5 }}>\n                        <Typography sx={{ fontWeight: 600 }} variant=\"body2\">Theme</Typography>\n                        <ThemeModeToggle />\n                    </Box>\n                    <Box data-testid=\"mobile-navigation-region\" sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>\n                        <Box\n                            data-testid=\"mobile-card-navigation-scroll-region\"\n                            ref={handleCardNavigationElement}\n                            sx={{ height: '100%', overflowX: 'hidden', overflowY: 'auto' }}\n                        >\n                            {cardNavigation}\n                        </Box>\n                        <Box ref={handleNavigationElement} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>\n                            <Divider />\n                            <Box data-testid=\"mobile-navigation-scroll-region\" sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{leftPanel}</Box>\n                        </Box>\n                    </Box>\n                    <Divider />\n                    <MobileProjectStatus />\n                    <Divider />\n                    <Box component=\"footer\" sx={{ display: 'flex', justifyContent: 'flex-end', p: 1.5 }}>\n                        <GithubAuthToolbarButton auth={auth} />\n                    </Box>\n                </Box>\n            </Drawer>\n            <Box ref={rightPanelContainerRef} sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>{rightPanel}</Box>\n        </>\n    )\n}",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-17",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/mobile_main_window.tsx",
+          "providerItemId": "toolu_01U3CFv7CDSXzQdqx2UnayVJ",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:52:01.172Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJuMSMnU6QpZp3U6RpPG:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:52:03.964Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"project-name-label\\|project-name-region\\|ProjectNameLabel\" app/src | grep -v node_modules",
+          "content": "app/src/components/shell/menu/main_toolbar.grouped.test.tsx:78:        const projectNameRegion = screen.getByTestId('project-name-region')\napp/src/components/shell/menu/main_toolbar.tsx:6:import { ProjectNameLabel } from './project_name_label'\napp/src/components/shell/menu/main_toolbar.tsx:61:                    data-testid=\"project-name-region\"\napp/src/components/shell/menu/main_toolbar.tsx:65:                        <ProjectNameLabel />\napp/src/components/shell/menu/project_name_label.grouped.test.tsx:6:import { ProjectNameLabel } from './project_name_label'\napp/src/components/shell/menu/project_name_label.grouped.test.tsx:27:function renderProjectNameLabel(service: TestDataService) {\napp/src/components/shell/menu/project_name_label.grouped.test.tsx:30:            <ProjectNameLabel service={service as unknown as DataService} />\napp/src/components/shell/menu/project_name_label.grouped.test.tsx:35:describe('ProjectNameLabel', () => {\napp/src/components/shell/menu/project_name_label.grouped.test.tsx:40:        const { container } = renderProjectNameLabel(service)\napp/src/components/shell/menu/project_name_label.grouped.test.tsx:48:        renderProjectNameLabel(service)\napp/src/components/shell/menu/project_name_label.grouped.test.tsx:70:        renderProjectNameLabel(service)\napp/src/components/shell/menu/project_name_label.grouped.test.tsx:72:        expect(screen.getByTestId('project-name-label')).toHaveStyle({\napp/src/components/shell/menu/project_name_label.tsx:6:interface ProjectNameLabelProps {\napp/src/components/shell/menu/project_name_label.tsx:11:export function ProjectNameLabel({ service = dataService }: ProjectNameLabelProps) {\napp/src/components/shell/menu/project_name_label.tsx:18:            data-testid=\"project-name-label\"",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-19",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && grep -rn \"project-name-label\\|project-name-region\\|ProjectNameLabel\" app/src | grep -v node_modules",
+          "providerItemId": "toolu_01U63u2WJ2UXMoYKvJFxnqXh",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:52:04.880Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls design/feature_descriptions | tail -20",
+          "content": "F_357_add_card_sequence_dialog.md\nF_359_stats_on_small_screen.md\nF_360_move_stats_toolbar_to_main_app_bar.md\nF_361_on_mobile_dont_show_project_name_next_to_menu.md\nF_362_schedule_action_as_popup.md\nF_363_format_time_values_on_stats.md\nF_364_animate_and_show_state_on_diagram_fab.md\nF_365_diagram_toolbar_improvements.md\nF_366_add_support_for_agent_specific_instructions_on_actions_and_global.md\nF_367_add_support_for_jest.md\nF_368_add_mindmaps_to_diagrams.md\nF_369_allow_users_to_add_new_empty_diagrams.md\nF_370_config_dialog_project_tab_improvements.md\nF_371_remove_react_app_tab_from_config_dialog.md\nF_372_improve_legend_config_editor.md\nF_94_no_prefill_prompt_running_conv.md.bak\nJ_28_finishing_action_very_slow.md\nJ_42_run_history_command_actions_order.md\nJ_50_markdown_toolbar_attach_files_pos.md\nJ_51_claude_agent_late_report_of_context_info.md",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-20",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && ls design/feature_descriptions | tail -20",
+          "providerItemId": "toolu_01Rbx1m6dDnEH8cAZQkRjxKx",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:52:05.270Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJuMjpXVbingDyk81Fmt:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:52:06.553Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat design/feature_descriptions/F_360_move_stats_toolbar_to_main_app_bar.md",
+          "content": "---\nauthor: \nid: F_360\ninternalId: 515b2369-553d-4556-b99c-e01eb575777d\ntitle: Move stats toolbar to main app bar\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__515b2369-553d-4556-b99c-e01eb575777d.json\npolicy:\nchangedFiles:\n  - app/patch_stats_content_test.py\n  - app/src/components/shell/menu/app_menu.test.tsx\n  - app/src/components/shell/menu/menu_select.tsx\n  - app/src/components/stats_view/stats_menu_tab.test.tsx\n  - app/src/components/stats_view/stats_menu_tab.tsx\n---\n\nSimilar like we did for diagrams, move the toolbar we show at the top of the stats page, to the main menu app bar. Only show the tab when in stats view.\n\n## Current state\n\n`StatsView` renders the stats surface whenever the workspace view mode is `stats`, and opens `projectStatsService` through an effect so repository reads start only when stats becomes visible. `StatsContent` is the single subscriber of that service through `useSyncExternalStore`; it returns early with a spinner while `snapshot.status` is `loading` and with an alert while it is `error`.\n\nOn success `StatsContent` renders, inside the stats page body: a `Project stats` heading, the `StatsControls` toolbar, warning lines, omitted-timer and excluded-sample notes, the usage-comparison disclaimer, and the chart panel. `StatsControls` is a wrapping flex row holding a caption (`Typography variant=\"caption\"`) stacked above each control. Controls are: Dataset; the dataset-specific controls for `activityOverTime` (Metric, Granularity), `agentPerformance` (Metric, Aggregation, Grouping, Granularity, Actions, plus Agents or Models), `usageComparison` (Granularity) and `totals` (Grouping, Metric); then Releases, Token numbers, From (local time), To (local time), and an `Export CSV` button disabled when `snapshot.rows` is empty. Every change routes through the module-level `setStatsControls` helper, which calls `projectStatsService.setControls` and reports failures to `dialogService`.\n\nThe diagram precedent already exists. `AppMenu` declares `type AppMenuTab = 'home' | 'agents' | 'diagram'`, keeps `MENU_TABS` for the always-present tabs, appends `DIAGRAM_MENU_TAB` to `availableMenuTabs` only while `viewMode === 'diagrams'`, derives `visibleCurrentTab` so a hidden tab renders as `home`, and runs an effect that resets `currentTab` to `home` (through `queueMicrotask`) once the diagram view is left. Its panel renders `<DiagramMenuTab />` inside a `role=\"tabpanel\"` box that is mounted only in diagram view. `DiagramMenuTab` is the subscriber boundary: it reads its own service snapshot with `useSyncExternalStore` and lays content out as `Tab` > `Section` groups separated by vertical dividers, using `MenuSelect` and `MenuIconButton`, which carry their label as tooltip plus `aria-label`. `Menu` and `Tab` fix the panel row at 52px with horizontal overflow scrolling, so there is no room for captions stacked above a control.\n\n## implementation details\n\n* Add a `StatsMenuTab` component in `app/src/components/stats_view/stats_menu_tab.tsx`. It subscribes to `projectStatsService` with `useSyncExternalStore` exactly as `StatsContent` does, so the app bar rerenders on control changes without `StatsContent` republishing anything. It accepts the service as an optional prop for tests, mirroring `DiagramMenuTab`.\n* Move the control definitions out of `StatsControls` into `StatsMenuTab`. Keep the existing module-level change handlers and the `setStatsControls` wrapper (service call plus `dialogService.error` fallback) as they are; only presentation moves. Delete `stats_controls.tsx` once nothing references it, and remove the `<StatsControls snapshot={snapshot} />` line from `StatsContent`.\n* Lay the tab out as `Tab` > `Section` groups separated by `Divider flexItem orientation=\"vertical\"`: `Dataset` (dataset select), `View` (the dataset-specific selects, which stay conditional on `controls.dataset` exactly as today), `Filters` (Releases, Token numbers, date range button), `Export` (Export CSV). Drop every per-control `Typography variant=\"caption\"` label.\n* Replace each `Select` with `MenuSe\n[1054 characters omitted]\n state in the control; range values stay owned by `projectStatsService`.\n* Render `Export CSV` as a `MenuIconButton` labelled `Export CSV` (`FileDownloadOutlined`), disabled when `snapshot.rows` is empty, calling the existing `exportStats(controls.dataset, rows)`.\n* Disable every stats control while `snapshot.status` is `loading` or `error`. `StatsMenuTab` must not early-return a spinner or an alert the way `StatsContent` does, because the app bar row has to keep its height and the tab must stay selectable; it also must not report errors, since `StatsContent` already owns error and warning reporting and duplicating it would raise two dialogs per failure.\n* In `app_menu.tsx`, extend `AppMenuTab` with `'stats'`, add `const STATS_MENU_TAB = { label: 'Stats', value: 'stats' }`, and build `availableMenuTabs` so the diagram tab is appended in `diagrams` view and the stats tab in `stats` view. Generalise `visibleCurrentTab` and the reset effect from the diagram-only check to any view-scoped tab, so selecting Stats and then switching to Board falls back to `home`.\n* Render `{viewMode === 'stats' ? <Box role=\"tabpanel\" ...><StatsMenuTab /></Box> : null}` next to the existing diagram tabpanel, keeping the mount-only-when-visible pattern so the stats service gains no subscriber outside stats view.\n* Keep `StatsContent`'s `Project stats` heading, warning lines, omitted-timer and excluded-sample notes, usage-comparison disclaimer, and chart panel unchanged.\n* Tests: move the control assertions from `stats_content.test.tsx` into a new `stats_menu_tab.test.tsx` (dataset switching, conditional control sets per dataset, release and token-format changes, date range popover open/change/close/reopen, Export CSV disabled on empty rows, controls disabled while loading or errored). Keep `stats_content.test.tsx` covering loading, error, notes and chart states, with the control queries removed. Extend `app_menu.test.tsx` with the stats-tab visibility and `home` fallback case, mirroring the existing diagram-tab test. Verify with `npm run typecheck` and the vitest suites.\n\n## acceptance criteria\n\n* In stats view the app menu shows a `Stats` tab next to `Home` and `Run`. In board, list and diagram views that tab is absent.\n* Selecting the `Stats` tab and then leaving stats view selects `Home`; returning to stats view shows the `Stats` tab again, unselected, with control values unchanged.\n* The `Stats` tab panel holds all stats controls, grouped as Dataset, View, Filters and Export sections with vertical dividers, in one 52px row that scrolls horizontally when it overflows.\n* No control in the app bar shows a stacked caption; each exposes its former caption text as tooltip and accessible name, and existing accessible names are unchanged.\n* Dataset-specific controls appear and disappear with the selected dataset exactly as before: Metric plus Granularity for activity over time; Metric, Aggregation, Grouping, Granularity, Actions and Agents-or-Models for agent/model performance; Granularity for usage comparison; Grouping plus Metric for totals.\n* The Actions, Agents and Models selects stay multi-select, show `All` when empty and a comma-joined list otherwise.\n* The `Date range` button opens a popover with the From and To local-time fields. Editing a field applies the range immediately; closing the popover keeps the value; reopening shows the current service values.\n* `Export CSV` is disabled when no rows match the filters and otherwise downloads the same CSV as before.\n* While stats data is loading or failed, the `Stats` tab and its controls are visible but disabled, and the error or warning dialog is raised once, by `StatsContent` only.\n* The stats page body no longer renders the toolbar, and still renders the `Project stats` heading, warning lines, omitted-timer and excluded-sample notes, usage-comparison disclaimer, and chart panel.\n* Changing any control in the app bar updates the chart without remounting the chart panel or reopening the stats session.\n* `npm run typecheck` passes and the stats, app menu and diagram test suites pass.",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-22",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat design/feature_descriptions/F_360_move_stats_toolbar_to_main_app_bar.md",
+          "providerItemId": "toolu_017FH8qeombkoAwR9MePjjS3",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:52:07.303Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-23",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJuMtDJFfcsyc3oTvxRu:thinking:0",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:52:08.854Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/mobile_project_status.tsx; echo ===; grep -rn \"isMobile\" app/src/components/shell/main_window.tsx | head -20",
+          "content": "import { Box, Typography } from '@mui/material'\nimport { CardCountSummary } from './project_card_count_summary'\nimport { ProjectSyncStatus } from './project_sync_status'\nimport { RunningAgentsIndicator } from './running_agents_indicator'\nimport { ProjectAgentUsageSummary } from './project_agent_usage_summary'\nimport { CodexRateLimitStatus } from './codex_rate_limit_status'\nimport { ClaudeRateLimitStatus } from './claude_rate_limit_status'\nimport { RemoteControlStatusIndicator } from './remote_control_status_indicator'\nimport { KeyboardStatus } from './keyboard_status'\n\n/** Mobile drawer presentation for live project status. */\nexport function MobileProjectStatus() {\n    return (\n        <Box aria-labelledby=\"mobile-project-status-title\" component=\"section\" sx={{ maxHeight: '50vh', overflowY: 'auto', py: 1 }}>\n            <Typography id=\"mobile-project-status-title\" sx={{ color: 'custom.colHead', px: 2 }} variant=\"overline\">\n                Project status\n            </Typography>\n            <CardCountSummary mobile />\n            <ProjectSyncStatus mobile />\n            <RunningAgentsIndicator mobile />\n            <ProjectAgentUsageSummary mobile />\n            <ClaudeRateLimitStatus mobile />\n            <CodexRateLimitStatus mobile />\n            <RemoteControlStatusIndicator mobile />\n            <KeyboardStatus mobile />\n        </Box>\n    )\n}\n===\n27:    const isMobile = useMediaQuery(theme.breakpoints.down('md'))\n58:                isMobile={isMobile}\n61:                search={<SearchControl isMobile={isMobile} regexpAgent={regexpAgent} />}\n69:            {!isMobile ? <StatusBar /> : null}",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-24",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && cat app/src/components/shell/mobile_project_status.tsx; echo ===; grep -rn \"isMobile\" app/src/components/shell/main_window.tsx | head -20",
+          "providerItemId": "toolu_01F4ELA7CVjZZWikZVZerhvZ",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:52:09.937Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n 60,110p app/src/components/shell/menu/main_toolbar.grouped.test.tsx; echo ===MOBTEST; grep -n \"Theme\" app/src/components/shell/mobile_main_window.grouped.test.tsx",
+          "content": "        const createButton = screen.getByRole('button', { name: 'Create' })\n        const searchInput = screen.getByRole('textbox', { name: 'Search project' })\n        expect(createButton.parentElement?.nextElementSibling).toContainElement(searchInput)\n    })\n\n    it('renders tabs before search and panel below the row', () => {\n        const { container } = renderToolbar()\n\n        expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument()\n        expect(screen.getByRole('textbox', { name: 'Search project' })).toBeInTheDocument()\n        expect(screen.getByText('Project section')).toBeInTheDocument()\n        expect(container.textContent?.indexOf('Home')).toBeLessThan(container.textContent?.indexOf('Project section') ?? 0)\n    })\n\n    it('centers the project name region between the tabs and theme control', () => {\n        renderToolbar()\n\n        const tabsRegion = screen.getByRole('button', { name: 'Home' }).parentElement as HTMLElement\n        const projectNameRegion = screen.getByTestId('project-name-region')\n        const themeRegion = screen.getByRole('button', { name: /Switch to (dark|light) theme/u }).parentElement as HTMLElement\n\n        expect(tabsRegion.nextElementSibling).toBe(projectNameRegion)\n        expect(projectNameRegion.nextElementSibling).toBe(themeRegion)\n        expect(projectNameRegion).toHaveStyle({ justifyContent: 'center' })\n    })\n\n    it('makes the bar draggable while keeping the search controls non-draggable', () => {\n        const { container } = renderToolbar()\n\n        const bar = container.querySelector('.MuiToolbar-root') as HTMLElement\n        const applicationIcon = screen.getByRole('img', { name: /application icon/u })\n        const searchRegion = screen.getByRole('textbox', { name: 'Search project' }).parentElement as HTMLElement\n\n        expect(appRegion(bar)).toBe(DRAG)\n        expect(appRegion(applicationIcon.parentElement as HTMLElement)).not.toBe(NO_DRAG)\n        expect(appRegion(searchRegion)).toBe(NO_DRAG)\n    })\n})\n===MOBTEST\n6:import { AppThemeProvider } from '../../theme/theme_provider'\n24:        <AppThemeProvider>\n35:        </AppThemeProvider>,",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-25",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && sed -n 60,110p app/src/components/shell/menu/main_toolbar.grouped.test.tsx; echo ===MOBTEST; grep -n \"Theme\" app/src/components/shell/mobile_main_window.grouped.test.tsx",
+          "providerItemId": "toolu_01E6sR2oTXjKijzL45cQNE4n",
+          "sequence": 25,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:52:10.982Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJuNAHRmwvKsG1yD65w2:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:52:18.019Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/.claude/projects/C--Users-janbo-Documents-dev-md2/memory\" && cat findings-before-changes.md no-doc-rewrites-without-approval.md",
+          "content": "---\nname: findings-before-changes\ndescription: \"Report findings and wait for approval before changing code; do not infer approval from earlier \\\"fix all\\\"\"\nmetadata: \n  node_type: memory\n  type: feedback\n  originSessionId: 3eb99b8d-21de-420a-bad5-1b8fb2e0c5da\n  modified: 2026-08-18T09:29:33.658Z\n---\n\nReport findings first and ask for permission before editing code. An earlier \"fix all\" in the same session does not carry over to a later question, and a question (\"is this wrong? check for this\", \"can we switch to X?\") is a request for analysis, not for a fix.\n\n**Why:** the user wants to decide scope and timing themselves; unrequested edits pile up uncommitted work they never agreed to.\n\n**How to apply:** answer the question with evidence (file:line, call sites, what breaks), state the proposed fix and its blast radius, then stop and ask. Only edit after an explicit yes. Same spirit as [[no-doc-rewrites-without-approval]].\n---\nname: no-doc-rewrites-without-approval\ndescription: Never rewrite/replace existing design docs or feature descriptions without explicit user approval\nmetadata: \n  node_type: memory\n  type: feedback\n  originSessionId: 5d498ce3-1226-40ea-b8f5-c9d9034a3035\n---\n\nJan reacted strongly (\"who allowed you to rewrite\") when I rewrote `design/feature_descriptions/ready/F_044_remote_control_wss_tls.md` after merely *offering* to and getting no answer.\n\n**Why:** Design docs in `design/feature_descriptions` are his specs; changing their content is a decision he owns. An unanswered offer is not consent.\n\n**How to apply:** Creating new feature/bug description files when asked is fine. Modifying or replacing an existing one requires an explicit yes first — propose the change in chat and wait.\nShell cwd was reset to C:\\Users\\janbo\\Documents\\dev\\md2",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-27",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/.claude/projects/C--Users-janbo-Documents-dev-md2/memory\" && cat findings-before-changes.md no-doc-rewrites-without-approval.md",
+          "providerItemId": "toolu_01Ns9uunGRxGtJsCNQf7jRWz",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:52:19.098Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-28",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfJuNkun5paCwjCrTkJTX:thinking:0",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-22T17:52:23.551Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nRead: `main_toolbar.tsx`, `project_name_label.tsx`, `project_name.ts`, `mobile_menu_button.tsx`, `mobile_main_window.tsx`, `theme_mode_toggle.tsx`, `mobile_project_status.tsx`, `main_window.tsx`, `app_menu.tsx`, related tests. Skipped agents/activity card per instruction.\n\nTwo ambiguities — resolved by assumption, stated in doc:\n1. \"instead of theme\" = replace the **\"Theme\" text label** only; theme toggle button stays (sole mobile way to switch palette).\n2. No project open → drawer header shows nothing where name goes, toggle keeps right edge.",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 29,
+          "timestamp": "2026-09-22T17:52:26.073Z"
+        },
+        {
+          "command": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='design/feature_descriptions/F_361_on_mobile_dont_show_project_name_next_to_menu.md'\ns=io.open(p,encoding='utf-8').read()\ns=s.replace('status: design','status: ready for implementation',1)\ns=s.rstrip('\\n')+'\\n'\ns+=u'''\n## Current state\n\n`MainToolbar` (`app/src/components/shell/menu/main_toolbar.tsx`) renders one `Toolbar` row for both screen sizes. It receives `isMobile` from `MainWindow`, which derives it from `useMediaQuery(theme.breakpoints.down('md'))` — \"small screen mode\" throughout this description means exactly that `isMobile === true`. On mobile the row starts with `MobileMenuButton` (the hamburger); on desktop that button is absent.\n\nBetween the tabs region and the trailing controls, `MainToolbar` always renders a `Box` with `data-testid=\"project-name-region\"`, `flex: 1` and `justifyContent: 'center'`, holding `<ProjectNameLabel />` inside a `maxWidth: 240` box. That happens on mobile as well, so the project folder name currently sits next to the menu tabs on a narrow row that also has to fit the hamburger, the mobile action, and search.\n\n`ProjectNameLabel` (`menu/project_name_label.tsx`) subscribes to project state through `useProjectState(service)`, returns `null` when no project is open, and otherwise renders a `Typography` (`variant=\"body2\"`, `noWrap`, `data-testid=\"project-name-label\"`) with `projectName(project)` — the repository name for GitHub projects, the last path segment of `rootPath` for local and remote projects (`menu/project_name.ts`).\n\nThe hamburger drawer lives in `MobileMainWindow` (`app/src/components/shell/mobile_main_window.tsx`). Its first row is a `justifyContent: 'space-between'` flex box containing a `Typography` with the literal text `Theme` on the left and `<ThemeModeToggle />` on the right, followed by the navigation region, `MobileProjectStatus`, and the GitHub auth footer. `ThemeModeToggle` is the only light/dark switch on mobile; `MainToolbar` renders `ThemeToggleButton` only in the `!isMobile` branch.\n\nTests that touch this area: `menu/main_toolbar.grouped.test.tsx` asserts the project-name region sits between the tabs region and the theme control (desktop render), `menu/project_name_label.grouped.test.tsx` covers the label itself, and `mobile_main_window.grouped.test.tsx` covers the drawer.\n\n## implementation details\n\n* In `main_toolbar.tsx`, render the `project-name-region` box only when `!isMobile`. Keep the desktop markup, sizing and centering exactly as today. Do not merely hide it with `display: none` — the label should not subscribe to project state on mobile at all, so the whole region stays unmounted.\n* In `mobile_main_window.tsx`, replace the `Typography` holding the literal `Theme` in the drawer header with `<ProjectNameLabel />` (imported from `./menu/project_name_label`), keeping `<ThemeModeToggle />` in place on the right of the same row. The toggle button itself is not removed; only its text label is replaced by the project name. Its `aria-label` (`Switch to dark theme` / `Switch to light theme`) already names it, so no accessible name is lost.\n* Because `ProjectNameLabel` returns `null` when no project is open, `justifyContent: 'space-between'` alone would pull the toggle to the left edge. Wrap the label in a `Box` with `flex: 1`, `minWidth: 0` and `overflow: 'hidden'` so the toggle keeps the right edge whether or not a project is open, and a long project name truncates (`noWrap` on the label) instead of pushing the toggle out of the drawer.\n* Reuse `ProjectNameLabel` as-is; it already owns its own subscription, so the drawer does not republish project state and `MobileMainWindow` gains no new props or hooks. Do not add a second name-deriving code path — `projectName()` stays the single source.\n* Tests: in `main_toolbar.grouped.test.tsx`, keep the existing centering test for the desktop render and add a mobile case asserting `queryByTestId('project-name-region')` is `null` while the hamburger (`Open menu`) is present. In `mobile_main_window.grouped.test.tsx`, add a case asserting the drawer header shows the project name (`project-name-label`) and no longer shows the text `Theme`, while the theme toggle button is still found by its `Switch to (dark|light) theme` accessible name; add a no-project case asserting the toggle still renders. Verify with `npm run typecheck` and the affected vitest suites (never `npm run build`).\n\n## acceptance criteria\n\n* In small screen mode (`isMobile`, viewport below the `md` breakpoint) the top bar shows no project folder name: `project-name-region` and `project-name-label` are both absent from the toolbar.\n* On desktop the top bar is unchanged: the project name region still sits centered between the tabs region and the theme control, with the same 240px max width and truncation behaviour.\n* Opening the hamburger menu on mobile shows the project folder name as the drawer's first row, in the position previously occupied by the word `Theme`; the word `Theme` no longer appears.\n* The theme light/dark toggle remains in that same drawer row, on the right edge, with its existing accessible name and behaviour.\n* With no project open, the drawer header row still renders and the theme toggle stays on the right edge; no placeholder name is shown.\n* The displayed name matches `projectName()` for all project kinds: repository name for GitHub projects, last path segment of `rootPath` for local and remote projects; it updates when the active project changes, without reopening the drawer.\n* A long project name truncates inside the drawer row rather than widening the drawer or pushing the toggle off screen.\n* `npm run typecheck` passes; the main toolbar, project name label and mobile main window test suites pass.\n'''\nio.open(p,'w',encoding='utf-8',newline='\\n').write(s)\nPY\ngrep -n \"^status\" design/feature_descriptions/F_361_on_mobile_dont_show_project_name_next_to_menu.md",
+          "content": "6:status: ready for implementation",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-event-30",
+          "kind": "event",
+          "label": "cd \"C:/Users/janbo/Documents/dev/md2\" && python - <<'PY'\nimport io\np='design/feature_descriptions/F_361_on_mobile_dont_show_project_name_next_to_menu.md'\ns=io.open(p,encoding='utf-8').read()\ns=s.replace('status: design','status: ready for implementation',1)\ns=s.rstrip('\\n')+'\\n'\ns+=u'''\n## Current state\n\n`MainToolbar` (`app/src/components/shell/menu/main_toolbar.tsx`) renders one `Toolbar` row for both screen sizes. It receives `isMobile` from `MainWindow`, which derives it from `useMediaQuery(theme.breakpoints.down('md'))` — \"small screen mode\" throughout this description means exactly that `isMobile === true`. On mobile the row starts with `MobileMenuButton` (the hamburger); on desktop that button is absent.\n\nBetween the tabs region and the trailing controls, `MainToolbar` always renders a `Box` with `data-testid=\"project-name-region\"`, `flex: 1` and `justifyContent: 'center'`, holding `<ProjectNameLabel />` inside a `maxWidth: 240` box. That happens on mobile as well, so the project folder name currently sits next to the menu tabs on a narrow row that also has to fit the hamburger, the mobile action, and search.\n\n`ProjectNameLabel` (`menu/project_name_label.tsx`) subscribes to project state through `useProjectState(service)`, returns `null` when no project is open, and otherwise renders a `Typography` (`variant=\"body2\"`, `noWrap`, `data-testid=\"project-name-label\"`) with `projectName(project)` — the repository name for GitHub projects, the last path segment of `rootPath` for local and remote projects (`menu/project_name.ts`).\n\nThe hamburger drawer lives in `MobileMainWindow` (`app/src/components/shell/mobile_main_window.tsx`). Its first row is a `justifyContent: 'space-between'` flex box containing a `Typography` with the literal text `Theme` on the left and `<ThemeModeToggle />` on the right, followed by the navigation region, `MobileProjectStatus`, and the GitHub auth footer. `ThemeModeToggle` is the only light/dark switch on mobile; `MainToolbar` renders `ThemeToggleButton` only in the `!isMobile` branch.\n\nTests that touch this area: `menu/main_toolbar.grouped.test.tsx` asserts the project-name region sits between the tabs region and the theme control (desktop render), `menu/project_name_label.grouped.test.tsx` covers the label itself, and `mobile_main_window.grouped.test.tsx` covers the drawer.\n\n## implementation details\n\n* In `main_toolbar.tsx`, render the `project-name-region` box only when `!isMobile`. Keep the desktop markup, sizing and centering exactly as today. Do not merely hide it with `display: none` — the label should not subscribe to project state on mobile at all, so the whole region stays unmounted.\n* In `mobile_main_window.tsx`, replace the `Typography` holding the literal `Theme` in the drawer header with `<ProjectNameLabel />` (imported from `./menu/project_name_label`), keeping `<ThemeModeToggle />` in place on the right of the same row. The toggle button itself is not removed; only its text label is replaced by the project name. Its `aria-label` (`Switch to dark theme` / `Switch to light theme`) already names it, so no accessible name is lost.\n* Because `ProjectNameLabel` returns `null` when no project is open, `justifyContent: 'space-between'` alone would pull the toggle to the left edge. Wrap the label in a `Box` with `flex: 1`, `minWidth: 0` and `overflow: 'hidden'` so the toggle keeps the right edge whether or not a project is open, and a long project name truncates (`noWrap` on the label) instead of pushing the toggle out of the drawer.\n* Reuse `ProjectNameLabel` as-is; it already owns its own subscription, so the drawer does not republish project state and `MobileMainWindow` gains no new props or hooks. Do not add a second name-deriving code path — `projectName()` stays the single source.\n* Tests: in `main_toolbar.grouped.test.tsx`, keep the existing centering test for the desktop render and add a mobile case asserting `queryByTestId('project-name-region')` is `null` while the hamburger (`Open menu`) is present. In `mobile_main_window.grouped.test.tsx`, add a case asserting the drawer header shows the project name (`project-name-label`) and no longer shows the text `Theme`, while the theme toggle button is still found by its `Switch to (dark|light) theme` accessible name; add a no-project case asserting the toggle still renders. Verify with `npm run typecheck` and the affected vitest suites (never `npm run build`).\n\n## acceptance criteria\n\n* In small screen mode (`isMobile`, viewport below the `md` breakpoint) the top bar shows no project folder name: `project-name-region` and `project-name-label` are both absent from the toolbar.\n* On desktop the top bar is unchanged: the project name region still sits centered between the tabs region and the theme control, with the same 240px max width and truncation behaviour.\n* Opening the hamburger menu on mobile shows the project folder name as the drawer's first row, in the position previously occupied by the word `Theme`; the word `Theme` no longer appears.\n* The theme light/dark toggle remains in that same drawer row, on the right edge, with its existing accessible name and behaviour.\n* With no project open, the drawer header row still renders and the theme toggle stays on the right edge; no placeholder name is shown.\n* The displayed name matches `projectName()` for all project kinds: repository name for GitHub projects, last path segment of `rootPath` for local and remote projects; it updates when the active project changes, without reopening the drawer.\n* A long project name truncates inside the drawer row rather than widening the drawer or pushing the toggle off screen.\n* `npm run typecheck` passes; the main toolbar, project name label and mobile main window test suites pass.\n'''\nio.open(p,'w',encoding='utf-8',newline='\\n').write(s)\nPY\ngrep -n \"^status\" design/feature_descriptions/F_361_on_mobile_dont_show_project_name_next_to_menu.md",
+          "providerItemId": "toolu_01DV46jBh7wEGk1PzTzGp53g",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-09-22T17:52:49.501Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nDone. F_361 now has `Current state`, `implementation details`, `acceptance criteria`; original description text untouched; `status: ready for implementation`. Nothing staged or committed.\n\nScope of the planned change: `main_toolbar.tsx` (drop project-name region when `isMobile`), `mobile_main_window.tsx` (drawer header shows `ProjectNameLabel` where \"Theme\" was, toggle stays right), plus test updates in `main_toolbar.grouped.test.tsx` and `mobile_main_window.grouped.test.tsx`.\n\nFlag the two assumptions above if either is wrong — especially whether you also want the theme toggle itself gone from the drawer header (I kept it; it is mobile's only palette switch).",
+          "id": "agent-turn-d283d38a-4c49-4d20-999b-6cc7f2c731ca-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 31,
+          "timestamp": "2026-09-22T17:52:53.388Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -37,10 +416,22 @@
       "startedAt": "2026-09-22T17:51:29.696Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 12841,
+          "toolMs": 45201
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-09-22T17:51:29.696Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 533376,
+        "inputTokens": 26,
+        "outputTokens": 5977,
+        "reasoningTokens": 0,
+        "totalTokens": 539379,
+        "costUsd": 0.7894979999999999
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
