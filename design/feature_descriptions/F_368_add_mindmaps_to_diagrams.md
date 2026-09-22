@@ -11,6 +11,7 @@ agents:
 policy:
 branch: f_368_add_mindmaps_to_diagrams
 worktree: 1
+after: 96236df6-2c3a-4846-9d52-f29b7ee9041d
 ---
 we already have a number of different diagrams that we support. 1 more should be added: mindmaps.
 

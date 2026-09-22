@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 64876822-b48e-450e-b7c7-68fd8d2ba6bd
 ---
 
 It seems that the ´split conversation button on action menu is only in a specific set of conditions enabled, like, agent can not be running, cant be an already split conversation, ...
