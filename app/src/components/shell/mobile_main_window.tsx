@@ -1,9 +1,10 @@
-import { Box, Divider, Drawer, Typography } from '@mui/material'
+import { Box, Divider, Drawer } from '@mui/material'
 import type { ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useRef } from 'react'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { GithubAuthToolbarButton } from './github_auth_toolbar_button'
+import { ProjectNameLabel } from './menu/project_name_label'
 import { ThemeModeToggle } from './menu/theme_mode_toggle'
 import { MobileProjectStatus } from './mobile_project_status'
 
@@ -58,7 +59,9 @@ export function MobileMainWindow(props: MobileMainWindowProps) {
             <Drawer onClose={onCloseMenu} open={isMenuOpen}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: MOBILE_DRAWER_WIDTH }}>
                     <Box sx={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', p: 1.5 }}>
-                        <Typography sx={{ fontWeight: 600 }} variant="body2">Theme</Typography>
+                        <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                            <ProjectNameLabel />
+                        </Box>
                         <ThemeModeToggle />
                     </Box>
                     <Box data-testid="mobile-navigation-region" sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>

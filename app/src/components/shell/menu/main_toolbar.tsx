@@ -57,14 +57,16 @@ export function MainToolbar(props: MainToolbarProps) {
                 <Box style={NO_DRAG_REGION} sx={{ alignSelf: 'stretch', display: 'flex', flexShrink: 0 }}>
                     {tabs}
                 </Box>
-                <Box
-                    data-testid="project-name-region"
-                    sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center', minWidth: 16, overflow: 'hidden' }}
-                >
-                    <Box sx={{ maxWidth: PROJECT_NAME_MAX_WIDTH, minWidth: 0 }}>
-                        <ProjectNameLabel />
+                {!isMobile ? (
+                    <Box
+                        data-testid="project-name-region"
+                        sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center', minWidth: 16, overflow: 'hidden' }}
+                    >
+                        <Box sx={{ maxWidth: PROJECT_NAME_MAX_WIDTH, minWidth: 0 }}>
+                            <ProjectNameLabel />
+                        </Box>
                     </Box>
-                </Box>
+                ) : null}
                 {isMobile ? (
                     <Box style={NO_DRAG_REGION}>
                         {mobileAction}

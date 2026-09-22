@@ -2,6 +2,8 @@ import { act, cleanup, render, screen, within } from '@testing-library/react'
 import { createRef } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
+import type { ProjectReference } from '../../data/data_types'
+import { dataService } from '../../services/data/data_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { MobileMainWindow } from './mobile_main_window'
@@ -17,8 +19,9 @@ const auth: UseGithubAuthResult = {
     user: null,
 }
 
-function renderMobileMainWindow(showNavigationInCards: boolean) {
+function renderMobileMainWindow(showNavigationInCards: boolean, project: ProjectReference | null = null) {
     const rightPanelContainerRef = createRef<HTMLDivElement>()
+    vi.spyOn(dataService, 'getState').mockReturnValue({ project, runningAgents: [], snapshot: null })
 
     return render(
         <AppThemeProvider>
@@ -39,7 +42,33 @@ function renderMobileMainWindow(showNavigationInCards: boolean) {
 describe('MobileMainWindow', () => {
     afterEach(() => {
         cleanup()
+        vi.restoreAllMocks()
         workspaceViewService.setViewMode('cards')
+    })
+
+    it('shows the project name beside the theme toggle instead of the Theme text', () => {
+        const project = { branch: 'main', id: 'C:/projects/mobile-project', rootPath: 'C:/projects/mobile-project' }
+        renderMobileMainWindow(true, project)
+
+        const projectName = screen.getByTestId('project-name-label')
+        const projectNameRegion = projectName.parentElement as HTMLElement
+        const themeToggle = screen.getByRole('button', { name: /Switch to (dark|light) theme/ })
+
+        expect(projectName).toHaveTextContent('mobile-project')
+        expect(screen.queryByText('Theme')).toBeNull()
+        expect(projectNameRegion).toHaveStyle({ flex: '1', minWidth: '0', overflow: 'hidden' })
+        expect(projectNameRegion.nextElementSibling).toBe(themeToggle)
+    })
+
+    it('keeps the theme toggle at the right of the header when no project is open', () => {
+        renderMobileMainWindow(true)
+
+        const themeToggle = screen.getByRole('button', { name: /Switch to (dark|light) theme/ })
+        const projectNameRegion = themeToggle.previousElementSibling as HTMLElement
+
+        expect(screen.queryByTestId('project-name-label')).toBeNull()
+        expect(projectNameRegion).toHaveStyle({ flex: '1', minWidth: '0', overflow: 'hidden' })
+        expect(projectNameRegion.nextElementSibling).toBe(themeToggle)
     })
 
     it('shows navigation in the drawer when requested', () => {

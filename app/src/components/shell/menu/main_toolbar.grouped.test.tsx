@@ -54,6 +54,14 @@ describe('MainToolbar', () => {
         expect(onOpenMenu).toHaveBeenCalledTimes(1)
     })
 
+    it('does not mount the project name region on mobile', () => {
+        renderToolbar(true)
+
+        expect(screen.getByRole('button', { name: 'Open menu' })).toBeInTheDocument()
+        expect(screen.queryByTestId('project-name-region')).toBeNull()
+        expect(screen.queryByTestId('project-name-label')).toBeNull()
+    })
+
     it('renders the mobile action immediately before search', () => {
         renderToolbar(true)
 
