@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__530bdc1a-985f-434a-bfe7-acb2f7ca06b8.json
 policy:
+branch: f_368_add_mindmaps_to_diagrams
+worktree: 1
 ---
 we already have a number of different diagrams that we support. 1 more should be added: mindmaps.
 
@@ -33,7 +35,7 @@ Empty-diagram creation already derives its menu from `EMPTY_DIAGRAM_CHOICES`, bu
 
 * Add `mindmap` to `DIAGRAM_TYPES` and the TypeScript declaration. Add node kinds `root` and `topic`; mindmaps allow only those kinds and `connection` edges. A non-empty mindmap must contain exactly one explicit `root`; an empty mindmap remains valid for F\_369. Labels remain required on nodes and optional on connections. Groups remain supported. Entity fields, cardinalities, flow presets, sequence fragments, persisted waypoints and rectangle-side connection points are invalid on mindmaps.
 * Define **radial layout** as concentric rings around the root. Put the root at the surface centre. Assign connected topics to rings by shortest undirected connection distance from the root, order peers deterministically by node-array order, and place disconnected topics on deterministic outer rings. Persisted node positions remain authoritative. This rule keeps a topic valid while a user places it before drawing its connection.
-* Give root and topic nodes equal width and height and render their text inside a circle. Named root/topic diameter constants provide missing sizes. Mindmap geometry validation requires supplied width and height together and requires them to be equal. Resize keeps the aspect ratio locked and writes both fields in one mutation.
+* Give root and topic nodes equal width and height and render their text inside a circle. Named root/topic diameter constants provide missing sizes. Mindmap geometry validation requires supplied width and height together and does not  require them to be equal. Resize keeps the aspect ratio locked and writes both fields in one mutation.
 * Add mindmap edge geometry separate from orthogonal graph routing. Resolve endpoints where the centre-to-centre line meets each circle and derive one quadratic Bézier control point per connection. **Curved connection** means the rendered SVG path uses that control point; curve data is derived and never persisted. Place an optional label at the curve midpoint with the existing themed background.
 * Keep mindmap connections directed: `from` is the source, `to` is the target, and the curved line renders the existing filled end arrow at the target by default. Connection formatting may override its markers. Keep connection SVG below node components. **Behind a node** means a crossing line is visually occluded by the node because the edge layer has lower stacking order; it does not mean rerouting the curve around that node.
 * Add a thin `MindmapDiagram` renderer and select it explicitly in `DiagramRenderer`; do not let an unknown type fall through to `EntityDiagram`. Extend shared node, edge, path and preview components with explicit mindmap presentation inputs so architecture connections keep their current rectangular and arrowed behavior.
