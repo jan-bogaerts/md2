@@ -9,5 +9,6 @@ affects:
 agents:
 policy:
 ---
+We just added dupport for edirable duagrams. See&#x20;
 
 Include short section on main readme, with screenshot from mindmap edit.
