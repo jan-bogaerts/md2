@@ -6,6 +6,10 @@
       "cardInternalId": "83c2184c-ed84-4e04-ad0a-4e3159cc163f",
       "cardPath": "design/feature_descriptions/F_373_add_docs_about_mindmaps.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 26316
+      },
       "entries": [
         {
           "content": "Read design/feature_descriptions/F_373_add_docs_about_mindmaps.md. Make a list of topics we should include",
@@ -14,6 +18,121 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-09-23T17:58:54.663Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-28da9bb5-3fff-471c-883c-9827ce6b0a54-event-2",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb4490144d59707016ab41365588087d2be5510826421c81f",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-23T17:59:00.134Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll read the feature description and turn its requirements into a concise topic list.\n\n",
+          "id": "agent-turn-28da9bb5-3fff-471c-883c-9827ce6b0a54-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 3,
+          "timestamp": "2026-09-23T17:59:00.503Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'design/feature_descriptions/F_373_add_docs_about_mindmaps.md'\"",
+          "content": "---\r\nauthor: \r\nid: F_373\r\ninternalId: 83c2184c-ed84-4e04-ad0a-4e3159cc163f\r\ntitle: Add docs about mindmaps\r\nstatus: ready for implementation\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__83c2184c-ed84-4e04-ad0a-4e3159cc163f.json\r\npolicy:\r\nafter: 96236df6-2c3a-4846-9d52-f29b7ee9041d\r\n---\r\nInclude short section on main readme\r\n",
+          "durationMs": 73,
+          "exitCode": 0,
+          "id": "agent-turn-28da9bb5-3fff-471c-883c-9827ce6b0a54-event-4",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'design/feature_descriptions/F_373_add_docs_about_mindmaps.md'\"",
+          "providerItemId": "exec-1abe963b-c20a-44b3-8419-a3581f874745",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-09-23T17:59:02.692Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-28da9bb5-3fff-471c-883c-9827ce6b0a54-event-5",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb4490144d59707016ab4136a028487d29b8fb69d8c90f5d1",
+          "sequence": 5,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-23T17:59:08.058Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -i \"mindmap|mind map\" README.md app desktop design/feature_descriptions -g \"*.md\" -g \"*.tsx\" -g \"*.ts\" -g \"*.jsx\" -g \"*.js\"'",
+          "content": "design/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:5:title: add mindmaps to diagrams\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:34:  - app/src/components/diagram_view/mindmap_diagram.tsx\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:56:we already have a number of different diagrams that we support. 1 more should be added: mindmaps.\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:73:Empty-diagram creation already derives its menu from `EMPTY_DIAGRAM_CHOICES`, but Mindmap is not present. [F\\_369](F_369_allow_users_to_add_new_empty_diagrams.md) depends on this feature and expects Mindmap as a creation choice.\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:77:* Add `mindmap` to `DIAGRAM_TYPES` and the TypeScript declaration. Add node kinds `root` and `topic`; mindmaps allow only those kinds and `connection` edges. A non-empty mindmap must contain exactly one explicit `root`; an empty mindmap remains valid for F\\_369. Labels remain required on nodes and optional on connections. Groups remain supported. Entity fields, cardinalities, flow presets, sequence fragments, persisted waypoints and rectangle-side connection points are invalid on mindmaps.\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:79:* Give root and topic nodes equal width and height and render their text inside a circle. Named root/topic diameter constants provide missing sizes. Mindmap geometry validation requires supplied width and height together and does not  require them to be equal. Resize keeps the aspect ratio locked and writes both fields in one mutation.\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:80:* Add mindmap edge geometry separate from orthogonal graph routing. Resolve endpoints where the centre-to-centre line meets each circle and derive one quadratic Bézier control point per connection. **Curved connection** means the rendered SVG path uses that control point; curve data is derived and never persisted. Place an optional label at the curve midpoint with the existing themed background.\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:81:* Keep mindmap connections directed: `from` is the source, `to` is the target, and the curved line renders the existing filled end arrow at the target by default. Connection formatting may override its markers. Keep connection SVG below node components. **Behind a node** means a crossing line is visually occluded by the node because the edge layer has lower stacking order; it does not mean rerouting the curve around that node.\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:82:* Add a thin `MindmapDiagram` renderer and select it explicitly in `DiagramRenderer`; do not let an unknown type fall through to `EntityDiagram`. Extend shared node, edge, path and preview components with explicit mindmap presentation inputs so architecture connections keep their current rectangular and arrowed behavior.\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:83:* Add Root, Topic and Connection to the mindmap Add menu. Root is available only while no root exists; Topic is available after the root exists. Mindmap edge drawing shows the same curved preview used after creation and stores only `from`, `to`, `kind` and optional label. Prevent deleting the root while topic nodes remain. Selection, movement, copy, paste, details, formatting, groups, drill-down, comparison, review and save-copy behavior otherwise remain shared.\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:84:* Extend `DiagramGeometryService` with mindmap-specific incremental updates. Moving or resizing one node recalculates only that node, its incident curves and labels, and changed surface bounds. Adding or removing a connection may change ring assignment, so recalculate positions only for nodes whose derived ring or angle changed; never replace the canonical diagram or publish a whole-diagram event.\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md:85:* Add Mindmap to `EMPTY_DIAGRAM_CH\n[21255 characters omitted]\n width: MINDMAP_TOPIC_DIAMETER },\napp\\src\\components\\diagram_view\\diagram_creation_tools.ts:73:    hasMindmapRoot = false,\napp\\src\\components\\diagram_view\\diagram_creation_tools.ts:107:    if (type === 'mindmap') {\napp\\src\\components\\diagram_view\\diagram_creation_tools.ts:108:        return hasMindmapRoot\napp\\src\\components\\diagram_view\\diagram_creation_tools.ts:109:            ? [nodeTool('Topic', MINDMAP_TOPIC_DEFINITION), edgeTool('Connection', 'connection'), ...common]\napp\\src\\components\\diagram_view\\diagram_creation_tools.ts:110:            : [nodeTool('Root', MINDMAP_ROOT_DEFINITION), ...common];\napp\\src\\components\\diagram_view\\diagram_creation_tools.test.ts:5:    it('offers only Root before a mindmap root exists', () => {\napp\\src\\components\\diagram_view\\diagram_creation_tools.test.ts:6:        expect(diagramCreationTools('mindmap', null).map(({ label }) => label)).toEqual(['Root', 'Group'])\napp\\src\\components\\diagram_view\\diagram_creation_tools.test.ts:9:    it('offers Topic and Connection after a mindmap root exists', () => {\napp\\src\\components\\diagram_view\\diagram_creation_tools.test.ts:10:        expect(diagramCreationTools('mindmap', null, true).map(({ label }) => label))\napp\\src\\components\\diagram_view\\diagram_node.test.tsx:86:                <DiagramNode circular diagramType=\"mindmap\" node={positioned({ height: 96, kind: 'topic', width: 96 })} onSelect={onSelect} selected />\napp\\src\\components\\diagram_view\\diagram_node.test.tsx:95:    it('renders an oval mindmap node as an ellipse', () => {\napp\\src\\components\\diagram_view\\diagram_node.test.tsx:99:                <DiagramNode circular diagramType=\"mindmap\" node={positioned({ height: 80, kind: 'topic', width: 120 })} onSelect={onSelect} selected={false} />\napp\\src\\components\\diagram_view\\diagram_node_placement_preview.tsx:25:                circular={preview.diagramType === 'mindmap'}\napp\\src\\components\\diagram_view\\diagram_renderer.tsx:6:import { MindmapDiagram } from './mindmap_diagram'\napp\\src\\components\\diagram_view\\diagram_renderer.tsx:17:    if (type === 'mindmap') return <MindmapDiagram {...props} />\napp\\src\\components\\diagram_view\\diagram_renderer.test.tsx:11:    const edgeKinds = {architecture: 'connection', dependency: 'dependency', entity: 'relationship', flow: 'flow', mindmap: 'connection', sequence: 'call'} as const\napp\\src\\components\\diagram_view\\diagram_renderer.test.tsx:13:        : type === 'mindmap' ? ['root', 'topic'] as const : [undefined, undefined]\napp\\src\\components\\diagram_view\\diagram_renderer.test.tsx:49:    it.each(['architecture', 'dependency', 'sequence', 'flow', 'entity', 'mindmap'] as const)('renders supported %s data', (type) => {\napp\\src\\components\\diagram_view\\diagram_renderer.test.tsx:58:    it('renders mindmap circles, a labelled quadratic curve, and edges before nodes', () => {\napp\\src\\components\\diagram_view\\diagram_renderer.test.tsx:59:        renderDiagram(diagram('mindmap'))\napp\\src\\components\\diagram_view\\editable_diagram.test.tsx:104:    it.each(['architecture', 'dependency', 'entity', 'flow', 'mindmap', 'sequence'] as DiagramType[])(\napp\\src\\components\\diagram_view\\editable_diagram_edge.tsx:86:            curved={diagramType === 'mindmap'}\napp\\src\\components\\diagram_view\\editable_diagram_leaves.test.tsx:46:const mindmapDiagram: DiagramData = {\napp\\src\\components\\diagram_view\\editable_diagram_leaves.test.tsx:49:    meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },\napp\\src\\components\\diagram_view\\editable_diagram_leaves.test.tsx:135:    it('renders editable mindmap circles and a labelled quadratic connection', () => {\napp\\src\\components\\diagram_view\\editable_diagram_leaves.test.tsx:136:        renderTree(mindmapDiagram)\napp\\src\\components\\diagram_view\\editable_diagram_node.tsx:87:            circular={diagramType === 'mindmap'}\napp\\src\\components\\diagram_view\\mindmap_diagram.tsx:3:/** Mindmap mapping onto shared primitives with circular nodes and quadratic connections. */\napp\\src\\components\\diagram_view\\mindmap_diagram.tsx:4:export function MindmapDiagram(props: DiagramProps) {\n",
+          "durationMs": 261,
+          "exitCode": 0,
+          "id": "agent-turn-28da9bb5-3fff-471c-883c-9827ce6b0a54-event-6",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n -i \"mindmap|mind map\" README.md app desktop design/feature_descriptions -g \"*.md\" -g \"*.tsx\" -g \"*.ts\" -g \"*.jsx\" -g \"*.js\"'",
+          "providerItemId": "exec-c633bfea-3cc6-4eb1-bf4b-0161597b3de0",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-09-23T17:59:09.958Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-28da9bb5-3fff-471c-883c-9827ce6b0a54-event-7",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb4490144d59707016ab41371434087d2944107209845fb13",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-23T17:59:11.629Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'README.md' -TotalCount 180\"",
+          "content": "# mdÂ²\r\n\r\n**Plan, run, and track AI coding work feature by featureâ€”with local Markdown cards and Git worktrees.**\r\n\r\n> **Download:** [Get the latest Windows x64 installer](https://github.com/jan-bogaerts/md2/releases/latest) Â· [Installation guide](https://jan-bogaerts.github.io/md2/getting-started/install/)\r\n>\r\n> **Platforms:** mdÂ² is an Electron desktop app. Windows x64 has a signed installer; macOS and Linux can run from source, but do not have prebuilt packages yet.\r\n\r\nhttps://github.com/user-attachments/assets/260ec55c-2905-47fa-9952-8f07b8c31c13\r\n\r\n## Videos\r\n\r\n- [Merge an agent's worktree branch](https://github.com/user-attachments/assets/8d9b4f55-6d97-42ff-bba4-ef36c5a64513) â€” Merge a branch back into the main working branch after an agent finishes implementing a card.\r\n- [Resolve merge conflicts between worktrees](https://github.com/user-attachments/assets/c04324ce-273d-43b7-b739-02c7011cefad) â€” Let an agent resolve conflicts when multiple worktrees change the same files.\r\n- [Switch agents during a conversation](https://github.com/user-attachments/assets/5078f4b6-3434-44f7-94ea-3b831d998eab) â€” Assign another agent and automatically migrate the active conversation.\r\n- [Open link in VsCode](https://github.com/user-attachments/assets/05484930-e84f-437e-9baa-a83e8822c97f) - open links to source code files in cards or agent responses\r\n\r\n\r\n## The feature card is the center\r\n\r\nIn a traditional coding workflow, the source code is the center: you open a project and instruct an AI agent to change it. mdÂ² shifts the focus to the work being requestedâ€”a feature description, bug report, or job. Source-code changes remain the output, but they are no longer the organizing center.\r\n\r\nEach request is stored as a Markdown card in your repository. Everything related to the work hangs off that card:\r\n\r\n- its Git worktree\r\n- the coding agent working on it\r\n- chat history\r\n- commits\r\n- design notes and documentation\r\n- token usage and cost\r\n\r\nReusable prompts and actions live at project level. They support the cards: run an action from a card and mdÂ² supplies that card's description and worktree context.\r\n\r\nThe card becomes the shared context for both you and your agents. Instead of reconstructing the work and its history from editor windows, folders, and disconnected conversations, you can follow and manage it from one place. Because cards are ordinary local Markdown files, agents can read and update the same project knowledge directly.\r\n\r\n## Works with\r\n\r\n- [Codex CLI](https://github.com/openai/codex)\r\n- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)\r\n\r\nmdÂ² starts the CLIs already installed and authenticated on your machine. It does not call model APIs directly, and either CLI is optional when using mdÂ² as a Markdown-backed project board.\r\n\r\n## Without and with mdÂ²\r\n\r\n| Without mdÂ² | With mdÂ² |\r\n| --- | --- |\r\n| Agent conversations grouped by chat | Activity grouped by feature |\r\n| Worktrees identified by folders/windows | Worktrees assigned to cards |\r\n| Repeated prompts scattered around | Reusable project actions |\r\n| Token use and subscription value largely invisible | Time, tokens, and estimated cost tracked by agent, action, feature, and release |\r\n\r\n## Docs\r\n\r\nFull docs: https://jan-bogaerts.github.io/md2/\r\n\r\n## Why mdÂ²\r\n\r\n### One dashboard for agents and worktrees\r\n\r\nA card can be linked to the worktree and coding agent working on it. Instead of searching through editor windows and terminals, you can see the state of the entire project in one place.\r\n\r\nAgents can update their cards automatically as work progresses.\r\n\r\n### Context stays with the feature\r\n\r\nA feature often takes multiple prompts, sessions, and commits to complete.\r\n\r\nmdÂ² links those interactions back to the feature instead of presenting one large, disconnected history of agent conversations.\r\n\r\n### Local Markdown as shared project knowledge\r\n\r\nCards, design notes, plans, and other project information are ordinary Markdown files stored inside the repository.\r\n\r\nAgents can read and update them directly without r\n[887 characters omitted]\nut spending tokens on the same reasoning every time.\r\n\r\n### Measure AI engineering cost and performance\r\n\r\nmdÂ² connects agent activity to the work that produced it. Compare Claude and Codex by measured time, tokens, tool calls, account usage, and estimated subscription cost:\r\n\r\n* see which features and reusable actions consume the most resources;\r\n* compare agent and model performance over time;\r\n* estimate cost per feature, action, or agent;\r\n* review the current release or a completed release; and\r\n* export the filtered chart data as CSV.\r\n\r\nThis makes it easier to find expensive workflows, compare agent configurations, and understand what AI-assisted delivery costs. Cost figures are subscription-based estimates; account usage can also include other projects and direct CLI sessions.\r\n\r\n[Learn how project Stats works](https://jan-bogaerts.github.io/md2/guide/stats/).\r\n\r\nmdÂ² is still an evolving concept â€” see [design/architecture/initial description](design/architecture/initial%20description) for the original design notes this project is built from.\r\n\r\n## Screenshots\r\n\r\n### Run agents from a feature\r\n\r\n![A Codex action conversation alongside active feature cards and worktree controls](screenshots/Screenshot%202026-09-06%20145934.jpg)\r\n\r\n*Run reusable actions from a card, follow the agent conversation, and commit or integrate the assigned worktree without losing the feature context.*\r\n\r\n### Keep the specification beside the work\r\n\r\n![A feature card open in the Markdown editor while its agent is running](screenshots/Screenshot%202026-09-06%20150456.jpg)\r\n\r\n*The card remains the shared source of truth for its definition, agent activity, worktree, and resulting changes.*\r\n\r\n### Configure an agent action\r\n\r\n![The list view showing the prompt configuration for an agent action](screenshots/Screenshot%202026-09-06%20150101.jpg)\r\n\r\n*Predefine the prompt for an action that will be run by an agent.*\r\n\r\n### Review cost per feature\r\n\r\n![Release statistics showing the estimated cost per feature](screenshots/Screenshot%202026-09-06%20150204.jpg)\r\n\r\n*Use release statistics to compare estimated costs across the features included in the current release.*\r\n\r\n### Explore the project diagram\r\n\r\n![The experimental project diagram view](screenshots/Screenshot%202026-09-06%20150258.jpg)\r\n\r\n*Explore relationships in the new diagram view. This feature is still experimental.*\r\n\r\n## Getting started\r\n\r\n1. [Download and install the latest Windows release](https://github.com/jan-bogaerts/md2/releases/latest), or follow the [source setup](https://jan-bogaerts.github.io/md2/contributing/development-setup/) on macOS or Linux.\r\n2. Click the GitHub icon, upper left corner, follow link to get a GitHub access token, copy-paste token in.\r\n3. Open project, select a folder that contains a git repository.\r\n\r\n## Development setup\r\n\r\nThe repo has three parts: [app/](app/) (the React/Vite web UI), [desktop/](desktop/) (the Electron host shell), and [shared/](shared/) (types and logic used by both). Each subproject has its own `package.json` and npm scripts, but a root `package.json` wires up the common workflows.\r\n\r\n### Prerequisites\r\n\r\n- [Node.js](https://nodejs.org/) (LTS) and npm\r\n- Git\r\n\r\n### Install\r\n\r\n```powershell\r\nnpm install\r\nnpm run install:all\r\n```\r\n\r\nThis first installs the root development dependencies used by the shared workflows, then installs dependencies for both `app` and `desktop`.\r\n\r\n### Run\r\n\r\n```powershell\r\nnpm run dev\r\n```\r\n\r\nThis starts the Vite dev server for `app` and, once it's up, launches the Electron shell (`desktop`) pointed at it. To run either half on its own: `npm run dev:app` or `npm run dev:desktop`.\r\n\r\n### Optional environment variables\r\n\r\n`desktop/.env.example` lists the optional `MD2_SENTRY_DSN` and `MD2_APTABASE_APP_KEY` settings used by both the renderer and Electron for error reporting and analytics. Copy it to `desktop/.env` and fill it in if you want telemetry locally â€” neither setting is required to build or run the app.\r\n\r\n### Lint & test\r\n\r\nEach subproject is standalone and has its own npm scripts.\r\n",
+          "durationMs": 65,
+          "exitCode": 0,
+          "id": "agent-turn-28da9bb5-3fff-471c-883c-9827ce6b0a54-event-8",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'README.md' -TotalCount 180\"",
+          "providerItemId": "exec-4ea2bbc4-3da2-410d-9a3c-0d7dd5ce171b",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-09-23T17:59:13.420Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-28da9bb5-3fff-471c-883c-9827ce6b0a54-event-9",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fb4490144d59707016ab41374b54087d2b4857afd4b8a5814",
+          "sequence": 9,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-23T17:59:17.277Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "[F_373](/C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_373_add_docs_about_mindmaps.md) specifies only a **short section in the main README**. Based on the current mindmap feature, I’d include:\n\n- What mindmaps are for in md².\n- How to create a new mindmap.\n- How to add the single root, then topics and connections.\n- How to edit nodes and connections: move, resize, label, and format them.\n- What the reader will see: oval nodes and curved, directed connections.\n\nA small screenshot could make that short section easier to understand.\n\n",
+          "id": "agent-turn-28da9bb5-3fff-471c-883c-9827ce6b0a54-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 10,
+          "timestamp": "2026-09-23T17:59:19.870Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -22,10 +141,21 @@
       "startedAt": "2026-09-23T17:58:54.663Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 7744,
+          "toolMs": 557
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-09-23T17:58:54.663Z"
       },
       "title": "+",
+      "usage": {
+        "cachedInputTokens": 66048,
+        "inputTokens": 19257,
+        "outputTokens": 403,
+        "reasoningTokens": 307,
+        "totalTokens": 86015
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
