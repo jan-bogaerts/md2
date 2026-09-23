@@ -1,0 +1,54 @@
+{
+  "actionSettings": {
+    "md2.custom-prompt": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "385eccb9-06c4-4d93-8f8a-5f9b9f42e45f",
+      "cardPath": "design/feature_descriptions/F_144_appbar_and_toolbar_scrolling.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/F_144_appbar_and_toolbar_scrolling.md, what do you think?",
+          "id": "agent-turn-b92a9c1e-32c6-403f-adfd-e2faf7663e14-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-23T13:55:16.023Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-21179fef-5369-499e-a1e5-4d7d296b0116",
+      "providerSessions": [],
+      "startedAt": "2026-09-23T13:55:16.023Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-23T13:55:16.023Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "385eccb9-06c4-4d93-8f8a-5f9b9f42e45f",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}

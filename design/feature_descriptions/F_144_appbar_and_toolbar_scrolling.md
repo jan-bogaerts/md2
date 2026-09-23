@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__385eccb9-06c4-4d93-8f8a-5f9b9f42e45f.json
 policy:
 ---
 When on the desktop (on mobile, it is ok):
