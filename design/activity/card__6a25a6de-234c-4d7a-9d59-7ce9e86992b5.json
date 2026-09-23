@@ -483,7 +483,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 49155
+        "usedTokens": 54582
       },
       "entries": [
         {
@@ -651,6 +651,127 @@
           "role": "user",
           "sequence": 14,
           "timestamp": "2026-09-23T16:32:31.529Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\run\\popup\\action_popup_runtime.ts",
+          "deletions": 1,
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-event-15",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\run\\popup\\action_popup_runtime.ts has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01MDjdr86SSBXobGY4PD4knU",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-09-23T16:32:35.198Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src; grep -n \"private validateSelection\" -A12 components/actions/conversation/action_conversation_store.ts",
+          "content": "262:    private validateSelection(conversation: AgentConversation) {\n263-        if (!belongsToContext(conversation, this.context)) throw new Error('Selected agent conversation belongs to another context')\n264-        if (conversation.actionId !== this.actionId) throw new Error('Selected agent conversation belongs to another action')\n265-    }\n266-\n267-    private setSnapshot(snapshot: ActionConversationSnapshot) {\n268-        this.snapshot = snapshot\n269-        for (const listener of this.listeners) listener()\n270-    }\n271-}",
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-event-16",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src; grep -n \"private validateSelection\" -A12 components/actions/conversation/action_conversation_store.ts",
+          "providerItemId": "toolu_013ou817J8ESc49hDcEFnYHM",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-09-23T16:32:36.091Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-event-17",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfLh75rE1qQPpdJKCR9PF:thinking:0",
+          "sequence": 17,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-23T16:32:39.286Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/actions/run/popup; python - <<'EOF'\np='action_popup_runtime.node.test.ts'\ns=open(p,encoding='utf-8',newline='').read()\ns=s.replace(\"\"\"import type { ActionDefinition } from '../../../../data/action_types'\n\"\"\",\"\"\"import type { ActionDefinition } from '../../../../data/action_types'\nimport type { AgentConversation } from '../../../../data/data_types'\n\"\"\",1)\ns=s.replace(\"\"\"import { actionRunRegistry } from '../../../../services/actions/action_run_registry'\n\"\"\",\"\"\"import { actionRunRegistry } from '../../../../services/actions/action_run_registry'\nimport { dataService } from '../../../../services/data/data_service'\n\"\"\",1)\ns=s.replace(\"\"\"function runEvent(\"\"\",\"\"\"function conversation(path: string): AgentConversation {\n    return {\n        actionId: action.id,\n        cardInternalId: 'card-1',\n        cardPath: 'design/F-1.md',\n        completedAt: '2026-01-01T00:01:00.000Z',\n        entries: [],\n        hasExplicitTitle: true,\n        id: path,\n        path,\n        providerSessions: [],\n        startedAt: '2026-01-01T00:00:00.000Z',\n        status: 'completed',\n        title: 'Build',\n        viewed: false,\n    }\n}\n\nfunction mockConversations(conversations: AgentConversation[]) {\n    vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue(conversations)\n    vi.spyOn(dataService, 'loadAgentConversation').mockImplementation(async (path) => {\n        const loadedConversation = conversations.find((current) => current.path === path)\n        if (!loadedConversation) throw new Error(`Missing conversation ${path}`)\n\n        return loadedConversation\n    })\n}\n\nfunction runEvent(\"\"\",1)\ns=s.replace(\"\"\"    setActionBridgeOverride(null)\n})\"\"\",\"\"\"    setActionBridgeOverride(null)\n    vi.restoreAllMocks()\n})\"\"\",1)\nidx=s.rstrip().rfind('})')\nadd=\"\"\"\n    it('selects the unseen conversation configured after ordinary popup opening', async () => {\n        const unseenConversation = conversation('activity.json#conversation=unseen')\n        mockConversations([unseenConversation])\n        const bindings = createActionPopupBindings(action, context)\n\n        bindings.conversationStore.configureInitialSelection(unseenConversation.path)\n        await bindings.conversationStore.load()\n\n        expect(bindings.conversationStore.getSnapshot().selectedConversation).toBe(unseenConversation)\n        bindings.bindingStore.dispose()\n    })\n\n    it('keeps the requested conversation over a later configured unseen conversation', async () => {\n        const requestedConversation = conversation('activity.json#conversation=requested')\n        const unseenConversation = conversation('activity.json#conversation=unseen')\n        mockConversations([unseenConversation, requestedConversation])\n        const bindings = createActionPopupBindings(action, context, undefined, requestedConversation.path)\n\n        bindings.conversationStore.configureInitialSelection(unseenConversation.path)\n        await bindings.conversationStore.load()\n\n        expect(bindings.conversationStore.getSnapshot().selectedConversation).toBe(requestedConversation)\n        bindings.bindingStore.dispose()\n    })\n\"\"\"\ns=s[:idx]+add.lstrip('\\n')+s[idx:] if False else s[:idx].rstrip('\\n')+'\\n\\n'+add.lstrip('\\n')+s[idx:]\nopen(p,'w',encoding='utf-8',newline='').write(s)\nEOF\ntail -30 action_popup_runtime.node.test.ts",
+          "content": "        emit(runEvent('run-2'))\n        expect(bindings.bindingStore.getSnapshot()).toBeNull()\n        bindings.bindingStore.dispose()\n    })\n\n    it('selects the unseen conversation configured after ordinary popup opening', async () => {\n        const unseenConversation = conversation('activity.json#conversation=unseen')\n        mockConversations([unseenConversation])\n        const bindings = createActionPopupBindings(action, context)\n\n        bindings.conversationStore.configureInitialSelection(unseenConversation.path)\n        await bindings.conversationStore.load()\n\n        expect(bindings.conversationStore.getSnapshot().selectedConversation).toBe(unseenConversation)\n        bindings.bindingStore.dispose()\n    })\n\n    it('keeps the requested conversation over a later configured unseen conversation', async () => {\n        const requestedConversation = conversation('activity.json#conversation=requested')\n        const unseenConversation = conversation('activity.json#conversation=unseen')\n        mockConversations([unseenConversation, requestedConversation])\n        const bindings = createActionPopupBindings(action, context, undefined, requestedConversation.path)\n\n        bindings.conversationStore.configureInitialSelection(unseenConversation.path)\n        await bindings.conversationStore.load()\n\n        expect(bindings.conversationStore.getSnapshot().selectedConversation).toBe(requestedConversation)\n        bindings.bindingStore.dispose()\n    })\n})",
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-event-18",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/actions/run/popup; python - <<'EOF'\np='action_popup_runtime.node.test.ts'\ns=open(p,encoding='utf-8',newline='').read()\ns=s.replace(\"\"\"import type { ActionDefinition } from '../../../../data/action_types'\n\"\"\",\"\"\"import type { ActionDefinition } from '../../../../data/action_types'\nimport type { AgentConversation } from '../../../../data/data_types'\n\"\"\",1)\ns=s.replace(\"\"\"import { actionRunRegistry } from '../../../../services/actions/action_run_registry'\n\"\"\",\"\"\"import { actionRunRegistry } from '../../../../services/actions/action_run_registry'\nimport { dataService } from '../../../../services/data/data_service'\n\"\"\",1)\ns=s.replace(\"\"\"function runEvent(\"\"\",\"\"\"function conversation(path: string): AgentConversation {\n    return {\n        actionId: action.id,\n        cardInternalId: 'card-1',\n        cardPath: 'design/F-1.md',\n        completedAt: '2026-01-01T00:01:00.000Z',\n        entries: [],\n        hasExplicitTitle: true,\n        id: path,\n        path,\n        providerSessions: [],\n        startedAt: '2026-01-01T00:00:00.000Z',\n        status: 'completed',\n        title: 'Build',\n        viewed: false,\n    }\n}\n\nfunction mockConversations(conversations: AgentConversation[]) {\n    vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue(conversations)\n    vi.spyOn(dataService, 'loadAgentConversation').mockImplementation(async (path) => {\n        const loadedConversation = conversations.find((current) => current.path === path)\n        if (!loadedConversation) throw new Error(`Missing conversation ${path}`)\n\n        return loadedConversation\n    })\n}\n\nfunction runEvent(\"\"\",1)\ns=s.replace(\"\"\"    setActionBridgeOverride(null)\n})\"\"\",\"\"\"    setActionBridgeOverride(null)\n    vi.restoreAllMocks()\n})\"\"\",1)\nidx=s.rstrip().rfind('})')\nadd=\"\"\"\n    it('selects the unseen conversation configured after ordinary popup opening', async () => {\n        const unseenConversation = conversation('activity.json#conversation=unseen')\n        mockConversations([unseenConversation])\n        const bindings = createActionPopupBindings(action, context)\n\n        bindings.conversationStore.configureInitialSelection(unseenConversation.path)\n        await bindings.conversationStore.load()\n\n        expect(bindings.conversationStore.getSnapshot().selectedConversation).toBe(unseenConversation)\n        bindings.bindingStore.dispose()\n    })\n\n    it('keeps the requested conversation over a later configured unseen conversation', async () => {\n        const requestedConversation = conversation('activity.json#conversation=requested')\n        const unseenConversation = conversation('activity.json#conversation=unseen')\n        mockConversations([unseenConversation, requestedConversation])\n        const bindings = createActionPopupBindings(action, context, undefined, requestedConversation.path)\n\n        bindings.conversationStore.configureInitialSelection(unseenConversation.path)\n        await bindings.conversationStore.load()\n\n        expect(bindings.conversationStore.getSnapshot().selectedConversation).toBe(requestedConversation)\n        bindings.bindingStore.dispose()\n    })\n\"\"\"\ns=s[:idx]+add.lstrip('\\n')+s[idx:] if False else s[:idx].rstrip('\\n')+'\\n\\n'+add.lstrip('\\n')+s[idx:]\nopen(p,'w',encoding='utf-8',newline='').write(s)\nEOF\ntail -30 action_popup_runtime.node.test.ts",
+          "providerItemId": "toolu_01PTrdyg6ye6PDycmQerRxgK",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-09-23T16:32:49.057Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"command\":\"Set-Location C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app; npm run test -- src/components/actions/run/popup/action_popup_runtime.node.test.ts src/components/actions/conversation/action_conversation_store.node.test.ts 2>&1 | Select-Object -Last 15\",\"description\":\"Run runtime and store tests\",\"timeout\":300000}",
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-event-19",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "> app@0.6.3 test\r\n> vitest run src/components/actions/run/popup/action_popup_runtime.node.test.ts src/components/actions/conversation/action_conversation_store.node.test.ts\r\n\r\n\r\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/app\r\n\r\n\r\n Test Files  2 passed (2)\r\n      Tests  23 passed (23)\r\n   Start at  18:32:54\r\n   Duration  1.14s (transform 613ms, setup 19ms, import 954ms, tests 15ms, environment 0ms)",
+          "providerItemId": "toolu_01XNx5rkKUkhwcCraGGbyZ4d",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-09-23T16:32:56.124Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "agent": "claude",
+          "content": "Pass. Confirm regression test fails without fix, then lint.",
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 20,
+          "timestamp": "2026-09-23T16:32:57.750Z"
+        },
+        {
+          "content": "{\"command\":\"Set-Location C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app; git stash push src/components/actions/run/popup/action_popup_runtime.ts; npm run test -- src/components/actions/run/popup/action_popup_runtime.node.test.ts 2>&1 | Select-String \\\"✓|×|FAIL|Tests \\\"; git stash pop\",\"description\":\"Verify regression test fails before fix\",\"timeout\":300000}",
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-event-21",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "Saved working directory and index state WIP on dev_main: 981c9e8c Start card agent activity\n\r\n ❯ |unit| src/components/actions/run/popup/action_popup_runtime.node.test.ts (5 tests | 1 failed) 12ms\r\n     × selects the unseen conversation configured after ordinary popup opening 5ms\r\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\r\n FAIL  |unit| src/components/actions/run/popup/action_popup_runtime.node.test.ts > createActionPopupBindings > selects \r\nthe unseen conversation configured after ordinary popup opening\r\n Test Files  1 failed (1)\r\n      Tests  1 failed | 4 passed (5)\r\n   Duration  1.15s (transform 655ms, setup 16ms, import 998ms, tests 12ms, environment 0ms)\r\nOn branch dev_main\nYour branch is ahead of 'origin/dev_main' by 524 commits.\n  (use \"git push\" to publish your local commits)\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   src/components/actions/run/popup/action_popup_runtime.node.test.ts\n\tmodified:   src/components/actions/run/popup/action_popup_runtime.ts\n\tmodified:   ../design/activity/card__6a25a6de-234c-4d7a-9d59-7ce9e86992b5.json\n\tmodified:   ../design/usage_metrics.csv\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\nDropped refs/stash@{0} (cee58c8f36e506d276e897916a7599591c68fab9)",
+          "providerItemId": "toolu_012698dak3uiSW1RB3aVAjfY",
+          "sequence": 21,
+          "status": "completed",
+          "timestamp": "2026-09-23T16:33:03.408Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "{\"command\":\"Set-Location C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app; npx eslint src/components/actions/run/popup/action_popup_runtime.ts src/components/actions/run/popup/action_popup_runtime.node.test.ts\",\"description\":\"Lint changed files\",\"timeout\":300000}",
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-event-22",
+          "kind": "event",
+          "label": "PowerShell",
+          "output": "(PowerShell completed with no output)",
+          "providerItemId": "toolu_013sb69wv1qUBMuAyYw335Xv",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-09-23T16:33:20.886Z",
+          "type": "tool.PowerShell"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_247_finished_conversation_not_selected.md",
+          "deletions": 1,
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-event-23",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_247_finished_conversation_not_selected.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Jm4XhMbrbqMPDGG9HVuY9V",
+          "sequence": 23,
+          "status": "completed",
+          "timestamp": "2026-09-23T16:33:22.998Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nBug fixed. Popup opening now selects the newest unseen conversation again. Tests pass, lint clean.\n\n- **Fix:** in `app/src/components/actions/run/popup/action_popup_runtime.ts:34`, `createActionPopupBindings` now calls `configureInitialSelection` only when a conversation path was requested. Before, it always called it, and with no requested path it locked the initial selection to `null`. The picker's unseen path, sent later, was then ignored.\n- **Pinned conversations:** a pinned (requested) conversation still wins, because it is configured first.\n- **Tests:** added two to `action_popup_runtime.node.test.ts`:\n  - Regression: with no requested path, the unseen conversation gets selected. I checked that it fails without the fix.\n  - With a requested path, a later unseen path is ignored and the requested conversation stays selected.\n- **Results:** the runtime and store test files pass (23 tests). I ran eslint only on the two changed files, not the full `npm run lint`.\n- **Spec:** `status: ready` set in `B_247_finished_conversation_not_selected.md`.\n\nI did not check in the running app that the unseen state clears from the action button. That behavior was not changed.\n\nThe Google Drive connector needs authorizing in your claude.ai connector settings before it can be used. It wasn't needed here.",
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 24,
+          "timestamp": "2026-09-23T16:33:28.216Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -668,23 +789,23 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 9172,
-          "toolMs": 7503
+          "reasoningMs": 10508,
+          "toolMs": 48235
         },
         "elapsedMs": 30681,
         "runningStartedAt": "2026-09-23T16:32:31.529Z"
       },
       "title": "fix bug",
       "usage": {
-        "cachedInputTokens": 295971,
-        "inputTokens": 14,
-        "outputTokens": 1894,
+        "cachedInputTokens": 665567,
+        "inputTokens": 28,
+        "outputTokens": 4912,
         "reasoningTokens": 0,
-        "totalTokens": 297879,
-        "costUsd": 0.3641866
+        "totalTokens": 670507,
+        "costUsd": 0.905039
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
