@@ -1250,13 +1250,50 @@
         "totalTokens": 1479625
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "4d894c57-e88c-49fc-8bb4-2533b8ee9ef6",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "dcd0270ac709cf7fdcda3a8865f96a9f6947c9ac",
+          "committedAt": "2026-09-23T19:15:32+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_375_mindmap_editing_improvements.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 33
+        }
+      ],
+      "completedAt": "2026-09-23T17:15:33.381Z",
+      "conversationIds": [
+        "agent-ff2fe0c4-5677-4ecf-93d4-95db8a53eb2a"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-b5b43a56-2c41-44d0-8210-c1e72dc9d6bf",
+      "origin": {
+        "cardInternalId": "4d894c57-e88c-49fc-8bb4-2533b8ee9ef6",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-ff2fe0c4-5677-4ecf-93d4-95db8a53eb2a",
+      "startedAt": "2026-09-23T17:12:05.963Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
