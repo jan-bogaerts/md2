@@ -1,8 +1,8 @@
 {
   "actionsFolder": "actions",
   "archivedFolder": "archived",
+  "autoCommitDelayMs": 30000,
   "backgroundShade": "neutral",
-  "cardBodyTemplate": "# Goal\n\n# Current status\n\n# Details\n\n# Tasks",
   "cardSeparator": "_",
   "cardTypes": [
     {
@@ -24,7 +24,12 @@
       "type": "bug"
     }
   ],
+  "deleteBranchAfterIntegration": true,
+  "deleteBranchesAfterRelease": false,
   "diffCommand": "git show {{commit}}",
+  "diagramFooter": "Save exactly one valid JSON object to {{diagram-file}}. Write JSON only: no SVG, markup, Markdown code fence, or explanatory text.\n\nRequired root fields:\n- meta: { version: 1, type, title, description }\n- nodes: [{ id, label, role }]\n- edges: [{ id, from, to, kind }]\n\nOptional root fields:\n- groups: [{ id, label, nodeIds }]\n- fragments for sequence data only\n\nOptional meta fields:\n- preset, required for flow data and forbidden for other types\n\nSupported diagram types:\n- architecture\n- dependency\n- sequence\n- flow\n- entity\n- mindmap\n\nSupported roles:\n- focal\n- backend\n- store\n- external\n- input\n- optional\n- boundary\n\nNode fields:\n- Required: id, label, role\n- Optional: kind, sublabel, tag, drilldown, x, y, width, height\n- fields: [{ name, optional type, optional key }] is allowed only for entity nodes\n- Entity field key must be primary or foreign\n- Omit drilldown or set it to true for selectable nodes; set it to false only for non-selectable nodes\n\nNode kinds by diagram type:\n- architecture: component\n- dependency: component\n- sequence: participant\n- entity: entity\n- mindmap: exactly one root in every non-empty diagram; all other nodes are topic\n- flow with preset flowchart: start, end, step, decision\n- flow with preset state: start, end, state\n\nEdge kinds by diagram type:\n- architecture: connection, data, async\n- dependency: dependency, cycle\n- sequence: call, return, async, success\n- flow: flow, transition\n- entity: relationship\n- mindmap: connection\n\nOptional edge fields:\n- label\n- waypoints: [{ x, y }]\n- sourceAttachment and targetAttachment: { nodeId, side, offset }\n- Attachment side must be top, right, bottom, or left\n- Attachment offset must be a number from 0 through 1, measured along that node side\n- sourceAttachment.nodeId must equal edge.from; targetAttachment.nodeId must equal edge.to\n- fromCardinality and toCardinality for entity relationships only\n- Cardinalities must be 1, N, 0..1, or 1..*\n\nFlow rules:\n- meta.preset must be flowchart or state\n- Every edge leaving a decision node must have a label\n- Every state transition must have a label\n\nMindmap rules:\n- An empty mindmap is valid\n- Every non-empty mindmap has exactly one explicit root node\n- Root and topic nodes require labels; connection labels are optional\n- Supply node width and height together or omit both\n- Do not use entity fields, cardinalities, flow presets, sequence fragments, waypoints, sourceAttachment, or targetAttachment\n- Connections are directed from source to target; application derives circular endpoints and curved paths\n\nSequence rules:\n- Store message edges in chronological order\n- fragments use { id, operator, regions: [{ guard, edgeIds }] }\n- operator must be alt, opt, or loop\n- alt requires exactly two regions\n- opt and loop require exactly one region\n- An edge may occur only once within a fragment\n\nReference rules:\n- Node IDs must be unique\n- Edge IDs must be unique and must not duplicate node IDs\n- Every edge.from and edge.to must reference an existing node\n- Every group.nodeIds entry must reference an existing node\n- Every fragment edgeIds entry must reference an existing edge\n\nLayout is owned by the application. Prefer omitting x, y, width, height, waypoints, sourceAttachment, and targetAttachment. If supplied, all geometry values must be multiples of 4, width and height must be positive, and waypoint segments must be horizontal or vertical. Attachments persist precise connection points across node movement and resizing.\n",
+  "diagramsFolder": "diagrams",
+  "pinnedConversations": [],
   "projectFolder": "design",
   "pushMode": "manual",
   "releasesFolder": "releases",
