@@ -3,12 +3,12 @@ author:
 id: F_265
 internalId: 6cd6114a-3b33-430b-895f-df592f272062
 title: add open in file explorer command
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 941d6509-a5a1-4f47-a9b6-a3fdd9c9c010
+after: d35077d6-dd5e-4bba-a00b-ad28b7e7df70
 ---
 
 in the context menu of cards on the dashboard and for all files in the list view: add a command 'open in file explorer' which opens file explorer, goes to the folder and selects the file
