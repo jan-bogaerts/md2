@@ -8756,6 +8756,49 @@
       "startedAt": "2026-09-23T09:12:13.142Z",
       "status": "completed",
       "rootConversationId": "agent-b7b015b9-4178-4108-8dc5-c45ab5c4b1c0"
+    },
+    {
+      "commits": [
+        {
+          "commit": "aa67a8f223cfd32a1e66c277d154ba04acb028ca",
+          "committedAt": "2026-09-23T13:12:12+02:00",
+          "deletions": 481,
+          "filePaths": [
+            "app/src/components/actions/run/trigger/action_entry_points.tsx",
+            "app/src/components/card_view/card_subscription_hooks.test.tsx",
+            "app/src/components/card_view/card_view.test.tsx",
+            "app/src/components/card_view/card_worktree_indicator.tsx",
+            "app/src/components/card_view/project_card_view.tsx",
+            "app/src/components/hooks/project_toolbar_snapshots.test.tsx",
+            "app/src/components/hooks/use_active_card_count.ts",
+            "app/src/components/overlay_lifecycle.test.tsx",
+            "app/src/components/shell/main_window.tsx",
+            "app/src/components/shell/menu/agent_menu_controls.tsx",
+            "app/src/components/shell/menu/app_menu.test.tsx",
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/shell/menu/main_toolbar.grouped.test.tsx",
+            "app/src/components/shell/menu/main_toolbar.tsx",
+            "app/src/components/shell/project/use_project_toolbar_menu_actions.ts",
+            "app/src/components/shell/project_toolbar_menu.tsx",
+            "app/src/components/worktree_selector.tsx",
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/card_popup_service.test.ts",
+            "app/src/services/card_popup_service.ts",
+            "app/src/services/data/data_service.ts"
+          ],
+          "filesChanged": 22,
+          "insertions": 894,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-23T13:12:12+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "be1030df-8a36-4969-99af-e22e8456579f",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
