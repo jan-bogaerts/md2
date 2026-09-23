@@ -10,8 +10,6 @@ agents:
   - design/activity/card__64876822-b48e-450e-b7c7-68fd8d2ba6bd.json
 policy:
 after: 4d894c57-e88c-49fc-8bb4-2533b8ee9ef6
-branch: j_50_markdown_toolbar_attach_files_pos
-worktree: 3
 ---
 the `attach files` button on the markdown toolbar should be in the same group as `create link` is, if possible
 
