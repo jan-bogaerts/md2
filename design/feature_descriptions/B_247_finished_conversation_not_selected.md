@@ -3,12 +3,14 @@ author:
 id: B_247
 internalId: 6a25a6de-234c-4d7a-9d59-7ce9e86992b5
 title: finished conversation not selected
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__6a25a6de-234c-4d7a-9d59-7ce9e86992b5.json
 policy:
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup_runtime.ts
 ---
 When a conversation is finished and not yet read, we show a state on the action button (blue button) to indicate the state.
 
