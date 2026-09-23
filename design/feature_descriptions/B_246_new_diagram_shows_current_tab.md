@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__568c6713-9e89-444e-910f-d43e00b032b9.json
 policy:
+branch: b_246_new_diagram_shows_current_tab
+worktree: 2
 ---
 
 when creating a new diagram, there is no current diagram yet. pointless to show this.
