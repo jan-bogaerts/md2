@@ -55,6 +55,8 @@ Keep analysis and documentation **short, precise, and to the point**. Avoid verb
 
 ## code style guide
 
+* stick to the Single Responsibility Principle (SRP)
+* keep it simple. don't over engineer.
 * Put every **component or class** in it's **own file**.
 * Add a short **JSDoc** to new functions when useful.
 * **avoid functions nested** inside other functions when writing new functions.
