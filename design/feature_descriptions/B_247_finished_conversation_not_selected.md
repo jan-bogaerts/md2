@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__6a25a6de-234c-4d7a-9d59-7ce9e86992b5.json
 policy:
 ---
 When a conversation is finished and not yet read, we show a state on the action button (blue button) to indicate the state.
