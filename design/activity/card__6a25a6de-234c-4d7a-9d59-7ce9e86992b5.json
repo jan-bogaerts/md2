@@ -13,6 +13,20 @@
           "thinkingLevel": "medium"
         }
       }
+    },
+    "5c6ec911-a3e8-46d3-8500-46875d67b78d": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
     }
   },
   "conversations": [
@@ -459,6 +473,34 @@
         "totalTokens": 877620,
         "costUsd": 0.7467807999999999
       },
+      "usageSchemaVersion": 1,
+      "viewed": true
+    },
+    {
+      "actionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
+      "cardInternalId": "6a25a6de-234c-4d7a-9d59-7ce9e86992b5",
+      "cardPath": "design/feature_descriptions/B_247_finished_conversation_not_selected.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and fix the bug described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_247_finished_conversation_not_selected.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned bug description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).&#x20;\n2. create a task for each block\n3. Wait for approval.\n4. include tests\n5. After implementation is done, update the field `status` in the markdown feature description file to `ready`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_247_finished_conversation_not_selected.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria. Keep everything short and to the point.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "agent-turn-2e072eab-78a6-4f74-916c-41e007894780-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-23T16:27:09.069Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-436dec82-23de-4401-9349-8df7abcf570f",
+      "providerSessions": [],
+      "startedAt": "2026-09-23T16:27:09.069Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-23T16:27:09.069Z"
+      },
+      "title": "fix bug",
       "usageSchemaVersion": 1,
       "viewed": true
     }
