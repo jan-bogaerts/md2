@@ -19,7 +19,9 @@ changedFiles:
   - app/src/components/card_view/project_card_view.tsx
   - app/src/components/hooks/project_toolbar_snapshots.test.tsx
   - app/src/components/hooks/use_active_card_count.ts
+  - app/src/components/hooks/use_project_loading.ts
   - app/src/components/overlay_lifecycle.test.tsx
+  - app/src/components/shell/main_window.test.tsx
   - app/src/components/shell/main_window.tsx
   - app/src/components/shell/menu/agent_menu_controls.tsx
   - app/src/components/shell/menu/app_menu.test.tsx
@@ -27,6 +29,7 @@ changedFiles:
   - app/src/components/shell/menu/main_toolbar.grouped.test.tsx
   - app/src/components/shell/menu/main_toolbar.tsx
   - app/src/components/shell/project/use_project_toolbar_menu_actions.ts
+  - app/src/components/shell/project_loading_indicator.tsx
   - app/src/components/shell/project_toolbar_menu.tsx
   - app/src/components/worktree_selector.tsx
   - app/src/services/agents/agent_integration.test.ts
@@ -34,6 +37,8 @@ changedFiles:
   - app/src/services/card_popup_service.test.ts
   - app/src/services/card_popup_service.ts
   - app/src/services/data/data_service.ts
+  - app/src/services/project/project_session_service.service.test.ts
+  - app/src/services/project/project_session_service.ts
 ---
 
 see trace [Trace-open project.json](file:///C:/Users/janbo/Documents/dev/Trace-open%20project.json). Analyze the trace. it is taken while opening a project. this operation takes way way too long. most likely there is again a UI architecture violation where the UI keeps re-rendering while loading the project.
