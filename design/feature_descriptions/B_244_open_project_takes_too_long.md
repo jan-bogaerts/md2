@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__be1030df-8a36-4969-99af-e22e8456579f.json
 policy:
+branch: b_244_open_project_takes_too_long
 ---
 
 see trace [Trace-open project.json](file:///C:/Users/janbo/Documents/dev/Trace-open%20project.json). Analyze the trace. it is taken while opening a project. this operation takes way way too long. most likely there is again a UI architecture violation where the UI keeps re-rendering while loading the project.
