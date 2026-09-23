@@ -3,7 +3,7 @@ author:
 id: F_375
 internalId: 4d894c57-e88c-49fc-8bb4-2533b8ee9ef6
 title: Mindmap editing improvements
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,44 @@ policy:
 after: d35077d6-dd5e-4bba-a00b-ad28b7e7df70
 branch: f_375_mindmap_editing_improvements
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_add_control.tsx
+  - app/src/components/diagram_view/diagram_editor_integration.test.tsx
+  - app/src/components/diagram_view/diagram_inline_metadata_field.tsx
+  - app/src/components/diagram_view/diagram_inline_node_controls.tsx
+  - app/src/components/diagram_view/diagram_legend.tsx
+  - app/src/components/diagram_view/diagram_legend_details_editor.tsx
+  - app/src/components/diagram_view/diagram_legend_entries.ts
+  - app/src/components/diagram_view/diagram_legend_entry_list.tsx
+  - app/src/components/diagram_view/diagram_legend_entry_row.tsx
+  - app/src/components/diagram_view/diagram_menu_tab.test.tsx
+  - app/src/components/diagram_view/diagram_menu_tab.tsx
+  - app/src/components/diagram_view/diagram_node.test.tsx
+  - app/src/components/diagram_view/diagram_node.tsx
+  - app/src/components/diagram_view/diagram_session_legend_entries.test.tsx
+  - app/src/components/diagram_view/diagram_session_legend_entries.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/diagram_zoom_viewport.tsx
+  - app/src/components/diagram_view/editable_diagram.test.tsx
+  - app/src/components/diagram_view/editable_diagram.tsx
+  - app/src/components/diagram_view/editable_diagram_node.tsx
+  - app/src/components/diagram_view/use_diagram_tool.ts
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_edge_drawing_service.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_geometry_service.test.ts
+  - app/src/services/diagrams/diagram_group_drawing_service.test.ts
+  - app/src/services/diagrams/diagram_group_drawing_service.ts
+  - app/src/services/diagrams/diagram_layout.node.test.ts
+  - app/src/services/diagrams/diagram_layout.ts
+  - app/src/services/diagrams/diagram_node_placement_service.test.ts
+  - app/src/services/diagrams/diagram_node_placement_service.ts
+  - app/src/services/diagrams/diagram_resize_service.test.ts
+  - app/src/services/diagrams/diagram_resize_service.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
 ---
 * When new diagram, in general, is created, switch app tab to diagram. It becomes available after switching to diagram view.
 * On diagram menu:
