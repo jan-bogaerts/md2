@@ -3,7 +3,7 @@ author:
 id: B_244
 internalId: be1030df-8a36-4969-99af-e22e8456579f
 title: open project takes too long
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,31 @@ agents:
 policy:
 branch: b_244_open_project_takes_too_long
 worktree: 1
+changedFiles:
+  - .tmp/b244_capture_trace.js
+  - .tmp/b244_launch_electron.js
+  - app/src/components/actions/run/trigger/action_entry_points.tsx
+  - app/src/components/card_view/card_subscription_hooks.test.tsx
+  - app/src/components/card_view/card_view.test.tsx
+  - app/src/components/card_view/card_worktree_indicator.tsx
+  - app/src/components/card_view/project_card_view.tsx
+  - app/src/components/hooks/project_toolbar_snapshots.test.tsx
+  - app/src/components/hooks/use_active_card_count.ts
+  - app/src/components/overlay_lifecycle.test.tsx
+  - app/src/components/shell/main_window.tsx
+  - app/src/components/shell/menu/agent_menu_controls.tsx
+  - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/components/shell/menu/main_toolbar.grouped.test.tsx
+  - app/src/components/shell/menu/main_toolbar.tsx
+  - app/src/components/shell/project/use_project_toolbar_menu_actions.ts
+  - app/src/components/shell/project_toolbar_menu.tsx
+  - app/src/components/worktree_selector.tsx
+  - app/src/services/agents/agent_integration.test.ts
+  - app/src/services/agents/agent_integration.ts
+  - app/src/services/card_popup_service.test.ts
+  - app/src/services/card_popup_service.ts
+  - app/src/services/data/data_service.ts
 ---
 
 see trace [Trace-open project.json](file:///C:/Users/janbo/Documents/dev/Trace-open%20project.json). Analyze the trace. it is taken while opening a project. this operation takes way way too long. most likely there is again a UI architecture violation where the UI keeps re-rendering while loading the project.
