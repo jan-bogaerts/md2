@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "817375ae-1cba-4773-a4d7-898e3e5c8686",
+      "cardPath": "design/feature_descriptions/B_243_split_conversation_overly_restricted.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_243_split_conversation_overly_restricted.md. analyze the problem",
+          "id": "agent-turn-e8882af4-fda9-41d1-81ac-4cb179c1152d-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-23T15:04:06.918Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-930acb54-f8f6-4e67-b7b7-379a1063a3d1",
+      "providerSessions": [],
+      "startedAt": "2026-09-23T15:04:06.918Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-23T15:04:06.918Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "817375ae-1cba-4773-a4d7-898e3e5c8686",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
