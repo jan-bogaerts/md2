@@ -1,8 +1,7 @@
-import { act, cleanup, render } from '@testing-library/react'
+import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation } from '../../../data/data_types'
 import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
-import { cardPopupService } from '../../../services/card_popup_service'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import { ActionConversationChat } from './action_conversation_chat'
 import type { ActionConversationSearchService } from './action_conversation_search_service'
@@ -40,39 +39,40 @@ function conversationStore() {
     } as unknown as ActionConversationStore
 }
 
-describe('ActionConversationChat project popup visibility', () => {
+describe('ActionConversationChat popup visibility', () => {
     afterEach(() => {
         cleanup()
-        cardPopupService.clear()
         vi.restoreAllMocks()
     })
 
-    it('marks a project conversation viewed only while its entry is top of stack', () => {
+    it('marks a conversation visible only while caller reports its popup visible', () => {
         const setConversationVisible = vi.spyOn(agentAcknowledgementService, 'setConversationVisible')
             .mockImplementation(() => undefined)
-        cardPopupService.toggleAction({ kind: 'project' }, document.createElement('button'))
-        const projectEntryId = cardPopupService.getSnapshot()[0].id
-        render(
+        const props = {
+            actionId: 'respond',
+            bindingStore: {} as ActionRunBindingStore,
+            context: { kind: 'project' as const },
+            popupEntryId: 'project-popup',
+            searchService: {} as ActionConversationSearchService,
+            store: conversationStore(),
+        }
+        const { rerender } = render(
             <ActionConversationChat
-                actionId="respond"
-                bindingStore={{} as ActionRunBindingStore}
-                context={{ kind: 'project' }}
-                popupEntryId={projectEntryId}
-                searchService={{} as ActionConversationSearchService}
-                store={conversationStore()}
+                {...props}
+                popupVisible
             />,
         )
 
-        expect(setConversationVisible).toHaveBeenLastCalledWith(projectEntryId, null, 'respond', conversation, true)
+        expect(setConversationVisible).toHaveBeenLastCalledWith('project-popup', null, 'respond', conversation, true)
 
         setConversationVisible.mockClear()
-        act(() => cardPopupService.toggleAction({ cardInternalId: 'card-1', kind: 'card' }, document.createElement('button')))
+        rerender(<ActionConversationChat {...props} popupVisible={false} />)
 
-        expect(setConversationVisible).toHaveBeenLastCalledWith(projectEntryId, null, 'respond', conversation, false)
+        expect(setConversationVisible).toHaveBeenLastCalledWith('project-popup', null, 'respond', conversation, false)
 
         setConversationVisible.mockClear()
-        act(() => cardPopupService.activate(projectEntryId))
+        rerender(<ActionConversationChat {...props} popupVisible />)
 
-        expect(setConversationVisible).toHaveBeenLastCalledWith(projectEntryId, null, 'respond', conversation, true)
+        expect(setConversationVisible).toHaveBeenLastCalledWith('project-popup', null, 'respond', conversation, true)
     })
 })

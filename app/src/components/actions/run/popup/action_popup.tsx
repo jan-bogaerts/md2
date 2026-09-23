@@ -79,6 +79,7 @@ interface ActionPopupProps {
     onClose: () => void
     open?: boolean
     popupEntryId?: string
+    popupVisible?: boolean
     stackPosition?: number
 }
 

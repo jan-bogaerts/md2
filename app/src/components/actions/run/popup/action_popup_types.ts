@@ -26,6 +26,7 @@ export interface ActionPopupContentProps {
     onToggleFullHeight: () => void
     open: boolean
     popupEntryId?: string
+    popupVisible?: boolean
     primaryPath: string | null
     readOnlyMessage: string | null
     stackPosition?: number

@@ -53,6 +53,7 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
                         assignmentContext={assignmentContext}
                         baseContext={props.baseContext}
                         popupEntryId={props.popupEntryId}
+                        popupVisible={props.popupVisible}
                         readOnlyMessage={props.readOnlyMessage}
                         runtime={runtime}
                     />

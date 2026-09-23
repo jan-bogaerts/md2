@@ -12,12 +12,13 @@ interface ActionAgentInteractionProps {
     action: ActionDefinition
     assignmentContext: ActionContext
     popupEntryId?: string
+    popupVisible?: boolean
     runtime: ActionPopupRuntime
 }
 
 /** Agent interaction surface, including agent children started by command actions. */
 export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
-    const { action, assignmentContext, popupEntryId, runtime } = props
+    const { action, assignmentContext, popupEntryId, popupVisible, runtime } = props
     const {
         bindingStore, conversationSearchService, conversationStore, historyStore, inputStore, resultStore,
         runValidationError, scheduleStore, settingsStore, usageValuesService,
@@ -43,6 +44,7 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
                     bindingStore={bindingStore}
                     context={assignmentContext}
                     popupEntryId={popupEntryId}
+                    popupVisible={popupVisible}
                     searchService={conversationSearchService}
                     store={conversationStore}
                     usageValuesService={displayedUsageValuesService}

@@ -5,6 +5,7 @@ import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
 import type { MouseEvent } from 'react'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { actionsForContext, diagramContext } from '../../data/action_context'
+import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import {
     diagramEditSessionService, type DiagramEditSessionService,
@@ -20,8 +21,8 @@ import {
 } from '../../services/diagrams/diagram_emphasis_service'
 import { useActions } from '../hooks/use_actions'
 import { useWorkspaceView } from '../hooks/use_workspace_view'
-import { MovableFab } from '../movable_fab'
 import { DiagramActionPopup } from './diagram_action_popup'
+import { DiagramAgentFab } from './diagram_agent_fab'
 import { DiagramLegend } from './diagram_legend'
 import { DiagramItemMenu } from './diagram_item_menu'
 import { DiagramComparison } from './diagram_comparison'
@@ -80,6 +81,7 @@ export function DiagramView({
     )
     const { actions } = useActions()
     const rootActions = useMemo(() => actionsForContext(actions, ROOT_DIAGRAM_CONTEXT), [actions])
+    const rootActionIds = useMemo(() => rootActions.map(({ id }) => id), [rootActions])
     const rootDiagrams = index.activePath.length === 0 ? service.getRootDiagrams() : []
     const diagramTitle = (record: DiagramRecord) => {
         const label = actions.find(({ id }) => id === record.actionId)?.label ?? record.label
@@ -92,6 +94,9 @@ export function DiagramView({
         emphasis.start()
         void service.open().catch((error: unknown) => {
             dialogService.error(error, { fallbackMessage: 'Diagram view could not be opened' })
+        })
+        void dataService.listAgentConversations(ROOT_DIAGRAM_CONTEXT).catch((error: unknown) => {
+            dialogService.error(error, { fallbackMessage: 'Could not load diagram agent conversations' })
         })
     }, [emphasis, service, viewMode])
 
@@ -118,9 +123,6 @@ export function DiagramView({
         if (!item?.dataset.diagramRootId) return
         void service.navigateToSavedDiagram(item.dataset.diagramRootId).catch(reportNavigationFailure)
     }
-    const handleFabActivate = (anchorElement: HTMLElement) => service.openRootPopup(anchorElement)
-    const handleFabDragStart = () => service.closePopup()
-
     const content = status === 'loading' ? (
         <Box sx={{ alignItems: 'center', display: 'flex', flex: 1, justifyContent: 'center' }}><CircularProgress aria-label="Loading diagrams" /></Box>
     ) : status === 'error' ? (
@@ -217,18 +219,10 @@ export function DiagramView({
         >
             {content}
             {status === 'ready' ? (
-                <MovableFab
-                    ariaLabel="Diagram action"
-                    disabled={rootActions.length === 0}
-                    onActivate={handleFabActivate}
-                    onDragStart={handleFabDragStart}
-                    tooltip={rootActions.length === 0 ? 'No root diagram actions configured' : 'Diagram action'}
-                >
-                    <AccountTreeOutlined />
-                </MovableFab>
+                <DiagramAgentFab rootActionIds={rootActionIds} service={service} />
             ) : null}
             <DiagramItemMenu emphasis={emphasis} service={service} />
-            <DiagramActionPopup service={service} />
+            <DiagramActionPopup service={service} visible={viewMode === 'diagrams'} />
         </Box>
     )
 }

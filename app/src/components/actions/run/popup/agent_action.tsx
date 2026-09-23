@@ -12,13 +12,14 @@ interface AgentActionProps {
     assignmentContext: ActionContext
     baseContext: ActionContext
     popupEntryId?: string
+    popupVisible?: boolean
     readOnlyMessage: string | null
     runtime: ActionPopupRuntime
 }
 
 /** Agent conversation, prompt, interaction, and scheduling content. */
 export function AgentAction(props: AgentActionProps) {
-    const { action, assignmentContext, baseContext, popupEntryId, readOnlyMessage, runtime } = props
+    const { action, assignmentContext, baseContext, popupEntryId, popupVisible, readOnlyMessage, runtime } = props
     const { bindingStore, conversationSearchService, conversationStore, runValidationError, scheduleStore, settingsStore } = runtime
 
     if (readOnlyMessage) {
@@ -29,6 +30,7 @@ export function AgentAction(props: AgentActionProps) {
                     bindingStore={bindingStore}
                     context={assignmentContext}
                     popupEntryId={popupEntryId}
+                    popupVisible={popupVisible}
                     searchService={conversationSearchService}
                     store={conversationStore}
                 />
@@ -43,6 +45,7 @@ export function AgentAction(props: AgentActionProps) {
                 action={action}
                 assignmentContext={assignmentContext}
                 popupEntryId={popupEntryId}
+                popupVisible={popupVisible}
                 runtime={runtime}
             />
             <ActionScheduleOwner action={action} context={baseContext} store={scheduleStore} />

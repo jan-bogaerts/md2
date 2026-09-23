@@ -28,6 +28,7 @@ describe('CardActionPopupHostEntry', () => {
             initialConversationPath: 'design/activity/card__card-1.json#conversation=conversation-1',
             initialRunId: 'run-7',
             popupEntryId: 'popup-1',
+            popupVisible: true,
             stackPosition: 2,
         })
     })

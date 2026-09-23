@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import {
     actionAcknowledgementEvent,
     agentAcknowledgementService,
@@ -45,6 +45,24 @@ export function useProjectAgentState() {
     const getSnapshot = useCallback(() => (
         cardAgentState(dataService.agents.getProjectAgentConversationsSnapshot())
     ), [])
+
+    return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
+/** Project-origin agent state restricted to configured action IDs. */
+export function useProjectActionsAgentState(actionIds: string[]) {
+    const actionIdsKey = [...new Set(actionIds)].sort().join('\u0000')
+    const includedActionIds = useMemo(
+        () => new Set(actionIdsKey.length > 0 ? actionIdsKey.split('\u0000') : []),
+        [actionIdsKey],
+    )
+    const subscribe = useCallback((onStoreChange: () => void) => (
+        subscribeToAcknowledgements([PROJECT_ACKNOWLEDGEMENT_EVENT], onStoreChange)
+    ), [])
+    const getSnapshot = useCallback(() => cardAgentState(
+        dataService.agents.getProjectAgentConversationsSnapshot()
+            .filter(({ actionId }) => !!actionId && includedActionIds.has(actionId)),
+    ), [includedActionIds])
 
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 }

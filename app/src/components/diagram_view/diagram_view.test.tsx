@@ -18,6 +18,8 @@ import { DiagramComparisonLayoutService } from './diagram_comparison_layout_serv
 import { DiagramView } from './diagram_view'
 import { DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
+import { dataService } from '../../services/data/data_service'
+import { dialogService } from '../../services/dialog_service'
 
 vi.mock('../hooks/use_workspace_view', () => ({ useWorkspaceView: () => ({ selectedPath: null, viewMode: 'diagrams' }) }))
 
@@ -28,8 +30,9 @@ const actions = vi.hoisted(() => [
 
 vi.mock('../hooks/use_actions', () => ({ useActions: () => ({ actions }) }))
 vi.mock('../actions/run/popup/action_popup', () => ({
-    ActionPopup: ({ context, draggable, initialActionId }: {
+    ActionPopup: ({ context, draggable, initialActionId, popupEntryId, popupVisible }: {
         context: { kind: string, type?: string }, draggable?: boolean, initialActionId?: string,
+        popupEntryId?: string, popupVisible?: boolean,
     }) => {
         const matchingActions = actions.filter(({ appliesTo, builtin }) => (
             !builtin && appliesTo?.kind === context.kind && (appliesTo.type === undefined || appliesTo.type === context.type)
@@ -41,6 +44,8 @@ vi.mock('../actions/run/popup/action_popup', () => ({
                 data-action-id={initialActionId}
                 data-context={JSON.stringify(context)}
                 data-draggable={String(!!draggable)}
+                data-popup-entry-id={popupEntryId}
+                data-popup-visible={String(!!popupVisible)}
                 role="dialog"
             >
                 {matchingActions.map(({ label }) => <span key={label}>{label}</span>)}
@@ -209,6 +214,7 @@ function createService(initial = initialSnapshot()) {
                         parentNode: menu.itemLabel,
                         type: 'child',
                     },
+                    id: 'child-popup',
                     initialActionId: actionId,
                 },
             })
@@ -218,7 +224,7 @@ function createService(initial = initialSnapshot()) {
             snapshotEvents.dispatchEvent(new Event('rootMenu'))
             publish({
                 ...snapshot,
-                popup: { anchorElement, context: { kind: 'diagram', type: 'root' } },
+                popup: { anchorElement, context: { kind: 'diagram', type: 'root' }, id: 'new-root-popup' },
             })
         }),
         openItemMenu: vi.fn((menu: DiagramItemMenuRequest) => publish({ ...snapshot, menu: { ...menu, submenu: null } })),
@@ -230,7 +236,7 @@ function createService(initial = initialSnapshot()) {
             ...snapshot,
             popup: snapshot.popup?.context.type === 'root'
                 ? null
-                : { anchorElement, context: { kind: 'diagram', type: 'root' } },
+                : { anchorElement, context: { kind: 'diagram', type: 'root' }, id: 'root-popup' },
         })),
         openRootMenu: vi.fn((anchorElement: HTMLElement) => {
             rootMenu = { anchorElement }
@@ -249,6 +255,7 @@ function createService(initial = initialSnapshot()) {
                         parentNode: currentSelection.itemLabel,
                         type: 'child',
                     },
+                    id: 'selected-item-popup',
                 },
             })
         }),
@@ -396,8 +403,12 @@ describe('DiagramView', () => {
         )
         Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 })
         Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 })
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([])
     })
-    afterEach(cleanup)
+    afterEach(() => {
+        cleanup()
+        vi.restoreAllMocks()
+    })
 
     it('renders icon-only Back and transparent breadcrumb bar over active diagram', async () => {
         const service = createService()
@@ -850,6 +861,8 @@ describe('DiagramView', () => {
         expect(popup).not.toHaveTextContent('Detail')
         expect(popup).toHaveAttribute('data-context', '{"kind":"diagram","type":"root"}')
         expect(popup).toHaveAttribute('data-draggable', 'true')
+        expect(popup).toHaveAttribute('data-popup-entry-id', 'root-popup')
+        expect(popup).toHaveAttribute('data-popup-visible', 'true')
 
         await user.click(button)
 
@@ -882,12 +895,25 @@ describe('DiagramView', () => {
         const service = createService()
         const user = userEvent.setup()
         render(<DiagramView service={service} />)
-        const button = screen.getByRole('button', { name: 'Diagram action' })
+        const button = screen.getByRole('button', { name: 'No root diagram actions configured' })
 
         expect(button).toBeDisabled()
         await user.hover(screen.getByTestId('movable-fab-position'))
 
         expect(await screen.findByText('No root diagram actions configured')).toBeInTheDocument()
         expect(service.openRootPopup).not.toHaveBeenCalled()
+    })
+
+    it('reports diagram conversation load failure without blocking diagram opening', async () => {
+        const failure = new Error('conversation load failed')
+        vi.mocked(dataService.listAgentConversations).mockRejectedValueOnce(failure)
+        const reportError = vi.spyOn(dialogService, 'error')
+        const service = createService()
+
+        render(<DiagramView service={service} />)
+
+        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, {fallbackMessage: 'Could not load diagram agent conversations'}))
+        expect(service.open).toHaveBeenCalledOnce()
+        expect(screen.getByRole('button', { name: 'Diagram action' })).toBeInTheDocument()
     })
 })

@@ -36,6 +36,11 @@ function createHarness(repositoryFiles: string[] = []) {
     const scheduleCommit = vi.fn<(file: MarkdownFile, message: string) => void>()
     const service = new DiagramViewService({
         createId: vi.fn().mockReturnValueOnce('root-1').mockReturnValueOnce('root-2').mockReturnValueOnce('child-1'),
+        createPopupId: vi.fn()
+            .mockReturnValueOnce('popup-1')
+            .mockReturnValueOnce('popup-2')
+            .mockReturnValueOnce('popup-3')
+            .mockReturnValue('popup-4'),
         createTimestamp: () => '2026-09-01T10:00:00.000Z',
         flushCommits,
         loadActions: () => [
@@ -244,7 +249,11 @@ describe('DiagramViewService', () => {
         await service.open()
 
         service.openRootPopup(rootAnchor)
-        expect(service.getSnapshot().popup).toMatchObject({ anchorElement: rootAnchor, context: { kind: 'diagram', type: 'root' } })
+        expect(service.getSnapshot().popup).toMatchObject({
+            anchorElement: rootAnchor,
+            context: { kind: 'diagram', type: 'root' },
+            id: 'popup-1',
+        })
 
         service.openRootPopup(rootAnchor)
         expect(service.getSnapshot().popup).toBeNull()
@@ -256,6 +265,7 @@ describe('DiagramViewService', () => {
         expect(service.getSnapshot().popup).toMatchObject({
             anchorElement: childAnchor,
             context: { diagramId: 'diagram-1', diagramItemId: 'item-1', kind: 'diagram', parentNode: 'Item', type: 'child' },
+            id: 'popup-2',
             initialActionId: 'detail',
         })
     })
@@ -280,6 +290,7 @@ describe('DiagramViewService', () => {
         expect(service.getPopupSnapshot()).toMatchObject({
             anchorElement: newAnchor,
             context: { kind: 'diagram', type: 'root' },
+            id: 'popup-1',
             initialActionId: 'dependencies',
         })
         expect(menuChanged).toHaveBeenCalledTimes(3)
@@ -364,6 +375,7 @@ describe('DiagramViewService', () => {
         expect(service.getPopupSnapshot()).toEqual({
             anchorElement,
             context: { diagramId: 'root-1', diagramItemId: 'orders', kind: 'diagram', parentNode: 'Orders', type: 'child' },
+            id: 'popup-1',
         })
 
         run(completedEvent({ diagramPath: 'design/diagrams/overview-2.json', runId: 'run-2' }))

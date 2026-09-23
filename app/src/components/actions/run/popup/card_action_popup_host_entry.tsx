@@ -34,6 +34,7 @@ export function CardActionPopupHostEntry({ entry, stackPosition, visible }: Card
             onClose={handleClose}
             open={visible}
             popupEntryId={entry.id}
+            popupVisible={visible}
             stackPosition={stackPosition}
         />
     )

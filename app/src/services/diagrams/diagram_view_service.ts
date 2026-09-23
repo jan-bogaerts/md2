@@ -64,6 +64,7 @@ const VIEWPORT_SCALE_CHANGED_EVENT = 'viewportScaleChanged'
 export interface DiagramPopupState {
     anchorElement: HTMLElement
     context: ActionContext
+    id: string
     initialActionId?: string
 }
 
@@ -139,6 +140,7 @@ interface DiagramProjectBinding {
 
 interface DiagramViewDependencies {
     createId: () => string
+    createPopupId: () => string
     createTimestamp: () => string
     flushCommits: () => Promise<void>
     loadActions: () => ReturnType<typeof actionService.getActions>
@@ -204,6 +206,7 @@ function errorMessage(error: unknown) {
 function defaultDependencies(): DiagramViewDependencies {
     return {
         createId: generateUuid,
+        createPopupId: generateUuid,
         createTimestamp: () => new Date().toISOString(),
         flushCommits: () => dataService.cards.flushPendingCommits(),
         loadActions: () => actionService.getActions(),
@@ -530,7 +533,7 @@ export class DiagramViewService extends EventTarget {
         }
         this.setMenu(null)
         this.setRootMenu(null)
-        this.setPopup({ anchorElement, context: diagramContext('root') })
+        this.setPopup(this.createPopupState(anchorElement, diagramContext('root')))
     }
 
     openRootMenu(anchorElement: HTMLElement) {
@@ -551,7 +554,7 @@ export class DiagramViewService extends EventTarget {
         if (rootActions.length === 0) throw new Error('Cannot open a root diagram action without a configured root action')
         const initialActionId = rootActions.find(({ id }) => (this.snapshot.index.roots[id]?.length ?? 0) === 0)?.id
         this.setRootMenu(null)
-        this.setPopup({ anchorElement, context, ...(initialActionId ? { initialActionId } : {}) })
+        this.setPopup(this.createPopupState(anchorElement, context, initialActionId))
     }
 
     openChildPopup(actionId: string) {
@@ -560,7 +563,7 @@ export class DiagramViewService extends EventTarget {
         if (!menu) throw new Error('Cannot open a child diagram action without a selected item')
         const context = diagramContext('child', menu.diagramId, menu.itemId, menu.itemLabel)
         this.setMenu(null)
-        this.setPopup({ anchorElement: menu.anchorElement, context, initialActionId: actionId })
+        this.setPopup(this.createPopupState(menu.anchorElement, context, actionId))
     }
 
     openSelectedItemPopup(anchorElement: HTMLElement) {
@@ -574,7 +577,7 @@ export class DiagramViewService extends EventTarget {
         const context = diagramContext('child', selection.activeDiagramId, selection.itemId, selection.itemLabel)
         this.setMenu(null)
         this.setRootMenu(null)
-        this.setPopup({ anchorElement, context })
+        this.setPopup(this.createPopupState(anchorElement, context))
     }
 
     closePopup() {
@@ -989,6 +992,15 @@ export class DiagramViewService extends EventTarget {
 
         this.snapshot.popup = popup
         this.dispatchEvent(new Event(POPUP_CHANGED_EVENT))
+    }
+
+    private createPopupState(anchorElement: HTMLElement, context: ActionContext, initialActionId?: string) {
+        return {
+            anchorElement,
+            context,
+            id: this.dependencies.createPopupId(),
+            ...(initialActionId ? { initialActionId } : {}),
+        }
     }
 
     private setRootMenu(rootMenu: DiagramRootMenuState | null) {

@@ -146,7 +146,7 @@ describe('AgentChatFab', () => {
 
         act(() => emit({ ...baseEvent, status: 'running' }))
         expect(screen.getByRole('button', { name: 'Project agent — Action is running' })).toBeInTheDocument()
-        expect(document.head.textContent).toContain('md2-project-run-spin')
+        expect(document.head.textContent).toContain('md2-agent-run-spin')
 
         act(() => emit({ ...baseEvent, status: 'waitingForInput', type: 'agentState' }))
         const waitingButton = screen.getByRole('button', { name: 'Project agent — Agent is waiting for input' })
