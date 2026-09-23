@@ -3,7 +3,7 @@ author:
 id: F_144
 internalId: 385eccb9-06c4-4d93-8f8a-5f9b9f42e45f
 title: appbar and toolbar scrolling
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,14 @@ policy:
 after: 83c2184c-ed84-4e04-ad0a-4e3159cc163f
 branch: f_144_appbar_and_toolbar_scrolling
 worktree: 1
+changedFiles:
+  - app/src/components/editor/markdown_editor.tsx
+  - app/src/components/horizontal_scroll_area.test.tsx
+  - app/src/components/horizontal_scroll_area.tsx
+  - app/src/components/shell/menu/tab.grouped.test.tsx
+  - app/src/components/shell/menu/tab.tsx
+  - app/src/test/real_editor_setup.ts
+  - app/src/test/setup.ts
 ---
 When on the desktop (on mobile, it is ok):
 
