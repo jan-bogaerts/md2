@@ -16762,6 +16762,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
+      "cardPath": "design/feature_descriptions/F_349_pin_conversations.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "we implemented design/feature_descriptions/F_349_pin_conversations.md, but seems to have broken something: now, the select box that shows the currently selected conversation and the list of available conversations for the currently active action, the actually selected conversation is empty: so, the label in the select that represents the selected conversation, is emtpy, nothing renders. something got broken. the selector itself works ok: you can select a conversation.\ncheck what got broken and fix it",
+          "id": "agent-turn-ea38cdc2-7eb8-4c8e-b6ef-3f376c697f74-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-23T13:21:25.547Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-caa6ff6e-7564-454e-93df-60c4d11ce4f3",
+      "providerSessions": [],
+      "startedAt": "2026-09-23T13:21:25.547Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-23T13:21:25.547Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -16990,6 +17018,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "b6acd3d2f4f8d31a9a0cc8e15627e1e0e5c2aa16",
           "committedAt": "2026-09-21T13:51:58+02:00",
           "deletions": 60,
@@ -17036,8 +17065,7 @@
             "design/feature_descriptions/F_349_pin_conversations.md"
           ],
           "filesChanged": 40,
-          "insertions": 1555,
-          "branch": "dev_main"
+          "insertions": 1555
         }
       ],
       "completedAt": "2026-09-21T13:51:58+02:00",
