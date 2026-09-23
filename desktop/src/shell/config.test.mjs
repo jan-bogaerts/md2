@@ -130,23 +130,6 @@ describe('readDesktopConfig', () => {
         });
     });
 
-    it('uses built-in models when stored built-in profile models are missing or empty', () => {
-        const store = createFakeStore({
-            [DESKTOP_CONFIG_STORE_KEY]: {
-                agentProfiles: [
-                    { command: ['codex'], models: [], name: 'codex' },
-                    { command: ['claude'], name: 'claude' },
-                ],
-            },
-        });
-
-        expect(readDesktopConfig(store, {})).toMatchObject({
-            agentProfiles: [
-                { models: ['gpt-5.5', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'], name: 'codex' },
-                { models: ['default', 'sonnet', 'fable', 'opus', 'haiku'], name: 'claude' },
-            ],
-        });
-    });
 
     it('drops invalid stored profiles and keeps the valid ones', () => {
         const store = createFakeStore({

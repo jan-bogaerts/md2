@@ -95,8 +95,13 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         projectSessionService.setError(null)
     }, [onCloseDialog])
 
-    const openProject = useCallback(async (storageType: StorageType, nextProject: ProjectReference): Promise<ProjectOpenResult> => {
+    const beginProjectLoad = useCallback(() => {
+        onCloseDialog()
         setProjectOpenResolution(null)
+    }, [onCloseDialog])
+
+    const openProject = useCallback(async (storageType: StorageType, nextProject: ProjectReference): Promise<ProjectOpenResult> => {
+        beginProjectLoad()
 
         try {
             const resolution = await projectSessionService.openProject(storageType, nextProject, accessToken)
@@ -107,13 +112,12 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
                 return 'resolution'
             }
 
-            closeDialog()
             return 'opened'
         } catch {
             // ProjectSessionService emits the user-visible error.
             return 'failed'
         }
-    }, [accessToken, closeDialog, onOpenDialog])
+    }, [accessToken, beginProjectLoad, onOpenDialog])
 
     const recordOpenedLocalProject = useCallback(async (rootPath: string) => {
         setRecentLocalRepositories(await recordRecentLocalRepository(rootPath))
@@ -318,10 +322,11 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const confirmProjectFolderSetup = async (values: ProjectFolderValues) => {
         if (!projectOpenResolution) return
 
+        const resolution = projectOpenResolution
+        beginProjectLoad()
         try {
-            await projectSessionService.confirmProjectFolderSetup(projectOpenResolution, values, accessToken)
+            await projectSessionService.confirmProjectFolderSetup(resolution, values, accessToken)
             if (pendingLocalRootPath) await recordOpenedLocalProject(pendingLocalRootPath)
-            closeDialog()
         } catch {
             // ProjectSessionService emits the user-visible error.
         }

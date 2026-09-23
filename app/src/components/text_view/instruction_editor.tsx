@@ -11,7 +11,7 @@ export const InstructionEditor = memo(function InstructionEditor() {
     const [historyStore] = useState(() => new MarkdownDocumentHistoryStore())
 
     return (
-        <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
+        <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, overflow: 'auto' }}>
             <MarkdownEditor
                 binding="list-instruction"
                 dataSource={instructionMarkdownDataSource}

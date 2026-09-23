@@ -87,6 +87,22 @@ describe('conversation picker data', () => {
         expect(within(options[2]).queryByLabelText('Pinned')).not.toBeInTheDocument()
     })
 
+    it('shows the selected conversation label in the closed picker', () => {
+        const selectedConversation = conversation()
+        render(
+            <ActionConversationPicker
+                conversations={[selectedConversation]}
+                disabled={false}
+                loading={false}
+                onChange={vi.fn()}
+                selectedPath={selectedConversation.path}
+            />,
+        )
+
+        expect(screen.getByRole('combobox', { name: 'Conversation history' }))
+            .toHaveTextContent(conversationPickerLabel(selectedConversation))
+    })
+
     it('filters context, sorts newest first, and replaces live duplicates', () => {
         const context: ActionContext = { cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card' }
         const older = conversation({ id: 'older', path: 'older.json', startedAt: '2026-07-14T10:00:00.000Z' })

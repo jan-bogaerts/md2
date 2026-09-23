@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { within } from '@testing-library/react'
 import type { UseGithubAuthResult } from '../../auth/use_github_auth'
@@ -11,6 +11,7 @@ import { projectPersistenceService } from '../../services/project/project_persis
 import { openFilesService } from '../../services/open_files_service'
 import * as searchRegexpAgent from '../../services/search/search_regexp_agent'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
+import { projectSessionService } from '../../services/project/project_session_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { DialogDisplay } from '../dialog_display'
 import { MainWindow } from './main_window'
@@ -130,6 +131,7 @@ describe('MainWindow', () => {
         window.location.hash = ''
         workspaceViewService.setViewMode('cards')
         mockMatchMedia(false)
+        vi.restoreAllMocks()
     })
 
     it('shows the workspace and status bar on desktop', () => {
@@ -142,6 +144,25 @@ describe('MainWindow', () => {
         expect(screen.getByRole('button', { name: 'Running agents: 0' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
         expect(screen.queryByRole('region', { name: 'Project status' })).toBeNull()
+    })
+
+    it('shows a spinner instead of the workspace while a project loads', async () => {
+        const idleSnapshot = projectSessionService.getSnapshot()
+        const getSnapshot = vi.spyOn(projectSessionService, 'getSnapshot')
+        getSnapshot.mockReturnValue({ ...idleSnapshot, isProjectLoading: true })
+
+        renderWindow()
+
+        expect(screen.getByRole('status', { name: 'Loading project' })).toBeInTheDocument()
+        expect(screen.queryByLabelText('Project workspace')).toBeNull()
+
+        getSnapshot.mockReturnValue({ ...idleSnapshot, isProjectLoading: false })
+        act(() => projectSessionService.dispatchEvent(new Event('changed')))
+
+        await waitFor(() => {
+            expect(screen.queryByRole('status', { name: 'Loading project' })).toBeNull()
+            expect(screen.getByLabelText('Project workspace')).toBeInTheDocument()
+        })
     })
 
     it('shows card columns without a left navigation panel in card view', async () => {

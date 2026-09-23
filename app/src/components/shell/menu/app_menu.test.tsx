@@ -38,6 +38,21 @@ const auth: UseGithubAuthResult = {
 
 const LOCAL_PROJECT = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
+interface Deferred<T> {
+    promise: Promise<T>
+    resolve: (value: T) => void
+}
+
+function createDeferred<T>(): Deferred<T> {
+    let resolvePromise: ((value: T) => void) | null = null
+    const promise = new Promise<T>((resolve) => {
+        resolvePromise = resolve
+    })
+    if (!resolvePromise) throw new Error('Deferred promise resolver was not created')
+
+    return { promise, resolve: resolvePromise }
+}
+
 function createBridge(): ElectronDataBridge {
     const usageSummary = {
         content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()),
@@ -390,6 +405,24 @@ describe('AppMenu', () => {
         await openLocalProject()
 
         expect(dataService.getState().project?.id).toBe('local')
+    })
+
+    it('closes the open-project dialog when project loading starts', async () => {
+        const bridge = createBridge()
+        const projectConfig = createDeferred<{ backgroundShade: 'blue'; projectFolder: string; workingFolder: string }>()
+        bridge.loadProjectConfig = vi.fn(async () => await projectConfig.promise)
+        window.md2Data = bridge
+        renderMenu()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Open project' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Folder' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Choose local repository folder' }))
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Open project' })).toBeNull())
+        expect(projectSessionService.getSnapshot().isLoading).toBe(true)
+
+        projectConfig.resolve({ backgroundShade: 'blue', projectFolder: '', workingFolder: 'design' })
+        await waitFor(() => expect(projectSessionService.getSnapshot().isLoading).toBe(false))
     })
 
     it('updates the shared workspace view mode from the Home view toggle', () => {
