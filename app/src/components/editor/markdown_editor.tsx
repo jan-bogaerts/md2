@@ -15,6 +15,7 @@ import type { ActionPlaceholder } from '../../data/action_placeholders'
 import { useProjectState } from '../hooks/use_project_state'
 import { dialogService } from '../../services/dialog_service'
 import { useAppTheme } from '../../theme/use_app_theme'
+import { HorizontalScrollArea } from '../horizontal_scroll_area'
 import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'
 import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
@@ -374,7 +375,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     }
 
     const toolbarContents = useCallback(() => (
-        <>
+        <HorizontalScrollArea>
             {!hideToolbar ? (
                 customToolbarContents?.()
                 ?? (
@@ -388,7 +389,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             {attachmentHandler && !hideAttachmentControl ? (
                 <MarkdownAttachmentControl disabled={readOnly} onFiles={attachFiles} />
             ) : null}
-        </>
+        </HorizontalScrollArea>
     ), [
         attachFiles, attachmentHandler, customToolbarContents, hideAttachmentControl, hideToolbar, overlayContainer,
         placeholders, readOnly,
@@ -396,7 +397,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const editorSx = {
         ...markdownContentSx,
         ...(monospace ? {'& .mdxeditor-content, & .mdxeditor-content *': { fontFamily: 'monospace !important' }} : {}),
-        '& .mdxeditor-toolbar': { bgcolor: 'background.paper', position: 'sticky', top: 0, zIndex: 1 },
+        '& .mdxeditor-toolbar': { bgcolor: 'background.paper', overflow: 'hidden', position: 'sticky', top: 0, zIndex: 1 },
     }
     const historyPlugin = historyPluginConfig ? markdownDocumentHistoryPlugin(historyPluginConfig) : null
     const plugins = [

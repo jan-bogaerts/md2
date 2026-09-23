@@ -19,6 +19,9 @@ if (!globalThis.ResizeObserver) {
     }
 }
 
+// jsdom has no layout, so scrollIntoView does not exist.
+if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {}
+
 // MDXEditor is Lexical/contenteditable-based and does not render in jsdom, so
 // swap it for a textarea stub with the same markdown/onChange contract.
 vi.mock('@mdxeditor/editor', () => import('./mdx_editor_stub'))

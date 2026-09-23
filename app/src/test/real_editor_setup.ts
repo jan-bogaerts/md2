@@ -28,3 +28,6 @@ window.matchMedia = (query: string) => ({
 }) as unknown as MediaQueryList
 
 globalThis.ResizeObserver = TestResizeObserver
+
+// jsdom has no layout, so scrollIntoView does not exist.
+if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {}
