@@ -1485,6 +1485,34 @@
       "startedAt": "2026-09-23T14:59:55.709Z",
       "status": "completed",
       "rootConversationId": "agent-553725c0-22f6-48af-b588-ee9c9da66ac7"
+    },
+    {
+      "commits": [
+        {
+          "commit": "81dc38d86d335587ca36d65afaf4b468cebdad33",
+          "committedAt": "2026-09-23T17:40:57+02:00",
+          "deletions": 6,
+          "filePaths": [
+            "app/src/components/editor/markdown_editor.tsx",
+            "app/src/components/horizontal_scroll_area.test.tsx",
+            "app/src/components/horizontal_scroll_area.tsx",
+            "app/src/components/shell/menu/tab.grouped.test.tsx",
+            "app/src/components/shell/menu/tab.tsx",
+            "app/src/test/real_editor_setup.ts",
+            "app/src/test/setup.ts"
+          ],
+          "filesChanged": 7,
+          "insertions": 330,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-23T17:40:57+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "385eccb9-06c4-4d93-8f8a-5f9b9f42e45f",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
