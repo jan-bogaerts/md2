@@ -3,7 +3,7 @@ author:
 id: B_246
 internalId: 568c6713-9e89-444e-910f-d43e00b032b9
 title: new diagram shows current tab
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,16 @@ agents:
 policy:
 branch: b_246_new_diagram_shows_current_tab
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/diagram_legend.tsx
+  - app/src/components/diagram_view/diagram_menu_tab.test.tsx
+  - app/src/components/diagram_view/diagram_menu_tab.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/components/shell/menu/app_menu.tsx
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_save_service.test.ts
 ---
 
 when creating a new diagram, there is no current diagram yet. pointless to show this.
