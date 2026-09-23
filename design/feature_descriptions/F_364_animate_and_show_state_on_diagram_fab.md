@@ -10,8 +10,6 @@ agents:
   - design/activity/card__cdc16a08-2bb4-4abe-a270-d35616a7ca06.json
 policy:
 after: 530bdc1a-985f-434a-bfe7-acb2f7ca06b8
-branch: f_364_animate_and_show_state_on_diagram_fab
-worktree: 2
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_chat.tsx
   - app/src/components/actions/conversation/action_conversation_chat_visibility.test.tsx
