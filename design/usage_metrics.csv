@@ -5098,3 +5098,6 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-23T09:08:01.352Z,token_usage,codex,,,,,231,150528,109,127,150995,,
 2026-09-23T09:08:38.611Z,token_usage,codex,,,,,479,150528,25,61,151093,,
 2026-09-23T09:08:56.752Z,token_usage,codex,,,,,316,150784,50,327,151477,,
+2026-09-23T09:17:50.822Z,token_usage,codex,,,,,111311,1965440,4250,3648,2084649,,
+2026-09-23T09:27:35.247Z,account_usage,codex,codex,primary,10080,2026-09-26T11:59:09.000Z,,,,,,23,1
+2026-09-23T09:32:42.691Z,token_usage,codex,,,,,151609,5735168,16874,8424,5912075,,
