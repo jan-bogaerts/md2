@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "4d894c57-e88c-49fc-8bb4-2533b8ee9ef6",
       "cardPath": "design/feature_descriptions/F_375_mindmap_editing_improvements.md",
-      "completedAt": null,
+      "completedAt": "2026-09-23T17:15:32.237Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 84609
@@ -1217,21 +1217,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 87,
-          "timestamp": "2026-09-23T17:15:31.585Z"
+          "timestamp": "2026-09-23T17:15:32.237Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-ff2fe0c4-5677-4ecf-93d4-95db8a53eb2a",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0cf40-d1e9-7c22-bdb3-a252796aded4",
+          "createdAt": "2026-09-23T17:15:32.237Z",
+          "lastUsedAt": "2026-09-23T17:15:32.237Z",
+          "synchronizedThroughMessageId": "agent-turn-7712e08e-aac0-4a4d-95e8-d78b0ed9e804-turn-1-assistant-6"
+        }
+      ],
       "startedAt": "2026-09-23T17:12:05.966Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 49416,
           "toolMs": 4336
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-23T17:12:05.966Z"
+        "elapsedMs": 206271,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
