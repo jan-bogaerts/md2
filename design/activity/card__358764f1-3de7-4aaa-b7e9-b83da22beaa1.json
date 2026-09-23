@@ -16767,7 +16767,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "358764f1-3de7-4aaa-b7e9-b83da22beaa1",
       "cardPath": "design/feature_descriptions/F_349_pin_conversations.md",
-      "completedAt": null,
+      "completedAt": "2026-09-23T13:38:04.732Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 48688
@@ -17684,7 +17684,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 68,
-          "timestamp": "2026-09-23T13:26:25.695Z"
+          "timestamp": "2026-09-23T13:38:04.732Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -17694,12 +17694,12 @@
           "agent": "codex",
           "conversationId": "01a0ce6d-a465-7170-8756-448d433d7c0c",
           "createdAt": "2026-09-23T13:26:25.695Z",
-          "lastUsedAt": "2026-09-23T13:26:25.695Z",
+          "lastUsedAt": "2026-09-23T13:38:04.732Z",
           "synchronizedThroughMessageId": "agent-turn-ea38cdc2-7eb8-4c8e-b6ef-3f376c697f74-turn-1-assistant-4"
         }
       ],
       "startedAt": "2026-09-23T13:21:25.547Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 43333,
