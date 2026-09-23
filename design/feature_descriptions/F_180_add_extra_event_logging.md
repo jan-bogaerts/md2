@@ -9,7 +9,6 @@ affects:
 agents:
   - design/activity/card__96236df6-2c3a-4846-9d52-f29b7ee9041d.json
 policy:
-after: a8daacc1-09c2-4447-84f6-f7240e33f570
 ---
 we currently only appear to log start and end of app. other things we can log:
 

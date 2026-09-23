@@ -3,11 +3,11 @@ author:
 id: F_336
 internalId: c6100c77-b4ed-44ab-b53d-7770c01b8656
 title: Add docs for diagrams
-status: new
+status: ready for implementation
 owner: 
 affects:
 agents:
 policy:
-after: 22e1a692-a35c-4fe0-a4ea-70545e3e6009
+after: 83c2184c-ed84-4e04-ad0a-4e3159cc163f
 ---
-We rece tly added support for editable diagrams. This needs to be documented both in readme.md and in docs folder
+We recently added support for editable diagrams. This needs to be documented both in readme.md and in docs folder

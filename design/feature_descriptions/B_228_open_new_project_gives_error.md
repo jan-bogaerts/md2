@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: c6100c77-b4ed-44ab-b53d-7770c01b8656
+after: 22e1a692-a35c-4fe0-a4ea-70545e3e6009
 ---
 
 I opened an existing folder that contains a git repository. it showed the `project folders` dialog. after opening, we got this error:
