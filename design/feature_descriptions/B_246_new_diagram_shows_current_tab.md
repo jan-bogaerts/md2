@@ -10,7 +10,6 @@ agents:
   - design/activity/card__568c6713-9e89-444e-910f-d43e00b032b9.json
 policy:
 branch: b_246_new_diagram_shows_current_tab
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/diagram_legend.tsx
   - app/src/components/diagram_view/diagram_menu_tab.test.tsx

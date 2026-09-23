@@ -10,6 +10,8 @@ agents:
   - design/activity/card__4d894c57-e88c-49fc-8bb4-2533b8ee9ef6.json
 policy:
 after: d35077d6-dd5e-4bba-a00b-ad28b7e7df70
+branch: f_375_mindmap_editing_improvements
+worktree: 2
 ---
 * When new diagram, in general, is created, switch app tab to diagram. It becomes available after switching to diagram view.
 * On diagram menu:
