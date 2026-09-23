@@ -1,6 +1,6 @@
 import { Box, IconButton, InputAdornment, TextField, ToggleButton, Tooltip, Typography } from '@mui/material'
 import type { ChangeEvent, FocusEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AutoFix from 'mdi-material-ui/AutoFix'
 import FileSearchOutline from 'mdi-material-ui/FileSearchOutline'
 import LightningBolt from 'mdi-material-ui/LightningBolt'
@@ -63,6 +63,7 @@ export function SearchPanel(props: SearchPanelProps) {
     const [actionPopupOpen, setActionPopupOpen] = useState(false)
     const [previewMatch, setPreviewMatch] = useState<SearchMatch | null>(null)
     const [controlElement, setControlElement] = useState<HTMLDivElement | null>(null)
+    const resultsElement = useRef<HTMLDivElement | null>(null)
     const shortcutLabel = formatShortcut(GLOBAL_SEARCH_SHORTCUT_BINDING)
 
     const hasQuery = query.trim().length > 0
@@ -98,9 +99,10 @@ export function SearchPanel(props: SearchPanelProps) {
         setIsDismissed(false)
     }
 
-    const handleControlBlur = (event: FocusEvent<HTMLDivElement>) => {
+    const handleSearchBlur = (event: FocusEvent<HTMLDivElement>) => {
         const nextFocusedElement = event.relatedTarget
-        if (nextFocusedElement instanceof Node && event.currentTarget.contains(nextFocusedElement)) return
+        if (nextFocusedElement instanceof Node
+            && (event.currentTarget.contains(nextFocusedElement) || resultsElement.current?.contains(nextFocusedElement))) return
         if (actionPopupOpen || previewMatch) return
 
         onClose()
@@ -223,7 +225,7 @@ export function SearchPanel(props: SearchPanelProps) {
     }
 
     return (
-        <Box onBlur={handleControlBlur} ref={setControlElement} sx={{ maxWidth: RESULTS_WIDTH, position: 'relative', width: '100%' }}>
+        <Box onBlur={handleSearchBlur} ref={setControlElement} sx={{ maxWidth: RESULTS_WIDTH, position: 'relative', width: '100%' }}>
             <Box style={NO_DRAG_REGION}>
                 <TextField
                     fullWidth
@@ -284,68 +286,70 @@ export function SearchPanel(props: SearchPanelProps) {
                     resizeLabel="Resize search results"
                     storageKey={RESULTS_SIZE_STORAGE_KEY}
                 >
-                    <Typography
-                        id={SEARCH_DROPDOWN_LABEL_ID}
-                        sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}
-                    >
-                        Search dropdown
-                    </Typography>
-                    <Box aria-label="Search options" role="group" sx={{ alignItems: 'center', display: 'flex', gap: 1, p: 1 }}>
-                        <Tooltip title="RegExp mode">
-                            <ToggleButton
-                                aria-label="RegExp mode"
-                                onChange={handleToggleRegexp}
-                                selected={mode === 'regexp'}
-                                size="small"
-                                value="regexp"
-                            >
-                                <Regex fontSize="small" />
-                            </ToggleButton>
-                        </Tooltip>
-                        <Tooltip title="Search background file bodies">
-                            <ToggleButton
-                                aria-label="Search background file bodies"
-                                onChange={handleToggleBackgroundBody}
-                                selected={includeBackgroundBody}
-                                size="small"
-                                value="background-body"
-                            >
-                                <FileSearchOutline fontSize="small" />
-                            </ToggleButton>
-                        </Tooltip>
-                        <Tooltip title="Search actions">
-                            <ToggleButton
-                                aria-label="Search actions"
-                                onChange={handleToggleActions}
-                                selected={includeActions}
-                                size="small"
-                                value="actions"
-                            >
-                                <LightningBolt fontSize="small" />
-                            </ToggleButton>
-                        </Tooltip>
-                        <Tooltip title="Ask agent to build a RegExp">
-                            <span>
-                                <IconButton
-                                    aria-label="Ask agent to build a RegExp"
-                                    disabled={isAgentBusy || !hasQuery}
-                                    onClick={handleAskAgent}
+                    <Box ref={resultsElement} sx={{ display: 'contents' }}>
+                        <Typography
+                            id={SEARCH_DROPDOWN_LABEL_ID}
+                            sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}
+                        >
+                            Search dropdown
+                        </Typography>
+                        <Box aria-label="Search options" role="group" sx={{ alignItems: 'center', display: 'flex', gap: 1, p: 1 }}>
+                            <Tooltip title="RegExp mode">
+                                <ToggleButton
+                                    aria-label="RegExp mode"
+                                    onChange={handleToggleRegexp}
+                                    selected={mode === 'regexp'}
                                     size="small"
+                                    value="regexp"
                                 >
-                                    <AutoFix fontSize="small" />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
+                                    <Regex fontSize="small" />
+                                </ToggleButton>
+                            </Tooltip>
+                            <Tooltip title="Search background file bodies">
+                                <ToggleButton
+                                    aria-label="Search background file bodies"
+                                    onChange={handleToggleBackgroundBody}
+                                    selected={includeBackgroundBody}
+                                    size="small"
+                                    value="background-body"
+                                >
+                                    <FileSearchOutline fontSize="small" />
+                                </ToggleButton>
+                            </Tooltip>
+                            <Tooltip title="Search actions">
+                                <ToggleButton
+                                    aria-label="Search actions"
+                                    onChange={handleToggleActions}
+                                    selected={includeActions}
+                                    size="small"
+                                    value="actions"
+                                >
+                                    <LightningBolt fontSize="small" />
+                                </ToggleButton>
+                            </Tooltip>
+                            <Tooltip title="Ask agent to build a RegExp">
+                                <span>
+                                    <IconButton
+                                        aria-label="Ask agent to build a RegExp"
+                                        disabled={isAgentBusy || !hasQuery}
+                                        onClick={handleAskAgent}
+                                        size="small"
+                                    >
+                                        <AutoFix fontSize="small" />
+                                    </IconButton>
+                                </span>
+                            </Tooltip>
+                        </Box>
+                        {shouldShowResults ? (
+                            <SearchResults
+                                mode={mode}
+                                onActionSelect={handleSelectAction}
+                                onSelect={handleSelect}
+                                query={query}
+                                results={results}
+                            />
+                        ) : null}
                     </Box>
-                    {shouldShowResults ? (
-                        <SearchResults
-                            mode={mode}
-                            onActionSelect={handleSelectAction}
-                            onSelect={handleSelect}
-                            query={query}
-                            results={results}
-                        />
-                    ) : null}
                 </ResizablePopper>
             ) : null}
             {actionPopupOpen ? (

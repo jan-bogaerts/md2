@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CardHeader, Card, ProjectSnapshot } from '../../../data/data_types'
 import { actionService } from '../../../services/actions/action_service'
@@ -324,6 +325,94 @@ describe('SearchControl', () => {
         expect(event.detail.path).toBe('design/F-1-alpha.md')
         expect(screen.queryByRole('dialog', { name: 'Search dropdown' })).not.toBeInTheDocument()
         workspaceNavigationService.removeEventListener('revealCard', listener)
+    })
+
+    it.each([['desktop', false], ['mobile', true]])('selects an active card with a pointer in %s search', async (_mode, isMobile) => {
+        const user = userEvent.setup()
+        const listener = vi.fn()
+        workspaceNavigationService.addEventListener('revealCard', listener)
+        render(<SearchControl isMobile={isMobile} />)
+
+        if (isMobile) await user.click(screen.getByRole('button', { name: 'Search' }))
+        else await user.click(screen.getByRole('textbox', { name: 'Search project' }))
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Alpha')
+
+        const result = screen.getByRole('button', { name: /Alpha feature/ })
+        await user.click(result)
+
+        expect(listener).toHaveBeenCalledTimes(1)
+        expect((listener.mock.calls[0][0] as CustomEvent<{ path: string }>).detail.path).toBe('design/F-1-alpha.md')
+        expect(screen.queryByRole('dialog', { name: 'Search dropdown' })).not.toBeInTheDocument()
+        workspaceNavigationService.removeEventListener('revealCard', listener)
+    })
+
+    it.each([['desktop', false], ['mobile', true]])('keeps popup open on internal focus and closes on outside focus in %s search', async (_mode, isMobile) => {
+        const user = userEvent.setup()
+        render(<><button type="button">Outside search</button><SearchControl isMobile={isMobile} /></>)
+
+        if (isMobile) await user.click(screen.getByRole('button', { name: 'Search' }))
+        else await user.click(screen.getByRole('textbox', { name: 'Search project' }))
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Alpha')
+
+        await user.click(screen.getByRole('button', { name: 'RegExp mode' }))
+        expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument()
+
+        act(() => screen.getByText('Outside search').focus())
+        expect(screen.queryByRole('dialog', { name: 'Search dropdown' })).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['desktop', false, 'Regular document', 'design/history/regular.md', false],
+        ['mobile', true, 'History note', 'design/history/note.md', true],
+        ['mobile', true, 'Archived note', 'design/archived/old.md', true],
+    ])('opens %s file result %s with a pointer', async (_mode, isMobile, title, path, isPreview) => {
+        const user = userEvent.setup()
+        const listener = vi.fn()
+        workspaceNavigationService.addEventListener('open', listener)
+        render(<SearchControl isMobile={isMobile} />)
+
+        if (isMobile) await user.click(screen.getByRole('button', { name: 'Search' }))
+        else await user.click(screen.getByRole('textbox', { name: 'Search project' }))
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), title)
+        await user.click(screen.getByRole('button', { name: new RegExp(title, 'u') }))
+
+        if (isPreview) {
+            expect(screen.getByRole('dialog', { name: 'Card preview' })).toBeInTheDocument()
+            expect(listener).not.toHaveBeenCalled()
+        } else {
+            expect((listener.mock.calls[0][0] as CustomEvent<{ path: string }>).detail.path).toBe(path)
+            expect(screen.queryByRole('dialog', { name: 'Search dropdown' })).not.toBeInTheDocument()
+        }
+        workspaceNavigationService.removeEventListener('open', listener)
+    })
+
+    it.each([['desktop', false], ['mobile', true]])('opens an action result with a pointer in %s search', async (_mode, isMobile) => {
+        const user = userEvent.setup()
+        const listener = vi.fn()
+        if (isMobile) workspaceViewService.setViewMode('text')
+        workspaceNavigationService.addEventListener('open', listener)
+        actionService.loadFromFiles([{
+            content: JSON.stringify({
+                command: 'execute', description: 'Searchable action', id: 'action-search-job',
+                label: 'Run search job', type: 'command',
+            }),
+            path: 'actions/search-job.json',
+        }])
+        render(<AppThemeProvider><SearchControl isMobile={isMobile} /></AppThemeProvider>)
+
+        if (isMobile) await user.click(screen.getByRole('button', { name: 'Search' }))
+        else await user.click(screen.getByRole('textbox', { name: 'Search project' }))
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Searchable action')
+        await user.click(screen.getByRole('button', { name: 'Search actions' }))
+        await user.click(screen.getByRole('button', { name: /Run search job/ }))
+
+        if (isMobile) {
+            expect((listener.mock.calls[0][0] as CustomEvent<{ path: string }>).detail.path).toBe('actions/search-job.json')
+        } else {
+            expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
+            expect(listener).not.toHaveBeenCalled()
+        }
+        workspaceNavigationService.removeEventListener('open', listener)
     })
 
     it('keeps existing navigation for active results outside cards view', () => {
