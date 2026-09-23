@@ -3,7 +3,7 @@ author:
 id: J_50
 internalId: 64876822-b48e-450e-b7c7-68fd8d2ba6bd
 title: markdown toolbar attach files pos
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
