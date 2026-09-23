@@ -2967,6 +2967,14 @@
           "role": "assistant",
           "sequence": 88,
           "timestamp": "2026-09-23T09:17:50.822Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-8dedd941-ff37-42c7-bc6e-ba60da18773a-user-88",
+          "kind": "message",
+          "role": "user",
+          "sequence": 89,
+          "timestamp": "2026-09-23T09:26:58.731Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -2981,14 +2989,14 @@
         }
       ],
       "startedAt": "2026-09-23T09:12:13.145Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 123732,
           "toolMs": 1326
         },
         "elapsedMs": 337677,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-23T09:26:58.731Z"
       },
       "title": "fix bug",
       "usage": {
