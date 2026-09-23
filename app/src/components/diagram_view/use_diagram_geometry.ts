@@ -7,6 +7,7 @@ import {
     type PositionedFragmentField,
     type PositionedNodeField,
 } from '../../services/diagrams/diagram_geometry_service'
+import type { DiagramWaypoint } from '../../services/diagrams/diagram_data'
 
 function useGeometrySnapshot<Value>(
     subscribeScoped: (listener: () => void) => () => void,
@@ -48,6 +49,20 @@ export function useDiagramEdgeRoute(edgeId: string, service: DiagramGeometryServ
         [edgeId, service],
     )
     const getSnapshot = useCallback(() => service.getEdgeRouteSnapshot(edgeId), [edgeId, service])
+
+    return useGeometrySnapshot(subscribe, getSnapshot, service)
+}
+
+/** Subscribes one curved edge leaf to its derived quadratic control point. */
+export function useDiagramEdgeControlPoint(edgeId: string, service: DiagramGeometryService = diagramGeometryService) {
+    const subscribe = useCallback(
+        (listener: () => void) => service.subscribeEdgeGeometryField(edgeId, 'controlPoint', listener),
+        [edgeId, service],
+    )
+    const getSnapshot = useCallback(
+        () => service.getEdgeControlPointSnapshot(edgeId) as DiagramWaypoint | null,
+        [edgeId, service],
+    )
 
     return useGeometrySnapshot(subscribe, getSnapshot, service)
 }

@@ -7,6 +7,7 @@ import { diagramEmphasisService, type DiagramEmphasisService } from '../../servi
 import { useDiagramObjectDimmed } from './use_diagram_emphasis'
 
 interface CurrentDiagramEdgeProps {
+    curved?: boolean
     edge: PositionedDiagramEdge
     emphasis?: DiagramEmphasisService
     nodeLabels: ReadonlyMap<string, string>
@@ -16,7 +17,7 @@ interface CurrentDiagramEdgeProps {
 
 /** Current edge leaf with service-owned selection state. */
 function CurrentDiagramEdgeLeaf(props: CurrentDiagramEdgeProps) {
-    const {edge, emphasis = diagramEmphasisService, nodeLabels} = props
+    const {curved = false, edge, emphasis = diagramEmphasisService, nodeLabels} = props
     const {onSelect, service = diagramViewService} = props
     const subscribe = useCallback(
         (listener: () => void) => service.subscribeCurrentSelection('edge', edge.id, listener),
@@ -31,6 +32,7 @@ function CurrentDiagramEdgeLeaf(props: CurrentDiagramEdgeProps) {
 
     return (
         <DiagramEdge
+            curved={curved}
             dimmed={dimmed}
             edge={edge}
             formattingStore={service as DiagramViewService}

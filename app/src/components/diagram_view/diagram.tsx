@@ -14,6 +14,8 @@ import { diagramFontStyle } from './diagram_font_style'
 import { useDiagramFormattingScale } from './use_diagram_formatting'
 
 export interface DiagramProps {
+    circularNodes?: boolean
+    curvedEdges?: boolean
     data: PositionedDiagramData
     emphasis?: DiagramEmphasisService
     onContextMenu?: (anchorElement: HTMLElement, selection: DiagramSelection) => void
@@ -26,7 +28,8 @@ function ignoreContextMenu() {}
 
 /** Diagram surface composed from validated semantic data and positioned React children. */
 export function Diagram(props: DiagramProps) {
-    const {data, emphasis = diagramEmphasisService, onContextMenu = ignoreContextMenu} = props
+    const {circularNodes = false, curvedEdges = false, data, emphasis = diagramEmphasisService} = props
+    const {onContextMenu = ignoreContextMenu} = props
     const {onSelect, service = diagramViewService} = props
     const fontScalePercent = useDiagramFormattingScale('fontScalePercent', service as DiagramViewService)
     const surfaceRef = useRef<HTMLDivElement>(null)
@@ -94,6 +97,7 @@ export function Diagram(props: DiagramProps) {
                 <svg aria-label="Diagram connections" height={data.height} style={{ left: 0, overflow: 'visible', position: 'absolute', top: 0, zIndex: 1 }} width={data.width}>
                     {data.edges.map((edge) => (
                         <CurrentDiagramEdge
+                            curved={curvedEdges}
                             edge={edge}
                             emphasis={emphasis}
                             key={edge.id}
@@ -105,6 +109,7 @@ export function Diagram(props: DiagramProps) {
                 </svg>
                 {data.nodes.map((node) => (
                     <CurrentDiagramNode
+                        circular={circularNodes}
                         diagramType={data.meta.type}
                         emphasis={emphasis}
                         flowPreset={data.meta.preset}

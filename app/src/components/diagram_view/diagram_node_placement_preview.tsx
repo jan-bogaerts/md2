@@ -22,6 +22,7 @@ export function DiagramNodePlacementPreview({placement = diagramNodePlacementSer
     return (
         <Box aria-hidden="true" sx={{ opacity: 0.6, pointerEvents: 'none' }}>
             <DiagramNode
+                circular={preview.diagramType === 'mindmap'}
                 diagramType={preview.diagramType}
                 flowPreset={preview.flowPreset}
                 node={{ ...preview.node, drilldown: false }}

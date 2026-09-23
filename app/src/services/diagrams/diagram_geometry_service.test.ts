@@ -116,6 +116,25 @@ function entityDiagram(): DiagramData {
     }
 }
 
+function mindmapDiagram(): DiagramData {
+    return {
+        edges: [
+            { from: 'root', id: 'root-a', kind: 'connection', to: 'a' },
+            { from: 'a', id: 'a-child', kind: 'connection', label: 'child', to: 'child' },
+            { from: 'a', id: 'a-grandchild', kind: 'connection', to: 'grandchild' },
+        ],
+        groups: [],
+        meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
+        nodes: [
+            { id: 'root', kind: 'root', label: 'Root', role: 'focal' },
+            { id: 'a', kind: 'topic', label: 'A', role: 'backend' },
+            { id: 'child', kind: 'topic', label: 'Child', role: 'backend' },
+            { id: 'grandchild', kind: 'topic', label: 'Grandchild', role: 'backend' },
+            { id: 'detached', kind: 'topic', label: 'Detached', role: 'optional' },
+        ],
+    }
+}
+
 class DiagramSourceStub extends EventTarget {
     private readonly source: DiagramViewSourceSnapshot
 
@@ -174,6 +193,23 @@ function groupBoxSnapshot(geometry: DiagramGeometryService, groupId: string) {
 }
 
 describe('DiagramGeometryService', () => {
+    it('publishes only changed mindmap ring geometry and incident curves after adding a connection', () => {
+        const { geometry, session } = createHarness(mindmapDiagram(), () => 'root-child')
+        const detachedBefore = nodeBox(geometry, 'detached')
+        const detachedEvents = vi.fn()
+        const childEvents = vi.fn()
+        geometry.subscribeNodeGeometryField('detached', 'x', detachedEvents)
+        geometry.subscribeNodeGeometryField('child', 'y', childEvents)
+
+        expect(session.createEdge({ from: 'root', kind: 'connection', to: 'child' })).toBe('root-child')
+
+        expect(nodeBox(geometry, 'detached')).toEqual(detachedBefore)
+        expect(detachedEvents).not.toHaveBeenCalled()
+        expect(childEvents).toHaveBeenCalled()
+        expect(geometry.getEdgeControlPointSnapshot('root-child')).not.toBeNull()
+        expect(geometry.getEdgeLabelPlacementSnapshot('a-child')).not.toBeNull()
+    })
+
     it('builds the initial positioned view from the started session', () => {
         const { geometry } = createHarness()
 
@@ -626,6 +662,15 @@ describe('DiagramGeometryService', () => {
             dependency: dependencyDiagram(),
             entity: entityDiagram(),
             flow: flowDiagram(),
+            mindmap: {
+                edges: [{ from: 'root', id: 'root-topic', kind: 'connection', to: 'topic' }],
+                groups: [],
+                meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
+                nodes: [
+                    { id: 'root', kind: 'root', label: 'Root', role: 'focal' },
+                    { id: 'topic', kind: 'topic', label: 'Topic', role: 'backend' },
+                ],
+            },
             sequence: sequenceDiagram(),
         }
         for (const diagram of Object.values(diagrams)) {

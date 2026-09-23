@@ -1,6 +1,6 @@
 import type { DiagramData, DiagramFlowPreset, DiagramType } from './diagram_data'
 
-export type EmptyDiagramChoiceId = 'architecture' | 'dependency' | 'entity' | 'flowchart' | 'sequence' | 'state'
+export type EmptyDiagramChoiceId = 'architecture' | 'dependency' | 'entity' | 'flowchart' | 'mindmap' | 'sequence' | 'state'
 
 export interface EmptyDiagramChoice {
     description: string
@@ -18,6 +18,7 @@ export const EMPTY_DIAGRAM_CHOICES: readonly EmptyDiagramChoice[] = [
     { description: 'New flowchart diagram', id: 'flowchart', label: 'Flowchart', preset: 'flowchart', title: 'New flowchart', type: 'flow' },
     { description: 'New state diagram', id: 'state', label: 'State diagram', preset: 'state', title: 'New state diagram', type: 'flow' },
     { description: 'New entity diagram', id: 'entity', label: 'Entity', title: 'New entity', type: 'entity' },
+    { description: 'New mindmap diagram', id: 'mindmap', label: 'Mindmap', title: 'New mindmap', type: 'mindmap' },
 ]
 
 /** Builds canonical persisted data for a new empty diagram. */

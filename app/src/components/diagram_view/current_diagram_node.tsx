@@ -7,6 +7,7 @@ import { diagramEmphasisService, type DiagramEmphasisService } from '../../servi
 import { useDiagramObjectDimmed } from './use_diagram_emphasis'
 
 interface CurrentDiagramNodeProps {
+    circular?: boolean
     diagramType: Parameters<typeof DiagramNode>[0]['diagramType']
     emphasis?: DiagramEmphasisService
     flowPreset: Parameters<typeof DiagramNode>[0]['flowPreset']
@@ -17,7 +18,7 @@ interface CurrentDiagramNodeProps {
 
 /** Current node leaf with service-owned selection state. */
 function CurrentDiagramNodeLeaf(props: CurrentDiagramNodeProps) {
-    const {diagramType, emphasis = diagramEmphasisService, flowPreset, node} = props
+    const {circular = false, diagramType, emphasis = diagramEmphasisService, flowPreset, node} = props
     const {onSelect, service = diagramViewService} = props
     const subscribe = useCallback(
         (listener: () => void) => service.subscribeCurrentSelection('node', node.id, listener),
@@ -32,6 +33,7 @@ function CurrentDiagramNodeLeaf(props: CurrentDiagramNodeProps) {
 
     return (
         <DiagramNode
+            circular={circular}
             diagramType={diagramType}
             dimmed={dimmed}
             flowPreset={flowPreset}

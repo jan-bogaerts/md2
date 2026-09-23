@@ -13,6 +13,7 @@ import {
 } from './diagram_edit_session_service'
 import { diagramGeometryService, type DiagramGeometryService } from './diagram_geometry_service'
 import {
+    mindmapConnectionGeometry,
     sequenceMessageInsertionIndexAt,
     sequenceMessageRowY,
     type PositionedDiagramNode,
@@ -37,6 +38,8 @@ export type DiagramEdgeDrawingDefaults = Omit<
 >
 
 export interface DiagramEdgeDrawingPreview {
+    controlPoint?: DiagramWaypoint
+    curved?: boolean
     kind: DiagramEdgeKind
     points: readonly DiagramWaypoint[]
     sourceAttachment: DiagramConnectionPoint
@@ -202,6 +205,9 @@ export class DiagramEdgeDrawingService extends EventTarget {
         if (this.session.getMetadataFieldSnapshot('type') === 'sequence') {
             return this.updateSequencePreview(point, targetNodeId, preview)
         }
+        if (this.session.getMetadataFieldSnapshot('type') === 'mindmap') {
+            return this.updateMindmapPreview(point, targetNodeId, preview)
+        }
         const sourceNode = this.requirePositionedNode(preview.sourceAttachment.nodeId)
         const source = absoluteConnectionPoint(preview.sourceAttachment, sourceNode)
         const targetNode = targetNodeId ? this.findPositionedNode(targetNodeId) : null
@@ -228,14 +234,16 @@ export class DiagramEdgeDrawingService extends EventTarget {
         const targetAttachment = completedPreview.targetAttachment
         if (!targetAttachment) return null
 
-        const sequenceDiagram = this.session.getMetadataFieldSnapshot('type') === 'sequence'
+        const diagramType = this.session.getMetadataFieldSnapshot('type')
+        const sequenceDiagram = diagramType === 'sequence'
+        const mindmapDiagram = diagramType === 'mindmap'
         const from = completedPreview.sourceAttachment.nodeId
         const edge: NewDiagramEdge = {
             ...defaults,
             ...this.requiredLabel(defaults, from),
             from,
-            ...(sequenceDiagram ? {} : { sourceAttachment: { ...completedPreview.sourceAttachment } }),
-            ...(sequenceDiagram ? {} : { targetAttachment: { ...targetAttachment } }),
+            ...(sequenceDiagram || mindmapDiagram ? {} : { sourceAttachment: { ...completedPreview.sourceAttachment } }),
+            ...(sequenceDiagram || mindmapDiagram ? {} : { targetAttachment: { ...targetAttachment } }),
             to: targetAttachment.nodeId,
         }
         const edgeId = sequenceDiagram
@@ -291,6 +299,34 @@ export class DiagramEdgeDrawingService extends EventTarget {
         this.setPreview({
             kind: preview.kind,
             points: Object.freeze([source, target]),
+            sourceAttachment: preview.sourceAttachment,
+            targetAttachment,
+        })
+
+        return true
+    }
+
+    private updateMindmapPreview(
+        point: DiagramEdgeDrawingPoint,
+        targetNodeId: string | null,
+        preview: DiagramEdgeDrawingPreview,
+    ) {
+        const sourceNode = this.requirePositionedNode(preview.sourceAttachment.nodeId)
+        const targetNode = targetNodeId ? this.findPositionedNode(targetNodeId) : null
+        const target = targetNode ?? { height: 0, width: 0, x: point.x, y: point.y }
+        const { controlPoint, points } = mindmapConnectionGeometry(
+            sourceNode,
+            target,
+            sourceNode.id === targetNode?.id,
+        )
+        const targetAttachment = targetNode
+            ? { nodeId: targetNode.id, offset: 0.5, side: 'left' as const }
+            : null
+        this.setPreview({
+            controlPoint: Object.freeze(controlPoint),
+            curved: true,
+            kind: preview.kind,
+            points: Object.freeze(points.map((curvePoint) => Object.freeze(curvePoint))),
             sourceAttachment: preview.sourceAttachment,
             targetAttachment,
         })

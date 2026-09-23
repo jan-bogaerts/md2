@@ -44,6 +44,70 @@ function layerCrossings(positioned: Positioned) {
 }
 
 describe('diagram layout', () => {
+    it('places mindmap nodes on deterministic distance rings around a centred root', () => {
+        const data: DiagramData = {
+            edges: [
+                { from: 'root', id: 'root-a', kind: 'connection', to: 'a' },
+                { from: 'root', id: 'root-b', kind: 'connection', to: 'b' },
+                { from: 'a', id: 'a-child', kind: 'connection', to: 'child' },
+            ],
+            groups: [],
+            meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
+            nodes: [
+                { id: 'root', kind: 'root', label: 'Root', role: 'focal' },
+                { id: 'a', kind: 'topic', label: 'A', role: 'backend' },
+                { id: 'b', kind: 'topic', label: 'B', role: 'backend' },
+                { id: 'child', kind: 'topic', label: 'Child', role: 'backend' },
+                { id: 'detached', kind: 'topic', label: 'Detached', role: 'optional' },
+            ],
+        }
+        const positioned = layout(data)
+        const root = nodeById(positioned, 'root')
+        const centre = { x: root.x + root.width / 2, y: root.y + root.height / 2 }
+        const radius = (id: string) => {
+            const node = nodeById(positioned, id)
+
+            return Math.hypot(node.x + node.width / 2 - centre.x, node.y + node.height / 2 - centre.y)
+        }
+
+        expect(centre).toEqual({ x: positioned.width / 2, y: positioned.height / 2 })
+        expect(radius('a')).toBe(radius('b'))
+        expect(radius('child')).toBeGreaterThan(radius('a'))
+        expect(radius('detached')).toBeGreaterThan(radius('child'))
+        expect(nodeById(positioned, 'a').x).toBe(nodeById(positioned, 'b').x)
+    })
+
+    it('keeps mindmap positions, uses circular dimensions, and derives curve geometry and midpoint labels', () => {
+        const data: DiagramData = {
+            edges: [{ from: 'root', id: 'connection', kind: 'connection', label: 'Branch', to: 'topic' }],
+            groups: [],
+            meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
+            nodes: [
+                { height: 80, id: 'root', kind: 'root', label: 'Root', role: 'focal', width: 120, x: 40, y: 80 },
+                { id: 'topic', kind: 'topic', label: 'Topic', role: 'backend', x: 360, y: 80 },
+            ],
+        }
+        const positioned = layout(data)
+        const root = nodeById(positioned, 'root')
+        const topic = nodeById(positioned, 'topic')
+        const edge = positioned.edges[0]
+        const rootCentre = { x: root.x + root.width / 2, y: root.y + root.height / 2 }
+        const topicCentre = { x: topic.x + topic.width / 2, y: topic.y + topic.height / 2 }
+
+        expect(root).toMatchObject({ height: 120, width: 120, x: 40, y: 80 })
+        expect(topic).toMatchObject({ height: 96, width: 96, x: 360, y: 80 })
+        expect(Math.hypot(edge.points[0].x - rootCentre.x, edge.points[0].y - rootCentre.y)).toBeCloseTo(root.width / 2)
+        expect(Math.hypot(edge.points[1].x - topicCentre.x, edge.points[1].y - topicCentre.y)).toBeCloseTo(topic.width / 2)
+        expect(edge.controlPoint).toBeDefined()
+        const controlPoint = edge.controlPoint as { x: number, y: number }
+        const curveMiddle = {
+            x: edge.points[0].x * 0.25 + controlPoint.x * 0.5 + edge.points[1].x * 0.25,
+            y: edge.points[0].y * 0.25 + controlPoint.y * 0.5 + edge.points[1].y * 0.25,
+        }
+        expect(edge.labelPlacement).toMatchObject({ textX: curveMiddle.x, textY: curveMiddle.y + 3 })
+        expect(data.edges[0]).not.toHaveProperty('controlPoint')
+    })
+
     it('places layered nodes on grid and routes orthogonal fanned edges', () => {
         const positioned = layout(diagram())
         const firstPoints = positioned.edges[0].points

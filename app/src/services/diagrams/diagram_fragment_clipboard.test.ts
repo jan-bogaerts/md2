@@ -49,6 +49,19 @@ function selection(...identities: DiagramSelectionIdentity[]) {
 }
 
 describe('diagram fragment clipboard', () => {
+    it('parses rootless mindmap topic fragments without adding a synthetic node', () => {
+        const payload = {
+            edges: [],
+            format: DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT,
+            fragments: [],
+            groups: [],
+            nodes: [{ height: 96, id: 'topic', kind: 'topic', label: 'Topic', role: 'backend', width: 96 }],
+            version: DIAGRAM_FRAGMENT_CLIPBOARD_VERSION,
+        } as const
+
+        expect(parseDiagramFragmentClipboardPayload(JSON.stringify(payload))).toEqual(payload)
+    })
+
     it('serializes selected objects, connecting edges, and valid relationship subsets', () => {
         const reader = diagramFragmentReader()
         const identities = selection(

@@ -84,6 +84,7 @@ function EditableDiagramNodeLeaf({
 
     return (
         <DiagramNode
+            circular={diagramType === 'mindmap'}
             diagramType={diagramType}
             dimmed={dimmed}
             entityFieldSource={diagramType === 'entity' ? { nodeId, session } : undefined}

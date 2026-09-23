@@ -18,6 +18,10 @@ const GRID_SIZE = DIAGRAM_GRID_SIZE
 const SURFACE_PADDING = 40
 const DEFAULT_NODE_WIDTH = 160
 const DEFAULT_NODE_HEIGHT = 72
+export const MINDMAP_ROOT_DIAMETER = 128
+export const MINDMAP_TOPIC_DIAMETER = 96
+const MINDMAP_RING_GAP = 96
+const MINDMAP_CURVE_OFFSET = 28
 const ENTITY_FIELD_HEIGHT = 20
 const ENTITY_HEADER_HEIGHT = 48
 const RANK_GAP = 96
@@ -60,12 +64,14 @@ export interface PositionedSequenceFragment {
 }
 
 export interface PositionedDiagramEdge extends DiagramEdge {
+    controlPoint?: DiagramWaypoint
     labelPlacement?: PositionedDiagramLabel
     points: DiagramWaypoint[]
 }
 
 export interface EdgeGeometry {
     basePoints: DiagramWaypoint[]
+    controlPoint: DiagramWaypoint | undefined
     labelPlacement: PositionedDiagramLabel | undefined
     points: DiagramWaypoint[]
 }
@@ -125,7 +131,11 @@ export function sequenceMessageInsertionIndexAt(y: number, messageCount: number,
 
 function nodeHeight(data: DiagramData, node: DiagramNode) {
     let height = DEFAULT_NODE_HEIGHT
-    if (node.height !== undefined) height = node.height
+    if (data.meta.type === 'mindmap') {
+        height = node.width === undefined
+            ? node.kind === 'root' ? MINDMAP_ROOT_DIAMETER : MINDMAP_TOPIC_DIAMETER
+            : Math.max(node.width, node.height as number)
+    } else if (node.height !== undefined) height = node.height
     else if (node.fields) height = snap(ENTITY_HEADER_HEIGHT + node.fields.length * ENTITY_FIELD_HEIGHT)
     else if (data.meta.type === 'flow' && node.kind === 'decision') height = 96
     else if (data.meta.type === 'flow' && (node.kind === 'start' || node.kind === 'end')) height = data.meta.preset === 'state' ? 24 : 48
@@ -135,7 +145,11 @@ function nodeHeight(data: DiagramData, node: DiagramNode) {
 
 function nodeWidth(data: DiagramData, node: DiagramNode) {
     let width = DEFAULT_NODE_WIDTH
-    if (node.width !== undefined) width = node.width
+    if (data.meta.type === 'mindmap') {
+        width = node.width === undefined
+            ? node.kind === 'root' ? MINDMAP_ROOT_DIAMETER : MINDMAP_TOPIC_DIAMETER
+            : Math.max(node.width, node.height as number)
+    } else if (node.width !== undefined) width = node.width
     else if (data.meta.type === 'flow' && node.kind === 'decision') width = 96
     else if (data.meta.type === 'flow' && (node.kind === 'start' || node.kind === 'end')) width = data.meta.preset === 'state' ? 24 : 120
 
@@ -149,17 +163,73 @@ export function nodeFanIn(edges: readonly DiagramEdge[], nodeId: string) {
 
 /** Builds one node's positioned view from its model data; supplied coordinates and sizes stay authoritative. */
 export function nodeGeometry(data: DiagramData, node: DiagramNode, x: number, y: number): PositionedDiagramNode {
-    const defaultKinds = { architecture: 'component', dependency: 'component', entity: 'entity', sequence: 'participant' } as const
+    const defaultKind = data.meta.type === 'architecture' || data.meta.type === 'dependency'
+        ? 'component'
+        : data.meta.type === 'entity' ? 'entity' : data.meta.type === 'sequence' ? 'participant' : undefined
 
     return {
         ...node,
         fanIn: nodeFanIn(data.edges, node.id),
         height: nodeHeight(data, node),
-        ...(node.kind === undefined && data.meta.type !== 'flow' ? { kind: defaultKinds[data.meta.type] } : {}),
+        ...(node.kind === undefined && defaultKind ? { kind: defaultKind } : {}),
         width: nodeWidth(data, node),
         x: node.x ?? snap(x),
         y: node.y ?? snap(y),
     }
+}
+
+function mindmapRingAssignments(data: DiagramData, rootId: string) {
+    const distances = new Map<string, number>([[rootId, 0]])
+    let frontier = [rootId]
+    for (let depth = 1; depth <= data.nodes.length && frontier.length > 0; depth += 1) {
+        const next: string[] = []
+        for (const nodeId of frontier) {
+            for (const { from, to } of data.edges) {
+                const adjacentId = from === nodeId ? to : to === nodeId ? from : null
+                if (!adjacentId || distances.has(adjacentId)) continue
+                distances.set(adjacentId, depth)
+                next.push(adjacentId)
+            }
+        }
+        frontier = next
+    }
+    const outerRing = Math.max(0, ...distances.values()) + 1
+    for (const { id } of data.nodes) {
+        if (!distances.has(id)) distances.set(id, outerRing)
+    }
+
+    return distances
+}
+
+/** Places unpositioned mindmap topics on deterministic rings while preserving supplied coordinates. */
+function layoutMindmapNodes(data: DiagramData) {
+    if (data.nodes.length === 0) return []
+    const root = data.nodes.find(({ kind }) => kind === 'root') as DiagramNode
+    const rings = mindmapRingAssignments(data, root.id)
+    const maximumRing = Math.max(1, ...rings.values())
+    const ringStep = scaledSpacing(data, MINDMAP_TOPIC_DIAMETER + MINDMAP_RING_GAP)
+    const centre = SURFACE_PADDING + MINDMAP_ROOT_DIAMETER / 2 + maximumRing * ringStep
+    const peersByRing = new Map<number, DiagramNode[]>()
+    for (const node of data.nodes) {
+        const ring = rings.get(node.id) as number
+        const peers = peersByRing.get(ring) ?? []
+        peers.push(node)
+        peersByRing.set(ring, peers)
+    }
+
+    return data.nodes.map((node) => {
+        const ring = rings.get(node.id) as number
+        const diameter = nodeWidth(data, node)
+        if (ring === 0) return nodeGeometry(data, node, centre - diameter / 2, centre - diameter / 2)
+        const peers = peersByRing.get(ring) as DiagramNode[]
+        const peerIndex = peers.indexOf(node)
+        const angle = -Math.PI / 2 + peerIndex * Math.PI * 2 / peers.length
+        const radius = ring * ringStep
+        const x = centre + Math.cos(angle) * radius - diameter / 2
+        const y = centre + Math.sin(angle) * radius - diameter / 2
+
+        return nodeGeometry(data, node, x, y)
+    })
 }
 
 /** Builds the Dagre input graph. Self-edges and presentation `cycle` edges are excluded so they cannot influence ranks. */
@@ -222,7 +292,7 @@ function layoutSequenceNodes(data: DiagramData) {
 
 type NodeSide = 'bottom' | 'left' | 'right' | 'top'
 
-function nodeCenter(node: PositionedDiagramNode) {
+function nodeCenter(node: Pick<PositionedDiagramNode, 'height' | 'width' | 'x' | 'y'>) {
     return { x: node.x + node.width / 2, y: node.y + node.height / 2 }
 }
 
@@ -701,6 +771,70 @@ function edgeLabelPlacement(
     return fallback
 }
 
+function quadraticPoint(start: DiagramWaypoint, control: DiagramWaypoint, end: DiagramWaypoint, progress: number) {
+    const inverse = 1 - progress
+
+    return {
+        x: inverse * inverse * start.x + 2 * inverse * progress * control.x + progress * progress * end.x,
+        y: inverse * inverse * start.y + 2 * inverse * progress * control.y + progress * progress * end.y,
+    }
+}
+
+type MindmapConnectionEndpoint = Pick<PositionedDiagramNode, 'height' | 'width' | 'x' | 'y'>
+
+/** Derives circle-boundary endpoints and one quadratic control point without persisting route data. */
+export function mindmapConnectionGeometry(
+    from: MindmapConnectionEndpoint,
+    to: MindmapConnectionEndpoint,
+    selfConnection = false,
+) {
+    const fromCentre = nodeCenter(from)
+    const toCentre = nodeCenter(to)
+    if (selfConnection) {
+        const radius = from.width / 2
+        const start = { x: fromCentre.x + radius, y: fromCentre.y }
+        const end = { x: fromCentre.x, y: fromCentre.y - radius }
+        const controlPoint = { x: fromCentre.x + radius * 1.5, y: fromCentre.y - radius * 1.5 }
+
+        return { controlPoint, points: [start, end] }
+    }
+    const deltaX = toCentre.x - fromCentre.x
+    const deltaY = toCentre.y - fromCentre.y
+    const distance = Math.hypot(deltaX, deltaY)
+    const unitX = distance === 0 ? 1 : deltaX / distance
+    const unitY = distance === 0 ? 0 : deltaY / distance
+    const start = { x: fromCentre.x + unitX * from.width / 2, y: fromCentre.y + unitY * from.height / 2 }
+    const end = { x: toCentre.x - unitX * to.width / 2, y: toCentre.y - unitY * to.height / 2 }
+    const controlPoint = {
+        x: (start.x + end.x) / 2 - unitY * MINDMAP_CURVE_OFFSET,
+        y: (start.y + end.y) / 2 + unitX * MINDMAP_CURVE_OFFSET,
+    }
+
+    return { controlPoint, points: [start, end] }
+}
+
+function mindmapEdgeGeometry(edge: DiagramEdge, nodes: Map<string, PositionedDiagramNode>) {
+    const from = nodes.get(edge.from) as PositionedDiagramNode
+    const to = nodes.get(edge.to) as PositionedDiagramNode
+
+    return mindmapConnectionGeometry(from, to, edge.from === edge.to)
+}
+
+function mindmapEdgeLabelPlacement(edge: DiagramEdge, points: DiagramWaypoint[], controlPoint: DiagramWaypoint) {
+    if (!edge.label) return undefined
+    const middle = quadraticPoint(points[0], controlPoint, points[1], 0.5)
+    const width = Math.max(24, Math.ceil((edge.label.length * 5 + 8) / GRID_SIZE) * GRID_SIZE)
+
+    return {
+        height: EDGE_LABEL_HEIGHT,
+        textX: middle.x,
+        textY: middle.y + 3,
+        width,
+        x: middle.x - width / 2,
+        y: middle.y - EDGE_LABEL_HEIGHT / 2,
+    }
+}
+
 /**
  * Routes one edge against the current node positions. `basePoints` is the route before crossing bridges are added and
  * is what later edges must be scored against; `points` is what the renderer draws.
@@ -711,6 +845,12 @@ export function edgeGeometry(
     nodes: Map<string, PositionedDiagramNode>,
     priorEdges: PositionedDiagramEdge[],
 ): EdgeGeometry {
+    if (data.meta.type === 'mindmap') {
+        const { controlPoint, points } = mindmapEdgeGeometry(edge, nodes)
+        const labelPlacement = mindmapEdgeLabelPlacement(edge, points, controlPoint)
+
+        return { basePoints: points, controlPoint, labelPlacement, points }
+    }
     const index = data.edges.findIndex(({ id }) => id === edge.id)
     const suppliedRoute = usesSuppliedRoute(edge, nodes)
     const points = data.meta.type === 'sequence'
@@ -723,7 +863,7 @@ export function edgeGeometry(
     const routedPoints = suppliedRoute ? points : addCrossingHops(points, priorEdges)
     const labelPlacement = edgeLabelPlacement(edge, routedPoints, [...nodes.values()])
 
-    return { basePoints: points, labelPlacement, points: routedPoints }
+    return { basePoints: points, controlPoint: undefined, labelPlacement, points: routedPoints }
 }
 
 function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]) {
@@ -735,10 +875,11 @@ function layoutEdges(data: DiagramData, positionedNodes: PositionedDiagramNode[]
             || data.edges.indexOf(left) - data.edges.indexOf(right)
     })
     routeOrder.forEach((edge) => {
-        const { basePoints, labelPlacement, points } = edgeGeometry(data, edge, nodes, baseEdges)
+        const { basePoints, controlPoint, labelPlacement, points } = edgeGeometry(data, edge, nodes, baseEdges)
         baseEdges.push({ ...edge, points: basePoints })
         positionedEdges.push({
             ...edge,
+            ...(controlPoint ? { controlPoint } : {}),
             ...(labelPlacement ? { labelPlacement } : {}),
             points,
         })
@@ -880,8 +1021,9 @@ export function surfaceSize(
 ) {
     const horizontalValues = [
         ...nodes.map(({ width, x }) => x + width),
-        ...edges.flatMap(({ labelPlacement, points }) => [
-            ...points.map(({ x }) => x), ...(labelPlacement ? [labelPlacement.x + labelPlacement.width] : []),
+        ...edges.flatMap(({ controlPoint, labelPlacement, points }) => [
+            ...points.map(({ x }) => x), ...(controlPoint ? [controlPoint.x] : []),
+            ...(labelPlacement ? [labelPlacement.x + labelPlacement.width] : []),
         ]),
         ...groups.map(({ width, x }) => x + width),
         ...fragments.map(({ width, x }) => x + width),
@@ -889,8 +1031,9 @@ export function surfaceSize(
     ]
     const verticalValues = [
         ...nodes.map(({ height, y }) => y + height),
-        ...edges.flatMap(({ labelPlacement, points }) => [
-            ...points.map(({ y }) => y), ...(labelPlacement ? [labelPlacement.y + labelPlacement.height] : []),
+        ...edges.flatMap(({ controlPoint, labelPlacement, points }) => [
+            ...points.map(({ y }) => y), ...(controlPoint ? [controlPoint.y] : []),
+            ...(labelPlacement ? [labelPlacement.y + labelPlacement.height] : []),
         ]),
         ...groups.map(({ height, y }) => y + height),
         ...fragments.map(({ height, y }) => y + height),
@@ -905,13 +1048,23 @@ export function surfaceSize(
 
 /** Fill missing diagram geometry while preserving every supplied coordinate, size, and waypoint. */
 export function layout(data: DiagramData): PositionedDiagramData {
-    const nodes = data.meta.type === 'sequence' ? layoutSequenceNodes(data) : layoutLayeredNodes(data)
+    const nodes = data.meta.type === 'sequence'
+        ? layoutSequenceNodes(data)
+        : data.meta.type === 'mindmap' ? layoutMindmapNodes(data) : layoutLayeredNodes(data)
     const edges = layoutEdges(data, nodes)
     const groups = layoutGroups(data, nodes)
     const initialSize = surfaceSize(nodes, edges, groups)
     const activations = data.meta.type === 'sequence' ? layoutSequenceActivations(edges, nodes, initialSize.height - 24) : []
     const fragments = data.meta.type === 'sequence' ? layoutSequenceFragments(data.fragments ?? [], edges, nodes) : []
-    const { height, width } = surfaceSize(nodes, edges, groups, fragments, activations)
+    const measured = surfaceSize(nodes, edges, groups, fragments, activations)
+    const automaticRoot = data.meta.type === 'mindmap' ? nodes.find((node) => {
+        const model = data.nodes.find(({ id }) => id === node.id)
+
+        return node.kind === 'root' && model?.x === undefined && model?.y === undefined
+    }) : undefined
+    const rootCentre = automaticRoot ? nodeCenter(automaticRoot) : null
+    const height = rootCentre ? Math.max(measured.height, snap(rootCentre.y * 2)) : measured.height
+    const width = rootCentre ? Math.max(measured.width, snap(rootCentre.x * 2)) : measured.width
 
     return { ...data, activations, edges, fragments, groups, height, nodes, width }
 }

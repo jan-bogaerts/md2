@@ -85,9 +85,15 @@ export function DiagramAddControl({
         session.getLastSelectedCreationToolSnapshot,
         session.getLastSelectedCreationToolSnapshot,
     );
+    const nodeIds = useSyncExternalStore(
+        useCallback((listener) => session.subscribeCollectionMembership('node', listener), [session]),
+        session.getNodeIdsSnapshot,
+        session.getNodeIdsSnapshot,
+    );
+    const hasMindmapRoot = nodeIds.some((nodeId) => session.getNodeFieldSnapshot(nodeId, 'kind') === 'root');
     const definitions = useMemo(
-        () => diagramType ? diagramCreationTools(diagramType, flowPreset) : [],
-        [diagramType, flowPreset],
+        () => diagramType ? diagramCreationTools(diagramType, flowPreset, hasMindmapRoot) : [],
+        [diagramType, flowPreset, hasMindmapRoot],
     );
     const selectedDefinition = definitions.find(({ tool }) => tool === lastSelectedTool) ?? null;
     const activate = useCallback((definition: DiagramCreationToolDefinition) => {

@@ -90,6 +90,18 @@ function entityDiagram(): DiagramData {
     }
 }
 
+function mindmapDiagram(): DiagramData {
+    return {
+        edges: [],
+        groups: [],
+        meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
+        nodes: [
+            { height: 128, id: 'source', kind: 'root', label: 'Source', role: 'focal', width: 128, x: 0, y: 0 },
+            { height: 96, id: 'target', kind: 'topic', label: 'Target', role: 'backend', width: 96, x: 280, y: 20 },
+        ],
+    }
+}
+
 class DiagramSourceStub extends EventTarget {
     private readonly source: DiagramViewSourceSnapshot
 
@@ -119,6 +131,18 @@ function createHarness(source: DiagramData = architectureDiagram()) {
 }
 
 describe('diagram edge drawing geometry', () => {
+    it('previews a mindmap curve and stores no route or connection points', () => {
+        const { drawing, session } = createHarness(mindmapDiagram())
+
+        expect(drawing.activate({ kind: 'connection' })).toBe(true)
+        expect(drawing.beginSource('source', { x: 128, y: 64 })).toBe(true)
+        expect(drawing.updatePreview({ x: 280, y: 68 }, 'target')).toBe(true)
+        expect(drawing.getPreviewSnapshot()).toMatchObject({ curved: true, targetAttachment: { nodeId: 'target' } })
+        expect(drawing.getPreviewSnapshot()?.controlPoint).toBeDefined()
+        expect(drawing.completeTarget('target', { x: 280, y: 68 })).toBe('drawn-edge')
+        expect(session.getEdgeSnapshot('drawn-edge')).toEqual({from: 'source', id: 'drawn-edge', kind: 'connection', to: 'target'})
+    })
+
     it('resolves the nearest node boundary and relative offset', () => {
         const node = { height: 80, id: 'source', width: 120, x: 20, y: 40 }
 

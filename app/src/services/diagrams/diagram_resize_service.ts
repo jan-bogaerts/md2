@@ -91,6 +91,25 @@ function resizeBox(
     return { height, width, x, y }
 }
 
+function resizeSquareBox(
+    start: DiagramResizeBox,
+    direction: DiagramResizeDirection,
+    pointDelta: DiagramResizePoint,
+) {
+    const west = direction.includes('west')
+    const east = direction.includes('east')
+    const north = direction.includes('north')
+    const south = direction.includes('south')
+    const widthDelta = west ? -pointDelta.x : east ? pointDelta.x : 0
+    const heightDelta = north ? -pointDelta.y : south ? pointDelta.y : 0
+    const sizeDelta = Math.abs(widthDelta) >= Math.abs(heightDelta) ? widthDelta : heightDelta
+    const diameter = Math.max(MINIMUM_DIAGRAM_NODE_WIDTH, start.width + sizeDelta)
+    const x = west ? start.x + start.width - diameter : start.x
+    const y = north ? start.y + start.height - diameter : start.y
+
+    return { height: diameter, width: diameter, x, y }
+}
+
 /** Owns one selected-object resize from pointer start through completion or rollback. */
 export class DiagramResizeService {
     private readonly geometry: DiagramGeometryService
@@ -144,7 +163,11 @@ export class DiagramResizeService {
             x: snapResizeDelta(point.x - resize.startPoint.x),
             y: snapResizeDelta(point.y - resize.startPoint.y),
         }
-        const box = resizeBox(resize.object.startBox, resize.direction, pointDelta, minimumWidth, minimumHeight)
+        const mindmapNode = resize.object.objectKind === 'node'
+            && this.session.getMetadataFieldSnapshot('type') === 'mindmap'
+        const box = mindmapNode
+            ? resizeSquareBox(resize.object.startBox, resize.direction, pointDelta)
+            : resizeBox(resize.object.startBox, resize.direction, pointDelta, minimumWidth, minimumHeight)
         if (sameBox(box, resize.box)) return false
 
         resize.box = box
@@ -227,8 +250,7 @@ export class DiagramResizeService {
         if (object.objectKind === 'node') {
             if (changesX) this.session.setNodeField(object.objectId, 'x', box.x)
             if (changesY) this.session.setNodeField(object.objectId, 'y', box.y)
-            this.session.setNodeField(object.objectId, 'width', box.width)
-            this.session.setNodeField(object.objectId, 'height', box.height)
+            this.session.setNodeSize(object.objectId, box.width, box.height)
 
             return
         }
@@ -284,8 +306,7 @@ export class DiagramResizeService {
 
     private applySize(object: ResizingDiagramObject, width: number | undefined, height: number | undefined) {
         if (object.objectKind === 'node') {
-            this.session.setNodeField(object.objectId, 'width', width)
-            this.session.setNodeField(object.objectId, 'height', height)
+            this.session.setNodeSize(object.objectId, width, height)
 
             return
         }

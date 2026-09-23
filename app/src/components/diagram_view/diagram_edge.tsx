@@ -2,7 +2,7 @@ import { useId, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { useTheme } from '@mui/material'
 import type { PositionedDiagramEdge } from '../../services/diagrams/diagram_layout'
 import { diagramEdgeStyle } from './diagram_edge_style'
-import { roundedDiagramPath } from './diagram_path'
+import { curvedDiagramPath, roundedDiagramPath } from './diagram_path'
 import type { DiagramSelectHandler } from './diagram_selection'
 import { DIAGRAM_DIMMED_OPACITY } from './diagram_emphasis_presentation'
 import { DiagramConnectionMarkerShape } from './diagram_connection_marker'
@@ -12,6 +12,7 @@ import {
 
 const EDGE_LABEL_FONT_SIZE = 8
 interface DiagramEdgeProps {
+    curved?: boolean
     dimmed?: boolean
     edge: PositionedDiagramEdge
     formattingStore?: DiagramFormattingStore
@@ -30,11 +31,15 @@ function edgeLabel(edge: PositionedDiagramEdge, nodeLabels: ReadonlyMap<string, 
 }
 
 /** Themed selectable connection rendered from validated geometry. */
-export function DiagramEdge({ dimmed = false, edge, formattingStore, nodeLabels, onOpenDetails, onSelect, selected }: DiagramEdgeProps) {
+export function DiagramEdge(props: DiagramEdgeProps) {
+    const { curved = false, dimmed = false, edge, formattingStore, nodeLabels } = props
+    const { onOpenDetails, onSelect, selected } = props
     const theme = useTheme()
     const [focused, setFocused] = useState(false)
     const label = edgeLabel(edge, nodeLabels)
-    const path = roundedDiagramPath(edge.points)
+    const path = curved && edge.controlPoint
+        ? curvedDiagramPath(edge.points, edge.controlPoint as NonNullable<PositionedDiagramEdge['controlPoint']>)
+        : roundedDiagramPath(edge.points)
     const formatting = useDiagramConnectionKindFormatting(edge.kind, formattingStore)
     const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
     const { color, endMarker, startMarker, strokeDasharray, strokeWidth } = diagramEdgeStyle(
@@ -64,6 +69,7 @@ export function DiagramEdge({ dimmed = false, edge, formattingStore, nodeLabels,
     const handleFocus = () => setFocused(true)
     const handleBlur = () => setFocused(false)
     const labelPoint = edge.labelPlacement
+    if (curved && !edge.controlPoint) return null
 
     return (
         <>

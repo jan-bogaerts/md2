@@ -9,8 +9,8 @@ Written by [F_273](../feature_descriptions/F_273_define_editable_diagram_contrac
 this document instead of restating it. This document adds no schema field and changes no code; it records what the
 implementing jobs must build.
 
-The contract covers all five diagram types in `DIAGRAM_TYPES` (`architecture`, `dependency`, `sequence`, `flow`,
-`entity`) and every object the F_255 toolbox exposes.
+The contract covers all six diagram types in `DIAGRAM_TYPES` (`architecture`, `dependency`, `sequence`, `flow`,
+`entity`, `mindmap`) and every object the F_255 toolbox exposes.
 
 ## 1. Vocabulary
 
@@ -103,6 +103,11 @@ Everything `layout` computes, and nothing else:
 | `x`, `y`, `width`, `height`, `dividerY`, `guardPositions` | `PositionedSequenceFragment` | Sequence fragment boxes and guard placement. |
 | `x`, `y`, `width`, `height` when the group omits them | `PositionedDiagramGroup` | Member-node extents plus padding. |
 | `width`, `height` | `PositionedDiagramData` | Surface size. |
+
+Mindmap nodes persist `width` and `height` together. Editor resizing keeps both values equal. Mindmap connections
+persist no waypoints or connection points: circle-boundary endpoints, one quadratic Bézier control point, and label
+placement at the curve midpoint are derived geometry. Unpositioned mindmap topics use deterministic concentric rings
+based on shortest undirected distance from the root; persisted node positions remain authoritative.
 
 ### Rules binding on edited geometry
 

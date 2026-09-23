@@ -24,6 +24,7 @@ Supported diagram types:
 - sequence
 - flow
 - entity
+- mindmap
 
 Supported roles:
 - focal
@@ -46,6 +47,7 @@ Node kinds by diagram type:
 - dependency: component
 - sequence: participant
 - entity: entity
+- mindmap: exactly one root in every non-empty diagram; all other nodes are topic
 - flow with preset flowchart: start, end, step, decision
 - flow with preset state: start, end, state
 
@@ -55,6 +57,7 @@ Edge kinds by diagram type:
 - sequence: call, return, async, success
 - flow: flow, transition
 - entity: relationship
+- mindmap: connection
 
 Optional edge fields:
 - label
@@ -70,6 +73,14 @@ Flow rules:
 - meta.preset must be flowchart or state
 - Every edge leaving a decision node must have a label
 - Every state transition must have a label
+
+Mindmap rules:
+- An empty mindmap is valid
+- Every non-empty mindmap has exactly one explicit root node
+- Root and topic nodes require labels; connection labels are optional
+- Supply node width and height together or omit both
+- Do not use entity fields, cardinalities, flow presets, sequence fragments, waypoints, sourceAttachment, or targetAttachment
+- Connections are directed from source to target; application derives circular endpoints and curved paths
 
 Sequence rules:
 - Store message edges in chronological order

@@ -54,9 +54,7 @@ function metricsStorage(content: string) {
 
 function activityStorage(files: Record<string, string> = {}) {
     return storage({
-        'design/activity/card__card-1.json': JSON.stringify({
-            actionSettings: {}, conversations: [storedConversation], origin, records: [agentRecord], version: 4,
-        }),
+        'design/activity/card__card-1.json': JSON.stringify({actionSettings: {}, conversations: [storedConversation], origin, records: [agentRecord], version: 4}),
         ...files,
     })
 }
@@ -155,9 +153,7 @@ describe('StatsMenuTab', () => {
     })
 
     it('changes the release filter and the token number format', async () => {
-        await openStats('releases', activityStorage({ 'design/history/v1/card__card-1.json': JSON.stringify({
-            actionSettings: {}, conversations: [storedConversation], origin, records: [agentRecord], version: 4,
-        }) }))
+        await openStats('releases', activityStorage({'design/history/v1/card__card-1.json': JSON.stringify({actionSettings: {}, conversations: [storedConversation], origin, records: [agentRecord], version: 4})}))
         renderTab()
 
         expect(screen.getByRole('combobox', { name: 'Releases' })).toHaveTextContent('Current release')

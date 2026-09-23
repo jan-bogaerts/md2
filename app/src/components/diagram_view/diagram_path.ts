@@ -33,3 +33,10 @@ export function roundedDiagramPath(points: DiagramWaypoint[]) {
 
     return commands.join(' ')
 }
+
+/** Convert two endpoints plus one derived control point to a quadratic Bézier SVG path. */
+export function curvedDiagramPath(points: readonly DiagramWaypoint[], controlPoint: DiagramWaypoint) {
+    if (points.length !== 2) throw new Error('Curved diagram path requires exactly two endpoints')
+
+    return `M ${points[0].x} ${points[0].y} Q ${controlPoint.x} ${controlPoint.y} ${points[1].x} ${points[1].y}`
+}

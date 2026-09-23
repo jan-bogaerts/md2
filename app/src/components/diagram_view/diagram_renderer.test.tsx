@@ -8,8 +8,9 @@ import { createAppTheme } from '../../theme/app_theme'
 import { DiagramRenderer } from './diagram_renderer'
 
 function diagram(type: DiagramType): DiagramData {
-    const edgeKinds = {architecture: 'connection', dependency: 'dependency', entity: 'relationship', flow: 'flow', sequence: 'call'} as const
-    const kinds = type === 'flow' ? ['start', 'end'] as const : [undefined, undefined]
+    const edgeKinds = {architecture: 'connection', dependency: 'dependency', entity: 'relationship', flow: 'flow', mindmap: 'connection', sequence: 'call'} as const
+    const kinds = type === 'flow' ? ['start', 'end'] as const
+        : type === 'mindmap' ? ['root', 'topic'] as const : [undefined, undefined]
 
     return {
         edges: [{ from: 'one', id: 'one-two', kind: edgeKinds[type], label: 'connects', to: 'two' }],
@@ -45,13 +46,25 @@ function renderDiagram(data: DiagramData, onSelect = vi.fn()) {
 describe('DiagramRenderer', () => {
     afterEach(cleanup)
 
-    it.each(['architecture', 'dependency', 'sequence', 'flow', 'entity'] as const)('renders supported %s data', (type) => {
+    it.each(['architecture', 'dependency', 'sequence', 'flow', 'entity', 'mindmap'] as const)('renders supported %s data', (type) => {
         renderDiagram(diagram(type))
 
         expect(screen.getByRole('heading', { name: `${type} title` })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'One' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'connects' })).toBeInTheDocument()
         expect(screen.getByRole('group', { name: 'Scope' })).toBeInTheDocument()
+    })
+
+    it('renders mindmap circles, a labelled quadratic curve, and edges before nodes', () => {
+        renderDiagram(diagram('mindmap'))
+        const root = screen.getByRole('button', { name: 'One' })
+        const edge = screen.getByRole('button', { name: 'connects' })
+        const path = edge.querySelector('path[stroke="currentColor"]')
+
+        expect(root).toHaveAttribute('data-diagram-node-shape', 'circle')
+        expect(path?.getAttribute('d')).toContain(' Q ')
+        expect(screen.getByText('connects')).toBeInTheDocument()
+        expect(edge.compareDocumentPosition(root) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it('renders entity fields and owns keyboard edge selection', async () => {

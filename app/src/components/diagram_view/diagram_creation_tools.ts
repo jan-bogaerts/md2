@@ -6,6 +6,7 @@ import type {
 } from '../../services/diagrams/diagram_data';
 import type { DiagramCreationTool } from '../../services/diagrams/diagram_edit_session_service';
 import type { DiagramNodePlacementDefinition } from '../../services/diagrams/diagram_node_placement_service';
+import { MINDMAP_ROOT_DIAMETER, MINDMAP_TOPIC_DIAMETER } from '../../services/diagrams/diagram_layout';
 
 export type DiagramCreationToolDefinition =
     | { category: 'edge', edgeKind: DiagramEdgeKind, label: string, tool: DiagramCreationTool }
@@ -39,6 +40,14 @@ const STATE_DEFINITION: DiagramNodePlacementDefinition = {
     defaults: { height: 72, label: 'New state', role: 'focal', width: 160 },
     kind: 'state',
 };
+const MINDMAP_ROOT_DEFINITION: DiagramNodePlacementDefinition = {
+    defaults: { height: MINDMAP_ROOT_DIAMETER, label: 'New root', role: 'focal', width: MINDMAP_ROOT_DIAMETER },
+    kind: 'root',
+};
+const MINDMAP_TOPIC_DEFINITION: DiagramNodePlacementDefinition = {
+    defaults: { height: MINDMAP_TOPIC_DIAMETER, label: 'New topic', role: 'backend', width: MINDMAP_TOPIC_DIAMETER },
+    kind: 'topic',
+};
 const FLOWCHART_TERMINAL_SIZE = { height: 48, width: 120 };
 const STATE_TERMINAL_SIZE = { height: 24, width: 24 };
 
@@ -58,7 +67,11 @@ function edgeTool(label: string, edgeKind: DiagramEdgeKind): DiagramCreationTool
 }
 
 /** Returns creation tools permitted by active diagram schema, in menu order. */
-export function diagramCreationTools(type: DiagramType, preset: DiagramFlowPreset | null): readonly DiagramCreationToolDefinition[] {
+export function diagramCreationTools(
+    type: DiagramType,
+    preset: DiagramFlowPreset | null,
+    hasMindmapRoot = false,
+): readonly DiagramCreationToolDefinition[] {
     const common: DiagramCreationToolDefinition[] = [{ category: 'group', label: 'Group', tool: 'group' }];
     if (type === 'architecture') {
         return [
@@ -90,6 +103,11 @@ export function diagramCreationTools(type: DiagramType, preset: DiagramFlowPrese
             ...common,
             { category: 'fragment', label: 'Fragment', tool: 'fragment' },
         ];
+    }
+    if (type === 'mindmap') {
+        return hasMindmapRoot
+            ? [nodeTool('Topic', MINDMAP_TOPIC_DEFINITION), edgeTool('Connection', 'connection'), ...common]
+            : [nodeTool('Root', MINDMAP_ROOT_DEFINITION), ...common];
     }
     if (!preset) throw new Error('Flow diagram creation tools require a preset');
 

@@ -7,11 +7,12 @@ import { diagramRoleStyle } from './diagram_role_style';
 export function DiagramCreationToolSample({ definition }: { definition: DiagramCreationToolDefinition }) {
     if (definition.category === 'edge') return <DiagramLegendConnectionSample kind={definition.edgeKind} />;
     if (definition.category === 'node') {
+        const circular = definition.definition.kind === 'root' || definition.definition.kind === 'topic';
         return (
             <Box
                 aria-hidden="true"
                 data-role={definition.role}
-                sx={{ border: '1px solid', borderRadius: 0.5, flexShrink: 0, height: 12, width: 20, ...diagramRoleStyle(definition.role) }}
+                sx={{ border: '1px solid', borderRadius: circular ? '50%' : 0.5, flexShrink: 0, height: circular ? 18 : 12, width: circular ? 18 : 20, ...diagramRoleStyle(definition.role) }}
             />
         );
     }

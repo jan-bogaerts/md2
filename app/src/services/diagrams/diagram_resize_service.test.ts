@@ -33,6 +33,14 @@ const orders: DiagramSelectionIdentity = { objectId: 'orders', objectKind: 'node
 const store: DiagramSelectionIdentity = { objectId: 'store', objectKind: 'node' }
 const edge: DiagramSelectionIdentity = { objectId: 'orders-store', objectKind: 'edge' }
 const group: DiagramSelectionIdentity = { objectId: 'backend', objectKind: 'group' }
+const mindmapRoot: DiagramSelectionIdentity = { objectId: 'root', objectKind: 'node' }
+
+const mindmapDiagram: DiagramData = {
+    edges: [],
+    groups: [],
+    meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
+    nodes: [{ height: 128, id: 'root', kind: 'root', label: 'Root', role: 'focal', width: 128, x: 40, y: 40 }],
+}
 
 class DiagramSourceStub extends EventTarget {
     private readonly source: DiagramViewSourceSnapshot
@@ -63,6 +71,15 @@ function createHarness(sourceDiagram: DiagramData = diagram) {
 }
 
 describe('DiagramResizeService', () => {
+    it('locks mindmap resize to a square and writes both dimensions together', () => {
+        const { resize, selection, session } = createHarness(mindmapDiagram)
+        selection.replace([mindmapRoot])
+
+        expect(resize.beginResize(mindmapRoot, 'south-east', { x: 168, y: 168 })).toBe(true)
+        expect(resize.updateResize({ x: 208, y: 188 })).toBe(true)
+        expect(session.getNodeSnapshot('root')).toMatchObject({ height: 168, width: 168, x: 40, y: 40 })
+    })
+
     it('snaps node size to grid, writes explicit dimensions, and reroutes an attached endpoint', () => {
         const { geometry, resize, selection, session } = createHarness()
         selection.replace([orders])

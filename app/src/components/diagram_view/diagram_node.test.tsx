@@ -79,6 +79,19 @@ describe('DiagramNode', () => {
         expect(getComputedStyle(button).height).toBe('200px')
     })
 
+    it('renders explicit circular presentation', () => {
+        const onSelect = vi.fn()
+        render(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode circular diagramType="mindmap" node={positioned({ height: 96, kind: 'topic', width: 96 })} onSelect={onSelect} selected />
+            </ThemeProvider>,
+        )
+        const button = screen.getByRole('button', { name: 'One' })
+
+        expect(button).toHaveAttribute('data-diagram-node-shape', 'circle')
+        expect(getComputedStyle(button).borderRadius).toBe('50%')
+    })
+
     it('renders and resizes a decision inside unchanged rectangular bounds', () => {
         const node = positioned({ height: 96, kind: 'decision', label: 'Choose', width: 96 })
         const { rerender } = render(

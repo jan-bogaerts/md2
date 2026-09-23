@@ -12,9 +12,9 @@ import { DiagramEdge } from './diagram_edge'
 import {
     diagramObjectDetailsService, type DiagramObjectDetailsService,
 } from './diagram_object_details_service'
-import { useDiagramEdgeLabelPlacement, useDiagramEdgeRoute } from './use_diagram_geometry'
+import { useDiagramEdgeControlPoint, useDiagramEdgeLabelPlacement, useDiagramEdgeRoute } from './use_diagram_geometry'
 import { useIsDiagramObjectSelected } from './use_diagram_selection'
-import { useEditableDiagramEdgeField } from './use_editable_diagram'
+import { useEditableDiagramEdgeField, useEditableDiagramMetadataField } from './use_editable_diagram'
 import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 import { useDiagramObjectDimmed } from './use_diagram_emphasis'
 
@@ -46,6 +46,8 @@ function EditableDiagramEdgeLeaf({
     const label = useEditableDiagramEdgeField(edgeId, 'label', session)
     const to = useEditableDiagramEdgeField(edgeId, 'to', session)
     const toCardinality = useEditableDiagramEdgeField(edgeId, 'toCardinality', session)
+    const diagramType = useEditableDiagramMetadataField('type', session)
+    const controlPoint = useDiagramEdgeControlPoint(edgeId, geometry)
     const labelPlacement = useDiagramEdgeLabelPlacement(edgeId, geometry)
     const points = useDiagramEdgeRoute(edgeId, geometry)
     const selected = useIsDiagramObjectSelected(edgeId, 'edge', selection)
@@ -73,6 +75,7 @@ function EditableDiagramEdgeLeaf({
         points: points as DiagramWaypoint[],
         to,
         ...(fromCardinality ? { fromCardinality } : {}),
+        ...(controlPoint ? { controlPoint } : {}),
         ...(label ? { label } : {}),
         ...(labelPlacement ? { labelPlacement } : {}),
         ...(toCardinality ? { toCardinality } : {}),
@@ -80,6 +83,7 @@ function EditableDiagramEdgeLeaf({
 
     return (
         <DiagramEdge
+            curved={diagramType === 'mindmap'}
             dimmed={dimmed}
             edge={edge}
             formattingStore={session}

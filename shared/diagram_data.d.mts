@@ -1,7 +1,7 @@
 export const DIAGRAM_DATA_VERSION: 1
-export const DIAGRAM_TYPES: readonly ['architecture', 'dependency', 'sequence', 'flow', 'entity']
+export const DIAGRAM_TYPES: readonly ['architecture', 'dependency', 'sequence', 'flow', 'entity', 'mindmap']
 export const DIAGRAM_ROLES: readonly ['focal', 'backend', 'store', 'external', 'input', 'optional', 'boundary']
-export const DIAGRAM_NODE_KINDS: readonly ['component', 'participant', 'step', 'decision', 'start', 'end', 'state', 'entity']
+export const DIAGRAM_NODE_KINDS: readonly ['component', 'participant', 'step', 'decision', 'start', 'end', 'state', 'entity', 'root', 'topic']
 export const DIAGRAM_EDGE_KINDS: readonly ['connection', 'data', 'dependency', 'cycle', 'call', 'return', 'async', 'success', 'flow', 'transition', 'relationship']
 export const DIAGRAM_FLOW_PRESETS: readonly ['flowchart', 'state']
 export const DIAGRAM_CARDINALITIES: readonly ['1', 'N', '0..1', '1..*']

@@ -17,7 +17,7 @@ describe('NewDiagramMenu', () => {
         fireEvent.click(screen.getByRole('button', { name: 'New diagram' }))
 
         expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
-            'Architecture', 'Dependency', 'Sequence', 'Flowchart', 'State diagram', 'Entity',
+            'Architecture', 'Dependency', 'Sequence', 'Flowchart', 'State diagram', 'Entity', 'Mindmap',
         ])
         fireEvent.click(screen.getByRole('menuitem', { name: 'State diagram' }))
         expect(onCreateDiagram).toHaveBeenCalledWith(expect.objectContaining({ id: 'state', preset: 'state', type: 'flow' }))

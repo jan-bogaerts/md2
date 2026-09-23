@@ -19,6 +19,7 @@ interface EditableEntityFieldSource {
 }
 
 interface DiagramNodeProps {
+    circular?: boolean
     diagramType: DiagramType
     dimmed?: boolean
     entityFieldSource?: EditableEntityFieldSource
@@ -62,7 +63,7 @@ function decisionPoints(node: PositionedDiagramNode) {
 
 /** Positioned, themed, keyboard-operable diagram item. */
 export function DiagramNode(props: DiagramNodeProps) {
-    const {diagramType, dimmed = false, entityFieldSource, flowPreset, formattingStore, node} = props
+    const {circular = false, diagramType, dimmed = false, entityFieldSource, flowPreset, formattingStore, node} = props
     const {onOpenDetails, onSelect, selected} = props
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
     const decision = node.kind === 'decision'
@@ -107,6 +108,7 @@ export function DiagramNode(props: DiagramNodeProps) {
                 data-diagram-connection-target={node.id}
                 data-diagram-id={node.id}
                 data-diagram-kind="node"
+                data-diagram-node-shape={circular ? 'circle' : undefined}
                 onBlur={handleBlur}
                 onClick={handleClick}
                 onDoubleClick={onOpenDetails ? handleDoubleClick : undefined}
@@ -119,6 +121,7 @@ export function DiagramNode(props: DiagramNodeProps) {
                     height: node.height, left: node.x, overflow: 'hidden', position: 'absolute', textAlign: 'left',
                     opacity: dimmed ? DIAGRAM_DIMMED_OPACITY : 1, top: node.y, width: node.width, zIndex: 2,
                     ...kindStyles(node, flowPreset),
+                    ...(circular ? { borderRadius: '50%', textAlign: 'center' } : {}),
                     ...roleStyle,
                     '&:focus-visible': { borderColor: 'primary.main' },
                 }}
@@ -201,7 +204,8 @@ export function DiagramNode(props: DiagramNodeProps) {
                 <Box
                     aria-hidden="true"
                     sx={{
-                        height: node.height, left: node.x, outline: '2px solid', outlineColor: 'primary.main',
+                        borderRadius: circular ? '50%' : undefined, height: node.height, left: node.x,
+                        outline: '2px solid', outlineColor: 'primary.main',
                         outlineOffset: 2, pointerEvents: 'none', position: 'absolute', top: node.y, width: node.width, zIndex: 3,
                     }}
                 />

@@ -991,12 +991,55 @@ export class DiagramEditSessionService extends EventTarget {
         const node = this.requireNode(nodeId)
         const previousValue = node[field]
         if (Object.is(previousValue, value)) return false
-        if (!this.validateOperation('Set node field', () => this.validateNodeFieldValue(nodeId, field, value))) return false
+        if (!this.validateOperation('Set node field', () => {
+            this.validateNodeFieldValue(nodeId, field, value)
+            this.validateMindmapNode({ ...node, [field]: value }, nodeId)
+        })) return false
 
         node[field] = value
         const originalValue = this.originalNodesById.get(nodeId)?.[field]
         const eventName = diagramObjectFieldChangedEvent('node', nodeId, field)
         this.finishFieldChange(eventName, `node:${nodeId}`, 'node', nodeId, field, originalValue, previousValue, value)
+
+        return true
+    }
+
+    /** Writes both node dimensions through one validated transaction for aspect-locked shapes. */
+    setNodeSize(nodeId: string, width: number | undefined, height: number | undefined) {
+        const node = this.requireNode(nodeId)
+        const previousWidth = node.width
+        const previousHeight = node.height
+        if (Object.is(previousWidth, width) && Object.is(previousHeight, height)) return false
+        if (!this.validateOperation('Set node size', () => {
+            this.validateNodeFieldValue(nodeId, 'width', width)
+            this.validateNodeFieldValue(nodeId, 'height', height)
+            this.validateMindmapNode({ ...node, height, width }, nodeId)
+        })) return false
+
+        node.width = width
+        node.height = height
+        const original = this.originalNodesById.get(nodeId)
+        const changes = [
+            { field: 'width' as const, originalValue: original?.width, previousValue: previousWidth, value: width },
+            { field: 'height' as const, originalValue: original?.height, previousValue: previousHeight, value: height },
+        ].filter(({ previousValue, value }) => !Object.is(previousValue, value))
+        for (const change of changes) {
+            const eventName = diagramObjectFieldChangedEvent('node', nodeId, change.field)
+            const diagramChange: DiagramChange = {
+                category: 'field', field: change.field, id: eventName, objectId: nodeId, objectKind: 'node',
+                originalValue: change.originalValue, ownerId: null, regionIndex: null, value: change.value,
+            }
+            this.setChange(diagramChange, `node:${nodeId}`, Object.is(change.originalValue, change.value))
+        }
+        this.commitTransaction([])
+        for (const change of changes) {
+            const eventName = diagramObjectFieldChangedEvent('node', nodeId, change.field)
+            const detail: DiagramFieldChangeDetail = {
+                field: change.field, objectId: nodeId, objectKind: 'node',
+                previousValue: change.previousValue, value: change.value,
+            }
+            this.dispatchEvent(new CustomEvent<DiagramFieldChangeDetail>(eventName, { detail }))
+        }
 
         return true
     }
@@ -1613,7 +1656,14 @@ export class DiagramEditSessionService extends EventTarget {
         }
         if (nodeIds.size === 0 && edgeIds.size === 0 && groupIds.size === 0) return false
         if (!this.validateOperation('Delete selection', () => {
-            if (nodeIds.size === diagram.nodes.length) invalidDiagramField('nodes', 'empty array after deleting selection')
+            if (diagram.meta.type !== 'mindmap' && nodeIds.size === diagram.nodes.length) {
+                invalidDiagramField('nodes', 'empty array after deleting selection')
+            }
+            const removesRoot = diagram.nodes.some(({ id, kind }) => kind === 'root' && nodeIds.has(id))
+            const leavesTopic = diagram.nodes.some(({ id, kind }) => kind === 'topic' && !nodeIds.has(id))
+            if (diagram.meta.type === 'mindmap' && removesRoot && leavesTopic) {
+                invalidDiagramField('nodes', 'cannot remove mindmap root while topics remain')
+            }
         })) return false
 
         for (const edge of diagram.edges) {
@@ -1918,6 +1968,18 @@ export class DiagramEditSessionService extends EventTarget {
             requireEntityFieldValue('name', entityField.name, `nodes.new.fields[${index}].name`)
             requireEntityFieldValue('type', entityField.type, `nodes.new.fields[${index}].type`)
         }
+        this.validateMindmapNode({ ...node, id: 'new' }, 'new')
+    }
+
+    private validateMindmapNode(node: DiagramNode, nodeId: string) {
+        const diagram = this.requireEditableDiagram()
+        if (diagram.meta.type !== 'mindmap') return
+        if ((node.width === undefined) !== (node.height === undefined)) {
+            invalidDiagramField(`nodes.${nodeId}.dimensions`, 'width and height must be supplied together')
+        }
+        const otherRootCount = diagram.nodes.filter(({ id, kind }) => id !== nodeId && kind === 'root').length
+        const rootCount = otherRootCount + (node.kind === 'root' ? 1 : 0)
+        if (rootCount !== 1) invalidDiagramField('nodes', `expected exactly one root, found ${rootCount}`)
     }
 
     private validateNewEdge(edge: NewDiagramEdge) {
@@ -2098,7 +2160,14 @@ export class DiagramEditSessionService extends EventTarget {
 
     private validateNodeRemoval(nodeId: string) {
         const diagram = this.requireEditableDiagram()
-        if (diagram.nodes.length === 1) invalidDiagramField('nodes', 'empty array after removing node')
+        if (diagram.meta.type !== 'mindmap' && diagram.nodes.length === 1) {
+            invalidDiagramField('nodes', 'empty array after removing node')
+        }
+        const node = this.requireNode(nodeId)
+        if (diagram.meta.type === 'mindmap' && node.kind === 'root'
+            && diagram.nodes.some(({ id, kind }) => id !== nodeId && kind === 'topic')) {
+            invalidDiagramField('nodes', 'cannot remove mindmap root while topics remain')
+        }
         for (const edge of diagram.edges) {
             if (edge.from === nodeId || edge.to === nodeId) this.validateEdgeRemoval(edge.id)
         }

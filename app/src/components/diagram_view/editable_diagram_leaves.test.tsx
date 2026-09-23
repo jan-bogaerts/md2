@@ -43,6 +43,15 @@ const entityDiagram: DiagramData = {
         { fields: [], height: 80, id: 'archive', kind: 'entity', label: 'Archive', role: 'store', width: 120, x: 600, y: 0 },
     ],
 }
+const mindmapDiagram: DiagramData = {
+    edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', label: 'branch', to: 'store' }],
+    groups: [],
+    meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
+    nodes: [
+        { id: 'orders', kind: 'root', label: 'Orders', role: 'focal' },
+        { id: 'store', kind: 'topic', label: 'Store', role: 'store' },
+    ],
+}
 const record: DiagramRecord = { actionId: 'overview', id: 'diagram-1', label: 'Overview', path: 'design/diagrams/overview.json' }
 const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' }
 
@@ -123,6 +132,16 @@ function renderTree(sourceDiagram: DiagramData = diagram) {
 afterEach(cleanup)
 
 describe('editable diagram leaves', () => {
+    it('renders editable mindmap circles and a labelled quadratic connection', () => {
+        renderTree(mindmapDiagram)
+        const root = screen.getByRole('button', { name: 'Orders' })
+        const edge = screen.getByRole('button', { name: 'branch' })
+
+        expect(root).toHaveAttribute('data-diagram-node-shape', 'circle')
+        expect(edge.querySelector('path[stroke="currentColor"]')?.getAttribute('d')).toContain(' Q ')
+        expect(screen.getByText('branch')).toBeInTheDocument()
+    })
+
     it('renders each leaf from its own service subscriptions', () => {
         renderTree()
 

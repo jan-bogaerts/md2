@@ -61,6 +61,15 @@ const stateDiagram: DiagramData = {
         { id: 'working', kind: 'state', label: 'Working', role: 'backend' },
     ],
 }
+const mindmapDiagram: DiagramData = {
+    edges: [{ from: 'root', id: 'root-topic', kind: 'connection', to: 'topic' }],
+    groups: [],
+    meta: { description: 'Ideas', title: 'Ideas', type: 'mindmap', version: 1 },
+    nodes: [
+        { height: 128, id: 'root', kind: 'root', label: 'Root', role: 'focal', width: 128 },
+        { height: 96, id: 'topic', kind: 'topic', label: 'Topic', role: 'backend', width: 96 },
+    ],
+}
 const legendDiagram: DiagramData = {
     ...diagram,
     meta: {
@@ -120,6 +129,34 @@ function membershipDetail(listener: ReturnType<typeof vi.fn>, callIndex = 0) {
 }
 
 describe('DiagramEditSessionService', () => {
+    it('enforces mindmap root creation, deletion, and paired dimensions', () => {
+        const reportValidationError = vi.fn()
+        const { service } = createHarness({ reportValidationError, source: mindmapDiagram })
+        service.start()
+
+        expect(service.createNode({ height: 128, kind: 'root', label: 'Second', role: 'focal', width: 128 })).toBeNull()
+        expect(service.removeNode('root')).toBe(false)
+        expect(service.removeObjects([{ objectId: 'root', objectKind: 'node' }])).toBe(false)
+        expect(service.setNodeField('topic', 'width', undefined)).toBe(false)
+        expect(service.setNodeSize('topic', 120, 120)).toBe(true)
+        expect(service.getNodeSnapshot('topic')).toMatchObject({ height: 120, width: 120 })
+        expect(service.removeNode('topic')).toBe(true)
+        expect(service.removeNode('root')).toBe(true)
+        expect(service.getNodeIdsSnapshot()).toEqual([])
+        expect(reportValidationError).toHaveBeenCalledWith(expect.stringContaining('cannot remove mindmap root while topics remain'))
+    })
+
+    it('allows Root first and Topic only after Root in an empty mindmap', () => {
+        const ids = ['created-root', 'created-topic']
+        const emptyMindmap: DiagramData = { ...mindmapDiagram, edges: [], nodes: [] }
+        const { service } = createHarness({ createId: () => ids.shift() ?? 'unused', source: emptyMindmap })
+        service.start()
+
+        expect(service.createNode({ height: 96, kind: 'topic', label: 'Early', role: 'backend', width: 96 })).toBeNull()
+        expect(service.createNode({ height: 128, kind: 'root', label: 'Root', role: 'focal', width: 128 })).toBe('created-root')
+        expect(service.createNode({ height: 96, kind: 'topic', label: 'Topic', role: 'backend', width: 96 })).toBe('created-topic')
+    })
+
     it('tracks New formatting independently as scoped semantic changes', () => {
         const { service, sourceService } = createHarness()
         service.start()
