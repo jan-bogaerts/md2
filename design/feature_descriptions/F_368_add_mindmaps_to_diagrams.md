@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__530bdc1a-985f-434a-bfe7-acb2f7ca06b8.json
 policy:
-branch: f_368_add_mindmaps_to_diagrams
-worktree: 1
 after: 96236df6-2c3a-4846-9d52-f29b7ee9041d
 changedFiles:
   - app/src/components/diagram_view/current_diagram_edge.tsx
