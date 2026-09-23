@@ -3,7 +3,7 @@ author:
 id: B_245
 internalId: a8daacc1-09c2-4447-84f6-f7240e33f570
 title: clicking on search result item is broken
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,9 @@ agents:
 policy:
 branch: b_245_clicking_on_search_result_item_is_broken
 worktree: 3
+changedFiles:
+  - app/src/components/shell/search/search_control.test.tsx
+  - app/src/components/shell/search/search_panel.tsx
 ---
 
 when user clicks on a global search result item, nothing happens anymore. this is broken so it seems.
