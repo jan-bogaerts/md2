@@ -1,0 +1,54 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "64876822-b48e-450e-b7c7-68fd8d2ba6bd",
+      "cardPath": "design/feature_descriptions/J_50_markdown_toolbar_attach_files_pos.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/J_50_markdown_toolbar_attach_files_pos.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "agent-turn-85a47fdc-522f-4aff-b145-cff0f891bf06-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-23T17:13:23.109Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-749d1d0d-079a-4b86-966a-1376d737430a",
+      "providerSessions": [],
+      "startedAt": "2026-09-23T17:13:23.109Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-23T17:13:23.109Z"
+      },
+      "title": "complete",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "64876822-b48e-450e-b7c7-68fd8d2ba6bd",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
