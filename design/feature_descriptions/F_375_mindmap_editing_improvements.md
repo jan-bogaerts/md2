@@ -35,6 +35,8 @@ changedFiles:
   - app/src/components/diagram_view/editable_diagram_node.tsx
   - app/src/components/diagram_view/use_diagram_tool.ts
   - app/src/components/shell/menu/app_menu.test.tsx
+  - app/src/components/stats_view/stats_content.test.tsx
+  - app/src/components/stats_view/stats_menu_tab.tsx
   - app/src/services/diagrams/diagram_edge_drawing_service.test.ts
   - app/src/services/diagrams/diagram_edge_drawing_service.ts
   - app/src/services/diagrams/diagram_edit_session_service.test.ts
