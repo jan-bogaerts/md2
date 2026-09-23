@@ -10,8 +10,9 @@ agents:
   - design/activity/card__64876822-b48e-450e-b7c7-68fd8d2ba6bd.json
 policy:
 after: 4d894c57-e88c-49fc-8bb4-2533b8ee9ef6
+branch: j_50_markdown_toolbar_attach_files_pos
+worktree: 3
 ---
-
 the `attach files` button on the markdown toolbar should be in the same group as `create link` is, if possible
 
 ## Current state
@@ -39,11 +40,13 @@ the `attach files` button on the markdown toolbar should be in the same group as
 Read-only behavior change: button now hidden while `readOnly` (same as `CreateLink`), instead of shown disabled.
 
 Edge cases:
+
 * `readOnly` toggles at runtime: button disappears/appears with the link group; drops already ignored by `attachFiles` when `readOnly`.
 * List editor with no active card: `ListEditorToolbarControls` returns `null`, so no attach button (today the button still shows alone). Drop and paste unchanged.
 * Horizontal toolbar scroll (`HorizontalScrollArea`): button now in middle of toolbar; no layout change needed.
 
 Tests:
+
 * `markdown_format_toolbar_controls.grouped.test.tsx`: attach button rendered right after `create-link` when `onAttachFiles` set; absent without it and when `readOnly`; selecting files calls `onAttachFiles`.
 * `markdown_editor.grouped.test.tsx`: custom `toolbarContents` receives `onAttachFiles` only with `attachmentHandler` and without `hideAttachmentControl`; no trailing standalone button when toolbar visible.
 * Update mocks in `card_editor.test.tsx` (mock calls `toolbarContents()` and renders its own `Attach files` button) and check `card_body_editor.grouped.test.tsx` still finds `Attach files`.
