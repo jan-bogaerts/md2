@@ -703,6 +703,14 @@
           "role": "assistant",
           "sequence": 9,
           "timestamp": "2026-09-23T17:17:19.420Z"
+        },
+        {
+          "content": "go",
+          "id": "agent-turn-e6b2a344-1cc2-4c67-af07-068412be51cd-user-9",
+          "kind": "message",
+          "role": "user",
+          "sequence": 10,
+          "timestamp": "2026-09-23T17:18:20.472Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -717,14 +725,14 @@
         }
       ],
       "startedAt": "2026-09-23T17:16:49.148Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 9404,
           "toolMs": 9115
         },
         "elapsedMs": 30272,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-23T17:18:20.472Z"
       },
       "title": "implement",
       "usage": {
@@ -736,7 +744,7 @@
         "costUsd": 0.43530599999999997
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
