@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "64876822-b48e-450e-b7c7-68fd8d2ba6bd",
       "cardPath": "design/feature_descriptions/J_50_markdown_toolbar_attach_files_pos.md",
-      "completedAt": null,
+      "completedAt": "2026-09-23T17:14:43.433Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 75581
@@ -534,21 +534,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 41,
-          "timestamp": "2026-09-23T17:14:42.465Z"
+          "timestamp": "2026-09-23T17:14:43.433Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-749d1d0d-079a-4b86-966a-1376d737430a",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "743b833d-92bf-493f-9f0e-388dceb7db26",
+          "createdAt": "2026-09-23T17:14:43.433Z",
+          "lastUsedAt": "2026-09-23T17:14:43.433Z",
+          "synchronizedThroughMessageId": "agent-turn-85a47fdc-522f-4aff-b145-cff0f891bf06-turn-1-assistant-3"
+        }
+      ],
       "startedAt": "2026-09-23T17:13:23.109Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 23988,
           "toolMs": 37468
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-23T17:13:23.109Z"
+        "elapsedMs": 80324,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
