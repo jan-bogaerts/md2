@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__a8daacc1-09c2-4447-84f6-f7240e33f570.json
 policy:
+branch: b_245_clicking_on_search_result_item_is_broken
+worktree: 3
 ---
 
 when user clicks on a global search result item, nothing happens anymore. this is broken so it seems.
