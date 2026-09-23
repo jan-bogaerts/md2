@@ -20,7 +20,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "385eccb9-06c4-4d93-8f8a-5f9b9f42e45f",
       "cardPath": "design/feature_descriptions/F_144_appbar_and_toolbar_scrolling.md",
-      "completedAt": null,
+      "completedAt": "2026-09-23T14:03:26.550Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 69136
@@ -319,7 +319,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 24,
-          "timestamp": "2026-09-23T14:00:49.766Z"
+          "timestamp": "2026-09-23T14:03:26.550Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -334,7 +334,7 @@
         }
       ],
       "startedAt": "2026-09-23T13:55:16.023Z",
-      "status": "waitingForInput",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
           "reasoningMs": 35550,
@@ -353,7 +353,7 @@
         "costUsd": 1.0430586000000002
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
