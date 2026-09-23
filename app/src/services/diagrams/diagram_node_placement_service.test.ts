@@ -111,6 +111,33 @@ const entityDefinition = {
 }
 
 describe('DiagramNodePlacementService', () => {
+    it('places two nodes without reselecting their creation tool', () => {
+        const { createId, placement, session } = createHarness()
+        createId.mockReturnValueOnce('second-node')
+        placement.activate(componentDefinition)
+
+        placement.updatePreview({ x: 32, y: 40 })
+        expect(placement.place({ x: 32, y: 40 })).toBe('placed-node')
+        placement.updatePreview({ x: 80, y: 88 })
+        expect(placement.place({ x: 80, y: 88 })).toBe('second-node')
+
+        expect(session.getNodeIdsSnapshot()).toContain('second-node')
+        expect(session.getActiveToolSnapshot()).toBe('node:component')
+        expect(placement.getPreviewSnapshot()).toBeNull()
+    })
+
+    it('switches to Select after placing the only allowed mindmap root', () => {
+        const source = diagram('mindmap')
+        source.nodes = []
+        source.edges = []
+        const { placement, session } = createHarness(source)
+        placement.activate({ defaults: { height: 128, label: 'Root', role: 'focal', width: 128 }, kind: 'root' })
+        placement.updatePreview({ x: 40, y: 40 })
+
+        expect(placement.place({ x: 40, y: 40 })).toBe('existing')
+        expect(session.getActiveToolSnapshot()).toBe('select')
+    })
+
     it.each(['architecture', 'dependency'] as const)(
         'previews on the grid, then creates and selects one component in a %s diagram through one membership mutation',
         (diagramType) => {
@@ -145,7 +172,7 @@ describe('DiagramNodePlacementService', () => {
             expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
             expect(placement.getPreviewSnapshot()).toBeNull()
             expect(session.getTransientGestureSnapshot()).toBeNull()
-            expect(session.getActiveToolSnapshot()).toBe('select')
+            expect(session.getActiveToolSnapshot()).toBe('node:component')
             expect(previewChanged).toHaveBeenCalledTimes(2)
         },
     )
@@ -186,7 +213,7 @@ describe('DiagramNodePlacementService', () => {
         expect(session.getEditableDiagram()?.fragments).toBe(fragments)
         expect(session.getFragmentSnapshot('existing-fragment')).toBe(existingFragment)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('node:participant')
     })
 
     it('places and selects one entity while leaving its default height derived', () => {
@@ -232,7 +259,7 @@ describe('DiagramNodePlacementService', () => {
         expect(membershipChanged).toHaveBeenCalledOnce()
         expect(session.getChangeIdsSnapshot()).toHaveLength(1)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('node:step')
     })
 
     it('creates one valid decision with rectangular geometry and keeps branch-label validation active', () => {
@@ -290,7 +317,7 @@ describe('DiagramNodePlacementService', () => {
         expect(membershipChanged).toHaveBeenCalledOnce()
         expect(session.getChangeIdsSnapshot()).toHaveLength(1)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('node:state')
     })
 
     it.each([
@@ -323,7 +350,7 @@ describe('DiagramNodePlacementService', () => {
         expect(membershipChanged).toHaveBeenCalledOnce()
         expect(session.getChangeIdsSnapshot()).toHaveLength(1)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('node:start')
     })
 
     it.each([
@@ -356,7 +383,7 @@ describe('DiagramNodePlacementService', () => {
         expect(membershipChanged).toHaveBeenCalledOnce()
         expect(session.getChangeIdsSnapshot()).toHaveLength(1)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('node:end')
     })
 
     it.each([
@@ -396,18 +423,18 @@ describe('DiagramNodePlacementService', () => {
         expect(session.getNodeIdsSnapshot()).toBe(nodeIds)
         expect(session.getChangeIdsSnapshot()).toEqual([])
         expect(placement.getPreviewSnapshot()).toBeNull()
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('node:component')
     })
 
-    it('clears preview when Escape-style session cancellation resets interaction', () => {
+    it('clears preview when placement is canceled and keeps its tool available', () => {
         const { placement, session } = createHarness()
         placement.activate(componentDefinition)
         placement.updatePreview({ x: 32, y: 40 })
 
-        expect(session.cancelActiveInteraction()).toBe(true)
+        expect(placement.cancelPlacement()).toBe(true)
 
         expect(placement.getPreviewSnapshot()).toBeNull()
-        expect(placement.isPlacementActive()).toBe(false)
+        expect(placement.isPlacementActive()).toBe(true)
         expect(session.getNodeIdsSnapshot()).toEqual(['existing', 'other'])
     })
 

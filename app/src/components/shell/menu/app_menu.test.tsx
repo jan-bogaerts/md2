@@ -529,7 +529,7 @@ describe('AppMenu', () => {
         }
         vi.spyOn(diagramViewService, 'open').mockResolvedValue()
         const createDiagram = vi.spyOn(diagramViewService, 'createEmptyDiagram').mockResolvedValue(record)
-        const startEditing = vi.spyOn(diagramEditSessionService, 'start').mockImplementation(() => undefined)
+        const startEditing = vi.spyOn(diagramEditSessionService, 'startCreation').mockImplementation(() => undefined)
         const editor = document.createElement('div')
         editor.setAttribute('data-diagram-editor', 'true')
         editor.tabIndex = -1
@@ -541,7 +541,7 @@ describe('AppMenu', () => {
 
         await waitFor(() => expect(createDiagram).toHaveBeenCalledWith(expect.objectContaining({ id: 'sequence' })))
         expect(workspaceViewService.getSnapshot().viewMode).toBe('diagrams')
-        expect(startEditing).toHaveBeenCalledOnce()
+        expect(startEditing).toHaveBeenCalledWith('diagram-1')
         await waitFor(() => expect(document.activeElement).toBe(editor))
     })
 

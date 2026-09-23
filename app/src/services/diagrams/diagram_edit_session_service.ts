@@ -65,8 +65,8 @@ export type DiagramCollectionKind = 'edge' | 'fragment' | 'group' | 'node'
 export type DiagramObjectKind = DiagramCollectionKind | 'connectionPoint' | 'entityField' | 'formatting' | 'legendEntry' | 'meta'
 export type DiagramRemovableObjectKind = Extract<DiagramCollectionKind, 'edge' | 'group' | 'node'>
 export type DiagramConnectionEndpoint = 'sourceAttachment' | 'targetAttachment'
-export type DiagramPersistentTool = 'select' | 'pan' | 'group' | `node:${DiagramNodeKind}` | `edge:${DiagramEdgeKind}`
-export type DiagramCreationTool = Exclude<DiagramPersistentTool, 'pan' | 'select'> | 'fragment'
+export type DiagramPersistentTool = 'select' | 'pan' | 'fragment' | 'group' | `node:${DiagramNodeKind}` | `edge:${DiagramEdgeKind}`
+export type DiagramCreationTool = Exclude<DiagramPersistentTool, 'pan' | 'select'>
 export type DiagramTransientGesture = 'placement' | 'edge' | 'group' | 'move' | 'pan' | 'resize'
 export type MutableDiagramMetaField = 'description' | 'title'
 export type MutableDiagramLegendEntryField = 'label'
@@ -484,6 +484,8 @@ export class DiagramEditSessionService extends EventTarget {
     /** Ordered legend membership view; entries themselves are read one field at a time. */
     getLegendEntryKeysSnapshot = () => this.legendEntryKeys
 
+    getHasExplicitLegendSnapshot = () => this.editableDiagram?.meta.legend !== undefined
+
     getLegendEntryFieldSnapshot = <Field extends 'kind' | 'label' | 'role'>(
         entryKey: string,
         field: Field,
@@ -853,8 +855,12 @@ export class DiagramEditSessionService extends EventTarget {
 
     cancelActiveInteraction() {
         if (!this.session) return false
+        if (!this.transientGesture) return false
 
-        return this.resetActiveInteraction()
+        this.transientGesture = null
+        this.dispatchEvent(new Event(TRANSIENT_GESTURE_CHANGED_EVENT))
+
+        return true
     }
 
     setViewportScale(scale: number) {
@@ -923,7 +929,24 @@ export class DiagramEditSessionService extends EventTarget {
         return true
     }
 
-    /** Appends one explicit legend entry. The first added entry replaces the derived legend for this diagram. */
+    /** Turns displayed semantic categories into editable legend entries. */
+    materializeDerivedLegend() {
+        const diagram = this.requireEditableDiagram()
+        if (diagram.meta.legend !== undefined) return false
+
+        const roles = [...new Set(diagram.nodes.map(({ role }) => role))]
+        const kinds = [...new Set(diagram.edges.map(({ kind }) => kind))]
+        const entries: DiagramLegendEntryData[] = [
+            ...roles.map((role) => ({ label: role, role })),
+            ...kinds.map((kind) => ({ kind, label: kind })),
+        ]
+        diagram.meta.legend = entries
+        this.finishLegendMembershipChange(entries.map(diagramLegendEntryKey), [])
+
+        return true
+    }
+
+    /** Appends one explicit legend entry. */
     addLegendEntry(entry: NewDiagramLegendEntry) {
         const diagram = this.requireEditableDiagram()
         if (!this.validateOperation('Add legend entry', () => {
@@ -949,8 +972,7 @@ export class DiagramEditSessionService extends EventTarget {
         if (!this.legendEntryKeys.includes(entryKey)) return false
 
         const legend = (diagram.meta.legend ?? []).filter((entry) => diagramLegendEntryKey(entry) !== entryKey)
-        if (legend.length > 0) diagram.meta.legend = legend
-        else delete diagram.meta.legend
+        diagram.meta.legend = legend
         this.finishLegendMembershipChange([], [entryKey])
 
         return true
@@ -2722,6 +2744,13 @@ export class DiagramEditSessionService extends EventTarget {
     private finishLegendMembershipChange(addedKeys: readonly string[], removedKeys: readonly string[]) {
         const diagram = this.requireEditableDiagram()
         this.legendEntryKeys = Object.freeze((diagram.meta.legend ?? []).map(diagramLegendEntryKey))
+        const originalValue = this.changeBaselineDiagram?.meta.legend !== undefined
+        const value = diagram.meta.legend !== undefined
+        const presenceChange: DiagramChange = {
+            category: 'field', field: 'legend', id: 'diagram:meta:legend', objectId: 'diagram',
+            objectKind: 'meta', originalValue, ownerId: null, regionIndex: null, value,
+        }
+        this.setChange(presenceChange, 'meta:diagram', originalValue === value)
         for (const entryKey of removedKeys) this.purgeChangesOwnedBy(`legendEntry:${entryKey}`)
         for (const entryKey of [...addedKeys, ...removedKeys]) this.markLegendMembership(entryKey)
         for (const entryKey of addedKeys) {

@@ -34,6 +34,7 @@ function createHarness(repositoryFiles: string[] = []) {
     const reportError = vi.fn()
     const requireWritable = vi.fn()
     const scheduleCommit = vi.fn<(file: MarkdownFile, message: string) => void>()
+    const showDiagrams = vi.fn()
     const service = new DiagramViewService({
         createId: vi.fn().mockReturnValueOnce('root-1').mockReturnValueOnce('root-2').mockReturnValueOnce('child-1'),
         createPopupId: vi.fn()
@@ -51,6 +52,7 @@ function createHarness(repositoryFiles: string[] = []) {
         reportError,
         requireWritable,
         scheduleCommit,
+        showDiagrams,
         subscribeRunEvents: (listener) => {
             runListener = listener
 
@@ -66,6 +68,7 @@ function createHarness(repositoryFiles: string[] = []) {
         run: (event: ActionRunEvent) => runListener?.(event),
         scheduleCommit,
         service,
+        showDiagrams,
         storage,
     }
 }
@@ -546,12 +549,13 @@ describe('DiagramViewService', () => {
     })
 
     it('keeps repeated root and child runs in tree and closes popup only after persistence', async () => {
-        const { flushCommits, run, scheduleCommit, service } = createHarness()
+        const { flushCommits, run, scheduleCommit, service, showDiagrams } = createHarness()
         await service.open()
         service.openRootPopup(document.createElement('button'))
 
         run(completedEvent())
         await vi.waitFor(() => expect(service.getSnapshot().index.activePath).toEqual(['root-1']))
+        expect(showDiagrams).toHaveBeenCalledTimes(1)
         expect(service.getSnapshot().popup).toBeNull()
         expect(scheduleCommit).toHaveBeenLastCalledWith(expect.objectContaining({ path: INDEX_PATH }), 'Update diagram view')
         expect(flushCommits).toHaveBeenCalledTimes(1)
@@ -569,6 +573,7 @@ describe('DiagramViewService', () => {
             status: 'okButNotAfter',
         }))
         await vi.waitFor(() => expect(service.getSnapshot().index.activePath).toEqual(['root-2', 'child-1']))
+        expect(showDiagrams).toHaveBeenCalledTimes(3)
         expect(service.getSavedChildren('root-2', 'orders').map(({ id }) => id)).toEqual(['child-1'])
         expect(scheduledIndex(scheduleCommit)?.diagrams['child-1'].parent?.itemLabel).toBe('Orders')
     })
@@ -605,7 +610,7 @@ describe('DiagramViewService', () => {
     })
 
     it('keeps prior diagram and popup when persistence fails', async () => {
-        const { flushCommits, reportError, run, service } = createHarness()
+        const { flushCommits, reportError, run, service, showDiagrams } = createHarness()
         await service.open()
         service.openRootPopup(document.createElement('button'))
         flushCommits.mockRejectedValueOnce(new Error('write failed'))
@@ -616,6 +621,7 @@ describe('DiagramViewService', () => {
         expect(service.getSnapshot().index.activePath).toEqual([])
         expect(service.getSnapshot().popup).not.toBeNull()
         expect(service.getSnapshot().currentDiagram).toBeNull()
+        expect(showDiagrams).not.toHaveBeenCalled()
     })
 
     it('saves a root edit beside its source while keeping Current active', async () => {

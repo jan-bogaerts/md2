@@ -134,7 +134,7 @@ function nodeHeight(data: DiagramData, node: DiagramNode) {
     if (data.meta.type === 'mindmap') {
         height = node.width === undefined
             ? node.kind === 'root' ? MINDMAP_ROOT_DIAMETER : MINDMAP_TOPIC_DIAMETER
-            : Math.max(node.width, node.height as number)
+            : node.height as number
     } else if (node.height !== undefined) height = node.height
     else if (node.fields) height = snap(ENTITY_HEADER_HEIGHT + node.fields.length * ENTITY_FIELD_HEIGHT)
     else if (data.meta.type === 'flow' && node.kind === 'decision') height = 96
@@ -148,7 +148,7 @@ function nodeWidth(data: DiagramData, node: DiagramNode) {
     if (data.meta.type === 'mindmap') {
         width = node.width === undefined
             ? node.kind === 'root' ? MINDMAP_ROOT_DIAMETER : MINDMAP_TOPIC_DIAMETER
-            : Math.max(node.width, node.height as number)
+            : node.width
     } else if (node.width !== undefined) width = node.width
     else if (data.meta.type === 'flow' && node.kind === 'decision') width = 96
     else if (data.meta.type === 'flow' && (node.kind === 'start' || node.kind === 'end')) width = data.meta.preset === 'state' ? 24 : 120
@@ -782,7 +782,7 @@ function quadraticPoint(start: DiagramWaypoint, control: DiagramWaypoint, end: D
 
 type MindmapConnectionEndpoint = Pick<PositionedDiagramNode, 'height' | 'width' | 'x' | 'y'>
 
-/** Derives circle-boundary endpoints and one quadratic control point without persisting route data. */
+/** Derives ellipse-boundary endpoints and one quadratic control point without persisting route data. */
 export function mindmapConnectionGeometry(
     from: MindmapConnectionEndpoint,
     to: MindmapConnectionEndpoint,
@@ -791,10 +791,11 @@ export function mindmapConnectionGeometry(
     const fromCentre = nodeCenter(from)
     const toCentre = nodeCenter(to)
     if (selfConnection) {
-        const radius = from.width / 2
-        const start = { x: fromCentre.x + radius, y: fromCentre.y }
-        const end = { x: fromCentre.x, y: fromCentre.y - radius }
-        const controlPoint = { x: fromCentre.x + radius * 1.5, y: fromCentre.y - radius * 1.5 }
+        const radiusX = from.width / 2
+        const radiusY = from.height / 2
+        const start = { x: fromCentre.x + radiusX, y: fromCentre.y }
+        const end = { x: fromCentre.x, y: fromCentre.y - radiusY }
+        const controlPoint = { x: fromCentre.x + radiusX * 1.5, y: fromCentre.y - radiusY * 1.5 }
 
         return { controlPoint, points: [start, end] }
     }
@@ -803,11 +804,16 @@ export function mindmapConnectionGeometry(
     const distance = Math.hypot(deltaX, deltaY)
     const unitX = distance === 0 ? 1 : deltaX / distance
     const unitY = distance === 0 ? 0 : deltaY / distance
-    const start = { x: fromCentre.x + unitX * from.width / 2, y: fromCentre.y + unitY * from.height / 2 }
-    const end = { x: toCentre.x - unitX * to.width / 2, y: toCentre.y - unitY * to.height / 2 }
+    const fromRadius = from.width === 0 || from.height === 0
+        ? 0 : 1 / Math.hypot(unitX / (from.width / 2), unitY / (from.height / 2))
+    const toRadius = to.width === 0 || to.height === 0
+        ? 0 : 1 / Math.hypot(unitX / (to.width / 2), unitY / (to.height / 2))
+    const start = { x: fromCentre.x + unitX * fromRadius, y: fromCentre.y + unitY * fromRadius }
+    const end = { x: toCentre.x - unitX * toRadius, y: toCentre.y - unitY * toRadius }
+    const bend = deltaX > 0 && deltaY > 0 ? -MINDMAP_CURVE_OFFSET : MINDMAP_CURVE_OFFSET
     const controlPoint = {
-        x: (start.x + end.x) / 2 - unitY * MINDMAP_CURVE_OFFSET,
-        y: (start.y + end.y) / 2 + unitX * MINDMAP_CURVE_OFFSET,
+        x: (start.x + end.x) / 2 - unitY * bend,
+        y: (start.y + end.y) / 2 + unitX * bend,
     }
 
     return { controlPoint, points: [start, end] }

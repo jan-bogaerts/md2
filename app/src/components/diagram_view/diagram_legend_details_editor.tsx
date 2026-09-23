@@ -67,7 +67,7 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
             <DialogContent dividers>
                 <Stack spacing={2} sx={{ pt: 0.5 }}>
                     {validationMessage ? <Alert severity="error">{validationMessage}</Alert> : null}
-                    {entryKeys.length === 0 ? (
+                    {!session.getHasExplicitLegendSnapshot() ? (
                         <Typography color="text.secondary" variant="body2">
                             This diagram has no explicit legend entries, so its legend is derived from the node roles and
                             connection kinds it uses. Adding an entry replaces that derived legend.

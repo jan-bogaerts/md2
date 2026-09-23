@@ -215,6 +215,7 @@ export function DiagramZoomViewport({
                 : null
         if (!gesture) return
 
+        event.preventDefault()
         activePointerIdRef.current = event.pointerId
         activePointerGestureRef.current = gesture
         event.currentTarget.setPointerCapture?.(event.pointerId)
@@ -433,7 +434,7 @@ export function DiagramZoomViewport({
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             ref={scrollerRef}
-            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', px: 2, pb: 2, pt: 1 }}
+            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', px: 2, pb: 2, pt: 1, touchAction: panToolActive ? 'none' : 'auto' }}
         >
             <Box data-testid="new-diagram-zoom-surface" sx={{ transformOrigin: 'top left', zoom: scale }}>
                 <NewDiagram

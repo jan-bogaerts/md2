@@ -119,8 +119,8 @@ class DiagramSourceStub extends EventTarget {
     }
 }
 
-function createHarness(source: DiagramData = architectureDiagram()) {
-    const session = new DiagramEditSessionService(new DiagramSourceStub({ diagram: source, record }), () => 'drawn-edge')
+function createHarness(source: DiagramData = architectureDiagram(), createId: () => string = () => 'drawn-edge') {
+    const session = new DiagramEditSessionService(new DiagramSourceStub({ diagram: source, record }), createId)
     session.bindProject(project)
     session.start()
     const geometry = new DiagramGeometryService(session)
@@ -164,6 +164,20 @@ describe('diagram edge drawing geometry', () => {
 })
 
 describe('DiagramEdgeDrawingService', () => {
+    it('draws two connections without reselecting the edge tool', () => {
+        const createId = vi.fn().mockReturnValueOnce('first-edge').mockReturnValueOnce('second-edge')
+        const { drawing, session } = createHarness(architectureDiagram(), createId)
+        drawing.activate({ kind: 'connection' })
+
+        drawing.beginSource('source', { x: 120, y: 40 })
+        expect(drawing.completeTarget('target', { x: 240, y: 40 })).toBe('first-edge')
+        drawing.beginSource('source', { x: 120, y: 40 })
+        expect(drawing.completeTarget('target', { x: 240, y: 40 })).toBe('second-edge')
+
+        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
+        expect(drawing.getPreviewSnapshot()).toBeNull()
+    })
+
     it('creates an entity relationship between persisted connection points', () => {
         const { drawing, geometry, selection, session } = createHarness(entityDiagram())
 
@@ -265,7 +279,7 @@ describe('DiagramEdgeDrawingService', () => {
         expect(edgeMembershipChanged).toHaveBeenCalledTimes(1)
         expect(targetFanInChanged).toHaveBeenCalledTimes(1)
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'drawn-edge', objectKind: 'edge' }])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('edge:data')
         expect(session.getTransientGestureSnapshot()).toBeNull()
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
@@ -383,7 +397,7 @@ describe('DiagramEdgeDrawingService', () => {
 
         expect(drawing.cancelDrawing()).toBe(true)
         expect(drawing.getPreviewSnapshot()).toBeNull()
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
 
         drawing.activate({ kind: 'connection' })
         drawing.beginSource('source', { x: 120, y: 40 })

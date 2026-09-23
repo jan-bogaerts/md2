@@ -1,6 +1,8 @@
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
-import { Box, IconButton, Tooltip, Typography } from '@mui/material'
-import { useState, type MouseEvent } from 'react'
+import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
+import { Box, IconButton, TextField, Tooltip, Typography } from '@mui/material'
+import { useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
+import type { DiagramEditSessionService } from '../../services/diagrams/diagram_edit_session_service'
 import type {
     DiagramConnectionKindFormatting,
     DiagramEdgeKind,
@@ -23,8 +25,42 @@ export interface DiagramFormattingMutationStore extends DiagramFormattingStore {
 }
 
 /** One legend semantic category with hover/focus formatting action and scoped sample subscription. */
-export function DiagramLegendEntryRow({ entry, store }: { entry: DiagramLegendEntry, store: DiagramFormattingMutationStore }) {
+export function DiagramLegendEntryRow({ entry, session, store }: {
+    entry: DiagramLegendEntry, session?: DiagramEditSessionService, store: DiagramFormattingMutationStore,
+}) {
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
+    const [draftState, setDraftState] = useState({ base: entry.label, value: entry.label })
+    const draftLabel = draftState.base === entry.label ? draftState.value : entry.label
+    const [labelError, setLabelError] = useState<string | null>(null)
+    const entryKey = entry.entryType === 'node' ? `node:${entry.role}` : `connection:${entry.kind}`
+    const handleLabelChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setDraftState({ base: entry.label, value: event.target.value })
+        setLabelError(null)
+    }
+    const commitLabel = () => {
+        if (!session || draftLabel.trim() === entry.label) return
+        if (!draftLabel.trim()) {
+            setLabelError('Label is required.')
+
+            return
+        }
+        session.materializeDerivedLegend()
+        if (!session.setLegendEntryLabel(entryKey, draftLabel)) setLabelError('Label could not be saved.')
+    }
+    const handleLabelKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault()
+            commitLabel()
+        }
+        if (event.key === 'Escape') {
+            setDraftState({ base: entry.label, value: entry.label })
+            setLabelError(null)
+        }
+    }
+    const handleRemove = () => {
+        session?.materializeDerivedLegend()
+        session?.removeLegendEntry(entryKey)
+    }
     const nodeFormatting = useDiagramNodeRoleFormatting(entry.entryType === 'node' ? entry.role : 'focal', store)
     const handleOpen = (event: MouseEvent<HTMLButtonElement>) => setAnchorElement(event.currentTarget)
     const handleClose = () => setAnchorElement(null)
@@ -41,6 +77,7 @@ export function DiagramLegendEntryRow({ entry, store }: { entry: DiagramLegendEn
                 alignItems: 'center', display: 'flex', gap: 1,
                 '& .diagram-formatting-action': { opacity: 0 },
                 '&:focus-within .diagram-formatting-action, &:hover .diagram-formatting-action': { opacity: 1 },
+                '@media (hover: none)': { '& .diagram-formatting-action': { opacity: 1 } },
             }}
         >
             {entry.entryType === 'node' ? (
@@ -49,7 +86,26 @@ export function DiagramLegendEntryRow({ entry, store }: { entry: DiagramLegendEn
                     sx={{ border: '1px solid', borderRadius: 0.5, flexShrink: 0, height: 12, width: 20, ...diagramRoleStyle(entry.role, nodeFormatting) }}
                 />
             ) : <DiagramLegendConnectionSample kind={entry.kind} store={store} />}
-            <Typography color="text.secondary" sx={{ flex: 1, minWidth: 0 }} variant="caption">{entry.label}</Typography>
+            {session ? (
+                <TextField
+                    error={!!labelError}
+                    helperText={labelError}
+                    onBlur={commitLabel}
+                    onChange={handleLabelChange}
+                    onKeyDown={handleLabelKeyDown}
+                    size="small"
+                    slotProps={{ htmlInput: { 'aria-label': `Legend label for ${entryKey}` } }}
+                    sx={{ flex: 1, minWidth: 0 }}
+                    value={draftLabel}
+                />
+            ) : <Typography color="text.secondary" sx={{ flex: 1, minWidth: 0 }} variant="caption">{entry.label}</Typography>}
+            {session ? (
+                <Tooltip title={`Remove ${entry.label}`}>
+                    <IconButton aria-label={`Remove ${entry.label}`} className="diagram-formatting-action" onClick={handleRemove} size="small">
+                        <DeleteOutlineOutlined fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+            ) : null}
             <Tooltip title={`Format ${entry.label}`}>
                 <IconButton
                     aria-label={`Format ${entry.label}`}

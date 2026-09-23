@@ -26,7 +26,7 @@ export function derivedDiagramLegendEntries(
 /** Uses explicit legend entries when the diagram carries them, and derives entries only when it has none. */
 export function diagramLegendEntries(data: PositionedDiagramData): DiagramLegendEntry[] {
     const legend = data.meta.legend ?? []
-    if (legend.length > 0) return legend.map(diagramLegendEntry)
+    if (data.meta.legend !== undefined) return legend.map(diagramLegendEntry)
 
     return derivedDiagramLegendEntries(data.nodes.map(({ role }) => role), data.edges.map(({ kind }) => kind))
 }

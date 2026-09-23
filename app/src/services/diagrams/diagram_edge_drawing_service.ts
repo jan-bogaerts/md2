@@ -252,10 +252,9 @@ export class DiagramEdgeDrawingService extends EventTarget {
         if (!edgeId) return null
 
         this.selection.replace([{ objectId: edgeId, objectKind: 'edge' }])
-        this.defaults = null
         this.sequenceRowIndex = null
         this.setPreview(null)
-        this.session.setActiveTool('select')
+        this.session.completeTransientGesture()
 
         return edgeId
     }
@@ -263,7 +262,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
     cancelDrawing() {
         if (!this.defaults && !this.preview) return false
 
-        this.defaults = null
+        this.sequenceRowIndex = null
         this.setPreview(null)
         this.session.cancelActiveInteraction()
 

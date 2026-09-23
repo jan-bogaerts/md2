@@ -1,5 +1,5 @@
 import { ThemeProvider } from '@mui/material'
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagramData } from '../../services/diagrams/diagram_data'
@@ -10,6 +10,7 @@ import { layout } from '../../services/diagrams/diagram_layout'
 import { createAppTheme } from '../../theme/app_theme'
 import { DiagramLegend } from './diagram_legend'
 import { DiagramSessionLegendEntries } from './diagram_session_legend_entries'
+import { diagramObjectDetailsService } from './diagram_object_details_service'
 
 const diagram: DiagramData = {
     edges: [{ from: 'orders', id: 'orders-store', kind: 'connection', to: 'store' }],
@@ -57,6 +58,26 @@ function startSession(source: DiagramData) {
 afterEach(cleanup)
 
 describe('DiagramSessionLegendEntries', () => {
+    it('renames a derived row inline, rejects blank text, and removes it without reappearing', async () => {
+        const session = startSession(diagram)
+        const user = userEvent.setup()
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+        const label = screen.getByRole('textbox', { name: 'Legend label for node:focal' })
+
+        await user.clear(label)
+        await user.tab()
+        expect(screen.getByText('Label is required.')).toBeInTheDocument()
+        expect(session.getHasExplicitLegendSnapshot()).toBe(false)
+
+        await user.clear(label)
+        await user.type(label, 'Service')
+        await user.tab()
+        expect(session.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
+        await user.click(screen.getByRole('button', { name: 'Remove Service' }))
+        expect(session.getLegendEntryKeysSnapshot()).not.toContain('node:focal')
+        expect(screen.queryByRole('textbox', { name: 'Legend label for node:focal' })).not.toBeInTheDocument()
+    })
+
     it('offers accessible role formatting and applies one New transaction', async () => {
         const session = startSession(legendDiagram)
         const user = userEvent.setup()
@@ -110,7 +131,8 @@ describe('DiagramSessionLegendEntries', () => {
 
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
-        expect(screen.getByLabelText('New diagram legend entries')).toHaveTextContent('ServiceCalls')
+        expect(screen.getByRole('textbox', { name: 'Legend label for node:focal' })).toHaveValue('Service')
+        expect(screen.getByRole('textbox', { name: 'Legend label for connection:connection' })).toHaveValue('Calls')
     })
 
     it('derives entries from edited nodes and edges while the diagram has no explicit legend', () => {
@@ -118,7 +140,9 @@ describe('DiagramSessionLegendEntries', () => {
 
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
-        expect(screen.getByLabelText('New diagram legend entries')).toHaveTextContent('focalstoreconnection')
+        expect(screen.getByRole('textbox', { name: 'Legend label for node:focal' })).toHaveValue('focal')
+        expect(screen.getByRole('textbox', { name: 'Legend label for node:store' })).toHaveValue('store')
+        expect(screen.getByRole('textbox', { name: 'Legend label for connection:connection' })).toHaveValue('connection')
     })
 
     it('reflects a renamed entry without re-reading the diagram', () => {
@@ -130,7 +154,7 @@ describe('DiagramSessionLegendEntries', () => {
             session.setLegendEntryLabel('node:focal', 'Order service')
         })
 
-        expect(screen.getByLabelText('New diagram legend entries')).toHaveTextContent('Order serviceCalls')
+        expect(screen.getByRole('textbox', { name: 'Legend label for node:focal' })).toHaveValue('Order service')
         expect(getEditableDiagram).not.toHaveBeenCalled()
     })
 
@@ -142,20 +166,20 @@ describe('DiagramSessionLegendEntries', () => {
         act(() => {
             session.addLegendEntry({ label: 'Database', role: 'store' })
         })
-        expect(entryList).toHaveTextContent('ServiceCallsDatabase')
+        expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Service', 'Calls', 'Database'])
 
         act(() => {
             session.moveLegendEntry('node:store', 0)
         })
-        expect(entryList).toHaveTextContent('DatabaseServiceCalls')
+        expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Database', 'Service', 'Calls'])
 
         act(() => {
             session.removeLegendEntry('node:focal')
         })
-        expect(entryList).toHaveTextContent('DatabaseCalls')
+        expect(within(entryList).getAllByRole('textbox').map((input) => (input as HTMLInputElement).value)).toEqual(['Database', 'Calls'])
     })
 
-    it('falls back to derived entries once the last explicit entry is removed', () => {
+    it('keeps the New legend empty once the last explicit entry is removed', () => {
         const session = startSession(legendDiagram)
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
@@ -163,7 +187,7 @@ describe('DiagramSessionLegendEntries', () => {
             for (const entryKey of [...session.getLegendEntryKeysSnapshot()]) session.removeLegendEntry(entryKey)
         })
 
-        expect(screen.getByLabelText('New diagram legend entries')).toHaveTextContent('focalstoreconnection')
+        expect(within(screen.getByLabelText('New diagram legend entries')).queryAllByRole('textbox')).toHaveLength(0)
     })
 })
 
@@ -191,7 +215,10 @@ describe('DiagramLegend session tabs', () => {
         const session = startSession(legendDiagram)
         renderTabbedLegend(session)
 
-        expect(screen.getByLabelText('New diagram legend entries')).toHaveTextContent('ServiceCalls')
+        expect(screen.getByRole('textbox', { name: 'Legend label for node:focal' })).toHaveValue('Service')
+        await userEvent.click(screen.getByRole('button', { name: 'Add legend entry' }))
+        expect(diagramObjectDetailsService.getTargetSnapshot()).toEqual({ objectKind: 'legend' })
+        diagramObjectDetailsService.close()
         expect(screen.queryByLabelText('Current diagram legend entries')).not.toBeInTheDocument()
 
         await userEvent.click(screen.getByRole('tab', { name: 'Current' }))

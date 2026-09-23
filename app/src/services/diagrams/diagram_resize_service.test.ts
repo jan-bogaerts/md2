@@ -71,13 +71,13 @@ function createHarness(sourceDiagram: DiagramData = diagram) {
 }
 
 describe('DiagramResizeService', () => {
-    it('locks mindmap resize to a square and writes both dimensions together', () => {
+    it('resizes mindmap width and height independently', () => {
         const { resize, selection, session } = createHarness(mindmapDiagram)
         selection.replace([mindmapRoot])
 
         expect(resize.beginResize(mindmapRoot, 'south-east', { x: 168, y: 168 })).toBe(true)
         expect(resize.updateResize({ x: 208, y: 188 })).toBe(true)
-        expect(session.getNodeSnapshot('root')).toMatchObject({ height: 168, width: 168, x: 40, y: 40 })
+        expect(session.getNodeSnapshot('root')).toMatchObject({ height: 148, width: 168, x: 40, y: 40 })
     })
 
     it('snaps node size to grid, writes explicit dimensions, and reroutes an attached endpoint', () => {

@@ -2,7 +2,7 @@ import { Box, Divider, MenuItem, Popover, Stack, TextField, Typography } from '@
 import type { SelectChangeEvent } from '@mui/material';
 import DateRangeOutlined from '@mui/icons-material/DateRangeOutlined';
 import FileDownloadOutlined from '@mui/icons-material/FileDownloadOutlined';
-import { useRef, useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import type { ChangeEvent } from 'react';
 import { dialogService } from '../../services/dialog_service';
 import { projectStatsService, type ProjectStatsService } from '../../services/stats/project_stats_service';
@@ -120,7 +120,7 @@ function exportStats(dataset: StatsDataset, rows: StatsChartRow[]) {
 /** Stats app-menu content; subscribes on its own so control changes never republish the stats page. */
 export function StatsMenuTab({ service = projectStatsService }: { service?: ProjectStatsService }) {
     const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
-    const dateRangeAnchorRef = useRef<HTMLSpanElement | null>(null);
+    const [dateRangeAnchorElement, setDateRangeAnchorElement] = useState<HTMLSpanElement | null>(null);
     const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
     const { controls, options, rows } = snapshot;
     const disabled = snapshot.status === 'loading' || snapshot.status === 'error';
@@ -245,13 +245,13 @@ export function StatsMenuTab({ service = projectStatsService }: { service?: Proj
                     <MenuItem value="short">Shortened (1.2K)</MenuItem>
                     <MenuItem value="exact">Exact (1,234)</MenuItem>
                 </MenuSelect>
-                <Box component="span" ref={dateRangeAnchorRef} sx={{ display: 'inline-flex' }}>
+                <Box component="span" ref={setDateRangeAnchorElement} sx={{ display: 'inline-flex' }}>
                     <MenuIconButton disabled={disabled} label="Date range" onClick={openDateRange}>
                         <DateRangeOutlined fontSize="small" />
                     </MenuIconButton>
                 </Box>
                 <Popover
-                    anchorEl={dateRangeAnchorRef.current}
+                    anchorEl={dateRangeAnchorElement}
                     anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
                     onClose={closeDateRange}
                     open={isDateRangeOpen}

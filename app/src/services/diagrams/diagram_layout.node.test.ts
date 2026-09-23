@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DiagramData } from './diagram_data'
-import { layout, sequenceMessageInsertionIndexAt, sequenceMessageRowY } from './diagram_layout'
+import { layout, mindmapConnectionGeometry, sequenceMessageInsertionIndexAt, sequenceMessageRowY } from './diagram_layout'
 
 function diagram(type: DiagramData['meta']['type'] = 'architecture'): DiagramData {
     return {
@@ -77,7 +77,7 @@ describe('diagram layout', () => {
         expect(nodeById(positioned, 'a').x).toBe(nodeById(positioned, 'b').x)
     })
 
-    it('keeps mindmap positions, uses circular dimensions, and derives curve geometry and midpoint labels', () => {
+    it('keeps mindmap positions, uses ellipse dimensions, and derives curve geometry and midpoint labels', () => {
         const data: DiagramData = {
             edges: [{ from: 'root', id: 'connection', kind: 'connection', label: 'Branch', to: 'topic' }],
             groups: [],
@@ -94,9 +94,10 @@ describe('diagram layout', () => {
         const rootCentre = { x: root.x + root.width / 2, y: root.y + root.height / 2 }
         const topicCentre = { x: topic.x + topic.width / 2, y: topic.y + topic.height / 2 }
 
-        expect(root).toMatchObject({ height: 120, width: 120, x: 40, y: 80 })
+        expect(root).toMatchObject({ height: 80, width: 120, x: 40, y: 80 })
         expect(topic).toMatchObject({ height: 96, width: 96, x: 360, y: 80 })
-        expect(Math.hypot(edge.points[0].x - rootCentre.x, edge.points[0].y - rootCentre.y)).toBeCloseTo(root.width / 2)
+        expect(((edge.points[0].x - rootCentre.x) / (root.width / 2)) ** 2
+            + ((edge.points[0].y - rootCentre.y) / (root.height / 2)) ** 2).toBeCloseTo(1)
         expect(Math.hypot(edge.points[1].x - topicCentre.x, edge.points[1].y - topicCentre.y)).toBeCloseTo(topic.width / 2)
         expect(edge.controlPoint).toBeDefined()
         const controlPoint = edge.controlPoint as { x: number, y: number }
@@ -106,6 +107,21 @@ describe('diagram layout', () => {
         }
         expect(edge.labelPlacement).toMatchObject({ textX: curveMiddle.x, textY: curveMiddle.y + 3 })
         expect(data.edges[0]).not.toHaveProperty('controlPoint')
+    })
+
+    it('bends opposite diagonal arrangements to opposite sides', () => {
+        const upperLeft = { height: 80, width: 120, x: 0, y: 0 }
+        const lowerRight = { height: 80, width: 120, x: 280, y: 220 }
+        const descending = mindmapConnectionGeometry(upperLeft, lowerRight)
+        const ascending = mindmapConnectionGeometry(lowerRight, upperLeft)
+        const side = (geometry: typeof descending) => {
+            const [start, end] = geometry.points
+
+            return (end.x - start.x) * (geometry.controlPoint.y - start.y)
+                - (end.y - start.y) * (geometry.controlPoint.x - start.x)
+        }
+
+        expect(side(descending) * side(ascending)).toBeLessThan(0)
     })
 
     it('places layered nodes on grid and routes orthogonal fanned edges', () => {

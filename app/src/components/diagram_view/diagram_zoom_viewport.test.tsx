@@ -156,7 +156,7 @@ describe('DiagramZoomViewport', () => {
             to: 'store',
         })
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: edgeId, objectKind: 'edge' }])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('edge:data')
         expect(screen.queryByTestId('diagram-edge-drawing-preview')).not.toBeInTheDocument()
     })
 
@@ -179,7 +179,7 @@ describe('DiagramZoomViewport', () => {
         fireEvent.keyDown(window, { key: 'Escape' })
 
         expect(session.getEdgeIdsSnapshot()).toEqual(['orders-store'])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
 
@@ -226,7 +226,7 @@ describe('DiagramZoomViewport', () => {
         scroller.scrollTop = 12
 
         fireEvent.pointerMove(scroller, { clientX: 100, clientY: 80, isPrimary: true, pointerId: 8 })
-        expect(screen.getByText('New component').closest('button')).toHaveStyle({ left: '148px', top: '96px' })
+        expect(screen.getByText('New component').closest('button')).toHaveStyle({ left: '116px', top: '76px' })
         expect(session.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
 
         fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 8 })
@@ -234,9 +234,9 @@ describe('DiagramZoomViewport', () => {
         fireEvent.click(scroller)
 
         const nodeId = session.getNodeIdsSnapshot()[2]
-        expect(session.getNodeSnapshot(nodeId)).toMatchObject({ kind: 'component', x: 148, y: 96 })
+        expect(session.getNodeSnapshot(nodeId)).toMatchObject({ kind: 'component', x: 116, y: 76 })
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: nodeId, objectKind: 'node' }])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('node:component')
         expect(screen.getByRole('button', { name: 'New component' })).not.toHaveAttribute('aria-disabled')
     })
 
@@ -303,7 +303,7 @@ describe('DiagramZoomViewport', () => {
 
         expect(session.getNodeIdsSnapshot()).toEqual(['orders', 'store'])
         expect(selection.getSelectionSnapshot()).toEqual([])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('node:component')
         expect(screen.queryByText('New component')).not.toBeInTheDocument()
     })
 
@@ -349,8 +349,8 @@ describe('DiagramZoomViewport', () => {
             transformOrigin: 'top left',
             zoom: DEFAULT_DIAGRAM_ZOOM + DIAGRAM_ZOOM_STEP,
         })
-        expect(scroller.scrollLeft).toBe(150)
-        expect(scroller.scrollTop).toBe(75)
+        expect(scroller.scrollLeft).toBe(110)
+        expect(scroller.scrollTop).toBe(55)
     })
 
     it('preserves visible center and canonical geometry while zooming out', () => {
@@ -371,8 +371,8 @@ describe('DiagramZoomViewport', () => {
             transformOrigin: 'top left',
             zoom: DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP,
         })
-        expect(scroller.scrollLeft).toBe(50)
-        expect(scroller.scrollTop).toBe(25)
+        expect(scroller.scrollLeft).toBe(90)
+        expect(scroller.scrollTop).toBe(45)
         expect(session.getEditableDiagram()).toBe(editableDiagram)
         expect(session.getEditableDiagram()?.nodes[0]).toMatchObject({ x: 240, y: 120 })
     })
@@ -423,19 +423,20 @@ describe('DiagramZoomViewport', () => {
         fireEvent.pointerDown(surface, { button: 0, clientX: 95, clientY: 67.5, pointerId: 1 })
         fireEvent.pointerMove(surface, { clientX: 245, clientY: 142.5, pointerId: 1 })
 
-        expect(screen.getByTestId('diagram-selection-rectangle')).toHaveStyle({
-            height: '100px',
-            left: '100px',
-            top: '50px',
-            width: '200px',
+        const rectangle = screen.getByTestId('diagram-selection-rectangle')
+        expect(rectangle).toHaveStyle({
+            left: `${75 / (DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)}px`,
+            top: `${37.5 / (DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)}px`,
         })
+        expect(parseFloat(getComputedStyle(rectangle).height)).toBeCloseTo(75 / (DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP))
+        expect(parseFloat(getComputedStyle(rectangle).width)).toBeCloseTo(150 / (DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP))
         expect(screen.getByTestId('new-diagram-zoom-surface')).toHaveStyle({ zoom: scale })
 
         scroller.scrollLeft = 80
         scroller.scrollTop = 60
         expect(screen.getByTestId('diagram-selection-rectangle')).toHaveStyle({
-            left: '100px',
-            top: '50px',
+            left: `${75 / (DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)}px`,
+            top: `${37.5 / (DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP)}px`,
         })
     })
 
@@ -460,12 +461,37 @@ describe('DiagramZoomViewport', () => {
         fireEvent.pointerUp(scroller, { pointerId: 1 })
         fireEvent.click(orders)
 
-        expect(session.getNodeSnapshot('orders')).toMatchObject({ x: 272, y: 152 })
-        expect(session.getNodeSnapshot('store')).toMatchObject({ x: 512, y: 152 })
+        expect(session.getNodeSnapshot('orders')).toMatchObject({ x: 264, y: 144 })
+        expect(session.getNodeSnapshot('store')).toMatchObject({ x: 504, y: 144 })
         expect(selection.getSelectionSnapshot()).toEqual([
             { objectId: 'orders', objectKind: 'node' },
             { objectId: 'store', objectKind: 'node' },
         ])
+    })
+
+    it.each([DEFAULT_DIAGRAM_ZOOM, DEFAULT_DIAGRAM_ZOOM - DIAGRAM_ZOOM_STEP])('moves a node by touch at zoom %s and rolls back cancellation', (scale) => {
+        const { geometry, movement, selection, session } = createHarness()
+        render(<DiagramZoomViewport geometry={geometry} movement={movement} selection={selection} session={session} />)
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const node = screen.getByRole('button', { name: 'Orders' })
+        const capturePointer = vi.fn()
+        scroller.setPointerCapture = capturePointer
+        expect(getComputedStyle(node).touchAction).toBe('none')
+        act(() => { session.setViewportScale(scale) })
+
+        fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 31, pointerType: 'touch' })
+        expect(capturePointer).toHaveBeenCalledWith(31)
+        fireEvent.pointerMove(scroller, { clientX: 124, clientY: 104, pointerId: 31, pointerType: 'touch' })
+        expect(movement.getMoveActiveSnapshot()).toBe(true)
+        expect(session.getNodeFieldSnapshot('orders', 'x')).not.toBe(240)
+        fireEvent.pointerCancel(scroller, { pointerId: 31, pointerType: 'touch' })
+        expect(session.getNodeSnapshot('orders')).toMatchObject({ x: 240, y: 120 })
+
+        fireEvent.pointerDown(node, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 32, pointerType: 'touch' })
+        fireEvent.pointerMove(scroller, { clientX: 124, clientY: 104, pointerId: 32, pointerType: 'touch' })
+        fireEvent.pointerUp(scroller, { pointerId: 32, pointerType: 'touch' })
+        expect(session.getNodeFieldSnapshot('orders', 'x')).not.toBe(240)
+        expect(movement.getMoveActiveSnapshot()).toBe(false)
     })
 
     it('selects a drag target on pointer down and restores its geometry on pointer cancellation', () => {
@@ -539,7 +565,7 @@ describe('DiagramZoomViewport', () => {
         fireEvent.pointerMove(scroller, { clientX: 122, clientY: 78, pointerId: 6 })
         fireEvent.pointerUp(scroller, { pointerId: 6 })
 
-        expect(session.getNodeSnapshot('orders')).toMatchObject({ height: 84, width: 176, x: 240, y: 120 })
+        expect(session.getNodeSnapshot('orders')).toMatchObject({ height: 80, width: 172, x: 240, y: 120 })
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'orders', objectKind: 'node' }])
         expect(resize.getResizeActiveSnapshot()).toBe(false)
     })
@@ -654,7 +680,7 @@ describe('DiagramZoomViewport', () => {
 
         expect(scroller.scrollLeft).toBe(120)
         expect(scroller.scrollTop).toBe(80)
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('pan')
     })
 
     it('selects nothing on the click that follows a New pan past the drag threshold', () => {

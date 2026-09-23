@@ -9,6 +9,7 @@ import type { DiagramSelectHandler } from './diagram_selection'
 import { EditableDiagramEntityFields } from './editable_diagram_entity_fields'
 import { DIAGRAM_DIMMED_OPACITY } from './diagram_emphasis_presentation'
 import { diagramFontStyle } from './diagram_font_style'
+import { DiagramInlineNodeControls } from './diagram_inline_node_controls'
 import {
     type DiagramFormattingStore, useDiagramFormattingScale, useDiagramNodeRoleFormatting,
 } from './use_diagram_formatting'
@@ -22,6 +23,7 @@ interface DiagramNodeProps {
     circular?: boolean
     diagramType: DiagramType
     dimmed?: boolean
+    editableLabel?: { session: DiagramEditSessionService }
     entityFieldSource?: EditableEntityFieldSource
     flowPreset?: DiagramFlowPreset
     formattingStore?: DiagramFormattingStore
@@ -63,7 +65,7 @@ function decisionPoints(node: PositionedDiagramNode) {
 
 /** Positioned, themed, keyboard-operable diagram item. */
 export function DiagramNode(props: DiagramNodeProps) {
-    const {circular = false, diagramType, dimmed = false, entityFieldSource, flowPreset, formattingStore, node} = props
+    const {circular = false, diagramType, dimmed = false, editableLabel, entityFieldSource, flowPreset, formattingStore, node} = props
     const {onOpenDetails, onSelect, selected} = props
     const stateMarker = flowPreset === 'state' && (node.kind === 'start' || node.kind === 'end')
     const decision = node.kind === 'decision'
@@ -108,7 +110,7 @@ export function DiagramNode(props: DiagramNodeProps) {
                 data-diagram-connection-target={node.id}
                 data-diagram-id={node.id}
                 data-diagram-kind="node"
-                data-diagram-node-shape={circular ? 'circle' : undefined}
+                data-diagram-node-shape={circular ? node.width === node.height ? 'circle' : 'ellipse' : undefined}
                 onBlur={handleBlur}
                 onClick={handleClick}
                 onDoubleClick={onOpenDetails ? handleDoubleClick : undefined}
@@ -120,10 +122,12 @@ export function DiagramNode(props: DiagramNodeProps) {
                     alignItems: 'stretch', border: '1px solid', color: 'text.primary', display: 'flex', flexDirection: 'column',
                     height: node.height, left: node.x, overflow: 'hidden', position: 'absolute', textAlign: 'left',
                     opacity: dimmed ? DIAGRAM_DIMMED_OPACITY : 1, top: node.y, width: node.width, zIndex: 2,
+                    touchAction: editableLabel ? 'none' : undefined,
                     ...kindStyles(node, flowPreset),
                     ...(circular ? { borderRadius: '50%', textAlign: 'center' } : {}),
                     ...roleStyle,
                     '&:focus-visible': { borderColor: 'primary.main' },
+                    '&:hover + .diagram-node-inline-controls .diagram-node-details-action, &:focus + .diagram-node-inline-controls .diagram-node-details-action': { opacity: 1 },
                 }}
             >
                 {decision ? (
@@ -165,7 +169,7 @@ export function DiagramNode(props: DiagramNodeProps) {
                     >
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 2, py: 1 }}>
                             {node.tag ? <Typography color="custom.text3" sx={diagramFontStyle(formatting?.font, fontScalePercent, 'overline')} variant="overline">{node.tag}</Typography> : null}
-                            <Typography sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'body2'), fontWeight: formatting?.font?.bold === undefined ? 600 : undefined, overflowWrap: 'anywhere' }} variant="body2">{node.label}</Typography>
+                            {!editableLabel ? <Typography sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'body2'), fontWeight: formatting?.font?.bold === undefined ? 600 : undefined, overflowWrap: 'anywhere' }} variant="body2">{node.label}</Typography> : null}
                             {node.sublabel ? (
                                 <Typography color="text.secondary" sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'caption'), overflowWrap: 'anywhere' }} variant="caption">{node.sublabel}</Typography>
                             ) : null}
@@ -200,6 +204,9 @@ export function DiagramNode(props: DiagramNodeProps) {
                     </Typography>
                 ) : null}
             </ButtonBase>
+            {editableLabel && onOpenDetails ? (
+                <DiagramInlineNodeControls node={node} onOpenDetails={onOpenDetails} session={editableLabel.session} />
+            ) : null}
             {selected || focused ? (
                 <Box
                     aria-hidden="true"

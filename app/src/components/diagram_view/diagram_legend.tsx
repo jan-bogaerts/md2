@@ -1,5 +1,6 @@
 import ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined'
 import ExpandLessOutlined from '@mui/icons-material/ExpandLessOutlined'
+import AddOutlined from '@mui/icons-material/AddOutlined'
 import { Box, IconButton, Paper, Tab, Tabs, Tooltip, Typography } from '@mui/material'
 import {
     useCallback, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore,
@@ -15,6 +16,7 @@ import { clampLegendPosition } from './diagram_legend_position'
 import {
     DiagramSessionLegendEntries, type SessionLegendSource,
 } from './diagram_session_legend_entries'
+import { diagramObjectDetailsService } from './diagram_object_details_service'
 
 const LEGEND_INSET = 1.5
 const DRAG_THRESHOLD = 3
@@ -63,6 +65,7 @@ export function DiagramLegend({ creationSession = false, data, service = diagram
     const handleTabChange = (_event: SyntheticEvent, tab: DiagramLegendTab) => setActiveTab(tab)
     const handleCollapse = () => service.collapseLegend()
     const handleExpand = () => service.expandLegend()
+    const handleAdd = () => diagramObjectDetailsService.open({ objectKind: 'legend' })
     const currentTabActive = !session || (!creationSession && activeTab === 'current')
     const clampCurrentPosition = useCallback(() => {
         const panel = panelRef.current
@@ -86,7 +89,7 @@ export function DiagramLegend({ creationSession = false, data, service = diagram
     }, [clampCurrentPosition, collapsed, currentTabActive])
 
     const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-        if ((event.target as Element).closest('button')) return
+        if ((event.target as Element).closest('button, input')) return
         const panel = panelRef.current
         const viewport = panel?.parentElement
         if (!panel || !viewport) return
@@ -160,6 +163,13 @@ export function DiagramLegend({ creationSession = false, data, service = diagram
                 sx={{ alignItems: 'center', cursor: 'move', display: 'flex', flexShrink: 0, gap: 1, minHeight: 40, px: 1.5 }}
             >
                 <Typography sx={{ flex: 1, fontWeight: 600 }} variant="body2">Legend</Typography>
+                {session && !currentTabActive ? (
+                    <Tooltip title="Add legend entry">
+                        <IconButton aria-label="Add legend entry" onClick={handleAdd} size="small">
+                            <AddOutlined fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                ) : null}
                 <Tooltip title={collapsed ? 'Expand legend' : 'Collapse legend'}>
                     <IconButton
                         aria-label={collapsed ? 'Expand legend' : 'Collapse legend'}

@@ -177,9 +177,12 @@ export class DiagramNodePlacementService extends EventTarget {
         if (!nodeId) return null
 
         this.selection.replace([{ objectId: nodeId, objectKind: 'node' }])
-        this.definition = null
         this.setPreview(null)
-        this.session.setActiveTool('select')
+        this.session.completeTransientGesture()
+        if (definition.kind === 'root') {
+            this.definition = null
+            this.session.setActiveTool('select')
+        }
 
         return nodeId
     }
@@ -187,7 +190,6 @@ export class DiagramNodePlacementService extends EventTarget {
     cancelPlacement() {
         if (!this.definition && !this.preview) return false
 
-        this.definition = null
         this.setPreview(null)
         this.session.cancelActiveInteraction()
 

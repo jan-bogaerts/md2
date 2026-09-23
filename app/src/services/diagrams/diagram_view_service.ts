@@ -7,7 +7,8 @@ import { actionService } from '../actions/action_service'
 import { dataService } from '../data/data_service'
 import { dialogService } from '../dialog_service'
 import { projectAccessService } from '../project/project_access_service'
-import { register } from '../service_injector'
+import type { WorkspaceViewService } from '../project/workspace_view_service'
+import { getService, register } from '../service_injector'
 import {
     diagramIndexPath,
     emptyDiagramIndex,
@@ -147,6 +148,7 @@ interface DiagramViewDependencies {
     reportError: (error: unknown, fallbackMessage: string) => void
     requireWritable: () => void
     scheduleCommit: (file: MarkdownFile, message: string) => void
+    showDiagrams: () => void
     subscribeRunEvents: (listener: (event: ActionRunEvent) => void) => () => void
 }
 
@@ -213,6 +215,7 @@ function defaultDependencies(): DiagramViewDependencies {
         reportError: (error, fallbackMessage) => dialogService.error(error, { fallbackMessage }),
         requireWritable: () => projectAccessService.requireWritable(),
         scheduleCommit: (file, message) => dataService.scheduleFileCommit(file, message),
+        showDiagrams: () => getService<WorkspaceViewService>('workspaceViewService').setViewMode('diagrams'),
         subscribeRunEvents: (listener) => actionRunRegistry.subscribeActiveRunEvents(listener),
     }
 }
@@ -822,6 +825,7 @@ export class DiagramViewService extends EventTarget {
             { ...this.snapshot, currentDiagram: positionedDiagram, currentDiagramError: null, index, menu: null, popup: null },
             sourceSnapshot,
         )
+        this.dependencies.showDiagrams()
     }
 
     private async createCopyRecord(binding: DiagramProjectBinding, sourceRecord: DiagramRecord) {

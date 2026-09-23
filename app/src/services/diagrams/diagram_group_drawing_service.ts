@@ -138,7 +138,7 @@ export class DiagramGroupDrawingService extends EventTarget {
 
         this.selection.replace([{ objectId: groupId, objectKind: 'group' }])
         this.clearDrawing()
-        this.session.setActiveTool('select')
+        this.session.completeTransientGesture()
 
         return groupId
     }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useSyncExternalStore } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 import {
     diagramEditSessionService,
     type DiagramPersistentTool,
@@ -13,10 +13,6 @@ export interface DiagramActiveToolStore {
 export interface DiagramTransientGestureStore {
     getTransientGestureSnapshot: () => DiagramTransientGesture | null
     subscribeTransientGesture: (listener: () => void) => () => void
-}
-
-export interface DiagramInteractionCancellation {
-    cancelActiveInteraction: () => boolean
 }
 
 /** Subscribes either an active-tool reader or one tool button to its selected boolean. */
@@ -45,20 +41,4 @@ export function useDiagramTransientGesture(service: DiagramTransientGestureStore
         service.getTransientGestureSnapshot,
         service.getTransientGestureSnapshot,
     )
-}
-
-/** Cancels active diagram interaction from Escape while editor UI is mounted. */
-export function useCancelDiagramInteractionOnEscape(
-    service: DiagramInteractionCancellation = diagramEditSessionService,
-) {
-    const handleKeyDown = useCallback((event: KeyboardEvent) => {
-        if (event.defaultPrevented || event.key !== 'Escape') return
-        if (service.cancelActiveInteraction()) event.preventDefault()
-    }, [service])
-
-    useEffect(() => {
-        window.addEventListener('keydown', handleKeyDown)
-
-        return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [handleKeyDown])
 }

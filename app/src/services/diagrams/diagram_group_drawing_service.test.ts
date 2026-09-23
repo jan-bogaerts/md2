@@ -56,7 +56,7 @@ describe('DiagramGroupDrawingService', () => {
         expect(session.getGroupSnapshot('group-1')).toEqual({height: 76, id: 'group-1', label: 'Platform', nodeIds: [], width: 72, x: 32, y: 24})
         expect(membershipChanged).toHaveBeenCalledOnce()
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'group-1', objectKind: 'group' }])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('group')
         expect(session.getTransientGestureSnapshot()).toBeNull()
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
@@ -79,7 +79,7 @@ describe('DiagramGroupDrawingService', () => {
 
         expect(drawing.cancelDrawing()).toBe(true)
         expect(session.getGroupIdsSnapshot()).toEqual([])
-        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getActiveToolSnapshot()).toBe('group')
 
         drawing.activate()
         drawing.beginDrawing({ x: 20, y: 20 })

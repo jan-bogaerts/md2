@@ -21,7 +21,6 @@ import { DiagramLegendButton } from './diagram_legend_button';
 import { DiagramMenuToolButton } from './diagram_menu_tool_button';
 import { DiagramMetadataButton } from './diagram_metadata_button';
 import { DiagramPasteButton } from './diagram_paste_button';
-import { useCancelDiagramInteractionOnEscape } from './use_diagram_tool';
 import { DiagramFormattingControls } from './diagram_formatting_controls';
 
 /** Diagram app-menu content. Changing diagram state rerenders only subscribed leaf controls. */
@@ -37,7 +36,6 @@ export function DiagramMenuTab({
         session.getSessionSnapshot,
         session.getSessionSnapshot,
     );
-    useCancelDiagramInteractionOnEscape(session);
 
     return (
         <Tab>
@@ -49,20 +47,23 @@ export function DiagramMenuTab({
                 </>
             ) : (
                 <>
-                    <Section label="Edit">
+                    <Section label="Tools">
                         <DiagramMenuToolButton session={session} tool="select" />
                         <DiagramMenuToolButton session={session} tool="pan" />
+                        <DiagramAddControl session={session} />
+                    </Section>
+                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                    <Section label="Clipboard">
                         <DiagramCutButton session={session} />
                         <DiagramCopyButton session={session} />
                         <DiagramPasteButton />
                         <DiagramDeleteButton />
+                    </Section>
+                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                    <Section label="Review and metadata">
                         <DiagramChangeReviewButton />
                         <DiagramMetadataButton />
                         <DiagramLegendButton />
-                    </Section>
-                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
-                    <Section label="Add">
-                        <DiagramAddControl session={session} />
                     </Section>
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="Formatting">

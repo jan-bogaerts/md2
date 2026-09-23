@@ -22,7 +22,7 @@ function explicitEntries(session: SessionLegendSource, entryKeys: readonly strin
 
 function sessionEntries(session: SessionLegendSource): DiagramLegendEntry[] {
     const entryKeys = session.getLegendEntryKeysSnapshot()
-    if (entryKeys.length > 0) return explicitEntries(session, entryKeys)
+    if (session.getHasExplicitLegendSnapshot()) return explicitEntries(session, entryKeys)
 
     const roles = session.getNodeIdsSnapshot()
         .map((nodeId) => session.getNodeFieldSnapshot(nodeId, 'role'))
@@ -63,8 +63,11 @@ function useSessionLegendEntries(session: SessionLegendSource) {
 
     useEffect(() => {
         const refresh = () => setEntries(sessionEntries(session))
+        const displayedKeys = sessionEntries(session).map((entry) => (
+            entry.entryType === 'node' ? `node:${entry.role}` : `connection:${entry.kind}`
+        ))
         const unsubscribes = [
-            ...session.getLegendEntryKeysSnapshot().map((entryKey) => session.subscribeLegendEntryField(entryKey, 'label', refresh)),
+            ...displayedKeys.map((entryKey) => session.subscribeLegendEntryField(entryKey, 'label', refresh)),
             ...session.getNodeIdsSnapshot().map((nodeId) => session.subscribeNodeField(nodeId, 'role', refresh)),
             ...session.getEdgeIdsSnapshot().map((edgeId) => session.subscribeEdgeField(edgeId, 'kind', refresh)),
         ]
@@ -85,5 +88,5 @@ export function DiagramSessionLegendEntries({
     label?: string
     session?: SessionLegendSource
 }) {
-    return <DiagramLegendEntryList entries={useSessionLegendEntries(session)} label={label} store={session} />
+    return <DiagramLegendEntryList entries={useSessionLegendEntries(session)} label={label} session={session} store={session} />
 }

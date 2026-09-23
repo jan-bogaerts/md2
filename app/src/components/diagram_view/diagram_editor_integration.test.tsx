@@ -120,7 +120,8 @@ describe('diagram editor integration', () => {
         act(() => { expect(mutate(session)).toBe(true) })
 
         expect(within(current).getByText(currentText)).toBeInTheDocument()
-        expect(within(next).getByText(newText)).toBeInTheDocument()
+        if (diagramName === 'architecture') expect(within(next).getByRole('textbox', { name: 'Edit One edited label' })).toHaveValue(newText)
+        else expect(within(next).getByText(newText)).toBeInTheDocument()
         expect(JSON.stringify(diagram)).toBe(originalText)
         expect(parseDiagramData(JSON.stringify(session.getEditableDiagram()))).toEqual(session.getEditableDiagram())
     })

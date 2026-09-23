@@ -308,19 +308,19 @@ describe('DiagramEditSessionService', () => {
         expect(toolChanged).toHaveBeenCalledTimes(2)
     })
 
-    it('cancels active interaction and returns to Select', () => {
+    it('cancels an active gesture while keeping its tool selected', () => {
         const { service } = createHarness()
         service.start()
         service.setActiveTool('edge:connection')
         service.beginTransientGesture('edge')
 
         expect(service.cancelActiveInteraction()).toBe(true)
-        expect(service.getActiveToolSnapshot()).toBe('select')
+        expect(service.getActiveToolSnapshot()).toBe('edge:connection')
         expect(service.getTransientGestureSnapshot()).toBeNull()
         expect(service.cancelActiveInteraction()).toBe(false)
     })
 
-    it('carries the pan tool and its pan gesture through cancellation back to Select', () => {
+    it('cancels a pan gesture while keeping Pan selected', () => {
         const { service } = createHarness()
         const toolChanged = vi.fn()
         const gestureChanged = vi.fn()
@@ -337,9 +337,9 @@ describe('DiagramEditSessionService', () => {
         expect(gestureChanged).toHaveBeenCalledOnce()
 
         expect(service.cancelActiveInteraction()).toBe(true)
-        expect(service.getActiveToolSnapshot()).toBe('select')
+        expect(service.getActiveToolSnapshot()).toBe('pan')
         expect(service.getTransientGestureSnapshot()).toBeNull()
-        expect(toolChanged).toHaveBeenCalledTimes(2)
+        expect(toolChanged).toHaveBeenCalledOnce()
         expect(gestureChanged).toHaveBeenCalledTimes(2)
     })
 
@@ -1867,13 +1867,25 @@ describe('DiagramEditSessionService', () => {
         expect(membershipChanged).toHaveBeenCalledOnce()
     })
 
-    it('drops the legend key once the last explicit entry is removed', () => {
+    it('keeps an explicit empty legend once the last entry is removed', () => {
         const service = legendHarness()
 
         for (const entryKey of [...service.getLegendEntryKeysSnapshot()]) service.removeLegendEntry(entryKey)
 
         expect(service.getLegendEntryKeysSnapshot()).toEqual([])
-        expect('legend' in (service.getEditableDiagram()?.meta ?? {})).toBe(false)
+        expect(service.getEditableDiagram()?.meta.legend).toEqual([])
+    })
+
+    it('materializes derived entries and persists removal of the last one after reload', () => {
+        const { service } = createHarness()
+        service.start()
+
+        expect(service.materializeDerivedLegend()).toBe(true)
+        for (const entryKey of [...service.getLegendEntryKeysSnapshot()]) service.removeLegendEntry(entryKey)
+
+        expect(service.getDirtySnapshot()).toBe(true)
+        const serialized = serializeDiagramData(service.getEditableDiagram() as DiagramData)
+        expect(parseDiagramData(serialized).meta.legend).toEqual([])
     })
 
     it('reorders legend membership without changing any entry label', () => {

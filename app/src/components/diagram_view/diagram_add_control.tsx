@@ -9,7 +9,6 @@ import {
     Popper,
     Tooltip,
 } from '@mui/material';
-import AddOutlined from '@mui/icons-material/AddOutlined';
 import ArrowDropDownOutlined from '@mui/icons-material/ArrowDropDownOutlined';
 import { useCallback, useMemo, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
 import type { DiagramFlowPreset, DiagramType } from '../../services/diagrams/diagram_data';
@@ -54,7 +53,7 @@ function activateCreationTool(
     if (definition.category === 'edge') return drawing.activate({ kind: definition.edgeKind });
     if (definition.category === 'group') return groupDrawing.activate();
 
-    session.setLastSelectedCreationTool('fragment');
+    session.setActiveTool('fragment');
     fragmentDialog.openCreate();
 
     return true;
@@ -84,6 +83,11 @@ export function DiagramAddControl({
         session.subscribeLastSelectedCreationTool,
         session.getLastSelectedCreationToolSnapshot,
         session.getLastSelectedCreationToolSnapshot,
+    );
+    const activeTool = useSyncExternalStore(
+        session.subscribeActiveTool,
+        session.getActiveToolSnapshot,
+        session.getActiveToolSnapshot,
     );
     const nodeIds = useSyncExternalStore(
         useCallback((listener) => session.subscribeCollectionMembership('node', listener), [session]),
@@ -120,6 +124,7 @@ export function DiagramAddControl({
         dropdownButton?.focus();
     }, [activate, definitions, dropdownButton]);
     const selectedLabel = selectedDefinition?.label ?? 'tool';
+    const addSelected = activeTool !== 'select' && activeTool !== 'pan';
 
     return (
         <>
@@ -128,12 +133,12 @@ export function DiagramAddControl({
                     <span>
                         <Button
                             aria-label={`Add ${selectedLabel}`}
+                            aria-pressed={addSelected}
                             disabled={!selectedDefinition}
                             onClick={handleAdd}
-                            startIcon={<AddOutlined />}
-                            sx={{ height: 34 }}
+                            sx={{ height: 34, minWidth: 34, px: 1, ...(addSelected ? { bgcolor: 'custom.primaryBg', color: 'primary.main' } : {}) }}
                         >
-                            Add
+                            {selectedDefinition ? <DiagramCreationToolSample definition={selectedDefinition} /> : null}
                         </Button>
                     </span>
                 </Tooltip>

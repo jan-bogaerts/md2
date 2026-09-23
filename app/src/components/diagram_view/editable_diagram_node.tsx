@@ -87,6 +87,7 @@ function EditableDiagramNodeLeaf({
             circular={diagramType === 'mindmap'}
             diagramType={diagramType}
             dimmed={dimmed}
+            editableLabel={{ session }}
             entityFieldSource={diagramType === 'entity' ? { nodeId, session } : undefined}
             flowPreset={preset ?? undefined}
             formattingStore={session}

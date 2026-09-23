@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { DiagramData, DiagramEdgeKind, DiagramRole } from '../../services/diagrams/diagram_data';
@@ -79,6 +79,24 @@ function createSession(source: SourceStub) {
 afterEach(cleanup);
 
 describe('DiagramMenuTab', () => {
+    it('orders edit controls and selects exactly one persistent tool', () => {
+        const source = new SourceStub(sourceSnapshot());
+        const session = createSession(source);
+        session.start();
+        render(<DiagramMenuTab session={session} viewService={source as unknown as DiagramViewService} />);
+        const names = ['Select', 'Pan', 'Add tool', 'Cut', 'Copy', 'Paste', 'Delete', 'Review', 'Metadata', 'Legend'];
+        const buttons = screen.getAllByRole('button');
+        const indexes = names.map((name) => buttons.indexOf(screen.getByRole('button', { name })));
+        expect(indexes).toEqual([...indexes].sort((left, right) => left - right));
+        expect(screen.getByRole('button', { name: 'Select' })).toHaveAttribute('aria-pressed', 'true');
+
+        act(() => { session.setActiveTool('node:component'); });
+        const toolButtons = ['Select', 'Pan', 'Add Component'].map((name) => screen.getByRole('button', { name }));
+        expect(toolButtons.filter((button) => button.getAttribute('aria-pressed') === 'true')).toHaveLength(1);
+        expect(screen.getByRole('button', { name: 'Add Component' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.queryByText('Add', { selector: 'button' })).not.toBeInTheDocument();
+    });
+
     it('shows Edit only with a current diagram, then shows editing controls', async () => {
         const source = new SourceStub(sourceSnapshot());
         const session = createSession(source);

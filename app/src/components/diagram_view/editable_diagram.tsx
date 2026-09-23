@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/material'
+import { Box } from '@mui/material'
 import { useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 import {
     diagramEditSessionService, type DiagramEditSessionService,
@@ -41,7 +41,6 @@ import {
 } from './diagram_object_details_service'
 import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE, useDeleteDiagramSelectionOnDeleteKey } from './use_diagram_delete_key'
 import { useDiagramSurfaceField } from './use_diagram_geometry'
-import { useEditableDiagramMetadataField } from './use_editable_diagram'
 import { diagramViewService, type DiagramViewService } from '../../services/diagrams/diagram_view_service'
 import { diagramEmphasisService, type DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 import { DiagramChangeReviewDialog } from './diagram_change_review_dialog'
@@ -49,8 +48,8 @@ import {
     diagramChangeReviewService, type DiagramChangeReviewService,
 } from './diagram_change_review_service'
 import { DiagramChangeActionPopup } from './diagram_change_action_popup'
-import { diagramFontStyle } from './diagram_font_style'
-import { useDiagramFormattingScale } from './use_diagram_formatting'
+import { DiagramInlineMetadataField } from './diagram_inline_metadata_field'
+import { useActiveDiagramTool } from './use_diagram_tool'
 
 interface EditableDiagramProps {
     details?: DiagramObjectDetailsService
@@ -72,20 +71,12 @@ interface MetadataLeafProps {
 
 /** Title of the New diagram; it observes that one metadata field. */
 export function EditableDiagramTitle({ session = diagramEditSessionService }: MetadataLeafProps) {
-    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', session)
-
-    return <Typography sx={diagramFontStyle(undefined, fontScalePercent, 'h6')} variant="h6">{useEditableDiagramMetadataField('title', session) ?? ''}</Typography>
+    return <DiagramInlineMetadataField field="title" session={session} />
 }
 
 /** Description of the New diagram; it observes that one metadata field. */
 export function EditableDiagramDescription({ session = diagramEditSessionService }: MetadataLeafProps) {
-    const fontScalePercent = useDiagramFormattingScale('fontScalePercent', session)
-
-    return (
-        <Typography color="text.secondary" sx={diagramFontStyle(undefined, fontScalePercent, 'body2')} variant="body2">
-            {useEditableDiagramMetadataField('description', session) ?? ''}
-        </Typography>
-    )
+    return <DiagramInlineMetadataField field="description" session={session} />
 }
 
 /**
@@ -107,6 +98,7 @@ export function EditableDiagramSurface({
 }) {
     const height = useDiagramSurfaceField('height', geometry)
     const width = useDiagramSurfaceField('width', geometry)
+    const activeTool = useActiveDiagramTool(session)
     const activePointerIdRef = useRef<number | null>(null)
     const suppressNextClickRef = useRef(false)
     const diagramPointFromPointer = (event: PointerEvent<HTMLDivElement>) => {
@@ -190,7 +182,7 @@ export function EditableDiagramSurface({
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            sx={{ height, position: 'relative', touchAction: 'none', width }}
+            sx={{ height, position: 'relative', touchAction: activeTool === 'select' ? 'auto' : 'none', width }}
         >
             {children}
         </Box>

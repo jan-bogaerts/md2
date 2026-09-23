@@ -92,6 +92,17 @@ describe('DiagramNode', () => {
         expect(getComputedStyle(button).borderRadius).toBe('50%')
     })
 
+    it('renders an oval mindmap node as an ellipse', () => {
+        const onSelect = vi.fn()
+        render(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode circular diagramType="mindmap" node={positioned({ height: 80, kind: 'topic', width: 120 })} onSelect={onSelect} selected={false} />
+            </ThemeProvider>,
+        )
+
+        expect(screen.getByRole('button', { name: 'One' })).toHaveAttribute('data-diagram-node-shape', 'ellipse')
+    })
+
     it('renders and resizes a decision inside unchanged rectangular bounds', () => {
         const node = positioned({ height: 96, kind: 'decision', label: 'Choose', width: 96 })
         const { rerender } = render(

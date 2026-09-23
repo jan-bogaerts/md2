@@ -210,6 +210,17 @@ describe('DiagramGeometryService', () => {
         expect(geometry.getEdgeLabelPlacementSnapshot('a-child')).not.toBeNull()
     })
 
+    it('updates mindmap ellipse endpoints and labels after independent resize', () => {
+        const { geometry, session } = createHarness(mindmapDiagram())
+        const routeBefore = geometry.getEdgeRouteSnapshot('a-child')
+        const labelBefore = geometry.getEdgeLabelPlacementSnapshot('a-child')
+
+        expect(session.setNodeSize('a', 120, 80)).toBe(true)
+        expect(nodeBox(geometry, 'a')).toMatchObject({ width: 120, height: 80 })
+        expect(geometry.getEdgeRouteSnapshot('a-child')).not.toEqual(routeBefore)
+        expect(geometry.getEdgeLabelPlacementSnapshot('a-child')).not.toEqual(labelBefore)
+    })
+
     it('builds the initial positioned view from the started session', () => {
         const { geometry } = createHarness()
 

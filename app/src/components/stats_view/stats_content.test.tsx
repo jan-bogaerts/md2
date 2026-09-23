@@ -78,7 +78,8 @@ describe('StatsContent', () => {
 
         act(() => projectStatsService.setControls({ shortTokenCounts: false }))
 
-        await waitFor(() => expect(screen.getByText(new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(428913))).toBeInTheDocument())
+        const formattedTokenCount = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(428913);
+        await waitFor(() => expect(screen.getByText(formattedTokenCount)).toBeInTheDocument());
     })
 
     it('renders and reports malformed-source errors without partial chart data', async () => {
