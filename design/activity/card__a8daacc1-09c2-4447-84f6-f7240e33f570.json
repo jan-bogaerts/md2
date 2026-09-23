@@ -1967,6 +1967,29 @@
       "startedAt": "2026-09-23T15:21:19.014Z",
       "status": "completed",
       "rootConversationId": "agent-db820ecd-a1e8-41b9-adf2-66b6739180a1"
+    },
+    {
+      "commits": [
+        {
+          "commit": "570617431289ff271cf8e60cc0d970a39782f120",
+          "committedAt": "2026-09-23T18:17:39+02:00",
+          "deletions": 63,
+          "filePaths": [
+            "app/src/components/shell/search/search_control.test.tsx",
+            "app/src/components/shell/search/search_panel.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 156,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-23T18:17:39+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "a8daacc1-09c2-4447-84f6-f7240e33f570",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
