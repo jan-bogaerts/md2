@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__be1030df-8a36-4969-99af-e22e8456579f.json
 policy:
-branch: b_244_open_project_takes_too_long
-worktree: 1
 changedFiles:
   - .tmp/b244_capture_trace.js
   - .tmp/b244_launch_electron.js
