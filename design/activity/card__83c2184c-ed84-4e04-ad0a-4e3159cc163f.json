@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "83c2184c-ed84-4e04-ad0a-4e3159cc163f",
+      "cardPath": "design/feature_descriptions/F_373_add_docs_about_mindmaps.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read design/feature_descriptions/F_373_add_docs_about_mindmaps.md. Make a list of topics we should include",
+          "id": "agent-turn-28da9bb5-3fff-471c-883c-9827ce6b0a54-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-23T17:58:54.663Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-dcb3e8c9-bbb3-465b-863a-05655be1ee77",
+      "providerSessions": [],
+      "startedAt": "2026-09-23T17:58:54.663Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-23T17:58:54.663Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "83c2184c-ed84-4e04-ad0a-4e3159cc163f",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
