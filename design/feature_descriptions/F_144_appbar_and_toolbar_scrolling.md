@@ -3,12 +3,11 @@ author:
 id: F_144
 internalId: 385eccb9-06c4-4d93-8f8a-5f9b9f42e45f
 title: appbar and toolbar scrolling
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: 0f92d6ef-ec13-478c-b3f9-d1b0bfcf391d
 ---
 
 currently, when the markdown editor toolbar doesn't fit in the window (horizontally), it shows a standard horizontal scrollbar and also a vertical scrollbar cause the hor scrollbar takes up too much space.
