@@ -20,7 +20,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "385eccb9-06c4-4d93-8f8a-5f9b9f42e45f",
       "cardPath": "design/feature_descriptions/F_144_appbar_and_toolbar_scrolling.md",
-      "completedAt": null,
+      "completedAt": "2026-09-23T14:58:59.887Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 75051
@@ -397,7 +397,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 31,
-          "timestamp": "2026-09-23T14:58:14.555Z"
+          "timestamp": "2026-09-23T14:58:59.887Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -407,19 +407,19 @@
           "agent": "claude",
           "conversationId": "f3acc0b9-26d4-4cfe-85f3-f969997dd93d",
           "createdAt": "2026-09-23T13:55:51.457Z",
-          "lastUsedAt": "2026-09-23T14:57:28.353Z",
-          "synchronizedThroughMessageId": "agent-turn-911f410d-1e20-4225-bbe3-077c6559c557-turn-1-assistant-1"
+          "lastUsedAt": "2026-09-23T14:58:59.887Z",
+          "synchronizedThroughMessageId": "agent-turn-911f410d-1e20-4225-bbe3-077c6559c557-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-09-23T13:55:16.023Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 40681,
           "toolMs": 18128
         },
-        "elapsedMs": 84151,
-        "runningStartedAt": "2026-09-23T14:58:02.811Z"
+        "elapsedMs": 95895,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
