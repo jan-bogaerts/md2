@@ -11,7 +11,6 @@ agents:
 policy:
 after: 83c2184c-ed84-4e04-ad0a-4e3159cc163f
 branch: f_144_appbar_and_toolbar_scrolling
-worktree: 1
 changedFiles:
   - app/src/components/editor/markdown_editor.tsx
   - app/src/components/horizontal_scroll_area.test.tsx
