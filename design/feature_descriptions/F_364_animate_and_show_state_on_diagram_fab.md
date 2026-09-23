@@ -3,7 +3,7 @@ author:
 id: F_364
 internalId: cdc16a08-2bb4-4abe-a270-d35616a7ca06
 title: animate and show state on diagram fab
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,29 @@ policy:
 after: 530bdc1a-985f-434a-bfe7-acb2f7ca06b8
 branch: f_364_animate_and_show_state_on_diagram_fab
 worktree: 2
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_chat.tsx
+  - app/src/components/actions/conversation/action_conversation_chat_visibility.test.tsx
+  - app/src/components/actions/run/popup/action_agent_interaction.tsx
+  - app/src/components/actions/run/popup/action_popup.tsx
+  - app/src/components/actions/run/popup/action_popup_content.tsx
+  - app/src/components/actions/run/popup/action_popup_types.ts
+  - app/src/components/actions/run/popup/agent_action.tsx
+  - app/src/components/actions/run/popup/card_action_popup_host_entry.test.tsx
+  - app/src/components/actions/run/popup/card_action_popup_host_entry.tsx
+  - app/src/components/agents/agent_chat_fab.test.tsx
+  - app/src/components/agents/agent_chat_fab.tsx
+  - app/src/components/agents/agent_fab_presentation.test.tsx
+  - app/src/components/agents/agent_fab_presentation.tsx
+  - app/src/components/agents/agent_fab_state.ts
+  - app/src/components/diagram_view/diagram_action_popup.tsx
+  - app/src/components/diagram_view/diagram_agent_fab.test.tsx
+  - app/src/components/diagram_view/diagram_agent_fab.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/diagram_view.tsx
+  - app/src/components/hooks/use_agent_acknowledgements.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.ts
 ---
 
 just like the fab for the project agent, the fab for the diagram agent should show when it is running, waiting for responses....
