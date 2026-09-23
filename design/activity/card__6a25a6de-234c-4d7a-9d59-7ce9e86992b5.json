@@ -856,11 +856,11 @@
         "agent-436dec82-23de-4401-9349-8df7abcf570f"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-4f126b44-616e-452f-a906-eb9e36532b6c",
       "origin": {
@@ -869,9 +869,9 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-436dec82-23de-4401-9349-8df7abcf570f",
       "startedAt": "2026-09-23T16:27:09.066Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-436dec82-23de-4401-9349-8df7abcf570f"
     }
   ],
   "version": 5

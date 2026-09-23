@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
 import type { ActionDefinition } from '../../../../data/action_types'
+import type { AgentConversation } from '../../../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { dataService } from '../../../../services/data/data_service'
 import { createActionPopupBindings } from './action_popup_runtime'
 
 const action = { id: 'build', label: 'Build', type: 'agent' } as ActionDefinition
@@ -32,6 +34,34 @@ function startRegistry() {
     }
 }
 
+function conversation(path: string): AgentConversation {
+    return {
+        actionId: action.id,
+        cardInternalId: 'card-1',
+        cardPath: 'design/F-1.md',
+        completedAt: '2026-01-01T00:01:00.000Z',
+        entries: [],
+        hasExplicitTitle: true,
+        id: path,
+        path,
+        providerSessions: [],
+        startedAt: '2026-01-01T00:00:00.000Z',
+        status: 'completed',
+        title: 'Build',
+        viewed: false,
+    }
+}
+
+function mockConversations(conversations: AgentConversation[]) {
+    vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue(conversations)
+    vi.spyOn(dataService, 'loadAgentConversation').mockImplementation(async (path) => {
+        const loadedConversation = conversations.find((current) => current.path === path)
+        if (!loadedConversation) throw new Error(`Missing conversation ${path}`)
+
+        return loadedConversation
+    })
+}
+
 function runEvent(runId: string): ActionRunEvent {
     return { actionId: action.id, context, phase: 'main', rootActionId: action.id, runId, status: 'running', type: 'run' }
 }
@@ -39,6 +69,7 @@ function runEvent(runId: string): ActionRunEvent {
 afterEach(() => {
     actionRunRegistry.stop()
     setActionBridgeOverride(null)
+    vi.restoreAllMocks()
 })
 
 describe('createActionPopupBindings', () => {
@@ -74,6 +105,31 @@ describe('createActionPopupBindings', () => {
         expect(bindings.bindingStore.getSnapshot()).toBeNull()
         emit(runEvent('run-2'))
         expect(bindings.bindingStore.getSnapshot()).toBeNull()
+        bindings.bindingStore.dispose()
+    })
+
+    it('selects the unseen conversation configured after ordinary popup opening', async () => {
+        const unseenConversation = conversation('activity.json#conversation=unseen')
+        mockConversations([unseenConversation])
+        const bindings = createActionPopupBindings(action, context)
+
+        bindings.conversationStore.configureInitialSelection(unseenConversation.path)
+        await bindings.conversationStore.load()
+
+        expect(bindings.conversationStore.getSnapshot().selectedConversation).toBe(unseenConversation)
+        bindings.bindingStore.dispose()
+    })
+
+    it('keeps the requested conversation over a later configured unseen conversation', async () => {
+        const requestedConversation = conversation('activity.json#conversation=requested')
+        const unseenConversation = conversation('activity.json#conversation=unseen')
+        mockConversations([unseenConversation, requestedConversation])
+        const bindings = createActionPopupBindings(action, context, undefined, requestedConversation.path)
+
+        bindings.conversationStore.configureInitialSelection(unseenConversation.path)
+        await bindings.conversationStore.load()
+
+        expect(bindings.conversationStore.getSnapshot().selectedConversation).toBe(requestedConversation)
         bindings.bindingStore.dispose()
     })
 })

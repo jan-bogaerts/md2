@@ -3236,7 +3236,10 @@ describe('ActionPopup', () => {
         renderPopup({ kind: 'project' })
 
         expect(screen.getByRole('dialog')).toHaveStyle({ height: '100dvh', left: '0px', top: '0px', width: '100vw' })
-        expect(screen.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
+        const toolbar = within(screen.getByTestId('action-popup-toolbar'))
+        expect(toolbar.getByRole('combobox', { name: 'Conversation history' })).toBeInTheDocument()
+        expect(toolbar.getByRole('button', { name: 'Pin conversation' })).toBeInTheDocument()
+        expect(toolbar.getByRole('button', { name: 'Close' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
         expect(screen.queryByRole('separator', { name: /Resize action popup/u })).not.toBeInTheDocument()
     })

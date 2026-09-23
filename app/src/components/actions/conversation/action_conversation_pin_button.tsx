@@ -23,7 +23,13 @@ export function ActionConversationPinButton(props: ActionConversationPinButtonPr
                     disabled={!conversation || disabled}
                     onClick={onToggle}
                     size="small"
-                    sx={{ borderRadius: 0.75, height: 26, width: 26, '&:hover': { bgcolor: 'action.hover', color: 'primary.main' } }}
+                    sx={{
+                        borderRadius: 0.75,
+                        height: 26,
+                        p: { sm: 0.625, xs: 0 },
+                        width: { sm: 26, xs: 18 },
+                        '&:hover': { bgcolor: 'action.hover', color: 'primary.main' },
+                    }}
                 >
                     <PushPinOutlined sx={{ fontSize: 16, transform: pinned ? 'none' : 'rotate(45deg)' }} />
                 </IconButton>

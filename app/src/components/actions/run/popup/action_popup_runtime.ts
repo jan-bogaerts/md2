@@ -31,7 +31,7 @@ export function createActionPopupBindings(
     if (requestedConversationPath) bindingStore.setRunId(null)
     bindingStore.trackInitialRun(action.id, context)
     const conversationStore = new ActionConversationStore(action.id, context, bindingStore)
-    conversationStore.configureInitialSelection(requestedConversationPath ?? null)
+    if (requestedConversationPath) conversationStore.configureInitialSelection(requestedConversationPath)
     const historyStore = new ActionHistoryStore(action, context)
     const usageScopeStore = new ActionUsageScopeStore()
     const usageValuesService = new ActionUsageValuesService({

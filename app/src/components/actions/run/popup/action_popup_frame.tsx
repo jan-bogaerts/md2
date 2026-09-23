@@ -132,7 +132,10 @@ export function ActionPopupFrame(
                             display: 'flex', flexDirection: 'column', flexShrink: 0, gap: 1, px: 1.5, py: 1.5,
                         }}
                     >
-                        <Box data-testid="action-popup-toolbar" sx={{ alignItems: 'center', display: 'flex', gap: 1 }}>
+                        <Box
+                            data-testid="action-popup-toolbar"
+                            sx={{ alignItems: 'center', display: 'flex', gap: { sm: 1, xs: 0.5 }, minWidth: 0 }}
+                        >
                             {targetBadge && targetTitle ? <Tooltip title={targetTitle}>{targetBadge}</Tooltip> : targetBadge}
                             {assignmentTarget && !readOnlyMessage ? (
                                 <ActionWorktreeSelectorOwner

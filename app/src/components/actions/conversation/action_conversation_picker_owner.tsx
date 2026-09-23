@@ -88,7 +88,7 @@ export function ActionConversationPickerOwner(props: ActionConversationPickerOwn
     }
 
     return (
-        <Box sx={{ alignItems: 'center', display: 'flex', gap: 0.5 }}>
+        <Box sx={{ alignItems: 'center', display: 'flex', flexShrink: 1, gap: { sm: 0.5, xs: 0 }, minWidth: 0 }}>
             <ActionConversationPicker
                 conversations={store.conversationOptions(pickerConversations)}
                 disabled={false}

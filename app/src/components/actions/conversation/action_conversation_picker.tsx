@@ -22,7 +22,8 @@ export function ActionConversationPicker(props: ActionConversationPickerProps) {
             select
             slotProps={{ select: { displayEmpty: true, inputProps: { 'aria-label': 'Conversation history' } } }}
             sx={{
-                minWidth: 150,
+                flexShrink: 1,
+                minWidth: { sm: 150, xs: 112 },
                 '& .MuiInputBase-root': { borderRadius: 0.75, color: 'text.secondary', fontSize: 12, fontWeight: 600, height: 26, pl: 0.75 },
                 '& .MuiInputBase-root:hover': { bgcolor: 'action.hover', color: 'text.primary' },
                 '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' },

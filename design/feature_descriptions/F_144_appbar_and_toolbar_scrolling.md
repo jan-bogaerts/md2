@@ -51,7 +51,6 @@ Option 1: custom horizontal scroll with overlay buttons, applied everywhere (des
 * New generic layout component `HorizontalScrollArea` (in `app/src/components/`), with `children` as its content.
 * Native scrollbars are hidden (`scrollbarWidth: 'none'`, `::-webkit-scrollbar { display: none }`).
 * A left and a right button float over the content, with a fade. Each is visible only when you can scroll further in its direction. Clicking scrolls by a named step constant, with smooth scrolling.
-* The content starts and ends with a placeholder as wide as a scroll button. At either scroll end, the button sits over the placeholder, never over the first or last toolbar button.
 * Mouse wheel: vertical wheel movement scrolls horizontally, but only when the content overflows. Trackpad sideways scrolling is left alone. This needs a native `wheel` listener registered with `{ passive: false }`.
 * Keyboard: when a control inside receives focus (`focusin`), it scrolls into view (`inline: 'nearest'`). The container's `scroll-padding-inline` equals the button width, so a focused control never stops under a floating button.
 * Button visibility is recalculated on `scroll` and on `ResizeObserver` changes, for both the container and the content, because controls appear and disappear with the selection.
@@ -66,7 +65,7 @@ Option 1: custom horizontal scroll with overlay buttons, applied everywhere (des
 
 * Popovers and dropdowns opened from the toolbars (emoji, placeholder, search, branch select, new-diagram menu) must not be cut off by `overflow: hidden`. Check that each one renders in a portal.
 * `markdown_local_text_search_plugin.tsx` looks up `.mdxeditor-toolbar`. Check that its positioning still works.
-* When content fits, no buttons, no placeholder effect and no wheel capture.
+* When content fits, no buttons and no wheel capture.
 
 ## Tests
 
