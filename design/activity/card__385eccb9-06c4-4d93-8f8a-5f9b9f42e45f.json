@@ -20,10 +20,10 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "385eccb9-06c4-4d93-8f8a-5f9b9f42e45f",
       "cardPath": "design/feature_descriptions/F_144_appbar_and_toolbar_scrolling.md",
-      "completedAt": "2026-09-23T14:03:26.550Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 69136
+        "usedTokens": 71792
       },
       "entries": [
         {
@@ -320,6 +320,38 @@
           "role": "assistant",
           "sequence": 24,
           "timestamp": "2026-09-23T14:03:26.550Z"
+        },
+        {
+          "content": "`If we hide them, a placeholder adds nothing.`&#x20;\n\nyou mis the point of a placeholder. if the scrollbuttons or floating over the toolbar, the first and last button of the toolbar are being overlapped by the scrollbuttons. in order to make them accessible, we add a placeholder in front of the first and after the last button, so that the placeholder is underneath the scrollbutton, not an actual toolbar button",
+          "id": "agent-turn-911f410d-1e20-4225-bbe3-077c6559c557-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 25,
+          "timestamp": "2026-09-23T14:57:17.633Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-911f410d-1e20-4225-bbe3-077c6559c557-event-26",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfLZqioxMJotW9qxMY1hv:thinking:0",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-23T14:57:25.166Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Understood, I had that wrong. There's a placeholder at both ends of the content, as wide as a scroll button. When you scroll to either end, the button sits over that empty placeholder instead of over the first or last toolbar button.\n\nThis also affects keyboard focus. When a focused control scrolls into view, it could still stop right under a floating button. Setting the container's `scroll-padding-inline` to the button width fixes that.\n\nUpdated lines in the draft:\n\n```markdown\n* A left and a right button float over the content, with a fade. Each is visible only when you can scroll further in its direction. Clicking scrolls by a named step constant, with smooth scrolling.\n* The content starts and ends with a placeholder as wide as a scroll button. At either scroll end, the button sits over the placeholder, never over the first or last toolbar button.\n* Keyboard: when a control inside receives focus (`focusin`), it scrolls into view (`inline: 'nearest'`). The container's `scroll-padding-inline` equals the button width, so a focused control never stops under a floating button.\n```\n\nThe rest of the draft is unchanged. Should I write it into `F_144_appbar_and_toolbar_scrolling.md`?",
+          "id": "agent-turn-911f410d-1e20-4225-bbe3-077c6559c557-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 27,
+          "timestamp": "2026-09-23T14:57:28.353Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -334,26 +366,26 @@
         }
       ],
       "startedAt": "2026-09-23T13:55:16.023Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 35550,
+          "reasoningMs": 39386,
           "toolMs": 10651
         },
         "elapsedMs": 73431,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-23T14:57:17.633Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 566940,
-        "inputTokens": 22,
-        "outputTokens": 6649,
+        "cachedInputTokens": 638730,
+        "inputTokens": 24,
+        "outputTokens": 7391,
         "reasoningTokens": 0,
-        "totalTokens": 573611,
-        "costUsd": 1.0430586000000002
+        "totalTokens": 646145,
+        "costUsd": 1.0929814000000002
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -368,11 +400,11 @@
         "agent-21179fef-5369-499e-a1e5-4d7d296b0116"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-9ba0faf3-e686-46a0-8125-cd6e7b79d6c1",
       "origin": {
@@ -381,9 +413,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-21179fef-5369-499e-a1e5-4d7d296b0116",
       "startedAt": "2026-09-23T13:55:16.019Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-21179fef-5369-499e-a1e5-4d7d296b0116"
     }
   ],
   "version": 5
