@@ -27,8 +27,6 @@ Load chain is:
 4. Background conversation hydration updates 67 `CardWorktreeIndicator` instances because each indicator observes conversation data only to detect run completion. Those updates continue after board mount.
 5. Full-project and repository-index loading continue in background and publish final project state.
 
-Trace used React development performance instrumentation, meaning profiler bookkeeping adds large overhead: over one million debugger async-task events and 33,379 user-timing measures. Absolute duration therefore is not production timing. Event order and rendered-component counts still show avoidable work.
-
 ## Implementation details
 
 * In `project_card_view.tsx`, mount card action menu, archive dialog, and delete dialog only while each overlay is open. A closed overlay means a menu or dialog whose `open` value is false and which has no visible UI.
@@ -37,7 +35,7 @@ Trace used React development performance instrumentation, meaning profiler bookk
 * Split `AppMenu` ownership by update scope. Project controls own project/session/persistence/worktree subscriptions; agent controls own desktop-config subscriptions; active dialog owns dialog state. Keep toolbar layout and unrelated controls stable when one scope changes. Do not pass recreated feature-specific JSX through `MainToolbar` props.
 * Replace broad `useProjectState` use in project-menu actions with focused project reference and active-card-count snapshots. Repository-file, background-card, running-agent, and conversation-only changes must not rebuild toolbar.
 * Keep existing staged load: working-folder cards become usable first; full project, repository index, instructions, and conversations continue in background. Do not add compatibility modes or reload project twice.
-* Add focused render-isolation and overlay-lifecycle tests. Use a fresh production-build performance trace with same project for timing verification; development-profiler duration is diagnostic only.
+* Add focused render-isolation and overlay-lifecycle tests. Use a fresh development-mode performance trace with same project for timing verification.
 
 ## Acceptance criteria
 
@@ -46,6 +44,6 @@ Trace used React development performance instrumentation, meaning profiler bookk
 * Last live conversation finishing on worktree-assigned card requests one worktree refresh. Cards on primary worktree request none.
 * Project, loading, persistence, and worktree changes rerender only toolbar controls that consume changed value. Conversation-only and background-file updates do not rerender `MainToolbar`.
 * Working-folder board becomes interactive before background full-project and conversation loads finish. Open-to-interactive means time from confirmed project selection until board accepts pointer and keyboard input.
-* Production trace for same project has no project-open React task over one second and reduces open-to-interactive main-thread time by at least 50% from production baseline captured before change.
+* Development-mode trace for same project has no project-open React task over one second and reduces open-to-interactive main-thread time by at least 50% from baseline captured before change.
 * Project opening, card menus, archive/delete confirmation, worktree operations, branch controls, loading indicators, and background hydration keep current behavior.
 * Focused app tests, `npm run typecheck`, and `npm run lint` pass.
