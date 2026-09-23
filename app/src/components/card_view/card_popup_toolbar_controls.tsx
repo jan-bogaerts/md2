@@ -11,6 +11,7 @@ interface CardPopupToolbarControlsProps {
     dataSource: CardMarkdownDataSource
     isFullscreen: boolean
     isMobile: boolean
+    onAttachFiles?: (files: File[]) => void
     onToggleFullscreen: () => void
     readOnly: boolean
     statusColors: Map<string, string>
@@ -18,7 +19,7 @@ interface CardPopupToolbarControlsProps {
 
 /** Formatting controls arranged for the card details popup. */
 export function CardPopupToolbarControls(props: CardPopupToolbarControlsProps) {
-    const { cardTypes, dataSource, isFullscreen, isMobile, onToggleFullscreen, readOnly, statusColors } = props
+    const { cardTypes, dataSource, isFullscreen, isMobile, onAttachFiles, onToggleFullscreen, readOnly, statusColors } = props
     const label = isFullscreen ? 'Exit fullscreen' : 'Fullscreen'
 
     return (
@@ -34,6 +35,6 @@ export function CardPopupToolbarControls(props: CardPopupToolbarControlsProps) {
                     </Tooltip>
                 ) : null}
             </>
-        )} readOnly={readOnly} />
+        )} onAttachFiles={onAttachFiles} readOnly={readOnly} />
     )
 }

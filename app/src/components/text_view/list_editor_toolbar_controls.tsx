@@ -23,13 +23,14 @@ function ignoreUnavailableWorktreeSelection() {
 interface ListEditorToolbarControlsProps {
     cardTypes: CardTypeConfig[]
     historyStore: MarkdownDocumentHistoryStore
+    onAttachFiles?: (files: File[]) => void
     readOnly: boolean
     statusColors: Map<string, string>
 }
 
 /** Formatting controls and card-specific controls for the active list-card document. */
 export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps) {
-    const { cardTypes, historyStore, readOnly, statusColors } = props
+    const { cardTypes, historyStore, onAttachFiles, readOnly, statusColors } = props
     const card = useActiveCard('list-card')
     const cardInternalId = card?.header.internalId ?? null
     const historyKey = cardInternalId ?? card?.path ?? null
@@ -87,6 +88,11 @@ export function ListEditorToolbarControls(props: ListEditorToolbarControlsProps)
     const undoRedoControls = <MarkdownDocumentUndoRedo historyKey={historyKey} historyStore={historyStore} />
 
     return (
-        <MarkdownFormatToolbarControls endControls={endControls} readOnly={readOnly} undoRedoControls={undoRedoControls} />
+        <MarkdownFormatToolbarControls
+            endControls={endControls}
+            onAttachFiles={onAttachFiles}
+            readOnly={readOnly}
+            undoRedoControls={undoRedoControls}
+        />
     )
 }

@@ -19,6 +19,7 @@ import { HorizontalScrollArea } from '../horizontal_scroll_area'
 import { markdownDocumentHistoryPlugin } from './markdown_document_history_realm_plugin'
 import type { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
 import { MarkdownFormatToolbarControls } from './markdown_format_toolbar_controls'
+import type { MarkdownToolbarContext } from './markdown_toolbar_context'
 import { markdownFileSearchPlugin } from './markdown_file_search_realm_plugin'
 import { markdownLocalTextSearchPlugin } from './markdown_local_text_search_realm_plugin'
 import { plainMarkdownPlugin } from './plain_markdown_realm_plugin'
@@ -67,7 +68,7 @@ interface MarkdownEditorPresentationProps {
     plainText?: boolean
     placeholders?: readonly ActionPlaceholder[]
     readOnly?: boolean
-    toolbarContents?: () => ReactNode
+    toolbarContents?: (toolbarContext: MarkdownToolbarContext) => ReactNode
     viewMode?: ViewMode
 }
 
@@ -374,26 +375,23 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         attachFiles([...event.dataTransfer.files])
     }
 
+    const onAttachFiles = attachmentHandler && !hideAttachmentControl ? attachFiles : undefined
     const toolbarContents = useCallback(() => (
         <HorizontalScrollArea>
             {!hideToolbar ? (
-                customToolbarContents?.()
+                customToolbarContents?.({ onAttachFiles })
                 ?? (
                     <MarkdownFormatToolbarControls
+                        onAttachFiles={onAttachFiles}
                         overlayContainer={overlayContainer}
                         placeholders={placeholders}
                         readOnly={readOnly}
                     />
                 )
             ) : null}
-            {attachmentHandler && !hideAttachmentControl ? (
-                <MarkdownAttachmentControl disabled={readOnly} onFiles={attachFiles} />
-            ) : null}
+            {hideToolbar && onAttachFiles ? <MarkdownAttachmentControl disabled={readOnly} onFiles={onAttachFiles} /> : null}
         </HorizontalScrollArea>
-    ), [
-        attachFiles, attachmentHandler, customToolbarContents, hideAttachmentControl, hideToolbar, overlayContainer,
-        placeholders, readOnly,
-    ])
+    ), [customToolbarContents, hideToolbar, onAttachFiles, overlayContainer, placeholders, readOnly])
     const editorSx = {
         ...markdownContentSx,
         ...(monospace ? {'& .mdxeditor-content, & .mdxeditor-content *': { fontFamily: 'monospace !important' }} : {}),
@@ -414,7 +412,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         ...(plainText ? [markdownPlainTextPlugin(plainTextConfig)] : [markdownShortcutPlugin()]),
         plainMarkdownPlugin(),
         ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),
-        ...(!hideToolbar || (attachmentHandler && !hideAttachmentControl) ? [toolbarPlugin({ toolbarContents })] : []),
+        ...(!hideToolbar || onAttachFiles ? [toolbarPlugin({ toolbarContents })] : []),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
         ...(localTextSearch ? [markdownLocalTextSearchPlugin({ overlayContainer })] : []),

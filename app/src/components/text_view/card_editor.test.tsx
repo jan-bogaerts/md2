@@ -36,22 +36,25 @@ vi.mock('../hooks/use_card_commits', () => ({ useCardCommits: () => ({ commits: 
 vi.mock('../editor/markdown_editor', () => ({
     MarkdownEditor: ({ attachmentHandler, toolbarContents }: {
         attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>
-        toolbarContents: () => ReactNode
+        toolbarContents: (toolbarContext: { onAttachFiles?: (files: File[]) => void }) => ReactNode
     }) => {
         markdownEditorRender()
+        const toolbarContext = { onAttachFiles: attachmentHandler ? vi.fn() : undefined }
 
         return (
             <div aria-label="Live file editor">
-                {toolbarContents()}
-                {attachmentHandler ? <button type="button">Attach files</button> : null}
+                {toolbarContents(toolbarContext)}
             </div>
         )
     },
 }))
 
 vi.mock('./list_editor_toolbar_controls', () => ({
-    ListEditorToolbarControls: () => (
-        <button onClick={() => listCardCommitDiffDataSource.select(commit)} type="button">Select file commit</button>
+    ListEditorToolbarControls: ({ onAttachFiles }: { onAttachFiles?: (files: File[]) => void }) => (
+        <>
+            <button onClick={() => listCardCommitDiffDataSource.select(commit)} type="button">Select file commit</button>
+            {onAttachFiles ? <button type="button">Attach files</button> : null}
+        </>
     ),
 }))
 

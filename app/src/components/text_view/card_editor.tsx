@@ -5,6 +5,7 @@ import { ListCardCommitDiffPanel } from '../card_view/list_card_commit_diff_pane
 import { cardMarkdownDataSource, type CardDocumentClosedDetail } from '../editor/card_markdown_data_source'
 import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
 import { MarkdownEditor } from '../editor/markdown_editor'
+import type { MarkdownToolbarContext } from '../editor/markdown_toolbar_context'
 import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { attachFilesToCardMarkdown } from '../../services/attachments/attachment_workflow'
@@ -44,10 +45,11 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
         }
     }, [historyStore])
 
-    const toolbarContents = useCallback(() => (
+    const toolbarContents = useCallback((toolbarContext: MarkdownToolbarContext) => (
         <ListEditorToolbarControls
             cardTypes={cardTypes}
             historyStore={historyStore}
+            onAttachFiles={toolbarContext.onAttachFiles}
             readOnly={readOnly}
             statusColors={statusColors}
         />

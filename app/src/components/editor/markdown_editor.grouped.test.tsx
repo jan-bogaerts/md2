@@ -795,6 +795,62 @@ describe('MarkdownEditor', () => {
         await waitFor(() => expect(attachmentHandler).toHaveBeenCalledWith([file], expect.any(Function)))
     })
 
+    it('places the attachment control in the default toolbar link group without a trailing button', () => {
+        const attachmentHandler = vi.fn(async () => {})
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor attachmentHandler={attachmentHandler} markdown="" onChange={vi.fn()} />
+            </AppThemeProvider>,
+        )
+
+        const attachButtons = screen.getAllByRole('button', { name: 'Attach files' })
+        expect(attachButtons).toHaveLength(1)
+        expect(screen.getByTestId('create-link').nextElementSibling).toContainElement(attachButtons[0])
+    })
+
+    it('hands the attach callback to custom toolbar contents when attachments are allowed', () => {
+        const attachmentHandler = vi.fn(async () => {})
+        const toolbarContents = vi.fn(() => <span>Custom toolbar</span>)
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor attachmentHandler={attachmentHandler} markdown="" onChange={vi.fn()} toolbarContents={toolbarContents} />
+            </AppThemeProvider>,
+        )
+
+        expect(toolbarContents).toHaveBeenCalledWith({ onAttachFiles: expect.any(Function) })
+        expect(screen.getByText('Custom toolbar')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument()
+    })
+
+    it('withholds the attach callback from custom toolbar contents without an attachment handler', () => {
+        const toolbarContents = vi.fn(() => <span>Custom toolbar</span>)
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor markdown="" onChange={vi.fn()} toolbarContents={toolbarContents} />
+            </AppThemeProvider>,
+        )
+
+        expect(toolbarContents).toHaveBeenCalledWith({ onAttachFiles: undefined })
+    })
+
+    it('withholds the attach callback from custom toolbar contents when the attachment control is hidden', () => {
+        const attachmentHandler = vi.fn(async () => {})
+        const toolbarContents = vi.fn(() => <span>Custom toolbar</span>)
+        render(
+            <AppThemeProvider>
+                <MarkdownEditor
+                    attachmentHandler={attachmentHandler}
+                    hideAttachmentControl
+                    markdown=""
+                    onChange={vi.fn()}
+                    toolbarContents={toolbarContents}
+                />
+            </AppThemeProvider>,
+        )
+
+        expect(toolbarContents).toHaveBeenCalledWith({ onAttachFiles: undefined })
+    })
+
     it('applies acknowledged draft insertion at current selection and external replacement', async () => {
         const draft = new MarkdownDraft('start end')
         render(

@@ -4,6 +4,7 @@ import type { CardTypeConfig } from '../../data/data_types'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import type { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
 import type { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
+import type { MarkdownToolbarContext } from '../editor/markdown_toolbar_context'
 import { CardPopupToolbarControls } from './card_popup_toolbar_controls'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { attachFilesToCardMarkdown } from '../../services/attachments/attachment_workflow'
@@ -36,12 +37,13 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
         return attachFilesToCardMarkdown(card.path, files, insertMarkdown)
     }, [dataSource])
     const ToolbarContents = useCallback(
-        () => (
+        (toolbarContext: MarkdownToolbarContext) => (
             <CardPopupToolbarControls
                 cardTypes={cardTypes}
                 dataSource={dataSource}
                 isFullscreen={isFullscreen}
                 isMobile={isMobile}
+                onAttachFiles={toolbarContext.onAttachFiles}
                 onToggleFullscreen={onToggleFullscreen}
                 readOnly={readOnly}
                 statusColors={statusColors}

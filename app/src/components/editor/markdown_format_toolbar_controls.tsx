@@ -4,6 +4,7 @@ import {
 } from '@mdxeditor/editor'
 import type { ReactNode } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
+import { MarkdownAttachmentControl } from './markdown_attachment_control'
 import { MarkdownEmojiToolbarControl } from './markdown_emoji_toolbar_control'
 import { MarkdownListIndentToolbarControls } from './markdown_list_indent_toolbar_controls'
 import { MarkdownLocalTextSearchToolbarControl } from './markdown_local_text_search_toolbar_control'
@@ -11,6 +12,7 @@ import { MarkdownPlaceholderToolbarControl } from './markdown_placeholder_toolba
 
 interface MarkdownFormatToolbarControlsProps {
     endControls?: ReactNode
+    onAttachFiles?: (files: File[]) => void
     overlayContainer?: HTMLElement | null
     placeholders?: readonly ActionPlaceholder[]
     readOnly?: boolean
@@ -19,7 +21,7 @@ interface MarkdownFormatToolbarControlsProps {
 
 /** The full formatting command set supported by the shared markdown editor. */
 export function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarControlsProps = {}) {
-    const { endControls, overlayContainer, placeholders = [], readOnly = false, undoRedoControls } = props
+    const { endControls, onAttachFiles, overlayContainer, placeholders = [], readOnly = false, undoRedoControls } = props
 
     return (
         <>
@@ -34,6 +36,7 @@ export function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarContro
                     <BlockTypeSelect />
                     <Separator />
                     <CreateLink />
+                    {onAttachFiles ? <MarkdownAttachmentControl disabled={false} onFiles={onAttachFiles} /> : null}
                     <Separator />
                     <InsertTable />
                     <InsertThematicBreak />
