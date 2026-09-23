@@ -411,20 +411,28 @@
           "sequence": 29,
           "timestamp": "2026-09-23T17:51:27.569Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Live (Recommended)\nclaude-question-1: Anchored Popover (Recommended)",
+          "id": "agent-turn-61cf9beb-151b-4cce-a123-4ed8da366871-answer-29",
+          "kind": "message",
+          "role": "user",
+          "sequence": 30,
+          "timestamp": "2026-09-23T17:53:00.773Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-e862e1da-d509-4faf-8881-def1b7e76646",
       "providerSessions": [],
       "startedAt": "2026-09-23T17:50:48.354Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 8442,
           "toolMs": 19070
         },
         "elapsedMs": 39215,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-23T17:53:00.773Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
