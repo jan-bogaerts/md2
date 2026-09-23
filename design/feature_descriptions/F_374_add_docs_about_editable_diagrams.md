@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 64876822-b48e-450e-b7c7-68fd8d2ba6bd
+after: 98ccb2e4-6560-4d30-ab4b-cbd4fec48f33
 ---
 We just added support for edirable duagrams and extended it with adding new diagrams from scratch. We need to document these features: add new and edut rebdered duagrams.
 
