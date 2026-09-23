@@ -1,6 +1,6 @@
-import { Box, Button, Divider, MenuItem, Tab as MuiTab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
+import { AppBar, Box, Button, Divider, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
-import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode, SyntheticEvent } from 'react'
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import CardsOutline from 'mdi-material-ui/CardsOutline'
 import BugOutline from 'mdi-material-ui/BugOutline'
@@ -16,27 +16,6 @@ import BarChartOutlined from '@mui/icons-material/BarChartOutlined'
 import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
 import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined'
 import PlaylistAddOutlined from '@mui/icons-material/PlaylistAddOutlined'
-import {
-    findAgentProfile,
-    mergeAgentProfiles,
-    PERMISSION_MODE_OPTIONS,
-    supportsPermissionMode,
-    supportsThinkingLevel,
-    THINKING_LEVELS,
-    validateAgentSelection,
-    validatePermissionMode,
-    validateThinkingLevel,
-} from '../../../data/agent_profiles'
-import {
-    projectAgentSelection,
-    selectAgent,
-    selectModel,
-    selectPermissionMode,
-    selectThinkingLevel,
-    type AgentSelectionState,
-} from '../../../data/agent_selection'
-import { configService } from '../../../services/config/config_service'
-import { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'
 import {
     projectSessionService,
     type ProjectFolderValues,
@@ -54,8 +33,7 @@ import { isSentryConfigurationComplete } from '../../../services/sentry/sentry_t
 import { keyboardShortcutService } from '../../../services/shortcuts/keyboard_shortcut_service'
 import { projectContext } from '../../../data/action_context'
 import type { UseGithubAuthResult } from '../../../auth/use_github_auth'
-import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
-import { useProjectState } from '../../hooks/use_project_state'
+import { useProjectReference } from '../../hooks/use_project_reference'
 import { useProjectPersistence } from '../../hooks/use_project_persistence'
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectReadOnly } from '../../hooks/use_project_read_only'
@@ -75,8 +53,6 @@ import { useProjectToolbarMenuActions } from '../project/use_project_toolbar_men
 import { Menu } from './menu'
 import { BranchMenuSelect } from './branch_menu_select'
 import { MenuIconButton } from './menu_icon_button'
-import { MenuSelect } from './menu_select'
-import { MobileCreateMenu } from './mobile_create_menu'
 import { NewDiagramMenu } from './new_diagram_menu'
 import { Section } from './section'
 import { Tab } from './tab'
@@ -86,6 +62,8 @@ import { ActiveSchedulesDialog } from '../../actions/run/schedule/active_schedul
 import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../../diagram_view/use_diagram_delete_key'
 import { hasActiveScheduleBackend, hasSequenceScheduleBackend } from '../../../data/electron_action_bridge'
 import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
+import type { SearchRegexpAgent } from '../../../services/search/search_types'
+import { AgentMenuControls } from './agent_menu_controls'
 
 type AppMenuTab = 'home' | 'agents' | 'diagram' | 'stats'
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release' | 'schedules'
@@ -99,7 +77,7 @@ interface AppMenuProps {
     isMobile: boolean
     onOpenConfig: () => void
     onOpenMobileMenu: () => void
-    search: ReactNode
+    regexpAgent?: SearchRegexpAgent
 }
 
 const MENU_TABS: { label: string; value: AppMenuTab }[] = [
@@ -119,25 +97,6 @@ function scopedTabViewMode(tab: AppMenuTab) {
 }
 const PROJECT_CONTEXT = projectContext()
 
-function desktopSelectionError(
-    selection: AgentSelectionState,
-    profiles: ReturnType<typeof mergeAgentProfiles>,
-) {
-    try {
-        validateAgentSelection(profiles, projectAgentSelection(selection, profiles), 'desktop agent selection')
-
-        return null
-    } catch (error) {
-        return error instanceof Error ? error.message : 'Invalid desktop agent selection'
-    }
-}
-
-function persistDesktopConfig() {
-    if (!configService.hasDesktopConfig()) return
-
-    writeDesktopConfigToBridge(configService.getDesktopValues())
-}
-
 /** Tabbed app menu hosting project, account and agent actions. */
 export function AppMenu(props: AppMenuProps) {
     const {
@@ -149,9 +108,9 @@ export function AppMenu(props: AppMenuProps) {
         isMobile,
         onOpenConfig,
         onOpenMobileMenu,
-        search,
+        regexpAgent,
     } = props
-    const { project } = useProjectState()
+    const project = useProjectReference()
     const { hasPendingPush, hasPendingSave } = useProjectPersistence()
     const primaryWorktreeStatus = usePrimaryWorktreeStatus()
     const projectConfig = useProjectConfig()
@@ -159,19 +118,6 @@ export function AppMenu(props: AppMenuProps) {
     const [currentTab, setCurrentTab] = useState<AppMenuTab>('home')
     const [dialogMode, setDialogMode] = useState<ProjectDialogMode | null>(initialProjectOpenResolution ? 'open' : null)
     const [isCreatingDiagram, setIsCreatingDiagram] = useState(false)
-    const agentProfiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
-    const agentSelection = useConfigValue('desktop.agentSelection')
-    const selectedAgent = agentSelection.activeAgent
-    const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)
-    const selectedModels = selectedProfile?.models ?? []
-    const activeAgentSettings = agentSelection.settingsByAgent[selectedAgent]
-    const hasActiveAgentSettings = !!activeAgentSettings
-    const selectedThinkingLevel = activeAgentSettings?.thinkingLevel ?? 'none'
-    const selectedPermissionMode = agentSelection.permissionMode
-    const desktopAvailable = useHasDesktopConfig()
-    const selectedModel = activeAgentSettings?.model ?? ''
-    const selectionError = hasActiveAgentSettings ? desktopSelectionError(agentSelection, agentProfiles) : null
-    const selectedModelAvailable = selectedModels.includes(selectedModel)
     const projectBranch = project?.branch ?? ''
     const readOnly = useProjectReadOnly()
     const sentryConnection = useSentryConnection()
@@ -193,12 +139,6 @@ export function AppMenu(props: AppMenuProps) {
         queueMicrotask(() => setCurrentTab('home'))
     }, [isCurrentTabOutOfView])
 
-    useEffect(() => {
-        if (!hasActiveAgentSettings) {
-            const error = new Error(`Missing desktop settings for active agent: ${selectedAgent}`)
-            dialogService.error(error, { fallbackMessage: 'Desktop agent settings are invalid' })
-        }
-    }, [hasActiveAgentSettings, selectedAgent])
 
     const closeDialog = useCallback(() => {
         setDialogMode(null)
@@ -219,8 +159,8 @@ export function AppMenu(props: AppMenuProps) {
     const selectedBranch = branchOptions.some((branch) => branch.name === actions.switchBranch) ? actions.switchBranch : projectBranch
     const canCommit = !readOnly && actions.isProjectOpen && !actions.isLoading && hasPendingSave
 
-    const handleTabChange = (_event: SyntheticEvent, value: AppMenuTab) => {
-        setCurrentTab(value)
+    const handleTabChange = (value: string) => {
+        setCurrentTab(value as AppMenuTab)
     }
 
     const handleOpenProject = () => {
@@ -302,35 +242,6 @@ export function AppMenu(props: AppMenuProps) {
         workspaceViewService.setViewMode(nextMode)
     }
 
-    const handleAgentChange = (event: SelectChangeEvent) => {
-        configService.set('desktop.agentSelection', selectAgent(agentSelection, event.target.value, agentProfiles))
-        persistDesktopConfig()
-    }
-
-    const setModel = (value: string) => {
-        configService.set('desktop.agentSelection', selectModel(agentSelection, value))
-        persistDesktopConfig()
-    }
-
-    const handleModelSelectChange = (event: SelectChangeEvent) => {
-        setModel(event.target.value)
-    }
-
-    const handleModelTextChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setModel(event.target.value)
-    }
-
-    const handleThinkingLevelChange = (event: SelectChangeEvent) => {
-        const thinkingLevel = validateThinkingLevel(event.target.value, 'Default reasoning level')
-        configService.set('desktop.agentSelection', selectThinkingLevel(agentSelection, thinkingLevel))
-        persistDesktopConfig()
-    }
-
-    const handlePermissionModeChange = (event: SelectChangeEvent) => {
-        const permissionMode = validatePermissionMode(event.target.value, 'Default permission mode')
-        configService.set('desktop.agentSelection', selectPermissionMode(agentSelection, permissionMode))
-        persistDesktopConfig()
-    }
 
     const handleCreateAction = async () => {
         try {
@@ -370,29 +281,6 @@ export function AppMenu(props: AppMenuProps) {
 
         projectSessionService.discardGithubPendingCommits(actions.pendingGithubConflictProject, accessToken)
     }
-
-    const menuTabs = (
-        <Tabs
-            aria-label="Application menu"
-            onChange={handleTabChange}
-            scrollButtons={false}
-            sx={{
-                minHeight: 44,
-                '& .MuiTabs-indicator': { height: 2 },
-            }}
-            value={visibleCurrentTab}
-            variant="scrollable"
-        >
-            {availableMenuTabs.map((tab) => (
-                <MuiTab
-                    key={tab.value}
-                    label={tab.label}
-                    sx={{ fontSize: 13.5, minHeight: 44, minWidth: 0, px: 1.5, textTransform: 'none' }}
-                    value={tab.value}
-                />
-            ))}
-        </Tabs>
-    )
 
     const viewSection = (
         <Section label="View">
@@ -534,81 +422,7 @@ export function AppMenu(props: AppMenuProps) {
             </Box>
             <Box role="tabpanel" sx={{ display: visibleCurrentTab === 'agents' ? 'block' : 'none' }}>
                 <Tab>
-                    <Section label="Setup">
-                        <MenuSelect
-                            disabled={!desktopAvailable}
-                            errorMessage={selectionError}
-                            label="Default agent"
-                            minWidth={130}
-                            onChange={handleAgentChange}
-                            value={selectedAgent}
-                        >
-                            {!selectedProfile ? <MenuItem disabled value={selectedAgent}>{selectedAgent} — unavailable</MenuItem> : null}
-                            {agentProfiles.map((profile) => (
-                                <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>
-                            ))}
-                        </MenuSelect>
-                        {selectedModels.length > 0 ? (
-                            <MenuSelect
-                                disabled={!desktopAvailable}
-                                errorMessage={selectionError}
-                                label="Default model"
-                                minWidth={150}
-                                onChange={handleModelSelectChange}
-                                value={selectedModel}
-                            >
-                                {!selectedModelAvailable ? <MenuItem disabled value={selectedModel}>{selectedModel || 'Default'} — unavailable</MenuItem> : null}
-                                {selectedModels.map((model) => (
-                                    <MenuItem key={model} value={model}>{model}</MenuItem>
-                                ))}
-                            </MenuSelect>
-                        ) : (
-                            <Tooltip title={selectionError ?? 'Default model'}>
-                                <TextField
-                                    disabled={!desktopAvailable}
-                                    error={!!selectionError}
-                                    helperText={selectionError ? 'Unavailable' : undefined}
-                                    onChange={handleModelTextChange}
-                                    size="small"
-                                    slotProps={{ htmlInput: { 'aria-label': 'Default model' } }}
-                                    style={NO_DRAG_REGION}
-                                    sx={{ width: 150 }}
-                                    value={selectedModel}
-                                />
-                            </Tooltip>
-                        )}
-                        <MenuSelect
-                            disabled={!desktopAvailable}
-                            errorMessage={selectionError}
-                            label="Default reasoning level"
-                            minWidth={120}
-                            onChange={handleThinkingLevelChange}
-                            value={selectedThinkingLevel}
-                        >
-                            {THINKING_LEVELS.map((level) => {
-                                const available = !!selectedProfile && supportsThinkingLevel(selectedProfile, level)
-
-                                return (
-                                    <MenuItem disabled={!available} key={level} value={level}>
-                                        {level === selectedThinkingLevel && !available ? `${level} — unavailable` : level}
-                                    </MenuItem>
-                                )
-                            })}
-                        </MenuSelect>
-                        {selectedProfile && supportsPermissionMode(selectedProfile) ? (
-                            <MenuSelect
-                                disabled={!desktopAvailable}
-                                label="Default permission mode"
-                                minWidth={190}
-                                onChange={handlePermissionModeChange}
-                                value={selectedPermissionMode}
-                            >
-                                {PERMISSION_MODE_OPTIONS.map(({ label, value }) => (
-                                    <MenuItem key={value} value={value}>{label}</MenuItem>
-                                ))}
-                            </MenuSelect>
-                        ) : <TextField disabled size="small" value="Permissions unsupported" />}
-                    </Section>
+                    <AgentMenuControls />
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="Actions">
                         <ActionEntryPoints context={PROJECT_CONTEXT} variant="icons" visibility="explicit-context" />
@@ -627,7 +441,7 @@ export function AppMenu(props: AppMenuProps) {
                             <ScheduleOutlined fontSize="small" />
                         </MenuIconButton>
                         <MenuIconButton
-                            disabled={readOnly || !actions.isProjectOpen || actions.activeCards.length === 0 || actions.isReleaseCompleting}
+                            disabled={readOnly || !actions.isProjectOpen || actions.activeCardCount === 0 || actions.isReleaseCompleting}
                             label="Complete release"
                             onClick={handleOpenReleaseDialog}
                         >
@@ -656,87 +470,102 @@ export function AppMenu(props: AppMenuProps) {
                     <StatsMenuTab />
                 </Box>
             ) : null}
-            <ProjectOpenDialog
-                branches={actions.branches}
-                initialSource={actions.initialProjectSource}
-                isDesktopMode={actions.isDesktopMode}
-                isGithubAuthenticated={isGithubAuthenticated}
-                isLoading={actions.isLoading}
-                onBrowseProjectSubFolder={actions.isDesktopMode ? actions.browseProjectSubFolder : null}
-                onChooseLocalFolder={actions.chooseLocalProjectFolder}
-                onConfirmProjectFolderSetup={handleConfirmProjectFolderSetup}
-                projectOpenResolution={actions.projectOpenResolution}
-                onBranchChange={() => undefined}
-                onClose={actions.closeDialog}
-                onCreateRemoteProject={actions.createRemoteProject}
-                onDiscardGithubPendingCommits={handleDiscardGithubPendingCommits}
-                onLoadManualBranches={actions.loadManualBranches}
-                onLoadRemoteBranches={actions.loadRemoteBranches}
-                onOpenGithub={actions.openGithubProject}
-                onOpenLocal={actions.openLocalProject}
-                onOpenRemote={actions.openRemoteProject}
-                onRemoveRecentLocal={actions.removeRecentLocalProject}
-                onRepositoryChange={actions.loadRepositoryBranches}
-                onSourceChange={actions.clearOpenDialogState}
-                open={dialogMode === 'open'}
-                pendingGithubConflictProject={actions.pendingGithubConflictProject}
-                recentLocalRepositories={actions.recentLocalRepositories}
-                repositories={actions.repositories}
-            />
-            <ActiveSchedulesDialog
-                onClose={closeDialog}
-                open={dialogMode === 'schedules'}
-                readOnly={readOnly}
-            />
-            <BranchSwitchDialog
-                branches={actions.branches}
-                isLoading={actions.isLoading}
-                onBranchChange={actions.setSwitchBranch}
-                onClose={actions.closeDialog}
-                onSwitchBranch={(branch) => void actions.switchProjectBranch(branch)}
-                open={dialogMode === 'branch'}
-                selectedBranch={actions.switchBranch}
-            />
-            <CompleteReleaseDialog
-                branchCandidates={actions.releaseBranchCandidates}
-                defaultSelectAll={actions.releaseSelectAllDefault}
-                isLoading={actions.isLoading}
-                key={dialogMode === 'release' ? 'release-open' : 'release-closed'}
-                onClose={actions.closeDialog}
-                onCompleteRelease={actions.completeRelease}
-                onSelectAllDefaultChange={actions.setReleaseSelectAllDefault}
-                open={dialogMode === 'release'}
-            />
-            <NewCardDialog
-                cardTypes={actions.cardTypes}
-                initialTargetStatus={actions.newCardInitialStatus}
-                isLoading={actions.isLoading}
-                isProjectOpen={actions.isProjectOpen}
-                onClose={actions.closeDialog}
-                onCreateCard={actions.createCard}
-                open={dialogMode === 'card'}
-                states={actions.states}
-            />
+            {dialogMode === 'open' ? (
+                <ProjectOpenDialog
+                    branches={actions.branches}
+                    initialSource={actions.initialProjectSource}
+                    isDesktopMode={actions.isDesktopMode}
+                    isGithubAuthenticated={isGithubAuthenticated}
+                    isLoading={actions.isLoading}
+                    onBrowseProjectSubFolder={actions.isDesktopMode ? actions.browseProjectSubFolder : null}
+                    onChooseLocalFolder={actions.chooseLocalProjectFolder}
+                    onConfirmProjectFolderSetup={handleConfirmProjectFolderSetup}
+                    projectOpenResolution={actions.projectOpenResolution}
+                    onBranchChange={() => undefined}
+                    onClose={actions.closeDialog}
+                    onCreateRemoteProject={actions.createRemoteProject}
+                    onDiscardGithubPendingCommits={handleDiscardGithubPendingCommits}
+                    onLoadManualBranches={actions.loadManualBranches}
+                    onLoadRemoteBranches={actions.loadRemoteBranches}
+                    onOpenGithub={actions.openGithubProject}
+                    onOpenLocal={actions.openLocalProject}
+                    onOpenRemote={actions.openRemoteProject}
+                    onRemoveRecentLocal={actions.removeRecentLocalProject}
+                    onRepositoryChange={actions.loadRepositoryBranches}
+                    onSourceChange={actions.clearOpenDialogState}
+                    open
+                    pendingGithubConflictProject={actions.pendingGithubConflictProject}
+                    recentLocalRepositories={actions.recentLocalRepositories}
+                    repositories={actions.repositories}
+                />
+            ) : null}
+            {dialogMode === 'schedules' ? (
+                <ActiveSchedulesDialog
+                    onClose={closeDialog}
+                    open
+                    readOnly={readOnly}
+                />
+            ) : null}
+            {dialogMode === 'branch' ? (
+                <BranchSwitchDialog
+                    branches={actions.branches}
+                    isLoading={actions.isLoading}
+                    onBranchChange={actions.setSwitchBranch}
+                    onClose={actions.closeDialog}
+                    onSwitchBranch={(branch) => void actions.switchProjectBranch(branch)}
+                    open
+                    selectedBranch={actions.switchBranch}
+                />
+            ) : null}
+            {dialogMode === 'release' ? (
+                <CompleteReleaseDialog
+                    branchCandidates={actions.releaseBranchCandidates}
+                    defaultSelectAll={actions.releaseSelectAllDefault}
+                    isLoading={actions.isLoading}
+                    key={dialogMode === 'release' ? 'release-open' : 'release-closed'}
+                    onClose={actions.closeDialog}
+                    onCompleteRelease={actions.completeRelease}
+                    onSelectAllDefaultChange={actions.setReleaseSelectAllDefault}
+                    open
+                />
+            ) : null}
+            {dialogMode === 'card' ? (
+                <NewCardDialog
+                    cardTypes={actions.cardTypes}
+                    initialTargetStatus={actions.newCardInitialStatus}
+                    isLoading={actions.isLoading}
+                    isProjectOpen={actions.isProjectOpen}
+                    onClose={actions.closeDialog}
+                    onCreateCard={actions.createCard}
+                    open
+                    states={actions.states}
+                />
+            ) : null}
         </Menu>
     )
 
     return (
-        <MainToolbar
-            isMobile={isMobile}
-            mobileAction={isMobile && currentTab === 'home' ? (
-                <MobileCreateMenu
-                    isNewActionDisabled={!project || readOnly}
-                    isNewCardDisabled={!actions.isProjectOpen || readOnly}
-                    isNewDiagramDisabled={!actions.isProjectOpen || readOnly || isCreatingDiagram}
-                    onCreateAction={handleCreateAction}
-                    onCreateCard={handleOpenCardDialog}
-                    onCreateDiagram={handleCreateDiagram}
-                />
-            ) : null}
-            onOpenMenu={onOpenMobileMenu}
-            panel={menuPanel}
-            search={search}
-            tabs={menuTabs}
-        />
+        <AppBar
+            color="default"
+            elevation={0}
+            position="static"
+            sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}
+        >
+            <MainToolbar
+                availableTabs={availableMenuTabs}
+                currentTab={visibleCurrentTab}
+                isMobile={isMobile}
+                isNewActionDisabled={!project || readOnly}
+                isNewCardDisabled={!actions.isProjectOpen || readOnly}
+                isNewDiagramDisabled={!actions.isProjectOpen || readOnly || isCreatingDiagram}
+                onCreateAction={handleCreateAction}
+                onCreateCard={handleOpenCardDialog}
+                onCreateDiagram={handleCreateDiagram}
+                onOpenMenu={onOpenMobileMenu}
+                onTabChange={handleTabChange}
+                regexpAgent={regexpAgent}
+            />
+            <Box style={NO_DRAG_REGION}>{menuPanel}</Box>
+        </AppBar>
     )
 }

@@ -5,6 +5,7 @@ import { runElectronAction } from '../actions/electron_action_runner'
 import { actionRunRegistry } from '../actions/action_run_registry'
 import { configService } from '../config/config_service'
 import { dialogService } from '../dialog_service'
+import { worktreeService } from '../project/worktree_service'
 import {
     actionAcknowledgementEvent,
     agentAcknowledgementService,
@@ -667,6 +668,64 @@ describe('AgentIntegration', () => {
             .resolves.toEqual([persistedConversation])
         expect(storage.loadTextFile).toHaveBeenCalledOnce()
         expect(storage.loadActivityConversations).toHaveBeenCalledOnce()
+    })
+
+    it('refreshes an assigned worktree only after the last live conversation finishes', async () => {
+        configService.init()
+        const activityPath = 'design/activity/card__root-card.json'
+        const firstReference = `${activityPath}#conversation=agent-1`
+        const secondReference = `${activityPath}#conversation=agent-2`
+        const cardFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nworktree: 1\nagents:\n  - ${firstReference}\n  - ${secondReference}\n---\n\n# Root`,
+            path: 'design/F-1-root.md',
+        }
+        const firstRunning = { ...conversation(firstReference), completedAt: null, status: 'running' as const }
+        const secondRunning = { ...conversation(secondReference), completedAt: null, id: 'agent-2', status: 'running' as const }
+        const storage = createStorage({
+            loadActivityConversations: vi.fn(async () => [firstRunning, secondRunning]),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        })
+        const refreshWorktrees = vi.spyOn(worktreeService, 'refresh').mockResolvedValue(undefined)
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await expect(service.listAgentConversations({ cardInternalId: 'root-card', file: cardFile.path, kind: 'card' }))
+            .resolves.toHaveLength(2)
+        expect(refreshWorktrees).not.toHaveBeenCalled()
+
+        service.agents.updateAgentConversation({ ...firstRunning, completedAt: '2026-01-01T00:02:00.000Z', status: 'completed' })
+        expect(refreshWorktrees).not.toHaveBeenCalled()
+
+        service.agents.updateAgentConversation({ ...secondRunning, completedAt: '2026-01-01T00:03:00.000Z', status: 'completed' })
+        expect(refreshWorktrees).toHaveBeenCalledOnce()
+    })
+
+    it('does not refresh worktrees when the last live conversation finishes on primary', async () => {
+        configService.init()
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1'
+        const cardFile: MarkdownFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${reference}\n---\n\n# Root`,
+            path: 'design/F-1-root.md',
+        }
+        const running = { ...conversation(reference), completedAt: null, status: 'running' as const }
+        const storage = createStorage({
+            loadActivityConversations: vi.fn(async () => [running]),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        })
+        const refreshWorktrees = vi.spyOn(worktreeService, 'refresh').mockResolvedValue(undefined)
+        const service = createDataService()
+        service.init({ storage })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        await service.listAgentConversations({ cardInternalId: 'root-card', file: cardFile.path, kind: 'card' })
+        expect(service.getState().snapshot?.activeCards[0].header.worktree).toBeNull()
+        refreshWorktrees.mockClear()
+        service.agents.updateAgentConversation({ ...running, completedAt: '2026-01-01T00:02:00.000Z', status: 'completed' })
+
+        expect(refreshWorktrees).not.toHaveBeenCalled()
     })
 
     it('keeps newer inserted conversation when delayed project load returns same ID', async () => {

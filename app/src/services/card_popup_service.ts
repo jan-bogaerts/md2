@@ -121,6 +121,29 @@ export class CardPopupService extends EventTarget {
         this.setEntries([...this.entries, entry])
     }
 
+    openAction(context: ActionContext, actionId: string, anchorElement: HTMLElement) {
+        if (!context.cardInternalId) throw new Error('Cannot open a card action popup without a card internal ID')
+        if (!actionId) throw new Error('Cannot open a card action popup without an action ID')
+
+        const contextIdentity = actionContextIdentity(context)
+        const existing = this.entries.find((entry) => (
+            entry.kind === 'action' && actionContextIdentity(entry.context) === contextIdentity
+        ))
+        existing?.fallbackAnchorElement.remove()
+        const entry: CardActionPopupEntry = {
+            anchorElement,
+            context: { ...context },
+            fallbackAnchorElement: createFallbackAnchor(anchorElement),
+            id: `card-action-popup-${this.nextId}`,
+            kind: 'action',
+            requestedActionId: actionId,
+            requestedConversationPath: null,
+            requestedRunId: null,
+        }
+        this.nextId += 1
+        this.setEntries([...this.entries.filter((candidate) => candidate.id !== existing?.id), entry])
+    }
+
     closeAction(context: ActionContext) {
         const contextIdentity = actionContextIdentity(context)
         this.removeEntries((entry) => (

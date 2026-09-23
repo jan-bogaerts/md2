@@ -27,7 +27,8 @@ import {
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { useConfigValueOrFallback } from '../../hooks/use_config_value'
 import { useProjectSession } from '../../hooks/use_project_session'
-import { useProjectState } from '../../hooks/use_project_state'
+import { useActiveCardCount } from '../../hooks/use_active_card_count'
+import { useProjectReference } from '../../hooks/use_project_reference'
 import {
     OPEN_NEW_CARD_DIALOG_EVENT,
     OPEN_PROJECT_DIALOG_EVENT,
@@ -63,7 +64,8 @@ function branchValue(branches: BranchReference[], preferredBranch: string) {
 /** Owns project menu service calls and non-dialog session state. */
 export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsArgs) {
     const { accessToken, initialProjectOpenResolution = null, isGithubAuthenticated, onCloseDialog, onOpenDialog } = args
-    const { project, snapshot } = useProjectState()
+    const project = useProjectReference()
+    const activeCardCount = useActiveCardCount()
     const projectSession = useProjectSession()
     const projectConfig = useProjectConfig()
     const electronBridge = useMemo(() => getElectronDataBridge(), [])
@@ -82,7 +84,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const [repositories, setRepositories] = useState<RepositoryReference[]>(EMPTY_REPOSITORIES)
     const [releaseBranchCandidates, setReleaseBranchCandidates] = useState<ReleaseBranchCandidate[]>([])
     const [switchBranch, setSwitchBranch] = useState(project?.branch ?? '')
-    const activeCards = snapshot?.activeCards ?? []
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const states = projectConfig?.states ?? DEFAULT_STATES
     const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
@@ -396,7 +397,7 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     }
 
     return {
-        activeCards,
+        activeCardCount,
         branches,
         cardTypes,
         chooseLocalProjectFolder,

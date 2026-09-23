@@ -22,6 +22,7 @@ import { telemetryService } from '../telemetry/telemetry_service'
 import { dialogService } from '../dialog_service'
 import type { ConversationPinService } from './conversation_pin_service'
 import { activityFilePath } from '../../../../shared/activity_paths.mjs'
+import { hasRunningConversation } from './card_agent_state'
 
 const AGENT_CONVERSATION_LOAD_CONCURRENCY = 8
 /** Terminal run status as the conversation records it; a run that ended after its after-phase check still completed. */
@@ -57,6 +58,7 @@ export interface AgentIntegrationDeps {
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     pins: ConversationPinService
     project(): ProjectReference | null
+    refreshWorktrees(): Promise<void>
     requireDependencies(): RequiredDataServiceDependencies
     snapshot(): ProjectSnapshot | null
 }
@@ -618,8 +620,12 @@ export class AgentIntegration {
             : this.projectConversations.find(({ id }) => id === liveConversation.id)
         if (!stored || stored.status === status) return
 
+        const wasRunning = hasRunningConversation(cardInternalId
+            ? this.conversationsByCardInternalId.get(cardInternalId) ?? []
+            : this.projectConversations)
         stored.status = status
         this.markConversationWritten(stored.id)
+        if (cardInternalId && wasRunning) this.refreshWorktreesAfterLastConversation(cardInternalId)
         agentAcknowledgementService.announceConversationsChanged(cardInternalId, stored.actionId ? [stored.actionId] : [])
     }
 
@@ -645,15 +651,29 @@ export class AgentIntegration {
 
     private upsertAgentConversation(cardInternalId: string, conversation: AgentConversation) {
         const conversations = this.conversationsByCardInternalId.get(cardInternalId) ?? []
+        const wasRunning = hasRunningConversation(conversations)
         const nextConversations = conversations.some((current) => current.id === conversation.id)
             ? conversations.map((current) => (current.id === conversation.id ? conversation : current))
             : [...conversations, conversation]
         this.conversationsByCardInternalId.set(cardInternalId, nextConversations)
         this.markConversationWritten(conversation.id)
+        if (wasRunning) this.refreshWorktreesAfterLastConversation(cardInternalId)
         this.mergePinnedConversation(conversation)
         this.notifyConversationsChanged(cardInternalId)
         const actionIds = conversation.actionId ? [conversation.actionId] : []
         agentAcknowledgementService.announceConversationsChanged(cardInternalId, actionIds)
+    }
+
+    private refreshWorktreesAfterLastConversation(cardInternalId: string) {
+        const conversations = this.conversationsByCardInternalId.get(cardInternalId) ?? []
+        if (hasRunningConversation(conversations)) return
+
+        const worktree = this.dependencies.findCardByInternalId(cardInternalId)?.header.worktree
+        if (!Number.isInteger(worktree) || !worktree || worktree <= 0) return
+
+        void this.dependencies.refreshWorktrees().catch((error: unknown) => {
+            dialogService.error(error, { fallbackMessage: 'Could not refresh worktree status' })
+        })
     }
 
     private mergePinnedConversation(conversation: AgentConversation) {

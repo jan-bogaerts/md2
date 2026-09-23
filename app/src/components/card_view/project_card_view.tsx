@@ -158,6 +158,9 @@ function CardViewContent(props: CardViewContentProps) {
         setActionsAnchorElement(null)
         setActionsMenuPosition(null)
     }
+    const openActionFromMenu = (actionId: string, anchorElement: HTMLElement) => {
+        cardPopupService.openAction(context, actionId, anchorElement)
+    }
 
     const openBodyFromMenu = () => {
         try {
@@ -362,42 +365,49 @@ function CardViewContent(props: CardViewContentProps) {
                     ) : null}
                 </Stack>
             </Box>
-            <Menu
-                anchorEl={actionsAnchorElement}
-                anchorPosition={actionsMenuPosition ?? undefined}
-                anchorReference={actionsMenuPosition ? 'anchorPosition' : 'anchorEl'}
-                onClose={closeCardActions}
-                open={!!actionsAnchorElement || !!actionsMenuPosition}
-            >
-                <ActionEntryPoints
-                    context={context}
-                    onMenuItemSelected={closeCardActions}
-                    popupAnchorElement={cardElement}
-                    variant="menuItems"
-                />
-                {policyKeys.map((policyKey) => (
-                    <CardPolicyMenuItem
-                        key={policyKey}
-                        cardPath={card.path}
-                        enabled={card.header.policy[policyKey] ?? false}
-                        disabled={readOnly}
-                        onSelected={closeCardActions}
-                        onToggle={onTogglePolicy}
-                        policyKey={policyKey}
+            {(actionsAnchorElement || actionsMenuPosition) ? (
+                <Menu
+                    anchorEl={actionsAnchorElement}
+                    anchorPosition={actionsMenuPosition ?? undefined}
+                    anchorReference={actionsMenuPosition ? 'anchorPosition' : 'anchorEl'}
+                    onClose={closeCardActions}
+                    open
+                >
+                    <ActionEntryPoints
+                        context={context}
+                        onActionSelected={openActionFromMenu}
+                        onMenuItemSelected={closeCardActions}
+                        popupAnchorElement={cardElement}
+                        variant="menuItems"
                     />
-                ))}
-                <CardPathMenuItems cardPath={card.path} onSelected={closeCardActions} rootPath={rootPath} />
-                <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
-                <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
-                <MenuItem disabled={readOnly} onClick={openAttachmentPickerFromMenu}>
+                    {policyKeys.map((policyKey) => (
+                        <CardPolicyMenuItem
+                            key={policyKey}
+                            cardPath={card.path}
+                            enabled={card.header.policy[policyKey] ?? false}
+                            disabled={readOnly}
+                            onSelected={closeCardActions}
+                            onToggle={onTogglePolicy}
+                            policyKey={policyKey}
+                        />
+                    ))}
+                    <CardPathMenuItems cardPath={card.path} onSelected={closeCardActions} rootPath={rootPath} />
+                    <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
+                    <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
+                    <MenuItem disabled={readOnly} onClick={openAttachmentPickerFromMenu}>
                     Attach files{references.length > 0 ? ` (${references.length})` : ''}
-                </MenuItem>
-                <MenuItem disabled={readOnly} onClick={editTitleFromMenu}>Edit title</MenuItem>
-                <MenuItem disabled={readOnly} onClick={openArchiveCardDialog}>Archive</MenuItem>
-                <MenuItem disabled={readOnly} onClick={openDeleteCardDialog}>Delete</MenuItem>
-            </Menu>
-            <CardArchiveDialog cardPath={archiveCardPath} onArchiveCard={onArchiveCard} onClose={closeArchiveCardDialog} />
-            <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={onDeleteCard} />
+                    </MenuItem>
+                    <MenuItem disabled={readOnly} onClick={editTitleFromMenu}>Edit title</MenuItem>
+                    <MenuItem disabled={readOnly} onClick={openArchiveCardDialog}>Archive</MenuItem>
+                    <MenuItem disabled={readOnly} onClick={openDeleteCardDialog}>Delete</MenuItem>
+                </Menu>
+            ) : null}
+            {archiveCardPath ? (
+                <CardArchiveDialog cardPath={archiveCardPath} onArchiveCard={onArchiveCard} onClose={closeArchiveCardDialog} />
+            ) : null}
+            {deleteCardPath ? (
+                <CardDeleteDialog cardPath={deleteCardPath} onClose={closeDeleteCardDialog} onDeleteCard={onDeleteCard} />
+            ) : null}
         </CardDragContainer>
     )
 }

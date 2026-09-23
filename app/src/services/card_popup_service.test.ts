@@ -150,6 +150,19 @@ describe('CardPopupService', () => {
         })
     })
 
+    it('opens a requested card action independently from its menu lifetime', () => {
+        const { service } = createService()
+
+        service.openAction(actionContext('card-1'), 'review', anchor())
+
+        expect(service.getSnapshot()[0]).toMatchObject({
+            context: { cardInternalId: 'card-1' },
+            kind: 'action',
+            requestedActionId: 'review',
+            requestedRunId: null,
+        })
+    })
+
     it('replaces and reactivates an existing card action popup for a requested run', () => {
         const { service } = createService()
         service.toggleAction(actionContext('card-1'), anchor())

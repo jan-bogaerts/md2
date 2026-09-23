@@ -87,7 +87,7 @@ export function ProjectToolbarMenu(props: ProjectToolbarMenuProps) {
                 ) : null}
                 {actions.isProjectOpen ? (
                     <MenuItem
-                        disabled={readOnly || actions.isReleaseCompleting || actions.activeCards.length === 0}
+                        disabled={readOnly || actions.isReleaseCompleting || actions.activeCardCount === 0}
                         onClick={handleOpenReleaseDialog}
                     >
                         Complete release...

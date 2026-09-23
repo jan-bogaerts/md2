@@ -396,6 +396,7 @@ export class DataService extends EventTarget {
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             pins: this.conversationPins,
             project: () => this.projectState.project,
+            refreshWorktrees: () => worktreeService.refresh(),
             requireDependencies: () => this.requireDependencies(),
             snapshot: () => this.projectState.snapshot,
         }

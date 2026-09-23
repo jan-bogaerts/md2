@@ -113,7 +113,6 @@ function renderMenu(isMobile = false) {
                 isMobile={isMobile}
                 onOpenConfig={vi.fn()}
                 onOpenMobileMenu={vi.fn()}
-                search={<input aria-label="Search project" />}
             />
         </AppThemeProvider>,
     )

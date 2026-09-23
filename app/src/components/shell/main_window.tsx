@@ -9,7 +9,6 @@ import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../ser
 import { GLOBAL_SEARCH_SHORTCUT_BINDING } from '../../services/search/search_open_service'
 import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
 import { AppMenu } from './menu/app_menu'
-import { SearchControl } from './search/search_control'
 import { StatusBar } from './status_bar'
 import type { ProjectOpenResolution } from '../../services/project/project_session_service'
 
@@ -58,7 +57,7 @@ export function MainWindow(props: MainWindowProps) {
                 isMobile={isMobile}
                 onOpenConfig={handleOpenConfig}
                 onOpenMobileMenu={handleOpenMenu}
-                search={<SearchControl isMobile={isMobile} regexpAgent={regexpAgent} />}
+                regexpAgent={regexpAgent}
             />
             <ProjectWorkspace
                 auth={auth}

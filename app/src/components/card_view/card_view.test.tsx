@@ -23,6 +23,7 @@ import { projectAccessService } from '../../services/project/project_access_serv
 import { cardPopupService } from '../../services/card_popup_service'
 import { cardSequenceDraftService } from '../actions/run/sequence/card_sequence_draft_service'
 import { CARD_SEQUENCE_DROP_ID } from '../actions/run/sequence/card_sequence_dnd'
+import { CardActionPopupHost } from '../actions/run/popup/card_action_popup_host'
 
 const dragContextHandlers = vi.hoisted(() => ({
     onDragCancel: null as DndContextProps['onDragCancel'] | null,
@@ -104,6 +105,7 @@ function renderCardView(
     setCards(activeCards, repositoryFiles, project)
     render(
         <AppThemeProvider>
+            <CardActionPopupHost />
             <CardView
                 cardTypes={DEFAULT_CARD_TYPES}
                 states={[
@@ -140,6 +142,7 @@ describe('CardView', () => {
 
     afterEach(() => {
         cleanup()
+        cardPopupService.clear()
         attachmentChoiceService.cancel()
         cardDragDropService.endDrag()
         const { selectedPath } = workspaceViewService.getSnapshot()
@@ -671,6 +674,7 @@ describe('CardView', () => {
         const copyError = new Error('Clipboard denied')
         const reportError = vi.spyOn(dialogService, 'error')
         Object.assign(navigator, { clipboard: { writeText: vi.fn().mockRejectedValue(copyError) } })
+        document.execCommand = vi.fn(() => { throw copyError })
         renderCardView()
 
         fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))

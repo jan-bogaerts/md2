@@ -17,6 +17,7 @@ export type ActionEntryVisibility = 'all-matching' | 'explicit-context'
 
 interface ActionEntryPointsProps {
     context: ActionContext
+    onActionSelected?: (actionId: string, anchorElement: HTMLElement) => void
     onMenuItemSelected?: () => void
     popupAnchorElement?: HTMLElement | null
     variant: ActionEntryVariant
@@ -37,7 +38,7 @@ interface ActionPopupState {
  * related action with the same context.
  */
 export function ActionEntryPoints(props: ActionEntryPointsProps) {
-    const { context, onMenuItemSelected, popupAnchorElement, variant, visibility = 'all-matching' } = props
+    const { context, onActionSelected, onMenuItemSelected, popupAnchorElement, variant, visibility = 'all-matching' } = props
     const { actions: loadedActions } = useActions()
     const runningRun = useRunningActionForContext(context)
     const readOnly = useProjectReadOnly()
@@ -75,6 +76,10 @@ export function ActionEntryPoints(props: ActionEntryPointsProps) {
 
     const open = (actionId: string, anchorElement: HTMLElement) => {
         onMenuItemSelected?.()
+        if (onActionSelected) {
+            onActionSelected(actionId, anchorElement)
+            return
+        }
         setPopupState({ actionId, anchorElement })
     }
 

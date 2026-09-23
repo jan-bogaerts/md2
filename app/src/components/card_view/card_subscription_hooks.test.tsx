@@ -190,7 +190,7 @@ describe('card view subscriptions', () => {
         expect(conversationRendered).toHaveBeenCalledTimes(initialCounts.conversation)
     })
 
-    it('does not rerender actual worktree leaf for body or title changes', () => {
+    it('does not rerender actual worktree leaf for body, title, or conversation changes', () => {
         worktreeSelectorRendered.mockClear()
         const firstCard = card('design/F-1.md', 'todo', 'First')
         const { emit, service } = createService([firstCard])
@@ -200,6 +200,22 @@ describe('card view subscriptions', () => {
 
         act(() => emit(CARD_CHANGED_EVENT, [{ ...firstCard, content: '# Edited body' }]))
         act(() => emit(CARD_CHANGED_EVENT, [{ ...firstCard, header: { ...firstCard.header, title: 'Renamed' } }]))
+        act(() => emit(CARD_CHANGED_EVENT, [{
+            ...firstCard, agentConversations: [{
+                cardInternalId: 'card-1',
+                cardPath: firstCard.path,
+                completedAt: '2026-01-01T00:01:00.000Z',
+                entries: [],
+                hasExplicitTitle: true,
+                id: 'conversation-1',
+                path: 'design/activity/card__card-1.json#conversation=conversation-1',
+                providerSessions: [],
+                startedAt: '2026-01-01T00:00:00.000Z',
+                status: 'completed',
+                title: 'Completed',
+                viewed: true,
+            }],
+        }]))
 
         expect(worktreeSelectorRendered).toHaveBeenCalledTimes(initialRenderCount)
     })
