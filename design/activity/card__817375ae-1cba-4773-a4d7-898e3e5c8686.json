@@ -756,7 +756,7 @@
         "totalTokens": 524227
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     },
     {
       "actionId": "md2.custom-prompt",
