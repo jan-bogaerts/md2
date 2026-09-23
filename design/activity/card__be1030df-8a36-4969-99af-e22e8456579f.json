@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "be1030df-8a36-4969-99af-e22e8456579f",
       "cardPath": "design/feature_descriptions/B_244_open_project_takes_too_long.md",
-      "completedAt": null,
+      "completedAt": "2026-09-23T08:57:02.557Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 149166
@@ -1390,21 +1390,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 100,
-          "timestamp": "2026-09-23T08:57:02.037Z"
+          "timestamp": "2026-09-23T08:57:02.557Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-50398c70-78d8-4f9d-a7bf-b5c8b1da81f7",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0cd71-c404-7ff1-9de7-06b453045100",
+          "createdAt": "2026-09-23T08:57:02.557Z",
+          "lastUsedAt": "2026-09-23T08:57:02.557Z",
+          "synchronizedThroughMessageId": "agent-turn-d19010d3-c08d-448b-822e-a4f92e70f34d-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-09-23T08:46:18.768Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 205893,
           "toolMs": 48459
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-23T08:46:18.768Z"
+        "elapsedMs": 643789,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
