@@ -32,6 +32,7 @@ changedFiles:
   - app/src/components/actions/run/popup/action_popup.tsx
   - app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx
   - app/src/components/actions/run/popup/action_popup_content.tsx
+  - app/src/components/actions/run/popup/action_popup_frame.tsx
   - app/src/components/actions/run/popup/action_popup_operations.node.test.ts
   - app/src/components/actions/run/popup/action_popup_runtime.node.test.ts
   - app/src/components/actions/run/popup/action_popup_runtime.ts
