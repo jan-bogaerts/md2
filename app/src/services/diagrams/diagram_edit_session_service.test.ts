@@ -508,6 +508,33 @@ describe('DiagramEditSessionService', () => {
         expect(service.getEditableDiagram()).toBeNull()
     })
 
+    it('keeps creation status only for the created source and clears it on later edits', () => {
+        const { service, sourceService } = createHarness()
+        expect(() => service.startCreation('')).toThrow('without a source diagram ID')
+        expect(() => service.startCreation('other-diagram')).toThrow('different diagram source')
+        expect(service.getSessionSnapshot()).toBeNull()
+
+        service.startCreation(firstRecord.id)
+        expect(service.getSessionSnapshot()).toEqual({
+            creationSourceDiagramId: firstRecord.id,
+            sourceDiagramId: firstRecord.id,
+        })
+
+        sourceService.setSource({ diagram: structuredClone(diagram), record: { ...firstRecord } })
+        expect(service.getSessionSnapshot()?.creationSourceDiagramId).toBe(firstRecord.id)
+
+        service.discard()
+        expect(service.getSessionSnapshot()).toBeNull()
+        service.start()
+        expect(service.getSessionSnapshot()).toEqual({ sourceDiagramId: firstRecord.id })
+
+        service.startCreation(firstRecord.id)
+        sourceService.setSource({ diagram: structuredClone(diagram), record: { ...firstRecord, id: 'next' } })
+        expect(service.getSessionSnapshot()).toBeNull()
+        service.start()
+        expect(service.getSessionSnapshot()).toEqual({ sourceDiagramId: 'next' })
+    })
+
     it('starts every session fresh and resets only when project identity changes', () => {
         const { service } = createHarness()
         service.start()

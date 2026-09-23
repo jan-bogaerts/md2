@@ -22,6 +22,7 @@ const DRAG_THRESHOLD = 3
 type DiagramLegendTab = 'current' | 'new'
 
 interface DiagramLegendProps {
+    creationSession?: boolean
     data: PositionedDiagramData
     service?: DiagramViewService
     /** Present only while an edit session is active, which is when the New tab is offered. */
@@ -42,7 +43,7 @@ function samePosition(first: DiagramLegendPosition, second: DiagramLegendPositio
 }
 
 /** Floating legend derived from active diagram semantics. */
-export function DiagramLegend({ data, service = diagramViewService, session = null }: DiagramLegendProps) {
+export function DiagramLegend({ creationSession = false, data, service = diagramViewService, session = null }: DiagramLegendProps) {
     const panelRef = useRef<HTMLDivElement>(null)
     const dragRef = useRef<LegendDrag | null>(null)
     const suppressClickRef = useRef(false)
@@ -62,7 +63,7 @@ export function DiagramLegend({ data, service = diagramViewService, session = nu
     const handleTabChange = (_event: SyntheticEvent, tab: DiagramLegendTab) => setActiveTab(tab)
     const handleCollapse = () => service.collapseLegend()
     const handleExpand = () => service.expandLegend()
-    const currentTabActive = !session || activeTab === 'current'
+    const currentTabActive = !session || (!creationSession && activeTab === 'current')
     const clampCurrentPosition = useCallback(() => {
         const panel = panelRef.current
         const viewport = panel?.parentElement
@@ -171,7 +172,7 @@ export function DiagramLegend({ data, service = diagramViewService, session = nu
             </Box>
             {!collapsed ? (
                 <Box sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                    {session ? (
+                    {session && !creationSession ? (
                         <Tabs
                             aria-label="Diagram legend sides"
                             onChange={handleTabChange}
@@ -198,9 +199,9 @@ export function DiagramLegend({ data, service = diagramViewService, session = nu
                         </Tabs>
                     ) : null}
                     <Box
-                        aria-labelledby={session ? `${tabsId}-${activeTab}-tab` : undefined}
-                        id={session ? `${tabsId}-${activeTab}-panel` : undefined}
-                        role={session ? 'tabpanel' : undefined}
+                        aria-labelledby={session && !creationSession ? `${tabsId}-${activeTab}-tab` : undefined}
+                        id={session && !creationSession ? `${tabsId}-${activeTab}-panel` : undefined}
+                        role={session && !creationSession ? 'tabpanel' : undefined}
                         sx={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}
                     >
                         {currentTabActive ? (

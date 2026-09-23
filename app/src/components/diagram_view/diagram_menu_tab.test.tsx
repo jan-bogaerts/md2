@@ -140,4 +140,16 @@ describe('DiagramMenuTab', () => {
         expect(screen.queryByRole('button', { name: /Decrease|Increase/u })).not.toBeInTheDocument();
 
     });
+
+    it('keeps New tools and hides Current controls during creation', () => {
+        const source = new SourceStub(sourceSnapshot());
+        const session = createSession(source);
+        session.startCreation('diagram');
+        render(<DiagramMenuTab session={session} viewService={source as unknown as DiagramViewService} />);
+
+        expect(screen.getByRole('button', { name: 'Select' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Adjust New font size' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Adjust Current font size' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('group', { name: 'Diagram comparison layout' })).not.toBeInTheDocument();
+    });
 });

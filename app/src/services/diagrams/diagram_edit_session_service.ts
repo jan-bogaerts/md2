@@ -94,6 +94,7 @@ export type NewDiagramLegendEntry = { label?: string, role: DiagramRole } | { ki
 
 export interface DiagramEditSessionSnapshot {
     sourceDiagramId: string
+    creationSourceDiagramId?: string
 }
 
 export interface OriginalDiagramSnapshot {
@@ -713,13 +714,29 @@ export class DiagramEditSessionService extends EventTarget {
 
     /** Starts a fresh session from canonical model data for the active diagram record. */
     start() {
+        this.startSession(null)
+    }
+
+    /** Starts editing the source record created by New diagram. */
+    startCreation(sourceDiagramId: string) {
+        if (!sourceDiagramId) throw new Error('Cannot start a creation session without a source diagram ID')
+        this.startSession(sourceDiagramId)
+    }
+
+    private startSession(creationSourceDiagramId: string | null) {
         if (!this.projectKey) throw new Error('Diagram edit session is not bound to a project')
         const source = this.sourceService.getSourceSnapshot()
         if (!source) throw new Error('Cannot start a diagram edit session without an active diagram')
+        if (creationSourceDiagramId !== null && creationSourceDiagramId !== source.record.id) {
+            throw new Error('Cannot start a creation session for a different diagram source')
+        }
 
         const originalDiagram = { diagram: source.diagram, record: source.record }
         const editableDiagram = structuredClone(source.diagram)
-        const session = { sourceDiagramId: source.record.id }
+        const session = {
+            sourceDiagramId: source.record.id,
+            ...(creationSourceDiagramId !== null ? { creationSourceDiagramId } : {}),
+        }
         this.clearChangeRegistry()
         this.resetLastSelectedCreationTool()
         this.resetActiveInteraction()

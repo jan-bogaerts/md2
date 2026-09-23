@@ -91,15 +91,18 @@ describe('DiagramSaveService', () => {
         expect(session.getOriginalDiagramSnapshot()?.diagram.nodes[0].label).toBe('Orders')
     })
 
-    it('rejects empty and invalid editable data before persistence', async () => {
+    it('rejects unchanged data and saves changes to an empty diagram', async () => {
         const empty = createHarness()
         await expect(empty.service.save()).rejects.toThrow('without changes')
         expect(empty.saveEditedDiagramCopy).not.toHaveBeenCalled()
 
-        const invalid = createHarness({ ...diagram, nodes: [] })
-        invalid.session.setMetadataField('title', 'Changed')
-        await expect(invalid.service.save()).rejects.toThrow('nodes has empty array')
-        expect(invalid.saveEditedDiagramCopy).not.toHaveBeenCalled()
+        const created = createHarness({ ...diagram, nodes: [] })
+        created.session.discard()
+        created.session.startCreation('source')
+        created.session.setMetadataField('title', 'Changed')
+        await expect(created.service.save()).resolves.toBe(created.savedRecord)
+        expect(created.saveEditedDiagramCopy).toHaveBeenCalledOnce()
+        expect(created.session.getSessionSnapshot()?.creationSourceDiagramId).toBe('source')
     })
 
     it('retains complete session state when persistence fails', async () => {

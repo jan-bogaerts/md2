@@ -756,6 +756,45 @@ describe('DiagramView', () => {
         expect(screen.getByRole('slider', { name: 'Current diagram zoom' })).toBeInTheDocument()
     })
 
+    it.each(['horizontal', 'vertical', 'tabbed'] as const)(
+        'shows only editable New after creation with prior %s comparison selection',
+        (comparisonMode) => {
+            const service = createService()
+            const { editSession, geometry, selection } = createEditHarness(false)
+            const layoutService = new DiagramComparisonLayoutService()
+            layoutService.setComparisonMode(comparisonMode)
+            layoutService.setActiveTab('current')
+            editSession.startCreation('child-1')
+            render(
+                <DiagramView
+                    editSession={editSession}
+                    geometry={geometry}
+                    layoutService={layoutService}
+                    selection={selection}
+                    service={service}
+                />,
+            )
+
+            expect(screen.getByLabelText('New diagram scroller')).toBeInTheDocument()
+            expect(screen.getByRole('slider', { name: 'New diagram zoom' })).toBeInTheDocument()
+            expect(screen.queryByLabelText('Current diagram scroller')).not.toBeInTheDocument()
+            expect(screen.queryByLabelText('Selected diagram comparison')).not.toBeInTheDocument()
+            expect(screen.queryByRole('tab', { name: 'Current' })).not.toBeInTheDocument()
+            expect(screen.queryByRole('separator')).not.toBeInTheDocument()
+            expect(screen.queryByLabelText('Diagram legend sides')).not.toBeInTheDocument()
+            expect(screen.getByLabelText('New diagram legend entries')).toBeInTheDocument()
+
+            Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 })
+            act(() => window.dispatchEvent(new Event('resize')))
+            expect(screen.getByLabelText('New diagram scroller')).toBeInTheDocument()
+            expect(screen.queryByRole('tab', { name: 'Current' })).not.toBeInTheDocument()
+
+            act(() => editSession.discard())
+            expect(screen.getByLabelText('Current diagram scroller')).toBeInTheDocument()
+            expect(screen.queryByLabelText('New diagram scroller')).not.toBeInTheDocument()
+        },
+    )
+
     it('does not render Edit diagram over diagram content', () => {
         const service = createService()
         const { editSession, geometry } = createEditHarness(false)

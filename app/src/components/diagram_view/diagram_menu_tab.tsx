@@ -67,12 +67,16 @@ export function DiagramMenuTab({
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="Formatting">
                         <DiagramFormattingControls store={session} surface="New" />
-                        <DiagramFormattingControls store={viewService} surface="Current" />
+                        {!editSession.creationSourceDiagramId ? <DiagramFormattingControls store={viewService} surface="Current" /> : null}
                     </Section>
-                    <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
-                    <Section label="Comparison">
-                        <DiagramComparisonMenuControl />
-                    </Section>
+                    {!editSession.creationSourceDiagramId ? (
+                        <>
+                            <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
+                            <Section label="Comparison">
+                                <DiagramComparisonMenuControl />
+                            </Section>
+                        </>
+                    ) : null}
                 </>
             )}
         </Tab>

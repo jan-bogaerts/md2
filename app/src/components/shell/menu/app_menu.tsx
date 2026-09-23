@@ -265,9 +265,9 @@ export function AppMenu(props: AppMenuProps) {
         setIsCreatingDiagram(true)
         try {
             await diagramViewService.open()
-            await diagramViewService.createEmptyDiagram(choice)
+            const record = await diagramViewService.createEmptyDiagram(choice)
             workspaceViewService.setViewMode('diagrams')
-            diagramEditSessionService.start()
+            diagramEditSessionService.startCreation(record.id)
             queueMicrotask(() => document.querySelector<HTMLElement>(`[${DIAGRAM_EDITOR_ROOT_ATTRIBUTE}]`)?.focus())
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Diagram could not be created' })

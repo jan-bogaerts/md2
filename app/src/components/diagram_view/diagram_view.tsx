@@ -34,6 +34,7 @@ import type { DiagramSelection } from './diagram_selection'
 import { TabbedDiagramComparison } from './tabbed_diagram_comparison'
 import { VerticalDiagramComparison } from './vertical_diagram_comparison'
 import { DiagramCurrentViewport } from './diagram_current_viewport'
+import { DiagramNewPane } from './diagram_new_pane'
 import { DiagramBreadcrumbBar } from './diagram_breadcrumb_bar'
 
 const ROOT_DIAGRAM_CONTEXT = diagramContext('root')
@@ -147,7 +148,15 @@ export function DiagramView({
         <Box aria-label="Active diagram" sx={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
             <Box aria-label="Diagram content" sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
                 {currentDiagram ? (
-                    editSessionSnapshot ? (
+                    editSessionSnapshot?.creationSourceDiagramId ? (
+                        <DiagramNewPane
+                            emphasis={emphasis}
+                            geometry={geometry}
+                            selection={selection}
+                            session={editSession}
+                            viewService={service}
+                        />
+                    ) : editSessionSnapshot ? (
                         <DiagramComparisonLayout
                             horizontalComparison={(
                                 <DiagramComparison
@@ -204,6 +213,7 @@ export function DiagramView({
             {currentDiagram ? (
                 <DiagramLegend
                     data={currentDiagram}
+                    creationSession={!!editSessionSnapshot?.creationSourceDiagramId}
                     service={service}
                     session={editSessionSnapshot ? editSession : null}
                 />
