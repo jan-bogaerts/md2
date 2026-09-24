@@ -1,0 +1,201 @@
+import type { DataService } from '../../../services/data/data_service'
+import type { CardType } from '../../../data/data_types'
+import { dialogService } from '../../../services/dialog_service'
+import {
+    openFilesService,
+    type CardOpenDocument,
+    type OpenDocumentChangedDetail,
+    type OpenFilesService,
+} from '../../../services/open_files_service'
+import {
+    MarkdownDataSourceBase,
+    type MarkdownBindingKind,
+    type MarkdownDocumentTarget,
+} from './markdown_data_source'
+import { saveAndInsertPastedImage } from '../../../services/data/card_image_operations'
+
+export type CardBinding = Exclude<MarkdownBindingKind, 'list-action'>
+type CardMarkdownOwner = EventTarget & Pick<DataService, 'getState'> & {
+    cards: Pick<DataService['cards'],
+        'deletePastedImage' | 'savePastedImageForCard' | 'toggleCardPolicy' | 'updateCardBody'
+        | 'updateCardHeaderFields' | 'updateCardTitle' | 'updateCardType'>
+}
+type ListCardOwner = EventTarget & Pick<OpenFilesService, 'getSnapshot'>
+
+export interface CardDocumentClosedDetail {
+    binding: 'list-card'
+    document: CardOpenDocument
+}
+
+function cardTarget(target: MarkdownDocumentTarget): asserts target is { document: CardOpenDocument } {
+    if (target.document.kind !== 'card') throw new Error('Card Markdown source requires a card document')
+}
+
+function readCardMarkdown(target: MarkdownDocumentTarget) {
+    cardTarget(target)
+    return target.document.getDraft().content
+}
+
+function editCardMarkdown(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string) {
+    if (binding === 'list-action') throw new Error('Card Markdown source cannot use list-action binding')
+    cardTarget(target)
+    target.document.updateDraft({ content: markdown }, binding)
+}
+
+/** Reads and writes card body Markdown through focused card operations. */
+export class CardMarkdownDataSource extends MarkdownDataSourceBase {
+    private listCardOwner: ListCardOwner | null = null
+    private service: CardMarkdownOwner | null = null
+
+    init(service: CardMarkdownOwner) {
+        if (this.service) return
+
+        this.service = service
+        openFilesService.addEventListener('documentChanged', this.handleDocumentChanged)
+    }
+
+    dispose() {
+        openFilesService.removeEventListener('documentChanged', this.handleDocumentChanged)
+        this.setBoardDocument(null)
+    }
+
+    bindListCards(owner: ListCardOwner) {
+        if (this.listCardOwner === owner) return
+        if (this.listCardOwner) throw new Error('Card Markdown data source already has a list-card owner')
+
+        this.listCardOwner = owner
+        owner.addEventListener('changed', this.handleListCardsChanged)
+        owner.addEventListener('removed', this.handleListCardRemoved)
+        this.syncListCardBinding()
+    }
+
+    getActiveDocument(binding: CardBinding) {
+        const target = this.getActiveTarget(binding)
+        return target?.document.kind === 'card' ? target.document : null
+    }
+
+    getActiveCard(binding: CardBinding) {
+        return this.getActiveDocument(binding)?.getObject() ?? null
+    }
+
+    getProjectKey() {
+        const { project } = this.requireService().getState()
+        if (!project) throw new Error('Cannot resolve a card project before a project is open')
+
+        return `${project.id}:${project.branch}`
+    }
+
+    updateActiveCardTitle(binding: CardBinding, title: string) {
+        const document = this.requireActiveDocument(binding)
+        this.requireService().cards.updateCardTitle(document.path, title)
+            .catch((error: unknown) => {
+                dialogService.error(error, { fallbackMessage: `Title update failed: ${document.path}` })
+            })
+    }
+
+    updateActiveCardType(binding: CardBinding, type: CardType) {
+        const document = this.requireActiveDocument(binding)
+
+        return this.requireService().cards.updateCardType(document.path, type)
+            .catch((error: unknown) => {
+                dialogService.error(error, { fallbackMessage: `Card type update failed: ${document.path}` })
+            })
+    }
+
+    updateActiveCardHeaderField(binding: CardBinding, key: string, value: string) {
+        const document = this.requireActiveDocument(binding)
+        if (key !== 'author') throw new Error(`Unsupported editable card header field: ${key}`)
+
+        this.requireService().cards.updateCardHeaderFields(document.path, { [key]: value })
+    }
+
+    toggleActiveCardPolicy(binding: CardBinding, policyKey: string) {
+        const document = this.requireActiveDocument(binding)
+        this.requireService().cards.toggleCardPolicy(document.path, policyKey)
+    }
+
+    async pasteImage(binding: CardBinding, file: File, insertMarkdown: (markdown: string) => void) {
+        const document = this.requireActiveDocument(binding)
+        const { cards } = this.requireService()
+
+        await saveAndInsertPastedImage(
+            file,
+            insertMarkdown,
+            (clipboardFile) => cards.savePastedImageForCard(document.path, clipboardFile),
+            (path) => cards.deletePastedImage(path),
+        )
+    }
+
+    readonly getMarkdown = readCardMarkdown
+    readonly edit = editCardMarkdown
+
+    commit(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string) {
+        CardMarkdownDataSource.requireCardBinding(binding)
+        cardTarget(target)
+        try {
+            const draft = target.document.getDraft()
+            if (draft.content !== markdown) target.document.updateDraft({ content: markdown }, binding)
+            this.requireService().cards.updateCardBody(
+                target.document.path,
+                markdown,
+                target.document.createSaveReference(),
+            )
+            return true
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: `Body update failed: ${target.document.path}` })
+            return false
+        }
+    }
+
+    setBoardDocument(document: CardOpenDocument | null, discard = false) {
+        this.setActiveTarget('board-card', document ? { document } : null, discard)
+    }
+
+    private readonly handleDocumentChanged = (event: Event) => {
+        const { document, origin, type } = (event as CustomEvent<OpenDocumentChangedDetail>).detail
+        if (document.kind !== 'card') return
+
+        if (type === 'renewed') {
+            this.dispatchEvent(new Event('cardsChanged'))
+            return
+        }
+        if (type !== 'draft') return
+
+        const originBinding = typeof origin === 'string' ? origin as MarkdownBindingKind : null
+        this.dispatchMarkdownReplaced({ originBinding, target: { document } })
+    }
+
+    private readonly handleListCardsChanged = () => this.syncListCardBinding()
+
+    private readonly handleListCardRemoved = (event: Event) => {
+        const { document } = (event as CustomEvent<{ document: ReturnType<ListCardOwner['getSnapshot']>['activeDocument'] }>).detail
+        if (!document || document.kind !== 'card') return
+
+        const detail: CardDocumentClosedDetail = { binding: 'list-card', document }
+        this.dispatchEvent(new CustomEvent<CardDocumentClosedDetail>('cardDocumentClosed', { detail }))
+    }
+
+    private syncListCardBinding() {
+        const activeDocument = this.listCardOwner?.getSnapshot().activeDocument ?? null
+        this.setActiveTarget('list-card', activeDocument?.kind === 'card' ? { document: activeDocument } : null)
+    }
+
+    private requireActiveDocument(binding: CardBinding) {
+        const document = this.getActiveDocument(binding)
+        if (!document) throw new Error(`Cannot update a card without an active ${binding} document`)
+
+        return document
+    }
+
+    private static requireCardBinding(binding: MarkdownBindingKind) {
+        if (binding === 'list-action') throw new Error('Card Markdown source cannot use list-action binding')
+    }
+
+    private requireService() {
+        if (!this.service) throw new Error('Card Markdown data source is not initialized')
+        return this.service
+    }
+}
+
+export const cardMarkdownDataSource = new CardMarkdownDataSource()
+cardMarkdownDataSource.bindListCards(openFilesService)

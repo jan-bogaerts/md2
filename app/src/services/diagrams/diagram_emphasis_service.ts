@@ -1,8 +1,12 @@
 import { register } from '../service_injector'
 import type { DiagramData, DiagramEdge } from './diagram_data'
 import {
-    diagramEditSessionService, type DiagramEditSessionService, type ReadonlyDiagramData,
+    diagramEditSessionService,
+    type DiagramEditSessionService,
 } from './diagram_edit_session_service'
+import type {
+    ReadonlyDiagramData,
+} from './diagram_edit_types'
 import { diagramViewService, type DiagramViewService } from './diagram_view_service'
 
 const TARGET_CHANGED_EVENT = 'targetChanged'

@@ -7,7 +7,7 @@ import {
 } from '../../../services/actions/action_service'
 import { openFilesService } from '../../../services/open_files_service'
 import type { ActionOpenDocument } from '../../../services/open_files_service'
-import type { MarkdownDocumentTarget } from '../../editor/markdown_data_source'
+import type { MarkdownDocumentTarget } from '../../editor/data_sources/markdown_data_source'
 import {
     ACTION_DEFINITION_TAB,
     ACTION_PROMPT_TAB,

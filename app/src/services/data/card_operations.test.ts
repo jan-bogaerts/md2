@@ -385,6 +385,34 @@ describe('CardOperations', () => {
         await vi.waitFor(() => expect(pushFinished).toHaveBeenCalledOnce())
     })
 
+    it('keeps the created card stable when storage returns its SHA', async () => {
+        configService.init()
+        const storage = createStorage({ commit: vi.fn(async (request: CommitRequest) => request.files.map((file) => ({ ...file, sha: 'committed-sha' }))) })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const added = vi.fn()
+        const changed = vi.fn()
+        let createdCardAtAddition: ProjectSnapshot['activeCards'][number] | undefined
+        service.addEventListener(CARD_ADDED_EVENT, (event) => {
+            const { card } = (event as CustomEvent<CardAddedEventDetail>).detail
+            createdCardAtAddition = service.getState().snapshot?.activeCards.find(({ path }) => path === card.path)
+        })
+        service.addEventListener(CARD_ADDED_EVENT, added)
+        service.addEventListener(CARD_CHANGED_EVENT, changed)
+
+        const file = await service.cards.createCard({ body: 'Body', title: 'New Card', type: 'feature' }, 'new')
+
+        expect(added).toHaveBeenCalledOnce()
+        const changedPaths = changed.mock.calls.map(([event]) => (
+            event as CustomEvent<CardChangedEventDetail>
+        ).detail.card.path)
+        expect(changedPaths).not.toContain(file.path)
+        const createdCard = service.getState().snapshot?.activeCards.find((card) => card.path === file.path)
+        expect(createdCard).toBe(createdCardAtAddition)
+        expect(createdCard?.sha).toBe('committed-sha')
+    })
+
     it('emits card lifecycle events for create, update, and delete actions', async () => {
         configService.init()
         const service = createDataService()
@@ -941,7 +969,7 @@ describe('CardOperations', () => {
         ])
         expect(service.getState().snapshot?.backgroundCards.map(({ path }) => path)).toContain('design/vault/archived/B-1-b.md')
         expect(storage.loadProject).toHaveBeenCalledOnce()
-        expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(2)
+        expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(3)
     })
 
     it('rejects an existing archived-card target before committing', async () => {
@@ -959,6 +987,7 @@ describe('CardOperations', () => {
 
         await expect(service.cards.moveCard(activeFile.path, 'archived', 0)).rejects.toThrow('Archive target already exists')
         expect(storage.commit).not.toHaveBeenCalled()
+        expect(service.getState().snapshot?.activeCards.find(({ path }) => path === activeFile.path)?.header.status).toBe('todo')
     })
 
     it('repairs ordering after deleting a middle card', async () => {

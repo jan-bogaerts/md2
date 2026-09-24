@@ -15,6 +15,9 @@ Placeholders let one action definition work for every card. They are written as 
 | `{{repository-folder}}` | Absolute path to the opened repository. |
 | `{{project-folder}}` | Absolute path to the configured `project.projectFolder` under the opened repository. Equal to `{{repository-folder}}` when configuration is empty. |
 | `{{releases-folder}}` | Absolute path to the configured releases folder under the opened repository. |
+| `{{diagram-file}}` | Output path for a diagram action. Available when the action has diagram output. |
+| `{{parent-node}}` | Label of the selected item when running a child diagram action. |
+| `{{diagram-changes}}` | Generated text from reviewed diagram edits when sending changes to an agent. |
 
 They work in both `prompt` (agent actions) and `command` (command actions).
 
@@ -45,6 +48,7 @@ In the prompt editor, type `{{` for a typeahead list, or insert one from the too
 ## Notes
 
 - A card placeholder only resolves when the action runs with card context. Use `appliesTo` with `"kind": "card"` so an action that needs `{{card-file}}` or `{{this-card}}` is only offered where it makes sense.
+- Diagram placeholders need diagram context. `{{diagram-file}}` also needs an output path, `{{parent-node}}` needs a selected item in a child diagram context, and `{{diagram-changes}}` needs reviewed changes from the editor.
 - `{{card-prompt}}` is empty when you run without typing anything. Write prompts that read fine either way.
 - During linked-worktree actions, `{{repository-folder}}`, `{{project-folder}}`, and `{{active-cards-folder}}` remain under the opened repository. Only `{{worktree-folder}}` changes to the linked worktree.
 - The diff command in project configuration supports the same five folder placeholders plus `{{commit}}`, `{{branch}}`, and `{{file}}`. For diffs, `{{worktree-folder}}` and `{{repository-folder}}` both resolve to the opened repository.
@@ -52,4 +56,4 @@ In the prompt editor, type `{{` for a typeahead list, or insert one from the too
 
 {% endraw %}
 
-See also: [Action definition](action-definition.md), [Cookbook](cookbook.md).
+See also: [Action definition](action-definition.md), [Diagrams](../guide/diagrams.md), [Cookbook](cookbook.md).

@@ -12,7 +12,7 @@ import TitleOutlined from '@mui/icons-material/TitleOutlined'
 import { useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { getCardType } from '../../data/action_context'
 import { defaultColumnAccent, type CardTypeConfig } from '../../data/data_types'
-import { cardMarkdownDataSource, type CardBinding, type CardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { cardMarkdownDataSource, type CardBinding, type CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 import { useActiveCard } from '../hooks/use_active_card'
 
 const AUTO_MERGE_POLICY_KEY = 'autoMerge'

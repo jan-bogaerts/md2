@@ -16,6 +16,8 @@ export type CommitRequest = Parameters<StorageService['commit']>[0]
 type PendingCommitFile = MarkdownFile & { saveReference?: OpenDocumentSaveReference }
 
 export interface CardOperationsDeps {
+    addCreatedCardFile(file: MarkdownFile, workingFolder: string): void
+    acknowledgeCreatedCardFiles(files: MarkdownFile[]): void
     addRepositoryFile(path: string): void
     applyMoves(moves: MoveFile[], workingFolder: string): void
     cardPathChanged(fromPath: string, toPath: string): void
@@ -186,9 +188,8 @@ export class CardOperationContext {
 
     /** Commits newly inserted files and applies only persistence metadata returned by storage. */
     async commitCreatedFiles(request: CommitRequest) {
-        const { config } = this.dependencies.requireDependencies()
         const updatedFiles = await this.commitTrackingPaths(request)
-        if (updatedFiles.length > 0) this.dependencies.updateFiles(updatedFiles, [], config.workingFolder)
+        if (updatedFiles.length > 0) this.dependencies.acknowledgeCreatedCardFiles(updatedFiles)
 
         return updatedFiles
     }

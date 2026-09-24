@@ -25,16 +25,20 @@ export class CardArchiveOperations {
         const archivedCard = activeCards.find((card) => card.path === cardPath)
         if (!archivedCard) throw new Error(`Cannot archive an active card that is not loaded: ${cardPath}`)
 
+        const repositoryFiles = [...new Set([...(snapshot?.repositoryFiles ?? []), ...await storage.listRepositoryFiles(project)])]
+        const currentFiles = dependencies.files()
+        const assetFiles = await this.loadArchiveAssets(findArchiveAssetPaths(currentFiles, [archivedCard]))
+        buildCardArchiveMoves([...currentFiles, ...assetFiles], [archivedCard], config.archivedFolder, repositoryFiles)
+
         const updates = computeMove(activeCards, cardPath, 'archived', targetIndex)
         const updatedCards = this.context.applyOrderingUpdates(updates)
         const updatedFiles = updatedCards.map((card) => markdownParsingService.serializeCard(card))
         const files = this.context.mergeUpdatedFiles(updatedFiles)
-        const assetFiles = await this.loadArchiveAssets(findArchiveAssetPaths(files, [archivedCard]))
         const moves = buildCardArchiveMoves(
             [...files, ...assetFiles],
             [archivedCard],
             config.archivedFolder,
-            snapshot?.repositoryFiles ?? [],
+            repositoryFiles,
         )
         const orderingFiles = updatedFiles.filter((file) => file.path !== cardPath)
 

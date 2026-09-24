@@ -18,7 +18,6 @@ import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined'
 import PlaylistAddOutlined from '@mui/icons-material/PlaylistAddOutlined'
 import {
     projectSessionService,
-    type ProjectFolderValues,
     type ProjectOpenResolution,
 } from '../../../services/project/project_session_service'
 import { workspaceViewService, type WorkspaceViewMode } from '../../../services/project/workspace_view_service'
@@ -56,10 +55,10 @@ import { MenuIconButton } from './menu_icon_button'
 import { NewDiagramMenu } from './new_diagram_menu'
 import { Section } from './section'
 import { Tab } from './tab'
-import { DiagramMenuTab } from '../../diagram_view/diagram_menu_tab'
+import { DiagramMenuTab } from '../../diagram_view/commands/diagram_menu_tab'
 import { StatsMenuTab } from '../../stats_view/stats_menu_tab'
 import { ActiveSchedulesDialog } from '../../actions/run/schedule/active_schedules_dialog'
-import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../../diagram_view/use_diagram_delete_key'
+import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../../diagram_view/editing/use_diagram_delete_key'
 import { hasActiveScheduleBackend, hasSequenceScheduleBackend } from '../../../data/electron_action_bridge'
 import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
 import type { SearchRegexpAgent } from '../../../services/search/search_types'
@@ -151,7 +150,6 @@ export function AppMenu(props: AppMenuProps) {
     const actions = useProjectToolbarMenuActions({
         accessToken,
         initialProjectOpenResolution,
-        isGithubAuthenticated,
         onCloseDialog: closeDialog,
         onOpenDialog: openDialog,
     })
@@ -165,10 +163,6 @@ export function AppMenu(props: AppMenuProps) {
 
     const handleOpenProject = () => {
         actions.openProjectDialog()
-    }
-
-    const handleConfirmProjectFolderSetup = (values: ProjectFolderValues) => {
-        void actions.confirmProjectFolderSetup(values)
     }
 
     const handleLoadBranches = () => {
@@ -274,12 +268,6 @@ export function AppMenu(props: AppMenuProps) {
         } finally {
             setIsCreatingDiagram(false)
         }
-    }
-
-    const handleDiscardGithubPendingCommits = () => {
-        if (!actions.pendingGithubConflictProject) return
-
-        projectSessionService.discardGithubPendingCommits(actions.pendingGithubConflictProject, accessToken)
     }
 
     const viewSection = (
@@ -472,31 +460,13 @@ export function AppMenu(props: AppMenuProps) {
             ) : null}
             {dialogMode === 'open' ? (
                 <ProjectOpenDialog
-                    branches={actions.branches}
+                    accessToken={accessToken}
+                    initialRemoteProject={actions.initialRemoteProject}
                     initialSource={actions.initialProjectSource}
-                    isDesktopMode={actions.isDesktopMode}
+                    initialProjectOpenResolution={actions.projectOpenResolution}
                     isGithubAuthenticated={isGithubAuthenticated}
-                    isLoading={actions.isLoading}
-                    onBrowseProjectSubFolder={actions.isDesktopMode ? actions.browseProjectSubFolder : null}
-                    onChooseLocalFolder={actions.chooseLocalProjectFolder}
-                    onConfirmProjectFolderSetup={handleConfirmProjectFolderSetup}
-                    projectOpenResolution={actions.projectOpenResolution}
-                    onBranchChange={() => undefined}
                     onClose={actions.closeDialog}
-                    onCreateRemoteProject={actions.createRemoteProject}
-                    onDiscardGithubPendingCommits={handleDiscardGithubPendingCommits}
-                    onLoadManualBranches={actions.loadManualBranches}
-                    onLoadRemoteBranches={actions.loadRemoteBranches}
-                    onOpenGithub={actions.openGithubProject}
-                    onOpenLocal={actions.openLocalProject}
-                    onOpenRemote={actions.openRemoteProject}
-                    onRemoveRecentLocal={actions.removeRecentLocalProject}
-                    onRepositoryChange={actions.loadRepositoryBranches}
-                    onSourceChange={actions.clearOpenDialogState}
                     open
-                    pendingGithubConflictProject={actions.pendingGithubConflictProject}
-                    recentLocalRepositories={actions.recentLocalRepositories}
-                    repositories={actions.repositories}
                 />
             ) : null}
             {dialogMode === 'schedules' ? (

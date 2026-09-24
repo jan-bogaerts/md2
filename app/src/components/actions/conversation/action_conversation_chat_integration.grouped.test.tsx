@@ -8,10 +8,10 @@ import { cardPopupService } from '../../../services/card_popup_service'
 import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { ActionConversationChat } from './action_conversation_chat'
-import type { ActionConversationStore } from './action_conversation_store'
+import type { ActionConversationStore } from './state/action_conversation_store'
 import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import type { ActionUsageValuesService } from '../run/popup/action_usage_values_service'
-import { ActionConversationSearchService } from './action_conversation_search_service'
+import { ActionConversationSearchService } from './search/action_conversation_search_service'
 
 const context = { cardInternalId: 'card-1', file: 'design/F-138.md', kind: 'card' as const }
 const snapshot = { conversations: [], loading: false, selectedConversation: null }

@@ -8,7 +8,7 @@ import { cardCollectionFieldChangedEvent, dataService } from '../../services/dat
 import { cardPopupService } from '../../services/card_popup_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import { actionService } from '../../services/actions/action_service'
-import { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 
 vi.mock('../hooks/use_card_commits', () => ({
     useCardCommits: () => ({

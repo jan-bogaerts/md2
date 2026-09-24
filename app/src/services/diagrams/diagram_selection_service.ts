@@ -1,10 +1,12 @@
 import { register } from '../service_injector'
 import {
     diagramEditSessionService,
-    type DiagramCollectionKind,
     type DiagramEditSessionService,
-    type DiagramMembershipChangeDetail,
 } from './diagram_edit_session_service'
+import type {
+    DiagramCollectionKind,
+    DiagramMembershipChangeDetail,
+} from './diagram_edit_types'
 import { diagramGeometryService, type DiagramGeometryService } from './diagram_geometry_service'
 import {
     diagramRectangleBetween,

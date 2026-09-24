@@ -9,8 +9,10 @@ import {
 import {
     diagramEditSessionService,
     type DiagramEditSessionService,
-    type NewDiagramNode,
 } from './diagram_edit_session_service'
+import type {
+    NewDiagramNode,
+} from './diagram_edit_types'
 import { DIAGRAM_GRID_SIZE, type PositionedDiagramNode } from './diagram_layout'
 import {
     diagramSelectionService,

@@ -6,10 +6,10 @@ import { markdownParsingService } from '../../services/data/markdown_parsing_ser
 import { dialogService } from '../../services/dialog_service'
 import { worktreeService } from '../../services/project/worktree_service'
 import type { DiffCommitReference } from '../../services/data/diff_service'
-import { DiffView } from '../actions/conversation/diff_view'
+import { DiffView } from '../actions/conversation/events/diff_view'
 import { MarkdownEditor } from '../editor/markdown_editor'
-import type { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
-import type { MarkdownBindingKind } from '../editor/markdown_data_source'
+import type { CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
+import type { MarkdownBindingKind } from '../editor/data_sources/markdown_data_source'
 import { useActiveCard } from '../hooks/use_active_card'
 
 export type CardDiffSelection =

@@ -83,7 +83,7 @@ function CardViewContent(props: CardViewContentProps) {
     const { onArchiveCard, onDeleteCard, onTogglePolicy, onTitleChange } = props
     const theme = useTheme()
     const readOnly = useProjectReadOnly()
-    const [cardElement, setCardElement] = useState<HTMLDivElement | null>(null)
+    const cardElementRef = useRef<HTMLDivElement | null>(null)
     const [actionsAnchorElement, setActionsAnchorElement] = useState<HTMLElement | null>(null)
     const [actionsMenuPosition, setActionsMenuPosition] = useState<MenuPosition | null>(null)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -91,6 +91,9 @@ function CardViewContent(props: CardViewContentProps) {
     const [deleteCardPath, setDeleteCardPath] = useState<string | null>(null)
     const [titleDraft, setTitleDraft] = useState(card.header.title)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const handleCardElementChange = useCallback((element: HTMLDivElement | null) => {
+        cardElementRef.current = element
+    }, [])
     const isBodyOpen = useSyncExternalStore(
         subscribeCardPopups,
         () => cardPopupService.getSnapshot().some((entry) => (
@@ -158,16 +161,19 @@ function CardViewContent(props: CardViewContentProps) {
         setActionsAnchorElement(null)
         setActionsMenuPosition(null)
     }
-    const openActionFromMenu = (actionId: string, anchorElement: HTMLElement) => {
+    const openActionFromMenu = (actionId: string) => {
+        const anchorElement = cardElementRef.current
+        if (!anchorElement) throw new Error(`Missing card element: ${card.path}`)
+
         cardPopupService.openAction(context, actionId, anchorElement)
     }
 
     const openBodyFromMenu = () => {
         try {
-            if (!cardElement) throw new Error(`Missing card element: ${card.path}`)
+            if (!cardElementRef.current) throw new Error(`Missing card element: ${card.path}`)
             if (!card.header.internalId) throw new Error(`Missing card internal ID: ${card.path}`)
             closeCardActions()
-            cardPopupService.toggleCardDetails(card.header.internalId, cardElement)
+            cardPopupService.toggleCardDetails(card.header.internalId, cardElementRef.current)
             telemetryService.trackEvent('navigation')
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Card details could not be opened' })
@@ -259,7 +265,7 @@ function CardViewContent(props: CardViewContentProps) {
             isBodyOpen={isBodyOpen}
             isMobile={props.isMobile}
             isSelected={isSelected}
-            onCardElementChange={setCardElement}
+            onCardElementChange={handleCardElementChange}
         >
             <Box sx={{ bgcolor: accentColor, bottom: 0, left: 0, position: 'absolute', top: 0, width: 4 }} />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, p: '10px 12px 10px 14px', pointerEvents: 'none' }}>
@@ -377,7 +383,6 @@ function CardViewContent(props: CardViewContentProps) {
                         context={context}
                         onActionSelected={openActionFromMenu}
                         onMenuItemSelected={closeCardActions}
-                        popupAnchorElement={cardElement}
                         variant="menuItems"
                     />
                     {policyKeys.map((policyKey) => (

@@ -3,9 +3,9 @@ import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { DEFAULT_CARD_TYPES } from '../../data/data_types'
-import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
-import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
-import type { MarkdownDocumentTarget } from '../editor/markdown_data_source'
+import { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
+import { MarkdownDocumentHistoryStore } from '../editor/history/markdown_document_history_store'
+import type { MarkdownDocumentTarget } from '../editor/data_sources/markdown_data_source'
 import { CardBodyEditor } from './card_body_editor'
 
 type CapturedPopperProps = ComponentProps<(typeof import('@mui/material'))['Popper']>

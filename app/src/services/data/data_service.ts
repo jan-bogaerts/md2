@@ -356,6 +356,11 @@ export class DataService extends EventTarget {
     }
     private createCardOperationsDependencies(): CardOperationsDeps {
         return {
+            addCreatedCardFile: (file, workingFolder) => {
+                const card = this.projectState.addCreatedCardFile(file, workingFolder)
+                this.dispatchCardAdded(card)
+            },
+            acknowledgeCreatedCardFiles: (files) => this.projectState.acknowledgeCreatedCardFiles(files),
             addRepositoryFile: (path) => this.projectState.addRepositoryFile(path),
             applyMoves: (moves, workingFolder) => this.projectState.applyMoves(moves, workingFolder),
             cardPathChanged: (fromPath, toPath) => this.dispatchCardPathChanged(fromPath, toPath),
@@ -563,7 +568,7 @@ export class DataService extends EventTarget {
         for (const card of nextCards) {
             const previousCard = previousByPath.get(card.path)
             if (!previousCard) {
-                this.dispatchEvent(new CustomEvent<CardAddedEventDetail>(CARD_ADDED_EVENT, { detail: { card: eventCard(card) } }))
+                this.dispatchCardAdded(card)
             } else if (previousCard !== card) {
                 const detail = { card: eventCard(card), previousCard: eventCard(previousCard) }
                 this.dispatchEvent(new CustomEvent<CardChangedEventDetail>(CARD_CHANGED_EVENT, { detail }))
@@ -574,6 +579,10 @@ export class DataService extends EventTarget {
                 }
             }
         }
+    }
+
+    private dispatchCardAdded(card: ProjectSnapshot['activeCards'][number]) {
+        this.dispatchEvent(new CustomEvent<CardAddedEventDetail>(CARD_ADDED_EVENT, { detail: { card: eventCard(card) } }))
     }
     private dispatchPersistenceChanged() {
         const nextSnapshot = this.getPersistenceSnapshot()

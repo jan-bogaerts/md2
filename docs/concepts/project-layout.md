@@ -9,6 +9,7 @@ An md² project is a folder inside your Git repository. Everything md² knows li
   design/                 <- project folder
     feature_descriptions/ <- working folder: the active cards
     actions/              <- action definitions (*.json)
+    diagrams/             <- saved diagram JSON and index
     releases/             <- one subfolder per completed release
     archived/             <- individually archived cards
     activity/             <- conversation and run logs
@@ -16,13 +17,14 @@ An md² project is a folder inside your Git repository. Everything md² knows li
   md2.config.json         <- project configuration
 ```
 
-Every folder name is configurable. The names above are the defaults from [`md2.config.json`](../guide/configuration.md); the built-in fallbacks are `design`, `active`, `actions`, `history`, `archived`.
+Every folder name is configurable. The names above are the defaults from [`md2.config.json`](../guide/configuration.md); the built-in fallbacks are `design`, `active`, `actions`, `diagrams`, `history`, `archived`.
 
 | Setting | Folder | What it holds |
 | --- | --- | --- |
 | `projectFolder` | `design` | Root of everything md² manages. Leave empty to use the repository root. |
 | `workingFolder` | `active` | Cards currently on the board. Only files in the root of this folder are active cards. |
 | `actionsFolder` | `actions` | One JSON file per action definition. |
+| `diagramsFolder` | `diagrams` | JSON diagrams and their index. |
 | `releasesFolder` | `history` | One subfolder per completed release. |
 | `archivedFolder` | `archived` | Cards archived one at a time. |
 
@@ -47,4 +49,4 @@ Cards you want out of the way but not part of a release go to the archived folde
 
 Project settings are stored as `md2.config.json` in the repository root, so every clone and every worktree of the project shares them. Desktop-only settings (default agent, model, reasoning level, agent profiles) live in the desktop app, not in the repo.
 
-See also: [Configuration](../guide/configuration.md), [Cards and files](cards-and-files.md).
+See also: [Configuration](../guide/configuration.md), [Diagrams](../guide/diagrams.md), [Cards and files](cards-and-files.md).

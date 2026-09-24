@@ -10,7 +10,8 @@ Actions show up next to the thing they act on, filtered by their `appliesTo`:
 - the card popup toolbar;
 - the file tree context menu, for files and folders;
 - the editor toolbar in list view;
-- the **Run** tab of the application menu, for project-level actions.
+- the **Run** tab of the application menu, for project-level actions;
+- the Diagrams view, for root diagrams and actions on selected diagram items.
 
 Activating any of them opens the action popup for that action and context.
 
@@ -71,4 +72,4 @@ Limitation: state changes are detected in the app. A card edited to a new status
 
 Running requires a desktop execution backend. In web-only GitHub mode the run controls are disabled with an explanation; editing definitions still works. A browser connected through remote control does have a backend — the desktop machine's.
 
-See also: [Action definition](action-definition.md), [Agent setup](agent-setup.md), [Worktrees](../guide/worktrees.md).
+See also: [Action definition](action-definition.md), [Diagrams](../guide/diagrams.md), [Agent setup](agent-setup.md), [Worktrees](../guide/worktrees.md).

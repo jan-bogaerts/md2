@@ -138,6 +138,35 @@ export class ProjectState {
         this.replaceFiles(mergeFiles(this.currentFiles, files), workingFolder)
     }
 
+    /** Inserts a newly created root card without diffing the existing project collection. */
+    addCreatedCardFile(file: MarkdownFile, workingFolder: string): Card {
+        const snapshot = this.currentSnapshot
+        if (!snapshot) throw new Error('Cannot create a card before project cards are loaded')
+        if (this.currentFiles.some(({ path }) => path === file.path)) throw new Error(`Card path already exists: ${file.path}`)
+
+        const card = this.attachAgentConversations(markdownParsingService.parseCard(file, workingFolder))
+        if (!card.isActive) throw new Error(`Created card is outside the active working folder: ${file.path}`)
+
+        this.currentFiles = [...this.currentFiles, file]
+        this.currentCardsByPath.set(file.path, card)
+        this.recordCurrentContent([file])
+        this.currentSnapshot = { ...snapshot, activeCards: [...snapshot.activeCards, card] }
+
+        return card
+    }
+
+    /** Applies the SHA returned for a created card without replacing its model or snapshot. */
+    acknowledgeCreatedCardFiles(files: MarkdownFile[]) {
+        for (const file of files) {
+            const card = this.requireCard(file.path)
+            const currentFile = this.requireFile(file.path)
+            if (currentFile.content !== file.content) throw new Error(`Committed card content changed unexpectedly: ${file.path}`)
+
+            currentFile.sha = file.sha
+            card.sha = file.sha
+        }
+    }
+
     /** Parses and applies only changed files while preserving every unaffected card. */
     updateFiles(updatedFiles: MarkdownFile[], removedPaths: string[], workingFolder: string) {
         const removedPathSet = new Set(removedPaths)

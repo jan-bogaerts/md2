@@ -14,7 +14,7 @@ import type {
 } from '../../services/diagrams/diagram_view_service'
 import { layout } from '../../services/diagrams/diagram_layout'
 import { DEFAULT_DIAGRAM_ZOOM } from '../../services/diagrams/diagram_zoom'
-import { DiagramComparisonLayoutService } from './diagram_comparison_layout_service'
+import { DiagramComparisonLayoutService } from './comparison/diagram_comparison_layout_service'
 import { DiagramView } from './diagram_view'
 import { DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'

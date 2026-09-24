@@ -9,7 +9,7 @@ import { THEME_MODE_STORAGE_KEY } from '../../theme/use_theme_settings'
 import { MARKDOWN_STYLE_PRESETS } from '../../theme/theme_config'
 import { useAppTheme } from '../../theme/use_app_theme'
 import { MarkdownEditor, type MarkdownEditorHandle } from './markdown_editor'
-import { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
+import { MarkdownDocumentHistoryStore } from './history/markdown_document_history_store'
 import { stageMarkdownEditors } from '../../services/project/markdown_editor_staging'
 import { buildMarkdownContentSx } from './markdown_style_sx'
 import {
@@ -17,7 +17,7 @@ import {
     type MarkdownBindingKind,
     type MarkdownDataSource,
     type MarkdownDocumentTarget,
-} from './markdown_data_source'
+} from './data_sources/markdown_data_source'
 import type { CardOpenDocument } from '../../services/open_files_service'
 import { MarkdownDraft } from '../../services/markdown/markdown_draft'
 

@@ -22,7 +22,7 @@ import {
 import {
     isBrowsingHistoricalConversation,
     type ActionConversationStore,
-} from '../../conversation/action_conversation_store'
+} from '../../conversation/state/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'

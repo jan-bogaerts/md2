@@ -9,7 +9,7 @@ import { agentCapabilitiesService } from '../../../../services/agents/agent_capa
 import { dataService } from '../../../../services/data/data_service'
 import { dialogService } from '../../../../services/dialog_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
-import { ActionConversationStore } from '../../conversation/action_conversation_store'
+import { ActionConversationStore } from '../../conversation/state/action_conversation_store'
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
 import { ActionRunInputStore } from '../state/action_run_input_store'

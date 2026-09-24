@@ -23,7 +23,7 @@ import { openFilesService } from '../../../../services/open_files_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { createAppTheme } from '../../../../theme/app_theme'
 import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup'
-import { useMarkdownTypeaheadStackPosition } from '../../../editor/markdown_typeahead_layer_context'
+import { useMarkdownTypeaheadStackPosition } from '../../../editor/typeahead/markdown_typeahead_layer_context'
 import { configService } from '../../../../services/config/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
 
@@ -71,8 +71,8 @@ vi.mock('../../agent/action_agent_selectors', async (importOriginal) => {
     }
 })
 
-vi.mock('../../conversation/action_conversation_picker', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../conversation/action_conversation_picker')>()
+vi.mock('../../conversation/picker/action_conversation_picker', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../conversation/picker/action_conversation_picker')>()
 
     return {
         ...actual,
@@ -86,8 +86,8 @@ vi.mock('../../conversation/action_conversation_picker', async (importOriginal) 
     }
 })
 
-vi.mock('../../conversation/action_log_error_display', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../conversation/action_log_error_display')>()
+vi.mock('../../conversation/errors/action_log_error_display', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../conversation/errors/action_log_error_display')>()
 
     return {
         ...actual,

@@ -45,7 +45,7 @@ import { ProjectWorkspaceAvailability } from './project_workspace_availability'
 import { MobileLayout } from './shell/mobile_layout'
 import { MobileMainWindow } from './shell/mobile_main_window'
 import { SplitLayout } from './shell/split_layout'
-import { AttachmentChoiceDialog } from './editor/attachment_choice_dialog'
+import { AttachmentChoiceDialog } from './editor/attachments/attachment_choice_dialog'
 import { StatsView } from './stats_view/stats_view'
 import { DiagramView } from './diagram_view/diagram_view'
 

@@ -3,7 +3,7 @@ import {
     DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT,
     DIAGRAM_FRAGMENT_CLIPBOARD_VERSION,
 } from './diagram_fragment_clipboard'
-import type { DiagramPasteResult } from './diagram_edit_session_service'
+import type { DiagramPasteResult } from './diagram_edit_types'
 import { DiagramPasteService } from './diagram_paste'
 
 const sessionSnapshot = { sourceDiagramId: 'diagram' }

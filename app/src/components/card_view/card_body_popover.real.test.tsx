@@ -7,8 +7,8 @@ import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import { openFilesService } from '../../services/open_files_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
-import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
+import { CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
+import { MarkdownDocumentHistoryStore } from '../editor/history/markdown_document_history_store'
 import { CardBodyPopover } from './card_body_popover'
 
 vi.mock('../hooks/use_card_commits', () => ({useCardCommits: () => ({ commits: [], error: null })}))

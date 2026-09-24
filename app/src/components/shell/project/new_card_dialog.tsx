@@ -26,7 +26,7 @@ import { isElectron } from '../../../services/electron_lifecycle_bridge'
 import { mobileBackDismissService } from '../../../services/mobile_back_dismiss_service'
 import { dialogService } from '../../../services/dialog_service'
 import { NewCardColumnPicker } from './new_card_column_picker'
-import { MarkdownAttachmentControl } from '../../editor/markdown_attachment_control'
+import { MarkdownAttachmentControl } from '../../editor/attachments/markdown_attachment_control'
 import { attachFilesToNewCardMarkdown } from '../../../services/attachments/new_card_attachment_workflow'
 
 const BACK_DISMISS_ID = 'new-card-dialog'
@@ -187,6 +187,7 @@ export function NewCardDialog(props: NewCardDialogProps) {
         dismissalPhaseRef.current = 'idle'
         setDiscardConfirmationOpen(false)
         resetForm()
+        onClose()
     }
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {

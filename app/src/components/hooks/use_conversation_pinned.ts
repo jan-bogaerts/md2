@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react'
-import type { ConversationPickerConversation } from '../actions/conversation/action_conversation_picker_data'
+import type { ConversationPickerConversation } from '../actions/conversation/picker/action_conversation_picker_data'
 import { dataService } from '../../services/data/data_service'
 
 /** Subscribes one leaf control to one conversation's confirmed pin state. */

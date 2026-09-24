@@ -5,7 +5,7 @@ import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
 import { ActionAgentApprovals } from '../../agent/action_agent_approvals'
 import { ActionPromptOwner } from '../../agent/action_prompt_owner'
 import { ActionConversationChat } from '../../conversation/action_conversation_chat'
-import { ActionLogErrorOwner } from '../../conversation/action_log_error_owner'
+import { ActionLogErrorOwner } from '../../conversation/errors/action_log_error_owner'
 import type { ActionPopupRuntime } from './action_popup_types'
 
 interface ActionAgentInteractionProps {

@@ -199,12 +199,12 @@ describe('DiagramSelectionService', () => {
             selectionDuringGroupPublication.push([...selection.getSelectionSnapshot()])
         })
 
-        expect(session.removeNode('orders')).toBe(true)
+        expect(session.removeObjects([{ objectId: 'orders', objectKind: 'node' }])).toBe(true)
         expect(selectionDuringNodePublication).toEqual([[group]])
         expect(selectionDuringEdgePublication).toEqual([[group]])
         expect(selection.getSelectionSnapshot()).toEqual([group])
 
-        expect(session.removeGroup('backend')).toBe(true)
+        expect(session.removeObjects([{ objectId: 'backend', objectKind: 'group' }])).toBe(true)
         expect(selectionDuringGroupPublication).toEqual([[]])
         expect(selection.getSelectionSnapshot()).toEqual([])
     })

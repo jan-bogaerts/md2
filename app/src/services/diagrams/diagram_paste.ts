@@ -4,8 +4,10 @@ import { parseDiagramFragmentClipboardPayload } from './diagram_fragment_clipboa
 import {
     diagramEditSessionService,
     type DiagramEditSessionService,
-    type DiagramEditSessionSnapshot,
 } from './diagram_edit_session_service'
+import type {
+    DiagramEditSessionSnapshot,
+} from './diagram_edit_types'
 import { DIAGRAM_GRID_SIZE } from './diagram_layout'
 import {
     diagramSelectionService,

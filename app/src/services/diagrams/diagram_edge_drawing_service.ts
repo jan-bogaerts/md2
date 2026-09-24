@@ -9,8 +9,10 @@ import {
 import {
     diagramEditSessionService,
     type DiagramEditSessionService,
-    type NewDiagramEdge,
 } from './diagram_edit_session_service'
+import type {
+    NewDiagramEdge,
+} from './diagram_edit_types'
 import { diagramGeometryService, type DiagramGeometryService } from './diagram_geometry_service'
 import {
     mindmapConnectionGeometry,

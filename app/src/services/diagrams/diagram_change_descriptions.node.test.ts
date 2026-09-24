@@ -5,7 +5,7 @@ import {
     generateDiagramChangeDescriptions,
     type DiagramChangeDescriptionReader,
 } from './diagram_change_descriptions';
-import type { DiagramChange } from './diagram_edit_session_service';
+import type { DiagramChange } from './diagram_edit_types';
 
 interface ReaderData {
     changes?: readonly DiagramChange[];

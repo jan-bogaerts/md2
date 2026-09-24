@@ -12,11 +12,11 @@ import { configService } from '../../services/config/config_service'
 import { dataService } from '../../services/data/data_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
-import { actionMarkdownDataSource } from '../editor/action_markdown_data_source'
-import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { actionMarkdownDataSource } from '../editor/data_sources/action_markdown_data_source'
+import { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 import { FileTreeView } from './file_tree_view'
 import { agentInstructionsService } from '../../services/agent_instructions/agent_instructions_service'
-import { instructionMarkdownDataSource } from '../editor/instruction_markdown_data_source'
+import { instructionMarkdownDataSource } from '../editor/data_sources/instruction_markdown_data_source'
 
 function card(path: string, overrides: Partial<Card['header']> = {}, content = ''): Card {
     return {

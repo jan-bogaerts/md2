@@ -24,10 +24,12 @@ Where values live:
 | `project.projectFolder` | `design` | Root folder md² manages. Empty means the repository root. |
 | `project.workingFolder` | `active` | Folder holding the active cards. |
 | `project.actionsFolder` | `actions` | Action definition files. |
+| `project.diagramsFolder` | `diagrams` | JSON diagram files inside the project folder. |
 | `project.releasesFolder` | `history` | One subfolder per completed release. |
 | `project.archivedFolder` | `archived` | Individually archived cards. |
 | `project.backgroundShade` | `neutral` | Background tint, to tell instances of different projects apart. |
 | `project.diffCommand` | {% raw %}`git show {{commit}}`{% endraw %} | Command used to render a commit diff. Placeholders: {% raw %}`{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`, `{{commit}}`, `{{branch}}`, `{{file}}`{% endraw %}. |
+| `project.diagramFooter` | Built-in diagram JSON instructions | Markdown appended to diagram agent prompts. Must include {% raw %}`{{diagram-file}}`{% endraw %}. |
 | `project.pushMode` | `auto` | `auto` pushes commits immediately; `manual` waits for the **Push** button. |
 | `project.cardBodyTemplate` | Goal / Current status / Details / Tasks | Markdown inserted into new cards. |
 | `project.cardSeparator` | `_` | Separator in generated card file names (`_` or `-`). Existing files keep theirs. |
@@ -56,4 +58,4 @@ Choose a predefined Markdown style, or adjust font, size, weight, and color per 
 
 Light and dark mode toggle from the title bar. The desktop app reads the theme before creating its window, so the window buttons match from the first frame.
 
-See also: [Project layout](../concepts/project-layout.md), [Stats](stats.md), [How usage and cost are calculated](../concepts/usage-and-cost.md).
+See also: [Project layout](../concepts/project-layout.md), [Diagrams](diagrams.md), [Stats](stats.md), [How usage and cost are calculated](../concepts/usage-and-cost.md).

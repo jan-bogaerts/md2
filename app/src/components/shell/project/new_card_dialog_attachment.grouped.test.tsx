@@ -6,7 +6,7 @@ import { DEFAULT_CARD_TYPES, DEFAULT_STATES } from '../../../data/data_types'
 import { attachmentChoiceService } from '../../../services/attachments/attachment_choice_service'
 import { projectSessionService } from '../../../services/project/project_session_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
-import { AttachmentChoiceDialog } from '../../editor/attachment_choice_dialog'
+import { AttachmentChoiceDialog } from '../../editor/attachments/attachment_choice_dialog'
 import { NewCardDialog } from './new_card_dialog'
 
 function NewCardAttachmentTestSurface() {

@@ -30,6 +30,7 @@ One JSON file per action, stored in the project's actions folder. Edit them thro
 | `command` | command only | Command line. Not allowed on agent actions. |
 | `icon` | no | Icon shown by entry points. |
 | `appliesTo` | no | Filters deciding where the action appears. See below. |
+| `output` | no | `{ "kind": "diagram" }` makes the action create a diagram. Requires `appliesTo.kind` to be `diagram`. |
 | `onBefore` | no | Ordered list of action ids to run first. |
 | `on` | no | Ordered list of `{ "condition": "<regex>", "actionId": "<id>" }` rules matched against this action's output. |
 | `onAfter` | no | Ordered list of action ids to run afterwards. |
@@ -37,7 +38,7 @@ One JSON file per action, stored in the project's actions folder. Edit them thro
 | `needsWorkTree` | no | When true, the action requires a card with a valid worktree assignment and runs there. |
 | `trackFileChanges` | no | Agent actions only. Records the files the run touched. |
 | `streaming` | no | Agent actions only. `true` keeps one live provider session across turns. |
-| `autoFinish` | no | Agent actions only, requires `streaming`. `{ "state": "<card state>" }` finishes the live session automatically when the card reaches that state. |
+| `autoFinish` | no | Agent actions only, requires `streaming`. `{ "state": "<card state>" }` finishes when a card reaches that state. Diagram-output actions can use `{ "when": "diagram-created" }` to finish when the diagram is created. |
 | `agent` | no | Agent profile override. Required when `model` is set. |
 | `model` | no | Model override. Requires `agent`. |
 | `thinkingLevel` | no | `none`, `low`, `medium`, `high`, or `max`. Requires `agent` and `model`. |
@@ -51,7 +52,7 @@ An object of context filters. Every configured filter must match for the action 
 
 | Filter | Matches |
 | --- | --- |
-| `kind` | Context type, for example `card`, `file`, `folder`. |
+| `kind` | Context type, for example `card`, `diagram`, `file`, `folder`. |
 | `type` | Card type, for example `feature`, `bug`. |
 | `state` | Card status. |
 | `file` | File the context points at. |
@@ -65,6 +66,26 @@ No `appliesTo` means the action is available in every supported context.
 "appliesTo": { "kind": "card", "state": "ready for implementation" }
 ```
 
+## Diagram actions
+
+Use `appliesTo.kind: "diagram"` and `output.kind: "diagram"` for an action that creates a diagram. Set `appliesTo.type` to `root` for a project-level diagram or `child` for a diagram opened from a selected item. In the action editor, choose **Diagram** as the output kind. The generated diagram is JSON at the path supplied by {% raw %}`{{diagram-file}}`{% endraw %}; agent prompts also receive the configured diagram footer. Streaming agent actions can finish automatically with `autoFinish: { "when": "diagram-created" }`.
+
+{% raw %}
+```json
+{
+  "id": "project-architecture",
+  "label": "Project architecture",
+  "description": "Generate an architecture diagram for this project",
+  "type": "agent",
+  "prompt": "Describe the main components and their connections.",
+  "appliesTo": { "kind": "diagram", "type": "root" },
+  "output": { "kind": "diagram" }
+}
+```
+{% endraw %}
+
+See [Diagrams](../guide/diagrams.md) for the editing workflow and [Placeholders](placeholders.md) for diagram-specific placeholders.
+
 ## Validation
 
 Definitions are validated when they load and again before they are saved. md² refuses to run or store an action that fails, and shows the error on the offending field. Rejected cases include:
@@ -74,6 +95,7 @@ Definitions are validated when they load and again before they are saved. md² r
 - `prompt` on a command action, `command` on an agent action;
 - `streaming`, `autoFinish`, or `trackFileChanges` on a command action;
 - `autoFinish` without `streaming`, or an `autoFinish.state` that is not a configured column;
+- diagram output without diagram applicability, or a `diagram-created` auto-finish trigger without diagram output;
 - `model` without `agent`, `thinkingLevel` without both;
 - an unknown agent profile or a model the profile does not list;
 - an invalid regular expression in an `on` condition;

@@ -486,6 +486,19 @@ describe('ProjectSessionService storage activation', () => {
         expect(cardCreationChanged).toHaveBeenCalledTimes(2)
     })
 
+    it('does not notify project session subscribers when clearing an already clear error', () => {
+        const service = new ProjectSessionService()
+        const changed = vi.fn()
+        service.addEventListener('changed', changed)
+
+        service.setError(null)
+
+        expect(changed).not.toHaveBeenCalled()
+        service.setError('Failed')
+        service.setError(null)
+        expect(changed).toHaveBeenCalledTimes(2)
+    })
+
     it('reports pull progress while the primary worktree pull runs', async () => {
         const pendingPull = createDeferred<void>()
         vi.spyOn(dataService.projectLoading, 'pull').mockReturnValue(pendingPull.promise)

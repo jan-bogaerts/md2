@@ -5,16 +5,16 @@ import { agentAcknowledgementService } from '../../../services/agents/agent_ackn
 import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import {
     ActionConversationTranscript,
-} from './action_conversation_transcript'
+} from './transcript/action_conversation_transcript'
 import {
     createAcknowledgementConversationSelector,
-} from './action_conversation_chat_selectors'
-import { resolveDisplayedConversation, type ActionConversationStore } from './action_conversation_store'
-import { ConversationMetaInfo } from './conversation_meta_info'
-import { ActionConversationCommandService } from './action_conversation_command_service'
+} from './state/action_conversation_chat_selectors'
+import { resolveDisplayedConversation, type ActionConversationStore } from './state/action_conversation_store'
+import { ConversationMetaInfo } from './status/conversation_meta_info'
+import { ActionConversationCommandService } from './state/action_conversation_command_service'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import type { ActionUsageValuesService } from '../run/popup/action_usage_values_service'
-import type { ActionConversationSearchService } from './action_conversation_search_service'
+import type { ActionConversationSearchService } from './search/action_conversation_search_service'
 
 interface ActionConversationChatProps {
     actionId: string

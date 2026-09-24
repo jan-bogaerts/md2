@@ -31,6 +31,7 @@ Know what AI-assisted work costs by agent, action, feature, and release. Stats c
 | --- | --- |
 | [Board view](guide/board-view.md) | Columns, cards, drag and drop, policies, card popup |
 | [List view](guide/text-view.md) | Tree, tabs, editors, conversation panel |
+| [Diagrams](guide/diagrams.md) | Create, explore, edit, review, and save diagrams |
 | [Stats](guide/stats.md) | Compare activity, agents, models, tokens, account usage, and estimated cost |
 | [Search](guide/search.md) | Text and RegExp search, scopes, results |
 | [Git and commits](guide/git-and-commits.md) | Auto-save, commit, push, pull, per-card commit diffs |

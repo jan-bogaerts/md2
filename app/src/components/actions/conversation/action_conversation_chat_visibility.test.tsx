@@ -4,11 +4,11 @@ import type { AgentConversation } from '../../../data/data_types'
 import { agentAcknowledgementService } from '../../../services/agents/agent_acknowledgement_service'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import { ActionConversationChat } from './action_conversation_chat'
-import type { ActionConversationSearchService } from './action_conversation_search_service'
-import type { ActionConversationStore } from './action_conversation_store'
+import type { ActionConversationSearchService } from './search/action_conversation_search_service'
+import type { ActionConversationStore } from './state/action_conversation_store'
 
-vi.mock('./action_conversation_transcript', () => ({ ActionConversationTranscript: () => null }))
-vi.mock('./conversation_meta_info', () => ({ ConversationMetaInfo: () => null }))
+vi.mock('./transcript/action_conversation_transcript', () => ({ ActionConversationTranscript: () => null }))
+vi.mock('./status/conversation_meta_info', () => ({ ConversationMetaInfo: () => null }))
 vi.mock('../../hooks/use_action_runs', () => ({
     useBoundRunId: () => null,
     useRunSelector: () => null,

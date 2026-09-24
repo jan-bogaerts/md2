@@ -21,11 +21,11 @@ import { createAppTheme } from '../../../theme/app_theme'
 import { MARKDOWN_STYLE_PRESETS } from '../../../theme/theme_config'
 import { THEME_MODE_STORAGE_KEY } from '../../../theme/use_theme_settings'
 import type { ActionRunBindingStore } from '../run/state/action_run_binding_store'
-import type { ActionConversationStore } from './action_conversation_store'
-import { ActionConversationTranscript } from './action_conversation_transcript'
-import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
-import type { ActionConversationCommandOperations } from './action_conversation_command_service'
-import { ActionConversationSearchService } from './action_conversation_search_service'
+import type { ActionConversationStore } from './state/action_conversation_store'
+import { ActionConversationTranscript } from './transcript/action_conversation_transcript'
+import { ActionConversationChatlogTracker } from './transcript/action_conversation_chatlog_tracker'
+import type { ActionConversationCommandOperations } from './state/action_conversation_command_service'
+import { ActionConversationSearchService } from './search/action_conversation_search_service'
 
 const commands: ActionConversationCommandOperations = {
     canSaveResponsePhrase: () => false,

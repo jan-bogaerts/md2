@@ -7,7 +7,7 @@ import { openFilesService } from '../../services/open_files_service'
 import { projectAccessService } from '../../services/project/project_access_service'
 import { createStorage } from '../../services/test_support/data_service_test_support'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { instructionMarkdownDataSource } from '../editor/instruction_markdown_data_source'
+import { instructionMarkdownDataSource } from '../editor/data_sources/instruction_markdown_data_source'
 import { InstructionEditor } from './instruction_editor'
 import { TabBar } from './tab_bar'
 

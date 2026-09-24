@@ -102,7 +102,7 @@ export class CardOperations {
             initialState,
             draft,
         )
-        dependencies.updateFiles([file], [], config.workingFolder)
+        dependencies.addCreatedCardFile(file, config.workingFolder)
         await this.context.commitCreatedFiles({
             branch: project.branch,
             files: [file],

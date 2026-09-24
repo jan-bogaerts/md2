@@ -267,7 +267,7 @@ describe('DiagramGeometryService', () => {
     ] as const)('reconnects dependency edge %s without rerouting other edges', (edgeId, oldTargetId, otherEdgeId, fanInChange) => {
         const { geometry, session } = createHarness(editableDependencyDiagram())
         const edge = session.getEdgeSnapshot(edgeId)
-        const targetAttachment = session.getConnectionPointSnapshot(edgeId, 'targetAttachment')
+        const targetAttachment = session.getEdgeSnapshot(edgeId)?.targetAttachment
         const otherRoute = geometry.getEdgeRouteSnapshot(otherEdgeId)
         const unrelatedRoute = geometry.getEdgeRouteSnapshot('auxiliary-sink')
         const oldTargetFanIn = geometry.getNodeGeometryFieldSnapshot(oldTargetId, 'fanIn') as number
@@ -277,7 +277,7 @@ describe('DiagramGeometryService', () => {
         expect(session.reconnectEdgeEndpoint(edgeId, 'targetAttachment', 'sink')).toBe(true)
 
         expect(session.getEdgeSnapshot(edgeId)).toBe(edge)
-        expect(session.getConnectionPointSnapshot(edgeId, 'targetAttachment')).toBe(targetAttachment)
+        expect(session.getEdgeSnapshot(edgeId)?.targetAttachment).toBe(targetAttachment)
         expect(geometry.getNodeGeometryFieldSnapshot(oldTargetId, 'fanIn')).toBe(oldTargetFanIn - fanInChange)
         expect(geometry.getNodeGeometryFieldSnapshot('sink', 'fanIn')).toBe(sinkFanIn + fanInChange)
         expect(geometry.getEdgeRouteSnapshot(otherEdgeId)).toBe(otherRoute)
@@ -300,7 +300,7 @@ describe('DiagramGeometryService', () => {
         const targetFanIn = geometry.getNodeGeometryFieldSnapshot(targetId, 'fanIn') as number
         const dispatched = recordGeometryEvents(geometry)
 
-        expect(session.removeEdge(edgeId)).toBe(true)
+        expect(session.removeObjects([{ objectId: edgeId, objectKind: 'edge' }])).toBe(true)
 
         expect(geometry.getEdgeRouteSnapshot(edgeId)).toHaveLength(0)
         expect(geometry.getNodeGeometryFieldSnapshot(targetId, 'fanIn')).toBe(targetFanIn - fanInChange)
@@ -502,7 +502,7 @@ describe('DiagramGeometryService', () => {
     it('drops the view entries of a removed node and its incident edges only', () => {
         const { geometry, session } = createHarness()
 
-        session.removeNode('store')
+        session.removeObjects([{ objectId: 'store', objectKind: 'node' }])
 
         expect(geometry.getNodeGeometryFieldSnapshot('store', 'x')).toBeNull()
         expect(geometry.getEdgeRouteSnapshot('orders-store')).toHaveLength(0)
@@ -533,7 +533,7 @@ describe('DiagramGeometryService', () => {
         const responseHeight = geometry.getFragmentGeometryFieldSnapshot('response', 'height')
         const dispatched = recordGeometryEvents(geometry)
 
-        expect(session.setFragmentRegionField('transaction', 0, 'guard', 'approved')).toBe(true)
+        expect(session.updateFragment('transaction', { operator: 'opt', regions: [{ edgeIds: ['orders-store'], guard: 'approved' }] })).toBe(true)
 
         expect(geometry.getFragmentGuardPositionsSnapshot('transaction')).toEqual([
             { guard: 'approved', y: expect.any(Number) },
@@ -543,7 +543,7 @@ describe('DiagramGeometryService', () => {
         expect(dispatched).toEqual(['geometry:fragment:transaction:guardPositions'])
 
         dispatched.length = 0
-        expect(session.addFragmentRegionEdge('transaction', 0, 'store-orders')).toBe(true)
+        expect(session.updateFragment('transaction', { operator: 'opt', regions: [{ edgeIds: ['orders-store', 'store-orders'], guard: 'approved' }] })).toBe(true)
 
         expect(geometry.getFragmentGeometryFieldSnapshot('transaction', 'height')).toBeGreaterThan(56)
         expect(geometry.getFragmentGeometryFieldSnapshot('response', 'height')).toBe(responseHeight)
@@ -597,7 +597,7 @@ describe('DiagramGeometryService', () => {
         const guards = geometry.getFragmentGuardPositionsSnapshot('transaction')
         const dispatched = recordGeometryEvents(geometry)
 
-        expect(session.removeEdge('orders-store')).toBe(true)
+        expect(session.removeObjects([{ objectId: 'orders-store', objectKind: 'edge' }])).toBe(true)
 
         expect({
             height: geometry.getFragmentGeometryFieldSnapshot('transaction', 'height'),
@@ -645,10 +645,10 @@ describe('DiagramGeometryService', () => {
         expect(geometry.getEdgeRouteSnapshot(insertedId)).not.toBe(insertedRoute)
 
         const routeBeforeDelete = geometry.getEdgeRouteSnapshot('orders-store')
-        expect(session.removeEdge(insertedId)).toBe(true)
+        expect(session.removeObjects([{ objectId: insertedId, objectKind: 'edge' }])).toBe(true)
         expect(geometry.getEdgeRouteSnapshot(insertedId)).toHaveLength(0)
         expect(geometry.getEdgeRouteSnapshot('orders-store')).not.toBe(routeBeforeDelete)
-        expect(session.getFragmentRegionEdgeIdsSnapshot('transaction', 0)).toEqual(['orders-store'])
+        expect((session.getFragmentSnapshot('transaction')?.regions[0]?.edgeIds ?? null)).toEqual(['orders-store'])
     })
 
     it('derives an activation bar from a newly matched call and success pair', () => {

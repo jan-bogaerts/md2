@@ -4,7 +4,7 @@ import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bri
 import { DialogDisplay } from '../../../dialog_display'
 import { ActionRunHistory } from './action_run_history'
 
-vi.mock('../../conversation/diff_view', () => ({DiffView: ({ commitReference }: { commitReference: { commit: string } }) => <div>Diff {commitReference.commit}</div>}))
+vi.mock('../../conversation/events/diff_view', () => ({DiffView: ({ commitReference }: { commitReference: { commit: string } }) => <div>Diff {commitReference.commit}</div>}))
 
 describe('ActionRunHistory', () => {
     afterEach(cleanup)

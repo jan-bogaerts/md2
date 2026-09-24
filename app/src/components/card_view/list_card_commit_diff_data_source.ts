@@ -1,6 +1,6 @@
 import type { CardCommit } from '../../services/actions/card_commit_history'
-import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
-import type { ActiveMarkdownDocumentChangedDetail } from '../editor/markdown_data_source'
+import { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
+import type { ActiveMarkdownDocumentChangedDetail } from '../editor/data_sources/markdown_data_source'
 import type { CardOpenDocument } from '../../services/open_files_service'
 
 export interface ListCardCommitDiffSelection {

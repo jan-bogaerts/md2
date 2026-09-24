@@ -373,6 +373,8 @@ export class ProjectSessionService extends EventTarget {
     }
 
     setError(message: string | null) {
+        if (this.state.errorMessage === message && this.state.pendingGithubConflictProject === null) return
+
         this.state = { ...this.state, errorMessage: message, pendingGithubConflictProject: null }
         this.dispatchChanged()
     }

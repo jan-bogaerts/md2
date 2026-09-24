@@ -4,12 +4,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import type { CardOpenDocument } from '../../services/open_files_service'
 import { MarkdownEditor } from './markdown_editor'
-import { MarkdownDocumentHistoryStore } from './markdown_document_history_store'
+import { MarkdownDocumentHistoryStore } from './history/markdown_document_history_store'
 import {
     MarkdownDataSourceBase,
     type MarkdownDataSource,
     type MarkdownDocumentTarget,
-} from './markdown_data_source'
+} from './data_sources/markdown_data_source'
 
 type CapturedPopperProps = ComponentProps<(typeof import('@mui/material'))['Popper']>
 

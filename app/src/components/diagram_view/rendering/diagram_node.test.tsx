@@ -1,0 +1,181 @@
+import { ThemeProvider } from '@mui/material'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { DiagramFlowPreset, DiagramType } from '../../../services/diagrams/diagram_data'
+import type { PositionedDiagramNode } from '../../../services/diagrams/diagram_layout'
+import { createAppTheme } from '../../../theme/app_theme'
+import { DiagramNode } from './diagram_node'
+
+function positioned(overrides: Partial<PositionedDiagramNode> = {}): PositionedDiagramNode {
+    // Cast: exactOptionalPropertyTypes rejects spreading a Partial whose optional members may be explicitly undefined.
+    return { fanIn: 0, height: 72, id: 'one', label: 'One', role: 'focal', width: 160, x: 0, y: 0, ...overrides } as PositionedDiagramNode
+}
+
+function renderNode(node: PositionedDiagramNode, diagramType: DiagramType = 'architecture', flowPreset?: DiagramFlowPreset) {
+    const onSelect = vi.fn()
+    render(
+        <ThemeProvider theme={createAppTheme('dark')}>
+            <DiagramNode diagramType={diagramType} flowPreset={flowPreset} node={node} onSelect={onSelect} selected={false} />
+        </ThemeProvider>,
+    )
+
+    return { button: screen.getByRole('button', { name: node.label }), onSelect }
+}
+
+function scrollWrapper(button: HTMLElement) {
+    return button.querySelector('[data-diagram-scroll="content"]') as HTMLElement | null
+}
+
+describe('DiagramNode', () => {
+    afterEach(cleanup)
+
+    it('puts tag, label and sublabel in a scrollable wrapper that only anchors to the top when content overflows', () => {
+        const { button } = renderNode(positioned({ sublabel: 'a very long sublabel that does not fit', tag: 'service' }))
+        const wrapper = scrollWrapper(button)
+
+        expect(wrapper).not.toBeNull()
+        expect(getComputedStyle(wrapper as HTMLElement).overflowY).toBe('auto')
+        expect(getComputedStyle(wrapper as HTMLElement).justifyContent).toBe('safe center')
+        expect(getComputedStyle(wrapper as HTMLElement).minHeight).toBe('0px')
+        expect(wrapper).toContainElement(screen.getByText('service'))
+        expect(wrapper).toContainElement(screen.getByText('One'))
+        expect(wrapper).toContainElement(screen.getByText('a very long sublabel that does not fit'))
+    })
+
+    it('wraps a single unbroken token in the label and sublabel instead of clipping it', () => {
+        renderNode(positioned({ label: 'src/services/diagrams/diagram_layout.ts', sublabel: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }))
+
+        expect(getComputedStyle(screen.getByText('src/services/diagrams/diagram_layout.ts')).overflowWrap).toBe('anywhere')
+        expect(getComputedStyle(screen.getByText('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).overflowWrap).toBe('anywhere')
+    })
+
+    it('keeps the fanIn badge outside the scroll wrapper so it does not scroll away', () => {
+        const { button } = renderNode(positioned({ fanIn: 3 }), 'dependency')
+
+        expect(scrollWrapper(button)).not.toContainElement(screen.getByText('3 in'))
+        expect(button).toContainElement(screen.getByText('3 in'))
+    })
+
+    it('keeps the entity divider and field list inside the same scroll wrapper as the header', () => {
+        const node = positioned({ fields: [{ key: 'primary' as const, name: 'id', type: 'UUID' }], height: 120 })
+        const { button } = renderNode(node, 'entity')
+        const fields = screen.getByText('# id: UUID').parentElement as HTMLElement
+
+        expect(scrollWrapper(button)).toContainElement(fields)
+        expect(getComputedStyle(fields).borderTop).toContain('1px solid')
+    })
+
+    it.each(['start', 'end'] as const)('renders no text and no scroll wrapper for the state preset %s marker', (kind) => {
+        const { button } = renderNode(positioned({ height: 24, kind, label: kind === 'start' ? 'Start' : 'End', width: 24 }), 'flow', 'state')
+
+        expect(scrollWrapper(button)).toBeNull()
+        expect(button).toBeEmptyDOMElement()
+    })
+
+    it('honours an explicit height from the diagram JSON', () => {
+        const { button } = renderNode(positioned({ height: 200 }))
+
+        expect(getComputedStyle(button).height).toBe('200px')
+    })
+
+    it('renders explicit circular presentation', () => {
+        const onSelect = vi.fn()
+        render(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode circular diagramType="mindmap" node={positioned({ height: 96, kind: 'topic', width: 96 })} onSelect={onSelect} selected />
+            </ThemeProvider>,
+        )
+        const button = screen.getByRole('button', { name: 'One' })
+
+        expect(button).toHaveAttribute('data-diagram-node-shape', 'circle')
+        expect(getComputedStyle(button).borderRadius).toBe('50%')
+    })
+
+    it('renders an oval mindmap node as an ellipse', () => {
+        const onSelect = vi.fn()
+        render(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode circular diagramType="mindmap" node={positioned({ height: 80, kind: 'topic', width: 120 })} onSelect={onSelect} selected={false} />
+            </ThemeProvider>,
+        )
+
+        expect(screen.getByRole('button', { name: 'One' })).toHaveAttribute('data-diagram-node-shape', 'ellipse')
+    })
+
+    it('renders and resizes a decision inside unchanged rectangular bounds', () => {
+        const node = positioned({ height: 96, kind: 'decision', label: 'Choose', width: 96 })
+        const { rerender } = render(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode diagramType="flow" flowPreset="flowchart" node={node} onSelect={vi.fn()} selected={false} />
+            </ThemeProvider>,
+        )
+        const button = screen.getByRole('button', { name: 'Choose' })
+        const diamond = button.querySelector('[data-diagram-node-shape="decision"]')
+
+        expect(getComputedStyle(button).height).toBe('96px')
+        expect(getComputedStyle(button).width).toBe('96px')
+        expect(getComputedStyle(button).transform).toBe('none')
+        expect(diamond).toHaveAttribute('viewBox', '0 0 96 96')
+
+        rerender(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode
+                    diagramType="flow"
+                    flowPreset="flowchart"
+                    node={{ ...node, height: 80, width: 120 }}
+                    onSelect={vi.fn()}
+                    selected={false}
+                />
+            </ThemeProvider>,
+        )
+
+        expect(getComputedStyle(button).height).toBe('80px')
+        expect(getComputedStyle(button).width).toBe('120px')
+        expect(button.querySelector('[data-diagram-node-shape="decision"]')).toHaveAttribute('viewBox', '0 0 120 80')
+    })
+
+    it('reports Ctrl state for clicks and treats keyboard activation as plain selection', async () => {
+        const { button, onSelect } = renderNode(positioned())
+        const user = userEvent.setup()
+
+        await user.click(button)
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }), false)
+
+        onSelect.mockClear()
+        fireEvent.click(button, { ctrlKey: true })
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }), true)
+
+        onSelect.mockClear()
+        button.focus()
+        await user.keyboard('{Enter}')
+        expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'one', label: 'One' }), false)
+    })
+
+    it('does not select the node when the content scrolled between mousedown and click', () => {
+        const { button, onSelect } = renderNode(positioned({ sublabel: 'long enough to scroll' }))
+        const wrapper = scrollWrapper(button) as HTMLElement
+
+        fireEvent.mouseDown(button)
+        wrapper.scrollTop = 24
+        fireEvent.click(button)
+
+        expect(onSelect).not.toHaveBeenCalled()
+    })
+
+    it('keeps non-drilldown node content scrollable and allows selection', async () => {
+        const { button, onSelect } = renderNode(positioned({ drilldown: false, sublabel: 'long enough to scroll' }))
+        const wrapper = scrollWrapper(button) as HTMLElement
+        const user = userEvent.setup()
+
+        expect(button).toHaveAttribute('aria-pressed', 'false')
+        expect(button).toHaveAttribute('tabindex', '0')
+        expect(button).not.toBeDisabled()
+        expect(getComputedStyle(wrapper).overflowY).toBe('auto')
+
+        await user.click(wrapper)
+        fireEvent.keyDown(button, { key: 'Enter' })
+
+        expect(onSelect).toHaveBeenCalledTimes(2)
+    })
+})

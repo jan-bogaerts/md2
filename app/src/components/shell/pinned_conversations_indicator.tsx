@@ -1,7 +1,7 @@
 import { Button } from '@mui/material'
 import PushPinOutlined from '@mui/icons-material/PushPinOutlined'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
-import { formatConversationDateTime } from '../actions/conversation/action_conversation_picker_data'
+import { formatConversationDateTime } from '../actions/conversation/picker/action_conversation_picker_data'
 import { useActions } from '../hooks/use_actions'
 import { useProjectState } from '../hooks/use_project_state'
 import { cardPopupService } from '../../services/card_popup_service'

@@ -1,7 +1,7 @@
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
 import { Box, IconButton, TextField, Tooltip, Typography } from '@mui/material'
 import { useId, useState, type ChangeEvent } from 'react'
-import { MarkdownFormatToolbarControls } from '../../editor/markdown_format_toolbar_controls'
+import { MarkdownFormatToolbarControls } from '../../editor/toolbar/markdown_format_toolbar_controls'
 
 interface ActionPhraseToolbarControlsProps {
     onDelete: () => void

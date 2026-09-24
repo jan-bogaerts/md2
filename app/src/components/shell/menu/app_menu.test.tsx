@@ -21,6 +21,7 @@ import { sentryImportService } from '../../../services/sentry/sentry_import_serv
 import { createDefaultSentryProjectSettings } from '../../../services/sentry/sentry_types'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { DialogDisplay } from '../../dialog_display'
+import { requestOpenProjectDialog } from '../../project_command_events'
 import { AppMenu } from './app_menu'
 import { createAgentTokenUsageSummary, serializeAgentTokenUsageSummary } from '../../../../../shared/agent_token_usage_summary.mjs'
 import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
@@ -423,6 +424,18 @@ describe('AppMenu', () => {
 
         projectConfig.resolve({ backgroundShade: 'blue', projectFolder: '', workingFolder: 'design' })
         await waitFor(() => expect(projectSessionService.getSnapshot().isLoading).toBe(false))
+    })
+
+    it('prefills the active remote project when the connection flow opens the dialog', () => {
+        renderMenu()
+
+        act(() => {
+            requestOpenProjectDialog('remote', { branch: 'develop', id: '/remote/project', rootPath: '/remote/project' })
+        })
+
+        expect(screen.getByRole('dialog', { name: 'Open project' })).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Project root path' })).toHaveValue('/remote/project')
+        expect(screen.getByRole('textbox', { name: 'Branch' })).toHaveValue('develop')
     })
 
     it('updates the shared workspace view mode from the Home view toggle', () => {

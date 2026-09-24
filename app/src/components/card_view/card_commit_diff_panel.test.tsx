@@ -21,7 +21,7 @@ vi.mock('../editor/markdown_editor', () => ({
     ),
 }))
 
-vi.mock('../actions/conversation/diff_view', () => ({
+vi.mock('../actions/conversation/events/diff_view', () => ({
     DiffView: ({ initialPath, result }: { initialPath: string, result?: unknown }) => (
         <div aria-label={`${result ? 'Whole worktree' : 'Whole commit'} diff ${initialPath}`} />
     ),

@@ -1,34 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
     DEFAULT_CARD_TYPES,
     DEFAULT_STATES,
     type BranchReference,
     type CardDraft,
     type ProjectReference,
-    type PushMode,
     type ReleaseBranchCandidate,
-    type RepositoryReference,
 } from '../../../data/data_types'
-import { getElectronDataBridge } from '../../../data/electron_data_bridge'
-import {
-    readRecentLocalRepositories,
-    recordRecentLocalRepository,
-    removeRecentLocalRepository,
-} from '../../../data/recent_local_repositories'
-import { toProjectFolderRelativePath, toRepositoryRelativePath } from '../../../data/repository_relative_path'
-import type { StorageType } from '../../../data/project_session'
-import { dialogService } from '../../../services/dialog_service'
 import { configService } from '../../../services/config/config_service'
-import {
-    projectSessionService,
-    type ProjectFolderValues,
-    type ProjectOpenResolution,
-} from '../../../services/project/project_session_service'
-import { useProjectConfig } from '../../hooks/use_project_config'
-import { useConfigValueOrFallback } from '../../hooks/use_config_value'
-import { useProjectSession } from '../../hooks/use_project_session'
+import { projectSessionService, type ProjectOpenResolution } from '../../../services/project/project_session_service'
 import { useActiveCardCount } from '../../hooks/use_active_card_count'
+import { useConfigValueOrFallback } from '../../hooks/use_config_value'
+import { useProjectConfig } from '../../hooks/use_project_config'
 import { useProjectReference } from '../../hooks/use_project_reference'
+import { useProjectSession } from '../../hooks/use_project_session'
 import {
     OPEN_NEW_CARD_DIALOG_EVENT,
     OPEN_PROJECT_DIALOG_EVENT,
@@ -38,38 +23,28 @@ import {
 } from '../../project_command_events'
 
 type ProjectDialogMode = 'open' | 'branch' | 'card' | 'release'
-type ProjectOpenResult = 'failed' | 'opened' | 'resolution'
-
-const EMPTY_BRANCHES: BranchReference[] = []
-const EMPTY_REPOSITORIES: RepositoryReference[] = []
 
 interface UseProjectToolbarMenuActionsArgs {
     accessToken: string | null
     initialProjectOpenResolution?: ProjectOpenResolution | null
-    isGithubAuthenticated: boolean
     onCloseDialog: () => void
     onOpenDialog: (mode: ProjectDialogMode) => void
 }
 
-function branchExists(branches: BranchReference[], branchName: string) {
-    return branches.some(({ name }) => name === branchName)
-}
-
 function branchValue(branches: BranchReference[], preferredBranch: string) {
-    if (branchExists(branches, preferredBranch)) return preferredBranch
+    if (branches.some(({ name }) => name === preferredBranch)) return preferredBranch
 
     return branches[0]?.name ?? ''
 }
 
-/** Owns project menu service calls and non-dialog session state. */
+/** Owns project menu commands outside the open-project dialog. */
 export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsArgs) {
-    const { accessToken, initialProjectOpenResolution = null, isGithubAuthenticated, onCloseDialog, onOpenDialog } = args
+    const { accessToken, initialProjectOpenResolution = null, onCloseDialog, onOpenDialog } = args
     const project = useProjectReference()
     const activeCardCount = useActiveCardCount()
     const projectSession = useProjectSession()
     const projectConfig = useProjectConfig()
-    const electronBridge = useMemo(() => getElectronDataBridge(), [])
-    const [branches, setBranches] = useState<BranchReference[]>(EMPTY_BRANCHES)
+    const [branches, setBranches] = useState<BranchReference[]>([])
     const [isReleaseCompleting, setIsReleaseCompleting] = useState(false)
     const [projectOpenResolution, setProjectOpenResolution] = useState<ProjectOpenResolution | null>(initialProjectOpenResolution)
     const [initialProjectSource, setInitialProjectSource] = useState<ProjectDialogSource | null>(
@@ -79,14 +54,10 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         initialProjectOpenResolution?.storageType === 'remote' ? initialProjectOpenResolution.project : null,
     )
     const [newCardInitialStatus, setNewCardInitialStatus] = useState('')
-    const [pendingLocalRootPath, setPendingLocalRootPath] = useState<string | null>(null)
-    const [recentLocalRepositories, setRecentLocalRepositories] = useState(() => readRecentLocalRepositories())
-    const [repositories, setRepositories] = useState<RepositoryReference[]>(EMPTY_REPOSITORIES)
     const [releaseBranchCandidates, setReleaseBranchCandidates] = useState<ReleaseBranchCandidate[]>([])
     const [switchBranch, setSwitchBranch] = useState(project?.branch ?? '')
     const cardTypes = projectConfig?.cardTypes ?? DEFAULT_CARD_TYPES
     const states = projectConfig?.states ?? DEFAULT_STATES
-    const pushMode = (projectConfig?.pushMode ?? 'auto') as PushMode
     const releaseSelectAllDefault = useConfigValueOrFallback('project.deleteBranchesAfterRelease', false)
 
     const closeDialog = useCallback(() => {
@@ -94,88 +65,6 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
         setProjectOpenResolution(null)
         projectSessionService.setError(null)
     }, [onCloseDialog])
-
-    const beginProjectLoad = useCallback(() => {
-        onCloseDialog()
-        setProjectOpenResolution(null)
-    }, [onCloseDialog])
-
-    const openProject = useCallback(async (storageType: StorageType, nextProject: ProjectReference): Promise<ProjectOpenResult> => {
-        beginProjectLoad()
-
-        try {
-            const resolution = await projectSessionService.openProject(storageType, nextProject, accessToken)
-            if (resolution) {
-                setProjectOpenResolution(resolution)
-                onOpenDialog('open')
-
-                return 'resolution'
-            }
-
-            return 'opened'
-        } catch {
-            // ProjectSessionService emits the user-visible error.
-            return 'failed'
-        }
-    }, [accessToken, beginProjectLoad, onOpenDialog])
-
-    const recordOpenedLocalProject = useCallback(async (rootPath: string) => {
-        setRecentLocalRepositories(await recordRecentLocalRepository(rootPath))
-        setPendingLocalRootPath(null)
-    }, [])
-
-    const removeRecentLocalProject = useCallback(async (rootPath: string) => {
-        try {
-            setRecentLocalRepositories(await removeRecentLocalRepository(rootPath))
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Recent local project removal failed' })
-        }
-    }, [])
-
-    const openResolvedLocalProject = useCallback(async (nextProject: ProjectReference) => {
-        if (!nextProject.rootPath) throw new Error('Resolved local repository has no root path')
-
-        const result = await openProject('local', nextProject)
-        if (result === 'opened') await recordOpenedLocalProject(nextProject.rootPath)
-        if (result === 'resolution') setPendingLocalRootPath(nextProject.rootPath)
-    }, [openProject, recordOpenedLocalProject])
-
-    const chooseLocalProjectFolder = useCallback(async () => {
-        if (!electronBridge) return
-
-        let nextProject: ProjectReference | null
-        try {
-            nextProject = await electronBridge.openProjectFolder()
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Local project selection failed' })
-
-            return
-        }
-
-        if (nextProject) await openResolvedLocalProject(nextProject)
-    }, [electronBridge, openResolvedLocalProject])
-
-    const openLocalProject = useCallback(async (rootPath: string) => {
-        if (!electronBridge) return
-
-        const normalizedPath = rootPath.trim()
-        if (normalizedPath.length === 0) return
-
-        try {
-            const nextProject = await electronBridge.resolveProject({ branch: '', id: normalizedPath, rootPath: normalizedPath })
-            await openResolvedLocalProject(nextProject)
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Local project selection failed' })
-        }
-    }, [electronBridge, openResolvedLocalProject])
-
-    const loadRepositories = useCallback(async () => {
-        try {
-            setRepositories(await projectSessionService.listRepositories(accessToken))
-        } catch {
-            setRepositories(EMPTY_REPOSITORIES)
-        }
-    }, [accessToken])
 
     const loadSwitchBranches = useCallback(async () => {
         if (!project) return
@@ -197,13 +86,12 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
             setInitialRemoteProject(detail?.project ?? null)
             setProjectOpenResolution(detail?.resolution ?? null)
             onOpenDialog('open')
-            if (isGithubAuthenticated) void loadRepositories()
         }
 
         window.addEventListener(OPEN_PROJECT_DIALOG_EVENT, handleOpenProjectDialog)
 
         return () => window.removeEventListener(OPEN_PROJECT_DIALOG_EVENT, handleOpenProjectDialog)
-    }, [isGithubAuthenticated, loadRepositories, onOpenDialog])
+    }, [onOpenDialog])
 
     useEffect(() => {
         const handleOpenNewCardDialog = (event: Event) => {
@@ -228,138 +116,8 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
     const openProjectDialog = () => {
         setInitialProjectSource(null)
         setInitialRemoteProject(null)
-        onOpenDialog('open')
-        if (isGithubAuthenticated) void loadRepositories()
-    }
-
-    const openBranchDialog = () => {
-        onOpenDialog('branch')
-        void loadSwitchBranches()
-    }
-
-    const clearOpenDialogState = () => {
-        setBranches(EMPTY_BRANCHES)
         setProjectOpenResolution(null)
-    }
-
-    const loadRepositoryBranches = async (repository: RepositoryReference) => {
-        try {
-            const nextBranches = await projectSessionService.listBranches('github', repository, accessToken)
-            setBranches(nextBranches)
-
-            return nextBranches
-        } catch {
-            setBranches(EMPTY_BRANCHES)
-
-            return EMPTY_BRANCHES
-        }
-    }
-
-    const loadManualBranches = async (owner: string, repositoryName: string, isPublic: boolean) => {
-        try {
-            const storageType = isPublic ? 'github-readonly' : 'github'
-            const result = await projectSessionService.findGithubRepositoryBranches(owner, repositoryName, accessToken, storageType)
-            setBranches(result.branches)
-
-            return result
-        } catch {
-            return null
-        }
-    }
-
-    const createRemoteProject = (rootPath: string, branch: string): ProjectReference | null => {
-        try {
-            if (rootPath.length === 0) throw new Error('Missing remote project root path')
-
-            return { branch: branch || 'main', id: rootPath, rootPath }
-        } catch (error) {
-            dialogService.error(error, { fallbackMessage: 'Remote project could not be created' })
-
-            return null
-        }
-    }
-
-    const loadRemoteBranches = async (endpoint: string, rootPath: string, branch: string) => {
-        const remoteProject = createRemoteProject(rootPath, branch)
-        if (!remoteProject) {
-            setBranches(EMPTY_BRANCHES)
-
-            return EMPTY_BRANCHES
-        }
-
-        projectSessionService.configureRemote(endpoint)
-
-        try {
-            const nextBranches = await projectSessionService.listBranches('remote', remoteProject, accessToken)
-            setBranches(nextBranches)
-
-            return nextBranches
-        } catch {
-            setBranches(EMPTY_BRANCHES)
-
-            return EMPTY_BRANCHES
-        }
-    }
-
-    const openGithubProject = async (owner: string, repositoryName: string, branch: string, isPublic: boolean) => {
-        try {
-            const storageType = isPublic ? 'github-readonly' : 'github'
-            const result = await projectSessionService.findGithubRepositoryBranches(owner, repositoryName, accessToken, storageType)
-            const fallbackBranches = branches.length > 0 ? branches : result.branches
-            const selectedBranch = branch || branchValue(fallbackBranches, result.repository.branch)
-            setBranches(fallbackBranches)
-            await openProject(storageType, { ...result.repository, branch: selectedBranch })
-        } catch {
-            // ProjectSessionService emits the user-visible error.
-        }
-    }
-
-    const openRemoteProject = async (endpoint: string, nextProject: ProjectReference) => {
-        projectSessionService.configureRemote(endpoint)
-        await openProject('remote', nextProject)
-    }
-
-    const confirmProjectFolderSetup = async (values: ProjectFolderValues) => {
-        if (!projectOpenResolution) return
-
-        const resolution = projectOpenResolution
-        beginProjectLoad()
-        try {
-            await projectSessionService.confirmProjectFolderSetup(resolution, values, accessToken)
-            if (pendingLocalRootPath) await recordOpenedLocalProject(pendingLocalRootPath)
-        } catch {
-            // ProjectSessionService emits the user-visible error.
-        }
-    }
-
-    /**
-     * Opens the OS directory dialog for one folder field and returns the picked folder relative to
-     * the repository root, or relative to the project folder for the four sub-folders. A pick
-     * outside the repository is a user mistake, so it is shown and not reported.
-     */
-    const browseProjectSubFolder = async (_currentValue: string, projectFolder: string, isProjectFolder: boolean) => {
-        const rootPath = projectOpenResolution?.project.rootPath
-        if (!electronBridge?.selectProjectSubFolder || !rootPath) return null
-
-        const picked = await electronBridge.selectProjectSubFolder(rootPath)
-        if (picked === null) return null
-
-        const repositoryRelativePath = toRepositoryRelativePath(rootPath, picked)
-        if (repositoryRelativePath === null || repositoryRelativePath.length === 0) {
-            dialogService.displayError('Choose a folder inside the repository.')
-
-            return null
-        }
-        if (isProjectFolder) return repositoryRelativePath
-
-        const projectFolderRelativePath = toProjectFolderRelativePath(projectFolder, repositoryRelativePath)
-        if (projectFolderRelativePath === null || projectFolderRelativePath.length === 0) {
-            dialogService.displayError(`Choose a folder inside '${projectFolder}'.`)
-
-            return null
-        }
-
-        return projectFolderRelativePath
+        onOpenDialog('open')
     }
 
     const switchProjectBranch = async (branch: string) => {
@@ -398,48 +156,28 @@ export function useProjectToolbarMenuActions(args: UseProjectToolbarMenuActionsA
 
     const createCard = async (draft: CardDraft, initialState: string) => {
         await projectSessionService.createCard(draft, initialState)
-        closeDialog()
     }
 
     return {
         activeCardCount,
         branches,
         cardTypes,
-        chooseLocalProjectFolder,
-        clearOpenDialogState,
         closeDialog,
-        commit: () => projectSessionService.commit(),
         completeRelease,
+        createCard,
         initialProjectSource,
         initialRemoteProject,
-        newCardInitialStatus,
-        browseProjectSubFolder,
-        confirmProjectFolderSetup,
-        createCard,
-        createRemoteProject,
         isLoading: projectSession.isLoading,
-        isDesktopMode: !!electronBridge,
         isProjectOpen: !!project,
         isReleaseCompleting,
         loadSwitchBranches,
-        loadManualBranches,
-        loadRemoteBranches,
-        loadRepositoryBranches,
-        projectOpenResolution,
-        openBranchDialog,
-        openGithubProject,
-        openLocalProject,
+        newCardInitialStatus,
         openNewCardDialog,
         openProjectDialog,
-        openRemoteProject,
         openReleaseDialog,
-        pendingGithubConflictProject: projectSession.pendingGithubConflictProject,
+        projectOpenResolution,
         pull: () => projectSessionService.pull(),
         push: () => projectSessionService.push(),
-        pushMode,
-        recentLocalRepositories,
-        removeRecentLocalProject,
-        repositories,
         releaseBranchCandidates,
         releaseSelectAllDefault,
         setReleaseSelectAllDefault,

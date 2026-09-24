@@ -9,9 +9,11 @@ import type {
 } from './diagram_data'
 import {
     diagramEditSessionService,
-    type DiagramConnectionEndpoint,
     type DiagramEditSessionService,
 } from './diagram_edit_session_service'
+import type {
+    DiagramConnectionEndpoint,
+} from './diagram_edit_types'
 import {
     edgeGeometry,
     groupBox,

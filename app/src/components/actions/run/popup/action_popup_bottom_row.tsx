@@ -11,7 +11,7 @@ import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
 import {
     isBrowsingHistoricalConversation,
     type ActionConversationStore,
-} from '../../conversation/action_conversation_store'
+} from '../../conversation/state/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
 import {
     cancelPopupAction,
@@ -26,7 +26,7 @@ import type { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { useActionRunSettings } from '../../shared/use_action_run_settings'
 import { ActionPopupFinishButton } from './action_popup_finish_button'
 import { ActionAgentSelectors } from '../../agent/action_agent_selectors'
-import { MarkdownAttachmentControl } from '../../../editor/markdown_attachment_control'
+import { MarkdownAttachmentControl } from '../../../editor/attachments/markdown_attachment_control'
 import {
     attachFilesToCardMarkdown,
     attachFilesToOriginalMarkdown,

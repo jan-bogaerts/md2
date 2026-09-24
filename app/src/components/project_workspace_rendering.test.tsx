@@ -30,7 +30,7 @@ vi.mock('./text_view/file_tree_view', () => ({ FileTreeView: componentMocks.file
 vi.mock('./text_view/text_view', () => ({ TextView: componentMocks.textView }))
 vi.mock('./stats_view/stats_view', () => ({ StatsView: componentMocks.statsView }))
 vi.mock('./diagram_view/diagram_view', () => ({ DiagramView: componentMocks.diagramView }))
-vi.mock('./editor/attachment_choice_dialog', () => ({ AttachmentChoiceDialog: () => null }))
+vi.mock('./editor/attachments/attachment_choice_dialog', () => ({ AttachmentChoiceDialog: () => null }))
 vi.mock('./hooks/use_project_reference', () => ({useProjectReference: () => ({ branch: 'main', id: 'project-1', rootPath: 'C:\\project' })}))
 vi.mock('./hooks/use_project_config', () => ({ useProjectConfig: () => null }))
 vi.mock('./hooks/use_working_folder', () => ({ useWorkingFolder: () => 'design' }))

@@ -2,7 +2,7 @@ import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { actionRunRegistry, type ActionRunStore } from '../../../../services/actions/action_run_registry'
-import { resolveDisplayedConversation, type ActionConversationStore } from '../../conversation/action_conversation_store'
+import { resolveDisplayedConversation, type ActionConversationStore } from '../../conversation/state/action_conversation_store'
 import type { ActionHistoryStore } from '../state/action_history_store'
 import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 import {

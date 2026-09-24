@@ -2,8 +2,10 @@ import { register } from '../service_injector'
 import {
     diagramEditSessionService,
     type DiagramEditSessionService,
-    type ReadonlyDiagramData,
 } from './diagram_edit_session_service'
+import type {
+    ReadonlyDiagramData,
+} from './diagram_edit_types'
 import { parseDiagramData, serializeDiagramData, type DiagramData } from './diagram_data'
 import {
     diagramViewService,

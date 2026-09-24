@@ -6,18 +6,18 @@ import { cardPopupService } from '../../services/card_popup_service'
 import type { Card } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { listCardCommitDiffDataSource } from '../card_view/list_card_commit_diff_data_source'
-import { MarkdownDocumentHistoryStore } from '../editor/markdown_document_history_store'
-import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { MarkdownDocumentHistoryStore } from '../editor/history/markdown_document_history_store'
+import { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 import * as cardCommitsHook from '../hooks/use_card_commits'
 import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 
-vi.mock('../editor/markdown_format_toolbar_controls', () => ({
+vi.mock('../editor/toolbar/markdown_format_toolbar_controls', () => ({
     MarkdownFormatToolbarControls: ({ endControls, undoRedoControls }: { endControls: ReactNode, undoRedoControls: ReactNode }) => (
         <div aria-label="Markdown formatting controls">{undoRedoControls}{endControls}</div>
     ),
 }))
 
-vi.mock('../editor/markdown_document_undo_redo', () => ({
+vi.mock('../editor/history/markdown_document_undo_redo', () => ({
     MarkdownDocumentUndoRedo: ({ historyKey }: { historyKey: string }) => (
         <div data-history-key={historyKey} data-testid="markdown-undo-redo" />
     ),

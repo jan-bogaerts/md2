@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Card, ProjectSnapshot } from '../../data/data_types'
-import { CardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 import type { CardOpenDocument } from '../../services/open_files_service'
 import { useActiveCard } from './use_active_card'
 

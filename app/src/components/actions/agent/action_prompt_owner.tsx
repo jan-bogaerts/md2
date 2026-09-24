@@ -9,8 +9,8 @@ import { remoteConnectionService } from '../../../services/data/remote_connectio
 import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentPrompt } from './action_agent_prompt'
 import type { RestoredAgentQuestions } from './action_agent_question_owner'
-import type { ActionConversationStore } from '../conversation/action_conversation_store'
-import { pendingConversationQuestions } from '../conversation/action_conversation_chat_selectors'
+import type { ActionConversationStore } from '../conversation/state/action_conversation_store'
+import { pendingConversationQuestions } from '../conversation/state/action_conversation_chat_selectors'
 import type { ActionHistoryStore } from '../run/state/action_history_store'
 import {
     answerRestoredConversationQuestions,

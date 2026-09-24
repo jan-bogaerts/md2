@@ -4,10 +4,12 @@ import type {
     DiagramType,
 } from './diagram_data'
 import { parseDiagramData } from './diagram_data'
-import type {
+import {
     DiagramEditSessionService,
-    ReadonlyDiagramData,
 } from './diagram_edit_session_service'
+import type {
+    ReadonlyDiagramData,
+} from './diagram_edit_types'
 import type { DiagramSelectionIdentity } from './diagram_selection_service'
 
 export const DIAGRAM_FRAGMENT_CLIPBOARD_FORMAT = 'md2-diagram-fragment'

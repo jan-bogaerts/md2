@@ -18,6 +18,38 @@ function createIdentifiedFile(path: string, title: string, internalId: string): 
 }
 
 describe('ProjectState', () => {
+    it('inserts a created active card without replacing existing cards', () => {
+        const state = createState()
+        const originalFile = createFile('design/F-1-first.md', 'First')
+        const createdFile = createIdentifiedFile('design/F-2-second.md', 'Second', 'card-2')
+        state.replaceProjectFiles([originalFile], WORKING_FOLDER, [originalFile.path])
+        const originalCard = state.snapshot?.activeCards[0]
+
+        const createdCard = state.addCreatedCardFile(createdFile, WORKING_FOLDER)
+
+        expect(state.files.map(({ path }) => path)).toEqual([originalFile.path, createdFile.path])
+        expect(state.snapshot?.activeCards).toEqual([originalCard, createdCard])
+        expect(state.snapshot?.activeCards[0]).toBe(originalCard)
+        expect(state.snapshot?.backgroundCards).toEqual([])
+        expect(state.matchesCurrentContent(createdFile.path, createdFile.content)).toBe(true)
+        expect(() => state.addCreatedCardFile(createdFile, WORKING_FOLDER)).toThrow('Card path already exists')
+    })
+
+    it('acknowledges a created card SHA without replacing the card', () => {
+        const state = createState()
+        const createdFile = createIdentifiedFile('design/F-1-first.md', 'First', 'card-1')
+        state.replaceProjectFiles([], WORKING_FOLDER, [])
+        const createdCard = state.addCreatedCardFile(createdFile, WORKING_FOLDER)
+        const snapshot = state.snapshot
+
+        state.acknowledgeCreatedCardFiles([{ ...createdFile, sha: 'committed-sha' }])
+
+        expect(state.snapshot).toBe(snapshot)
+        expect(state.snapshot?.activeCards[0]).toBe(createdCard)
+        expect(createdCard.sha).toBe('committed-sha')
+        expect(state.files[0].sha).toBe('committed-sha')
+    })
+
     it('rebuilds the snapshot when project files are replaced', () => {
         const state = createState()
         const file = createFile('design/F-1-first.md', 'First')

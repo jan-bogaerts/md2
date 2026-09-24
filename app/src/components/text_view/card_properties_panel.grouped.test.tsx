@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_CARD_TYPES, type Card } from '../../data/data_types'
 import { AppThemeProvider } from '../../theme/theme_provider'
-import { cardMarkdownDataSource } from '../editor/card_markdown_data_source'
+import { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 import { CardPropertiesPanel } from './card_properties_panel'
 
 const card: Card = {

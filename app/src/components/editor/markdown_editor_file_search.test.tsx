@@ -8,7 +8,7 @@ const testState = vi.hoisted<{ current: DataServiceState }>(() => ({current: { p
 const markdownFileSearchPlugin = vi.hoisted(() => vi.fn(() => ({})))
 
 vi.mock('../hooks/use_project_state', () => ({useProjectState: () => testState.current}))
-vi.mock('./markdown_file_search_realm_plugin', () => ({ markdownFileSearchPlugin }))
+vi.mock('./file_search/markdown_file_search_realm_plugin', () => ({ markdownFileSearchPlugin }))
 
 import { MarkdownEditor } from './markdown_editor'
 

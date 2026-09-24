@@ -8,9 +8,11 @@ import type {
 } from './diagram_data';
 import {
     diagramEditSessionService,
-    type DiagramChange,
     type DiagramEditSessionService,
 } from './diagram_edit_session_service';
+import type {
+    DiagramChange,
+} from './diagram_edit_types';
 
 export type DiagramChangeDescriptionReader = Pick<
     DiagramEditSessionService,

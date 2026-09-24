@@ -135,9 +135,11 @@ md² is still an evolving concept — see [design/architecture/initial descripti
 
 ### Explore the project diagram
 
-![The experimental project diagram view](screenshots/Screenshot%202026-09-06%20150258.jpg)
+![The project diagram view](screenshots/Screenshot%202026-09-06%20150258.jpg)
 
-*Explore relationships in the new diagram view. This feature is still experimental.*
+*Create or generate diagrams, explore saved child diagrams, and edit them with a visual toolbox.*
+
+The Diagrams view supports architecture, dependency, sequence, flowchart, state, entity, and mindmap diagrams. Start from an empty diagram or run a diagram action, then select **Edit diagram** to change nodes, connections, groups, and other diagram details. Review changes before saving an edited copy or sending the changes to an agent. [Learn how diagrams work](https://jan-bogaerts.github.io/md2/guide/diagrams/).
 
 ## Getting started
 
