@@ -1,8 +1,5 @@
 ---
-id: F_381
-internalId: 01ea4d5c-a0e7-4345-aa53-f074e0d8a20f
-status: new
-title: Extract diagram edit transaction plumbing
+internalId: ff8a2e89-94e3-4efe-bb87-084e5de4e0ce
 ---
 
 # Extract diagram edit transaction plumbing
