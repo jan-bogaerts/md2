@@ -2193,6 +2193,43 @@
       "startedAt": "2026-09-24T12:38:16.815Z",
       "status": "completed",
       "rootConversationId": "agent-5d214774-f72e-4487-82cc-04a7a114cb4a"
+    },
+    {
+      "commits": [
+        {
+          "commit": "cb78170fe02fc7eb0d62fde2fffd424637cdd617",
+          "committedAt": "2026-09-24T15:03:54+02:00",
+          "deletions": 34,
+          "filePaths": [
+            "app/src/components/card_view/card_view.test.tsx",
+            "app/src/components/card_view/open_in_file_explorer_menu_item.test.tsx",
+            "app/src/components/card_view/open_in_file_explorer_menu_item.tsx",
+            "app/src/components/card_view/project_card_view.tsx",
+            "app/src/components/text_view/agent_instruction_file_tree.test.tsx",
+            "app/src/components/text_view/file_tree_node_row.tsx",
+            "app/src/components/text_view/text_view.grouped.test.tsx",
+            "app/src/data/electron_data_bridge.ts",
+            "app/src/services/file_explorer.ts",
+            "desktop/main.js",
+            "desktop/src/project/project_files.js",
+            "desktop/src/project/project_files.test.mjs",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 16,
+          "insertions": 345,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-24T15:03:54+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "6cd6114a-3b33-430b-895f-df592f272062",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
