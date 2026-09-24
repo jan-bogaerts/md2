@@ -2406,19 +2406,19 @@
           "agent": "codex",
           "conversationId": "01a0d272-d8ad-71f1-9024-043c319be886",
           "createdAt": "2026-09-24T08:07:05.695Z",
-          "lastUsedAt": "2026-09-24T08:07:05.695Z",
-          "synchronizedThroughMessageId": "agent-turn-a2b923d2-9e6f-46ed-897a-ffc7e940be45-turn-1-assistant-3"
+          "lastUsedAt": "2026-09-24T08:28:10.602Z",
+          "synchronizedThroughMessageId": "agent-turn-a2b923d2-9e6f-46ed-897a-ffc7e940be45-turn-2-assistant-6"
         }
       ],
       "startedAt": "2026-09-24T08:05:36.285Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 270378,
           "toolMs": 215078
         },
-        "elapsedMs": 89410,
-        "runningStartedAt": "2026-09-24T08:12:29.138Z"
+        "elapsedMs": 1030874,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
