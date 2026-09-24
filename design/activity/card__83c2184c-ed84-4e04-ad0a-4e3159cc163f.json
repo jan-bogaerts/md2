@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "83c2184c-ed84-4e04-ad0a-4e3159cc163f",
       "cardPath": "design/feature_descriptions/F_373_add_docs_about_mindmaps.md",
-      "completedAt": null,
+      "completedAt": "2026-09-24T13:41:20.508Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 26316
@@ -147,7 +147,7 @@
         }
       ],
       "startedAt": "2026-09-23T17:58:54.663Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 7744,
@@ -166,6 +166,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "83c2184c-ed84-4e04-ad0a-4e3159cc163f",
+      "cardPath": "design/feature_descriptions/F_373_add_docs_about_mindmaps.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read design/feature\\_descriptions/F\\_373\\_add\\_docs\\_about\\_mindmaps.md. Make a list of topics we should include",
+          "id": "agent-turn-e0cd7a59-67fa-428c-afdb-695b97b48096-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-24T13:41:25.009Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-9d15b079-c5b3-4260-9917-bba8394dd9b1",
+      "providerSessions": [],
+      "startedAt": "2026-09-24T13:41:25.009Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-24T13:41:25.009Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -180,11 +208,11 @@
         "agent-dcb3e8c9-bbb3-465b-863a-05655be1ee77"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-859a82ef-082e-48cb-8e5d-2772375e2cd8",
       "origin": {
@@ -193,9 +221,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-dcb3e8c9-bbb3-465b-863a-05655be1ee77",
       "startedAt": "2026-09-23T17:58:54.661Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-dcb3e8c9-bbb3-465b-863a-05655be1ee77"
     }
   ],
   "version": 5
