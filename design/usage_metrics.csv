@@ -5319,3 +5319,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-09-24T13:39:42.020Z,account_usage,claude,default,weekly,10080,2026-09-27T17:00:00.000Z,,,,,,17,0
 2026-09-24T13:41:49.985Z,token_usage,codex,,,,,22337,68608,527,129,91601,,
 2026-09-24T13:43:40.421Z,token_usage,codex,,,,,7023,57088,415,250,64776,,
+2026-09-24T13:49:42.070Z,account_usage,claude,default,weekly,10080,2026-09-27T16:59:00.000Z,,,,,,17,0
