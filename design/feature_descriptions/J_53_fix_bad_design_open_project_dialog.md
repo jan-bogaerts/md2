@@ -3,7 +3,7 @@ author:
 id: J_53
 internalId: b0464662-3032-43b7-a9a6-ec3e42da96ed
 title: fix bad design open project dialog
-status: design
+status: ready
 owner: 
 affects:
 agents:
@@ -17,6 +17,7 @@ changedFiles:
   - app/src/components/shell/project/project_open_dialog.tsx
   - app/src/components/shell/project/use_project_toolbar_menu_actions.ts
   - app/src/components/shell/project_toolbar_menu.tsx
+after: c6100c77-b4ed-44ab-b53d-7770c01b8656
 ---
 The ProjectOpenDialog is extremely poorly designed. it uses an enormous amount of event handlers that should be done internally. An extremely complex system has been set up to pass along these event handlers which appear to be coming from hooks. This is against the design guidelines of the project.
 
