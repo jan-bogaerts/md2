@@ -3,7 +3,7 @@ author:
 id: B_248
 internalId: bf77e6ca-2917-4aff-804c-81ff1cdcab6b
 title: new codex model is producing unknown agent events
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,19 @@ agents:
 policy:
 branch: b_248_new_codex_model_is_producing_unknown_agent_events
 worktree: 3
+changedFiles:
+  - app/src/components/actions/conversation/action_conversation_chat_integration.grouped.test.tsx
+  - app/src/components/actions/run/popup/action_agent_interaction.tsx
+  - app/src/components/actions/run/popup/action_usage_summary.grouped.test.tsx
+  - app/src/components/actions/run/popup/action_usage_summary.tsx
+  - app/src/components/actions/run/popup/action_usage_summary_data.node.test.ts
+  - app/src/components/actions/run/popup/action_usage_summary_data.ts
+  - app/src/components/actions/run/popup/action_usage_summary_owner.grouped.test.tsx
+  - app/src/components/actions/run/popup/action_usage_values_service.ts
+  - app/vite.b248.config.ts
+  - desktop/src/actions/agent/agent_provider_protocol.js
+  - desktop/src/actions/agent/agent_provider_protocol.test.mjs
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
 ---
 codex agent app was updated, it seems the messaging has been changed, perhaps also a couple of things got broken during refactoring:
 
