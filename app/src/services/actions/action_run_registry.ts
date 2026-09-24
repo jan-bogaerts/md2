@@ -29,6 +29,7 @@ import { dialogService } from '../dialog_service'
 import { getService, register } from '../service_injector'
 import { projectAccessService } from '../project/project_access_service'
 import type { DataService } from '../data/data_service'
+import { ActionRunStore } from './action_run_store'
 
 const TERMINAL_STATUSES = new Set<ActionRunTerminalStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])
 const ACTIVE_STATUSES = new Set<ActionRunStatus>(['queued', 'running', 'waitingForInput'])
@@ -83,7 +84,6 @@ export interface ActiveActionRun {
 }
 
 type EventListener = (event: ActionRunEvent) => void
-type StoreListener = () => void
 
 function actionName(actionId: string) {
     return actionService.getActions().find((action) => action.id === actionId)?.label ?? actionId
@@ -359,38 +359,6 @@ export async function finishActionRun(runId: string) {
     if (!bridge?.finishActionRun) throw new Error('Finishing a streaming agent requires Electron')
 
     await bridge.finishActionRun(runId)
-}
-
-/** Stable state owner for one action run. */
-export class ActionRunStore {
-    private readonly listeners = new Set<StoreListener>()
-    private readonly onReleased: (store: ActionRunStore) => void
-    private snapshot: ActionRun
-
-    constructor(snapshot: ActionRun, onReleased: (store: ActionRunStore) => void) {
-        this.onReleased = onReleased
-        this.snapshot = snapshot
-    }
-
-    readonly getSnapshot = () => this.snapshot
-
-    readonly subscribe = (listener: StoreListener) => {
-        this.listeners.add(listener)
-
-        return () => {
-            this.listeners.delete(listener)
-            this.onReleased(this)
-        }
-    }
-
-    hasConsumers() {
-        return this.listeners.size > 0
-    }
-
-    update(snapshot: ActionRun) {
-        this.snapshot = snapshot
-        for (const listener of this.listeners) listener()
-    }
 }
 
 function actionContextKey(actionId: string, context: ActionContext) {

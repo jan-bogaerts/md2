@@ -3,6 +3,7 @@
   "label": "list largest folders",
   "description": "Custom prompt action: list largest folders",
   "type": "agent",
+  "streaming": true,
   "phrases": [],
   "prompt": "list the 5 folders containing the most files.",
   "appliesTo": {

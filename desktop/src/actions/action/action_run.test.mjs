@@ -955,6 +955,46 @@ describe('ActionRun', () => {
             .toEqual([firstEntry.id, laterEntry.id]);
     });
 
+    it('sends a project agent follow-up during a streaming run and publishes its live event', async () => {
+        const agentCompletion = deferred();
+        const agentStarted = deferred();
+        const sendMessage = vi.fn(async () => undefined);
+        const agentRunnerService = { hasPendingInteraction: () => false, sendMessage, stop: vi.fn() };
+        const agentExecutor = {
+            execute: vi.fn(async (input) => {
+                input.onActiveRunChange('agent-run');
+                input.onEvent({
+                    entryIndex: 1,
+                    event: { content: '', providerItemId: 'command-1', status: 'inProgress', type: 'commandExecution' },
+                    status: 'running',
+                    type: 'agentEvent',
+                });
+                agentStarted.resolve();
+                await agentCompletion.promise;
+                input.onActiveRunChange(null);
+
+                return { agent: 'codex', exitCode: 0, reference: 'project.json', stderr: '', stdout: '' };
+            }),
+        };
+        const rootAction = action('project-agent', { agent: 'codex', model: 'gpt', prompt: 'run', streaming: true, type: 'agent' });
+        const { events, run } = createRun(rootAction, {
+            agentExecutor,
+            agentRunnerService,
+            context: { kind: 'project' },
+        });
+        await agentStarted.promise;
+
+        await run.enqueueAgentPrompt('Next instruction');
+        await vi.waitFor(() => expect(sendMessage).toHaveBeenCalledWith('agent-run', 'Next instruction'));
+        expect(events).toContainEqual(expect.objectContaining({
+            context: { kind: 'project' },
+            update: expect.objectContaining({ kind: 'agentEvent', entryIndex: 1 }),
+        }));
+
+        agentCompletion.resolve();
+        await run.completion;
+    });
+
     it('drains streaming prompts once in FIFO order after pending approval clears', async () => {
         const agentCompletion = deferred();
         const agentStarted = deferred();
