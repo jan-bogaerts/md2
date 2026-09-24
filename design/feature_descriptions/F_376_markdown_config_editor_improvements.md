@@ -10,8 +10,6 @@ agents:
   - design/activity/card__f74940ea-692a-487e-a021-7e2f5f10d236.json
 policy:
 after: 64876822-b48e-450e-b7c7-68fd8d2ba6bd
-branch: f_376_markdown_config_editor_improvements
-worktree: 2
 changedFiles:
   - app/src/components/config/markdown_style_preview.tsx
 ---
