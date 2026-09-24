@@ -8223,7 +8223,7 @@
       "actionId": "babd3e90-6a91-4f4b-9a58-70463771833f",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": "2026-09-24T12:14:52.210Z",
+      "completedAt": "2026-09-24T12:22:30.452Z",
       "entries": [
         {
           "content": "list the 5 largest source code files. skip tests.",
@@ -10033,6 +10033,205 @@
           "sequence": 229,
           "timestamp": "2026-09-24T12:13:39.475Z",
           "type": "tool.command_execution"
+        },
+        {
+          "content": "ok, create the job descriptions to do this refactor. store the md files in C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions . dont generate any internalIds or references to agent files or similar.",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 230,
+          "timestamp": "2026-09-24T12:17:55.935Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll review the existing job-description format and the diagram edit contracts, then write a small sequence of refactor jobs with a measurable final target of 800 lines or fewer. I’ll keep IDs and agent-file references out of the new documents.\n\nThe code supports four jobs: transaction plumbing, the read and subscription API, field editors, and structural edits. The session can keep one canonical diagram and one event stream while callers move directly to the new APIs. I’ll write those jobs now and make the 800-line limit an acceptance criterion of the last one.",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-assistant",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 232,
+          "timestamp": "2026-09-24T12:22:30.452Z"
+        },
+        {
+          "content": "design/feature_descriptions\\B_245_clicking_on_search_result_item_is_broken.md\r\ndesign/feature_descriptions\\B_244_open_project_takes_too_long.md\r\ndesign/feature_descriptions\\B_243_split_conversation_overly_restricted.md\r\ndesign/feature_descriptions\\B_242_project_agent_popup_not_part_of_popup_stack.md\r\ndesign/feature_descriptions\\B_241_conversation_viewed_flag_converges.md\r\ndesign/feature_descriptions\\B_239_always_write_terminal_activity_record.md\r\ndesign/feature_descriptions\\B_238_backend_detects_card_state_change.md\r\ndesign/feature_descriptions\\B_237_card_agent_state_follows_run_events.md\r\ndesign/feature_descriptions\\B_236_backend_owns_agent_run_status.md\r\ndesign/feature_descriptions\\B_235_end_of_action_not_logged.md\r\ndesign/feature_descriptions\\B_228_open_new_project_gives_error.md\r\ndesign/feature_descriptions\\B_223_save_aborted_cause_of_invalid_action_data.md\r\ndesign/feature_descriptions\\B_213_double_add_link_and_add_image_buttons.md\r\ndesign/feature_descriptions\\B_212_images_in_cards_not_shown.md\r\ndesign/feature_descriptions\\B_210_incorrect_layout_action_popup_for_commands.md\r\ndesign/feature_descriptions\\B_209_delete_action_failed.md\r\ndesign/feature_descriptions\\B_206_codex_account_usage.md\r\ndesign/feature_descriptions\\B_205_file_watcher_adds_meta_data_to_the_wrong_files.md\r\ndesign/feature_descriptions\\B_204_next_conversation_on_same_action_only_starts_if_previous_ended.md\r\ndesign/feature_descriptions\\B_198_remotecontrolconnectionerror_remote_control_connection_closed.md\r\ndesign/feature_descriptions\\B_158_remotecontrolconnectionerror_remote_control_connection_was_replaced.md\r\ndesign/feature_descriptions\\B_157_project_action_popup_doesnt_report_tokens_or_fil.md\r\ndesign/feature_descriptions\\B_121_attach_file_from_browser_not_working.md\r\ndesign/feature_descriptions\\20260614_075638.jpg\r\ndesign/feature_descriptions\\20260614_075636.jpg\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-215",
+          "kind": "event",
+          "sequence": 233,
+          "timestamp": "2026-09-24T12:18:07.318Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "design/feature_descriptions\\B_238_backend_detects_card_state_change.md\r\ndesign/feature_descriptions\\B_248_new_codex_model_is_producing_unknown_agent_events.md\r\ndesign/feature_descriptions\\B_235_end_of_action_not_logged.md\r\ndesign/feature_descriptions\\B_243_split_conversation_overly_restricted.md\r\ndesign/feature_descriptions\\B_210_incorrect_layout_action_popup_for_commands.md\r\ndesign/feature_descriptions\\F_260_remove_owner_components.md\r\ndesign/feature_descriptions\\B_246_new_diagram_shows_current_tab.md\r\ndesign/feature_descriptions\\F_331_improve_schedule_action.md\r\ndesign/feature_descriptions\\F_363_format_time_values_on_stats.md\r\ndesign/feature_descriptions\\F_370_config_dialog_project_tab_improvements.md\r\ndesign/feature_descriptions\\F_376_markdown_config_editor_improvements.md\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-216",
+          "kind": "event",
+          "sequence": 234,
+          "timestamp": "2026-09-24T12:18:07.334Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "---\r\nauthor: \r\nid: F_372\r\ninternalId: c06d609b-025a-4540-a69a-ad451e272b15\r\ntitle: Improve legend config editor\r\nstatus: ready\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__c06d609b-025a-4540-a69a-ad451e272b15.json\r\npolicy:\r\nchangedFiles:\r\n  - app/src/components/diagram_view/diagram_connection_formatting_popover.test.tsx\r\n  - app/src/components/diagram_view/diagram_connection_formatting_popover.tsx\r\n  - app/src/components/diagram_view/diagram_formatting_popover.test.tsx\r\n  - app/src/components/diagram_view/diagram_formatting_popover.tsx\r\n  - app/src/components/diagram_view/diagram_optional_formatting_fields.test.tsx\r\n  - app/src/components/diagram_view/diagram_session_legend_entries.test.tsx\r\n  - app/src/components/diagram_view/optional_color_picker_field.tsx\r\n  - app/src/components/diagram_view/optional_slider_field.tsx\r\nafter: be40e266-2bca-497c-8bf8-9fb7992ca89a\r\n---\r\nThrough the items on the legend on the diagrams  it is possible to configure the style of the items. When hovered over item, it show a gear, this opens a popup with config fields like font, size, color, fill, border. There is however little info on the popup (labels, helper text). And rhe inputs are not ok.\r\n\r\nWe already created a custom color picker, lets reuse this for colors. Use sliders for numbers,...\r\n\r\n## Current state\r\n\r\nEach legend row shows a settings button on hover or keyboard focus. Node rows open `NodeFormattingPopover`; connection rows open `ConnectionFormattingPopover`. Both editors keep a local draft, apply one category-level formatting update through `DiagramViewService` or `DiagramEditSessionService`, and discard the draft on Cancel. This supports both Current and New diagram tabs.\r\n\r\nNode formatting covers font family, font size, font color, bold, italic, underline, fill color, border color, border style, border thickness, corner radius, and content position. Connection formatting covers label font settings, line color and thickness, plus start and end markers.\r\n\r\nFields expose accessible names but almost no visible labels or guidance. Colors use plain text fields that require `#RRGGBB`. Numeric values use number fields even though their valid ranges are known: font size 1-200, border and line thickness 0-20, and corner radius 0-100. Empty optional values mean \"use theme or connection-kind default\"; parser validation and persistence already preserve this distinction.\r\n\r\n`ColorPickerField` already provides a native color input and preset swatches. Its current callers require a color, while diagram formatting colors are optional and therefore also need a clear \"Use default\" state.\r\n\r\n## Implementation details\r\n\r\n* Keep settings-button discovery, popover anchoring, local-draft behavior, Apply/Cancel timing, service ownership, and category-level persistence unchanged.\r\n* Give every control a visible label. Add short helper text where meaning, unit, default behavior, or range is not obvious. Display friendly option text such as \"Top left\" and \"Filled arrow\", while storing existing enum values unchanged.\r\n* Reuse `ColorPickerField` for font, fill, border, and line colors. Extend or compose it with an explicit \"Use default\" action for optional diagram colors. Existing card-type, column, and theme-settings callers keep required-color behavior.\r\n* Replace font size, border thickness, corner radius, and line thickness number fields with keyboard-accessible MUI sliders. Show current numeric value and unit beside each slider. Use parser bounds: 1-200 px for font size, 0-20 px for both thickness values, and 0-100 px for corner radius.\r\n* Preserve optional numeric semantics. Each slider has an explicit default/custom state: default omits the field and uses rendered theme or connection-kind behavior; custom stores slider value. Loading an existing value selects custom and shows that exact value. Returning to default removes only that override.\r\n* Keep font family as text input, font emphasis as checkboxes, and border style, content position, and endpoint markers as selects. Group node controls under Font and Box; group connection controls under Label font and Connection.\r\n* Keep footer pinned while form body scrolls. Put Cancel and Apply at bottom right. Apply validates through existing service/parser path; validation or persistence failure uses `dialogService`, leaves popover open, and keeps draft available for correction.\r\n* Extract repeated labeled color and numeric controls into focused components rather than duplicating node and connection behavior. Keep each component in its own file. Do not move draft or domain state out of existing service paths.\r\n* Update legend formatting tests to cover visible labels and helper text, preset color selection, default/custom reset, slider bounds and keyboard operation, loading saved overrides, friendly select labels with unchanged stored enums, Apply, Cancel, and error retention. Cover both node and connection editors; retain Current/New store isolation.\r\n\r\n## Acceptance criteria\r\n\r\n* Opening node or connection formatting shows a visible label for every input and concise guidance for default behavior, units, and bounded values.\r\n* Font, fill, border, and line colors use the shared color picker with native selection and preset swatches; users do not need to type a hex value.\r\n* Each optional color can be returned to \"Use default\". Applying that state omits only that color override and restores existing theme or connection-kind rendering.\r\n* Font size uses a 1-200 px slider. Border thickness and line thickness use 0-20 px sliders. Corner radius uses a 0-100 px slider. Each slider works with pointer and keyboard and exposes its label, minimum, maximum, and current value to assistive technology.\r\n* Existing numeric overrides open at their stored values. Choosing default removes the override; it does not store an arbitrary replacement value.\r\n* Font family and emphasis controls remain available. Border style, content position, start marker, and end marker show readable option labels and still persist existing enum values.\r\n* Apply performs one update for the edited node role or connection kind, then closes. Cancel, Escape, or backdrop close performs no update.\r\n* If Apply fails, existing error reporting appears, popover remains open, and entered draft values remain intact.\r\n* Current formatting continues through `DiagramViewService`; New formatting continues through `DiagramEditSessionService`. Changes stay isolated to selected tab/store and update diagram plus legend samples through existing scoped subscriptions.\r\n* Existing required-color uses of `ColorPickerField` keep their behavior.\r\n* Relevant legend formatting and shared color-picker tests pass with added coverage above.\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-217",
+          "kind": "event",
+          "sequence": 235,
+          "timestamp": "2026-09-24T12:18:07.358Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "---\r\ninternalId: eb6fb57e-6a7a-41ff-8010-a784d8998bcc\r\n---\r\n\r\n# Editable diagram contract\r\n\r\nWritten by [F_273](../feature_descriptions/F_273_define_editable_diagram_contract.md) for the jobs of\r\n[F_255 make diagrams editable](../feature_descriptions/F_255_make_diagrams_editable.md). Every later F_255 job cites\r\nthis document instead of restating it. This document adds no schema field and changes no code; it records what the\r\nimplementing jobs must build.\r\n\r\nThe contract covers all six diagram types in `DIAGRAM_TYPES` (`architecture`, `dependency`, `sequence`, `flow`,\r\n`entity`, `mindmap`) and every object the F_255 toolbox exposes.\r\n\r\n## 1. Vocabulary\r\n\r\nThese six terms are defined here once and are used with exactly this meaning everywhere else.\r\n\r\n| Term | Definition |\r\n|---|---|\r\n| **Original diagram** | The `DiagramData` parsed by `parseDiagramData` from the file at `DiagramRecord.path`, together with that `DiagramRecord`. Both are immutable for the whole edit flow: no edit, no save, and no agent handoff ever writes either of them. |\r\n| **Editable diagram** | One deep in-memory copy of that `DiagramData`, owned by the edit session of [F_275](../feature_descriptions/F_275_add_diagram_edit_session_service.md). It is model data (`DiagramData`), never positioned data. All mutations apply to it. |\r\n| **Derived layout** | Stable service-owned positioned view objects. `layout` in `app/src/services/diagrams/diagram_layout.ts` may build their initial values when a diagram loads; an ordinary edit updates only geometry affected by that edit. Derived geometry is never written into the editable diagram and is never saved. |\r\n| **Dirty** | The session's semantic change registry contains at least one entry. A mutation updates only its affected entry and never compares complete diagrams. Selection, active tool, zoom, pan, and scroll never make a session dirty, because none of them changes `DiagramData`. |\r\n| **Change set** | The ordered record of applied mutations that [F_277](../feature_descriptions/F_277_track_diagram_changes.md) tracks and [F_322](../feature_descriptions/F_322_generate_diagram_change_descriptions.md) turns into text. It describes model changes only. |\r\n| **Saved copy** | The new JSON file plus the new `DiagramRecord` created by the first save of a session. Every later save of the same session overwrites that file and updates that record only. |\r\n\r\n## 2. Object identity\r\n\r\nThe toolbox can select and delete each object type, so each one needs a stated addressing rule. Two kinds exist:\r\n**identifier-addressed** objects carry their own identifier in the JSON, and **position-addressed** content has no\r\nidentifier and is addressed as owner plus index.\r\n\r\n| Object | Addressing | Rule |\r\n|---|---|---|\r\n| Node | Identifier-addressed | `DiagramNode.id`, an opaque non-empty string. |\r\n| Edge | Identifier-addressed | `DiagramEdge.id`, an opaque non-empty string, in the **same namespace as node identifiers**. |\r\n| Group | Identifier-addressed | `DiagramGroup.id`, unique within `groups` only. |\r\n| Sequence fragment | Identifier-addressed | `DiagramSequenceFragment.id`, unique within `fragments` only. Fragments exist on sequence diagrams only. |\r\n| Diagram metadata | Singleton, no identifier | `meta` is addressed as the diagram itself. |\r\n| Entity field | Position-addressed | Owner node identifier plus index into `DiagramNode.fields`. |\r\n| Legend content | Not editable content | Derived from the diagram; see [section 6](#6-legend-resolution-of-the-f_271-conflict). |\r\n\r\nConsequences that later jobs must respect:\r\n\r\n* **One shared node and edge namespace.** `validateReferences` in `shared/diagram_data.mjs` already rejects a diagram\r\n  in which one identifier is used by both a node and an edge, so a single selection identifier can address either\r\n  object. Selection, delete, cut, copy, and the drill-down child record all rely on that.\r\n* **Generated identifiers are never derived from labels.** A newly created node, edge, group, or fragment receives a\r\n  generated identifier that carries no label text. Renaming an object therefore never changes its identity and never\r\n  orphans a group membership, a fragment region, or a drill-down child `DiagramRecord`.\r\n* **Existing identifiers are never rewritten by an edit.** This includes copy and paste inside the same diagram: the\r\n  pasted objects are new objects with new generated identifiers, and the originals keep theirs. Nothing in the edit\r\n  flow renumbers, compacts, or normalises identifiers.\r\n* **Position-addressed content reorders as an owner change.** Reordering entity fields is a change to the owning node,\r\n  not a change of identity, so [F_296](../feature_descriptions/F_296_edit_diagram_object_details.md) must not invent\r\n  per-field identifiers.\r\n\r\n### State publication\r\n\r\nThe edit session may deep-clone the source diagram once when a session starts and may traverse or serialize the\r\ncomplete editable diagram at an explicit persistence, validation, agent-output, or final-output boundary. Ordinary\r\nedits assign only the requested field on the existing service-owned object. They do not use object spread, `map`,\r\n`structuredClone`, array replacement, or complete-diagram comparison to publish an update.\r\n\r\nEach editable field has an `EventTarget` event scoped by object kind, stable object identifier, and field. Entity\r\nfields use node identifier plus field index; connection points use edge identifier plus endpoint. Collection\r\nmembership has a separate event for each object kind. Stable ordered identifier-list snapshots change reference only\r\nwhen that collection gains, loses, or reorders an object.\r\n\r\nReact leaves subscribe with `useSyncExternalStore` to the smallest primitive or stable reference they render.\r\nCollection hosts subscribe only to ordered identifier lists. Diagram roots, comparison roots, pane layouts, and\r\ntoolbox roots never subscribe to a complete `DiagramData`, `PositionedDiagramData`, or catch-all diagram event.\r\n\r\n## 3. Geometry: persisted versus derived\r\n\r\nEvery geometry field is classified below; nothing is left unclassified. Persisted geometry lives in `DiagramData` and\r\nis written to the saved copy. Derived geometry is computed by `layout` into `PositionedDiagramData` and is never\r\nwritten.\r\n\r\n### Persisted geometry\r\n\r\n| Field | Owner | Notes |\r\n|---|---|---|\r\n| `x`, `y` | `DiagramNode` | Optional; finite multiple of four. |\r\n| `width`, `height` | `DiagramNode` | Optional; positive finite multiple of four. |\r\n| `waypoints[].x`, `waypoints[].y` | `DiagramEdge` | Optional; at least two points; every segment orthogonal. |\r\n| Connection-point data | `DiagramEdge` source and target | Added by [F_274](../feature_descriptions/F_274_add_editable_connection_points.md) as node side plus relative offset. Persisted from the day F_274 adds it. |\r\n| `x`, `y`, `width`, `height` | `DiagramGroup` | **Persisted**, because F_255 requires independently positioned and sized groups. Schema and layout carry these fields since [F_278](../feature_descriptions/F_278_make_diagram_layout_compatible_with_editing.md); each field is optional and follows the same four-pixel grid rule as node geometry. A group that omits a field keeps the member-extent value for it, so existing diagrams stay readable. Member movement never recalculates a group box. |\r\n\r\n### Derived geometry\r\n\r\nEverything `layout` computes, and nothing else:\r\n\r\n| Field | Owner | Source |\r\n|---|---|---|\r\n| `x`, `y` when the node omits them | `PositionedDiagramNode` | Rank and column placement, snapped to the four-pixel grid. |\r\n| `width`, `height` when the node omits them | `PositionedDiagramNode` | Default sizes per diagram type and node kind, including entity height computed from field count. |\r\n| `fanIn` | `PositionedDiagramNode` | Incoming-edge count. |\r\n| `points` | `PositionedDiagramEdge` | Routed path, seeded by `waypoints` when they are present. |\r\n| `labelPlacement` | `PositionedDiagramEdge` | Edge label box and text position. |\r\n| `x`, `y`, `width`, `height` | `PositionedSequenceActivation` | Sequence activation bars. |\r\n| `x`, `y`, `width`, `height`, `dividerY`, `guardPositions` | `PositionedSequenceFragment` | Sequence fragment boxes and guard placement. |\r\n| `x`, `y`, `width`, `height` when the group omits them | `PositionedDiagramGroup` | Member-node extents plus padding. |\r\n| `width`, `height` | `PositionedDiagramData` | Surface size. |\r\n\r\nMindmap nodes persist `width` and `height` together. Editor resizing keeps both values equal. Mindmap connections\r\npersist no waypoints or connection points: circle-boundary endpoints, one quadratic BÃ©zier control point, and label\r\nplacement at the curve midpoint are derived geometry. Unpositioned mindmap topics use deterministic concentric rings\r\nbased on shortest undirected distance from the root; persisted node positions remain authoritative.\r\n\r\n### Rules binding on edited geometry\r\n\r\n* **Four-pixel grid.** Every persisted coordinate and size stays a finite multiple of four, because\r\n  `requireGridNumber` in `shared/diagram_data.mjs` rejects anything else. Pointer coordinates are snapped to the grid\r\n  *before* they reach the editable diagram, not at save time.\r\n* **Orthogonal waypoints.** Every waypoint segment changes one coordinate only, because `parseWaypoints` rejects a\r\n  segment in which both coordinates change.\r\n* **The editable diagram is never populated from `PositionedDiagramData`.** Because `PositionedDiagramNode extends\r\n  DiagramNode` and `PositionedDiagramEdge extends DiagramEdge`, a derived coordinate and a persisted coordinate are\r\n  indistinguishable by shape once layout has run. Writing a positioned object back into the model would silently\r\n  promote layout defaults into persisted geometry for every untouched object in the diagram. A mutation therefore\r\n  writes only the fields the user actually changed, onto the editable model object.\r\n\r\nBecause the same grid and orthogonality rules apply, an edited diagram parses under exactly the same validator as an\r\nauthored one.\r\n\r\n## 4. Validation layers\r\n\r\nValidation is split across three layers. No layer is permitted to relax a rule the parser enforces.\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-218",
+          "kind": "event",
+          "sequence": 236,
+          "timestamp": "2026-09-24T12:18:07.427Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "---\r\nauthor: \r\nid: F_376\r\ninternalId: f74940ea-692a-487e-a021-7e2f5f10d236\r\ntitle: Markdown config editor improvements\r\nstatus: ready\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__f74940ea-692a-487e-a021-7e2f5f10d236.json\r\npolicy:\r\nafter: 64876822-b48e-450e-b7c7-68fd8d2ba6bd\r\nbranch: f_376_markdown_config_editor_improvements\r\nworktree: 2\r\nchangedFiles:\r\n  - app/src/components/config/markdown_style_preview.tsx\r\n---\r\nOn the config dialog, makdown tab, we allow configuration of markdown style. This is currently split in preview and edit. This makes no sense. When user clicks on item in preview,  show popup with config. Drop edit section below.\r\n\r\n## Current state\r\n\r\n* `MarkdownConfigSection` (`app/src/components/config/markdown_config_section.tsx`) renders, top to bottom: the `Style` select, `MarkdownStylePreview`, then one `MarkdownSectionEditor` accordion per entry in `MARKDOWN_SECTIONS` (11 sections: `title1`, `title2`, `title3`, `body`, `caption`, `link`, `list`, `blockquote`, `inlineCode`, `codeBlock`, `table`). It also owns `MARKDOWN_SECTION_LABELS` and `handleSectionChange`, which writes the edited section into the config and switches the style name to `custom`.\r\n* `MarkdownStylePreview` (`markdown_style_preview.tsx`) is read-only. It renders static sample markup (`h1`, `h2`, `h3`, `p` with an `a` and inline `code`, `ul`/`li`, `blockquote`, `pre code`, `table`, `small`) styled by `buildMarkdownContentSx(config)`. The sample link has `href=\"#markdown-preview\"`; clicking it replaces the `#/config/markdown` route hash, which `app_navigation.ts` listens to.\r\n* `MarkdownSectionEditor` (`markdown_section_editor.tsx`) is an `Accordion` with local `expanded` state. Its fields (font family, font size, line height, color, space before, space after, bold/italic/underline switches) call `onChange(section, style)` on every keystroke, so edits are live: `ConfigPage` holds the draft, the preview repaints, and the config page `Save` / `Cancel` buttons persist or discard.\r\n* Tests: `config_page.test.tsx` opens the Body accordion with `getByRole('button', { name: 'Body' })` in three tests. `markdown_style_preview.test.tsx` renders the preview with only `config`.\r\n* `design/architecture/class_relationships.md` shows `MarkdownConfigSection --> MarkdownSectionEditor`.\r\n\r\n## Implementation details\r\n\r\n* **Terms.** *Preview element*: one sample element in the preview that represents a markdown section. *Style popover*: an MUI `Popover` anchored to the clicked preview element, holding the section's style fields.\r\n* **Preview owns section selection.** `MarkdownStylePreview` gets a new prop `onSectionChange(section, style)` and keeps transient popover state `{ anchorElement, section } | null` in `useState`. It renders `MarkdownSectionEditor` for the selected section with `style={config[section]}`, so the popover always shows the current draft.\r\n* **Tag preview elements.** Mark each preview element with `data-markdown-section=\"<section>\"`: `h1`â†’`title1`, `h2`â†’`title2`, `h3`â†’`title3`, body `p`â†’`body`, `a`â†’`link`, inline `code`â†’`inlineCode`, `ul`â†’`list`, `blockquote`â†’`blockquote`, `pre`â†’`codeBlock`, `table`â†’`table`, `small`â†’`caption`. One click handler constant on the `.mdxeditor-content` box resolves `event.target.closest('[data-markdown-section]')`; the innermost tag wins, so clicking the link inside the body paragraph opens Link, not Body. Clicks outside any tagged element do nothing. Resolve the attribute value against `MARKDOWN_SECTIONS` instead of casting.\r\n* **Keyboard and affordance.** Each tagged element gets `tabIndex={0}` and `aria-label=\"Edit <label> style\"`; Enter or Space opens its popover. Hover and focus show `cursor: pointer` and an outline in the theme primary color, per `design/STYLE_GUIDE.md`. Remove `href` from the sample link so clicking it no longer changes the route hash.\r\n* **Hint text.** Below the `Preview` subtitle add `Click an element to edit its style.` in `text.secondary`.\r\n* **Labels move.** Move `MARKDOWN_SECTION_LABELS` from `markdown_config_section.tsx` into `markdown_style_preview.tsx`, its only remaining user.\r\n* **Editor becomes the popover.** Change `MarkdownSectionEditor` from `Accordion` to `Popover`: props `anchorElement`, `label`, `onChange`, `onClose`, `section`, `style`; drop the `expanded` state. Keep all fields, field names and field labels (for example `Font size for Body`) unchanged. Title `<label> style` (`subtitle2`); body scrolls with `maxHeight: '70vh'`, matching `diagram_formatting_popover.tsx`. No Apply/Cancel buttons: edits stay live, and Escape or click-away closes the popover. The config page `Save` / `Cancel` stay the only commit and discard.\r\n* **Config section.** `MarkdownConfigSection` passes `onSectionChange={handleSectionChange}` to the preview and drops the accordion list and its `Stack`. Style select and helper text stay.\r\n* **Edge cases.**\r\n  * Changing the style select while a popover is open: not possible, the popover is modal and click-away closes it first.\r\n  * Font size or spacing changes move the anchor element; the popover keeps its opening position until reopened. Accepted.\r\n  * Switching preset after edits keeps the existing `window.confirm` flow unchanged.\r\n  * Popover shows invalid text values as typed; `isMarkdownStyleConfig` in `ConfigPage` keeps disabling `Save`, as today.\r\n* **Docs.** Update `design/architecture/class_relationships.md`: replace `MarkdownConfigSection --> MarkdownSectionEditor` with `MarkdownStylePreview --> MarkdownSectionEditor`.\r\n* **Tests.**\r\n  * `config_page.test.tsx`: replace `getByRole('button', { name: 'Body' })` with a click on the preview element labelled `Edit Body style`. In `keeps custom settings when replacing them is not confirmed`, close the popover with Escape before opening the `Style` select, because the modal popover hides the rest of the page from role queries, then reopen Body to assert the kept value.\r\n  * `markdown_style_preview.test.tsx`: pass `onSectionChange` in existing tests; add tests that a click on a preview element opens the popover titled with its label, that clicking the link inside the body paragraph opens Link, that Enter on a focused element opens its popover, that a field change calls `onSectionChange` with the section and updated style, and that Escape closes the popover.\r\n\r\n## Acceptance criteria\r\n\r\n* The Markdown config tab shows the style select and the preview only; no section accordion list remains below the preview.\r\n* The preview shows the hint `Click an element to edit its style.`.\r\n* Clicking any of the 11 preview elements opens a popover anchored to it, titled with that section's label, holding the same fields as the old accordion.\r\n* Clicking the link or inline code inside the body paragraph opens Link or Inline code, not Body.\r\n* Preview elements are reachable by Tab; Enter or Space opens their popover.\r\n* Editing a field in the popover updates the preview immediately and switches the style select to `Custom`.\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-219",
+          "kind": "event",
+          "sequence": 237,
+          "timestamp": "2026-09-24T12:18:14.210Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "---\r\nauthor: \r\nid: F_260\r\ninternalId: 2775052a-2e84-4466-a320-155c8ec05bac\r\ntitle: remove owner components\r\nstatus: design\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__2775052a-2e84-4466-a320-155c8ec05bac.json\r\npolicy:\r\nafter: 6cd6114a-3b33-430b-895f-df592f272062\r\n---\r\n\r\nwe currently have a lot of components that wrap another component, have the same name as the componet they wrap with '\\_owner' appended and just wrap those components in order to pass a prop into them.\r\n\r\nThis is the wrong architectural approach. we don't want to use this. The idea comes from an instruction that those components need to be self contained: a change in the property should not trigger a render in the parent. Meaning, these should never have been properties. Updates to these properties come from events and this should be handled within the component.\r\n\r\nSo we need to refactor and remove all those \\_owner versions, put the value updates inside the components, remove the properties and replace the '\\_owner' versions with the proper components.\r\n\r\nex: `app\\src\\components\\actions\\run\\popup\\action_usage_summary_owner.tsx` and `app\\src\\components\\actions\\run\\popup\\action_usage_summary.tsx`\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-220",
+          "kind": "event",
+          "sequence": 238,
+          "timestamp": "2026-09-24T12:18:14.318Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "\r\nLines Words Characters Property\r\n----- ----- ---------- --------\r\n    0                          \r\n\r\n\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-221",
+          "kind": "event",
+          "sequence": 239,
+          "timestamp": "2026-09-24T12:18:14.465Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "design/feature_descriptions\\F_94_no_prefill_prompt_running_conv.md.bak\r\ndesign/feature_descriptions\\F_376_markdown_config_editor_improvements.md\r\ndesign/feature_descriptions\\F_375_mindmap_editing_improvements.md\r\ndesign/feature_descriptions\\F_374_add_docs_about_editable_diagrams.md\r\ndesign/feature_descriptions\\F_373_add_docs_about_mindmaps.md\r\ndesign/feature_descriptions\\F_372_improve_legend_config_editor.md\r\ndesign/feature_descriptions\\F_371_remove_react_app_tab_from_config_dialog.md\r\ndesign/feature_descriptions\\F_370_config_dialog_project_tab_improvements.md\r\ndesign/feature_descriptions\\F_369_allow_users_to_add_new_empty_diagrams.md\r\ndesign/feature_descriptions\\F_368_add_mindmaps_to_diagrams.md\r\ndesign/feature_descriptions\\F_367_add_support_for_jest.md\r\ndesign/feature_descriptions\\F_366_add_support_for_agent_specific_instructions_on_actions_and_global.md\r\ndesign/feature_descriptions\\F_365_diagram_toolbar_improvements.md\r\ndesign/feature_descriptions\\F_364_animate_and_show_state_on_diagram_fab.md\r\ndesign/feature_descriptions\\F_363_format_time_values_on_stats.md\r\ndesign/feature_descriptions\\F_362_schedule_action_as_popup.md\r\ndesign/feature_descriptions\\F_361_on_mobile_dont_show_project_name_next_to_menu.md\r\ndesign/feature_descriptions\\F_360_move_stats_toolbar_to_main_app_bar.md\r\ndesign/feature_descriptions\\F_359_stats_on_small_screen.md\r\ndesign/feature_descriptions\\F_357_add_card_sequence_dialog.md\r\ndesign/feature_descriptions\\F_356_add_scheduled_card_sequence_engine.md\r\ndesign/feature_descriptions\\F_355_add_schedule_trigger_controls.md\r\ndesign/feature_descriptions\\F_354_add_active_schedules_dialog.md\r\ndesign/feature_descriptions\\F_353_run_schedules_from_account_and_card_events.md\r\ndesign/feature_descriptions\\F_350_action_idea.md\r\ndesign/feature_descriptions\\F_349_pin_conversations.md\r\ndesign/feature_descriptions\\F_345_remove_attach_and_open_in_list_view_icons_from_card.md\r\ndesign/feature_descriptions\\F_336_add_docs_for_diagrams.md\r\ndesign/feature_descriptions\\F_335_include_cost_per_release.md\r\ndesign/feature_descriptions\\F_334_remove_5_hourly_account_usage.md\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-222",
+          "kind": "event",
+          "sequence": 240,
+          "timestamp": "2026-09-24T12:18:14.546Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "\r\nLines Words Characters Property\r\n----- ----- ---------- --------\r\n   43                          \r\n\r\n\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-223",
+          "kind": "event",
+          "sequence": 241,
+          "timestamp": "2026-09-24T12:18:35.602Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "app/src\\services\\diagrams\\diagram_resize_service.ts\r\napp/src\\services\\diagrams\\diagram_move_service.ts\r\napp/src\\components\\diagram_view\\legend\\diagram_legend_entry_row.tsx\r\napp/src\\components\\diagram_view\\legend\\diagram_legend_entry_editor.tsx\r\napp/src\\components\\diagram_view\\legend\\diagram_legend_details_editor.tsx\r\napp/src\\components\\diagram_view\\formatting\\diagram_formatting_scale_control.tsx\r\napp/src\\components\\diagram_view\\editing\\diagram_inline_metadata_field.tsx\r\napp/src\\components\\diagram_view\\editing\\diagram_inline_node_controls.tsx\r\napp/src\\components\\diagram_view\\details\\diagram_edge_details_editor.tsx\r\napp/src\\components\\diagram_view\\details\\diagram_fragment_form.tsx\r\napp/src\\components\\diagram_view\\details\\diagram_metadata_details_editor.tsx\r\napp/src\\components\\diagram_view\\details\\diagram_group_details_editor.tsx\r\napp/src\\components\\diagram_view\\details\\diagram_node_details_editor.tsx\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-224",
+          "kind": "event",
+          "sequence": 242,
+          "timestamp": "2026-09-24T12:18:35.668Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "app/src\\services\\diagrams\\diagram_selection_service.ts\r\napp/src\\services\\diagrams\\diagram_paste.ts\r\napp/src\\services\\diagrams\\diagram_node_placement_service.ts\r\napp/src\\services\\diagrams\\diagram_group_drawing_service.ts\r\napp/src\\services\\diagrams\\diagram_edge_drawing_service.ts\r\napp/src\\services\\diagrams\\diagram_cut.ts\r\napp/src\\components\\diagram_view\\details\\diagram_group_membership_editor.tsx\r\napp/src\\components\\diagram_view\\details\\diagram_fragment_form.tsx\r\napp/src\\components\\diagram_view\\details\\diagram_edge_details_editor.tsx\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-225",
+          "kind": "event",
+          "sequence": 243,
+          "timestamp": "2026-09-24T12:18:35.831Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-event-244",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "item_16",
+          "sequence": 244,
+          "status": "completed",
+          "timestamp": "2026-09-24T12:19:43.823Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "rg: design/feature_descriptions/diagram_edit_refactor_0*.md: IO error for operation on design/feature_descriptions/diagram_edit_refactor_0*.md: The filename, directory name, or volume label syntax is incorrect. (os error 123)\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-227",
+          "kind": "event",
+          "sequence": 245,
+          "timestamp": "2026-09-24T12:19:53.261Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-event-246",
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "item_23",
+          "sequence": 246,
+          "status": "completed",
+          "timestamp": "2026-09-24T12:20:12.717Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "False\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-229",
+          "kind": "event",
+          "sequence": 247,
+          "timestamp": "2026-09-24T12:20:15.889Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "\r\nPath                            \r\n----                            \r\nC:\\Users\\janbo\\Documents\\dev\\md2\r\n\r\n\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-230",
+          "kind": "event",
+          "sequence": 248,
+          "timestamp": "2026-09-24T12:20:19.002Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "True\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-231",
+          "kind": "event",
+          "sequence": 249,
+          "timestamp": "2026-09-24T12:21:28.732Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "\r\nPath                            \r\n----                            \r\nC:\\Users\\janbo\\Documents\\dev\\md2\r\n\r\n\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-232",
+          "kind": "event",
+          "sequence": 250,
+          "timestamp": "2026-09-24T12:21:29.122Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\probe.md\r\nTrue\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-233",
+          "kind": "event",
+          "sequence": 251,
+          "timestamp": "2026-09-24T12:21:29.518Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "False\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-234",
+          "kind": "event",
+          "sequence": 252,
+          "timestamp": "2026-09-24T12:21:29.907Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "True\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-235",
+          "kind": "event",
+          "sequence": 253,
+          "timestamp": "2026-09-24T12:21:49.921Z",
+          "type": "tool.command_execution"
+        },
+        {
+          "content": "True\r\n",
+          "id": "agent-turn-c168561e-c74c-42e8-a67a-3037d5f90301-provider-236",
+          "kind": "event",
+          "sequence": 254,
+          "timestamp": "2026-09-24T12:22:01.637Z",
+          "type": "tool.command_execution"
         }
       ],
       "hasExplicitTitle": true,
@@ -10047,13 +10246,13 @@
         }
       ],
       "startedAt": "2026-09-24T09:59:56.000Z",
-      "status": "completed",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
           "reasoningMs": 0,
           "toolMs": 0
         },
-        "elapsedMs": 2411206,
+        "elapsedMs": 2685544,
         "runningStartedAt": null
       },
       "title": "largest files",
@@ -10816,11 +11015,11 @@
         "agent-a657432f-7d20-4f58-86bd-ddc2061a2634"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-6208a2a3-95fc-491d-b023-ce6b307c5c73",
       "origin": {
@@ -10828,9 +11027,9 @@
       },
       "rootActionId": "babd3e90-6a91-4f4b-9a58-70463771833f",
       "rootActionLabel": "largest files",
-      "rootConversationId": "agent-a657432f-7d20-4f58-86bd-ddc2061a2634",
       "startedAt": "2026-09-24T12:12:36.866Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a657432f-7d20-4f58-86bd-ddc2061a2634"
     }
   ],
   "version": 5
