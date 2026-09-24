@@ -5,7 +5,6 @@ import { HorizontalScrollArea, SCROLL_STEP } from './horizontal_scroll_area';
 const SCROLLER_WIDTH = 300;
 const OVERFLOWING_CONTENT_WIDTH = 800;
 const FITTING_CONTENT_WIDTH = 200;
-const PLACEHOLDER_TOTAL_WIDTH = 64;
 const WHEEL_DELTA = 120;
 
 interface ScrollLayout {
@@ -27,7 +26,7 @@ function renderScrollArea(contentWidth: number, scrollLeft = 0): ScrollHarness {
         </HorizontalScrollArea>,
     );
     const content = screen.getByRole('button', { name: 'First' }).parentElement;
-    const scroller = content?.parentElement?.parentElement;
+    const scroller = content?.parentElement;
     if (!content || !scroller) throw new Error('Expected scroll area structure');
     const layout: ScrollLayout = { contentWidth, scrollLeft };
     const scrollBy = vi.fn();
@@ -40,7 +39,7 @@ function renderScrollArea(contentWidth: number, scrollLeft = 0): ScrollHarness {
             get: () => layout.scrollLeft,
             set: (value: number) => { layout.scrollLeft = value; },
         },
-        scrollWidth: { configurable: true, get: () => layout.contentWidth + PLACEHOLDER_TOTAL_WIDTH },
+        scrollWidth: { configurable: true, get: () => layout.contentWidth },
     });
     fireEvent.scroll(scroller);
 
@@ -48,18 +47,17 @@ function renderScrollArea(contentWidth: number, scrollLeft = 0): ScrollHarness {
 }
 
 function scrollEndPosition() {
-    return OVERFLOWING_CONTENT_WIDTH + PLACEHOLDER_TOTAL_WIDTH - SCROLLER_WIDTH;
+    return OVERFLOWING_CONTENT_WIDTH - SCROLLER_WIDTH;
 }
 
 describe('HorizontalScrollArea', () => {
     afterEach(cleanup);
 
-    it('shows no buttons or placeholders when content fits', () => {
+    it('shows no buttons when content fits', () => {
         renderScrollArea(FITTING_CONTENT_WIDTH);
 
         expect(screen.queryByRole('button', { name: 'Scroll left' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Scroll right' })).not.toBeInTheDocument();
-        expect(screen.queryByTestId('scroll-placeholder-start')).not.toBeInTheDocument();
     });
 
     it('shows only the right button at the start', () => {
@@ -67,8 +65,6 @@ describe('HorizontalScrollArea', () => {
 
         expect(screen.queryByRole('button', { name: 'Scroll left' })).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Scroll right' })).toBeInTheDocument();
-        expect(screen.getByTestId('scroll-placeholder-start')).toBeInTheDocument();
-        expect(screen.getByTestId('scroll-placeholder-end')).toBeInTheDocument();
     });
 
     it('shows both buttons in the middle', () => {
