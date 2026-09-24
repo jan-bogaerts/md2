@@ -72,6 +72,12 @@ Cards, design notes, plans, and other project information are ordinary Markdown 
 
 Agents can read and update them directly without requiring access to an external project-management service. The files can also be searched, diffed, versioned, and edited with normal development tools.
 
+### Visual diagrams for project structure
+
+Create architecture, dependency, sequence, flowchart, state, entity, and mindmap diagrams to see how parts of a project connect. Start with an empty diagram or generate one with a diagram action. Use an item's menu to open a more detailed child diagram, then follow the breadcrumbs back through the project.
+
+Diagrams are saved as JSON in the repository. Edit them visually, compare changes with the original, and review the changes before saving a copy or sending them to an agent. [Learn how diagrams work](https://jan-bogaerts.github.io/md2/guide/diagrams/).
+
 ### Reusable, controlled actions
 
 Repeated prompts often grow into large collections of instructions or skills. Loading all of them can consume tokens and introduce irrelevant context.
