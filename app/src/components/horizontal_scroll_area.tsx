@@ -3,7 +3,7 @@ import ChevronLeft from 'mdi-material-ui/ChevronLeft';
 import ChevronRight from 'mdi-material-ui/ChevronRight';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
-/** Width of each floating scroll button and of the placeholders reserving space for it. */
+/** Width of each floating scroll button. */
 export const SCROLL_BUTTON_WIDTH = 32;
 /** Distance scrolled by one scroll button click. */
 export const SCROLL_STEP = 200;
@@ -17,25 +17,21 @@ interface HorizontalScrollAreaProps {
 interface ScrollState {
     canScrollEnd: boolean
     canScrollStart: boolean
-    overflowing: boolean
 }
 
-const NO_SCROLL: ScrollState = { canScrollEnd: false, canScrollStart: false, overflowing: false };
+const NO_SCROLL: ScrollState = { canScrollEnd: false, canScrollStart: false };
 
 /** Reads overflow and scroll-direction availability from the scroller and its content. */
 function measureScrollState(scroller: HTMLElement, content: HTMLElement): ScrollState {
-    const overflowing = content.scrollWidth > scroller.clientWidth;
-    if (!overflowing) return NO_SCROLL;
+    if (content.scrollWidth <= scroller.clientWidth) return NO_SCROLL;
     const canScrollStart = scroller.scrollLeft > SCROLL_EDGE_TOLERANCE;
     const canScrollEnd = scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - SCROLL_EDGE_TOLERANCE;
 
-    return { canScrollEnd, canScrollStart, overflowing };
+    return { canScrollEnd, canScrollStart };
 }
 
 function isSameScrollState(left: ScrollState, right: ScrollState) {
-    return left.canScrollEnd === right.canScrollEnd
-        && left.canScrollStart === right.canScrollStart
-        && left.overflowing === right.overflowing;
+    return left.canScrollEnd === right.canScrollEnd && left.canScrollStart === right.canScrollStart;
 }
 
 function startFade(theme: Theme) {
@@ -58,7 +54,6 @@ const buttonContainerSx = {
 } as const;
 const startButtonContainerSx = { ...buttonContainerSx, background: startFade, left: 0 };
 const endButtonContainerSx = { ...buttonContainerSx, background: endFade, right: 0 };
-const placeholderSx = { flexShrink: 0, width: SCROLL_BUTTON_WIDTH };
 const scrollerSx = {
     display: 'flex',
     gap: 'inherit',
@@ -69,7 +64,6 @@ const scrollerSx = {
     scrollPaddingInline: `${SCROLL_BUTTON_WIDTH}px`,
     '&::-webkit-scrollbar': { display: 'none' },
 } as const;
-const rowSx = { alignItems: 'center', display: 'flex', gap: 'inherit', minWidth: '100%', width: 'max-content' };
 const contentSx = { alignItems: 'center', display: 'flex', flex: '1 0 auto', gap: 'inherit' };
 const rootSx = { flex: 1, gap: 'inherit', minWidth: 0, position: 'relative' };
 
@@ -126,7 +120,7 @@ export function HorizontalScrollArea(props: HorizontalScrollAreaProps) {
         scrollerRef.current?.scrollBy({ behavior: 'smooth', left: SCROLL_STEP });
     }, []);
 
-    const { canScrollEnd, canScrollStart, overflowing } = scrollState;
+    const { canScrollEnd, canScrollStart } = scrollState;
 
     return (
         <Box sx={rootSx}>
@@ -138,12 +132,8 @@ export function HorizontalScrollArea(props: HorizontalScrollAreaProps) {
                 </Box>
             ) : null}
             <Box ref={scrollerRef} sx={scrollerSx}>
-                <Box sx={rowSx}>
-                    {overflowing ? <Box data-testid="scroll-placeholder-start" sx={placeholderSx} /> : null}
-                    <Box ref={contentRef} sx={contentSx}>
-                        {children}
-                    </Box>
-                    {overflowing ? <Box data-testid="scroll-placeholder-end" sx={placeholderSx} /> : null}
+                <Box ref={contentRef} sx={contentSx}>
+                    {children}
                 </Box>
             </Box>
             {canScrollEnd ? (
