@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "d35077d6-dd5e-4bba-a00b-ad28b7e7df70",
+      "cardPath": "design/feature_descriptions/J_52_speed_up_creating_new_cards.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/J_52_speed_up_creating_new_cards.md, analyze the trace and report your findings. search for code that should not be running, too much work being done, repetitive re-renders. include proposed solutions",
+          "id": "agent-turn-b0e27225-20ca-4e18-91df-1e3d3d2c4628-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-24T08:32:43.513Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-903bdd40-c69b-4176-87f4-8d420488a50a",
+      "providerSessions": [],
+      "startedAt": "2026-09-24T08:32:43.513Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-24T08:32:43.513Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "d35077d6-dd5e-4bba-a00b-ad28b7e7df70",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
