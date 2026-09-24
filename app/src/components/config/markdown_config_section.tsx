@@ -1,7 +1,6 @@
 import { Box, FormControl, FormHelperText, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import {
-    MARKDOWN_SECTIONS,
     MARKDOWN_STYLE_NAMES,
     MARKDOWN_STYLE_PRESETS,
     cloneMarkdownStyleConfig,
@@ -12,22 +11,7 @@ import {
     type MarkdownStyleName,
 } from '../../theme/theme_config'
 import { dialogService } from '../../services/dialog_service'
-import { MarkdownSectionEditor } from './markdown_section_editor'
 import { MarkdownStylePreview } from './markdown_style_preview'
-
-const MARKDOWN_SECTION_LABELS: Record<MarkdownSection, string> = {
-    title1: 'Title 1',
-    title2: 'Title 2',
-    title3: 'Title 3',
-    body: 'Body',
-    caption: 'Caption',
-    link: 'Links',
-    list: 'Lists',
-    blockquote: 'Blockquotes',
-    inlineCode: 'Inline code',
-    codeBlock: 'Code blocks',
-    table: 'Tables',
-}
 
 const REPLACE_CUSTOM_STYLE_MESSAGE = 'Replace custom Markdown settings with the selected predefined style?'
 
@@ -91,18 +75,7 @@ export function MarkdownConfigSection(props: MarkdownConfigSectionProps) {
                         Editing a predefined style creates a custom global style.
                     </FormHelperText>
                 </FormControl>
-                <MarkdownStylePreview config={config} />
-                <Stack spacing={1}>
-                    {MARKDOWN_SECTIONS.map((section) => (
-                        <MarkdownSectionEditor
-                            key={section}
-                            label={MARKDOWN_SECTION_LABELS[section]}
-                            onChange={handleSectionChange}
-                            section={section}
-                            style={config[section]}
-                        />
-                    ))}
-                </Stack>
+                <MarkdownStylePreview config={config} onSectionChange={handleSectionChange} />
             </Stack>
         </Box>
     )

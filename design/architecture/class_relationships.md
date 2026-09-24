@@ -492,7 +492,7 @@ classDiagram
     ConfigValueEditor --> AgentProfilesEditor
     AgentProfilesEditor --> AgentProfileForm
     AgentProfilesEditor --> AgentProfileRow
-    MarkdownConfigSection --> MarkdownSectionEditor
+    MarkdownStylePreview --> MarkdownSectionEditor
     MarkdownConfigSection --> MarkdownStylePreview
     WorktreeConfigList --> WorktreeConfigRow
     ConfigPage --> ConfigService : edits configuration

@@ -1,33 +1,30 @@
 import {
-    Accordion,
-    AccordionDetails,
-    AccordionSummary,
+    Box,
     FormControlLabel,
+    Popover,
     Stack,
     Switch,
     TextField,
     Typography,
 } from '@mui/material'
-import { useState, type ChangeEvent, type SyntheticEvent } from 'react'
+import type { ChangeEvent } from 'react'
 import type { MarkdownSection, MarkdownSectionStyle } from '../../theme/theme_config'
 
 type MarkdownStyleTextField = 'color' | 'fontFamily' | 'fontSize' | 'lineHeight' | 'marginBottom' | 'marginTop'
 type MarkdownStyleFormattingField = keyof MarkdownSectionStyle['formatting']
 
 interface MarkdownSectionEditorProps {
+    anchorElement: HTMLElement
     label: string
     onChange: (section: MarkdownSection, style: MarkdownSectionStyle) => void
+    onClose: () => void
     section: MarkdownSection
     style: MarkdownSectionStyle
 }
 
+/** Live style editor for one markdown section, shown as a popover anchored to its preview element. */
 export function MarkdownSectionEditor(props: MarkdownSectionEditorProps) {
-    const { label, onChange, section, style } = props
-    const [expanded, setExpanded] = useState(false)
-
-    const handleExpandedChange = (_event: SyntheticEvent, nextExpanded: boolean) => {
-        setExpanded(nextExpanded)
-    }
+    const { anchorElement, label, onChange, onClose, section, style } = props
 
     const handleTextChange = (event: ChangeEvent<HTMLInputElement>) => {
         const field = event.target.name as MarkdownStyleTextField
@@ -40,12 +37,10 @@ export function MarkdownSectionEditor(props: MarkdownSectionEditorProps) {
     }
 
     return (
-        <Accordion disableGutters expanded={expanded} onChange={handleExpandedChange}>
-            <AccordionSummary>
-                <Typography component="h4" variant="subtitle1">{label}</Typography>
-            </AccordionSummary>
-            {expanded ? <AccordionDetails>
+        <Popover anchorEl={anchorElement} onClose={onClose} open>
+            <Box sx={{ maxHeight: '70vh', overflowY: 'auto', p: 2, width: 480 }}>
                 <Stack spacing={2}>
+                    <Typography component="h4" variant="subtitle2">{`${label} style`}</Typography>
                     <TextField
                         fullWidth
                         label={`Font family for ${label}`}
@@ -113,7 +108,7 @@ export function MarkdownSectionEditor(props: MarkdownSectionEditorProps) {
                         />
                     </Stack>
                 </Stack>
-            </AccordionDetails> : null}
-        </Accordion>
+            </Box>
+        </Popover>
     )
 }
