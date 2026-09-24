@@ -96,7 +96,7 @@ function renderSummary(options: RenderSummaryOptions = {}) {
         <AppThemeProvider>
             <ActionUsageSummary
                 onToggleScope={options.onToggleScope ?? vi.fn()}
-                snapshot={{ ...usage, activeScope, conversationAvailable: !!displayedConversation }}
+                snapshot={{ ...usage, activeScope, actionScopeLabel: 'Action/card', conversationAvailable: !!displayedConversation }}
             />
         </AppThemeProvider>,
     )

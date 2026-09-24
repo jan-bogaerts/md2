@@ -8,7 +8,7 @@ const {
     recordClaudeAssistantUsage,
 } = require('./agent_claude_events');
 const { codexTranscriptEvents } = require('./agent_codex_events');
-const { normalizeCodexEvent } = require('./agent_codex_event');
+const { diagnosticEvent, normalizeCodexEvent } = require('./agent_codex_event');
 const { JsonLineBuffer } = require('./agent_event_utils');
 
 const MISSING_SESSION_CODES = new Set([
@@ -41,9 +41,22 @@ function codexUsage(event) {
     }, usage.total_tokens);
 }
 
-function providerTranscriptEvents(agent, event) {
+/** Translate codex exec item fields into the shared provider-event shape. */
+function normalizeCodexExecItem(item) {
+    if (!item || item.type !== 'command_execution') return item;
+
+    return {
+        ...item,
+        aggregatedOutput: item.aggregated_output,
+        exitCode: item.exit_code,
+        status: item.status === 'in_progress' ? 'inProgress' : item.status,
+        type: 'commandExecution',
+    };
+}
+
+function providerTranscriptEvents(agent, event, providerEvents) {
     if (agent !== 'codex') return claudeTranscriptEvents(event);
-    if (event.type !== 'item.completed' || !event.item) return [];
+    if (event.type !== 'item.completed' || !event.item || providerEvents.length > 0) return [];
 
     return codexTranscriptEvents(event.item);
 }
@@ -156,15 +169,27 @@ class AgentProviderProtocolParser {
         if (this.agent === 'claude') recordClaudeAssistantUsage(this.claudeMessageUsages, event);
         const usage = this.providerUsage(event);
         const assistantText = this.agent === 'codex' ? codexAssistantText(event) : claudeAssistantText(event);
+        const codexItemEvent = this.agent === 'codex'
+            && (event.type === 'item.started' || event.type === 'item.completed')
+            && event.item;
+        const normalizedItem = codexItemEvent ? normalizeCodexExecItem(event.item) : null;
+        const lifecycleStatus = event.type === 'item.started' ? 'inProgress' : 'completed';
+        const normalizedEvent = normalizedItem
+            ? normalizeCodexEvent(normalizedItem, lifecycleStatus, this.rootPath)
+            : null;
+        const providerEvents = normalizedEvent ? [normalizedEvent] : this.claudeFileResultDecoder?.decode(event) ?? [];
+        const transcriptEvents = providerTranscriptEvents(this.agent, event, providerEvents);
+        if (codexItemEvent && event.type === 'item.completed' && providerEvents.length === 0 && transcriptEvents.length === 0
+            && event.item.type !== 'agent_message' && event.item.type !== 'error' && event.item.type !== 'user_message') {
+            providerEvents.push(diagnosticEvent('item.completed', event.item.type, event.item.id, 0));
+        }
         this.onEvent({
             assistantText,
             conversationId: providerConversationId(this.agent, event),
             errorText: providerErrorText(this.agent, event),
             missingSession,
-            providerEvents: this.agent === 'codex' && event.type === 'item.completed'
-                ? [normalizeCodexEvent(event.item, 'completed', this.rootPath)].filter((providerEvent) => providerEvent !== null)
-                : this.claudeFileResultDecoder?.decode(event) ?? [],
-            transcriptEvents: providerTranscriptEvents(this.agent, event),
+            providerEvents,
+            transcriptEvents,
             turnStarted: this.turnStarted,
             usage,
         });

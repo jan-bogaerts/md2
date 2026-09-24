@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
 const { CodexRuntimeService } = require('./codex_runtime_service');
 const { createRun } = require('./agent_run_state');
+const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 
 function diagnosticStreamingEvent(content, providerItemId) {
     return {
@@ -150,6 +151,40 @@ describe('AgentRunnerService published run status', () => {
 });
 
 describe('AgentRunnerService state handling', () => {
+    it('replaces a running codex exec command and persists turn usage once at close', async () => {
+        const { onEvent, run, service } = streamingRunService();
+        run.streaming = false;
+        run.child = { pid: 10 };
+        run.conversation.id = 'conversation-1';
+        run.conversation.entries.push({ content: 'Run', id: 'user-1', kind: 'message', role: 'user', timestamp: 'now' });
+        const recordTokenUsage = vi.fn(async () => true);
+        service.usageMetricsService = { recordTokenUsage };
+        const parser = createAgentProviderProtocolParser('codex', (event) => service.handleProviderEvent(run.id, event), vi.fn(), 'C:/repo');
+        const command = { command: 'rg term app', id: 'item_3', type: 'command_execution' };
+
+        parser.push(`${JSON.stringify({ item: { ...command, status: 'in_progress' }, type: 'item.started' })}\n`);
+
+        expect(run.conversation.entries.at(-1)).toMatchObject({providerItemId: 'item_3', status: 'inProgress', type: 'commandExecution'});
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'agentEvent' }));
+
+        parser.push(`${JSON.stringify({item: {...command, aggregated_output: 'match', exit_code: 0, status: 'completed'}, type: 'item.completed'})}\n`);
+        parser.push('{"type":"turn.completed","usage":{"input_tokens":100,"cached_input_tokens":20,"output_tokens":30,"reasoning_output_tokens":10}}\n');
+        parser.finish();
+
+        expect(run.conversation.entries.at(-1)).toMatchObject({content: 'match', exitCode: 0, providerItemId: 'item_3', status: 'completed', type: 'commandExecution'});
+        expect(run.conversation.entries).toHaveLength(2);
+        expect(run.changedPaths.size).toBe(0);
+        const expectedUsage = {cachedInputTokens: 20, inputTokens: 80, outputTokens: 20, reasoningTokens: 10, totalTokens: 130};
+        expect(run.turnUsage).toMatchObject(expectedUsage);
+        await service.handleClose(run.id, 0);
+
+        expect(run.conversation.usage).toMatchObject(run.turnUsage);
+        expect(recordTokenUsage).toHaveBeenCalledOnce();
+        expect(recordTokenUsage).toHaveBeenCalledWith('codex', run.turnUsage, expect.any(Number));
+        const closedConversation = expect.objectContaining({ usage: run.turnUsage });
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({conversation: closedConversation, persisted: true, type: 'closed'}));
+    });
+
     it('reconciles and persists one-shot canonical provider file events', () => {
         const service = new AgentRunnerService();
         const run = {

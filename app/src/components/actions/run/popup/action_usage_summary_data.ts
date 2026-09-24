@@ -24,11 +24,11 @@ export interface ScopedActionUsage {
     conversation: ActionUsageValues | null
 }
 
-function conversationsForActionCard(
+function conversationsForActionScope(
     conversations: AgentConversation[],
     liveConversation: AgentConversation | null,
     actionId: string,
-    cardInternalId: string,
+    cardInternalId: string | null,
 ) {
     const conversationsById = new Map<string, AgentConversation>()
     for (const conversation of conversations) {
@@ -73,16 +73,16 @@ function usageValues(conversations: AgentConversation[], history: ActionRunHisto
     }
 }
 
-/** Aggregates every usage metric for conversation and action/card scopes. */
+/** Aggregates usage for one conversation and its action/card or action/project scope. */
 export function scopedActionUsage(
     conversations: AgentConversation[],
     liveConversation: AgentConversation | null,
     displayedConversation: AgentConversation | null,
     history: ActionRunHistoryEntry[],
     actionId: string,
-    cardInternalId: string,
+    cardInternalId: string | null,
 ): ScopedActionUsage {
-    const actionCardConversations = conversationsForActionCard(
+    const actionCardConversations = conversationsForActionScope(
         conversations,
         liveConversation,
         actionId,

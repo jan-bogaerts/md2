@@ -14,6 +14,38 @@ function parser(agent) {
 }
 
 describe('agent provider protocol', () => {
+    it('updates one command event across codex exec start and completion', () => {
+        const { events, instance } = parser('codex');
+        const item = { command: 'rg term app', id: 'item_3', type: 'command_execution' };
+
+        instance.push(`${JSON.stringify({ item: { ...item, status: 'in_progress' }, type: 'item.started' })}\n`);
+        instance.push(`${JSON.stringify({item: {...item, aggregated_output: 'match', exit_code: 0, status: 'completed'}, type: 'item.completed'})}\n`);
+        instance.push('{"type":"turn.completed","usage":{"input_tokens":100,"cached_input_tokens":20,"output_tokens":30,"reasoning_output_tokens":10}}\n');
+        instance.finish();
+
+        expect(events[0].providerEvents[0]).toMatchObject({command: 'rg term app', content: '', providerItemId: 'item_3', status: 'inProgress', type: 'commandExecution'});
+        expect(events[1].providerEvents[0]).toMatchObject({
+            command: 'rg term app', content: 'match', exitCode: 0, providerItemId: 'item_3', status: 'completed',
+            type: 'commandExecution',
+        });
+        expect(events[1].transcriptEvents).toEqual([]);
+        const expectedUsage = {cachedInputTokens: 20, inputTokens: 80, outputTokens: 20, reasoningTokens: 10, totalTokens: 130};
+        expect(events[2].usage).toMatchObject(expectedUsage);
+        expect(events[2].providerEvents).toEqual([]);
+    });
+
+    it('keeps warnings visible and diagnoses unsupported items without file paths', () => {
+        const { events, instance } = parser('codex');
+
+        instance.push('{"type":"item.completed","item":{"id":"warning","type":"error","message":"config ignored"}}\n');
+        instance.push('{"type":"item.completed","item":{"id":"unknown","type":"future_item"}}\n');
+        instance.finish();
+
+        expect(events[0].errorText).toBe('config ignored');
+        expect(events[1].providerEvents[0]).toMatchObject({content: 'item.completed: future_item (unknown)', type: 'diagnostic'});
+        expect(events[1].providerEvents[0].paths).toBeUndefined();
+    });
+
     it('extracts Codex thread ids and completed assistant messages', () => {
         const { events, instance } = parser('codex');
 
@@ -259,7 +291,9 @@ describe('agent provider protocol', () => {
         instance.push('{"type":"item.completed","item":{"id":"patch","type":"patch","changes":[null,{"kind":"update"}]}}\n');
         instance.finish();
 
-        expect(events.map(({ providerEvents }) => providerEvents)).toEqual([[], []]);
+        expect(events[0].providerEvents).toEqual([]);
+        expect(events[0].transcriptEvents).toEqual([{ content: 'bad', toolType: 'tool.future_patch' }]);
+        expect(events[1].providerEvents).toEqual([expect.objectContaining({content: 'item.completed: patch (patch)', type: 'diagnostic'})]);
     });
 
     it('recognizes structured missing-session failures only before turn events', () => {

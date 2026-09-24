@@ -14,6 +14,7 @@ import type { ActionUsageScope, ActionUsageScopeStore } from './action_usage_sco
 
 export interface ActionUsageValuesSnapshot extends ScopedActionUsage {
     activeScope: ActionUsageScope
+    actionScopeLabel: 'Action/card' | 'Action/project'
     conversationAvailable: boolean
 }
 
@@ -33,6 +34,7 @@ function snapshotsMatch(first: ActionUsageValuesSnapshot | null, second: ActionU
     if (!first || !second) return false
 
     return first.activeScope === second.activeScope
+        && first.actionScopeLabel === second.actionScopeLabel
         && first.conversationAvailable === second.conversationAvailable
         && usageValuesMatch(first.actionCard, second.actionCard)
         && optionalUsageValuesMatch(first.conversation, second.conversation)
@@ -152,8 +154,10 @@ export class ActionUsageValuesService extends EventTarget {
     }
 
     private readonly recalculate = () => {
-        const cardInternalId = this.context.cardInternalId
-        if (this.context.kind !== 'card' || !this.context.file || !cardInternalId || this.action.type !== 'agent') {
+        const projectContext = this.context.kind === 'project'
+        const cardInternalId = projectContext ? null : this.context.cardInternalId ?? null
+        if ((!projectContext && (this.context.kind !== 'card' || !this.context.file || !cardInternalId))
+            || this.action.type !== 'agent') {
             this.publish(null)
             return
         }
@@ -183,7 +187,8 @@ export class ActionUsageValuesService extends EventTarget {
         if (!conversationAvailable) this.scopeStore.useActionCardScope()
         const requestedScope = this.scopeStore.getSnapshot()
         const activeScope = requestedScope === 'conversation' && usage.conversation ? 'conversation' : 'actionCard'
-        this.publish({ ...usage, activeScope, conversationAvailable })
+        const actionScopeLabel = projectContext ? 'Action/project' : 'Action/card'
+        this.publish({ ...usage, activeScope, actionScopeLabel, conversationAvailable })
     }
 
     private publish(snapshot: ActionUsageValuesSnapshot | null) {

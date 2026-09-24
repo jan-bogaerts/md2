@@ -37,8 +37,8 @@ function commitLine(commit: CommitReference) {
     return `${commit.commit.slice(0, 7)}: +${NUMBER_FORMAT.format(commit.insertions)} / -${NUMBER_FORMAT.format(commit.deletions)}`
 }
 
-function scopeName(scope: ActionUsageScope) {
-    return scope === 'conversation' ? 'Conversation' : 'Action/card'
+function scopeName(scope: ActionUsageScope, actionScopeLabel: string) {
+    return scope === 'conversation' ? 'Conversation' : actionScopeLabel
 }
 
 function scopeTooltip(
@@ -46,24 +46,25 @@ function scopeTooltip(
     conversationValue: string | null,
     actionCardValue: string,
     scope: ActionUsageScope,
+    actionScopeLabel: string,
     activeDetails?: ReactNode,
 ) {
-    const switchTarget = scope === 'conversation' ? 'Action/card' : 'Conversation'
+    const switchTarget = scope === 'conversation' ? actionScopeLabel : 'Conversation'
     const interactionExplanation = conversationValue === null
-        ? 'Conversation unavailable; clicking keeps Action/card scope.'
+        ? `Conversation unavailable; clicking keeps ${actionScopeLabel} scope.`
         : `Click to switch to ${switchTarget}.`
 
     return (
         <Stack spacing={0.5}>
             <Typography color="inherit" variant="caption">{definition}</Typography>
             <Typography color="inherit" variant="caption">
-                Active scope: {scopeName(scope)}. {interactionExplanation}
+                Active scope: {scopeName(scope, actionScopeLabel)}. {interactionExplanation}
             </Typography>
             <Typography color="inherit" variant="caption">
                 Conversation{scope === 'conversation' ? ' (active)' : ''}: {conversationValue ?? 'unavailable'}
             </Typography>
             <Typography color="inherit" variant="caption">
-                Action/card{scope === 'actionCard' ? ' (active)' : ''}: {actionCardValue}
+                {actionScopeLabel}{scope === 'actionCard' ? ' (active)' : ''}: {actionCardValue}
             </Typography>
             {activeDetails}
         </Stack>
@@ -94,7 +95,7 @@ function resolveChanges(usage: ActionUsageValues): ResolvedChanges | null {
     return { deletions, fromCommits: true, insertions }
 }
 
-/** Two shared-scope usage controls for one agent action on one card. */
+/** Usage controls for one agent action in card or project scope. */
 export function ActionUsageSummary(props: ActionUsageSummaryProps) {
     const { onToggleScope, snapshot } = props
     const conversationUsage = snapshot.conversation
@@ -119,7 +120,7 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
             ))}
         </>
     )
-    const activeScopeName = scopeName(activeScope)
+    const activeScopeName = scopeName(activeScope, snapshot.actionScopeLabel)
     return (
         <Box
             sx={{
@@ -132,6 +133,7 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                 snapshot.conversation ? tokenValue(snapshot.conversation.tokens) : null,
                 tokenValue(snapshot.actionCard.tokens),
                 activeScope,
+                snapshot.actionScopeLabel,
             )}>
                 <ButtonBase
                     aria-label={`Tokens, ${activeScopeName} scope`}
@@ -156,6 +158,7 @@ export function ActionUsageSummary(props: ActionUsageSummaryProps) {
                     snapshot.conversation ? changeValue(conversationChanges ?? ZERO_CHANGES) : null,
                     changeValue(actionCardChanges ?? ZERO_CHANGES),
                     activeScope,
+                    snapshot.actionScopeLabel,
                     activeChanges.fromCommits ? commitDetails : undefined,
                 )}>
                     <ButtonBase

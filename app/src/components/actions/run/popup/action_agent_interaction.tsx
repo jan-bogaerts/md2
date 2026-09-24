@@ -27,9 +27,8 @@ export function ActionAgentInteraction(props: ActionAgentInteractionProps) {
     const activeActionType = useRunSelector(boundRunId, (run) => run?.activeActionType ?? null)
     const visible = action.type === 'agent' || activeActionType === 'agent'
     const displayedUsageValuesService = action.type === 'agent'
-        && assignmentContext.kind === 'card'
-        && !!assignmentContext.file
-        && !!assignmentContext.cardInternalId
+        && (assignmentContext.kind === 'project'
+            || (assignmentContext.kind === 'card' && !!assignmentContext.file && !!assignmentContext.cardInternalId))
         ? usageValuesService
         : undefined
 

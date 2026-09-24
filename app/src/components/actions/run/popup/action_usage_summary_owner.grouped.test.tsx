@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionRunEvent } from '../../../../data/action_run_types'
+import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import type { AgentConversation } from '../../../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
@@ -87,11 +88,12 @@ function renderOwner(
     conversationStore: ActionConversationStore,
     scopeStore: ActionUsageScopeStore,
     historyStore = createHistoryStore(),
+    selectedContext: ActionContext = context,
 ) {
     const service = new ActionUsageValuesService({
         action,
         bindingStore,
-        context,
+        context: selectedContext,
         conversationStore,
         historyStore,
         scopeStore,
@@ -114,6 +116,48 @@ describe('ActionUsageSummaryOwner', () => {
         cleanup()
         actionRunRegistry.stop()
         setActionBridgeOverride(null)
+    })
+
+    it('shows loaded and live project tokens without counting another action or card', () => {
+        let listener: ((event: ActionRunEvent) => void) | null = null
+        setActionBridgeOverride({
+            onActionRun: vi.fn((nextListener) => {
+                listener = nextListener
+
+                return vi.fn()
+            }),
+        } as unknown as ElectronActionBridge)
+        actionRunRegistry.start()
+        const projectContext = { kind: 'project' as const }
+        const stored = {
+            ...conversation('stored', 0, 0), cardInternalId: null, cardPath: null,
+            usage: { cachedInputTokens: 2, inputTokens: 8, outputTokens: 0, reasoningTokens: 0, totalTokens: 10 },
+        }
+        const { store } = createConversationStore(stored)
+        renderOwner(store, new ActionUsageScopeStore(), createHistoryStore(), projectContext)
+
+        expect(screen.getByRole('button', { name: 'Tokens, Action/project scope' })).toHaveTextContent('tokens: 10')
+        expect(screen.queryByText(/context:/u)).not.toBeInTheDocument()
+
+        if (!listener) throw new Error('Missing run listener')
+        const emit = listener as (event: ActionRunEvent) => void
+        const run = {
+            actionId: action.id, context: projectContext, phase: 'main' as const, rootActionId: action.id,
+            runId: 'run-1', status: 'running' as const,
+        }
+        const live = { ...conversation('live-project', 0, 0), cardInternalId: null, cardPath: null }
+        act(() => {
+            emit({ ...run, type: 'run' })
+            emit({ ...run, type: 'update', update: { conversation: live, kind: 'agentStarted' } })
+            emit({
+                ...run, type: 'update', update: {
+                    kind: 'agentUsage',
+                    usage: { cachedInputTokens: 3, inputTokens: 12, outputTokens: 5, reasoningTokens: 0, totalTokens: 20 },
+                },
+            })
+        })
+
+        expect(screen.getByRole('button', { name: 'Tokens, Action/project scope' })).toHaveTextContent('tokens: 30')
     })
 
     it('updates conversation values after selection changes without changing active scope', () => {

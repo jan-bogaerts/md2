@@ -57,6 +57,25 @@ function historyEntry(rootConversationId: string, commits: CommitReference[]): A
 }
 
 describe('scopedActionUsage', () => {
+    it('keeps project action totals within the selected action and project scope', () => {
+        const projectConversation = { ...conversation('project-1', 10), cardInternalId: null, cardPath: null }
+        const otherAction = { ...conversation('other-action', 50), actionId: 'review', cardInternalId: null, cardPath: null }
+        const cardConversation = conversation('card-1', 90)
+        const liveConversation = { ...conversation('project-live', 15), cardInternalId: null, cardPath: null }
+
+        const result = scopedActionUsage(
+            [projectConversation, otherAction, cardConversation, liveConversation],
+            { ...liveConversation, usage: { cachedInputTokens: 2, inputTokens: 13, outputTokens: 5, reasoningTokens: 0, totalTokens: 20 } },
+            projectConversation,
+            [],
+            'implement',
+            null,
+        )
+
+        expect(result.actionCard.tokens.totalTokens).toBe(30)
+        expect(result.conversation?.tokens.totalTokens).toBe(10)
+    })
+
     it('deduplicates live conversation by id in action/card totals', () => {
         const persistedConversation = conversation('conversation-1', 10)
         const liveConversation = conversation('conversation-1', 15)
