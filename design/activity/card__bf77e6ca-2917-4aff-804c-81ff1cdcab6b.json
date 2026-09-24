@@ -5114,6 +5114,38 @@
       "startedAt": "2026-09-24T12:32:12.230Z",
       "status": "completed",
       "rootConversationId": "agent-9b2514f1-bfa5-433e-9b24-616b2d8a0627"
+    },
+    {
+      "commits": [
+        {
+          "commit": "149733b1f87c99accd169acab4725fd3f6527d05",
+          "committedAt": "2026-09-24T15:05:07+02:00",
+          "deletions": 30,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat_integration.grouped.test.tsx",
+            "app/src/components/actions/run/popup/action_agent_interaction.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary.grouped.test.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary.tsx",
+            "app/src/components/actions/run/popup/action_usage_summary_data.node.test.ts",
+            "app/src/components/actions/run/popup/action_usage_summary_data.ts",
+            "app/src/components/actions/run/popup/action_usage_summary_owner.grouped.test.tsx",
+            "app/src/components/actions/run/popup/action_usage_values_service.ts",
+            "desktop/src/actions/agent/agent_provider_protocol.js",
+            "desktop/src/actions/agent/agent_provider_protocol.test.mjs",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs"
+          ],
+          "filesChanged": 11,
+          "insertions": 245,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-09-24T15:05:07+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "bf77e6ca-2917-4aff-804c-81ff1cdcab6b",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
