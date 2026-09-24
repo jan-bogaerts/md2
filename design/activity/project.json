@@ -4888,6 +4888,123 @@
       },
       "usageSchemaVersion": 1,
       "viewed": false
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": null,
+      "cardPath": null,
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 18323
+      },
+      "entries": [
+        {
+          "content": "list the 5 folders containing the most files.",
+          "id": "agent-turn-14044223-960f-4530-a49c-8a17cd10e0b4-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-24T09:22:11.641Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-14044223-960f-4530-a49c-8a17cd10e0b4-event-2",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07b5a7c7465e2976016ab4ebc9c4dc87d2aee17f9f2841e48e",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-24T09:22:16.898Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll count files directly inside each folder in the workspace and list the five highest counts.\n\n",
+          "id": "agent-turn-14044223-960f-4530-a49c-8a17cd10e0b4-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 3,
+          "timestamp": "2026-09-24T09:22:17.521Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-ChildItem -Path . -Directory -Recurse -Force | ForEach-Object { $fileCount = @(Get-ChildItem -LiteralPath $_.FullName -File -Force -ErrorAction SilentlyContinue).Count; [PSCustomObject]@{ Folder = $_.FullName; Files = $fileCount } } | Sort-Object Files -Descending, Folder | Select-Object -First 5'",
+          "content": "At line:2 char:269\r\n+ ... Name; Files = $fileCount } } | Sort-Object Files -Descending, Folder  ...\r\n+                                                                 ~\r\nMissing argument in parameter list.\r\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : MissingArgument\r\n \r\n",
+          "durationMs": 0,
+          "exitCode": 1,
+          "id": "agent-turn-14044223-960f-4530-a49c-8a17cd10e0b4-event-4",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-ChildItem -Path . -Directory -Recurse -Force | ForEach-Object { $fileCount = @(Get-ChildItem -LiteralPath $_.FullName -File -Force -ErrorAction SilentlyContinue).Count; [PSCustomObject]@{ Folder = $_.FullName; Files = $fileCount } } | Sort-Object Files -Descending, Folder | Select-Object -First 5'",
+          "providerItemId": "exec-95ff13b9-92e1-43c7-9b2d-fc254bf1a044",
+          "sequence": 4,
+          "status": "failed",
+          "timestamp": "2026-09-24T09:22:20.318Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-14044223-960f-4530-a49c-8a17cd10e0b4-event-5",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_07b5a7c7465e2976016ab4ebcf502087d2a96c6ab598cf118d",
+          "sequence": 5,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-24T09:22:23.134Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-ChildItem -Path . -Directory -Recurse -Force | ForEach-Object { $fileCount = @(Get-ChildItem -LiteralPath $_.FullName -File -Force -ErrorAction SilentlyContinue).Count; [PSCustomObject]@{ Folder = $_.FullName; Files = $fileCount } } | Sort-Object -Property @{Expression='\"'Files';Descending=\"'$true}, @{Expression='\"'Folder';Descending=\"'$false} | Select-Object -First 5 | Format-Table -AutoSize'",
+          "content": "\r\nFolder                                                                Files\r\n------                                                                -----\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\app\\node_modules\\@mui\\icons-material 43008\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\app\\node_modules\\mdi-material-ui     14900\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\app\\node_modules\\mdi-material-ui\\esm  7448\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\node_modules\\lodash            636\r\nC:\\Users\\janbo\\Documents\\dev\\md2\\node_modules\\lodash                    636\r\n\r\n\r\n",
+          "durationMs": 8122,
+          "exitCode": 0,
+          "id": "agent-turn-14044223-960f-4530-a49c-8a17cd10e0b4-event-6",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-ChildItem -Path . -Directory -Recurse -Force | ForEach-Object { $fileCount = @(Get-ChildItem -LiteralPath $_.FullName -File -Force -ErrorAction SilentlyContinue).Count; [PSCustomObject]@{ Folder = $_.FullName; Files = $fileCount } } | Sort-Object -Property @{Expression='\"'Files';Descending=\"'$true}, @{Expression='\"'Folder';Descending=\"'$false} | Select-Object -First 5 | Format-Table -AutoSize'",
+          "providerItemId": "exec-1de2f09a-70a8-491c-a82f-86803a086e8f",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-09-24T09:22:33.709Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Counting files directly inside each folder, including dependency folders:\n\n| Folder | Files |\n|---|---:|\n| `app/node_modules/@mui/icons-material` | 43,008 |\n| `app/node_modules/mdi-material-ui` | 14,900 |\n| `app/node_modules/mdi-material-ui/esm` | 7,448 |\n| `desktop/node_modules/lodash` | 636 |\n| `node_modules/lodash` | 636 |\n\n",
+          "id": "agent-turn-14044223-960f-4530-a49c-8a17cd10e0b4-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 7,
+          "timestamp": "2026-09-24T09:22:37.029Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-c5b0e9b5-25ee-4c47-9bc2-8f6580f283c4",
+      "providerSessions": [],
+      "startedAt": "2026-09-24T09:22:11.641Z",
+      "status": "running",
+      "timer": {
+        "breakdown": {
+          "reasoningMs": 2263,
+          "toolMs": 8284
+        },
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-24T09:22:11.641Z"
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 41088,
+        "inputTokens": 12453,
+        "outputTokens": 422,
+        "reasoningTokens": 61,
+        "totalTokens": 54024
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
