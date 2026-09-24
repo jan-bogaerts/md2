@@ -3,6 +3,7 @@ id: F_379
 internalId: 2ac96102-aba9-4901-a7f3-fcbd78b6b7fc
 status: new
 title: Move diagram field edits into focused editors
+after: 11011a61-0393-4aa1-9b89-f52be576aa72
 ---
 
 # Move diagram field edits into focused editors

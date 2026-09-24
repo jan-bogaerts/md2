@@ -3,6 +3,7 @@ id: F_378
 internalId: 11011a61-0393-4aa1-9b89-f52be576aa72
 status: new
 title: Extract diagram edit snapshots and subscriptions
+after: 2245678c-d69e-4b1d-b6b8-cca720fc468d
 ---
 
 # Extract diagram edit snapshots and subscriptions

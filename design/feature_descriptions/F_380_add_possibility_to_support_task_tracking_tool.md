@@ -3,7 +3,7 @@ author:
 id: F_380
 internalId: 94766c8f-2f01-42ee-b389-7e03c1753946
 title: add possibility to support task-tracking tool
-status: new
+status: design
 owner: 
 affects:
 agents:
