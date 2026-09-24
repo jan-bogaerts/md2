@@ -3,7 +3,7 @@ author:
 id: B_248
 internalId: bf77e6ca-2917-4aff-804c-81ff1cdcab6b
 title: new codex model is producing unknown agent events
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
@@ -69,3 +69,24 @@ small extract of messages we reveived:
 
 
 so we get context usage, it is just not shown on the project agent. seems like a serious bug.
+
+## Current state
+
+The sample is from `codex exec --json` (a one-run JSON-line protocol), not the Codex `app-server` streaming protocol. `desktop/src/actions/agent/agent_provider_protocol.js` parses each line as it arrives, but creates provider events only for `item.completed`. Thus a running `command_execution` has no visible lifecycle entry. On completion, `agent_codex_event.js` rejects `command_execution` because its supported type is `commandExecution`; `agent_codex_events.js` instead creates a generic `tool.command_execution` transcript entry. The sample contains command executions, not evidence of file edits. Its `error` items are handled separately.
+
+`turn.completed.usage` is parsed, but the one-run path applies those token totals to the conversation only when the process closes in `agent_runner_service.js`. `ConversationContextUsage` needs both used tokens and context-window capacity to draw a percentage. The sample has turn token totals but no capacity, so those totals alone cannot supply the missing indicator. The separate `app-server` path already handles live item events and `thread/tokenUsage/updated`, including capacity when Codex reports it.
+
+## Implementation details
+
+* In the one-run parser, normalize documented `codex exec` item names and fields at the protocol boundary: `command_execution`, `aggregated_output`, `exit_code`, and `in_progress` must reach the existing `commandExecution`, `aggregatedOutput`, `exitCode`, and `inProgress` event shape. Handle `item.started` and `item.completed` with the same `item.id`, so the runner's provider-event replacement updates one visible entry while the command runs and when it finishes. Preserve command, output, status, and exit code.
+* Route recognized completed items through one canonical event path; do not also append a generic `tool.command_execution` entry. Keep assistant messages, warnings/errors, and genuinely unsupported items on their existing paths. Do not classify command output as a file change; only explicit file-change items may add changed paths.
+* Keep `turn.completed.usage` as the authoritative token total for the one-run turn. Expose it to the live conversation when received, then persist it once on close; avoid double counting. Show a context percentage only when Codex supplies a valid used-token count and capacity. Never infer context occupancy from cumulative turn tokens or a guessed model limit.
+* Add focused parser/runner regression tests using the supplied `thread.started`, `item.started`, `item.completed`, and `turn.completed` shapes. Check UI rendering with a running command, its completed replacement, token display, and absent or present context capacity. Keep separate streaming-protocol coverage intact.
+
+## Acceptance criteria
+
+* During a `codex exec --json` run, each supported `item.started` command appears in the project-agent log before its `item.completed` event; completion updates that entry with output and exit status. It does not create a second generic or unknown command entry.
+* Assistant text and provider warnings/errors remain visible. Unknown item types remain diagnosable without being mislabeled as file edits; command events do not add changed paths.
+* After `turn.completed.usage` arrives, displayed and persisted token totals match its counters exactly once, including cached and reasoning tokens. Closing the process does not add the turn again.
+* Context-usage percentage appears when Codex reports valid used tokens and capacity. When capacity is absent, no percentage is shown and no value is guessed; token totals still appear.
+* Focused one-run parser, runner, and conversation UI tests pass. Existing `app-server` live events and context usage still work.
