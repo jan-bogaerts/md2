@@ -3,7 +3,7 @@ author:
 id: F_228
 internalId: ae7bdbef-7d85-4837-ba58-6ab382b218b0
 title: add support for diagrams
-status: to fix
+status: ready
 owner: 
 affects:
 agents:
