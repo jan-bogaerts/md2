@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "bf77e6ca-2917-4aff-804c-81ff1cdcab6b",
       "cardPath": "design/feature_descriptions/B_248_new_codex_model_is_producing_unknown_agent_events.md",
-      "completedAt": "2026-09-24T12:21:26.202Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 105882
+        "usedTokens": 106182
       },
       "entries": [
         {
@@ -1689,6 +1689,36 @@
           "role": "assistant",
           "sequence": 120,
           "timestamp": "2026-09-24T12:21:26.202Z"
+        },
+        {
+          "content": "how about you first explain what the problem was and how to solve it",
+          "id": "agent-turn-dc5f3a1b-7482-407a-90cf-29e0c391d28f-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 121,
+          "timestamp": "2026-09-24T12:24:57.569Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-dc5f3a1b-7482-407a-90cf-29e0c391d28f-event-122",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0dadfa328ec56d3f016ab516a2e52087d2b947340abd3d34d1",
+          "sequence": 122,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-24T12:25:06.699Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Problem sits in **project agent’s `codex exec --json` path**. Codex sends `item.started` while a command runs, but parser ignores it. When `item.completed` arrives, event normalizer expects `commandExecution`; Codex sends `command_execution`. Command therefore falls back to a generic log entry, often visible only after completion. Sample shows commands, not file edits.\n\nParser receives `turn.completed.usage`, but project agent applies token totals to conversation when process closes. Context indicator needs both used tokens and context-window capacity. Sample contains token totals, **no capacity**, so it cannot produce a valid percentage.\n\nProposed fix: normalize Codex’s field names and status, show `item.started` immediately, then update same entry by `item.id` on completion. Send token totals to live conversation when received and persist them once. Show context percentage when Codex supplies capacity; determining another capacity source remains open. No code has been changed.\n\n",
+          "id": "agent-turn-dc5f3a1b-7482-407a-90cf-29e0c391d28f-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 123,
+          "timestamp": "2026-09-24T12:25:11.164Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1703,25 +1733,25 @@
         }
       ],
       "startedAt": "2026-09-24T12:16:05.613Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 88596,
+          "reasoningMs": 90539,
           "toolMs": 4564
         },
         "elapsedMs": 320589,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-24T12:24:57.569Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 2495232,
-        "inputTokens": 106196,
-        "outputTokens": 7631,
-        "reasoningTokens": 3534,
-        "totalTokens": 2612593
+        "cachedInputTokens": 2600576,
+        "inputTokens": 106754,
+        "outputTokens": 7832,
+        "reasoningTokens": 3613,
+        "totalTokens": 2718775
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1748,11 +1778,11 @@
         "agent-8ef4b975-5977-407a-aa29-5bf982a96496"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-e7fbda9a-1dad-4afa-ada0-06fa0482f8f0",
       "origin": {
@@ -1761,9 +1791,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-8ef4b975-5977-407a-aa29-5bf982a96496",
       "startedAt": "2026-09-24T12:16:05.601Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-8ef4b975-5977-407a-aa29-5bf982a96496"
     }
   ],
   "version": 5
