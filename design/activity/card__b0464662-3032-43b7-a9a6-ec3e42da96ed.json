@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "b0464662-3032-43b7-a9a6-ec3e42da96ed",
+      "cardPath": "design/feature_descriptions/J_53_fix_bad_design_open_project_dialog.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/J_53_fix_bad_design_open_project_dialog.md. analyse the issues, report your findings",
+          "id": "agent-turn-a2b923d2-9e6f-46ed-897a-ffc7e940be45-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-24T08:05:36.285Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-37906e1d-f38b-432f-b21f-cee5dc51d19b",
+      "providerSessions": [],
+      "startedAt": "2026-09-24T08:05:36.285Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-24T08:05:36.285Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "b0464662-3032-43b7-a9a6-ec3e42da96ed",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
