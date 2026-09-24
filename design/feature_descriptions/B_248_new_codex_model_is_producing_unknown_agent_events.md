@@ -19,6 +19,9 @@ changedFiles:
   - app/src/components/actions/run/popup/action_usage_summary_owner.grouped.test.tsx
   - app/src/components/actions/run/popup/action_usage_values_service.ts
   - app/vite.b248.config.ts
+  - design/actions/largest-files.json
+  - design/actions/list-largest-folders.json
+  - desktop/src/actions/action/action_run.test.mjs
   - desktop/src/actions/agent/agent_provider_protocol.js
   - desktop/src/actions/agent/agent_provider_protocol.test.mjs
   - desktop/src/actions/agent/agent_runner_state.test.mjs
