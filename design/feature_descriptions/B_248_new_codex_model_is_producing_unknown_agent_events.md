@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__bf77e6ca-2917-4aff-804c-81ff1cdcab6b.json
 policy:
-branch: b_248_new_codex_model_is_producing_unknown_agent_events
-worktree: 3
 changedFiles:
   - app/src/components/actions/conversation/action_conversation_chat_integration.grouped.test.tsx
   - app/src/components/actions/run/popup/action_agent_interaction.tsx
