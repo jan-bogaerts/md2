@@ -9,4 +9,4 @@ affects:
 agents:
 policy:
 ---
-The open
+The ProjectOpenDialog is extremely poorly designed. it uses an enormous amount of event handlers that should be done internally. An extremely complex system has been set up to pass along these event handlers which appear to be coming from hooks
