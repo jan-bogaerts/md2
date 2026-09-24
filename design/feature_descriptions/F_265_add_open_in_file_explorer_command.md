@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__6cd6114a-3b33-430b-895f-df592f272062.json
 policy:
-branch: f_265_add_open_in_file_explorer_command
-worktree: 1
 changedFiles:
   - app/src/components/card_view/open_in_file_explorer_menu_item.test.tsx
   - desktop/src/project/project_files.js
