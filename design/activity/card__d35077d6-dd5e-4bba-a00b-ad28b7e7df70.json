@@ -4044,19 +4044,19 @@
           "agent": "codex",
           "conversationId": "01a0d28b-ae96-72d1-9d00-fa4edb027d56",
           "createdAt": "2026-09-24T08:37:24.594Z",
-          "lastUsedAt": "2026-09-24T08:47:50.233Z",
-          "synchronizedThroughMessageId": "agent-turn-b0e27225-20ca-4e18-91df-1e3d3d2c4628-turn-2-assistant-5"
+          "lastUsedAt": "2026-09-24T09:10:46.151Z",
+          "synchronizedThroughMessageId": "agent-turn-b0e27225-20ca-4e18-91df-1e3d3d2c4628-turn-3-assistant-7"
         }
       ],
       "startedAt": "2026-09-24T08:32:43.513Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 421721,
           "toolMs": 186549
         },
-        "elapsedMs": 592875,
-        "runningStartedAt": "2026-09-24T09:01:24.744Z"
+        "elapsedMs": 1154282,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
