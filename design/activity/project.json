@@ -10980,7 +10980,7 @@
       "actionId": "babd3e90-6a91-4f4b-9a58-70463771833f",
       "cardInternalId": null,
       "cardPath": null,
-      "completedAt": null,
+      "completedAt": "2026-09-24T13:39:48.525Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 18090
@@ -11038,21 +11038,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 5,
-          "timestamp": "2026-09-24T13:39:43.479Z"
+          "timestamp": "2026-09-24T13:39:48.525Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-41b8b751-9939-415a-917a-d3f4415474f9",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0d3a4-7c71-7340-ac32-79dc17d86fc5",
+          "createdAt": "2026-09-24T13:39:43.479Z",
+          "lastUsedAt": "2026-09-24T13:39:48.525Z",
+          "synchronizedThroughMessageId": "agent-turn-93e9ce84-a5f5-465c-94a2-7144856bc05a-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-09-24T13:39:27.275Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 1546,
           "toolMs": 388
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-09-24T13:39:27.275Z"
+        "elapsedMs": 16204,
+        "runningStartedAt": null
       },
       "title": "largest files",
       "usage": {
