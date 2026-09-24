@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "2775052a-2e84-4466-a320-155c8ec05bac",
+      "cardPath": "design/feature_descriptions/F_260_remove_owner_components.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/F_260_remove_owner_components.md. lets check if this is still a valid problem",
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-user",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-09-24T09:20:42.266Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-ad862744-de71-4f55-a69d-86fc37c9b4a8",
+      "providerSessions": [],
+      "startedAt": "2026-09-24T09:20:42.266Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-09-24T09:20:42.266Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "2775052a-2e84-4466-a320-155c8ec05bac",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
