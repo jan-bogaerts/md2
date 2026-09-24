@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__bf77e6ca-2917-4aff-804c-81ff1cdcab6b.json
 policy:
 ---
 codex agent app was updated, it seems the messaging has been changed, perhaps also a couple of things got broken during refactoring:
