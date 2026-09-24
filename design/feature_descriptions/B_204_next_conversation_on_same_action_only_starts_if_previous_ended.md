@@ -9,6 +9,6 @@ affects:
 agents:
   - design/activity/card__334525ff-6818-4450-8c04-b63d4c9886f1.json
 policy:
-after: 2775052a-2e84-4466-a320-155c8ec05bac
+after: dec709de-25d5-4694-a29b-0506253a4094
 ---
 When the user goes to a new conversation and the previous conversation on the same or anither  action (especially the 'custom' or '+' one) has not been closed completely, then the new one wont start. Is there a tecnical reason for this, otherwise we need to remove restriction

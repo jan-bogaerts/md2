@@ -3,12 +3,12 @@ author:
 id: F_260
 internalId: 2775052a-2e84-4466-a320-155c8ec05bac
 title: remove owner components
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: dec709de-25d5-4694-a29b-0506253a4094
+after: 6cd6114a-3b33-430b-895f-df592f272062
 ---
 
 we currently have a lot of components that wrap another component, have the same name as the componet they wrap with '\_owner' appended and just wrap those components in order to pass a prop into them.
