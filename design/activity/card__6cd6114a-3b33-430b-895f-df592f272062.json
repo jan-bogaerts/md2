@@ -666,20 +666,28 @@
           "sequence": 48,
           "timestamp": "2026-09-24T09:21:28.612Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Yes, add menu\nclaude-question-1: Files and folders",
+          "id": "agent-turn-5fcee11d-f78a-4ed0-a23d-5067371427dd-answer-48",
+          "kind": "message",
+          "role": "user",
+          "sequence": 49,
+          "timestamp": "2026-09-24T09:35:22.227Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-06abb6c9-3481-4454-9d15-89eeb3c387ce",
       "providerSessions": [],
       "startedAt": "2026-09-24T09:19:41.279Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 41202,
           "toolMs": 35983
         },
         "elapsedMs": 107333,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-09-24T09:35:22.227Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
