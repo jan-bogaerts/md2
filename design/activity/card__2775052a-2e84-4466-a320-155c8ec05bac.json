@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 47480
+        "usedTokens": 54537
       },
       "entries": [
         {
@@ -444,6 +444,183 @@
           "role": "user",
           "sequence": 32,
           "timestamp": "2026-09-24T09:34:40.082Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-33",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012d43f779c36ee2016ab4eeb4990c87d28524cdbf7e248154",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-24T09:34:43.812Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "You’re right: putting more behavior in an `_owner` component does not justify the split. I’ll recheck each pair against the criterion you gave: whether the child has another production use, and whether the name still misrepresents its role.\n\n",
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-09-24T09:34:45.707Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files app/src/components/actions | rg \\\"_owner\\\\.tsx\"'$\"'",
+          "content": "",
+          "durationMs": 45,
+          "exitCode": 1,
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-35",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files app/src/components/actions | rg \\\"_owner\\\\.tsx\"'$\"'",
+          "providerItemId": "exec-4ae5ffbe-5f05-490c-a042-63e5f0465905",
+          "sequence": 35,
+          "status": "failed",
+          "timestamp": "2026-09-24T09:34:50.633Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n '(<|import \\\\{ )(ActionUsageSummary|ActionAgentPrompt|ActionAgentQuestion|ActionAgentPresetName|ActionPhraseButtons|ActionRunStatus|ActionRunHistory|ActionConversationPicker|ActionLogErrorDisplay|WorktreeSelector)\\\\b' app/src -g '*.tsx' -g '\"'!*.test.tsx'\"'\"",
+          "content": "app/src\\components\\merge_conflict_dialog.tsx:45:const TERMINAL_ACTION_STATUSES = new Set<ActionRunStatus>(['cancelled', 'completed', 'failed', 'okButNotAfter'])\napp/src\\components\\actions\\run\\state\\action_run_status_owner.tsx:5:import { ActionRunStatus } from './action_run_status'\napp/src\\components\\actions\\run\\state\\action_run_status_owner.tsx:23:    return <ActionRunStatus color={statusColor(status)} logs={logs} status={status} />\napp/src\\components\\actions\\run\\state\\action_run_history_owner.tsx:3:import { ActionRunHistory } from './action_run_history'\napp/src\\components\\actions\\run\\state\\action_run_history_owner.tsx:17:    return <ActionRunHistory compact entries={entries} error={error} />\napp/src\\components\\card_view\\card_worktree_indicator.tsx:1:import { WorktreeSelector } from '../worktree_selector'\napp/src\\components\\card_view\\card_worktree_indicator.tsx:20:        <WorktreeSelector\napp/src\\components\\actions\\run\\popup\\action_worktree_selector_owner.tsx:2:import { WorktreeSelector } from '../../../worktree_selector'\napp/src\\components\\actions\\run\\popup\\action_worktree_selector_owner.tsx:22:        <WorktreeSelector\napp/src\\components\\actions\\run\\popup\\action_usage_summary_owner.tsx:2:import { ActionUsageSummary } from './action_usage_summary'\napp/src\\components\\actions\\run\\popup\\action_usage_summary_owner.tsx:14:    return <ActionUsageSummary onToggleScope={service.toggleScope} snapshot={snapshot} />\napp/src\\components\\actions\\conversation\\action_log_error_owner.tsx:3:import { ActionLogErrorDisplay } from './action_log_error_display'\napp/src\\components\\actions\\conversation\\action_log_error_owner.tsx:20:    return <ActionLogErrorDisplay logs={runLogs.length > 0 ? runLogs : result?.logs ?? EMPTY_ERROR_LOGS} />\napp/src\\components\\actions\\conversation\\action_conversation_picker_owner.tsx:7:import { ActionConversationPicker } from './action_conversation_picker'\napp/src\\components\\actions\\conversation\\action_conversation_picker_owner.tsx:92:            <ActionConversationPicker\napp/src\\components\\actions\\editor\\action_phrase_buttons_owner.tsx:11:import { ActionPhraseButtons } from './action_phrase_buttons'\napp/src\\components\\actions\\editor\\action_phrase_buttons_owner.tsx:103:                <ActionPhraseButtons onDoubleClick={handleDoubleClick} onSelect={handleSelect} phrases={action.phrases} />\napp/src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:11:import { ActionAgentPresetName } from './action_agent_preset_name'\napp/src\\components\\actions\\agent\\action_agent_preset_name_owner.tsx:72:        <ActionAgentPresetName\napp/src\\components\\actions\\agent\\action_prompt_owner.tsx:10:import { ActionAgentPrompt } from './action_agent_prompt'\napp/src\\components\\actions\\agent\\action_prompt_owner.tsx:151:        <ActionAgentPrompt\napp/src\\components\\actions\\agent\\action_agent_question_owner.tsx:4:import { ActionAgentQuestion } from './action_agent_question'\napp/src\\components\\actions\\agent\\action_agent_question_owner.tsx:51:        ? <ActionAgentQuestion onAnswer={handleAnswer} onDismiss={handleDismiss} questions={questions} />\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-36",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n '(<|import \\\\{ )(ActionUsageSummary|ActionAgentPrompt|ActionAgentQuestion|ActionAgentPresetName|ActionPhraseButtons|ActionRunStatus|ActionRunHistory|ActionConversationPicker|ActionLogErrorDisplay|WorktreeSelector)\\\\b' app/src -g '*.tsx' -g '\"'!*.test.tsx'\"'\"",
+          "providerItemId": "exec-f109ddda-2e82-4f24-8238-e07169a69372",
+          "sequence": 36,
+          "status": "completed",
+          "timestamp": "2026-09-24T09:34:50.612Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n '\"'^export (function|const|class) (ActionUsageSummary|ActionAgentPrompt|ActionAgentQuestion|ActionAgentPresetName|ActionPhraseButtons|ActionRunStatus|ActionRunHistory|ActionConversationPicker|ActionLogErrorDisplay|ActionScheduleForm)'\"\\\\b' app/src/components/actions -g '*.tsx'\"",
+          "content": "app/src/components/actions\\run\\state\\action_run_status.tsx:12:export function ActionRunStatus(props: ActionRunStatusProps) {\napp/src/components/actions\\run\\state\\action_run_history.tsx:63:export function ActionRunHistory(props: ActionRunHistoryProps) {\napp/src/components/actions\\run\\schedule\\action_schedule_form.tsx:26:export function ActionScheduleForm(props: ActionScheduleFormProps) {\napp/src/components/actions\\agent\\action_agent_preset_name.tsx:11:export function ActionAgentPresetName({ actionLabel, onActionLabelChange, onRunShortcut }: ActionAgentPresetNameProps) {\napp/src/components/actions\\agent\\action_agent_prompt.tsx:66:export function ActionAgentPrompt(props: ActionAgentPromptProps) {\napp/src/components/actions\\agent\\action_agent_question.tsx:30:export function ActionAgentQuestion({ onAnswer, onDismiss, questions }: ActionAgentQuestionProps) {\napp/src/components/actions\\conversation\\action_conversation_picker.tsx:15:export function ActionConversationPicker(props: ActionConversationPickerProps) {\napp/src/components/actions\\run\\popup\\action_usage_summary.tsx:98:export function ActionUsageSummary(props: ActionUsageSummaryProps) {\napp/src/components/actions\\editor\\action_phrase_buttons.tsx:14:export function ActionPhraseButtons(props: ActionPhraseButtonsProps) {\napp/src/components/actions\\conversation\\action_log_error_display.tsx:22:export function ActionLogErrorDisplay(props: ActionLogErrorDisplayProps) {\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-37",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n '\"'^export (function|const|class) (ActionUsageSummary|ActionAgentPrompt|ActionAgentQuestion|ActionAgentPresetName|ActionPhraseButtons|ActionRunStatus|ActionRunHistory|ActionConversationPicker|ActionLogErrorDisplay|ActionScheduleForm)'\"\\\\b' app/src/components/actions -g '*.tsx'\"",
+          "providerItemId": "exec-f804dffa-4b14-484a-abb0-165f717ebd11",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-09-24T09:34:50.646Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-38",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012d43f779c36ee2016ab4eebdad3c87d2a6ee4a562125d064",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-24T09:34:54.981Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files app/src/components/actions | Select-String -Pattern '_owner\\\\.tsx\"'$'\"' | Measure-Object\"",
+          "content": "\r\n\r\nCount    : 11\r\nAverage  : \r\nSum      : \r\nMaximum  : \r\nMinimum  : \r\nProperty : \r\n\r\n\r\n\r\n",
+          "durationMs": 185,
+          "exitCode": 0,
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-39",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files app/src/components/actions | Select-String -Pattern '_owner\\\\.tsx\"'$'\"' | Measure-Object\"",
+          "providerItemId": "exec-8bc3a613-c2d2-47e0-bf5d-9bc8cf85e531",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-09-24T09:35:00.239Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/card_view/card_worktree_indicator.tsx'",
+          "content": "import { WorktreeSelector } from '../worktree_selector'\r\nimport { useCardWorktree } from './use_project_card'\r\nimport { dataService, type DataService } from '../../services/data/data_service'\r\n\r\ninterface CardWorktreeIndicatorProps {\r\n    cardId: string\r\n    cardInternalId: string\r\n    cardPath: string\r\n    primaryPath: string\r\n    service?: DataService\r\n}\r\n\r\nexport function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {\r\n    const { cardId, cardInternalId, cardPath, primaryPath, service = dataService } = props\r\n    const assignment = useCardWorktree(cardPath, service)\r\n\r\n    if (!assignment) return null\r\n\r\n    return (\r\n        <WorktreeSelector\r\n            assignment={{ worktree: assignment.worktree, worktreeError: assignment.error, worktreeValue: assignment.value }}\r\n            assignmentTarget={{ cardInternalId, kind: 'card', path: cardPath }}\r\n            labelPrefix={cardId}\r\n            primaryPath={primaryPath}\r\n        />\r\n    )\r\n}\r\n",
+          "durationMs": 19,
+          "exitCode": 0,
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-40",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/card_view/card_worktree_indicator.tsx'",
+          "providerItemId": "exec-8e064fc1-87ae-4801-8fdd-268a16aebbf3",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-09-24T09:35:00.115Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n '\\\\bActionScheduleForm\\\\b|\\\\bActionAgentPresetNameOwner\\\\b|\\\\bActionPromptOwner\\\\b|\\\\bActionUsageSummaryOwner\\\\b' app/src -g '\"'!*.test.tsx'\"' -g '\"'!*.test.ts'\"'\"",
+          "content": "",
+          "durationMs": 11,
+          "exitCode": 0,
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-41",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n '\\\\bActionScheduleForm\\\\b|\\\\bActionAgentPresetNameOwner\\\\b|\\\\bActionPromptOwner\\\\b|\\\\bActionUsageSummaryOwner\\\\b' app/src -g '\"'!*.test.tsx'\"' -g '\"'!*.test.ts'\"'\"",
+          "providerItemId": "exec-9f89b95a-aea9-489d-ad44-cc1565e1d7dc",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-09-24T09:35:00.126Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/agent/action_agent_prompt.tsx -TotalCount 115'",
+          "content": "import { Box, Typography } from '@mui/material'\r\nimport {\r\n    useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore,\r\n    type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode,\r\n} from 'react'\r\nimport { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'\r\nimport type { AgentQuestion } from '../../../data/action_run_types'\r\nimport type { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'\r\nimport { applicationStorage } from '../../../services/storage/application_storage'\r\nimport { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'\r\nimport { MarkdownEditor, type MarkdownEditorHandle } from '../../editor/markdown_editor'\r\nimport { ActionAgentQuestionOwner, type RestoredAgentQuestions } from './action_agent_question_owner'\r\nimport type { ActionRunBindingStore } from '../run/state/action_run_binding_store'\r\n\r\nconst MIN_PROMPT_HEIGHT = 72\r\nconst MIN_CHAT_HEIGHT = 96\r\nconst MIN_QUESTIONS_HEIGHT = 96\r\nconst QUESTIONS_INITIAL_MAX_FRACTION = 0.4\r\nconst MIN_BLOCK_HEIGHT = MIN_PROMPT_HEIGHT + MIN_QUESTIONS_HEIGHT\r\nconst DEFAULT_PROMPT_HEIGHT = 140\r\nconst EMPTY_PROMPT_EDITOR_HEIGHT = 56\r\nconst PROMPT_RESIZE_STEP = 24\r\nconst PROMPT_HEIGHT_STORAGE_KEY = 'md2.actionPromptHeight'\r\nconst QUESTIONS_BLOCK_HEIGHT_STORAGE_KEY = 'md2.actionQuestionsBlockHeight'\r\n\r\ntype PrimaryRegion = 'prompt' | 'questions'\r\n\r\nfunction readStoredPromptHeight(): number {\r\n    const storedValue = applicationStorage.getItem(PROMPT_HEIGHT_STORAGE_KEY)\r\n    const parsedValue = storedValue ? Number.parseInt(storedValue, 10) : Number.NaN\r\n\r\n    return Number.isNaN(parsedValue) ? DEFAULT_PROMPT_HEIGHT : parsedValue\r\n}\r\n\r\nfunction persistPromptHeight(height: number) {\r\n    applicationStorage.setItem(PROMPT_HEIGHT_STORAGE_KEY, String(Math.round(height)))\r\n}\r\n\r\nfunction readStoredBlockHeight(): number | null {\r\n    const storedValue = applicationStorage.getItem(QUESTIONS_BLOCK_HEIGHT_STORAGE_KEY)\r\n    const parsedValue = storedValue ? Number.parseInt(storedValue, 10) : Number.NaN\r\n\r\n    return Number.isNaN(parsedValue) ? null : parsedValue\r\n}\r\n\r\nfunction persistBlockHeight(height: number) {\r\n    applicationStorage.setItem(QUESTIONS_BLOCK_HEIGHT_STORAGE_KEY, String(Math.round(height)))\r\n}\r\n\r\ninterface ActionAgentPromptProps {\r\n    attachmentHandler?: (files: File[], insertMarkdown: (markdown: string) => void) => Promise<void>\r\n    bindingStore: ActionRunBindingStore\r\n    bottomRow?: ReactNode\r\n    convertMessage: string | null\r\n    monospace?: boolean\r\n    /** Exchange literal text with the editor; set for command actions. */\r\n    plainText?: boolean\r\n    onRunShortcut?: () => void\r\n    promptDraft: ActionPromptDraft\r\n    questionsEnabled: boolean\r\n    responsePrompts?: ReactNode\r\n    restoredQuestions?: RestoredAgentQuestions | null\r\n}\r\n\r\n/** Resizable prompt editor, plus any pending agent question, shown below an agent conversation. */\r\nexport function ActionAgentPrompt(props: ActionAgentPromptProps) {\r\n    const {\r\n        attachmentHandler, bindingStore, bottomRow, convertMessage, monospace = false, onRunShortcut, plainText = false,\r\n        promptDraft, questionsEnabled, responsePrompts, restoredQuestions = null,\r\n    } = props\r\n    const promptEditorRef = useRef<MarkdownEditorHandle>(null)\r\n    const promptHeightStartRef = useRef(0)\r\n    const blockHeightStartRef = useRef(0)\r\n    const pointerStartYRef = useRef(0)\r\n    const blockSurfaceRef = useRef<HTMLElement | null>(null)\r\n    const questionsSurfaceRef = useRef<HTMLElement | null>(null)\r\n    const questionIdentityRef = useRef<string | number | AgentQuestion[] | null>(null)\r\n    const [promptHeight, setPromptHeight] = useState(readStoredPromptHeight)\r\n    const [blockHeight, setBlockHeight] = useState<number | null>(null)\r\n    const [containerHeight, setContainerHeight] = useState(0)\r\n    const [primaryRegion, setPrimaryRegion] = useState<PrimaryRegion>('questions')\r\n    const [resizingPrompt, setResizingPrompt] = useState(false)\r\n    const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)\r\n    const editorSnapshot = useSyncExternalStore(\r\n        promptDraft.subscribeEditor,\r\n        promptDraft.getEditorSnapshot,\r\n        promptDraft.getEditorSnapshot,\r\n    )\r\n    const boundRunId = useBoundRunId(bindingStore)\r\n    const question = useRunSelector(boundRunId, (run) => run?.question ?? null)\r\n\r\n    const promptEmpty = prompt.trim().length === 0\r\n    const hasQuestions = questionsEnabled && !!(question || restoredQuestions)\r\n    const questionIdentity = questionsEnabled\r\n        ? question?.requestId ?? restoredQuestions?.questions ?? null\r\n        : null\r\n    const resizeDisabled = promptEmpty && !hasQuestions\r\n\r\n    useLayoutEffect(() => {\r\n        if (questionIdentity !== null && questionIdentity !== questionIdentityRef.current) {\r\n            setPrimaryRegion('questions')\r\n        }\r\n        questionIdentityRef.current = questionIdentity\r\n    }, [questionIdentity])\r\n\r\n    const measureContainerHeight = useCallback(() => {\r\n        const container = blockSurfaceRef.current?.parentElement\r\n\r\n        return container ? container.getBoundingClientRect().height : 0\r\n    }, [])\r\n\r\n    const clampPromptHeight = useCallback((proposed: number) => {\r\n        const container = measureContainerHeight()\r\n        const questionsHeight = questionsSurfaceRef.current\r\n            ? Math.max(MIN_QUESTIONS_HEIGHT, questionsSurfaceRef.current.getBoundingClientRect().height)\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-42",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/agent/action_agent_prompt.tsx -TotalCount 115'",
+          "providerItemId": "exec-1f732233-1bbf-4313-9b16-19aad9628a59",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-09-24T09:35:00.138Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/run/state/action_run_history.tsx -TotalCount 90'",
+          "content": "import { Box, Stack, Typography } from '@mui/material'\r\nimport { useEffect, useRef } from 'react'\r\nimport type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'\r\nimport { dialogService } from '../../../../services/dialog_service'\r\nimport { CommitReferenceRow } from '../../conversation/commit_reference_row'\r\n\r\ninterface HistoryEntryRowProps {\r\n    entry: ActionRunHistoryEntry\r\n}\r\n\r\ninterface ActionRunHistoryProps {\r\n    compact?: boolean\r\n    entries: ActionRunHistoryEntry[]\r\n    error: string | null\r\n}\r\n\r\ninterface IndexedHistoryEntry {\r\n    entry: ActionRunHistoryEntry\r\n    sourceIndex: number\r\n}\r\n\r\nfunction compareHistoryEntries(first: IndexedHistoryEntry, second: IndexedHistoryEntry) {\r\n    const completedAtDifference = Date.parse(second.entry.completedAt) - Date.parse(first.entry.completedAt);\r\n    if (completedAtDifference !== 0) return completedAtDifference;\r\n\r\n    return second.sourceIndex - first.sourceIndex;\r\n}\r\n\r\nfunction newestFirstHistoryEntries(entries: ActionRunHistoryEntry[]) {\r\n    return entries\r\n        .map((entry, sourceIndex) => ({ entry, sourceIndex }))\r\n        .sort(compareHistoryEntries);\r\n}\r\n\r\n/** One run history line with commits produced across its action chain. */\r\nfunction HistoryEntryRow(props: HistoryEntryRowProps) {\r\n    const { entry } = props\r\n    const configuration = entry.type === 'agent'\r\n        ? [entry.agent, entry.model, entry.thinkingLevel, entry.permissionMode].filter((value) => !!value).join(' / ')\r\n        : ''\r\n    const agentLabel = configuration ? ` (${configuration})` : ''\r\n    const completedAt = new Date(entry.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })\r\n    const summary = entry.type === 'agent'\r\n        ? `${entry.status}${agentLabel} Â· ${completedAt}`\r\n        : `${entry.status}: ${entry.output} Â· ${completedAt}`\r\n\r\n    return (\r\n        <Box>\r\n            <Typography color=\"text.secondary\" variant=\"caption\">\r\n                {summary}\r\n            </Typography>\r\n            {entry.commits?.map((commitReference) => (\r\n                <CommitReferenceRow\r\n                    commitReference={commitReference}\r\n                    key={`${commitReference.repositoryRoot}-${commitReference.commit}`}\r\n                />\r\n            ))}\r\n        </Box>\r\n    )\r\n}\r\n\r\n/** Presentation-only list of previous action runs. */\r\nexport function ActionRunHistory(props: ActionRunHistoryProps) {\r\n    const { compact = false, entries, error } = props\r\n    const reportedErrorRef = useRef<string | null>(null)\r\n    const displayEntries = newestFirstHistoryEntries(entries);\r\n\r\n    useEffect(() => {\r\n        if (!error) {\r\n            reportedErrorRef.current = null\r\n\r\n            return\r\n        }\r\n\r\n        if (error === reportedErrorRef.current) return\r\n\r\n        dialogService.error(error)\r\n        reportedErrorRef.current = error\r\n    }, [error])\r\n\r\n    if (entries.length === 0) return null\r\n\r\n    return (\r\n        <Box sx={{ display: 'flex', flexDirection: 'column', gap: compact ? 1 : 0 }}>\r\n            <Typography color=\"text.secondary\" sx={compact ? { fontSize: 12, fontWeight: 600 } : undefined} variant=\"caption\">\r\n                Run history\r\n            </Typography>\r\n            {error ? (\r\n                <Typography color=\"text.secondary\" variant=\"caption\">\r\n                    Run history unavailable.\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-43",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/run/state/action_run_history.tsx -TotalCount 90'",
+          "providerItemId": "exec-b3a7784f-ccc1-4e7b-9c37-fdbf3de03511",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-09-24T09:35:00.249Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-event-44",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_012d43f779c36ee2016ab4eec7c5c887d286986c82c3f53fd5",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-09-24T09:35:08.767Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "You’re right. I treated the behavior inside an `_owner` as a reason to keep the split. Under the criterion you gave, it makes the split harder to justify.\n\nI checked production callers, excluding tests. There are **11 `_owner` components**:\n\n- **Nine used wrappers have children with no other production caller.** That includes [ActionUsageSummaryOwner](/C:/Users/janbo/Documents/dev/md2/app/src/components/actions/run/popup/action_usage_summary_owner.tsx:10), [ActionPromptOwner](/C:/Users/janbo/Documents/dev/md2/app/src/components/actions/agent/action_prompt_owner.tsx:50), and [ActionScheduleOwner](/C:/Users/janbo/Documents/dev/md2/app/src/components/actions/run/schedule/action_schedule_owner.tsx:38). Their subscriptions and behavior can belong in the component being rendered; a separate child is not justified by production reuse.\n- **One wrapper has a genuinely reused child:** [ActionWorktreeSelectorOwner](/C:/Users/janbo/Documents/dev/md2/app/src/components/actions/run/popup/action_worktree_selector_owner.tsx:14) wraps `WorktreeSelector`, which is also rendered by [CardWorktreeIndicator](/C:/Users/janbo/Documents/dev/md2/app/src/components/card_view/card_worktree_indicator.tsx:20). Its action-specific binding may warrant an adapter, but `_owner` is the wrong name for that role.\n- **One pair is unused in production:** [ActionAgentPresetNameOwner](/C:/Users/janbo/Documents/dev/md2/app/src/components/actions/agent/action_agent_preset_name_owner.tsx:28) and its child have no production caller.\n\nSo **F_260 is still a valid problem**. The current subscriptions protect parent render boundaries, but they do not require this two-component `_owner` pattern. My earlier conclusion that the feature needed a concrete rendering bug was wrong. I made no changes.\n\n",
+          "id": "agent-turn-71f0b1a8-c326-472d-a786-ca5f96f283af-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 45,
+          "timestamp": "2026-09-24T09:35:16.398Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -461,19 +638,19 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 15454,
-          "toolMs": 1023
+          "reasoningMs": 26025,
+          "toolMs": 1410
         },
         "elapsedMs": 70686,
         "runningStartedAt": "2026-09-24T09:34:40.082Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 183040,
-        "inputTokens": 41588,
-        "outputTokens": 2088,
-        "reasoningTokens": 468,
-        "totalTokens": 227184
+        "cachedInputTokens": 328320,
+        "inputTokens": 48958,
+        "outputTokens": 3142,
+        "reasoningTokens": 865,
+        "totalTokens": 381285
       },
       "usageSchemaVersion": 1,
       "viewed": true
