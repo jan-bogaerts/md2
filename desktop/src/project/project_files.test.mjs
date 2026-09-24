@@ -13,6 +13,7 @@ const {
     loadProject,
     loadProjectRoot,
     loadTextFile,
+    resolveExistingProjectEntry,
 } = require('./project_files');
 
 describe('project-files', () => {
@@ -145,5 +146,39 @@ describe('project-files', () => {
             vi.restoreAllMocks();
             await rm(rootPath, { force: true, recursive: true });
         }
+    });
+
+    describe('resolveExistingProjectEntry', () => {
+        it('resolves existing files and folders to their full paths', async () => {
+            const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+            const project = { branch: 'main', id: 'local', rootPath };
+
+            try {
+                await mkdir(join(rootPath, 'design', 'active'), { recursive: true });
+                await writeFile(join(rootPath, 'design', 'active', 'card.md'), '# Card');
+
+                await expect(resolveExistingProjectEntry(project, 'design/active/card.md'))
+                    .resolves.toBe(join(rootPath, 'design', 'active', 'card.md'));
+                await expect(resolveExistingProjectEntry(project, 'design/active'))
+                    .resolves.toBe(join(rootPath, 'design', 'active'));
+            } finally {
+                await rm(rootPath, { force: true, recursive: true });
+            }
+        });
+
+        it('rejects missing, empty, and root-escaping paths', async () => {
+            const rootPath = await mkdtemp(join(tmpdir(), 'md2-project-files-'));
+            const project = { branch: 'main', id: 'local', rootPath };
+
+            try {
+                await expect(resolveExistingProjectEntry(project, 'design/missing.md'))
+                    .rejects.toThrow('Project entry does not exist: design/missing.md');
+                await expect(resolveExistingProjectEntry(project, '')).rejects.toThrow('Missing project entry path');
+                await expect(resolveExistingProjectEntry(project, '../outside.md'))
+                    .rejects.toThrow('Local Git path escapes project root');
+            } finally {
+                await rm(rootPath, { force: true, recursive: true });
+            }
+        });
     });
 });

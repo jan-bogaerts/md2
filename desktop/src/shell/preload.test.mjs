@@ -96,6 +96,7 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2ApplicationState.read).toEqual(expect.any(Function));
         expect(exposed.md2Files.getPathForFile).toEqual(expect.any(Function));
         expect(exposed.md2Data.selectWorktreeFolder).toEqual(expect.any(Function));
+        expect(exposed.md2Data.showInFileExplorer).toEqual(expect.any(Function));
         expect(exposed.md2Data.loadAgentAvailability).toEqual(expect.any(Function));
         expect(exposed.md2Data.prepareWorktree).toEqual(expect.any(Function));
         expect(exposed.md2Data.commitWorktree).toEqual(expect.any(Function));

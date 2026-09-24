@@ -17,8 +17,10 @@ import { fileContext, folderContext, type ActionContext } from '../../data/actio
 import { getCardIdPrefix } from '../../data/card_identifiers'
 import { defaultColumnAccent, type CardTypeConfig, type Card } from '../../data/data_types'
 import type { TreeNode, TreeNodeKind } from '../../data/file_tree'
+import { canShowInFileExplorer } from '../../services/file_explorer'
 import { ActionEntryPoints } from '../actions/run/trigger/action_entry_points'
 import { CardPathMenuItems } from '../card_view/card_path_menu_items'
+import { OpenInFileExplorerMenuItem } from '../card_view/open_in_file_explorer_menu_item'
 import { useIsActiveDocument } from '../hooks/use_active_document'
 import { useProjectReference } from '../hooks/use_project_reference'
 import { useFileTreeContext } from './file_tree_context'
@@ -30,6 +32,14 @@ function nodeContext(node: TreeNode, cardTypes: CardTypeConfig[], cardsByPath: M
         return card ? fileContext(card, cardTypes) : null
     }
     if (node.kind === 'folder' || node.kind === 'special') return folderContext(node.label, node.kind === 'special')
+
+    return null
+}
+
+/** Repository-relative location revealed in the file explorer, or null for groups that are not real folders. */
+function fileExplorerPath(node: TreeNode) {
+    if (node.kind === 'file') return node.path
+    if (node.kind === 'folder' || node.kind === 'special') return node.directoryPath
 
     return null
 }
@@ -68,6 +78,8 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
     const isDeletableFolder = treeNode.kind === 'folder'
     const isMenuOpen = !!menuAnchor || !!menuPosition
     const structuralReadOnly = !!treeNode.structuralReadOnly
+    const explorerPath = fileExplorerPath(treeNode)
+    const hasInstructionMenu = structuralReadOnly && canShowInFileExplorer(project?.rootPath)
 
     const handleRowClick = (event: MouseEvent<HTMLElement>) => {
         event.stopPropagation()
@@ -177,6 +189,9 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                 {isCard && card ? (
                     <CardPathMenuItems cardPath={card.path} onSelected={closeMenu} rootPath={project?.rootPath} />
                 ) : null}
+                {explorerPath ? (
+                    <OpenInFileExplorerMenuItem onSelected={closeMenu} path={explorerPath} rootPath={project?.rootPath} />
+                ) : null}
             </Menu>
         </>
     )
@@ -185,7 +200,7 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
         return (
             <Box
                 data-selected={isSelected ? 'true' : undefined}
-                onContextMenu={structuralReadOnly ? undefined : openContextMenu}
+                onContextMenu={structuralReadOnly && !hasInstructionMenu ? undefined : openContextMenu}
                 style={style}
                 sx={{
                     alignItems: 'center',
@@ -254,6 +269,16 @@ export function FileTreeNodeRow(props: NodeRendererProps<TreeNode>) {
                         </Tooltip>
                         {itemMenu}
                     </Box>
+                ) : null}
+                {hasInstructionMenu && explorerPath ? (
+                    <Menu
+                        anchorPosition={menuPosition ?? undefined}
+                        anchorReference="anchorPosition"
+                        onClose={closeMenu}
+                        open={!!menuPosition}
+                    >
+                        <OpenInFileExplorerMenuItem onSelected={closeMenu} path={explorerPath} rootPath={project?.rootPath} />
+                    </Menu>
                 ) : null}
             </Box>
         )

@@ -77,6 +77,7 @@ const DATA_METHODS = [
     'saveProjectConfig',
     'selectProjectSubFolder',
     'selectWorktreeFolder',
+    'showInFileExplorer',
     'stopAgent',
 ];
 const ACTION_METHODS = [

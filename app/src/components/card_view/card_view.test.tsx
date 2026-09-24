@@ -7,6 +7,7 @@ import { CardColumn } from './card_column'
 import * as cardColumnModule from './card_column'
 import { actionService } from '../../services/actions/action_service'
 import type { ActionFile } from '../../data/action_types'
+import type { ElectronDataBridge } from '../../data/electron_data_bridge'
 import { DEFAULT_CARD_TYPES, type CardTypeConfig, type Card, type ProjectReference } from '../../data/data_types'
 import { telemetryService } from '../../services/telemetry/telemetry_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
@@ -542,6 +543,26 @@ describe('CardView', () => {
         fireEvent.contextMenu(screen.getByText('First'))
         const contextItems = screen.getAllByRole('menuitem').map((item) => item.textContent)
         expect(contextItems.slice(-2)).toEqual(['Archive', 'Delete'])
+    })
+
+    it('offers Open in file explorer after Open in file mode from both card menu entry points', async () => {
+        const showInFileExplorer = vi.fn().mockResolvedValue(undefined)
+        window.md2Data = { showInFileExplorer } as Partial<ElectronDataBridge> as ElectronDataBridge
+        try {
+            renderCardView()
+
+            fireEvent.click(screen.getByRole('button', { name: 'Card actions for F-1' }))
+            const dotsItems = screen.getAllByRole('menuitem').map((item) => item.textContent)
+            expect(dotsItems.indexOf('Open in file explorer')).toBe(dotsItems.indexOf('Open in file mode') + 1)
+            fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+
+            fireEvent.contextMenu(screen.getByText('First'))
+            fireEvent.click(screen.getByRole('menuitem', { name: 'Open in file explorer' }))
+
+            await waitFor(() => expect(showInFileExplorer).toHaveBeenCalledWith({ path: 'design/F-1.md' }))
+        } finally {
+            delete window.md2Data
+        }
     })
 
     it('disables Archive on a read-only project', () => {

@@ -15,6 +15,7 @@ import { useRunningActionForContext } from '../hooks/use_action_runs'
 import { CardArchiveDialog } from './card_archive_dialog'
 import { CardDeleteDialog } from './card_delete_dialog'
 import { CardPathMenuItems } from './card_path_menu_items'
+import { OpenInFileExplorerMenuItem } from './open_in_file_explorer_menu_item'
 import { CardPolicyMenuItem } from './card_policy_menu_item'
 import { CardWorktreeIndicator } from './card_worktree_indicator'
 import { getCardTypeColor } from './card_drag'
@@ -399,6 +400,7 @@ function CardViewContent(props: CardViewContentProps) {
                     <CardPathMenuItems cardPath={card.path} onSelected={closeCardActions} rootPath={rootPath} />
                     <MenuItem onClick={openBodyFromMenu}>Open body</MenuItem>
                     <MenuItem onClick={openInFileModeFromMenu}>Open in file mode</MenuItem>
+                    <OpenInFileExplorerMenuItem onSelected={closeCardActions} path={card.path} rootPath={rootPath} />
                     <MenuItem disabled={readOnly} onClick={openAttachmentPickerFromMenu}>
                     Attach files{references.length > 0 ? ` (${references.length})` : ''}
                     </MenuItem>

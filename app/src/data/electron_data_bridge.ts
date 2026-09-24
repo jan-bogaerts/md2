@@ -35,6 +35,10 @@ export interface AgentAvailability {
     error: string | null
 }
 
+export interface ShowInFileExplorerRequest {
+    path: string
+}
+
 export interface ElectronDataBridge {
     abortMergeConflict?(request: MergeConflictSessionRequest): Promise<void>
     addWorktree?(project: ProjectReference, folderPath: string): Promise<void>
@@ -87,6 +91,7 @@ export interface ElectronDataBridge {
     saveProjectConfig(project: ProjectReference, config: ProjectConfig): Promise<void>
     selectProjectSubFolder?(rootPath: string): Promise<string | null>
     selectWorktreeFolder?(): Promise<string | null>
+    showInFileExplorer?(request: ShowInFileExplorerRequest): Promise<void>
     removeWorktree?(project: ProjectReference, folderPath: string, mode: WorktreeRemovalMode): Promise<void>
     stopAgent?(runId: string): Promise<void>
     watchProject(project: ProjectReference, callback: (notification: ProjectWatchNotification) => void): () => void

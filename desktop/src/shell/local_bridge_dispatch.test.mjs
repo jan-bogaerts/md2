@@ -89,6 +89,7 @@ function createDispatch(options = {}) {
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadTextFile: vi.fn(async (_project, path) => ({ content: '{"version":2}', path })),
+        resolveExistingProjectEntry: vi.fn(async (_project, entryPath) => `C:/repo/${entryPath}`),
         resolveLocalProject: vi.fn(async () => ({ branch: 'topic', id: 'C:/repo', rootPath: 'C:/repo' })),
         readFileAtCommit: vi.fn(async () => ({ content: '# Card', exists: true })),
         resolveCommitMetadata: vi.fn(async (_rootPath, commit) => ({
@@ -182,6 +183,7 @@ function createDispatch(options = {}) {
         projectStatsWorkerService,
         readDesktopConfig: () => desktopConfig,
         saveDesktopConfig,
+        showItemInFolder: options.showItemInFolder,
         updateCodexCli,
         worktreeService,
     });
@@ -984,6 +986,28 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadTextFile(project, 'design/activity/card__card-1.json');
 
         expect(localGitService.loadTextFile).toHaveBeenCalledWith(project, 'design/activity/card__card-1.json');
+    });
+
+    it('reveals a resolved project entry in the file explorer', async () => {
+        const showItemInFolder = vi.fn();
+        const { dispatch, localGitService } = createDispatch({ showItemInFolder });
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
+        await dispatch.dataBridge.loadProject(project, 'design');
+
+        await dispatch.dataBridge.showInFileExplorer({ path: 'design/F-1.md' });
+
+        expect(localGitService.resolveExistingProjectEntry).toHaveBeenCalledWith(project, 'design/F-1.md');
+        expect(showItemInFolder).toHaveBeenCalledWith('C:/repo/design/F-1.md');
+    });
+
+    it('does not reveal an entry that fails to resolve', async () => {
+        const showItemInFolder = vi.fn();
+        const { dispatch, localGitService } = createDispatch({ showItemInFolder });
+        localGitService.resolveExistingProjectEntry.mockRejectedValueOnce(new Error('Project entry does not exist: design/gone.md'));
+
+        await expect(dispatch.dataBridge.showInFileExplorer({ path: 'design/gone.md' }))
+            .rejects.toThrow('Project entry does not exist: design/gone.md');
+        expect(showItemInFolder).not.toHaveBeenCalled();
     });
 
     it('runs and cancels stats calculations through worker service for active project', async () => {

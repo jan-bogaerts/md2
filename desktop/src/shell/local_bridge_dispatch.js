@@ -68,6 +68,7 @@ function createLocalBridgeDispatch(dependencies) {
         projectStatsWorkerService,
         readDesktopConfig,
         saveDesktopConfig,
+        showItemInFolder,
         updateCodexCli,
         worktreeService,
     } = dependencies;
@@ -366,6 +367,9 @@ function createLocalBridgeDispatch(dependencies) {
 
             return openWorktreeFolder();
         },
+        showInFileExplorer: async (request) => showItemInFolder(
+            await localGitService.resolveExistingProjectEntry(currentLocalProject, request.path),
+        ),
         removeWorktree: (project, folderPath, mode) => {
             if (!WORKTREE_REMOVAL_MODES.has(mode)) throw new Error(`Unknown worktree removal mode: ${String(mode)}`);
 

@@ -159,6 +159,7 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     projectStatsWorkerService,
     readDesktopConfig,
     saveDesktopConfig,
+    showItemInFolder: (fullPath) => shell.showItemInFolder(fullPath),
     updateCodexCli,
     worktreeService,
 });

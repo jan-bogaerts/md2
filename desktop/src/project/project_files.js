@@ -190,6 +190,23 @@ async function loadTextFile(project, filePath) {
     return { content, path: normalizePath(path.relative(rootPath, fullPath)) };
 }
 
+/**
+ * Resolves a repository-relative file or folder path to its full path, requiring it to exist inside the project root.
+ */
+async function resolveExistingProjectEntry(project, entryPath) {
+    const rootPath = requireRootPath(project);
+    if (typeof entryPath !== 'string' || entryPath.length === 0) throw new Error('Missing project entry path');
+
+    const fullPath = ensureInsideRoot(rootPath, path.join(rootPath, entryPath));
+    try {
+        await fs.promises.stat(fullPath);
+    } catch {
+        throw new Error(`Project entry does not exist: ${entryPath}`);
+    }
+
+    return fullPath;
+}
+
 async function loadProjectAsset(project, filePath) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -476,6 +493,7 @@ module.exports = {
     isWatchedProjectPath,
     moveFiles,
     PROJECT_README_TEMPLATE,
+    resolveExistingProjectEntry,
     saveProjectConfig,
     watchProject,
 };
