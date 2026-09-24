@@ -6,15 +6,14 @@
 >
 > **Platforms:** md² is an Electron desktop app. Windows x64 has a signed installer; macOS and Linux can run from source, but do not have prebuilt packages yet.
 
-https://github.com/user-attachments/assets/260ec55c-2905-47fa-9952-8f07b8c31c13
+[https://github.com/user-attachments/assets/260ec55c-2905-47fa-9952-8f07b8c31c13](https://github.com/user-attachments/assets/260ec55c-2905-47fa-9952-8f07b8c31c13)
 
 ## Videos
 
-- [Merge an agent's worktree branch](https://github.com/user-attachments/assets/8d9b4f55-6d97-42ff-bba4-ef36c5a64513) — Merge a branch back into the main working branch after an agent finishes implementing a card.
-- [Resolve merge conflicts between worktrees](https://github.com/user-attachments/assets/c04324ce-273d-43b7-b739-02c7011cefad) — Let an agent resolve conflicts when multiple worktrees change the same files.
-- [Switch agents during a conversation](https://github.com/user-attachments/assets/5078f4b6-3434-44f7-94ea-3b831d998eab) — Assign another agent and automatically migrate the active conversation.
-- [Open link in VsCode](https://github.com/user-attachments/assets/05484930-e84f-437e-9baa-a83e8822c97f) - open links to source code files in cards or agent responses
-
+* [Merge an agent's worktree branch](https://github.com/user-attachments/assets/8d9b4f55-6d97-42ff-bba4-ef36c5a64513) — Merge a branch back into the main working branch after an agent finishes implementing a card.
+* [Resolve merge conflicts between worktrees](https://github.com/user-attachments/assets/c04324ce-273d-43b7-b739-02c7011cefad) — Let an agent resolve conflicts when multiple worktrees change the same files.
+* [Switch agents during a conversation](https://github.com/user-attachments/assets/5078f4b6-3434-44f7-94ea-3b831d998eab) — Assign another agent and automatically migrate the active conversation.
+* [Open link in VsCode](https://github.com/user-attachments/assets/05484930-e84f-437e-9baa-a83e8822c97f) - open links to source code files in cards or agent responses
 
 ## The feature card is the center
 
@@ -22,12 +21,12 @@ In a traditional coding workflow, the source code is the center: you open a proj
 
 Each request is stored as a Markdown card in your repository. Everything related to the work hangs off that card:
 
-- its Git worktree
-- the coding agent working on it
-- chat history
-- commits
-- design notes and documentation
-- token usage and cost
+* its Git worktree
+* the coding agent working on it
+* chat history
+* commits
+* design notes and documentation
+* token usage and cost
 
 Reusable prompts and actions live at project level. They support the cards: run an action from a card and md² supplies that card's description and worktree context.
 
@@ -35,23 +34,23 @@ The card becomes the shared context for both you and your agents. Instead of rec
 
 ## Works with
 
-- [Codex CLI](https://github.com/openai/codex)
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
+* [Codex CLI](https://github.com/openai/codex)
+* [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 
 md² starts the CLIs already installed and authenticated on your machine. It does not call model APIs directly, and either CLI is optional when using md² as a Markdown-backed project board.
 
 ## Without and with md²
 
-| Without md² | With md² |
-| --- | --- |
-| Agent conversations grouped by chat | Activity grouped by feature |
-| Worktrees identified by folders/windows | Worktrees assigned to cards |
-| Repeated prompts scattered around | Reusable project actions |
+| Without md²                                        | With md²                                                                        |
+| -------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Agent conversations grouped by chat                | Activity grouped by feature                                                     |
+| Worktrees identified by folders/windows            | Worktrees assigned to cards                                                     |
+| Repeated prompts scattered around                  | Reusable project actions                                                        |
 | Token use and subscription value largely invisible | Time, tokens, and estimated cost tracked by agent, action, feature, and release |
 
 ## Docs
 
-Full docs: https://jan-bogaerts.github.io/md2/
+Full docs: [https://jan-bogaerts.github.io/md2/](https://jan-bogaerts.github.io/md2/)
 
 ## Why md²
 
@@ -153,8 +152,8 @@ The repo has three parts: [app/](app/) (the React/Vite web UI), [desktop/](deskt
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (LTS) and npm
-- Git
+* [Node.js](https://nodejs.org/) (LTS) and npm
+* Git
 
 ### Install
 
