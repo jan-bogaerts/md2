@@ -39,6 +39,7 @@ changedFiles:
   - app/src/services/data/data_service.ts
   - app/src/services/project/project_session_service.service.test.ts
   - app/src/services/project/project_session_service.ts
+after: 67d4a581-6ded-4a41-a489-d079644e3e5b
 ---
 
 see trace [Trace-open project.json](file:///C:/Users/janbo/Documents/dev/Trace-open%20project.json). Analyze the trace. it is taken while opening a project. this operation takes way way too long. most likely there is again a UI architecture violation where the UI keeps re-rendering while loading the project.

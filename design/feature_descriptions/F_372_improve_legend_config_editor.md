@@ -18,6 +18,7 @@ changedFiles:
   - app/src/components/diagram_view/diagram_session_legend_entries.test.tsx
   - app/src/components/diagram_view/optional_color_picker_field.tsx
   - app/src/components/diagram_view/optional_slider_field.tsx
+after: be40e266-2bca-497c-8bf8-9fb7992ca89a
 ---
 Through the items on the legend on the diagrams  it is possible to configure the style of the items. When hovered over item, it show a gear, this opens a popup with config fields like font, size, color, fill, border. There is however little info on the popup (labels, helper text). And rhe inputs are not ok.
 

@@ -20,6 +20,7 @@ changedFiles:
   - app/src/components/actions/run/schedule/action_schedule_store.node.test.ts
   - app/src/components/actions/run/schedule/action_schedule_store.ts
   - app/src/components/actions/run/schedule/action_schedule_trigger.node.test.ts
+after: 515b2369-553d-4556-b99c-e01eb575777d
 ---
 
 we have a 'schedule' button on the action popup. currently it shows / hides a box on the same popup when clicked. This should be moved into a popup. when the user clicks on the schedule icon, open/close the new popup.

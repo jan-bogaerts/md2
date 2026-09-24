@@ -13,6 +13,7 @@ changedFiles:
   - app/src/services/config/config_persistence.service.test.ts
   - tmp_f371_config_page.py
   - tmp_f371_tests.py
+after: 1e7b5718-e065-479d-9d50-be0ff38d738f
 ---
 The react tab of the config dialog needs to be removed:
 

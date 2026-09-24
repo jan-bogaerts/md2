@@ -12,6 +12,7 @@ policy:
 changedFiles:
   - app/src/components/shell/search/search_control.test.tsx
   - app/src/components/shell/search/search_panel.tsx
+after: be1030df-8a36-4969-99af-e22e8456579f
 ---
 
 when user clicks on a global search result item, nothing happens anymore. this is broken so it seems.

@@ -14,6 +14,7 @@ changedFiles:
   - app/src/components/diagram_view/diagram_formatting_scale_control.test.tsx
   - app/src/components/diagram_view/diagram_formatting_scale_control.tsx
   - app/src/components/diagram_view/diagram_menu_tab.test.tsx
+after: b5b62998-1de2-4ebd-ba9c-9f6e68b2d180
 ---
 On the diagram tab of the app menu, we show: current font size, current box size, current spacing with an up and down button and a value in between. we should change this: instead of `current font size`, use an icon, instead of a up and down button, the icon button should open a popup with a slider that increases or decreases the value. This should be done for all 3. include a tooltip that explains the function on the icon button.
 

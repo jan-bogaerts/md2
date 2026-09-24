@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - app/src/services/stats/project_stats_service.node.test.ts
+after: faf847ea-ef5f-4ace-a894-9a30c39692b4
 ---
 
 we have a couple of diagrams on the stats view that show time information, like duration of a task. we currently just show the raw number, but this is hard to read, can we convert it to hh:mm:ss format?

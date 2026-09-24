@@ -12,6 +12,7 @@ policy:
 changedFiles:
   - app/src/components/color_picker_field.tsx
   - app/src/components/config/card_type_edit_dialog.tsx
+after: 522e73f4-0c67-4c35-8ce2-f6a570562479
 ---
 we need to improve the layout of the project tab on the config dialog:
 

@@ -15,6 +15,7 @@ changedFiles:
   - app/src/components/shell/menu/menu_select.tsx
   - app/src/components/stats_view/stats_menu_tab.test.tsx
   - app/src/components/stats_view/stats_menu_tab.tsx
+after: 358764f1-3de7-4aaa-b7e9-b83da22beaa1
 ---
 
 Similar like we did for diagrams, move the toolbar we show at the top of the stats page, to the main menu app bar. Only show the tab when in stats view.

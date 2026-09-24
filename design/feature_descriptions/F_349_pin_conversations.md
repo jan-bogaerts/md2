@@ -95,6 +95,7 @@ changedFiles:
   - desktop/src/shell/preload.js
   - desktop/src/shell/preload.test.mjs
   - shared/agent_conversations.mjs
+after: 385eccb9-06c4-4d93-8f8a-5f9b9f42e45f
 ---
 
 Some conversations remain useful long after they finish. Pinning gives users a project-wide shortlist from which they can identify and reopen those conversations quickly. Pinning affects discoverability only; it does not change conversation lifetime or activity compaction.

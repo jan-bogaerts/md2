@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__385eccb9-06c4-4d93-8f8a-5f9b9f42e45f.json
 policy:
-after: 83c2184c-ed84-4e04-ad0a-4e3159cc163f
+after: 6a25a6de-234c-4d7a-9d59-7ce9e86992b5
 branch: f_144_appbar_and_toolbar_scrolling
 changedFiles:
   - app/src/components/editor/markdown_editor.tsx
