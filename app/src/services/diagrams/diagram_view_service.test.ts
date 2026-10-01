@@ -377,12 +377,12 @@ describe('DiagramViewService', () => {
         service.subscribeNodeRoleFormatting('focal', roleChanged)
         service.subscribeFormattingScale('boxScalePercent', boxScaleChanged)
 
-        service.setNodeRoleFormatting('focal', { box: { fillColor: '#112233' } })
+        service.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 40, fillColor: '#112233' } })
         service.setFormattingScale('fontScalePercent', 110)
         service.setFormattingScale('boxScalePercent', 120)
 
         expect(service.getSourceSnapshot()).toBe(sourceBefore)
-        expect(service.getNodeRoleFormattingSnapshot('focal')).toEqual({ box: { fillColor: '#112233' } })
+        expect(service.getNodeRoleFormattingSnapshot('focal')).toEqual({ box: { autoWrap: false, contentInset: 40, fillColor: '#112233' } })
         expect(roleChanged).toHaveBeenCalledOnce()
         expect(boxScaleChanged).toHaveBeenCalledOnce()
         expect(scheduleCommit).toHaveBeenCalledTimes(3)
@@ -390,7 +390,7 @@ describe('DiagramViewService', () => {
         expect(JSON.parse(scheduleCommit.mock.calls[2][0].content).formatting).toEqual({
             boxScalePercent: 120,
             fontScalePercent: 110,
-            nodeRoles: { focal: { box: { fillColor: '#112233' } } },
+            nodeRoles: { focal: { box: { autoWrap: false, contentInset: 40, fillColor: '#112233' } } },
         })
     })
 

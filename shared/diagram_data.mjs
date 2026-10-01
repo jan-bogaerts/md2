@@ -17,6 +17,8 @@ export const DIAGRAM_CONTENT_POSITIONS = [
 export const DIAGRAM_CONNECTION_MARKERS = ['none', 'filled-arrow', 'open-arrow', 'circle', 'diamond'];
 export const DIAGRAM_FORMATTING_SCALE_MINIMUM = 50;
 export const DIAGRAM_FORMATTING_SCALE_MAXIMUM = 200;
+export const DIAGRAM_CONTENT_INSET_DEFAULT = 4;
+export const DIAGRAM_CONTENT_INSET_MAXIMUM = 40;
 function malformed(field, reason = 'invalid value') {
     throw new Error(`Malformed diagram data: ${field} has ${reason}`);
 }
@@ -155,18 +157,22 @@ function parseBoxFormatting(value, field) {
         return undefined;
     const box = requireObject(value, field);
     rejectUnknownKeys(box, [
-        'borderColor', 'borderStyle', 'borderThickness', 'contentPosition', 'cornerRadius', 'fillColor',
+        'autoWrap', 'borderColor', 'borderStyle', 'borderThickness', 'contentInset', 'contentPosition', 'cornerRadius', 'fillColor',
     ], field);
+    const autoWrap = optionalDiagramBoolean(box.autoWrap, `${field}.autoWrap`);
     const borderColor = optionalColor(box.borderColor, `${field}.borderColor`);
     const borderStyle = optionalDiagramEnum(box.borderStyle, DIAGRAM_BORDER_STYLES, `${field}.borderStyle`);
     const borderThickness = optionalBoundedNumber(box.borderThickness, `${field}.borderThickness`, 0, 20);
+    const contentInset = optionalBoundedNumber(box.contentInset, `${field}.contentInset`, 0, DIAGRAM_CONTENT_INSET_MAXIMUM);
     const contentPosition = optionalDiagramEnum(box.contentPosition, DIAGRAM_CONTENT_POSITIONS, `${field}.contentPosition`);
     const cornerRadius = optionalBoundedNumber(box.cornerRadius, `${field}.cornerRadius`, 0, 100);
     const fillColor = optionalColor(box.fillColor, `${field}.fillColor`);
     return {
+        ...(autoWrap === undefined ? {} : { autoWrap }),
         ...(borderColor ? { borderColor } : {}),
         ...(borderStyle ? { borderStyle } : {}),
         ...(borderThickness === undefined ? {} : { borderThickness }),
+        ...(contentInset === undefined ? {} : { contentInset }),
         ...(contentPosition ? { contentPosition } : {}),
         ...(cornerRadius === undefined ? {} : { cornerRadius }),
         ...(fillColor ? { fillColor } : {}),

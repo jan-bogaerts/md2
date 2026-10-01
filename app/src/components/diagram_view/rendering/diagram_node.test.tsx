@@ -1,11 +1,23 @@
 import { ThemeProvider } from '@mui/material'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DiagramFlowPreset, DiagramType } from '../../../services/diagrams/diagram_data'
+import type { DiagramFlowPreset, DiagramNodeRoleFormatting, DiagramRole, DiagramType } from '../../../services/diagrams/diagram_data'
 import type { PositionedDiagramNode } from '../../../services/diagrams/diagram_layout'
 import { createAppTheme } from '../../../theme/app_theme'
 import { DiagramNode } from './diagram_node'
+import type { DiagramFormattingStore } from '../formatting/use_diagram_formatting'
+
+function formattingStore(nodeRoles: Partial<Record<DiagramRole, DiagramNodeRoleFormatting>>): DiagramFormattingStore {
+    return {
+        getConnectionKindFormattingSnapshot: () => undefined,
+        getFormattingScaleSnapshot: () => 100,
+        getNodeRoleFormattingSnapshot: (role) => nodeRoles[role],
+        subscribeConnectionKindFormatting: () => () => undefined,
+        subscribeFormattingScale: () => () => undefined,
+        subscribeNodeRoleFormatting: () => () => undefined,
+    }
+}
 
 function positioned(overrides: Partial<PositionedDiagramNode> = {}): PositionedDiagramNode {
     // Cast: exactOptionalPropertyTypes rejects spreading a Partial whose optional members may be explicitly undefined.
@@ -48,6 +60,49 @@ describe('DiagramNode', () => {
 
         expect(getComputedStyle(screen.getByText('src/services/diagrams/diagram_layout.ts')).overflowWrap).toBe('anywhere')
         expect(getComputedStyle(screen.getByText('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).overflowWrap).toBe('anywhere')
+    })
+
+    it('uses four pixel inset by default and constrains text for right aligned content', () => {
+        const node = positioned({ label: 'src/services/diagrams/diagram_layout.ts' })
+        const store = formattingStore({ focal: { box: { contentPosition: 'center-right' } } })
+        render(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode diagramType="architecture" formattingStore={store} node={node} onSelect={vi.fn()} selected={false} />
+            </ThemeProvider>,
+        )
+        const label = screen.getByText(node.label)
+        const header = label.parentElement as HTMLElement
+
+        expect(getComputedStyle(header).padding).toBe('4px')
+        expect(getComputedStyle(header).width).toBe('100%')
+        expect(getComputedStyle(label).overflowWrap).toBe('anywhere')
+    })
+
+    it('applies wrap and inset by role while keeping node dimensions and entity fields', () => {
+        const store = formattingStore({
+            focal: { box: { autoWrap: false, contentInset: 0 } },
+            store: { box: { autoWrap: true, contentInset: 40 } },
+        })
+        const focal = positioned({ fields: [{ name: 'id' }], id: 'focal', label: 'Focal label with spaces' })
+        const stored = positioned({ fields: [{ name: 'id' }], id: 'stored', label: 'Store label with spaces', role: 'store' })
+        render(
+            <ThemeProvider theme={createAppTheme('dark')}>
+                <DiagramNode diagramType="entity" formattingStore={store} node={focal} onSelect={vi.fn()} selected={false} />
+                <DiagramNode diagramType="entity" formattingStore={store} node={stored} onSelect={vi.fn()} selected={false} />
+            </ThemeProvider>,
+        )
+        const focalButton = screen.getByRole('button', { name: focal.label })
+        const storedButton = screen.getByRole('button', { name: stored.label })
+        const focalLabel = within(focalButton).getByText(focal.label)
+        const storedLabel = within(storedButton).getByText(stored.label)
+
+        expect(getComputedStyle(focalLabel).whiteSpace).toBe('nowrap')
+        expect(getComputedStyle(focalLabel.parentElement as HTMLElement).padding).toBe('0px')
+        expect(getComputedStyle(storedLabel).whiteSpace).toBe('normal')
+        expect(getComputedStyle(storedLabel.parentElement as HTMLElement).padding).toBe('40px')
+        expect(getComputedStyle(within(storedButton).getByText('id').parentElement as HTMLElement).padding).toBe('40px')
+        expect(getComputedStyle(focalButton).width).toBe('160px')
+        expect(getComputedStyle(storedButton).height).toBe('72px')
     })
 
     it('keeps the fanIn badge outside the scroll wrapper so it does not scroll away', () => {

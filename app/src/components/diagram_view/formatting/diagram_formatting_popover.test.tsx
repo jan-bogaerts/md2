@@ -20,8 +20,8 @@ function renderPopover(onApply = vi.fn(), onClose = vi.fn()) {
                 onClose={onClose}
                 value={{
                     box: {
-                        borderColor: '#3949ab', borderStyle: 'dashed', borderThickness: 3,
-                        contentPosition: 'bottom-right', cornerRadius: 12, fillColor: '#1976d2',
+                        autoWrap: false, borderColor: '#3949ab', borderStyle: 'dashed', borderThickness: 3,
+                        contentInset: 12, contentPosition: 'bottom-right', cornerRadius: 12, fillColor: '#1976d2',
                     },
                     font: { bold: true, color: '#d32f2f', family: 'Inter', italic: false, size: 17, underline: true },
                 }}
@@ -57,6 +57,8 @@ describe('NodeFormattingPopover', () => {
         }
         expect(screen.getByRole('combobox', { name: 'Border style' })).toHaveTextContent('Dashed');
         expect(screen.getByRole('combobox', { name: 'Content position' })).toHaveTextContent('Bottom right');
+        expect(screen.getByRole('switch', { name: 'Auto wrap' })).not.toBeChecked();
+        expect(screen.getByRole('slider', { name: 'Content inset' })).toHaveAttribute('aria-valuenow', '12');
     });
 
     it('resets only chosen overrides and stores friendly select choices as existing enums', async () => {
@@ -69,11 +71,14 @@ describe('NodeFormattingPopover', () => {
         await user.click(screen.getByRole('switch', { name: 'Custom Border thickness' }));
         await user.click(screen.getByRole('combobox', { name: 'Content position' }));
         await user.click(screen.getByRole('option', { name: 'Top left' }));
+        await user.click(screen.getByRole('switch', { name: 'Auto wrap' }));
+        screen.getByRole('slider', { name: 'Content inset' }).focus();
+        await user.keyboard('{Home}');
         await user.click(screen.getByRole('button', { name: 'Apply' }));
 
         expect(onApply).toHaveBeenCalledOnce();
         expect(onApply).toHaveBeenCalledWith(expect.objectContaining({
-            box: expect.objectContaining({ borderThickness: undefined, contentPosition: 'top-left', fillColor: '#1976d2' }),
+            box: expect.objectContaining({ autoWrap: true, borderThickness: undefined, contentInset: 0, contentPosition: 'top-left', fillColor: '#1976d2' }),
             font: expect.objectContaining({ color: undefined, family: 'Inter', size: 17 }),
         }));
         expect(onClose).toHaveBeenCalledOnce();
@@ -101,6 +106,9 @@ describe('NodeFormattingPopover', () => {
         const user = userEvent.setup();
         const { onApply, onClose } = renderPopover();
 
+        await user.click(screen.getByRole('switch', { name: 'Auto wrap' }));
+        screen.getByRole('slider', { name: 'Content inset' }).focus();
+        await user.keyboard('{End}');
         await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
         expect(onApply).not.toHaveBeenCalled();

@@ -12,6 +12,8 @@ export const DIAGRAM_CONTENT_POSITIONS: readonly ['top-left', 'top-center', 'top
 export const DIAGRAM_CONNECTION_MARKERS: readonly ['none', 'filled-arrow', 'open-arrow', 'circle', 'diamond']
 export const DIAGRAM_FORMATTING_SCALE_MINIMUM: 50
 export const DIAGRAM_FORMATTING_SCALE_MAXIMUM: 200
+export const DIAGRAM_CONTENT_INSET_DEFAULT: 4
+export const DIAGRAM_CONTENT_INSET_MAXIMUM: 40
 
 export type DiagramType = typeof DIAGRAM_TYPES[number]
 export type DiagramRole = typeof DIAGRAM_ROLES[number]
@@ -34,9 +36,11 @@ export interface DiagramFontFormatting {
     underline?: boolean
 }
 export interface DiagramBoxFormatting {
+    autoWrap?: boolean
     borderColor?: string
     borderStyle?: DiagramBorderStyle
     borderThickness?: number
+    contentInset?: number
     contentPosition?: DiagramContentPosition
     cornerRadius?: number
     fillColor?: string

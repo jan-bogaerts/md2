@@ -1,6 +1,6 @@
 import { Box, ButtonBase, Typography } from '@mui/material'
 import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
-import type { DiagramContentPosition, DiagramFlowPreset, DiagramType } from '../../../services/diagrams/diagram_data'
+import { DIAGRAM_CONTENT_INSET_DEFAULT, type DiagramContentPosition, type DiagramFlowPreset, type DiagramType } from '../../../services/diagrams/diagram_data'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import type { PositionedDiagramNode } from '../../../services/diagrams/diagram_layout'
 import { DiagramEntityFieldRow } from './diagram_entity_field'
@@ -73,6 +73,8 @@ export function DiagramNode(props: DiagramNodeProps) {
     const fontScalePercent = useDiagramFormattingScale('fontScalePercent', formattingStore)
     const roleStyle = diagramRoleStyle(node.role, formatting)
     const positionStyle = contentPosition(formatting?.box?.contentPosition)
+    const autoWrap = formatting?.box?.autoWrap ?? true
+    const contentInset = formatting?.box?.contentInset ?? DIAGRAM_CONTENT_INSET_DEFAULT
     const [focused, setFocused] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
     const pressScrollTop = useRef(0)
@@ -167,15 +169,15 @@ export function DiagramNode(props: DiagramNodeProps) {
                             ...positionStyle, minHeight: 0, overflowX: 'hidden', overflowY: 'auto',
                         }}
                     >
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 2, py: 1 }}>
+                        <Box sx={{ alignSelf: 'stretch', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0, padding: `${contentInset}px`, width: '100%' }}>
                             {node.tag ? <Typography color="custom.text3" sx={diagramFontStyle(formatting?.font, fontScalePercent, 'overline')} variant="overline">{node.tag}</Typography> : null}
-                            {!editableLabel ? <Typography sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'body2'), fontWeight: formatting?.font?.bold === undefined ? 600 : undefined, overflowWrap: 'anywhere' }} variant="body2">{node.label}</Typography> : null}
+                            {!editableLabel ? <Typography sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'body2'), fontWeight: formatting?.font?.bold === undefined ? 600 : undefined, minWidth: 0, overflow: 'hidden', overflowWrap: autoWrap ? 'anywhere' : 'normal', textOverflow: autoWrap ? undefined : 'ellipsis', whiteSpace: autoWrap ? 'normal' : 'nowrap' }} variant="body2">{node.label}</Typography> : null}
                             {node.sublabel ? (
                                 <Typography color="text.secondary" sx={{ ...diagramFontStyle(formatting?.font, fontScalePercent, 'caption'), overflowWrap: 'anywhere' }} variant="caption">{node.sublabel}</Typography>
                             ) : null}
                         </Box>
                         {diagramType === 'entity' && (entityFieldSource || node.fields) ? (
-                            <Box sx={{ borderColor: 'divider', borderTop: '1px solid', display: 'flex', flexDirection: 'column', px: 2, py: 1 }}>
+                            <Box sx={{ alignSelf: 'stretch', borderColor: 'divider', borderTop: '1px solid', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', minWidth: 0, padding: `${contentInset}px`, width: '100%' }}>
                                 {entityFieldSource ? (
                                     <EditableDiagramEntityFields
                                         {...entityFieldSource}
@@ -205,7 +207,13 @@ export function DiagramNode(props: DiagramNodeProps) {
                 ) : null}
             </ButtonBase>
             {editableLabel && onOpenDetails ? (
-                <DiagramInlineNodeControls node={node} onOpenDetails={onOpenDetails} session={editableLabel.session} />
+                <DiagramInlineNodeControls
+                    autoWrap={autoWrap}
+                    contentInset={contentInset}
+                    node={node}
+                    onOpenDetails={onOpenDetails}
+                    session={editableLabel.session}
+                />
             ) : null}
             {selected || focused ? (
                 <Box
