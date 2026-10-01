@@ -3,7 +3,7 @@ author:
 id: F_391
 internalId: 50466266-0fa0-4392-855a-d21513ee700f
 title: diagrams autowrap labels and space around
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,19 @@ policy:
 after: 2775052a-2e84-4466-a320-155c8ec05bac
 branch: f_391_diagrams_autowrap_labels_and_space_around
 worktree: 3
+changedFiles:
+  - app/src/components/diagram_view/editing/diagram_inline_node_controls.tsx
+  - app/src/components/diagram_view/editing/editable_diagram.test.tsx
+  - app/src/components/diagram_view/editing/editable_diagram_leaves.test.tsx
+  - app/src/components/diagram_view/formatting/diagram_formatting_popover.test.tsx
+  - app/src/components/diagram_view/formatting/diagram_formatting_popover.tsx
+  - app/src/components/diagram_view/rendering/diagram_node.test.tsx
+  - app/src/components/diagram_view/rendering/diagram_node.tsx
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_view_service.test.ts
+  - shared/diagram_data.d.mts
+  - shared/diagram_data.mjs
 ---
 labels on diagram nodes should auto wrap and should use less padding, they are alloed to get closer to the edge.
 
