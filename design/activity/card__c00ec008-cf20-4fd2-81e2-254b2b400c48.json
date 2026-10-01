@@ -1,0 +1,54 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "c00ec008-cf20-4fd2-81e2-254b2b400c48",
+      "cardPath": "design/feature_descriptions/F_188_add_support_ctrl_tab_in_list_view.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_188_add_support_ctrl_tab_in_list_view.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "submission-b42ff6bf-d07d-453d-a700-ef54d583ff83",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-01T16:49:34.715Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-3a78caf8-1586-48e6-b69a-3e425ae7975c",
+      "providerSessions": [],
+      "startedAt": "2026-10-01T16:49:34.715Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-01T16:49:34.715Z"
+      },
+      "title": "complete",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "c00ec008-cf20-4fd2-81e2-254b2b400c48",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
