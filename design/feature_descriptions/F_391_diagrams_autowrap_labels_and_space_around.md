@@ -10,6 +10,8 @@ agents:
   - design/activity/card__50466266-0fa0-4392-855a-d21513ee700f.json
 policy:
 after: 2775052a-2e84-4466-a320-155c8ec05bac
+branch: f_391_diagrams_autowrap_labels_and_space_around
+worktree: 3
 ---
 labels on diagram nodes should auto wrap and should use less padding, they are alloed to get closer to the edge.
 
