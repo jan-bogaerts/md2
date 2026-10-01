@@ -487,13 +487,50 @@
         "costUsd": 0.7363716
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "4bcc15e9-9de2-4f17-8df9-40205ed9777c",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "4c689295fc04deb30660f1dfa286eaf71d550c75",
+          "committedAt": "2026-10-01T18:30:36+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_392_add_groups_to_sentry_config_tab.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 35
+        }
+      ],
+      "completedAt": "2026-10-01T16:30:36.340Z",
+      "conversationIds": [
+        "agent-0e3c75ba-a220-4484-ae3a-0e1bfdd592a9"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-7e3efb96-6553-428c-83de-8263fb30c97c",
+      "origin": {
+        "cardInternalId": "4bcc15e9-9de2-4f17-8df9-40205ed9777c",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-0e3c75ba-a220-4484-ae3a-0e1bfdd592a9",
+      "startedAt": "2026-10-01T16:29:13.053Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
