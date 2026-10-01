@@ -10,4 +10,6 @@ agents:
 policy:
 after: 2775052a-2e84-4466-a320-155c8ec05bac
 ---
-labels on diagram nodes should auto wrap and should use less padding
+labels on diagram nodes should auto wrap and should use less padding, they are alloed to get closer to the edge.
+
+Lets add both as configurable parameters through the legend item (type).
