@@ -6188,3 +6188,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-01T17:08:11.327Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:03.000Z,,,,,,15,0
 2026-10-01T17:11:10.043Z,token_usage,codex,,,,,82058,7503104,19801,6049,7611012,,
 2026-10-01T17:10:00.312Z,account_usage,claude,default,weekly,10080,2026-10-04T16:59:00.000Z,,,,,,3,0
+2026-10-01T17:18:00.352Z,account_usage,claude,default,weekly,10080,2026-10-04T17:00:00.000Z,,,,,,3,0
