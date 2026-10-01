@@ -2838,7 +2838,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "bde0d7b3-85f0-46c0-8027-5d56939c04ee",
       "cardPath": "design/feature_descriptions/B_253_in_transmission_prompts_still_disapear.md",
-      "completedAt": null,
+      "completedAt": "2026-10-01T16:41:52.324Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 64781
@@ -3457,7 +3457,7 @@
         }
       ],
       "startedAt": "2026-10-01T11:33:11.854Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 21614,
@@ -3514,11 +3514,11 @@
         "agent-432c0f9c-a213-4b5b-b829-859ca030d6d4"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-09fe015e-4c75-49a4-a219-c9e550dcacc4",
       "origin": {
@@ -3527,9 +3527,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-432c0f9c-a213-4b5b-b829-859ca030d6d4",
       "startedAt": "2026-10-01T11:33:11.851Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-432c0f9c-a213-4b5b-b829-859ca030d6d4"
     }
   ],
   "version": 5
