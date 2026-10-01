@@ -1073,6 +1073,14 @@
           "role": "assistant",
           "sequence": 81,
           "timestamp": "2026-10-01T09:12:26.248Z"
+        },
+        {
+          "content": "so, things we need to fix:\n\n* `The queue entry must still be removed so it can no longer be edited or sent again.`\n  no, we don't need to remove it, we need to disable the edit, that is all\n* `agentPromptDispatched` should not trigger a remove, just a disable on the edit\n* align the event contract for 'agentUserMessage', split it from ' agentStarted'",
+          "id": "submission-e4ce42e1-83ee-4864-9a8e-14afc9fd891c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 82,
+          "timestamp": "2026-10-01T09:15:28.045Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1087,14 +1095,14 @@
         }
       ],
       "startedAt": "2026-10-01T08:58:59.287Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 28595,
           "toolMs": 3158
         },
         "elapsedMs": 171676,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T09:15:28.045Z"
       },
       "title": "+",
       "usage": {
