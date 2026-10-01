@@ -681,6 +681,14 @@
           "role": "assistant",
           "sequence": 49,
           "timestamp": "2026-10-01T09:06:45.004Z"
+        },
+        {
+          "content": "is there any other use for the `agentPromptDispatched` message?",
+          "id": "submission-f6099b92-26f9-431d-b587-00025a5faf10",
+          "kind": "message",
+          "role": "user",
+          "sequence": 50,
+          "timestamp": "2026-10-01T09:07:39.917Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -695,14 +703,14 @@
         }
       ],
       "startedAt": "2026-10-01T08:58:59.287Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 16151,
           "toolMs": 2144
         },
         "elapsedMs": 95190,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T09:07:39.917Z"
       },
       "title": "+",
       "usage": {
