@@ -1083,6 +1083,29 @@
       "startedAt": "2026-10-01T16:34:24.703Z",
       "status": "completed",
       "rootConversationId": "agent-1394e594-db96-486d-a88f-a88226bbc133"
+    },
+    {
+      "commits": [
+        {
+          "commit": "228b9c277d07fc1ed226f182740e0ae2d061d4a2",
+          "committedAt": "2026-10-01T18:41:25+02:00",
+          "deletions": 122,
+          "filePaths": [
+            "app/src/components/config/sentry_config_section.grouped.test.tsx",
+            "app/src/components/config/sentry_config_section.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 146,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-01T18:41:25+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "4bcc15e9-9de2-4f17-8df9-40205ed9777c",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
