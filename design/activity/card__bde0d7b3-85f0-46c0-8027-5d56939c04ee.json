@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 56318
+        "usedTokens": 62828
       },
       "entries": [
         {
@@ -689,6 +689,123 @@
           "role": "user",
           "sequence": 50,
           "timestamp": "2026-10-01T09:07:39.917Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-51",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_032262199da364c8016abe22de60b887d2b35f26e8d47e0637",
+          "sequence": 51,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T09:07:42.331Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll check every producer and consumer of `agentPromptDispatched` to see whether anything depends on it beyond the queue transition.\n\n",
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 52,
+          "timestamp": "2026-10-01T09:07:42.926Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -F 'agentPromptDispatched' .\"",
+          "content": ".\\app\\src\\components\\actions\\run\\popup\\action_popup.test.tsx:2076:            update: { kind: 'agentPromptDispatched', promptId: queuedPrompt.id, revision: 0 },\n.\\design\\releases\\0_7_0\\card__c0629e16-a603-4a9c-b19d-5c7cac9772ec.json:15592:          \"content\": \"        const eventBase = {\\r\\n            actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: waitingContext,\\r\\n            interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,\\r\\n        }\\r\\n        const liveConversation = agentConversation({ actionId: 'stream', cardInternalId: null, cardPath: null })\\r\\n        act(() => {\\r\\n            runListener?.({ ...eventBase, status: 'running', type: 'run' })\\r\\n            runListener?.({ ...eventBase, status: 'running', type: 'action' })\\r\\n            runListener?.({\\r\\n                ...eventBase, status: 'running', type: 'update',\\r\\n                update: { continued: false, conversation: liveConversation, kind: 'agentStarted' },\\r\\n            })\\r\\n        })\\r\\n        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')\\r\\n        fireEvent.change(prompt, { target: { value: 'Send this' } })\\r\\n        fireEvent.click(screen.getByRole('button', { name: 'Send' }))\\r\\n        const pending = await screen.findByLabelText('Pending prompt')\\r\\n        expect(pending).toHaveTextContent('In transmission')\\r\\n        expect(pending).toHaveTextContent('Send this')\\r\\n        expect(prompt).toHaveValue('')\\r\\n\\r\\n        const submissionId = enqueueActionPrompt.mock.calls[0]?.[2]\\r\\n        if (!submissionId) throw new Error('Missing local submission ID')\\r\\n        const queuedPrompt = { content: 'Send this', dispatchState: 'queued' as const, id: 'prompt-1', revision: 0, submissionId }\\r\\n        act(() => runListener?.({\\r\\n            ...eventBase, status: 'running', type: 'update',\\r\\n            update: { entry: queuedPrompt, kind: 'agentPromptQueued' },\\r\\n        }))\\r\\n        expect(screen.queryByLabelText('Pending prompt')).not.toBeInTheDocument()\\r\\n        expect(screen.getAllByLabelText('Queued prompt')).toHaveLength(1)\\r\\n        fireEvent.change(prompt, { target: { value: 'Newer edit' } })\\r\\n        await act(async () => response.resolve(queuedPrompt))\\r\\n        expect(prompt).toHaveValue('Newer edit')\\r\\n        expect(screen.getAllByLabelText('Queued prompt')).toHaveLength(1)\\r\\n\\r\\n        act(() => runListener?.({\\r\\n            ...eventBase, status: 'running', type: 'update',\\r\\n            update: { kind: 'agentPromptDispatched', promptId: queuedPrompt.id, revision: 0 },\\r\\n        }))\\r\\n        expect(screen.getByLabelText('Pending prompt')).toHaveTextContent('Send this')\\r\\n        act(() => runListener?.({\\r\\n            ...eventBase, status: 'running', type: 'update',\\r\\n            update: {kind: 'agentUserMessage', submissionId, userMessage: {agent: 'codex', content: 'Send this', id: 'user-1', kind: 'message', role: 'user', timestamp: 'now'}},\\r\\n        }))\\r\\n        expect(screen.queryByLabelText('Pending prompt')).not.toBeInTheDocument()\\r\\n        expect(screen.queryByLabelText('Queued prompt')).not.toBeInTheDocument()\\r\\n        expect(screen.getAllByText('Send this')).toHaveLength(1)\\r\\n    })\\r\\n\\r\\n    it('shows a new-run submission before start returns and removes it when startup conversation arrives', async () => {\\r\\n        actionRunRegistry.stop()\\r\\n        const projectContext: ActionContext = { kind: 'project' }\\r\\n        const startResponse = deferredValue<string>()\\r\\n        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(earlierConversation)\\r\\n        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({\\r\\n            availability: {\\r\\n                error: null,\\r\\n                loading: false,\\r\\n                values: {\\r\\n                    claude: { available: true, error: null },\\r\\n                    codex: { available: true, error: null },\\r\\n                },\\r\\n            },\\r\\n            models: { error: null, loading: false, values: [] },\\r\\n            thinkingLevels: { error: null, loading: false, values: [] },\\r\\n        })\\r\\n        const restartActionRun = vi.fn(async (_runId: string, request: ActionStartRequest) => {\\r\\n            const oldEvent = {\\r\\n                actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: projectContext,\\r\\n                interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,\\r\\n            }\\r\\n            const newEvent = { ...oldEvent, runId: 'run-2' }\\r\\n            runListener?.({ ...oldEvent, status: 'completed', type: 'run' })\\r\\n            runListener?.({ ...newEvent, status: 'running', type: 'run' })\\r\\n            runListener?.({\\r\\n                ...newEvent,\\r\\n                status: 'running',\\r\\n                type: 'update',\\r\\n                update: { continued: true, conversation: switchedConversation, kind: 'agentStarted' },\\r\\n            })\\r\\n            runListener?.({\\r\\n                ...newEvent,\\r\\n                status: 'completed',\\r\\n                type: 'update',\\r\\n                update: { conversation: switchedConversation, kind: 'agentClosed', persisted: true },\\r\\n            })\\r\\n            runListener?.({ ...newEvent, status: 'completed', type: 'run' })\\r\\n\\r\\n            return 'run-2'\\r\\n        })\\r\\n\",\n.\\app\\src\\components\\actions\\conversation\\state\\action_conversation_store.ts:202:                || event.update.kind === 'agentPromptDispatched'\n.\\app\\src\\components\\actions\\conversation\\state\\action_conversation_store.ts:244:        if (event.update.kind === 'agentPromptDispatched') {\n.\\app\\src\\components\\actions\\conversation\\state\\action_conversation_store.node.test.ts:94:        emit({...eventBase, status: 'running', type: 'update', update: {kind: 'agentPromptDispatched', promptId: firstPrompt.id, revision: 0}})\n.\\desktop\\src\\actions\\action\\action_run.js:248:            this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });\n.\\desktop\\src\\actions\\action\\action_run.js:275:            this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });\n.\\desktop\\src\\actions\\action\\action_run.test.mjs:925:            .filter(({ update }) => update?.kind === 'agentPromptDispatched')\n.\\desktop\\src\\actions\\action\\action_run.test.mjs:934:        const lastRemovalIndex = events.findLastIndex(({ update }) => update?.kind === 'agentPromptDispatched');\n.\\desktop\\src\\actions\\action\\action_run.test.mjs:990:        expect(events.filter(({ update }) => update?.kind === 'agentPromptDispatched'))\n.\\desktop\\src\\actions\\action\\action_run.test.mjs:1001:        expect(events.filter(({ update }) => update?.kind === 'agentPromptDispatched').map(({ update }) => update.promptId))\n.\\desktop\\src\\actions\\action\\action_run.test.mjs:1117:            .filter(({ update }) => update?.kind === 'agentPromptDispatched')\n",
+          "durationMs": 98,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-53",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -F 'agentPromptDispatched' .\"",
+          "providerItemId": "exec-3614691c-2ced-463e-9789-04e138f7aaff",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:07:44.503Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-54",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_032262199da364c8016abe22e396fc87d2817f48bfd16cda5a",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T09:07:48.760Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_run.test.mjs' | Select-Object -Skip 908 -First 35\"",
+          "content": "        await firstStarted.promise;\r\n        runState.approvals.add(41);\r\n        firstInput.onEvent({ approval: { requestId: 41 }, status: 'waitingForInput', type: 'approval' });\r\n        const firstEntryPromise = run.enqueueAgentPrompt('First follow-up');\r\n        const secondEntryPromise = run.enqueueAgentPrompt('Second follow-up');\r\n        firstCompletion.resolve();\r\n        const [firstEntry, secondEntry] = await Promise.all([firstEntryPromise, secondEntryPromise]);\r\n        await finalStarted.promise;\r\n\r\n        expect(agentExecutor.execute).toHaveBeenCalledTimes(3);\r\n        expect(agentExecutor.execute.mock.calls.slice(1).map(([input]) => input.runInput)).toMatchObject([\r\n            { continueFrom: 'first.json', prompt: 'First follow-up' },\r\n            { continueFrom: 'second.json', prompt: 'Second follow-up' },\r\n        ]);\r\n        expect(agentRunnerService.sendMessage).not.toHaveBeenCalled();\r\n        const removedPromptIds = events\r\n            .filter(({ update }) => update?.kind === 'agentPromptDispatched')\r\n            .map(({ update }) => update.promptId);\r\n        expect(removedPromptIds).toEqual([firstEntry.id, secondEntry.id]);\r\n        expect(events).not.toContainEqual(expect.objectContaining({ status: 'completed', type: 'action' }));\r\n        expect(events).not.toContainEqual(expect.objectContaining({ status: 'completed', type: 'run' }));\r\n\r\n        finalCompletion.resolve();\r\n        await expect(run.completion).resolves.toMatchObject({ status: 'completed' });\r\n\r\n        const lastRemovalIndex = events.findLastIndex(({ update }) => update?.kind === 'agentPromptDispatched');\r\n        const actionCompletionIndex = events.findIndex(({ status, type }) => status === 'completed' && type === 'action');\r\n        const runCompletionIndex = events.findIndex(({ status, type }) => status === 'completed' && type === 'run');\r\n        expect(actionCompletionIndex).toBeGreaterThan(lastRemovalIndex);\r\n        expect(runCompletionIndex).toBeGreaterThan(actionCompletionIndex);\r\n        await expect(run.enqueueAgentPrompt('Too late')).rejects.toThrow('no longer accepts');\r\n    });\r\n\r\n    it('fails a streaming queued continuation once and discards later prompts', async () => {\r\n        const firstCompletion = deferred();\r\n",
+          "durationMs": 65,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-55",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_run.test.mjs' | Select-Object -Skip 908 -First 35\"",
+          "providerItemId": "exec-31224037-6ea0-4bee-b8b1-20864a6bad94",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:07:51.944Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -F 'claimNextQueuedPromptOrCloseQueue' desktop/src\"",
+          "content": "desktop/src\\actions\\action\\action_run.js:264:    claimNextQueuedPromptOrCloseQueue() {\ndesktop/src\\actions\\action\\action_run.js:804:                ? await this.claimNextQueuedPromptOrCloseQueue()\ndesktop/src\\actions\\action\\action_run.js:820:                queuedPrompt = result.exitCode === 0 ? await this.claimNextQueuedPromptOrCloseQueue() : null;\n",
+          "durationMs": 31,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-56",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -F 'claimNextQueuedPromptOrCloseQueue' desktop/src\"",
+          "providerItemId": "exec-e6974e1a-ed94-4aac-8b10-ee026c71d3e9",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:07:51.956Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'app/src/data/action_run_types.ts' | Select-Object -Skip 184 -First 16\"",
+          "content": "        contextWindowUsage?: AgentContextWindowUsage | null\r\n        kind: 'agentUsage'\r\n        usage: AgentTokenUsage\r\n    }\r\n    | {\r\n        entry: ActionQueuedPrompt\r\n        kind: 'agentPromptQueued' | 'agentPromptEdited'\r\n    }\r\n    | {\r\n        kind: 'agentPromptDeleted' | 'agentPromptDiscarded' | 'agentPromptDispatched'\r\n        promptId: string\r\n        revision: number\r\n    }\r\n    | {\r\n        command?: string\r\n        content: string\r\n",
+          "durationMs": 135,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-57",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'app/src/data/action_run_types.ts' | Select-Object -Skip 184 -First 16\"",
+          "providerItemId": "exec-ac563a07-0b2f-4189-8ce5-4b48a079106f",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:07:52.166Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-58",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_032262199da364c8016abe22e9df8487d2bee78df8c0fbc012",
+          "sequence": 58,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T09:07:54.429Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. Besides updating the chatlog’s temporary row, `agentPromptDispatched` removes the prompt from the frontend queue ([action_run_registry.ts](/C:/Users/janbo/Documents/dev/md2/app/src/services/actions/action_run_registry.ts:929)).\n\nIt also covers **queued continuations**: the backend can take a prompt from the queue to start another agent run, without calling `sendMessage` ([action_run.js](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action/action_run.js:264)). In that path, `agentPromptDispatched` tells the frontend the prompt is no longer queued. I found no other production consumer beyond the queue update and the temporary submission state update.\n\n",
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 59,
+          "timestamp": "2026-10-01T09:07:58.444Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -706,19 +823,19 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 16151,
-          "toolMs": 2144
+          "reasoningMs": 18912,
+          "toolMs": 2578
         },
         "elapsedMs": 95190,
         "runningStartedAt": "2026-10-01T09:07:39.917Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 461440,
-        "inputTokens": 55932,
-        "outputTokens": 2403,
-        "reasoningTokens": 520,
-        "totalTokens": 520295
+        "cachedInputTokens": 634880,
+        "inputTokens": 62963,
+        "outputTokens": 2803,
+        "reasoningTokens": 628,
+        "totalTokens": 701274
       },
       "usageSchemaVersion": 1,
       "viewed": true
