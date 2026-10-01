@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: da891103-b0c2-488f-9454-480c73c061a0
+after: e69e233d-3fea-43ab-af20-f8f9ed5d4696
 ---
 
 some agents (ex claude) report a weekly and a 5-hourly account usage. we only use the weekly account usage for stat calculation.
