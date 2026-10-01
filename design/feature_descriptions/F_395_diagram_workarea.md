@@ -3,7 +3,7 @@ author:
 id: F_395
 internalId: e4aa0a7e-bcfd-4c1c-a665-9d9a2cf52918
 title: Diagram workarea
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,16 @@ agents:
 policy:
 branch: f_395_diagram_workarea
 worktree: 2
+changedFiles:
+  - app/src/components/diagram_view/comparison/diagram_comparison.test.tsx
+  - app/src/components/diagram_view/comparison/tabbed_diagram_comparison.test.tsx
+  - app/src/components/diagram_view/comparison/vertical_diagram_comparison.test.tsx
+  - app/src/components/diagram_view/diagram_view.test.tsx
+  - app/src/components/diagram_view/editing/editable_diagram.tsx
+  - app/src/components/diagram_view/surface/diagram_zoom_viewport.test.tsx
+  - app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx
+  - app/src/services/diagrams/diagram_geometry_service.test.ts
+  - app/src/services/diagrams/diagram_geometry_service.ts
 ---
 
 When we show a diagram in edit mode we should always show both hor and ver scrollbars. The workarea should also always be a little bigger then the available space, so user can always scroll and extend area by dragging items.
