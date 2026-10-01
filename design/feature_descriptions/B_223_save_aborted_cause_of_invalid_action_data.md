@@ -3,7 +3,7 @@ author:
 id: B_223
 internalId: da891103-b0c2-488f-9454-480c73c061a0
 title: save aborted cause of invalid action data
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,21 @@ policy:
 after: 2775052a-2e84-4466-a320-155c8ec05bac
 branch: b_223_save_aborted_cause_of_invalid_action_data
 worktree: 1
+changedFiles:
+  - app/src/components/actions/editor/action_editor.grouped.test.tsx
+  - app/src/components/actions/editor/action_editor_content.tsx
+  - app/src/components/actions/editor/list_action_editor.tsx
+  - app/src/components/actions/editor/use_action_editor_controller.ts
+  - app/src/components/editor/data_sources/card_markdown_data_source.node.test.ts
+  - app/src/components/hooks/use_action_file_tree_actions.ts
+  - app/src/components/text_view/file_tree_view.tsx
+  - app/src/services/actions/action_draft_store.ts
+  - app/src/services/actions/action_service.node.test.ts
+  - app/src/services/actions/action_service.ts
+  - app/src/services/data/data_service.service.test.ts
+  - app/src/services/open_files_service.node.test.ts
+  - app/src/services/open_files_service.ts
+  - app/src/services/project/project_loading.test.ts
 ---
 action x has invalid unsaved data. we should not prevent the saving of an action because of this (most likely type diagram)
 
