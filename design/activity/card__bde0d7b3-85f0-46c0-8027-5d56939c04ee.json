@@ -2809,19 +2809,19 @@
           "agent": "codex",
           "conversationId": "01a0f6b0-3be9-7ea0-b3ef-227bdc6072bd",
           "createdAt": "2026-10-01T09:00:16.494Z",
-          "lastUsedAt": "2026-10-01T09:12:26.248Z",
-          "synchronizedThroughMessageId": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-6-assistant-2"
+          "lastUsedAt": "2026-10-01T09:25:37.161Z",
+          "synchronizedThroughMessageId": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-7-assistant-5"
         }
       ],
       "startedAt": "2026-10-01T08:58:59.287Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 223092,
           "toolMs": 165523
         },
-        "elapsedMs": 171676,
-        "runningStartedAt": "2026-10-01T09:15:28.045Z"
+        "elapsedMs": 780792,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
