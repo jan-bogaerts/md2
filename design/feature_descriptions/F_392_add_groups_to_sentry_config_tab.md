@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 50466266-0fa0-4392-855a-d21513ee700f
 ---
 
 On the config dialog, we have the project and sentry tabs. On the project tab, we already created groups. Now we need to do the same on the sentry tab. Group the items logically together, add title and some info where useful
