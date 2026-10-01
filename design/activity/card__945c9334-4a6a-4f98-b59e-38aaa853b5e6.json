@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "945c9334-4a6a-4f98-b59e-38aaa853b5e6",
       "cardPath": "design/feature_descriptions/F_396_day_week_filter_on_stats.md",
-      "completedAt": "2026-10-01T17:44:26.215Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 59120
+        "usedTokens": 63577
       },
       "entries": [
         {
@@ -547,6 +547,129 @@
           "role": "assistant",
           "sequence": 40,
           "timestamp": "2026-10-01T17:44:26.215Z"
+        },
+        {
+          "content": "Month can be added for all 3",
+          "id": "submission-deaa494d-fe6b-48d0-bd01-31d387f8bf78",
+          "kind": "message",
+          "role": "user",
+          "sequence": 41,
+          "timestamp": "2026-10-01T17:45:08.551Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-940a3fe8-c612-47b8-a60c-8fc808ef8499-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_078eb1a11b3d6b3e016abe9c2a5f8c87d2aaed1b2f2007a8b2",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:45:14.276Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll update feature description so all three reports share Day/Week/Month choice.\n\n",
+          "id": "agent-turn-940a3fe8-c612-47b8-a60c-8fc808ef8499-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 43,
+          "timestamp": "2026-10-01T17:45:14.795Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'design/feature_descriptions/F_396_day_week_filter_on_stats.md'\"",
+          "content": "---\r\nauthor: \r\nid: F_396\r\ninternalId: 945c9334-4a6a-4f98-b59e-38aaa853b5e6\r\ntitle: Day week filter on stats\r\nstatus: ready for implementation\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__945c9334-4a6a-4f98-b59e-38aaa853b5e6.json\r\npolicy:\r\n---\r\n\r\nOn the stats view  for most if not all reports, we have a day vs week filter. This works, but it resets whenever we change report.\r\n\r\nWe should remember this, just like we do with display style diagram vs table.\r\n\r\n## Current state\r\n\r\n`StatsMenuTab` offers Day/Week for Activity over time, Agent/model performance, and Project usage vs account usage; Activity also offers Month. `StatsControls` stores separate `activityGranularity`, `performanceGranularity`, and `usageGranularity` values, each initially Day. Changing dataset keeps those separate values, so the newly selected report can show Day after Week was chosen elsewhere. `ProjectStatsService` owns the controls and keeps them when Stats closes and reopens; chart/table choice is already shared across reports. Totals by Card/Action has no time granularity control.\r\n\r\n## implementation details\r\n\r\n* Make Day/Week one service-owned choice shared by the three reports with time granularity controls. A change in any report updates the choice used by the other two and rebuilds rows for the active report.\r\n* Keep Month available only in Activity over time. Month does not replace the last Day/Week choice; a Day/Week-only report uses that last choice. Selecting Day or Week in Activity updates the shared choice.\r\n* Update `StatsControls`, initial controls, `ProjectStatsService`, and the three dataset builders so menus and aggregation use the same effective granularity. Keep the choice across dataset switches and Stats close/reopen, matching chart/table choice. Reset it when the bound project changes or stats are cleared.\r\n* Update `StatsMenuTab` to show the effective choice for each report. Totals remains without a granularity control. Add focused service and menu tests for switching among reports, Month handling, close/reopen, and project reset.\r\n\r\n## acceptance criteria\r\n\r\n1. Choosing Week or Day in any report with that control makes the same choice visible and effective in the other Day/Week reports when selected; chart and table rows use matching time buckets.\r\n2. Choosing Month in Activity leaves the last Day/Week choice intact. Switching to Performance or Usage shows and uses that choice; returning to Activity restores Month until Day or Week is selected there.\r\n3. The shared Day/Week choice survives switching reports and leaving/reopening Stats in the same project. A different project starts at Day.\r\n4. Totals has no granularity control. Existing chart/table choice and date-range filtering continue to work.\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-940a3fe8-c612-47b8-a60c-8fc808ef8499-event-44",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'design/feature_descriptions/F_396_day_week_filter_on_stats.md'\"",
+          "providerItemId": "exec-029224be-12a0-4088-b058-b1184d730468",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:45:16.600Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-940a3fe8-c612-47b8-a60c-8fc808ef8499-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_078eb1a11b3d6b3e016abe9c2f984887d293c1af0d0e66127b",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:45:21.309Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_396_day_week_filter_on_stats.md",
+          "deletions": 8,
+          "id": "agent-turn-940a3fe8-c612-47b8-a60c-8fc808ef8499-event-46",
+          "insertions": 7,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-9fd4b982-1d96-415d-9c6b-08bda720e049",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:45:33.274Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-940a3fe8-c612-47b8-a60c-8fc808ef8499-event-47",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_078eb1a11b3d6b3e016abe9c401efc87d2bcf032ebd804263b",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:45:36.317Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_396_day_week_filter_on_stats.md'\"",
+          "content": "",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-940a3fe8-c612-47b8-a60c-8fc808ef8499-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff --check -- 'design/feature_descriptions/F_396_day_week_filter_on_stats.md'\"",
+          "providerItemId": "exec-071a267b-3fe7-4e31-afc1-9dd285d7952b",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:45:38.711Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/F_396_day_week_filter_on_stats.md'\"",
+          "content": "diff --git a/design/feature_descriptions/F_396_day_week_filter_on_stats.md b/design/feature_descriptions/F_396_day_week_filter_on_stats.md\nindex c9994adb1..4df2bb197 100644\n--- a/design/feature_descriptions/F_396_day_week_filter_on_stats.md\n+++ b/design/feature_descriptions/F_396_day_week_filter_on_stats.md\n@@ -11,7 +11,7 @@ agents:\n policy:\n ---\n \n-On the stats view  for most if not all reports, we have a day vs week filter. This works, but it resets whenever we change report.\n+On the stats view, three reports have a day vs week filter; Activity over time also offers month. The selected time granularity appears to reset whenever we change report.\n \n We should remember this, just like we do with display style diagram vs table.\n \n@@ -21,14 +21,13 @@ We should remember this, just like we do with display style diagram vs table.\n \n ## implementation details\n \n-* Make Day/Week one service-owned choice shared by the three reports with time granularity controls. A change in any report updates the choice used by the other two and rebuilds rows for the active report.\n-* Keep Month available only in Activity over time. Month does not replace the last Day/Week choice; a Day/Week-only report uses that last choice. Selecting Day or Week in Activity updates the shared choice.\n-* Update `StatsControls`, initial controls, `ProjectStatsService`, and the three dataset builders so menus and aggregation use the same effective granularity. Keep the choice across dataset switches and Stats close/reopen, matching chart/table choice. Reset it when the bound project changes or stats are cleared.\n-* Update `StatsMenuTab` to show the effective choice for each report. Totals remains without a granularity control. Add focused service and menu tests for switching among reports, Month handling, close/reopen, and project reset.\n+* Make Day/Week/Month one service-owned choice shared by Activity over time, Agent/model performance, and Project usage vs account usage. A change in any report updates the choice shown and used by the other two and rebuilds rows for the active report.\n+* Update `StatsControls`, initial controls, `ProjectStatsService`, and the three dataset builders so menus and aggregation use the same granularity. Permit Month in performance and usage comparison granularity types and aggregation. Keep the choice across dataset switches and Stats close/reopen, matching chart/table choice. Reset it when the bound project changes or stats are cleared.\n+* Update `StatsMenuTab` to offer Day, Week, and Month in all three reports. Totals remains without a granularity control. Add focused service and menu tests for switching among reports, Month buckets in performance and usage comparison, close/reopen, and project reset.\n \n ## acceptance criteria\n \n-1. Choosing Week or Day in any report with that control makes the same choice visible and effective in the other Day/Week reports when selected; chart and table rows use matching time buckets.\n-2. Choosing Month in Activity leaves the last Day/Week choice intact. Switching to Performance or Usage shows and uses that choice; returning to Activity restores Month until Day or Week is selected there.\n-3. The shared Day/Week choice survives switching reports and leaving/reopening Stats in the same project. A different project starts at Day.\n+1. Choosing Day, Week, or Month in any of the three reports makes the same choice visible and effective in the other two when selected; chart and table rows use matching time buckets.\n+2. Month groups Performance and Usage rows by calendar month, as Activity already does.\n+3. The shared granularity survives switching reports and leaving/reopening Stats in the same project. A different project starts at Day.\n 4. Totals has no granularity control. Existing chart/table choice and date-range filtering continue to work.\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-940a3fe8-c612-47b8-a60c-8fc808ef8499-event-49",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git diff -- 'design/feature_descriptions/F_396_day_week_filter_on_stats.md'\"",
+          "providerItemId": "exec-ff8a3946-2576-4770-9f07-5c1bd7e73c34",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:45:38.783Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [F_396_day_week_filter_on_stats.md](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_396_day_week_filter_on_stats.md): all three time-based reports now share Day/Week/Month. Month coverage included in implementation details and acceptance criteria. `git diff --check` passed. Nothing staged or committed.\n\n",
+          "id": "agent-turn-940a3fe8-c612-47b8-a60c-8fc808ef8499-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 50,
+          "timestamp": "2026-10-01T17:45:42.031Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -561,25 +684,25 @@
         }
       ],
       "startedAt": "2026-10-01T17:42:28.687Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 14323,
-          "toolMs": 1200
+          "reasoningMs": 19146,
+          "toolMs": 1701
         },
         "elapsedMs": 117528,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T17:45:08.551Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 425472,
-        "inputTokens": 53436,
-        "outputTokens": 2318,
-        "reasoningTokens": 574,
-        "totalTokens": 481800
+        "cachedInputTokens": 668416,
+        "inputTokens": 58713,
+        "outputTokens": 3340,
+        "reasoningTokens": 734,
+        "totalTokens": 731203
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -606,11 +729,11 @@
         "agent-f0da30c8-7c65-4a46-974a-515751558b7c"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-c186e0c4-823e-4dc3-a372-19b0b67c45c7",
       "origin": {
@@ -619,9 +742,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-f0da30c8-7c65-4a46-974a-515751558b7c",
       "startedAt": "2026-10-01T17:42:28.686Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-f0da30c8-7c65-4a46-974a-515751558b7c"
     }
   ],
   "version": 5
