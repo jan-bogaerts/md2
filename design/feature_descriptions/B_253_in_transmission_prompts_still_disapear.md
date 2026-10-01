@@ -9,4 +9,6 @@ affects:
 agents:
 policy:
 ---
+See [F\_383\_prompts\_need\_to\_be\_shown\_faster.md](design/releases/0_7_0/F_383_prompts_need_to_be_shown_faster.md) where we improved the way prompts are shown in the conversation log.
 
+I notice though there is still a visible switch between in-transmission conversation-items and the regular conversation-log-item. The in-transmission prompt disappears and then comes back as a regular prompt. why is this? how come that there is a separate 'remove' that forces a UI refresh? It looks extremely fishy, as if something is happening in between? this should not be the case, the in-transmission item should only be replaced by the actual event at the time we get the ack on the prompt. so it should be a simple replace, which it doesn't appear to be. why?
