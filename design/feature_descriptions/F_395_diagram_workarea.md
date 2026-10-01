@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__e4aa0a7e-bcfd-4c1c-a665-9d9a2cf52918.json
 policy:
+branch: f_395_diagram_workarea
+worktree: 2
 ---
 
 When we show a diagram in edit mode we should always show both hor and ver scrollbars. The workarea should also always be a little bigger then the available space, so user can always scroll and extend area by dragging items.
