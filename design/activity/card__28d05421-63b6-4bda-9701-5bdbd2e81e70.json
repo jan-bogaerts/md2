@@ -478,13 +478,50 @@
         "costUsd": 0.7095014000000002
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "28d05421-63b6-4bda-9701-5bdbd2e81e70",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "4341c0139135d79157469c869455df0ae697255e",
+          "committedAt": "2026-10-01T18:32:40+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_393_autocommit_delay_on_project_config.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 43
+        }
+      ],
+      "completedAt": "2026-10-01T16:32:40.814Z",
+      "conversationIds": [
+        "agent-50c2ba8a-b8bc-4401-b0fb-278dd7db1d63"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-677ff69f-28a7-4d8e-af27-1e989dd35cd0",
+      "origin": {
+        "cardInternalId": "28d05421-63b6-4bda-9701-5bdbd2e81e70",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-50c2ba8a-b8bc-4401-b0fb-278dd7db1d63",
+      "startedAt": "2026-10-01T16:29:23.272Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
