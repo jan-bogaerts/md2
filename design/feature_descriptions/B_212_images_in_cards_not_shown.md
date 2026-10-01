@@ -3,7 +3,7 @@ author:
 id: B_212
 internalId: fe5a5bae-110a-49e6-ae74-60ed197c5c9b
 title: images in cards not shown
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,13 @@ policy:
 after: ccff9568-68bb-468f-85e7-37d06bd37b59
 branch: b_212_images_in_cards_not_shown
 worktree: 2
+changedFiles:
+  - app/src/components/card_view/card_body_editor.grouped.test.tsx
+  - app/src/services/attachments/card_image_source.service.test.ts
+  - app/src/services/attachments/card_image_source.ts
+  - desktop/src/project/project_files.js
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/preload.js
 ---
 On mibile when we open a card which has an image in it, we don't show the image itself properly, but some placeholder. need to show the image itself.
 
