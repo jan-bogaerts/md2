@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__945c9334-4a6a-4f98-b59e-38aaa853b5e6.json
 policy:
+branch: f_396_day_week_filter_on_stats
+worktree: 3
 ---
 
 On the stats view, three reports have a day vs week filter; Activity over time also offers month. The selected time granularity appears to reset whenever we change report.
