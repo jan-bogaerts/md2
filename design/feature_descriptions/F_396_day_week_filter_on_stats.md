@@ -11,7 +11,7 @@ agents:
 policy:
 ---
 
-On the stats view  for most if not all reports, we have a day vs week filter. This works, but it resets whenever we change report.
+On the stats view, three reports have a day vs week filter; Activity over time also offers month. The selected time granularity appears to reset whenever we change report.
 
 We should remember this, just like we do with display style diagram vs table.
 
@@ -21,14 +21,13 @@ We should remember this, just like we do with display style diagram vs table.
 
 ## implementation details
 
-* Make Day/Week one service-owned choice shared by the three reports with time granularity controls. A change in any report updates the choice used by the other two and rebuilds rows for the active report.
-* Keep Month available only in Activity over time. Month does not replace the last Day/Week choice; a Day/Week-only report uses that last choice. Selecting Day or Week in Activity updates the shared choice.
-* Update `StatsControls`, initial controls, `ProjectStatsService`, and the three dataset builders so menus and aggregation use the same effective granularity. Keep the choice across dataset switches and Stats close/reopen, matching chart/table choice. Reset it when the bound project changes or stats are cleared.
-* Update `StatsMenuTab` to show the effective choice for each report. Totals remains without a granularity control. Add focused service and menu tests for switching among reports, Month handling, close/reopen, and project reset.
+* Make Day/Week/Month one service-owned choice shared by Activity over time, Agent/model performance, and Project usage vs account usage. A change in any report updates the choice shown and used by the other two and rebuilds rows for the active report.
+* Update `StatsControls`, initial controls, `ProjectStatsService`, and the three dataset builders so menus and aggregation use the same granularity. Permit Month in performance and usage comparison granularity types and aggregation. Keep the choice across dataset switches and Stats close/reopen, matching chart/table choice. Reset it when the bound project changes or stats are cleared.
+* Update `StatsMenuTab` to offer Day, Week, and Month in all three reports. Totals remains without a granularity control. Add focused service and menu tests for switching among reports, Month buckets in performance and usage comparison, close/reopen, and project reset.
 
 ## acceptance criteria
 
-1. Choosing Week or Day in any report with that control makes the same choice visible and effective in the other Day/Week reports when selected; chart and table rows use matching time buckets.
-2. Choosing Month in Activity leaves the last Day/Week choice intact. Switching to Performance or Usage shows and uses that choice; returning to Activity restores Month until Day or Week is selected there.
-3. The shared Day/Week choice survives switching reports and leaving/reopening Stats in the same project. A different project starts at Day.
+1. Choosing Day, Week, or Month in any of the three reports makes the same choice visible and effective in the other two when selected; chart and table rows use matching time buckets.
+2. Month groups Performance and Usage rows by calendar month, as Activity already does.
+3. The shared granularity survives switching reports and leaving/reopening Stats in the same project. A different project starts at Day.
 4. Totals has no granularity control. Existing chart/table choice and date-range filtering continue to work.
