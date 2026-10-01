@@ -3,7 +3,7 @@ author:
 id: B_209
 internalId: ccff9568-68bb-468f-85e7-37d06bd37b59
 title: delete action failed
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,16 @@ policy:
 after: c00ec008-cf20-4fd2-81e2-254b2b400c48
 branch: b_209_delete_action_failed
 worktree: 3
+changedFiles:
+  - app/src/data/commit_batcher.test.ts
+  - app/src/data/commit_batcher.ts
+  - app/src/services/actions/action_draft_store.ts
+  - app/src/services/actions/action_service.node.test.ts
+  - app/src/services/actions/action_service.ts
+  - app/src/services/data/card_operation_context.ts
+  - app/src/services/data/card_operations.test.ts
+  - app/src/services/data/card_operations.ts
+  - app/src/services/data/data_service.ts
 ---
 * create new action
 * before it is saved as a file and committed, delete it
