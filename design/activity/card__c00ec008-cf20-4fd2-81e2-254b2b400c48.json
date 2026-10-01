@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 76400
+        "usedTokens": 88251
       },
       "entries": [
         {
@@ -453,10 +453,11 @@
           "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-35",
           "kind": "event",
           "label": "AskUserQuestion",
+          "output": "The user answered: \"Should Ctrl+Shift+Tab switch to previous tab too? Feature text only names Ctrl+Tab (next).\"=\"Yes, add Ctrl+Shift+Tab (Recommended)\", \"At last tab, what should Ctrl+Tab do?\"=\"Wrap to first tab (Recommended)\", \"On macOS, `mod` in keyboardShortcutService maps to Cmd, and Cmd+Tab is taken by OS app switcher. Which key on Apple?\"=\"Literal Ctrl on all platforms (Recommended)\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
           "providerItemId": "toolu_01C6CMwmbfd8GENpyTKBV45s",
           "sequence": 35,
-          "status": "inProgress",
-          "timestamp": "2026-10-01T16:50:24.374Z",
+          "status": "completed",
+          "timestamp": "2026-10-01T16:54:15.310Z",
           "type": "tool.AskUserQuestion"
         },
         {
@@ -521,6 +522,175 @@
           "role": "user",
           "sequence": 37,
           "timestamp": "2026-10-01T16:54:15.300Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbsE7jzWoSMquhM47p2m:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T16:54:18.020Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"KeyboardShortcut\\\\b|formatShortcut\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-39",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\services\\shortcuts\\keyboard_shortcut_service.ts:1:import { isApplePlatform, type KeyboardShortcut } from './keyboard_platform'\napp\\src\\services\\shortcuts\\keyboard_shortcut_service.ts:4:export interface KeyboardShortcutBinding extends KeyboardShortcut {\napp\\src\\services\\shortcuts\\keyboard_shortcut_service.ts:25:    private static matches(event: KeyboardEvent, binding: KeyboardShortcut) {\napp\\src\\services\\shortcuts\\keyboard_platform.node.test.ts:2:import { formatShortcut, isApplePlatform } from './keyboard_platform'\napp\\src\\services\\shortcuts\\keyboard_platform.node.test.ts:26:        expect(formatShortcut({ alt: false, key: 'f', mod: true, shift: true })).toBe('⌘⇧F')\napp\\src\\services\\shortcuts\\keyboard_platform.node.test.ts:32:        expect(formatShortcut({ alt: false, key: 'f', mod: true, shift: true })).toBe('Ctrl+Shift+F')\napp\\src\\services\\shortcuts\\keyboard_platform.ts:1:export interface KeyboardShortcut {\napp\\src\\services\\shortcuts\\keyboard_platform.ts:23:export function formatShortcut(binding: KeyboardShortcut) {\napp\\src\\components\\shell\\search\\search_control.tsx:11:import { formatShortcut } from '../../../services/shortcuts/keyboard_platform'\napp\\src\\components\\shell\\search\\search_control.tsx:30:    const shortcutLabel = formatShortcut(GLOBAL_SEARCH_SHORTCUT_BINDING)\napp\\src\\components\\shell\\search\\search_panel.tsx:18:import { formatShortcut } from '../../../services/shortcuts/keyboard_platform'\napp\\src\\components\\shell\\search\\search_panel.tsx:67:    const shortcutLabel = formatShortcut(GLOBAL_SEARCH_SHORTCUT_BINDING)",
+          "providerItemId": "toolu_01WfvorT2DPdUBTSVnArP3kJ",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:54:18.737Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-40",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbsENFsYzW4yF5hSYQBB:thinking:0",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T16:54:28.928Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"<TextView\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"content\",\"glob\":\"!*.test.*\"}",
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-41",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\components\\project_workspace.tsx:337:            <TextView",
+          "providerItemId": "toolu_0147noAqfccY7t9kihgqp5KS",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:54:29.904Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-42",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbsFCKrUnhWwcVthbKMJ:thinking:0",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T16:54:33.897Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\releases\\\\0_7_0\\\\F_265_add_open_in_file_explorer_command.md\"}",
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-43",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_265\n4\tinternalId: 6cd6114a-3b33-430b-895f-df592f272062\n5\ttitle: add open in file explorer command\n6\tstatus: ready\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/releases/0_7_0/card__6cd6114a-3b33-430b-895f-df592f272062.json\n11\tpolicy:\n12\tchangedFiles:\n13\t  - app/src/components/card_view/open_in_file_explorer_menu_item.test.tsx\n14\t  - desktop/src/project/project_files.js\n15\t  - desktop/src/project/project_files.test.mjs\n16\tafter: d35077d6-dd5e-4bba-a00b-ad28b7e7df70\n17\t---\n18\t\n19\tin the context menu of cards on the dashboard and for all files in the list view: add a command 'open in file explorer' which opens file explorer, goes to the folder and selects the file\n20\t\n21\t## Current state\n22\t\n23\tNo command anywhere reveals a project path in the operating system's file manager. The Electron main process imports `shell` in `desktop/main.js` but only uses `shell.openExternal` (navigation guards) and `shell.openPath` (installer launch in `desktop/src/shell/update_service.js`).\n24\t\n25\tTwo menus are in scope:\n26\t\n27\t* **Board card menu** — `CardViewContent` in `app/src/components/card_view/project_card_view.tsx` renders one MUI `Menu`, opened either by the card's three-dot button or by right-click (right-click is ignored on mobile). It already receives `rootPath` from `useProjectReference()` and renders `CardPathMenuItems` (`Copy path`, `Copy relative path`) followed by `Open body` and `Open in file mode`.\n28\t* **List view row menu** — the \"List\" view is the text view file tree. `FileTreeNodeRow` in `app/src/components/text_view/file_tree_node_row.tsx` renders one `Menu` per row, opened by the row's three-dot button or right-click. Node kinds come from `TreeNodeKind` in `app/src/data/file_tree.ts`:\n29\t  * `file` rows carry a repository-relative `path` (cards, plain Markdown files, action files).\n30\t  * `folder` and `special` rows are real repository folders; their repository-relative location is `directoryPath`.\n31\t  * `status` rows are board-status groups and `virtual` is the \"agent instructions\" group; neither is a real folder.\n32\t  * Agent-instruction files (`AGENTS.md`, `CLAUDE.md`, …) are `file` rows with `structuralReadOnly: true`. Such rows get no `onContextMenu` handler and no row action buttons, so they have no menu today.\n33\t\n34\tRenderer-to-desktop calls go through `window.md2Data` (`ElectronDataBridge` in `app/src/data/electron_data_bridge.ts`). The preload script `desktop/src/shell/preload.js` exposes every name in `DATA_METHODS` through the local bridge invoke channel, and `createLocalBridgeDispatch` in `desktop/src/shell/local_bridge_dispatch.js` resolves each method against `currentLocalProject` (the active local project). `window.md2Data` exists only in Electron: the remote-control browser client and web builds have none. A GitHub-backed project opened in Electron has no `rootPath`, so it has no local files to reveal.\n35\t\n36\t`ensureInsideRoot` in `desktop/src/git/git_commands.js` rejects paths that escape the project root. Local-bridge methods are also reachable from remote-control clients through `RemoteControlService`, which forwards any method name to the same dispatcher (existing precedent: `openInEditor`).\n37\t\n38\t## Implementation details\n39\t\n40\t* **Reveal** means: open the OS file manager (Explorer on Windows) at the entry's parent folder with the entry selected. Electron's `shell.showItemInFolder(fullPath)` does exactly this for files and folders on all platforms.\n41\t* **Entry** means a file or folder, addressed by its repository-relative path.\n42\t* Desktop, `desktop/src/project/project_files.js`: add `resolveExistingProjectEntry(project, entryPath)`. It requires the root via `requireRootPath`, fails fast on a missing or empty `entryPath` (`Missing project entry path`), resolves the full path with `ensureInsideRoot(rootPath, path.join(rootPath, entryPath))`, and throws `Project entry does not exist: <entryPath>` when `fs.promises.stat` fails. It returns the full path. Export it; `local_git_service.js` re-exports it with the other `project_files` functions.\n43\t* Desktop, `\n[795 characters omitted]\nrootPath` is set) and `showInFileExplorer(path)`, which fails fast when the bridge is missing and otherwise awaits `bridge.showInFileExplorer({ path })`. Plain functions, no service class: the module owns no state. No `StorageService` change: revealing is a shell operation, not persistence.\n46\t* Renderer, new component `app/src/components/card_view/open_in_file_explorer_menu_item.tsx`: `OpenInFileExplorerMenuItem` with props `path`, `rootPath`, `onSelected`. It renders nothing when `canShowInFileExplorer(rootPath)` is false. On click it calls `onSelected()` to close the menu, awaits `showInFileExplorer(path)`, and reports failures via `dialogService.error(error, { fallbackMessage: 'File explorer could not be opened' })`. Label: `Open in file explorer`. The item stays enabled in read-only projects because it changes nothing.\n47\t* Board card menu: render `OpenInFileExplorerMenuItem` with `card.path` directly after the `Open in file mode` item in `project_card_view.tsx`. It appears in both the three-dot menu and the right-click menu, since they share one `Menu`.\n48\t* List view, `file_tree_node_row.tsx`:\n49\t  * `file` rows (non-structural): add the item with `treeNode.path`, after `CardPathMenuItems`.\n50\t  * `folder` and `special` rows: add the item with `treeNode.directoryPath`.\n51\t  * `status` and `virtual` rows: no item.\n52\t  * Agent-instruction rows (`structuralReadOnly` `file` rows): attach `openContextMenu` so right-click opens the menu, and render a menu that contains only the new item. They still get no row action buttons (no delete, no three-dot button). The `virtual` group row keeps having no menu.\n53\t* Remote-control clients never render the item, because `window.md2Data` is absent there. The generic remote dispatcher can still reach `showInFileExplorer`, like `openInEditor`; the path check keeps the call inside the project root.\n54\t* Tests:\n55\t  * `desktop/src/project/project_files.test.mjs`: `resolveExistingProjectEntry` returns the full path for an existing file and an existing folder, and throws for a missing path, an empty path, and a path escaping the root.\n56\t  * `desktop/src/shell/local_bridge_dispatch.test.mjs`: `showInFileExplorer` calls the injected `showItemInFolder` with the resolved full path, and does not call it when resolution throws.\n57\t  * `desktop/src/shell/preload.test.mjs`: `showInFileExplorer` is exposed on `md2Data`.\n58\t  * New `open_in_file_explorer_menu_item.test.tsx`: hidden without bridge, hidden without `rootPath`; click calls the bridge with the path and closes the menu; bridge rejection reports through `dialogService`.\n59\t  * Card and file-tree row tests: item present for cards, files, `folder`/`special` rows and agent-instruction rows (right-click); absent for `status` rows. Mock the bridge via `window.md2Data`.\n60\t\n61\t## Acceptance criteria\n62\t\n63\t* In the desktop app with a local project, the board card menu (three-dot and right-click) shows `Open in file explorer`. Selecting it opens the OS file manager at the card file's folder with the card file selected.\n64\t* In the list view, every file row (cards, Markdown files, action files) shows `Open in file explorer` in its menu, with the same result for that file.\n65\t* In the list view, `folder` and `special` rows show the command; selecting it opens the parent folder with that folder selected.\n66\t* Right-clicking an agent-instruction row opens a menu containing only `Open in file explorer`; it reveals that instruction file. These rows still show no delete or three-dot buttons.\n67\t* `status` rows and the \"agent instructions\" group row show no such command.\n68\t* The command is hidden in the remote-control browser client, in web builds, and for GitHub-backed projects without a `rootPath`.\n69\t* The command works in read-only projects.\n70\t* A path that no longer exists on disk, or that escapes the project root, shows an error dialog (`File explorer could not be opened` with the underlying message) and opens nothing.\n71\t* Existing menu items and their order are otherwise unchanged.\n72\t* New and updated tests listed above pass.",
+          "providerItemId": "toolu_01BUDSHbHCS7vohvf7FkeBR5",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:54:34.460Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-44",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbsFXbjEm6Y7Su4aXPUB:thinking:0",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T16:54:47.449Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"app/src/{services/open_files_service*.test.ts,components/text_view/text_view*.test.tsx}\"}",
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-45",
+          "kind": "event",
+          "label": "Glob",
+          "output": "app\\src\\components\\text_view\\text_view.grouped.test.tsx\napp\\src\\components\\text_view\\text_view_no_mock.test.tsx\napp\\src\\services\\open_files_service.node.test.ts",
+          "providerItemId": "toolu_01PvesF25q1V8tCiqvaj6GSW",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:54:48.356Z",
+          "type": "tool.Glob"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nWriting doc now.",
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-10-01T16:54:49.199Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_188_add_support_ctrl_tab_in_list_view.md",
+          "deletions": 1,
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-47",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_188_add_support_ctrl_tab_in_list_view.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01HK1eSCUvtNspNrpyJkMVCb",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:54:50.256Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_188_add_support_ctrl_tab_in_list_view.md",
+          "deletions": 1,
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-48",
+          "insertions": 53,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_188_add_support_ctrl_tab_in_list_view.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_014Q16zMWRgi7rcjKEmNwHqC",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:55:12.815Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-event-49",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbsJMTbrHSr8bbMHQ5do:thinking:0",
+          "sequence": 49,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T16:55:20.027Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI updated `design/feature_descriptions/F_188_add_support_ctrl_tab_in_list_view.md`. It now has `Current state`, `Implementation details` and `Acceptance criteria`, and `status` is set to `ready for implementation`. Nothing is staged or committed.\n\nThe doc follows your three answers: Ctrl+Shift+Tab goes to the previous tab, switching wraps at both ends, and the physical Ctrl key is used on every platform, including macOS.\n\nHow it works:\n- **Tab switching:** a new `activateAdjacentDocument(offset)` method on `openFilesService` moves to the tab next to the active one, in tab-bar order.\n- **Shortcuts:** a new module `services/shortcuts/list_tab_shortcuts.ts` holds two bindings, one for Ctrl+Tab and one for Ctrl+Shift+Tab. They do nothing unless the view mode is `'text'`, which is the list view.\n- **Registration:** `TextView` registers both bindings once when it mounts. It mounts only once, so the duplicate-ID check never fires.\n- **Shared change:** the shortcut type `KeyboardShortcut` gets a new `ctrl` field, because its `mod` modifier means Cmd on Apple, and Cmd+Tab belongs to the macOS app switcher. The two existing shortcuts (global search and commit) only need `ctrl: false` added and behave the same. The search shortcut label doesn't change.\n\nLimits and edge cases the doc accepts:\n- **Desktop only:** a normal browser (the web build or the remote-control client) uses Ctrl+Tab to switch its own tabs and never passes it to the page. The feature only works in the Electron desktop app.\n- **Overlays:** if a dialog or the config page is open over the list view, Ctrl+Tab still switches the tab behind it. I read \"always respond\" as asking for this.\n- **Other views:** outside the list view, the shortcut service still blocks the key's default browser action. In Electron that action does nothing useful.\n\nI didn't read the agent activity JSON, as you asked. The `after` field points to F_394 (diagram legend items), which has nothing to do with this feature.",
+          "id": "agent-turn-db9ac4ca-56e2-4552-8923-331a700f1bc2-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 50,
+          "timestamp": "2026-10-01T16:55:20.051Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -530,13 +700,21 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 15542,
-          "toolMs": 20036
+          "reasoningMs": 46031,
+          "toolMs": 46822
         },
         "elapsedMs": 49662,
         "runningStartedAt": "2026-10-01T16:54:15.300Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 1141136,
+        "inputTokens": 36,
+        "outputTokens": 11524,
+        "reasoningTokens": 0,
+        "totalTokens": 1152696,
+        "costUsd": 1.017807
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
