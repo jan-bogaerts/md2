@@ -610,24 +610,32 @@
           "sequence": 43,
           "timestamp": "2026-10-01T17:00:07.381Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Not sure\nclaude-question-1: The react side can be on anorher computer, so it needs to be requested from the electron app over comms like websocket",
+          "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-answer-43",
+          "kind": "message",
+          "role": "user",
+          "sequence": 44,
+          "timestamp": "2026-10-01T17:23:39.732Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-5e9f99e6-e662-41ba-bfe6-89563adb8fff",
       "providerSessions": [],
       "startedAt": "2026-10-01T16:58:38.656Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 24655,
           "toolMs": 41474
         },
         "elapsedMs": 88725,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T17:23:39.732Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
