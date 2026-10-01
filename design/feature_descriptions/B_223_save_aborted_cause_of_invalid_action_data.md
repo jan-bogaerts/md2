@@ -16,17 +16,17 @@ action x has invalid unsaved data. we should not prevent the saving of an action
 
 ## Current state
 
-`ActionDraftStore` keeps invalid editor changes in memory and does not queue them for persistence. During a project-wide save, `flushDrafts()` detects an invalid dirty action and throws before awaiting queued saves for valid actions. `ProjectPersistenceService.flushPendingChanges()` then stops before staging card or instruction documents and flushing their file commits. The invalid action remains dirty, but unrelated work cannot complete through that save.
+`ActionDraftStore` validates action edits and queues a write only when validation passes. `flushDrafts()` rejects an invalid dirty draft, so `ProjectPersistenceService.flushPendingChanges()` stops before other pending file commits. `ActionService.saveDefinition()` also validates the complete action graph before serializing JSON. Here, *invalid* means action data fails action validation; it can still be serialized as JSON. The current save path treats those separate conditions as one blocker.
 
 ## Implementation details
 
-* In `ActionDraftStore.flushDrafts()`, commit staged action edits and await queued saves for valid actions before reporting invalid or deleted drafts. Keep each invalid definition out of persistence and retain its editor draft and validation error.
-* In `ProjectPersistenceService.flushPendingChanges()`, continue staging and flushing unrelated card, instruction, and file changes when an action draft remains invalid. After those writes finish, report the unresolved action draft as a save blocker; keep the project save state dirty. Do not treat an incomplete project-wide save as success.
-* Preserve the existing guard on project or branch changes and desktop close while an invalid draft remains unsaved. Correcting or discarding that draft must allow a later flush to complete. Keep real action write failures visible and retryable.
+* In `ActionDraftStore`, queue committed drafts for persistence even when action validation fails. Keep the validation error visible in the editor; it describes whether the action can be used, not whether its JSON can be saved. `flushDrafts()` must await these writes rather than reject solely because a draft is invalid.
+* Split `ActionService.saveDefinition()` so draft JSON can be serialized and persisted without first passing action graph validation. Publish a changed runnable action only when validation passes. Track the saved revision and acknowledge the open document after the physical write, including for invalid drafts; retain normal failure and retry behavior for serialization or storage errors.
+* Preserve the exact saved JSON across reload. The tolerant loader currently sanitizes missing fields or skips invalid definitions, so the editor must still be able to reopen and repair the saved raw data without silently replacing it with sanitized values. Keep invalid actions unavailable for execution until they validate.
 
 ## Acceptance criteria
 
-* With action X invalid and action Y valid and dirty, saving persists Y, leaves X's invalid changes in its editor without writing them, and reports X as still unsaved.
-* In the same state, unrelated dirty card and instruction files reach persistence. Project save remains dirty and reports incomplete until X is corrected or discarded.
-* A project or branch change and desktop close still reject an incomplete save, so X's unsaved changes are not lost.
-* Tests cover mixed valid and invalid action drafts, unrelated file commits, and successful retry after X becomes valid. Run affected tests and app lint.
+* Saving an action with missing or invalid action fields writes its current JSON values unchanged. Editor still shows validation error; saved action is not executable until valid.
+* With invalid action X and valid action Y dirty, project save persists both JSON files and other pending card or instruction files. Save state becomes clean after physical writes complete.
+* Reopening project restores X's exact saved invalid values for editing. Fixing them and saving makes action valid without losing its identity or unrelated data.
+* A serialization or storage failure still reports a failed save and leaves affected draft dirty for retry. Tests cover invalid draft save, reload, mixed pending changes, and failure retry. Run affected tests and app lint.
