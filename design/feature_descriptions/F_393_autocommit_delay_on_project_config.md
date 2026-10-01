@@ -10,8 +10,6 @@ agents:
   - design/activity/card__28d05421-63b6-4bda-9701-5bdbd2e81e70.json
 policy:
 after: 4bcc15e9-9de2-4f17-8df9-40205ed9777c
-branch: f_393_autocommit_delay_on_project_config
-worktree: 2
 changedFiles:
   - app/src/components/config/config_value_editor.grouped.test.tsx
   - app/src/components/config/config_value_editor.tsx
