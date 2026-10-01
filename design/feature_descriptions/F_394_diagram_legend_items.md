@@ -3,7 +3,7 @@ author:
 id: F_394
 internalId: de670664-aeae-4814-bf3f-4bb280bd85a9
 title: Diagram legend items
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,30 @@ policy:
 after: 2775052a-2e84-4466-a320-155c8ec05bac
 branch: f_394_diagram_legend_items
 worktree: 1
+changedFiles:
+  - app/src/components/diagram_view/creation_tools/diagram_creation_tools.ts
+  - app/src/components/diagram_view/legend/diagram_legend.test.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_details_editor.test.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_details_editor.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_entries.node.test.ts
+  - app/src/components/diagram_view/legend/diagram_legend_entries.ts
+  - app/src/components/diagram_view/legend/diagram_legend_entry_editor.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_entry_list.tsx
+  - app/src/components/diagram_view/legend/diagram_legend_entry_row.tsx
+  - app/src/components/diagram_view/legend/diagram_session_legend_entries.test.tsx
+  - app/src/components/diagram_view/legend/diagram_session_legend_entries.tsx
+  - app/src/services/diagrams/diagram_change_descriptions.node.test.ts
+  - app/src/services/diagrams/diagram_change_descriptions.ts
+  - app/src/services/diagrams/diagram_creation_tool_labels.ts
+  - app/src/services/diagrams/diagram_data.node.test.ts
+  - app/src/services/diagrams/diagram_derived_legend.ts
+  - app/src/services/diagrams/diagram_edit_session_service.test.ts
+  - app/src/services/diagrams/diagram_edit_session_service.ts
+  - app/src/services/diagrams/diagram_edit_types.ts
+  - app/src/services/diagrams/diagram_edit_validation.ts
+  - app/src/services/diagrams/diagram_legend_entry_key.ts
+  - shared/diagram_data.d.mts
+  - shared/diagram_data.mjs
 ---
 
 For diagrams, We auto generate legend items, also when editing. I have the impression that we use the ´type´ as label for the legend items and this can differ with the labels used by the ´add tool´ when editing. This is confusing. We should use same label for the auto generated items as are used in the add-tool.
