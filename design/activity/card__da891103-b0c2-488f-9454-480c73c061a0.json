@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "da891103-b0c2-488f-9454-480c73c061a0",
       "cardPath": "design/feature_descriptions/B_223_save_aborted_cause_of_invalid_action_data.md",
-      "completedAt": "2026-10-01T17:34:07.826Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 70970
+        "usedTokens": 86582
       },
       "entries": [
         {
@@ -1053,6 +1053,273 @@
           "summary": [],
           "timestamp": "2026-10-01T17:34:04.242Z",
           "type": "reasoning"
+        },
+        {
+          "content": "Continue",
+          "id": "submission-dcc7fc99-1a67-4202-a4a5-7f6990fbc56b",
+          "kind": "message",
+          "role": "user",
+          "sequence": 78,
+          "timestamp": "2026-10-01T17:34:45.096Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-79",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c908538856facd4016abe99ba3d2887d29890120532b5333c",
+          "sequence": 79,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:34:51.926Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'app/src/components/editor/data_sources/action_markdown_data_source.ts' -Encoding UTF8\"",
+          "content": "",
+          "durationMs": 9,
+          "exitCode": 0,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-80",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'app/src/components/editor/data_sources/action_markdown_data_source.ts' -Encoding UTF8\"",
+          "providerItemId": "exec-cfb185d6-8c47-4549-a326-62f4bca53b3c",
+          "sequence": 80,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:34:57.473Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'app/src/services/actions/action_service.node.test.ts' -Encoding UTF8 | Select-Object -Skip 620 -First 45\"",
+          "content": "\r\n        const persistActionFile = vi.fn(async () => undefined)\r\n        const service = new ActionService(() => ({ persistActionFile }))\r\n        service.loadFromFiles([file(VALID)])\r\n\r\n        service.draftStore.updateDraft(VALID.id, { ...VALID, label: '' })\r\n\r\n        expect(service.draftStore.hasPendingDrafts()).toBe(true)\r\n        expect(service.draftStore.getDraft(VALID.id).validation.valid).toBe(false)\r\n        await expect(service.draftStore.flushDrafts()).rejects.toThrow(/invalid unsaved changes/u)\r\n        expect(persistActionFile).not.toHaveBeenCalled()\r\n\r\n        service.draftStore.updateDraft(VALID.id, { ...VALID, label: 'Repaired' })\r\n        await service.draftStore.flushDrafts()\r\n\r\n        expect(service.draftStore.hasPendingDrafts()).toBe(true)\r\n        expect(persistActionFile.mock.calls.at(-1)?.slice(0, 4)).toEqual([\r\n            expect.objectContaining({ content: expect.stringContaining('\"label\": \"Repaired\"') }),\r\n            VALID.id,\r\n            'actions/action.json',\r\n            expect.any(Function),\r\n        ])\r\n        const persistenceCall = persistActionFile.mock.calls.at(-1) as unknown as unknown[]\r\n        const acknowledge = persistenceCall[5] as (() => void)\r\n        acknowledge()\r\n        expect(service.draftStore.hasPendingDrafts()).toBe(false)\r\n    })\r\n\r\n    it('stages editor changes without validation, events, or persistence', () => {\r\n        const persistActionFile = vi.fn(async () => undefined)\r\n        const service = new ActionService(() => ({ persistActionFile }))\r\n        service.loadFromFiles([file(VALID)])\r\n        const changed = vi.fn()\r\n        service.addEventListener('changed', changed)\r\n\r\n        service.draftStore.stageDraft(VALID.id, { ...VALID, label: '' })\r\n",
+          "durationMs": 126,
+          "exitCode": 0,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-81",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'app/src/services/actions/action_service.node.test.ts' -Encoding UTF8 | Select-Object -Skip 620 -First 45\"",
+          "providerItemId": "exec-c2b562ac-9650-48ca-9111-372fbf2c7488",
+          "sequence": 81,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:34:57.484Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'design/feature_descriptions/B_223_save_aborted_cause_of_invalid_action_data.md' -Encoding UTF8\"",
+          "content": "---\r\nauthor: \r\nid: B_223\r\ninternalId: da891103-b0c2-488f-9454-480c73c061a0\r\ntitle: save aborted cause of invalid action data\r\nstatus: ready for implementation\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__da891103-b0c2-488f-9454-480c73c061a0.json\r\npolicy:\r\nafter: 2775052a-2e84-4466-a320-155c8ec05bac\r\nbranch: b_223_save_aborted_cause_of_invalid_action_data\r\n---\r\naction x has invalid unsaved data. we should not prevent the saving of an action because of this (most likely type diagram)\r\n\r\n## Current state\r\n\r\n`ActionDraftStore` keeps invalid editor changes in memory and does not queue them for persistence. During a project-wide save, `flushDrafts()` detects an invalid dirty action and throws before awaiting queued saves for valid actions. `ProjectPersistenceService.flushPendingChanges()` then stops before staging card or instruction documents and flushing their file commits. The invalid action remains dirty, but unrelated work cannot complete through that save.\r\n\r\n## Implementation details\r\n\r\n* In `ActionDraftStore.flushDrafts()`, commit staged action edits and await queued saves for valid actions before reporting invalid or deleted drafts. Keep each invalid definition out of persistence and retain its editor draft and validation error.\r\n* In `ProjectPersistenceService.flushPendingChanges()`, continue staging and flushing unrelated card, instruction, and file changes when an action draft remains invalid. After those writes finish, report the unresolved action draft as a save blocker; keep the project save state dirty. Do not treat an incomplete project-wide save as success.\r\n* Preserve the existing guard on project or branch changes and desktop close while an invalid draft remains unsaved. Correcting or discarding that draft must allow a later flush to complete. Keep real action write failures visible and retryable.\r\n\r\n## Acceptance criteria\r\n\r\n* With action X invalid and action Y valid and dirty, saving persists Y, leaves X's invalid changes in its editor without writing them, and reports X as still unsaved.\r\n* In the same state, unrelated dirty card and instruction files reach persistence. Project save remains dirty and reports incomplete until X is corrected or discarded.\r\n* A project or branch change and desktop close still reject an incomplete save, so X's unsaved changes are not lost.\r\n* Tests cover mixed valid and invalid action drafts, unrelated file commits, and successful retry after X becomes valid. Run affected tests and app lint.\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-82",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'design/feature_descriptions/B_223_save_aborted_cause_of_invalid_action_data.md' -Encoding UTF8\"",
+          "providerItemId": "exec-1912ab5a-2052-4be7-bf8a-6d6769598a27",
+          "sequence": 82,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:34:57.723Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -F -e 'persistActionFile(' -e 'updateDraft(' -e 'replaceDraft(' app/src/services/data/data_service.ts app/src/services/open_files_service.ts app/src/components/editor/data_sources/action_markdown_data_source.ts\"",
+          "content": "app/src/components/editor/data_sources/action_markdown_data_source.ts:82:            target.document.updateDraft(definition, binding)\napp/src/components/editor/data_sources/action_markdown_data_source.ts:94:            target.document.updateDraft(definition, binding)\napp/src/services/data/data_service.ts:289:    async persistActionFile(\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-83",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -F -e 'persistActionFile(' -e 'updateDraft(' -e 'replaceDraft(' app/src/services/data/data_service.ts app/src/services/open_files_service.ts app/src/components/editor/data_sources/action_markdown_data_source.ts\"",
+          "providerItemId": "exec-dd4c37bb-27cf-4a6c-99fa-29b0ff21e92f",
+          "sequence": 83,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:34:57.748Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-84",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c908538856facd4016abe99c44a3c87d2a39352955e279891",
+          "sequence": 84,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:35:00.001Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'app/src/services/data/data_service.ts' -Encoding UTF8 | Select-Object -Skip 280 -First 75\"",
+          "content": "    }\r\n    async loadAgentConversation(path: string) {\r\n        const { storage } = this.requireDependencies()\r\n        const currentProject = this.projectState.project\r\n        if (!currentProject) throw new Error('Cannot load an agent conversation before a project is open')\r\n\r\n        return loadAgentConversation(storage, currentProject, path)\r\n    }\r\n    async persistActionFile(\r\n        file: MarkdownFile,\r\n        actionId: string,\r\n        sourcePath = file.path,\r\n        onPathCommitted?: (fromPath: string, toPath: string) => void,\r\n        saveReference?: OpenDocumentSaveReference,\r\n        onPersisted?: () => void,\r\n    ) {\r\n        const { commitBatcher } = this.requireDependencies()\r\n        const currentProject = this.projectState.project\r\n        if (!currentProject) throw new Error('Cannot save an action before a project is open')\r\n\r\n        if (!onPathCommitted) throw new Error(`Missing action path callback for ${actionId}`)\r\n        const change = {\r\n            ...file,\r\n            actionId,\r\n            kind: 'action' as const,\r\n            onPathCommitted,\r\n            onPersisted,\r\n            saveReference,\r\n            sourcePath,\r\n        }\r\n        const message = sourcePath === file.path ? `Update ${file.path}` : `Rename ${sourcePath} to ${file.path}`\r\n        commitBatcher.schedule(currentProject.branch, [change], message)\r\n    }\r\n\r\n    /** Queues a repository file that is not part of loaded card state for the shared commit batch. */\r\n    scheduleFileCommit(file: MarkdownFile, message: string, saveReference?: OpenDocumentSaveReference) {\r\n        const { commitBatcher } = this.requireDependencies()\r\n        const currentProject = this.projectState.project\r\n        if (!currentProject) throw new Error('Cannot save a file before a project is open')\r\n\r\n        commitBatcher.schedule(currentProject.branch, [{ ...file, kind: 'file' as const, saveReference }], message)\r\n    }\r\n\r\n    /** Queues diagram content under stable record identity, including a file move when its title changes. */\r\n    scheduleDiagramCommit(\r\n        diagramId: string,\r\n        sourcePath: string,\r\n        file: MarkdownFile,\r\n        message: string,\r\n        onPersisted: () => void,\r\n    ) {\r\n        const { commitBatcher } = this.requireDependencies()\r\n        const currentProject = this.projectState.project\r\n        if (!currentProject) throw new Error('Cannot save a diagram before a project is open')\r\n\r\n        const change = { ...file, diagramId, kind: 'diagram' as const, onPersisted, sourcePath }\r\n        commitBatcher.schedule(currentProject.branch, [change], message)\r\n    }\r\n\r\n    discardPendingFile(path: string) {\r\n        const { commitBatcher } = this.requireDependencies()\r\n        commitBatcher.discardPendingFile(path)\r\n    }\r\n\r\n    hasPendingFile(path: string) {\r\n        const { commitBatcher } = this.requireDependencies()\r\n\r\n        return commitBatcher.hasPendingFile(path)\r\n    }\r\n\r\n    getRemarkableMetadataContent(): string | null {\r\n        const config = this.getConfig()\r\n        if (!config) return null\r\n        return getRemarkableMetadataContent(this.projectState.files, config)\r\n    }\r\n",
+          "durationMs": 97,
+          "exitCode": 0,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-85",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'app/src/services/data/data_service.ts' -Encoding UTF8 | Select-Object -Skip 280 -First 75\"",
+          "providerItemId": "exec-8abd43cc-c5ac-43c5-aeab-9ef86e384e4c",
+          "sequence": 85,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:35:05.120Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -F -e 'ActionOpenDocument' -e 'class OpenDocument' -e 'createSaveReference' app/src/services/open_files_service.ts app/src/services --glob '*open*document*'\"",
+          "content": "app/src/services/open_files_service.ts:23:    ActionOpenDocument,\napp/src/services\\open_document.ts:27:    createSaveReference(): OpenDocumentSaveReference\napp/src/services\\open_document.ts:34:export interface ActionOpenDocument extends OpenDocumentBase<ActionDefinition, RawActionDefinition> {\napp/src/services\\open_document.ts:46:export type OpenDocument = ActionOpenDocument | CardOpenDocument | InstructionOpenDocument\napp/src/services\\managed_open_document.ts:84:    createSaveReference(): OpenDocumentSaveReference {\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-86",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -F -e 'ActionOpenDocument' -e 'class OpenDocument' -e 'createSaveReference' app/src/services/open_files_service.ts app/src/services --glob '*open*document*'\"",
+          "providerItemId": "exec-3beb73ec-e3db-47b4-8508-6d9bb734da9f",
+          "sequence": 86,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:35:05.373Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -F -e 'persistActionFile' -e 'reconcileCommittedPath' app/src/services/data --glob '*.ts'\"",
+          "content": "app/src/services/data\\data_service.ts:289:    async persistActionFile(\napp/src/services/data\\data_service.service.test.ts:122:        await service.persistActionFile({ content: '{}', path: 'actions/review.json' }, 'review', undefined, vi.fn())\napp/src/services/data\\data_service.service.test.ts:163:        await service.persistActionFile(\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-87",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -F -e 'persistActionFile' -e 'reconcileCommittedPath' app/src/services/data --glob '*.ts'\"",
+          "providerItemId": "exec-00b7d411-f12c-4a20-9c0f-4d48f58caaf0",
+          "sequence": 87,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:35:05.364Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-88",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c908538856facd4016abe99cc046887d28b5e598f335d1091",
+          "sequence": 88,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:35:18.943Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-89",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c908538856facd4016abe99d7e91087d283e6cb7cb331fd56",
+          "sequence": 89,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:35:30.669Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Save path has second blocker: `ActionService.saveDefinition()` validates action graph before serializing JSON. Design needs separate draft persistence from runtime action validation. Reload also needs care: current tolerant loader can skip invalid files.\n\n",
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 90,
+          "timestamp": "2026-10-01T17:35:31.655Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_223_save_aborted_cause_of_invalid_action_data.md",
+          "deletions": 8,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-91",
+          "insertions": 8,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-6789707f-1a96-4989-a2af-f4af20ad38a7",
+          "sequence": 91,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:35:46.624Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-92",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c908538856facd4016abe99f6134087d285aae60e0aec6ee2",
+          "sequence": 92,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:35:50.195Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$path = (Resolve-Path -LiteralPath '\"'design/feature_descriptions/B_223_save_aborted_cause_of_invalid_action_data.md').Path; \"'$encoding = New-Object System.Text.UTF8Encoding($false); $content = [System.IO.File]::ReadAllText($path, $encoding); $content = $content.Replace(\"`r`n\", \"`n\").Replace(\"`n\", \"`r`n\"); [System.IO.File]::WriteAllText($path, $content, $encoding)'",
+          "content": "",
+          "durationMs": 15,
+          "exitCode": 0,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-93",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$path = (Resolve-Path -LiteralPath '\"'design/feature_descriptions/B_223_save_aborted_cause_of_invalid_action_data.md').Path; \"'$encoding = New-Object System.Text.UTF8Encoding($false); $content = [System.IO.File]::ReadAllText($path, $encoding); $content = $content.Replace(\"`r`n\", \"`n\").Replace(\"`n\", \"`r`n\"); [System.IO.File]::WriteAllText($path, $content, $encoding)'",
+          "providerItemId": "exec-0b1f8c87-5e68-470e-b431-3d045626ef81",
+          "sequence": 93,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:35:53.600Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'design/feature_descriptions/B_223_save_aborted_cause_of_invalid_action_data.md' -Encoding UTF8\"",
+          "content": "---\r\nauthor: \r\nid: B_223\r\ninternalId: da891103-b0c2-488f-9454-480c73c061a0\r\ntitle: save aborted cause of invalid action data\r\nstatus: ready for implementation\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__da891103-b0c2-488f-9454-480c73c061a0.json\r\npolicy:\r\nafter: 2775052a-2e84-4466-a320-155c8ec05bac\r\nbranch: b_223_save_aborted_cause_of_invalid_action_data\r\n---\r\naction x has invalid unsaved data. we should not prevent the saving of an action because of this (most likely type diagram)\r\n\r\n## Current state\r\n\r\n`ActionDraftStore` validates action edits and queues a write only when validation passes. `flushDrafts()` rejects an invalid dirty draft, so `ProjectPersistenceService.flushPendingChanges()` stops before other pending file commits. `ActionService.saveDefinition()` also validates the complete action graph before serializing JSON. Here, *invalid* means action data fails action validation; it can still be serialized as JSON. The current save path treats those separate conditions as one blocker.\r\n\r\n## Implementation details\r\n\r\n* In `ActionDraftStore`, queue committed drafts for persistence even when action validation fails. Keep the validation error visible in the editor; it describes whether the action can be used, not whether its JSON can be saved. `flushDrafts()` must await these writes rather than reject solely because a draft is invalid.\r\n* Split `ActionService.saveDefinition()` so draft JSON can be serialized and persisted without first passing action graph validation. Publish a changed runnable action only when validation passes. Track the saved revision and acknowledge the open document after the physical write, including for invalid drafts; retain normal failure and retry behavior for serialization or storage errors.\r\n* Preserve the exact saved JSON across reload. The tolerant loader currently sanitizes missing fields or skips invalid definitions, so the editor must still be able to reopen and repair the saved raw data without silently replacing it with sanitized values. Keep invalid actions unavailable for execution until they validate.\r\n\r\n## Acceptance criteria\r\n\r\n* Saving an action with missing or invalid action fields writes its current JSON values unchanged. Editor still shows validation error; saved action is not executable until valid.\r\n* With invalid action X and valid action Y dirty, project save persists both JSON files and other pending card or instruction files. Save state becomes clean after physical writes complete.\r\n* Reopening project restores X's exact saved invalid values for editing. Fixing them and saving makes action valid without losing its identity or unrelated data.\r\n* A serialization or storage failure still reports a failed save and leaves affected draft dirty for retry. Tests cover invalid draft save, reload, mixed pending changes, and failure retry. Run affected tests and app lint.\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-94",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'design/feature_descriptions/B_223_save_aborted_cause_of_invalid_action_data.md' -Encoding UTF8\"",
+          "providerItemId": "exec-ca74f35e-09d8-4f01-99f2-4aaefb47ec4e",
+          "sequence": 94,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:36:01.205Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$bytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath '\"'design/feature_descriptions/B_223_save_aborted_cause_of_invalid_action_data.md')); \"'$content = [System.Text.Encoding]::UTF8.GetString($bytes); '\"'CRLF=' + ([regex]::Matches(\"'$content, \"`r`n\").Count) + '\"' LFonly=' + ([regex]::Matches(\"'$content, \"(?<!`r)`n\").Count)'",
+          "content": "CRLF=32 LFonly=0\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-95",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '$bytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath '\"'design/feature_descriptions/B_223_save_aborted_cause_of_invalid_action_data.md')); \"'$content = [System.Text.Encoding]::UTF8.GetString($bytes); '\"'CRLF=' + ([regex]::Matches(\"'$content, \"`r`n\").Count) + '\"' LFonly=' + ([regex]::Matches(\"'$content, \"(?<!`r)`n\").Count)'",
+          "providerItemId": "exec-ae5e7511-57f6-40eb-acd7-46e5c9337790",
+          "sequence": 95,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:36:01.305Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-event-96",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c908538856facd4016abe9a051f9887d287c67e77cfaed5b9",
+          "sequence": 96,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:36:05.534Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. Earlier design wrongly kept invalid draft unsaved. I corrected [B_223](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_223_save_aborted_cause_of_invalid_action_data.md): save draft JSON even when action validation fails, keep validation error visible, and preserve exact values when project reopens. Save becomes clean once write succeeds.\n\nDocumentation only; no tests run.\n\n",
+          "id": "agent-turn-0bcf175d-1e39-45ef-be45-8261f6953a79-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 97,
+          "timestamp": "2026-10-01T17:36:07.832Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1067,22 +1334,22 @@
         }
       ],
       "startedAt": "2026-10-01T17:25:31.441Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 50474,
-          "toolMs": 2670
+          "reasoningMs": 80005,
+          "toolMs": 3500
         },
         "elapsedMs": 223186,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T17:34:45.096Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1015936,
-        "inputTokens": 60932,
-        "outputTokens": 4659,
-        "reasoningTokens": 1800,
-        "totalTokens": 1083327
+        "cachedInputTokens": 1506688,
+        "inputTokens": 71371,
+        "outputTokens": 6629,
+        "reasoningTokens": 3063,
+        "totalTokens": 1587751
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -1136,11 +1403,11 @@
         "agent-6539b99c-8bcf-49e4-897f-7ef98e13faa8"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-ebb706a3-02b0-449e-ae87-a5dcb15c2a20",
       "origin": {
@@ -1149,9 +1416,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-6539b99c-8bcf-49e4-897f-7ef98e13faa8",
       "startedAt": "2026-10-01T17:33:48.238Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-6539b99c-8bcf-49e4-897f-7ef98e13faa8"
     }
   ],
   "version": 5
