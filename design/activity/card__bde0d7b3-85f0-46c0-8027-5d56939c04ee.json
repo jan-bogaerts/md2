@@ -806,6 +806,14 @@
           "role": "assistant",
           "sequence": 59,
           "timestamp": "2026-10-01T09:07:58.444Z"
+        },
+        {
+          "content": "> It also covers queued continuations: the backend can take a prompt from the queue to start another agent run, without calling sendMessage (action_run.js). In that path, agentPromptDispatched tells the frontend the prompt is no longer queued. I found no other production consumer beyond the queue update and the temporary submission state update.\n\nthat sounds like a bug. queued messages are simply not sent then?",
+          "id": "submission-5670a023-813e-473b-b4dc-7975d27a7e44",
+          "kind": "message",
+          "role": "user",
+          "sequence": 60,
+          "timestamp": "2026-10-01T09:09:18.689Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -820,14 +828,14 @@
         }
       ],
       "startedAt": "2026-10-01T08:58:59.287Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 18912,
           "toolMs": 2578
         },
         "elapsedMs": 113717,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T09:09:18.689Z"
       },
       "title": "+",
       "usage": {
