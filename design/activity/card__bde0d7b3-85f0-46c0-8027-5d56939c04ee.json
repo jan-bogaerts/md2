@@ -2833,6 +2833,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "bde0d7b3-85f0-46c0-8027-5d56939c04ee",
+      "cardPath": "design/feature_descriptions/B_253_in_transmission_prompts_still_disapear.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_253_in_transmission_prompts_still_disapear.md. it should be fixed now. but I am working with the project agent now. it seems that there is no 'in-transmission' log-item generated for the project agent? can you find something related to this?",
+          "id": "submission-458f05d0-12fe-4db6-866b-dd9f787cd48e",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-01T11:33:11.854Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-432c0f9c-a213-4b5b-b829-859ca030d6d4",
+      "providerSessions": [],
+      "startedAt": "2026-10-01T11:33:11.854Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-01T11:33:11.854Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -2847,11 +2875,11 @@
         "agent-b362889c-cbf1-4e7d-81d9-6fbc19c24696"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-b4ec21ea-509f-4b6e-b751-53d5b4f70edc",
       "origin": {
@@ -2860,9 +2888,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-b362889c-cbf1-4e7d-81d9-6fbc19c24696",
       "startedAt": "2026-10-01T08:58:59.284Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-b362889c-cbf1-4e7d-81d9-6fbc19c24696"
     }
   ],
   "version": 5
