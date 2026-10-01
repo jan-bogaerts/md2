@@ -3,16 +3,17 @@ author:
 id: B_228
 internalId: aea33400-48d0-4568-a66a-41df2c4f32f9
 title: open new project gives error
-status: new
+status: design
 owner: 
 affects:
 agents:
 policy:
-after: a796a8b9-1d2c-426a-89ad-926cc55a98da
+after: da891103-b0c2-488f-9454-480c73c061a0
 ---
-
 I opened an existing folder that contains a git repository. it showed the `project folders` dialog. after opening, we got this error:
 
 `Agent conversation loading has not started for the current project`
 
 not certain what it means
+
+This is an older bug. Not certain if still valid. Needs investigation.
