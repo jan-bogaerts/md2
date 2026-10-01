@@ -92,6 +92,7 @@ export class ActionService extends EventTarget {
     private definitions: RawActionDefinitionEntry[] = []
     private error: string | null = null
     private files: ActionFile[] = []
+    private readonly cancelledActionIds = new Set<string>()
     readonly draftStore: ActionDraftStore = new ActionDraftStore(this)
     private readonly publicationRevisionsByPath = new Map<string, number>()
     readonly persistenceGateway: () => ActionPersistenceGateway
@@ -145,6 +146,17 @@ export class ActionService extends EventTarget {
         this.loadFiles(this.files.filter((file) => file.path !== path), true);
     }
 
+    /** Removes a cancelled creation and its draft without treating it as an external deletion. */
+    removeUnpersistedAction(actionId: string) {
+        const entry = this.getDefinitionEntryById(actionId)
+        if (!entry) throw new Error(`Cannot remove unknown action: ${actionId}`)
+        this.cancelledActionIds.add(actionId)
+        this.draftStore.removeAction(actionId)
+        this.loadFiles(this.files.filter((file) => file.path !== entry.path), true)
+        this.publicationRevisionsByPath.delete(entry.path)
+        this.dispatchDraftChanged(actionId)
+    }
+
     private loadFiles(files: ActionFile[], preserveEditorState: boolean) {
         const previousActionIds = new Set(this.actions.map(({ id }) => id))
         const previousDefinitions = new Map(this.definitions.map((entry) => [entry.definition.id, entry]))
@@ -154,6 +166,7 @@ export class ActionService extends EventTarget {
             actionPromptDraftService.clearAll()
             this.draftStore.clear()
             this.publicationRevisionsByPath.clear()
+            this.cancelledActionIds.clear()
         }
         this.actions = preserveEditorState ? preserveActionEditorStates(this.actions, actions) : actions
         if (preserveEditorState) {
@@ -201,6 +214,7 @@ export class ActionService extends EventTarget {
         onPersisted?: () => void,
     ): Promise<ActionDefinition> {
         projectAccessService.requireWritable()
+        if (this.cancelledActionIds.has(definition.id)) throw new Error(`Action save cancelled after deletion: ${path}`)
         const definitions = this.definitionsWithDefinition(path, definition)
         const actions = preserveActionEditorStates(this.actions, validateActionDefinitionGraph(definitions))
         const content = serializeActionDefinition(definition)
@@ -215,7 +229,7 @@ export class ActionService extends EventTarget {
             saveReference,
             onPersisted,
         )
-        if (this.draftStore.isDeletedAndNotRecreating(definition.id)) {
+        if (this.cancelledActionIds.has(definition.id) || this.draftStore.isDeletedAndNotRecreating(definition.id)) {
             throw new Error(`Action save cancelled after external deletion: ${path}`)
         }
         this.files = this.filesWithFile(sourceStateFile)
@@ -306,6 +320,7 @@ export class ActionService extends EventTarget {
         this.files = []
         this.draftStore.clear()
         this.publicationRevisionsByPath.clear()
+        this.cancelledActionIds.clear()
         this.dispatchActionsChanged()
         this.dispatchPersistenceChanged()
     }

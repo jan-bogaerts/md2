@@ -42,6 +42,10 @@ export class ActionDraftStore {
         return [...this.drafts.keys()]
     }
 
+    removeAction(actionId: string) {
+        this.drafts.delete(actionId)
+    }
+
     getDraft(actionId: string): ActionDraftState {
         const existingDraft = this.drafts.get(actionId)
         if (existingDraft) return existingDraft

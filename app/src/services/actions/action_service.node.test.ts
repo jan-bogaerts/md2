@@ -897,6 +897,22 @@ describe('ActionService', () => {
         expect(service.getFiles()).toEqual([])
     })
 
+    it('does not republish a cancelled action when an in-flight editor save finishes', async () => {
+        let finishPersistence: () => void = () => undefined
+        const persistence = new Promise<void>((resolve) => { finishPersistence = resolve })
+        const service = new ActionService(() => ({ persistActionFile: vi.fn(() => persistence) }))
+        service.loadFromFiles([file(VALID)])
+        service.draftStore.getDraft(VALID.id)
+        const save = service.saveDefinition('actions/action.json', { ...VALID, label: 'Edited' })
+
+        service.removeUnpersistedAction(VALID.id)
+        finishPersistence()
+
+        await expect(save).rejects.toThrow('Action save cancelled after external deletion')
+        expect(service.getActionById(VALID.id)).toBeNull()
+        expect(service.draftStore.actionIds()).not.toContain(VALID.id)
+    })
+
     it('preserves a dirty deleted draft until explicit discard', async () => {
         const gateway = deletionGateway()
         const service = new ActionService(() => gateway)

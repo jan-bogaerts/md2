@@ -391,6 +391,7 @@ export class DataService extends EventTarget {
             project: () => this.projectState.project,
             recordCurrentContent: (files) => this.projectState.recordCurrentContent(files),
             reconcileDeletedActionFile: (path) => actionService.reconcileCommittedDeletion(path),
+            removeUnpersistedAction: (actionId) => actionService.removeUnpersistedAction(actionId),
             refreshSnapshot: (workingFolder) => this.refreshSnapshot(workingFolder),
             reloadCurrentProjectSnapshot: () => this.projectLoading.reloadCurrentProjectSnapshot(),
             removeFolder: (path, workingFolder) => this.projectState.removeFolder(path, workingFolder),

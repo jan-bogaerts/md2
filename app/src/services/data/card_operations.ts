@@ -3,6 +3,7 @@ import { computeMove, type CardMoveUpdate } from '../../data/card_ordering'
 import type { CardDraft, CardType, MarkdownFile, Card } from '../../data/data_types'
 import type { OpenDocumentSaveReference } from '../open_files_service'
 import { telemetryService } from '../telemetry/telemetry_service'
+import { actionService } from '../actions/action_service'
 import { CardArchiveOperations } from './card_archive_operations'
 import { CardAttachmentOperations } from './card_attachment_operations'
 import { CardInternalIdOperations } from './card_internal_id_operations'
@@ -352,9 +353,21 @@ export class CardOperations {
 
     async deleteFile(path: string) {
         const { dependencies } = this.context
+        const { commitBatcher, config } = this.context.requireProject('delete a file')
+        await commitBatcher.settleActiveFlush()
+
+        const action = actionService.getActionByPath(path)
         const loadedFile = dependencies.files().some((file) => file.path === path)
         const repositoryFile = dependencies.snapshot()?.repositoryFiles.includes(path) ?? false
-        if (!loadedFile && !repositoryFile) throw new Error(`Cannot delete a file that is not loaded: ${path}`)
+        if (action && !loadedFile && !repositoryFile && commitBatcher.hasPendingAction(action.id)) {
+            commitBatcher.discardPendingAction(action.id)
+            dependencies.deleteFile(path, [], config.workingFolder)
+            dependencies.removeUnpersistedAction(action.id)
+            dependencies.dispatchChanged()
+
+            return dependencies.snapshot()
+        }
+        if (!loadedFile && !repositoryFile && !action) throw new Error(`Cannot delete a file that is not loaded: ${path}`)
 
         const activeCard = dependencies.snapshot()?.activeCards.some((card) => card.path === path) ?? false
 

@@ -1086,6 +1086,89 @@ describe('CardOperations', () => {
         expect(storage.listRepositoryFiles).toHaveBeenCalledTimes(listRepositoryFilesCalls)
     })
 
+    it('cancels a new action before its first commit without deleting storage', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const { definition, path } = actionService.createDefinition('actions')
+        await actionService.saveDefinition(path, definition)
+        actionService.draftStore.getDraft(definition.id)
+        service.scheduleFileCommit({ content: 'other', path: 'other.md' }, 'Save other')
+
+        await service.cards.deleteFile(path)
+
+        expect(actionService.getActionById(definition.id)).toBeNull()
+        expect(actionService.getFiles().some((file) => file.path === path)).toBe(false)
+        expect(actionService.draftStore.actionIds()).not.toContain(definition.id)
+        expect(service.hasPendingFile(path)).toBe(false)
+        expect(service.hasPendingFile('other.md')).toBe(true)
+        expect(storage.deleteFile).not.toHaveBeenCalled()
+        expect(storage.commit).not.toHaveBeenCalled()
+        await service.cards.flushPendingCommits()
+        expect(vi.mocked(storage.commit).mock.calls[0][0].files).toEqual([{ content: 'other', path: 'other.md' }])
+    })
+
+    it.each(['succeeds', 'fails'])('deletes an action after an active initial write %s', async (outcome) => {
+        configService.init()
+        const activeCommit = createDeferred<MarkdownFile[]>()
+        const actionPath = 'actions/new.json'
+        const storage = createStorage({
+            commit: vi.fn(async (request: CommitRequest) => {
+                if (request.files.some((file) => file.path === actionPath)) return activeCommit.promise
+                return request.files
+            }),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const { definition } = actionService.createDefinition('actions')
+        await actionService.saveDefinition(actionPath, definition)
+        const pendingFlush = service.cards.flushPendingCommits()
+        await vi.waitFor(() => expect(storage.commit).toHaveBeenCalledOnce())
+        if (outcome === 'fails') service.scheduleFileCommit({ content: 'other', path: 'other.md' }, 'Save other')
+        const deletion = service.cards.deleteFile(actionPath)
+        if (outcome === 'succeeds') activeCommit.resolve([{ content: JSON.stringify(definition), path: actionPath }])
+        else activeCommit.reject(new Error('write failed'))
+        if (outcome === 'succeeds') await pendingFlush
+        else await expect(pendingFlush).rejects.toThrow('write failed')
+        await deletion
+
+        expect(actionService.getActionById(definition.id)).toBeNull()
+        expect(service.hasPendingFile(actionPath)).toBe(false)
+        expect(storage.deleteFile).toHaveBeenCalledTimes(outcome === 'succeeds' ? 1 : 0)
+        if (outcome === 'fails') expect(service.hasPendingFile('other.md')).toBe(true)
+    })
+
+    it('keeps a persisted action available when storage deletion fails', async () => {
+        configService.init()
+        const actionPath = 'actions/new.json'
+        const storage = createStorage({ deleteFile: vi.fn(async () => { throw new Error('delete failed') }) })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+        const { definition } = actionService.createDefinition('actions')
+        await actionService.saveDefinition(actionPath, definition)
+        await service.cards.flushPendingCommits()
+
+        await expect(service.cards.deleteFile(actionPath)).rejects.toThrow('delete failed')
+
+        expect(actionService.getActionById(definition.id)).not.toBeNull()
+        expect(actionService.getFiles().some((file) => file.path === actionPath)).toBe(true)
+    })
+
+    it('rejects a missing path without a matching action', async () => {
+        configService.init()
+        const storage = createStorage()
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await expect(service.cards.deleteFile('actions/missing.json')).rejects.toThrow('not loaded')
+        expect(storage.deleteFile).not.toHaveBeenCalled()
+    })
+
     it('leaves deleted files unpushed in manual mode', async () => {
         configService.init()
         const deletionFiles = [
