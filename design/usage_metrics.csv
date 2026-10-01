@@ -6209,3 +6209,15 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-01T17:43:44.176Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:04.000Z,,,,,,15,0
 2026-10-01T17:43:53.161Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:03.000Z,,,,,,15,0
 2026-10-01T17:42:00.455Z,account_usage,claude,default,weekly,10080,2026-10-04T17:00:00.000Z,,,,,,4,0
+2026-10-01T17:44:09.116Z,token_usage,codex,,,,,45520,231808,1503,358,279189,,
+2026-10-01T17:44:25.905Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:04.000Z,,,,,,15,0
+2026-10-01T17:44:25.923Z,token_usage,codex,,,,,53436,425472,2318,574,481800,,
+2026-10-01T17:44:29.344Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:03.000Z,,,,,,15,0
+2026-10-01T17:44:37.410Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:04.000Z,,,,,,15,0
+2026-10-01T17:44:46.910Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:03.000Z,,,,,,15,0
+2026-10-01T17:45:16.618Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:04.000Z,,,,,,15,0
+2026-10-01T17:45:30.727Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:03.000Z,,,,,,15,0
+2026-10-01T17:45:33.398Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:04.000Z,,,,,,15,0
+2026-10-01T17:45:38.914Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:03.000Z,,,,,,15,0
+2026-10-01T17:45:42.015Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:04.000Z,,,,,,15,0
+2026-10-01T17:45:42.031Z,token_usage,codex,,,,,5277,242944,1022,160,249403,,
