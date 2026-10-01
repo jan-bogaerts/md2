@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "28d05421-63b6-4bda-9701-5bdbd2e81e70",
       "cardPath": "design/feature_descriptions/F_393_autocommit_delay_on_project_config.md",
-      "completedAt": null,
+      "completedAt": "2026-10-01T16:32:40.184Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 73690
@@ -444,21 +444,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 32,
-          "timestamp": "2026-10-01T16:32:39.620Z"
+          "timestamp": "2026-10-01T16:32:40.184Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-50c2ba8a-b8bc-4401-b0fb-278dd7db1d63",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "dcf85cac-ec32-421e-b969-373f29737166",
+          "createdAt": "2026-10-01T16:32:40.184Z",
+          "lastUsedAt": "2026-10-01T16:32:40.184Z",
+          "synchronizedThroughMessageId": "agent-turn-35519169-69cf-4266-acab-ecc8b01a4f4a-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-10-01T16:29:23.273Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 10398,
           "toolMs": 29485
         },
-        "elapsedMs": 32185,
-        "runningStartedAt": "2026-10-01T16:32:12.177Z"
+        "elapsedMs": 60192,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
