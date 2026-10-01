@@ -11,6 +11,7 @@ import {
     Stack,
     Switch,
     TextField,
+    Typography,
 } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import { Fragment, useEffect, useState } from 'react'
@@ -36,6 +37,7 @@ import {
     selectThinkingLevel,
     type AgentSelectionState,
 } from '../../data/agent_selection'
+import { formatDuration } from '../actions/conversation/status/conversation_duration'
 import { AgentProfilesEditor } from './agent_profiles_editor'
 import { CardTypesEditor } from './card_types_editor'
 import { ColumnsEditor } from './columns_editor'
@@ -288,13 +290,19 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     }
 
     if (entry.type === 'number' && entry.input === 'slider') {
+        const formatSliderValue = entry.valueFormat === 'duration' ? formatDuration : String
+
         return (
             <FormControl disabled={disabled} fullWidth sx={OUTLINED_FIELD_BLOCK_SX}>
-                <FormLabel htmlFor={entry.key}>{entry.label}</FormLabel>
+                <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                    <FormLabel htmlFor={entry.key}>{entry.label}</FormLabel>
+                    <Typography color="text.secondary" variant="body2">{formatSliderValue(value as number)}</Typography>
+                </Stack>
                 <Slider
                     aria-label={entry.label}
                     aria-describedby={helperTextId}
                     disabled={disabled}
+                    getAriaValueText={formatSliderValue}
                     id={entry.key}
                     max={entry.max}
                     min={entry.min}
@@ -302,6 +310,7 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
                     step={entry.step}
                     value={value as number}
                     valueLabelDisplay="auto"
+                    valueLabelFormat={formatSliderValue}
                 />
                 <FormHelperText id={helperTextId} sx={{ m: 0 }}>{description}</FormHelperText>
             </FormControl>

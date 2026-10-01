@@ -84,6 +84,8 @@ export interface ConfigEntry {
     source: ConfigSource
     step?: number
     type: ConfigValueType
+    /** `duration`: number value is milliseconds and is displayed as `m:ss`. */
+    valueFormat?: 'duration'
 }
 
 export type ConfigValues = ConfigValueTypes
@@ -257,6 +259,7 @@ export const CONFIG_ENTRIES: ConfigEntry[] = [
         source: 'project',
         step: 1000,
         type: 'number',
+        valueFormat: 'duration',
     },
     {
         defaultValue: DEFAULT_CARD_SEPARATOR,
