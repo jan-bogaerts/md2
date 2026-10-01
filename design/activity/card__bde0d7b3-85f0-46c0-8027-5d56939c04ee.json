@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 67139
+        "usedTokens": 67347
       },
       "entries": [
         {
@@ -939,6 +939,28 @@
           "role": "user",
           "sequence": 70,
           "timestamp": "2026-10-01T09:11:02.273Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_032262199da364c8016abe23a8c91887d2a2e7717a793f993d",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T09:11:06.223Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. `agentPromptDispatched` means the prompt has left the queue, **not** that a sent conversation entry exists. The chatlog should keep the prompt visible until `agentUserMessage`, or a matching user entry in the continued run’s `agentStarted` conversation, takes over.\n\nThe queue entry must still be removed so it can no longer be edited or sent again. The current code keeps a temporary row after dispatch, but switches from the queued row to a separately mounted pending row. That switch is what needs correction.\n\n",
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-5-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 72,
+          "timestamp": "2026-10-01T09:11:09.074Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -956,7 +978,7 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 21621,
+          "reasoningMs": 23421,
           "toolMs": 2843
         },
         "elapsedMs": 137160,
@@ -964,11 +986,11 @@
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 824320,
-        "inputTokens": 67804,
-        "outputTokens": 3282,
-        "reasoningTokens": 715,
-        "totalTokens": 896121
+        "cachedInputTokens": 891008,
+        "inputTokens": 68285,
+        "outputTokens": 3395,
+        "reasoningTokens": 780,
+        "totalTokens": 963468
       },
       "usageSchemaVersion": 1,
       "viewed": true
