@@ -508,6 +508,10 @@
       "cardInternalId": "4bcc15e9-9de2-4f17-8df9-40205ed9777c",
       "cardPath": "design/feature_descriptions/F_392_add_groups_to_sentry_config_tab.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 48123
+      },
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_392_add_groups_to_sentry_config_tab.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_392_add_groups_to_sentry_config_tab.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -516,6 +520,171 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-01T16:34:24.704Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbqiTMkPJyr5b1BEJDzz:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T16:34:27.623Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_392_add_groups_to_sentry_config_tab.md\"}",
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-3",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_392\n4\tinternalId: 4bcc15e9-9de2-4f17-8df9-40205ed9777c\n5\ttitle: Add groups to sentry config tab\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__4bcc15e9-9de2-4f17-8df9-40205ed9777c.json\n11\tpolicy:\n12\tafter: 50466266-0fa0-4392-855a-d21513ee700f\n13\tbranch: f_392_add_groups_to_sentry_config_tab\n14\tworktree: 1\n15\t---\n16\t\n17\tOn the config dialog, we have the project and sentry tabs. On the project tab, we already created groups. Now we need to do the same on the sentry tab. Group the items logically together, add title and some info where useful\n18\t\n19\t## Current state\n20\t\n21\t* `ConfigPage` (`app/src/components/config/config_page.tsx`) renders `<SentryConfigSection />` for the `sentry` tab. Sentry settings are not config entries: they live per MD² project in browser `localStorage` (`SENTRY_CONNECTION_STORAGE_KEY`) via `sentryConnectionService`, so the dialog's Save/Cancel buttons do not touch them.\n22\t* `SentryConfigForm` in `app/src/components/config/sentry_config_section.tsx` renders one `h3` \"Sentry\" heading, a description line (\"Credentials stay in this browser.\"), an info `Alert` when no project is open, then one flat `Stack spacing={3}` in this order: API base URL, Organization slug, Project slug, Environment, Sentry API token, Target card type, Target card state, connection error `Alert`, Connect/Reconnect + Disconnect buttons, `Enable automatic import` switch, `Import now` button + \"Checking Sentry...\" text, last import count, last successful poll time, latest import error `Alert`.\n23\t* All text and select fields edit a local `draft`. The draft (including card type and state) is persisted only when the user presses Connect/Reconnect (`sentryConnectionService.connect`). Connect is enabled only when `isSentryConfigurationComplete(draft)` is true, which requires card type and card state too. The automatic-import switch saves immediately through `saveSettings`.\n24\t* Import controls are enabled only when connected and complete (`canImport`). Automatic import polls every `SENTRY_POLL_INTERVAL_MS` (15 minutes) while the project is fully loaded and not read-only. The first import that finds new issues, manual or automatic, asks for confirmation (`firstImportConfirmed`).\n25\t* The project tab (F_370) already groups fields with `ConfigSubsection` (`app/src/components/config/config_subsection.tsx`): an outlined `Card` with `component=\"section\"`, an `h4` heading, a description line, and children in a `Stack spacing={3}`. `ProjectConfigSection` stacks its groups with `Stack spacing={4}`.\n26\t* Tests: `sentry_config_section.grouped.test.tsx` finds controls by label and button/switch name only; `config_page.test.tsx` only checks the Sentry tab label and href. Field ids `sentry-api-base-url`, `sentry-organization`, `sentry-project`, `sentry-environment`, `sentry-api-token` are already used, so group ids must not reuse them.\n27\t\n28\t## implementation details\n29\t\n30\t* Only `sentry_config_section.tsx` and its test change. No service, storage, or behavior changes; every field label, helper text, button name, and enable/disable rule stays as-is.\n31\t* Keep the `h3` \"Sentry\" heading, the section description, and the no-project `Alert` at the top. Change the outer `Stack` to `spacing={4}` to match `ProjectConfigSection`.\n32\t* Wrap fields in `ConfigSubsection`, in this order. Group descriptions are module-level string constants.\n33\t  1. **Sentry project** (`id=\"sentry-source\"`): API base URL, Organization slug, Project slug, Environment. Description: \"Which Sentry issues MD² reads: unresolved issues from one project and one environment.\"\n34\t  2. **Authentication** (`id=\"sentry-authentication\"`): Sentry API token. Description: \"Token MD² uses to read issues. It is stored only in this browser for this MD² project, never in project files.\"\n35\t  3. **Imported cards** (`id=\"sentry-card-target\"`): Target card type, Target card state. Description: \"What each new Sentry issue becomes on the board. Changes apply when you press Connect or Reconnect.\"\n36\t  4. Connection error `Alert` and the Connect/Reconnect + Disconnect row stay ungrouped, directly below group 3. Reason: Connect needs and saves the fields of groups 1–3, so the button sits after all of them instead of inside one group.\n37\t  5. **Import** (`id=\"sentry-import\"`): automatic-import switch, Import now row with \"Checking Sentry...\" text, last import count, last successful poll time, latest import error `Alert`. Description: \"Available after connecting. Automatic import checks Sentry every 15 minutes while this project is open and editable. The first import that finds new issues asks for confirmation before creating cards.\"\n38\t* The section description becomes \"Connect this MD² project to one Sentry project.\" (the credentials sentence moves into the Authentication description).\n39\t* Render groups inline in `SentryConfigForm`; no group-config array (groups hold mixed controls, not config keys) and no new component (groups 1–3 share `draft`).\n40\t* Tests in `sentry_config_section.grouped.test.tsx`: add one case asserting the four group headings (`getAllByRole('heading', { level: 4 })`) appear in order Sentry project, Authentication, Imported cards, Import, and that representative controls sit inside their group via `within(screen.getByRole('region', { name: ... }))`: Organization slug in Sentry project, Sentry API token in Authentication, Target card type in Imported cards, `Enable automatic import` in Import. Existing cases must pass unchanged. Verify with `npm run typecheck` and `npm run test -- src/components/config/config_no_mock.test.tsx`.\n41\t\n42\t## acceptance criteria\n43\t\n44\t* The Sentry tab shows four headed groups in order: Sentry project, Authentication, Imported cards, Import; each has a one-line description under its heading.\n45\t* Sentry project holds API base URL, Organization slug, Project slug, Environment; Authentication holds the API token; Imported cards holds target card type and state; Import holds the automatic-import switch, Import now, and import status/error lines.\n46\t* Connection error and Connect/Reconnect + Disconnect buttons appear below Imported cards and above Import.\n47\t* Field labels, helper texts, button names, and enable/disable behavior (no project, read-only, not connected, polling) are unchanged.\n48\t* Group layout matches the project tab (outlined card, `h4` heading, secondary description).\n49\t* No element id is duplicated on the page.\n50\t* `npm run typecheck` passes and the Sentry config section tests pass, including the new grouping test.",
+          "providerItemId": "toolu_01MVpPTNEwdB2nwnv8NUVfav",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:34:28.318Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\config\\\\sentry_config_section.tsx\"}",
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-4",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport {\n2\t    Alert,\n3\t    Box,\n4\t    Button,\n5\t    FormControl,\n6\t    FormControlLabel,\n7\t    FormHelperText,\n8\t    MenuItem,\n9\t    Select,\n10\t    Stack,\n11\t    Switch,\n12\t    TextField,\n13\t    Typography,\n14\t    type SelectChangeEvent,\n15\t} from '@mui/material'\n16\timport { useState, type ChangeEvent } from 'react'\n17\timport { useProjectConfig } from '../hooks/use_project_config'\n18\timport { useProjectReadOnly } from '../hooks/use_project_read_only'\n19\timport { useProjectReference } from '../hooks/use_project_reference'\n20\timport { useSentryConnection } from '../hooks/use_sentry_connection'\n21\timport { useSentryImport } from '../hooks/use_sentry_import'\n22\timport { sentryConnectionService, type SentryConnectionSnapshot } from '../../services/sentry/sentry_connection_service'\n23\timport { sentryImportService } from '../../services/sentry/sentry_import_service'\n24\timport { isSentryConfigurationComplete, type SentryProjectSettings } from '../../services/sentry/sentry_types'\n25\t\n26\tconst SENTRY_CONFIG_SECTION_ID = 'sentry'\n27\t\n28\tinterface SentryConfigFormProps {\n29\t    connection: SentryConnectionSnapshot\n30\t}\n31\t\n32\tfunction SentryConfigForm({ connection }: SentryConfigFormProps) {\n33\t    const importState = useSentryImport()\n34\t    const project = useProjectReference()\n35\t    const projectConfig = useProjectConfig()\n36\t    const readOnly = useProjectReadOnly()\n37\t    const [draft, setDraft] = useState(connection.settings)\n38\t    const controlsDisabled = !project || readOnly || connection.isConnecting\n39\t    const canConnect = !controlsDisabled && isSentryConfigurationComplete(draft)\n40\t    const canImport = !controlsDisabled\n41\t        && connection.isAuthenticated\n42\t        && isSentryConfigurationComplete(connection.settings)\n43\t        && !importState.isPolling\n44\t\n45\t    const updateTextField = (field: keyof SentryProjectSettings) => (event: ChangeEvent<HTMLInputElement>) => {\n46\t        setDraft((current) => ({ ...current, [field]: event.target.value }))\n47\t    }\n48\t    const handleCardTypeChange = (event: SelectChangeEvent) => {\n49\t        setDraft((current) => ({ ...current, cardType: event.target.value }))\n50\t    }\n51\t    const handleCardStateChange = (event: SelectChangeEvent) => {\n52\t        setDraft((current) => ({ ...current, cardState: event.target.value }))\n53\t    }\n54\t    const handleConnect = () => {\n55\t        void sentryConnectionService.connect(draft)\n56\t    }\n57\t    const handleDisconnect = () => {\n58\t        sentryConnectionService.disconnect()\n59\t        setDraft({ ...connection.settings, apiToken: '', automaticImport: false })\n60\t    }\n61\t    const handleAutomaticImportChange = (event: ChangeEvent<HTMLInputElement>) => {\n62\t        sentryConnectionService.saveSettings({ ...connection.settings, automaticImport: event.target.checked })\n63\t    }\n64\t    const handleImportNow = () => {\n65\t        void sentryImportService.importNow()\n66\t    }\n67\t\n68\t    return (\n69\t        <Box aria-labelledby=\"sentry-config-heading\" component=\"section\" id={SENTRY_CONFIG_SECTION_ID}>\n70\t            <Stack spacing={3}>\n71\t                <Typography component=\"h3\" id=\"sentry-config-heading\" variant=\"h6\">Sentry</Typography>\n72\t                <Typography color=\"text.secondary\" variant=\"body2\">\n73\t                    Connect this MD² project to one Sentry project. Credentials stay in this browser.\n74\t                </Typography>\n75\t                {!project ? <Alert severity=\"info\">Open a project to configure Sentry imports.</Alert> : null}\n76\t                <Stack spacing={1}>\n77\t                    <Typography color=\"text.secondary\" component=\"label\" htmlFor=\"sentry-api-base-url\" sx={{ fontWeight: 'fontWeightMedium' }} variant=\"body2\">\n78\t                        Sentry API base URL\n79\t                    </Typography>\n80\t                    <TextField\n81\t                        disabled={controlsDisabled}\n82\t                        helperText=\"Use https://sentry.io for Sentry SaaS, or your self-hosted instance origin without /api/0.\"\n83\t                        id=\"sentry-api-base-url\"\n84\t                \n[3880 characters omitted]\n\t                        Target card type\n151\t                    </Typography>\n152\t                    <FormControl disabled={controlsDisabled} size=\"small\">\n153\t                        <Select displayEmpty labelId=\"sentry-card-type-label\" onChange={handleCardTypeChange} value={draft.cardType}>\n154\t                            <MenuItem disabled value=\"\"><em>Select card type</em></MenuItem>\n155\t                            {(projectConfig?.cardTypes ?? []).map(({ label, type }) => (\n156\t                                <MenuItem key={type} value={type}>{label}</MenuItem>\n157\t                            ))}\n158\t                        </Select>\n159\t                        <FormHelperText>Imported Sentry issues become cards of this type.</FormHelperText>\n160\t                    </FormControl>\n161\t                </Stack>\n162\t                <Stack spacing={1}>\n163\t                    <Typography color=\"text.secondary\" id=\"sentry-card-state-label\" sx={{ fontWeight: 'fontWeightMedium' }} variant=\"body2\">\n164\t                        Target card state\n165\t                    </Typography>\n166\t                    <FormControl disabled={controlsDisabled} size=\"small\">\n167\t                        <Select displayEmpty labelId=\"sentry-card-state-label\" onChange={handleCardStateChange} value={draft.cardState}>\n168\t                            <MenuItem disabled value=\"\"><em>Select card state</em></MenuItem>\n169\t                            {(projectConfig?.states ?? []).map(({ state }) => <MenuItem key={state} value={state}>{state}</MenuItem>)}\n170\t                        </Select>\n171\t                        <FormHelperText>New cards start in this project state.</FormHelperText>\n172\t                    </FormControl>\n173\t                </Stack>\n174\t                {connection.errorMessage ? <Alert severity=\"error\">{connection.errorMessage}</Alert> : null}\n175\t                <Stack direction=\"row\" spacing={1}>\n176\t                    <Button disabled={!canConnect} onClick={handleConnect} variant=\"contained\">\n177\t                        {connection.isConnecting ? 'Connecting...' : connection.isAuthenticated ? 'Reconnect' : 'Connect'}\n178\t                    </Button>\n179\t                    <Button disabled={controlsDisabled || !connection.isAuthenticated} onClick={handleDisconnect} variant=\"outlined\">Disconnect</Button>\n180\t                </Stack>\n181\t                <FormControlLabel\n182\t                    control={(\n183\t                        <Switch\n184\t                            checked={connection.settings.automaticImport}\n185\t                            disabled={!canImport}\n186\t                            onChange={handleAutomaticImportChange}\n187\t                        />\n188\t                    )}\n189\t                    label=\"Enable automatic import\"\n190\t                />\n191\t                <Stack direction=\"row\" spacing={1} sx={{ alignItems: 'center' }}>\n192\t                    <Button disabled={!canImport} onClick={handleImportNow} variant=\"outlined\">Import now</Button>\n193\t                    {importState.isPolling ? <Typography color=\"text.secondary\" variant=\"body2\">Checking Sentry...</Typography> : null}\n194\t                </Stack>\n195\t                {importState.lastImportCount !== null ? (\n196\t                    <Typography color=\"text.secondary\" variant=\"body2\">Last import created {importState.lastImportCount} card(s).</Typography>\n197\t                ) : null}\n198\t                {importState.lastSuccessfulPollAt ? (\n199\t                    <Typography color=\"text.secondary\" variant=\"body2\">Last successful poll: {importState.lastSuccessfulPollAt}</Typography>\n200\t                ) : null}\n201\t                {importState.latestError ? <Alert severity=\"error\">Latest import error: {importState.latestError}</Alert> : null}\n202\t            </Stack>\n203\t        </Box>\n204\t    )\n205\t}\n206\t\n207\texport function SentryConfigSection() {\n208\t    const connection = useSentryConnection()\n209\t\n210\t    return <SentryConfigForm connection={connection} key={connection.projectId ?? 'no-project'} />\n211\t}\n212\t",
+          "providerItemId": "toolu_015LjZNCsJfGmfEjb6QX7WhR",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:34:29.770Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\config\\\\config_subsection.tsx\"}",
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-5",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Card, CardContent, Stack, Typography } from '@mui/material'\n2\timport type { ReactNode } from 'react'\n3\t\n4\tinterface ConfigSubsectionProps {\n5\t    children: ReactNode\n6\t    description: string\n7\t    id: string\n8\t    label: string\n9\t}\n10\t\n11\t/** Headed group of config fields in a card with a one-line explanation, used to split a long config section. */\n12\texport function ConfigSubsection(props: ConfigSubsectionProps) {\n13\t    const { children, description, id, label } = props\n14\t    const headingId = `${id}-config-subsection-heading`\n15\t\n16\t    return (\n17\t        <Card aria-labelledby={headingId} component=\"section\" id={id} variant=\"outlined\">\n18\t            <CardContent>\n19\t                <Stack spacing={1}>\n20\t                    <Typography component=\"h4\" id={headingId} variant=\"subtitle1\">\n21\t                        {label}\n22\t                    </Typography>\n23\t                    <Typography color=\"text.secondary\" variant=\"body2\">\n24\t                        {description}\n25\t                    </Typography>\n26\t                    <Stack spacing={3} sx={{ pt: 1 }}>\n27\t                        {children}\n28\t                    </Stack>\n29\t                </Stack>\n30\t            </CardContent>\n31\t        </Card>\n32\t    )\n33\t}\n34\t",
+          "providerItemId": "toolu_01KHiXaSDDepaH4AdhbzwBkx",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:34:30.390Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"app/src/components/config/*sentry*\"}",
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-6",
+          "kind": "event",
+          "label": "Glob",
+          "output": "app\\src\\components\\config\\sentry_config_section.grouped.test.tsx\napp\\src\\components\\config\\sentry_config_section.tsx",
+          "providerItemId": "toolu_01DerybuREP2QyAnx6hz3iwi",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:34:33.237Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\config\\\\sentry_config_section.grouped.test.tsx\"}",
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-7",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'\n2\timport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\n3\timport { configService } from '../../services/config/config_service'\n4\timport { dataService } from '../../services/data/data_service'\n5\timport { projectAccessService } from '../../services/project/project_access_service'\n6\timport { sentryConnectionService } from '../../services/sentry/sentry_connection_service'\n7\timport { sentryImportService } from '../../services/sentry/sentry_import_service'\n8\timport { createStorage } from '../../services/test_support/data_service_test_support'\n9\timport { SentryConfigSection } from './sentry_config_section'\n10\timport { actionService } from '../../services/actions/action_service'\n11\timport { openFilesService } from '../../services/open_files_service'\n12\timport { projectPersistenceService } from '../../services/project/project_persistence_service'\n13\t\n14\tdescribe('SentryConfigSection', () => {\n15\t    const validateProject = vi.fn(async () => undefined)\n16\t\n17\t    beforeEach(async () => {\n18\t        window.localStorage.clear()\n19\t        configService.init()\n20\t        openFilesService.init({ actionService, dataService })\n21\t        projectPersistenceService.init({ actionService, dataService, openFilesService })\n22\t        dataService.init({ storage: createStorage() })\n23\t        await dataService.projectLoading.openProject({ branch: 'main', id: 'project-1' })\n24\t        projectAccessService.setReadOnly(false)\n25\t        sentryConnectionService.init({ apiClient: { validateProject }, storage: window.localStorage })\n26\t        sentryConnectionService.setProject({ branch: 'main', id: 'project-1' })\n27\t    })\n28\t\n29\t    afterEach(() => {\n30\t        cleanup()\n31\t        vi.restoreAllMocks()\n32\t        validateProject.mockClear()\n33\t        projectAccessService.setReadOnly(false)\n34\t        configService.clear()\n35\t        window.localStorage.clear()\n36\t    })\n37\t\n38\t    it('validates a masked project-specific connection with configured type and state', async () => {\n39\t        render(<SentryConfigSection />)\n40\t\n41\t        expect(screen.getByLabelText('Sentry API token')).toHaveAttribute('type', 'password')\n42\t        expect(screen.getByLabelText('Organization slug')).toHaveAttribute('placeholder', 'acme')\n43\t        expect(screen.getByLabelText('Project slug')).toHaveAttribute('placeholder', 'frontend')\n44\t        expect(screen.getByLabelText('Sentry API token')).toHaveAttribute('placeholder', 'Paste personal auth token')\n45\t        expect(screen.getByText(/Personal Auth Token from User Settings/u)).toHaveTextContent('event:read')\n46\t        expect(screen.getByText(/Organization Auth Tokens are for CI/u)).toBeInTheDocument()\n47\t        expect(screen.getByText(/Do not use a DSN, client key, or client secret/u)).toBeInTheDocument()\n48\t        expect(screen.getByText('Imported Sentry issues become cards of this type.')).toBeInTheDocument()\n49\t        expect(screen.getByText('New cards start in this project state.')).toBeInTheDocument()\n50\t        expect(screen.getByRole('button', { name: 'Connect' })).toBeDisabled()\n51\t\n52\t        fireEvent.change(screen.getByLabelText('Organization slug'), { target: { value: 'acme' } })\n53\t        fireEvent.change(screen.getByLabelText('Project slug'), { target: { value: 'frontend' } })\n54\t        fireEvent.change(screen.getByLabelText('Sentry API token'), { target: { value: 'token' } })\n55\t        fireEvent.mouseDown(screen.getByLabelText('Target card type'))\n56\t        fireEvent.click(screen.getByRole('option', { name: 'Bug' }))\n57\t        fireEvent.mouseDown(screen.getByLabelText('Target card state'))\n58\t        fireEvent.click(screen.getByRole('option', { name: 'to fix' }))\n59\t        fireEvent.click(screen.getByRole('button', { name: 'Connect' }))\n60\t\n61\t        await waitFor(() => expect(validateProject).toHaveBeenCalledWith(expect.objectContaining({\n62\t            apiToken: 'token',\n63\t            cardState: 'to fix',\n64\t            cardType: 'bug',\n65\t            organization: 'a\n[255 characters omitted]\n) => {\n72\t        validateProject.mockRejectedValueOnce(new Error('Invalid Sentry request'))\n73\t        const view = render(<SentryConfigSection />)\n74\t\n75\t        fireEvent.change(screen.getByLabelText('Organization slug'), { target: { value: 'acme' } })\n76\t        fireEvent.change(screen.getByLabelText('Project slug'), { target: { value: 'frontend' } })\n77\t        fireEvent.change(screen.getByLabelText('Sentry API token'), { target: { value: 'token' } })\n78\t        fireEvent.mouseDown(screen.getByLabelText('Target card type'))\n79\t        fireEvent.click(screen.getByRole('option', { name: 'Bug' }))\n80\t        fireEvent.mouseDown(screen.getByLabelText('Target card state'))\n81\t        fireEvent.click(screen.getByRole('option', { name: 'to fix' }))\n82\t        fireEvent.click(screen.getByRole('button', { name: 'Connect' }))\n83\t        await screen.findByText('Invalid Sentry request')\n84\t\n85\t        view.unmount()\n86\t        render(<SentryConfigSection />)\n87\t\n88\t        expect(screen.getByLabelText('Organization slug')).toHaveValue('acme')\n89\t        expect(screen.getByLabelText('Project slug')).toHaveValue('frontend')\n90\t        expect(screen.getByLabelText('Sentry API token')).toHaveValue('token')\n91\t        expect(screen.getByLabelText('Target card type')).toHaveTextContent('Bug')\n92\t        expect(screen.getByLabelText('Target card state')).toHaveTextContent('to fix')\n93\t        expect(screen.getByRole('button', { name: 'Connect' })).toBeEnabled()\n94\t    })\n95\t\n96\t    it('enables automatic and manual imports only for a complete connected project', async () => {\n97\t        await sentryConnectionService.connect({\n98\t            ...sentryConnectionService.getSnapshot().settings,\n99\t            apiToken: 'token',\n100\t            cardState: 'to fix',\n101\t            cardType: 'bug',\n102\t            organization: 'acme',\n103\t            project: 'frontend',\n104\t        })\n105\t        const importNow = vi.spyOn(sentryImportService, 'importNow').mockResolvedValue(0)\n106\t        render(<SentryConfigSection />)\n107\t\n108\t        fireEvent.click(screen.getByRole('switch', { name: 'Enable automatic import' }))\n109\t        fireEvent.click(screen.getByRole('button', { name: 'Import now' }))\n110\t\n111\t        expect(sentryConnectionService.getSnapshot().settings.automaticImport).toBe(true)\n112\t        expect(importNow).toHaveBeenCalledOnce()\n113\t    })\n114\t\n115\t    it('disables connection and import controls for a read-only project', async () => {\n116\t        await sentryConnectionService.connect({\n117\t            ...sentryConnectionService.getSnapshot().settings,\n118\t            apiToken: 'token',\n119\t            cardState: 'to fix',\n120\t            cardType: 'bug',\n121\t            organization: 'acme',\n122\t            project: 'frontend',\n123\t        })\n124\t        projectAccessService.setReadOnly(true)\n125\t\n126\t        render(<SentryConfigSection />)\n127\t\n128\t        expect(screen.getByRole('button', { name: 'Reconnect' })).toBeDisabled()\n129\t        expect(screen.getByRole('button', { name: 'Disconnect' })).toBeDisabled()\n130\t        expect(screen.getByRole('button', { name: 'Import now' })).toBeDisabled()\n131\t        expect(screen.getByRole('switch', { name: 'Enable automatic import' })).toBeDisabled()\n132\t    })\n133\t\n134\t    it('shows last result, successful poll time, and latest background error once', () => {\n135\t        const snapshot = {\n136\t            confirmation: null,\n137\t            isPolling: false,\n138\t            lastImportCount: 2,\n139\t            lastSuccessfulPollAt: '2026-01-03T00:00:00.000Z',\n140\t            latestError: 'Sentry timed out',\n141\t        }\n142\t        vi.spyOn(sentryImportService, 'getSnapshot').mockReturnValue(snapshot)\n143\t\n144\t        render(<SentryConfigSection />)\n145\t\n146\t        expect(screen.getByText('Last import created 2 card(s).')).toBeInTheDocument()\n147\t        expect(screen.getByText('Last successful poll: 2026-01-03T00:00:00.000Z')).toBeInTheDocument()\n148\t        expect(screen.getAllByText('Latest import error: Sentry timed out')).toHaveLength(1)\n149\t    })\n150\t})\n151\t",
+          "providerItemId": "toolu_01JmCvwxpTaZB1wdW2WUHn5T",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:34:34.717Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cfbqj5qE7MXtrLQYqzb4g:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T16:34:36.283Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"app/src/components/config/*.test.tsx\"}",
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-9",
+          "kind": "event",
+          "label": "Glob",
+          "output": "app\\src\\components\\config\\config_no_mock.test.tsx\napp\\src\\components\\config\\sentry_config_section.grouped.test.tsx\napp\\src\\components\\config\\worktree_config_list.grouped.test.tsx\napp\\src\\components\\config\\columns_editor.grouped.test.tsx\napp\\src\\components\\config\\card_types_editor.grouped.test.tsx\napp\\src\\components\\config\\config_value_editor.grouped.test.tsx\napp\\src\\components\\config\\config_page.test.tsx\napp\\src\\components\\config\\markdown_style_preview.test.tsx",
+          "providerItemId": "toolu_01F2Dfj4YBWFb4J7g8NGxXen",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:34:36.728Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "{\"pattern\":\"ConfigSubsection|spacing=\\\\{4\\\\}\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\config\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-10",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\components\\config\\config_subsection.tsx:4:interface ConfigSubsectionProps {\napp\\src\\components\\config\\config_subsection.tsx:12:export function ConfigSubsection(props: ConfigSubsectionProps) {\napp\\src\\components\\config\\project_config_section.tsx:4:import { ConfigSubsection } from './config_subsection'\napp\\src\\components\\config\\project_config_section.tsx:97:            <Stack spacing={4}>\napp\\src\\components\\config\\project_config_section.tsx:108:                        <ConfigSubsection description={group.description} id={group.id} key={group.id} label={group.label}>\napp\\src\\components\\config\\project_config_section.tsx:110:                        </ConfigSubsection>\napp\\src\\components\\config\\worktree_config_list.tsx:9:import { ConfigSubsection } from './config_subsection'\napp\\src\\components\\config\\worktree_config_list.tsx:65:        <ConfigSubsection\napp\\src\\components\\config\\worktree_config_list.tsx:103:        </ConfigSubsection>",
+          "providerItemId": "toolu_019sSLw9ZbynNVjnBAAXb2d4",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:34:37.266Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbqjGnYV8gVh3jGe8Y1W:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T16:34:39.007Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cat /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/components/config/config_no_mock.test.tsx | head -30",
+          "content": "import './worktree_config_list.grouped.test'\nimport './config_value_editor.grouped.test'\nimport './sentry_config_section.grouped.test'",
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-12",
+          "kind": "event",
+          "label": "cat /c/Users/janbo/Documents/dev/md2_workers/dev1/app/src/components/config/config_no_mock.test.tsx | head -30",
+          "providerItemId": "toolu_01PUf3u8mXjaRfkDfYuS6CqY",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-10-01T16:34:40.521Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbqjWfDDQTUXFhiQZ4Ge:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T16:34:47.587Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Code read. Plan below.\n\n## Change Plan — F_392\n\n**Block 1: Group Sentry form** (`app/src/components/config/sentry_config_section.tsx`)\n- Import `ConfigSubsection`.\n- Add 3 module-level description constants (source, authentication, card target, import = 4).\n- Outer `Stack spacing={3}` → `spacing={4}`.\n- Section description → \"Connect this MD² project to one Sentry project.\"\n- Wrap fields inline, in this order:\n  1. `sentry-source` \"Sentry project\": API base URL, Organization slug, Project slug, Environment.\n  2. `sentry-authentication` \"Authentication\": API token.\n  3. `sentry-card-target` \"Imported cards\": card type, card state.\n  4. Ungrouped: connection error `Alert` + Connect/Reconnect/Disconnect row.\n  5. `sentry-import` \"Import\": switch, Import now row, count, last poll, latest error `Alert`.\n- Labels, helper texts, button names, and disabled rules stay unchanged. Group ids do not collide with existing field ids. The heading id is generated as `<id>-config-subsection-heading`, which is also unique.\n\n**Block 2: Test** (`sentry_config_section.grouped.test.tsx`)\n- One new case. It asserts the h4 headings appear in order, and uses `within(getByRole('region', { name }))` to check one control per group: Organization slug, Sentry API token, Target card type, Enable automatic import.\n- Run `npm run typecheck` and `npm run test -- src/components/config/config_no_mock.test.tsx`. That file imports the Sentry test file, so it runs the new case too.\n\n**Block 3: Status**: after tests pass, set `status: ready` in the spec file under `md2\\design\\...`.\n\nTasks (no task tool available in this session, so I'm tracking them here):\n- [ ] B1 group form\n- [ ] B2 grouping test + run\n- [ ] B3 status → ready\n\nWaiting for approval.",
+          "id": "agent-turn-9991b750-36d8-4c26-bc08-fa68789670f1-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 14,
+          "timestamp": "2026-10-01T16:34:47.635Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -524,10 +693,22 @@
       "startedAt": "2026-10-01T16:34:24.704Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 7265,
+          "toolMs": 7779
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-01T16:34:24.704Z"
       },
       "title": "implement",
+      "usage": {
+        "cachedInputTokens": 258965,
+        "inputTokens": 12,
+        "outputTokens": 1657,
+        "reasoningTokens": 0,
+        "totalTokens": 260634,
+        "costUsd": 0.3309384
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
