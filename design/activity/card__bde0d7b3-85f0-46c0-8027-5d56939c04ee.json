@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 50471
+        "usedTokens": 56318
       },
       "entries": [
         {
@@ -575,6 +575,112 @@
           "role": "user",
           "sequence": 41,
           "timestamp": "2026-10-01T09:06:27.021Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-42",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_032262199da364c8016abe2295200487d2b9c51db1d2750434",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T09:06:29.014Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll trace where `agentPromptDispatched` is emitted and where `sendMessage` produces the user message event.\n\n",
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 43,
+          "timestamp": "2026-10-01T09:06:29.667Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"sendMessage\\\\(|userMessage|agentPromptDispatched\\\" desktop/src/actions/agent desktop/src/actions/action/action_run.js -g '*.js'\"",
+          "content": "desktop/src/actions/action/action_run.js:113:        return this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt);\ndesktop/src/actions/action/action_run.js:248:            this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });\ndesktop/src/actions/action/action_run.js:250:            await this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt, entry.id);\ndesktop/src/actions/action/action_run.js:275:            this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });\ndesktop/src/actions/action/action_run.js:681:            if (agentEvent.type === 'userMessage') {\ndesktop/src/actions/action/action_run.js:682:                const update = { kind: 'agentUserMessage', userMessage: agentEvent.userMessage };\ndesktop/src/actions/action/action_run.js:695:                    userMessage: agentEvent.userMessage,\ndesktop/src/actions/agent\\agent_runner_service.js:216:        const userMessage = lastMessageEntry(conversation);\ndesktop/src/actions/agent\\agent_runner_service.js:217:        if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');\ndesktop/src/actions/agent\\agent_runner_service.js:254:    sendMessage(runId, content, submissionId) {\ndesktop/src/actions/agent\\agent_runner_service.js:256:        return agentInteractions.sendMessage(this, this.requireStreamingRun(runId), content, submissionId);\ndesktop/src/actions/agent\\agent_streaming_adapter.js:16:const CODEX_NON_EVENT_ITEM_TYPES = new Set(['agentMessage', 'hookPrompt', 'userMessage']);\ndesktop/src/actions/agent\\agent_streaming_adapter.js:213:    async sendMessage(content) {\ndesktop/src/actions/agent\\agent_streaming_adapter.js:400:            await this.sendMessage(this.initialPrompt);\ndesktop/src/actions/agent\\agent_run_interactions.js:19:        await run.streamingAdapter.sendMessage(message);\ndesktop/src/actions/agent\\agent_run_interactions.js:28:    const userMessage = lastMessageEntry(run.conversation);\ndesktop/src/actions/agent\\agent_run_interactions.js:33:    emitRunEvent(run, { type: 'userMessage', userMessage });\ndesktop/src/actions/agent\\agent_run_interactions.js:37:function sendMessage(service, run, content, submissionId) {\ndesktop/src/actions/agent\\agent_run_interactions.js:82:        const userMessage = lastMessageEntry(run.conversation);\ndesktop/src/actions/agent\\agent_run_interactions.js:92:        emitRunEvent(run, { requestId, state, type: 'questionAnswered', userMessage });\ndesktop/src/actions/agent\\agent_claude_streaming_adapter.js:273:        await this.sendMessage(prompt);\ndesktop/src/actions/agent\\agent_claude_streaming_adapter.js:276:    async sendMessage(content) {\n",
+          "durationMs": 40,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-44",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"sendMessage\\\\(|userMessage|agentPromptDispatched\\\" desktop/src/actions/agent desktop/src/actions/action/action_run.js -g '*.js'\"",
+          "providerItemId": "exec-ab5a2539-6c1e-4d76-8e28-22ccffcb380b",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:06:33.015Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_run.js' | Select-Object -Skip 230 -First 55\"",
+          "content": "        for (const entry of entries) {\r\n            this.publishPromptQueueUpdate('agentPromptDiscarded', { promptId: entry.id, revision: entry.revision });\r\n        }\r\n    }\r\n\r\n    dispatchStreamingPrompt() {\r\n        const operation = this.queuePromptOperation(async () => {\r\n            if (\r\n                !this.activeAgentRunId\r\n                || !this.activeAction?.streaming\r\n                || this.agentInteractionPending()\r\n            ) return false;\r\n            const entry = this.promptQueue.find(({ dispatchState }) => dispatchState === 'queued');\r\n            if (!entry) return false;\r\n\r\n            entry.dispatchState = 'dispatching';\r\n            this.promptQueue = this.promptQueue.filter(({ id }) => id !== entry.id);\r\n            this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });\r\n            const prompt = this.resolveActiveAgentPrompt(entry.content);\r\n            await this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt, entry.id);\r\n\r\n            return !!this.activeAgentRunId\r\n                && !!this.activeAction?.streaming\r\n                && !this.agentInteractionPending()\r\n                && this.promptQueue.some(({ dispatchState }) => dispatchState === 'queued');\r\n        });\r\n        void operation.then((dispatchNext) => {\r\n            if (dispatchNext) void this.dispatchStreamingPrompt().catch(() => undefined);\r\n        }).catch(() => undefined);\r\n\r\n        return operation;\r\n    }\r\n\r\n    claimNextQueuedPromptOrCloseQueue() {\r\n        return this.queuePromptOperation(() => {\r\n            const entry = this.promptQueue.find(({ dispatchState }) => dispatchState === 'queued');\r\n            if (!entry) {\r\n                this.promptQueueClosed = true;\r\n\r\n                return null;\r\n            }\r\n\r\n            entry.dispatchState = 'dispatching';\r\n            this.promptQueue = this.promptQueue.filter(({ id }) => id !== entry.id);\r\n            this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });\r\n\r\n            return entry;\r\n        });\r\n    }\r\n\r\n    handleCardStateChange(cardInternalId, state) {\r\n        if (this.context.cardInternalId !== cardInternalId) return;\r\n        if (\r\n            this.activeAction?.type !== 'agent'\r\n            || !this.activeAction.streaming\r\n",
+          "durationMs": 175,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-45",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_run.js' | Select-Object -Skip 230 -First 55\"",
+          "providerItemId": "exec-ea0ea721-1049-4652-bee0-d7912a978cac",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:06:33.155Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_run.js' | Select-Object -Skip 95 -First 40\"",
+          "content": "    }\r\n\r\n    suspend() {\r\n        this.discardQueuedPrompts();\r\n        this.controller.abort();\r\n        this.pendingInput?.reject(new ActionCancellationError('Action cancelled'));\r\n        this.pendingInput = null;\r\n        if (this.activeAgentRunId) this.agentRunnerService.suspend(this.activeAgentRunId);\r\n    }\r\n\r\n    sendAgentMessage(content) {\r\n        if (!this.activeAgentRunId) throw new Error(`Action run has no active streaming agent: ${this.runId}`);\r\n        if (this.agentInteractionPending()) {\r\n            throw new Error('Answer pending agent question or approval before sending queued prompt');\r\n        }\r\n        const prompt = this.resolveActiveAgentPrompt(content);\r\n\r\n        return this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt);\r\n    }\r\n\r\n    enqueueAgentPrompt(content, submissionId) {\r\n        if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Queued agent prompt is empty');\r\n\r\n        const operation = this.queuePromptOperation(() => {\r\n            this.requirePromptQueueOpen();\r\n            this.resolveActiveAgentPrompt(content);\r\n            const entry = {\r\n                content,\r\n                dispatchState: 'queued',\r\n                id: submissionId ?? `prompt-${crypto.randomUUID()}`,\r\n                revision: 0,\r\n            };\r\n            this.promptQueue.push(entry);\r\n            this.publishPromptQueueUpdate('agentPromptQueued', { entry: { ...entry } });\r\n\r\n            return { ...entry };\r\n        });\r\n        void operation.then(() => this.dispatchStreamingPrompt()).catch(() => undefined);\r\n\r\n        return operation;\r\n",
+          "durationMs": 39,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-46",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_run.js' | Select-Object -Skip 95 -First 40\"",
+          "providerItemId": "exec-79f63a54-88e7-4d76-8096-5315c97a046d",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:06:38.169Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/agent/agent_runner_service.js' | Select-Object -Skip 244 -First 18\"",
+          "content": "     * Whether the run still owes the user an answer: an unanswered structured question or an open approval.\r\n     * The action run asks instead of mirroring the flags, so pending interaction is tracked in one place.\r\n     */\r\n    hasPendingInteraction(runId) {\r\n        const run = this.processes.get(runId);\r\n\r\n        return !!run && hasPendingInteraction(run);\r\n    }\r\n\r\n    sendMessage(runId, content, submissionId) {\r\n        console.log('[agent prompt]', content);\r\n        return agentInteractions.sendMessage(this, this.requireStreamingRun(runId), content, submissionId);\r\n    }\r\n\r\n    sendStreamingMessage(run, content) {\r\n        return agentInteractions.sendStreamingMessage(this, run, content);\r\n    }\r\n\r\n",
+          "durationMs": 55,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-47",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/agent/agent_runner_service.js' | Select-Object -Skip 244 -First 18\"",
+          "providerItemId": "exec-30d7e57e-f1ec-436c-a433-5d9c95d581f6",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:06:38.404Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/agent/agent_run_interactions.js' | Select-Object -First 65\"",
+          "content": "const { createEventEntry, createMessageEntry, transitionConversationStatus } = require('./agent_conversation');\r\n    run.turnActive = true;\r\n    await service.persistCheckpoint(run);\r\n    emitRunEvent(run, { type: 'userMessage', userMessage });\r\n    emitRunEvent(run, { state, type: 'state' });\r\n}\r\n\r\nfunction sendMessage(service, run, content, submissionId) {\r\n    if (typeof content !== 'string' || content.trim().length === 0) throw new Error('Agent message is required');\r\n\r\n    return queueInteractionWrite(run, async () => {\r\n        await sendStreamingMessage(service, run, content, submissionId);\r\n    });\r\n}\r\n\r\nfunction requirePendingQuestion(run, requestId) {\r\n    if (!run.waitingForQuestion || run.pendingQuestionRequestId !== requestId) {\r\n        throw new Error(`Unknown or stale agent question request id: ${requestId}`);\r\n    }\r\n\r\n    return run.pendingQuestions;\r\n}\r\n\r\n/** Records the answers as a user message, with secret answers replaced by a placeholder and remembered for redaction. */\r\nfunction answerQuestion(service, run, requestId, answers) {\r\n    if (!answers || typeof answers !== 'object' || Array.isArray(answers)) throw new Error('Missing streaming question answers');\r\n\r\n    return queueInteractionWrite(run, async () => {\r\n        const pendingQuestions = requirePendingQuestion(run, requestId);\r\n        const secretQuestionIds = new Set(pendingQuestions.filter(({ isSecret }) => isSecret).map(({ id }) => id));\r\n        const content = Object.entries(answers)\r\n            .map(([questionId, answer]) => (\r\n                `${questionId}: ${secretQuestionIds.has(questionId) ? '[secret]' : Array.isArray(answer) ? answer.join(', ') : answer}`\r\n            ))\r\n            .join('\\n');\r\n        run.secretValues ??= new Set();\r\n",
+          "durationMs": 135,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/agent/agent_run_interactions.js' | Select-Object -First 65\"",
+          "providerItemId": "exec-084bc4ab-1c32-4b91-8c7c-d8b8f426bfc8",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:06:38.416Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "You’re right that dispatch is **not** the acknowledgment that the agent received the prompt.\n\n`agentPromptDispatched` means the backend has taken the prompt out of its queue and is about to send it ([action_run.js](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action/action_run.js:244)). `sendMessage` then writes it to the agent; only after that succeeds does it add a user message to the conversation, persist it, and emit `agentUserMessage` ([agent_run_interactions.js](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/agent_run_interactions.js:16)).\n\nThat interval explains why the queue needs a removal event. It does **not** justify making the prompt disappear from the chatlog: the pending row is meant to cover the interval. The UI still switches between separately mounted rows, which is the implementation issue identified above.\n\n",
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-10-01T09:06:45.004Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -592,19 +698,19 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 15914,
-          "toolMs": 1692
+          "reasoningMs": 16151,
+          "toolMs": 2144
         },
         "elapsedMs": 77207,
         "runningStartedAt": "2026-10-01T09:06:27.021Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 304640,
-        "inputTokens": 49367,
-        "outputTokens": 1879,
-        "reasoningTokens": 503,
-        "totalTokens": 356389
+        "cachedInputTokens": 461440,
+        "inputTokens": 55932,
+        "outputTokens": 2403,
+        "reasoningTokens": 520,
+        "totalTokens": 520295
       },
       "usageSchemaVersion": 1,
       "viewed": true
