@@ -16,7 +16,6 @@ changedFiles:
   - app/src/components/config/sentry_config_section.grouped.test.tsx
   - app/src/components/config/sentry_config_section.tsx
 ---
-
 On the config dialog, we have the project and sentry tabs. On the project tab, we already created groups. Now we need to do the same on the sentry tab. Group the items logically together, add title and some info where useful
 
 ## Current state
@@ -25,7 +24,7 @@ On the config dialog, we have the project and sentry tabs. On the project tab, w
 * `SentryConfigForm` in `app/src/components/config/sentry_config_section.tsx` renders one `h3` "Sentry" heading, a description line ("Credentials stay in this browser."), an info `Alert` when no project is open, then one flat `Stack spacing={3}` in this order: API base URL, Organization slug, Project slug, Environment, Sentry API token, Target card type, Target card state, connection error `Alert`, Connect/Reconnect + Disconnect buttons, `Enable automatic import` switch, `Import now` button + "Checking Sentry..." text, last import count, last successful poll time, latest import error `Alert`.
 * All text and select fields edit a local `draft`. The draft (including card type and state) is persisted only when the user presses Connect/Reconnect (`sentryConnectionService.connect`). Connect is enabled only when `isSentryConfigurationComplete(draft)` is true, which requires card type and card state too. The automatic-import switch saves immediately through `saveSettings`.
 * Import controls are enabled only when connected and complete (`canImport`). Automatic import polls every `SENTRY_POLL_INTERVAL_MS` (15 minutes) while the project is fully loaded and not read-only. The first import that finds new issues, manual or automatic, asks for confirmation (`firstImportConfirmed`).
-* The project tab (F_370) already groups fields with `ConfigSubsection` (`app/src/components/config/config_subsection.tsx`): an outlined `Card` with `component="section"`, an `h4` heading, a description line, and children in a `Stack spacing={3}`. `ProjectConfigSection` stacks its groups with `Stack spacing={4}`.
+* The project tab (F\_370) already groups fields with `ConfigSubsection` (`app/src/components/config/config_subsection.tsx`): an outlined `Card` with `component="section"`, an `h4` heading, a description line, and children in a `Stack spacing={3}`. `ProjectConfigSection` stacks its groups with `Stack spacing={4}`.
 * Tests: `sentry_config_section.grouped.test.tsx` finds controls by label and button/switch name only; `config_page.test.tsx` only checks the Sentry tab label and href. Field ids `sentry-api-base-url`, `sentry-organization`, `sentry-project`, `sentry-environment`, `sentry-api-token` are already used, so group ids must not reuse them.
 
 ## implementation details
