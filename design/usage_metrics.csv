@@ -6117,3 +6117,11 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-01T16:30:35.935Z,account_usage,claude,default,weekly,10080,2026-10-04T16:59:00.000Z,,,,,,1,1
 2026-10-01T16:32:39.620Z,token_usage,claude,,,,,26,757887,5622,0,763535,,
 2026-10-01T16:34:04.114Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:03.000Z,,,,,,13,1
+2026-10-01T16:34:47.635Z,token_usage,claude,,,,,12,258965,1657,0,260634,,
+2026-10-01T16:35:07.603Z,token_usage,claude,,,,,10,220682,2039,0,222731,,
+2026-10-01T16:35:09.360Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:04.000Z,,,,,,13,0
+2026-10-01T16:35:15.593Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:03.000Z,,,,,,13,0
+2026-10-01T16:34:46.802Z,account_usage,claude,default,weekly,10080,2026-10-04T16:59:00.000Z,,,,,,2,1
+2026-10-01T16:36:26.356Z,token_usage,claude,,,,,16,431672,4961,0,436649,,
+2026-10-01T16:37:52.042Z,token_usage,codex,,,,,81803,976896,3313,1764,1063776,,
+2026-10-01T16:37:57.007Z,token_usage,claude,,,,,38,1290286,8364,0,1298688,,
