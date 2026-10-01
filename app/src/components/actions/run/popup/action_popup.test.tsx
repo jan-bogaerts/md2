@@ -2075,7 +2075,10 @@ describe('ActionPopup', () => {
             ...eventBase, status: 'running', type: 'update',
             update: { kind: 'agentPromptDispatched', promptId: queuedPrompt.id, revision: 0 },
         }))
-        expect(screen.getByLabelText('Pending prompt')).toHaveTextContent('Send this')
+        expect(screen.getByLabelText('Queued prompt')).toHaveTextContent('Send this')
+        expect(screen.getByLabelText('Queued prompt')).toHaveTextContent('Sending')
+        expect(screen.getByRole('button', { name: 'Edit queued prompt' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Delete queued prompt' })).toBeDisabled()
         act(() => runListener?.({
             ...eventBase, status: 'running', type: 'update',
             update: {kind: 'agentUserMessage', userMessage: {agent: 'codex', content: 'Send this', id: submissionId, kind: 'message', role: 'user', timestamp: 'now'}},
@@ -2085,10 +2088,11 @@ describe('ActionPopup', () => {
         expect(screen.getAllByText('Send this')).toHaveLength(1)
     })
 
-    it('shows a new-run submission before start returns and removes it when startup conversation arrives', async () => {
+    it('shows a new-run submission before start returns and replaces it on the user message', async () => {
         actionRunRegistry.stop()
         const projectContext: ActionContext = { kind: 'project' }
         const startResponse = deferredValue<string>()
+        const startAction = vi.fn<(request: ActionStartRequest) => Promise<string>>(() => startResponse.promise)
         let runListener: ((event: ActionRunEvent) => void) | null = null
         window.md2Actions = {
             loadActionRunHistory: vi.fn(async () => []),
@@ -2098,7 +2102,7 @@ describe('ActionPopup', () => {
                 return vi.fn()
             }),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
-            startAction: vi.fn(() => startResponse.promise),
+            startAction,
         } as unknown as typeof window.md2Actions
         mockCodexAvailable()
         actionRunRegistry.start()
@@ -2110,21 +2114,27 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Send' }))
         expect(await screen.findByLabelText('Pending prompt')).toHaveTextContent('In transmission')
         expect(screen.getByLabelText('Pending prompt')).toHaveTextContent('Start now')
+        const submissionId = startAction.mock.calls[0]?.[0].runInput.submissionId
+        if (!submissionId) throw new Error('Missing submission ID')
 
         const eventBase = {
             actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: projectContext,
             interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
         }
         const userMessage = {
-            agent: 'codex', content: 'Start now', id: 'user-1', kind: 'message' as const,
+            agent: 'codex', content: 'Start now', id: submissionId, kind: 'message' as const,
             role: 'user' as const, timestamp: 'now',
         }
-        const liveConversation = agentConversation({actionId: 'stream', cardInternalId: null, cardPath: null, entries: [userMessage]})
+        const liveConversation = agentConversation({actionId: 'stream', cardInternalId: null, cardPath: null})
         act(() => {
             runListener?.({ ...eventBase, status: 'running', type: 'run' })
             runListener?.({
                 ...eventBase, status: 'running', type: 'update',
                 update: { continued: false, conversation: liveConversation, kind: 'agentStarted' },
+            })
+            runListener?.({
+                ...eventBase, status: 'running', type: 'update',
+                update: { kind: 'agentUserMessage', userMessage },
             })
         })
         await act(async () => startResponse.resolve('run-1'))
@@ -2881,6 +2891,8 @@ describe('ActionPopup', () => {
                 ...switchedConversation,
                 entries: switchedConversation.entries.map((entry) => entry.id === 'user-2' ? { ...entry, id: messageId } : entry),
             }
+            const userMessage = startedConversation.entries.find((entry) => entry.id === messageId)
+            if (!userMessage || userMessage.kind !== 'message') throw new Error('Missing submitted message')
             const oldEvent = {
                 actionId: 'stream', actionType: 'agent' as const, autoFinish: null, context: projectContext,
                 interactionReady: true, phase: 'main' as const, rootActionId: 'stream', runId: 'run-1', streaming: true,
@@ -2892,7 +2904,20 @@ describe('ActionPopup', () => {
                 ...newEvent,
                 status: 'running',
                 type: 'update',
-                update: { continued: true, conversation: startedConversation, kind: 'agentStarted' },
+                update: {
+                    continued: true,
+                    conversation: { ...startedConversation, entries: earlierConversation.entries },
+                    kind: 'agentStarted',
+                },
+            })
+            runListener?.({
+                ...newEvent,
+                status: 'running',
+                type: 'update',
+                update: {
+                    kind: 'agentUserMessage',
+                    userMessage,
+                },
             })
             runListener?.({
                 ...newEvent,

@@ -1239,6 +1239,29 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
+    it('keeps a dispatched prompt until its user message arrives', () => {
+        const { bridge, emit } = bridgeWithEvents()
+        setActionBridgeOverride(bridge)
+        const service = new ActionRunRegistry()
+        service.start()
+        const event = {
+            actionId: 'build', context, runId: 'run-1', phase: 'main' as const, rootActionId: 'build',
+            status: 'running' as const, type: 'update' as const,
+        }
+        const prompt = { content: 'Send this', dispatchState: 'queued' as const, id: 'prompt-1', revision: 0 }
+        emit(runEvent('running'))
+        emit({ ...event, update: { conversation: agentConversation([]), kind: 'agentStarted' } })
+        emit({ ...event, update: { entry: prompt, kind: 'agentPromptQueued' } })
+        emit({ ...event, update: { kind: 'agentPromptDispatched', promptId: prompt.id, revision: 0 } })
+        expect(getRun(service).queuedPrompts).toEqual([{ ...prompt, dispatchState: 'dispatching' }])
+
+        const userMessage = { content: 'Send this', id: prompt.id, kind: 'message' as const, role: 'user' as const, timestamp: 'now' }
+        emit({ ...event, update: { kind: 'agentUserMessage', userMessage } })
+        expect(getRun(service).queuedPrompts).toEqual([])
+        expect(getRun(service).conversation?.entries).toEqual([userMessage])
+        service.stop()
+    })
+
 })
 
 describe('ActionRunRegistry prompt drafts', () => {

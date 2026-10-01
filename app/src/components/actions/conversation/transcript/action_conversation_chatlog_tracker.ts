@@ -352,6 +352,7 @@ export class ActionConversationChatlogTracker extends EventTarget {
         const acceptedPrompts = submissions
             .filter((submission) => submission.state === 'queued'
                 && !!submission.prompt
+                && !conversation?.entries.some((entry) => entry.kind === 'message' && entry.id === submission.id)
                 && !queuedPrompts.some(({ id }) => id === submission.prompt?.id))
             .map((submission) => submission.prompt as ActionQueuedPrompt)
         const displayedQueuedPrompts = acceptedPrompts.length > 0

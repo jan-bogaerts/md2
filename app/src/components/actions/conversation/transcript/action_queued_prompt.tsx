@@ -19,6 +19,7 @@ export function ActionQueuedPromptRow({ entry, runId }: ActionQueuedPromptProps)
     const [editing, setEditing] = useState(false)
     const [editValue, setEditValue] = useState(entry.content)
     const [saving, setSaving] = useState(false)
+    const dispatched = entry.dispatchState === 'dispatching'
 
     const handleEdit = () => {
         setEditValue(entry.content)
@@ -62,23 +63,25 @@ export function ActionQueuedPromptRow({ entry, runId }: ActionQueuedPromptProps)
             }}
         >
             <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                <Typography color="text.secondary" sx={{ flex: 1 }} variant="caption">Queued</Typography>
-                {!editing ? (
+                <Typography color="text.secondary" sx={{ flex: 1 }} variant="caption">
+                    {dispatched ? 'Sending' : 'Queued'}
+                </Typography>
+                {!editing || dispatched ? (
                     <>
                         <Tooltip title="Edit queued prompt">
-                            <IconButton aria-label="Edit queued prompt" onClick={handleEdit} size="small">
+                            <IconButton aria-label="Edit queued prompt" disabled={dispatched} onClick={handleEdit} size="small">
                                 <EditOutlined sx={{ fontSize: 16 }} />
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Delete queued prompt">
-                            <IconButton aria-label="Delete queued prompt" onClick={handleDelete} size="small">
+                            <IconButton aria-label="Delete queued prompt" disabled={dispatched} onClick={handleDelete} size="small">
                                 <DeleteOutlineOutlined sx={{ fontSize: 16 }} />
                             </IconButton>
                         </Tooltip>
                     </>
                 ) : null}
             </Stack>
-            {editing ? (
+            {editing && !dispatched ? (
                 <Stack spacing={1}>
                     <TextField
                         autoFocus

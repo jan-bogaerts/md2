@@ -314,9 +314,11 @@ describe('AgentRunnerService state handling', () => {
             }),
             request: expect.objectContaining({ activityProject: project, projectFolder: 'design' }),
         }));
-        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
-            conversation: result.conversation,
-            type: 'started',
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'started' }));
+        expect(onEvent.mock.calls[0][0].conversation.entries).toEqual([]);
+        expect(onEvent.mock.calls[1][0]).toEqual(expect.objectContaining({
+            type: 'userMessage',
+            userMessage: expect.objectContaining({ content: 'Start work', id: 'message-1' }),
         }));
 
         child.emit('close', 0);

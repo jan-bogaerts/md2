@@ -926,10 +926,18 @@ export class ActionRunRegistry extends EventTarget {
                     : entry),
             }
         }
+        if (event.type === 'update' && event.update.kind === 'agentPromptDispatched') {
+            const { promptId } = event.update
+            next = {
+                ...next,
+                queuedPrompts: next.queuedPrompts.map((entry) => entry.id === promptId
+                    ? { ...entry, dispatchState: 'dispatching' }
+                    : entry),
+            }
+        }
         if (event.type === 'update' && (
             event.update.kind === 'agentPromptDeleted'
             || event.update.kind === 'agentPromptDiscarded'
-            || event.update.kind === 'agentPromptDispatched'
         )) {
             const { promptId } = event.update
             next = {
@@ -985,11 +993,13 @@ export class ActionRunRegistry extends EventTarget {
             && event.update.kind === 'agentUserMessage'
             && next.conversation
         ) {
+            const { userMessage } = event.update
             next = {
                 ...next,
+                queuedPrompts: next.queuedPrompts.filter(({ id }) => id !== userMessage.id),
                 conversation: {
                     ...next.conversation,
-                    entries: [...next.conversation.entries, event.update.userMessage],
+                    entries: [...next.conversation.entries, userMessage],
                 },
                 conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
             }

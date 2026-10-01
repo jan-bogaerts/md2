@@ -133,6 +133,7 @@ class AgentRunnerService {
         let nextSequence = nextConversationSequence(conversation);
         if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);
         const lastMessage = lastMessageEntry(conversation);
+        const conversationBeforePrompt = request.reuseLastUserMessage ? null : snapshotConversation(conversation);
         if (request.reuseLastUserMessage) {
             if (lastMessage?.role !== 'user' || lastMessage.content !== prompt) throw new Error('Missing failed-turn user message for agent retry');
         } else {
@@ -217,9 +218,10 @@ class AgentRunnerService {
         if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
         emitRunEvent(run, {
             continued: !!request.conversation,
-            conversation: initialConversation,
+            conversation: conversationBeforePrompt ?? initialConversation,
             type: 'started',
         });
+        if (conversationBeforePrompt) emitRunEvent(run, { type: 'userMessage', userMessage });
 
         return { conversation: initialConversation, reference, runId: id };
     }

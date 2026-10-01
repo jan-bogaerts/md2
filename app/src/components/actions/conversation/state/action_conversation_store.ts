@@ -32,7 +32,7 @@ export interface PendingActionSubmission {
     error?: string
     id: string
     prompt: ActionQueuedPrompt | null
-    state: 'transmitting' | 'queued' | 'removed' | 'failed'
+    state: 'transmitting' | 'queued' | 'failed'
 }
 
 interface SubmissionOwner {
@@ -164,7 +164,7 @@ export class ActionConversationStore {
         this.changeSubmission(id, (submission) => ({
             ...submission,
             prompt,
-            state: submission.state === 'removed' ? 'removed' : 'queued',
+            state: 'queued',
         }))
     }
 
@@ -217,7 +217,6 @@ export class ActionConversationStore {
         if (event.type !== 'update') return
         if (event.update.kind === 'agentStarted') {
             const { continued, conversation } = event.update
-            const messageId = conversation.entries.findLast((entry) => entry.kind === 'message' && entry.role === 'user')?.id
             for (const submission of submissions) {
                 const owner = this.submissionOwners.get(submission.id)
                 if (owner && !owner.conversationId) {
@@ -225,11 +224,9 @@ export class ActionConversationStore {
                 }
             }
             this.submissionEvents.dispatchEvent(new Event(SUBMISSIONS_CHANGED_EVENT))
-            const submission = submissions.find((current) => current.id === messageId)
-            if (!continued && submission) {
+            if (!continued && submissions.length > 0) {
                 actionPromptDraftService.attachNewConversation(this.actionId, this.context, conversation.id)
             }
-            if (submission) this.removeSubmission(submission.id)
         }
         if (event.update.kind === 'agentPromptQueued') {
             const { entry } = event.update
@@ -240,11 +237,6 @@ export class ActionConversationStore {
             const { promptId } = event.update
             const submission = submissions.find((current) => current.id === promptId)
             if (submission) this.removeSubmission(submission.id)
-        }
-        if (event.update.kind === 'agentPromptDispatched') {
-            const { promptId } = event.update
-            const submission = submissions.find((current) => current.id === promptId)
-            if (submission) this.changeSubmission(submission.id, (current) => ({ ...current, state: 'removed' }))
         }
         if (event.update.kind === 'agentUserMessage') {
             const { userMessage } = event.update

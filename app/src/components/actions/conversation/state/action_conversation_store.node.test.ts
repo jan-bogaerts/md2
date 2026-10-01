@@ -92,7 +92,7 @@ describe('ActionConversationStore', () => {
             [first, first], [second, second],
         ])
         emit({...eventBase, status: 'running', type: 'update', update: {kind: 'agentPromptDispatched', promptId: firstPrompt.id, revision: 0}})
-        expect(store.getSubmissions()[0]?.state).toBe('removed')
+        expect(store.getSubmissions()[0]?.state).toBe('queued')
         emit({
             ...eventBase, status: 'running', type: 'update', update: {
                 kind: 'agentUserMessage',
@@ -132,7 +132,7 @@ describe('ActionConversationStore', () => {
         expect(store.getSnapshot().conversations).toEqual([])
     })
 
-    it('replaces a new-run submission when startup conversation already contains its user message', () => {
+    it('replaces a new-run submission when its user message follows startup', () => {
         let runEvent: ((event: ActionRunEvent) => void) | null = null
         vi.spyOn(actionRunRegistry, 'subscribeContextEvents').mockImplementation((_context, listener) => {
             runEvent = listener
@@ -143,10 +143,7 @@ describe('ActionConversationStore', () => {
         const id = store.beginSubmission('Start now', null, 'conversation-new')
         if (!runEvent) throw new Error('Missing run event listener')
         const emit = runEvent as (event: ActionRunEvent) => void
-        const startedConversation = {
-            ...conversation('conversation-new.json'),
-            entries: [{ content: 'Start now', id, kind: 'message' as const, role: 'user' as const, timestamp: 'now' }],
-        }
+        const startedConversation = conversation('conversation-new.json')
         emit({
             actionId: 'implement', actionType: 'agent', autoFinish: null, context, interactionReady: true,
             phase: 'main', rootActionId: 'implement', runId: 'run-2', status: 'running', streaming: true,
@@ -154,11 +151,20 @@ describe('ActionConversationStore', () => {
         })
         expect(store.getSubmissions()).toHaveLength(1)
         store.bindSubmission(id, 'run-2')
+        expect(store.getSubmissions()).toHaveLength(1)
+        emit({
+            actionId: 'implement', actionType: 'agent', autoFinish: null, context, interactionReady: true,
+            phase: 'main', rootActionId: 'implement', runId: 'run-2', status: 'running', streaming: true,
+            type: 'update', update: {
+                kind: 'agentUserMessage',
+                userMessage: { content: 'Start now', id, kind: 'message', role: 'user', timestamp: 'now' },
+            },
+        })
         expect(store.getSubmissions()).toEqual([])
         expect(store.getSnapshot().conversations).toEqual([])
     })
 
-    it('matches a restarted submission to the new user entry in continued conversation', () => {
+    it('matches a restarted submission to the user message following the continued conversation', () => {
         let runEvent: ((event: ActionRunEvent) => void) | null = null
         vi.spyOn(actionRunRegistry, 'subscribeContextEvents').mockImplementation((_context, listener) => {
             runEvent = listener
@@ -180,14 +186,20 @@ describe('ActionConversationStore', () => {
             phase: 'main', rootActionId: 'implement', runId: 'run-2', status: 'running', streaming: true,
             type: 'update', update: {
                 continued: true,
-                conversation: {
-                    ...previous,
-                    entries: [earlierMessage, {content: 'Continue', id, kind: 'message', role: 'user', timestamp: 'now'}],
-                },
+                conversation: previous,
                 kind: 'agentStarted',
             },
         })
         store.bindSubmission(id, 'run-2')
+        expect(store.getSubmissions()).toHaveLength(1)
+        emit({
+            actionId: 'implement', actionType: 'agent', autoFinish: null, context, interactionReady: true,
+            phase: 'main', rootActionId: 'implement', runId: 'run-2', status: 'running', streaming: true,
+            type: 'update', update: {
+                kind: 'agentUserMessage',
+                userMessage: { content: 'Continue', id, kind: 'message', role: 'user', timestamp: 'now' },
+            },
+        })
         expect(store.getSubmissions()).toEqual([])
         expect(store.getSnapshot().selectedConversation?.id).toBe(previous.id)
         expect(store.getSnapshot().selectedConversation?.id).toBe(previous.id)
