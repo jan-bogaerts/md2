@@ -961,6 +961,14 @@
           "role": "assistant",
           "sequence": 72,
           "timestamp": "2026-10-01T09:11:09.074Z"
+        },
+        {
+          "content": "> or a matching user entry in the continued run’s agentStarted conversation, takes over.\n\nthis is the part i still don't understand. why do we have different paths here. it sounds like an architectural error",
+          "id": "submission-2238a40c-d4ae-4b53-a7f4-761e9906b48c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 73,
+          "timestamp": "2026-10-01T09:11:58.533Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -975,14 +983,14 @@
         }
       ],
       "startedAt": "2026-10-01T08:58:59.287Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 23421,
           "toolMs": 2843
         },
         "elapsedMs": 143961,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T09:11:58.533Z"
       },
       "title": "+",
       "usage": {
