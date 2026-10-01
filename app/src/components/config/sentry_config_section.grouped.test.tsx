@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { configService } from '../../services/config/config_service'
 import { dataService } from '../../services/data/data_service'
@@ -33,6 +33,17 @@ describe('SentryConfigSection', () => {
         projectAccessService.setReadOnly(false)
         configService.clear()
         window.localStorage.clear()
+    })
+
+    it('groups sentry settings into headed sections in order', () => {
+        render(<SentryConfigSection />)
+
+        const headings = screen.getAllByRole('heading', { level: 4 }).map((heading) => heading.textContent)
+        expect(headings).toEqual(['Sentry project', 'Authentication', 'Imported cards', 'Import'])
+        expect(within(screen.getByRole('region', { name: 'Sentry project' })).getByLabelText('Organization slug')).toBeInTheDocument()
+        expect(within(screen.getByRole('region', { name: 'Authentication' })).getByLabelText('Sentry API token')).toBeInTheDocument()
+        expect(within(screen.getByRole('region', { name: 'Imported cards' })).getByLabelText('Target card type')).toBeInTheDocument()
+        expect(within(screen.getByRole('region', { name: 'Import' })).getByRole('switch', { name: 'Enable automatic import' })).toBeInTheDocument()
     })
 
     it('validates a masked project-specific connection with configured type and state', async () => {

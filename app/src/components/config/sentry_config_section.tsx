@@ -22,8 +22,13 @@ import { useSentryImport } from '../hooks/use_sentry_import'
 import { sentryConnectionService, type SentryConnectionSnapshot } from '../../services/sentry/sentry_connection_service'
 import { sentryImportService } from '../../services/sentry/sentry_import_service'
 import { isSentryConfigurationComplete, type SentryProjectSettings } from '../../services/sentry/sentry_types'
+import { ConfigSubsection } from './config_subsection'
 
 const SENTRY_CONFIG_SECTION_ID = 'sentry'
+const SENTRY_SOURCE_DESCRIPTION = 'Which Sentry issues MD² reads: unresolved issues from one project and one environment.'
+const SENTRY_AUTHENTICATION_DESCRIPTION = 'Token MD² uses to read issues. It is stored only in this browser for this MD² project, never in project files.'
+const SENTRY_CARD_TARGET_DESCRIPTION = 'What each new Sentry issue becomes on the board. Changes apply when you press Connect or Reconnect.'
+const SENTRY_IMPORT_DESCRIPTION = 'Available after connecting. Automatic import checks Sentry every 15 minutes while this project is open and editable. The first import that finds new issues asks for confirmation before creating cards.'
 
 interface SentryConfigFormProps {
     connection: SentryConnectionSnapshot
@@ -67,110 +72,116 @@ function SentryConfigForm({ connection }: SentryConfigFormProps) {
 
     return (
         <Box aria-labelledby="sentry-config-heading" component="section" id={SENTRY_CONFIG_SECTION_ID}>
-            <Stack spacing={3}>
+            <Stack spacing={4}>
                 <Typography component="h3" id="sentry-config-heading" variant="h6">Sentry</Typography>
                 <Typography color="text.secondary" variant="body2">
-                    Connect this MD² project to one Sentry project. Credentials stay in this browser.
+                    Connect this MD² project to one Sentry project.
                 </Typography>
                 {!project ? <Alert severity="info">Open a project to configure Sentry imports.</Alert> : null}
-                <Stack spacing={1}>
-                    <Typography color="text.secondary" component="label" htmlFor="sentry-api-base-url" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
-                        Sentry API base URL
-                    </Typography>
-                    <TextField
-                        disabled={controlsDisabled}
-                        helperText="Use https://sentry.io for Sentry SaaS, or your self-hosted instance origin without /api/0."
-                        id="sentry-api-base-url"
-                        onChange={updateTextField('apiBaseUrl')}
-                        placeholder="https://sentry.io"
-                        size="small"
-                        value={draft.apiBaseUrl}
-                    />
-                </Stack>
-                <Stack spacing={1}>
-                    <Typography color="text.secondary" component="label" htmlFor="sentry-organization" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
-                        Organization slug
-                    </Typography>
-                    <TextField
-                        disabled={controlsDisabled}
-                        helperText="Enter organization URL identifier, not its display name."
-                        id="sentry-organization"
-                        onChange={updateTextField('organization')}
-                        placeholder="acme"
-                        size="small"
-                        value={draft.organization}
-                    />
-                </Stack>
-                <Stack spacing={1}>
-                    <Typography color="text.secondary" component="label" htmlFor="sentry-project" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
-                        Project slug
-                    </Typography>
-                    <TextField
-                        disabled={controlsDisabled}
-                        helperText="Enter project URL identifier from Sentry Project Settings, not its display name."
-                        id="sentry-project"
-                        onChange={updateTextField('project')}
-                        placeholder="frontend"
-                        size="small"
-                        value={draft.project}
-                    />
-                </Stack>
-                <Stack spacing={1}>
-                    <Typography color="text.secondary" component="label" htmlFor="sentry-environment" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
-                        Environment
-                    </Typography>
-                    <TextField
-                        disabled={controlsDisabled}
-                        helperText="Only unresolved issues from this exact Sentry environment are imported."
-                        id="sentry-environment"
-                        onChange={updateTextField('environment')}
-                        placeholder="production"
-                        size="small"
-                        value={draft.environment}
-                    />
-                </Stack>
-                <Stack spacing={1}>
-                    <Typography color="text.secondary" component="label" htmlFor="sentry-api-token" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
-                        Sentry API token
-                    </Typography>
-                    <TextField
-                        autoComplete="off"
-                        disabled={controlsDisabled}
-                        helperText="Use a Personal Auth Token from User Settings > Auth > Personal Tokens with event:read. Organization Auth Tokens are for CI and cannot read issues. Do not use a DSN, client key, or client secret."
-                        id="sentry-api-token"
-                        onChange={updateTextField('apiToken')}
-                        placeholder="Paste personal auth token"
-                        size="small"
-                        type="password"
-                        value={draft.apiToken}
-                    />
-                </Stack>
-                <Stack spacing={1}>
-                    <Typography color="text.secondary" id="sentry-card-type-label" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
-                        Target card type
-                    </Typography>
-                    <FormControl disabled={controlsDisabled} size="small">
-                        <Select displayEmpty labelId="sentry-card-type-label" onChange={handleCardTypeChange} value={draft.cardType}>
-                            <MenuItem disabled value=""><em>Select card type</em></MenuItem>
-                            {(projectConfig?.cardTypes ?? []).map(({ label, type }) => (
-                                <MenuItem key={type} value={type}>{label}</MenuItem>
-                            ))}
-                        </Select>
-                        <FormHelperText>Imported Sentry issues become cards of this type.</FormHelperText>
-                    </FormControl>
-                </Stack>
-                <Stack spacing={1}>
-                    <Typography color="text.secondary" id="sentry-card-state-label" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
-                        Target card state
-                    </Typography>
-                    <FormControl disabled={controlsDisabled} size="small">
-                        <Select displayEmpty labelId="sentry-card-state-label" onChange={handleCardStateChange} value={draft.cardState}>
-                            <MenuItem disabled value=""><em>Select card state</em></MenuItem>
-                            {(projectConfig?.states ?? []).map(({ state }) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
-                        </Select>
-                        <FormHelperText>New cards start in this project state.</FormHelperText>
-                    </FormControl>
-                </Stack>
+                <ConfigSubsection description={SENTRY_SOURCE_DESCRIPTION} id="sentry-source" label="Sentry project">
+                    <Stack spacing={1}>
+                        <Typography color="text.secondary" component="label" htmlFor="sentry-api-base-url" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                            Sentry API base URL
+                        </Typography>
+                        <TextField
+                            disabled={controlsDisabled}
+                            helperText="Use https://sentry.io for Sentry SaaS, or your self-hosted instance origin without /api/0."
+                            id="sentry-api-base-url"
+                            onChange={updateTextField('apiBaseUrl')}
+                            placeholder="https://sentry.io"
+                            size="small"
+                            value={draft.apiBaseUrl}
+                        />
+                    </Stack>
+                    <Stack spacing={1}>
+                        <Typography color="text.secondary" component="label" htmlFor="sentry-organization" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                            Organization slug
+                        </Typography>
+                        <TextField
+                            disabled={controlsDisabled}
+                            helperText="Enter organization URL identifier, not its display name."
+                            id="sentry-organization"
+                            onChange={updateTextField('organization')}
+                            placeholder="acme"
+                            size="small"
+                            value={draft.organization}
+                        />
+                    </Stack>
+                    <Stack spacing={1}>
+                        <Typography color="text.secondary" component="label" htmlFor="sentry-project" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                            Project slug
+                        </Typography>
+                        <TextField
+                            disabled={controlsDisabled}
+                            helperText="Enter project URL identifier from Sentry Project Settings, not its display name."
+                            id="sentry-project"
+                            onChange={updateTextField('project')}
+                            placeholder="frontend"
+                            size="small"
+                            value={draft.project}
+                        />
+                    </Stack>
+                    <Stack spacing={1}>
+                        <Typography color="text.secondary" component="label" htmlFor="sentry-environment" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                            Environment
+                        </Typography>
+                        <TextField
+                            disabled={controlsDisabled}
+                            helperText="Only unresolved issues from this exact Sentry environment are imported."
+                            id="sentry-environment"
+                            onChange={updateTextField('environment')}
+                            placeholder="production"
+                            size="small"
+                            value={draft.environment}
+                        />
+                    </Stack>
+                </ConfigSubsection>
+                <ConfigSubsection description={SENTRY_AUTHENTICATION_DESCRIPTION} id="sentry-authentication" label="Authentication">
+                    <Stack spacing={1}>
+                        <Typography color="text.secondary" component="label" htmlFor="sentry-api-token" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                            Sentry API token
+                        </Typography>
+                        <TextField
+                            autoComplete="off"
+                            disabled={controlsDisabled}
+                            helperText="Use a Personal Auth Token from User Settings > Auth > Personal Tokens with event:read. Organization Auth Tokens are for CI and cannot read issues. Do not use a DSN, client key, or client secret."
+                            id="sentry-api-token"
+                            onChange={updateTextField('apiToken')}
+                            placeholder="Paste personal auth token"
+                            size="small"
+                            type="password"
+                            value={draft.apiToken}
+                        />
+                    </Stack>
+                </ConfigSubsection>
+                <ConfigSubsection description={SENTRY_CARD_TARGET_DESCRIPTION} id="sentry-card-target" label="Imported cards">
+                    <Stack spacing={1}>
+                        <Typography color="text.secondary" id="sentry-card-type-label" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                            Target card type
+                        </Typography>
+                        <FormControl disabled={controlsDisabled} size="small">
+                            <Select displayEmpty labelId="sentry-card-type-label" onChange={handleCardTypeChange} value={draft.cardType}>
+                                <MenuItem disabled value=""><em>Select card type</em></MenuItem>
+                                {(projectConfig?.cardTypes ?? []).map(({ label, type }) => (
+                                    <MenuItem key={type} value={type}>{label}</MenuItem>
+                                ))}
+                            </Select>
+                            <FormHelperText>Imported Sentry issues become cards of this type.</FormHelperText>
+                        </FormControl>
+                    </Stack>
+                    <Stack spacing={1}>
+                        <Typography color="text.secondary" id="sentry-card-state-label" sx={{ fontWeight: 'fontWeightMedium' }} variant="body2">
+                            Target card state
+                        </Typography>
+                        <FormControl disabled={controlsDisabled} size="small">
+                            <Select displayEmpty labelId="sentry-card-state-label" onChange={handleCardStateChange} value={draft.cardState}>
+                                <MenuItem disabled value=""><em>Select card state</em></MenuItem>
+                                {(projectConfig?.states ?? []).map(({ state }) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
+                            </Select>
+                            <FormHelperText>New cards start in this project state.</FormHelperText>
+                        </FormControl>
+                    </Stack>
+                </ConfigSubsection>
                 {connection.errorMessage ? <Alert severity="error">{connection.errorMessage}</Alert> : null}
                 <Stack direction="row" spacing={1}>
                     <Button disabled={!canConnect} onClick={handleConnect} variant="contained">
@@ -178,27 +189,29 @@ function SentryConfigForm({ connection }: SentryConfigFormProps) {
                     </Button>
                     <Button disabled={controlsDisabled || !connection.isAuthenticated} onClick={handleDisconnect} variant="outlined">Disconnect</Button>
                 </Stack>
-                <FormControlLabel
-                    control={(
-                        <Switch
-                            checked={connection.settings.automaticImport}
-                            disabled={!canImport}
-                            onChange={handleAutomaticImportChange}
-                        />
-                    )}
-                    label="Enable automatic import"
-                />
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                    <Button disabled={!canImport} onClick={handleImportNow} variant="outlined">Import now</Button>
-                    {importState.isPolling ? <Typography color="text.secondary" variant="body2">Checking Sentry...</Typography> : null}
-                </Stack>
-                {importState.lastImportCount !== null ? (
-                    <Typography color="text.secondary" variant="body2">Last import created {importState.lastImportCount} card(s).</Typography>
-                ) : null}
-                {importState.lastSuccessfulPollAt ? (
-                    <Typography color="text.secondary" variant="body2">Last successful poll: {importState.lastSuccessfulPollAt}</Typography>
-                ) : null}
-                {importState.latestError ? <Alert severity="error">Latest import error: {importState.latestError}</Alert> : null}
+                <ConfigSubsection description={SENTRY_IMPORT_DESCRIPTION} id="sentry-import" label="Import">
+                    <FormControlLabel
+                        control={(
+                            <Switch
+                                checked={connection.settings.automaticImport}
+                                disabled={!canImport}
+                                onChange={handleAutomaticImportChange}
+                            />
+                        )}
+                        label="Enable automatic import"
+                    />
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                        <Button disabled={!canImport} onClick={handleImportNow} variant="outlined">Import now</Button>
+                        {importState.isPolling ? <Typography color="text.secondary" variant="body2">Checking Sentry...</Typography> : null}
+                    </Stack>
+                    {importState.lastImportCount !== null ? (
+                        <Typography color="text.secondary" variant="body2">Last import created {importState.lastImportCount} card(s).</Typography>
+                    ) : null}
+                    {importState.lastSuccessfulPollAt ? (
+                        <Typography color="text.secondary" variant="body2">Last successful poll: {importState.lastSuccessfulPollAt}</Typography>
+                    ) : null}
+                    {importState.latestError ? <Alert severity="error">Latest import error: {importState.latestError}</Alert> : null}
+                </ConfigSubsection>
             </Stack>
         </Box>
     )
