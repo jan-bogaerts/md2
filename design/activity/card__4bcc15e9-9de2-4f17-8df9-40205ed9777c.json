@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "4bcc15e9-9de2-4f17-8df9-40205ed9777c",
       "cardPath": "design/feature_descriptions/F_392_add_groups_to_sentry_config_tab.md",
-      "completedAt": null,
+      "completedAt": "2026-10-01T16:30:35.704Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 73456
@@ -453,21 +453,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 34,
-          "timestamp": "2026-10-01T16:30:35.142Z"
+          "timestamp": "2026-10-01T16:30:35.704Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-0e3c75ba-a220-4484-ae3a-0e1bfdd592a9",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "8cd6cb3e-ee18-4fa1-a64e-dfae72c5dab7",
+          "createdAt": "2026-10-01T16:30:35.704Z",
+          "lastUsedAt": "2026-10-01T16:30:35.704Z",
+          "synchronizedThroughMessageId": "agent-turn-50d06c91-6dbf-4fc7-b1ba-7d52008e0bb7-turn-1-assistant-2"
+        }
+      ],
       "startedAt": "2026-10-01T16:29:13.056Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 33725,
           "toolMs": 34083
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-01T16:29:13.056Z"
+        "elapsedMs": 82648,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
