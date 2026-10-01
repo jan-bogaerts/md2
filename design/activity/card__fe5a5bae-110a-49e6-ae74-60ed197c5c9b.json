@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 77963
+        "usedTokens": 87798
       },
       "entries": [
         {
@@ -561,10 +561,11 @@
           "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-event-42",
           "kind": "event",
           "label": "AskUserQuestion",
+          "output": "The user answered: \"Cause found: card images use relative src (`pasted-image-x.png`). MDXEditor `imagePlugin()` has no `imagePreviewHandler`, so browser resolves src against app page URL → 404 → MDXEditor broken-image placeholder. On desktop this should also fail for relative images (packaged renderer = file://…/renderer/, dev = vite URL). Only absolute `file:///` links (\"original location\" attachments) work on desktop. Which images do you see working on desktop?\"=\"Not sure\", \"Absolute `file:///` image links (original-location attachments) can point outside project root. Remote http page cannot load file:// and `loadProjectAsset` rejects paths outside root. Scope?\"=\"The react side can be on anorher computer, so it needs to be requested from the electron app over comms like websocket\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
           "providerItemId": "toolu_01WitRFMrJt64sacj1bC5gwL",
           "sequence": 42,
-          "status": "inProgress",
-          "timestamp": "2026-10-01T17:00:07.377Z",
+          "status": "completed",
+          "timestamp": "2026-10-01T17:23:39.751Z",
           "type": "tool.AskUserQuestion"
         },
         {
@@ -618,6 +619,118 @@
           "role": "user",
           "sequence": 44,
           "timestamp": "2026-10-01T17:23:39.732Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-event-45",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbuUC9345f9uVVTKH9hg:thinking:0",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:23:54.105Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nYour answer: images must come from Electron over the bridge/websocket, file:// included. Checking bridge wiring to finish design.",
+          "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-10-01T17:23:54.108Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; sed -n 40,75p desktop/src/shell/preload.js; grep -n \"ProjectAsset\" -A6 app/src/data/data_types.ts | head -20; sed -n 1,60p app/src/components/card_view/card_body_editor.tsx; sed -n 100,135p app/src/components/editor/data_sources/card_markdown_data_source.ts; grep -rn \"<MarkdownEditor\" app/src --include=*.tsx | grep -v test",
+          "content": "    'deleteFolder',\n    'discardWorktreeChanges',\n    'deleteLocalBranch',\n    'hasPendingPush',\n    'getMergeConflictSession',\n    'integrateWorktree',\n    'launchMergeConflictResolver',\n    'listBranches',\n    'listAgentConversationReferences',\n    'listRepositoryFiles',\n    'listTopLevelFolders',\n    'loadActionFiles',\n    'loadActionSchedules',\n    'loadAgentAvailability',\n    'loadAgentConversation',\n    'loadActivityConversations',\n    'loadFile',\n    'loadProject',\n    'loadProjectAsset',\n    'loadProjectConfig',\n    'loadProjectRoot',\n    'loadTextFile',\n    'markMergeConflictResolved',\n    'moveFiles',\n    'openProjectFolder',\n    'parkWorktree',\n    'prepareWorktree',\n    'pull',\n    'pullWorktree',\n    'push',\n    'pushWorktree',\n    'rebaseWorktree',\n    'refreshWorktrees',\n    'rescanMergeConflict',\n    'removeWorktree',\n    'resolveProject',\n93:export interface ProjectAsset {\n94-    content: string\n95-    contentType: string\n96-    encoding: 'base64'\n97-    path: string\n98-}\n99-\n--\n478:    loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>\n479-    loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>\n480-    loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string): Promise<StorageProjectFiles>\n481-    loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>\n482-    loadProjectRoot(project: ProjectReference, workingFolder: string): Promise<StorageProjectFiles>\n483-    loadProjectConfig(project: ProjectReference): Promise<Partial<ProjectConfig> | null>\n484-    onWorktreesChanged?(callback: (state: WorktreeState) => void): () => void\nimport { Box } from '@mui/material'\nimport { memo, useCallback } from 'react'\nimport type { CardTypeConfig } from '../../data/data_types'\nimport { MarkdownEditor } from '../editor/markdown_editor'\nimport type { CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'\nimport type { MarkdownDocumentHistoryStore } from '../editor/history/markdown_document_history_store'\nimport type { MarkdownToolbarContext } from '../editor/toolbar/markdown_toolbar_context'\nimport { CardPopupToolbarControls } from './card_popup_toolbar_controls'\nimport { useProjectReadOnly } from '../hooks/use_project_read_only'\nimport { attachFilesToCardMarkdown } from '../../services/attachments/attachment_workflow'\n\ninterface CardBodyEditorProps {\n    cardTypes: CardTypeConfig[]\n    dataSource: CardMarkdownDataSource\n    historyStore: MarkdownDocumentHistoryStore\n    isMobile?: boolean\n    isFullscreen: boolean\n    onToggleFullscreen: () => void\n    overlayContainer?: HTMLElement | null\n    statusColors: Map<string, string>\n}\n\n/**\n * Body editing surface for a card, bound directly to the card Markdown data source.\n */\nexport const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditorProps) {\n    const {cardTypes, dataSource, historyStore, isFullscreen, isMobile = false, onToggleFullscreen, overlayContainer, statusColors} = props\n    const readOnly = useProjectReadOnly()\n    const handleImagePaste = useCallback(\n        (file: File, insertMarkdown: (markdown: string) => void) => dataSource.pasteImage('board-card', file, insertMarkdown),\n        [dataSource],\n    )\n    const handleAttachments = useCallback((files: File[], insertMarkdown: (markdown: string) => void) => {\n        const card = dataSource.getActiveCard('board-card')\n        if (!card) throw new Error('Cannot attach files without an active board card')\n\n        return attachFilesToCardMarkdown(card.path, files, insertMarkdown)\n    }, [dataSource])\n    const ToolbarContents = useCallback(\n        (toolbarContext: MarkdownToolbarContext) => (\n            <CardPopupToolbarControls\n                cardTypes={cardTypes}\n                dataSource={dataSource}\n                isFullscreen={isFullscreen}\n                isMobile={isMobile}\n                onAttachFiles={toolbarContext.onAttachFiles}\n                onToggleFullscreen={onToggleFullscreen}\n                readOnly={readOnly}\n                statusColors={statusColors}\n            />\n        ),\n        [cardTypes, dataSource, isFullscreen, isMobile, onToggleFullscreen, readOnly, statusColors],\n    )\n    return (\n        <Box\n            sx={{\n                '& .mdxeditor-content': {\n                    boxSizing: 'border-box',\n                    minHeight: 220,\n                    padding: '26px 28px 32px',\n            .catch((error: unknown) => {\n                dialogService.error(error, { fallbackMessage: `Card type update failed: ${document.path}` })\n            })\n    }\n\n    updateActiveCardHeaderField(binding: CardBinding, key: string, value: string) {\n        const document = this.requireActiveDocument(binding)\n        if (key !== 'author') throw new Error(`Unsupported editable card header field: ${key}`)\n\n        this.requireService().cards.updateCardHeaderFields(document.path, { [key]: value })\n    }\n\n    toggleActiveCardPolicy(binding: CardBinding, policyKey: string) {\n        const document = this.requireActiveDocument(binding)\n        this.requireService().cards.toggleCardPolicy(document.path, policyKey)\n    }\n\n    async pasteImage(binding: CardBinding, file: File, insertMarkdown: (markdown: string) => void) {\n        const document = this.requireActiveDocument(binding)\n        const { cards } = this.requireService()\n\n        await saveAndInsertPastedImage(\n            file,\n            insertMarkdown,\n            (clipboardFile) => cards.savePastedImageForCard(document.path, clipboardFile),\n            (path) => cards.deletePastedImage(path),\n        )\n    }\n\n    readonly getMarkdown = readCardMarkdown\n    readonly edit = editCardMarkdown\n\n    commit(binding: MarkdownBindingKind, target: MarkdownDocumentTarget, markdown: string) {\n        CardMarkdownDataSource.requireCardBinding(binding)\n        cardTarget(target)\n        try {\napp/src/components/actions/agent/action_agent_prompt.tsx:71:    const promptEditorRef = useRef<MarkdownEditorHandle>(null)\napp/src/components/actions/agent/action_agent_prompt.tsx:344:                        <MarkdownEditor\napp/src/components/actions/editor/list_action_editor.tsx:79:                <MarkdownEditor\napp/src/components/card_view/card_body_editor.tsx:96:            <MarkdownEditor\napp/src/components/card_view/card_commit_diff_panel.tsx:159:                <MarkdownEditor\napp/src/components/editor/markdown_editor.tsx:128:export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(function MarkdownEditor(props, ref) {\napp/src/components/shell/project/new_card_markdown_editor.tsx:24:        <MarkdownEditor\napp/src/components/shell/search/search_card_preview_dialog.tsx:37:                            <MarkdownEditor\napp/src/components/text_view/card_editor.tsx:61:                <MarkdownEditor\napp/src/components/text_view/instruction_editor.tsx:15:            <MarkdownEditor",
+          "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-event-47",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; sed -n 40,75p desktop/src/shell/preload.js; grep -n \"ProjectAsset\" -A6 app/src/data/data_types.ts | head -20; sed -n 1,60p app/src/components/card_view/card_body_editor.tsx; sed -n 100,135p app/src/components/editor/data_sources/card_markdown_data_source.ts; grep -rn \"<MarkdownEditor\" app/src --include=*.tsx | grep -v test",
+          "providerItemId": "toolu_016kipqX3yQrsx9B5Fq3iz8W",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:23:55.844Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-event-48",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbuVNhKVeS6vASiej2g4:thinking:0",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:24:09.629Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nEnough context. Writing doc.",
+          "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-turn-1-assistant-5",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-10-01T17:24:09.629Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_212_images_in_cards_not_shown.md",
+          "deletions": 1,
+          "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-event-50",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_212_images_in_cards_not_shown.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01PGm31JAg8TJcuQEJbAM3jY",
+          "sequence": 50,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:24:10.548Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_212_images_in_cards_not_shown.md",
+          "deletions": 1,
+          "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-event-51",
+          "insertions": 54,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_212_images_in_cards_not_shown.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_012BGHC8sLDSiu5KaiVSnxWo",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-10-01T17:24:30.785Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-event-52",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfbuXxNQw32NJQqMmwP53:thinking:0",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T17:24:38.609Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI added `Current state`, `implementation details` and `acceptance criteria` to `design/feature_descriptions/B_212_images_in_cards_not_shown.md` and set `status` to `ready for implementation`. Nothing staged or committed.\n\n**Cause.** The card editor's `imagePlugin()` has no `imagePreviewHandler` (a callback MDXEditor uses to swap an image's address before showing it). So the browser loads the Markdown image address as written. On a remote client, a relative image such as `pasted-image-….png` gets requested from the remote-control web server, which only serves the React build, so it returns 404. A `file:///` image is blocked on an `http` page, and the file is on another computer anyway. MDXEditor then shows its broken-image placeholder.\n\n**Fix in the doc:**\n- A new function, `resolveCardImageSource`, loads image bytes through the storage bridge and returns a `data:` address (the image bytes embedded in the address itself), which the editor then shows:\n  - Relative images use the existing `loadProjectAsset`.\n  - `file:///` images use a new desktop method, `loadImageFile`. Per your answer, it reaches the Electron app over the bridge/websocket.\n- The card body editor, list card editor and new-card editor pass that function to `MarkdownEditor`.\n\n**Things to check:**\n1. **Existing bug.** Over websocket, `RemoteControlStorageService.loadProjectAsset` sends only `[path]`, but the desktop handler expects `(project, path)`. Remote image loading needs this fixed, so it's in scope. The same bug breaks remote action icons, and the fix repairs them too.\n2. **Desktop changes too.** You weren't sure whether relative images show on desktop, but by the code they shouldn't. One handler serves every host, so the acceptance criteria also require relative images to show on desktop. Say if you want that criterion removed.\n3. **Security.** `loadImageFile` lets any websocket client read any image file on the desktop machine. It's limited to supported image extensions and has no project-root check, because \"original location\" attachments live outside the project. I judged this acceptable because remote clients already have full control of the project and agents.\n4. **Not covered.** These still show raw image addresses: the action prompt, action editor, instruction editor, card commit diff panel and search card preview.\n5. **Load failures.** A missing image shows the broken-image placeholder, with no error dialog.",
+          "id": "agent-turn-b2eceda4-ee68-4d6c-813a-f43dea061e3c-turn-1-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 53,
+          "timestamp": "2026-10-01T17:24:39.668Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -627,13 +740,21 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 24655,
-          "toolMs": 41474
+          "reasoningMs": 56105,
+          "toolMs": 64383
         },
         "elapsedMs": 88725,
         "runningStartedAt": "2026-10-01T17:23:39.732Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 1298823,
+        "inputTokens": 42,
+        "outputTokens": 12528,
+        "reasoningTokens": 0,
+        "totalTokens": 1311393,
+        "costUsd": 1.065915
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
