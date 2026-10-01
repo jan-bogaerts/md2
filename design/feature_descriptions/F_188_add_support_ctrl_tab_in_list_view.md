@@ -3,7 +3,7 @@ author:
 id: F_188
 internalId: c00ec008-cf20-4fd2-81e2-254b2b400c48
 title: add support ctrl tab in list view
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,8 @@ policy:
 after: de670664-aeae-4814-bf3f-4bb280bd85a9
 branch: f_188_add_support_ctrl_tab_in_list_view
 worktree: 2
+changedFiles:
+  - app/src/services/shortcuts/list_tab_shortcuts.ts
 ---
 to switch between tabs. So when in list view, app should always respond to ctrl+tab and switch to the next tab in the list
 
