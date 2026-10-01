@@ -11,6 +11,7 @@ agents:
 policy:
 after: 2775052a-2e84-4466-a320-155c8ec05bac
 branch: b_223_save_aborted_cause_of_invalid_action_data
+worktree: 1
 ---
 action x has invalid unsaved data. we should not prevent the saving of an action because of this (most likely type diagram)
 
