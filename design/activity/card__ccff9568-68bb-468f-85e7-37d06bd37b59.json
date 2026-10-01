@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "ccff9568-68bb-468f-85e7-37d06bd37b59",
       "cardPath": "design/feature_descriptions/B_209_delete_action_failed.md",
-      "completedAt": null,
+      "completedAt": "2026-10-01T16:53:16.888Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 59945
@@ -760,21 +760,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 54,
-          "timestamp": "2026-10-01T16:53:16.618Z"
+          "timestamp": "2026-10-01T16:53:16.888Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-20ba2b32-048f-439f-81b0-9b919ca935fb",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a0f85f-33be-7d40-832d-c6c7ec1881b9",
+          "createdAt": "2026-10-01T16:53:16.888Z",
+          "lastUsedAt": "2026-10-01T16:53:16.888Z",
+          "synchronizedThroughMessageId": "agent-turn-9f5ee048-4913-435a-a64b-590ce0c707f8-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-10-01T16:49:43.444Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 55144,
           "toolMs": 2238
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-01T16:49:43.444Z"
+        "elapsedMs": 213444,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
