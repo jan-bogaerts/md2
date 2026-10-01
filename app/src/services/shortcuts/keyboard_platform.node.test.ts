@@ -23,12 +23,24 @@ describe('keyboard platform', () => {
     it('formats the global search shortcut for Apple clients', () => {
         setNavigator('Mozilla/5.0 (Macintosh)', 'macOS')
 
-        expect(formatShortcut({ alt: false, key: 'f', mod: true, shift: true })).toBe('⌘⇧F')
+        expect(formatShortcut({ alt: false, ctrl: false, key: 'f', mod: true, shift: true })).toBe('⌘⇧F')
     })
 
     it('formats the global search shortcut for Windows and Linux clients', () => {
         setNavigator('Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Windows')
 
-        expect(formatShortcut({ alt: false, key: 'f', mod: true, shift: true })).toBe('Ctrl+Shift+F')
+        expect(formatShortcut({ alt: false, ctrl: false, key: 'f', mod: true, shift: true })).toBe('Ctrl+Shift+F')
+    })
+
+    it('formats a Control-key shortcut for Apple clients', () => {
+        setNavigator('Mozilla/5.0 (Macintosh)', 'macOS')
+
+        expect(formatShortcut({ alt: false, ctrl: true, key: 'Tab', mod: false, shift: true })).toBe('⌃⇧TAB')
+    })
+
+    it('formats a Control-key shortcut for Windows and Linux clients', () => {
+        setNavigator('Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Windows')
+
+        expect(formatShortcut({ alt: false, ctrl: true, key: 'Tab', mod: false, shift: true })).toBe('Ctrl+Shift+TAB')
     })
 })

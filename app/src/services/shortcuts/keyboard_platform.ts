@@ -1,5 +1,6 @@
 export interface KeyboardShortcut {
     alt: boolean
+    ctrl: boolean
     key: string
     mod: boolean
     shift: boolean
@@ -21,12 +22,12 @@ export function isApplePlatform() {
 
 /** Formats a shortcut for the keyboard used by the current client. */
 export function formatShortcut(binding: KeyboardShortcut) {
-    const { alt, key, mod, shift } = binding
+    const { alt, ctrl, key, mod, shift } = binding
     if (isApplePlatform()) {
-        return `${mod ? '⌘' : ''}${alt ? '⌥' : ''}${shift ? '⇧' : ''}${key.toUpperCase()}`
+        return `${ctrl ? '⌃' : ''}${mod ? '⌘' : ''}${alt ? '⌥' : ''}${shift ? '⇧' : ''}${key.toUpperCase()}`
     }
 
-    return [mod ? 'Ctrl' : null, alt ? 'Alt' : null, shift ? 'Shift' : null, key.toUpperCase()]
+    return [ctrl || mod ? 'Ctrl' : null, alt ? 'Alt' : null, shift ? 'Shift' : null, key.toUpperCase()]
         .filter((part) => part !== null)
         .join('+')
 }

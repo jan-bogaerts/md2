@@ -198,6 +198,21 @@ export class OpenFilesService extends EventTarget {
         this.update({ ...this.snapshot, activeDocument: document })
     }
 
+    /** Activates the neighbouring list tab, wrapping around at both ends. */
+    activateAdjacentDocument(offset: 1 | -1) {
+        const { activeDocument, documents } = this.snapshot
+        const { length } = documents
+        if (length === 0) return
+
+        if (activeDocument === null) {
+            this.activateDocument(offset === 1 ? documents[0] : documents[length - 1])
+            return
+        }
+
+        const index = documents.indexOf(activeDocument)
+        this.activateDocument(documents[(index + offset + length) % length])
+    }
+
     closeDocument(document: OpenDocument) {
         const index = this.snapshot.documents.indexOf(document)
         if (index === -1) return

@@ -14,6 +14,7 @@ export const searchOpenService = register('searchOpenService', new SearchOpenSer
 
 export const GLOBAL_SEARCH_SHORTCUT_BINDING: KeyboardShortcutBinding = {
     alt: false,
+    ctrl: false,
     id: 'global-search',
     key: 'f',
     mod: true,

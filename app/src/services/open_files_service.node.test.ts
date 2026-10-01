@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { BUILTIN_CUSTOM_PROMPT, type ActionDefinition } from '../data/action_types'
 import type { Card, ProjectSnapshot } from '../data/data_types'
 import { getService } from './service_injector'
-import { OpenFilesService, type OpenDocumentEventDetail } from './open_files_service'
+import { OpenFilesService, type OpenDocumentEventDetail, type OpenFilesSnapshot } from './open_files_service'
 import { editableActionDefinition, type ActionDraftState, type ActionService } from './actions/action_service'
 import { ACTIONS_CHANGED_EVENT } from './actions/action_service_events'
 import { CARD_CHANGED_EVENT, type CardChangedEventDetail } from './data/data_service'
@@ -77,6 +77,17 @@ function owners(initialCards: Card[] = [], initialActions: ActionDefinition[] = 
             dataOwner.dispatchEvent(new CustomEvent<CardChangedEventDetail>(CARD_CHANGED_EVENT, { detail }))
         },
     }
+}
+
+/** Opens one list tab per card ID and returns the service with its documents in tab order. */
+function serviceWithOpenCards(internalIds: string[]) {
+    const cards = internalIds.map((internalId) => card(internalId))
+    const ownerState = owners(cards)
+    const service = new OpenFilesService()
+    service.init({ actionService: ownerState.actionOwner, dataService: ownerState.dataOwner })
+    const documents = cards.map((openCard) => service.openDocument(openCard))
+
+    return { documents, service }
 }
 
 describe('OpenFilesService', () => {
@@ -315,6 +326,66 @@ describe('OpenFilesService', () => {
         ownerState.renewCards([])
 
         expect(service.getSnapshot()).toEqual({ activeDocument: null, documents: [] })
+    })
+
+    describe('activateAdjacentDocument', () => {
+        it('activates the next and previous documents in tab order', () => {
+            const { documents, service } = serviceWithOpenCards(['one', 'two', 'three'])
+            service.activateDocument(documents[1])
+
+            service.activateAdjacentDocument(1)
+            expect(service.getSnapshot().activeDocument).toBe(documents[2])
+
+            service.activateAdjacentDocument(-1)
+            expect(service.getSnapshot().activeDocument).toBe(documents[1])
+        })
+
+        it('wraps from the last document to the first and from the first to the last', () => {
+            const { documents, service } = serviceWithOpenCards(['one', 'two', 'three'])
+
+            service.activateAdjacentDocument(1)
+            expect(service.getSnapshot().activeDocument).toBe(documents[0])
+
+            service.activateAdjacentDocument(-1)
+            expect(service.getSnapshot().activeDocument).toBe(documents[2])
+        })
+
+        it('keeps a single document active without a changed event', () => {
+            const { documents, service } = serviceWithOpenCards(['one'])
+            const changed = vi.fn()
+            service.addEventListener('changed', changed)
+
+            service.activateAdjacentDocument(1)
+            service.activateAdjacentDocument(-1)
+
+            expect(service.getSnapshot().activeDocument).toBe(documents[0])
+            expect(changed).not.toHaveBeenCalled()
+        })
+
+        it('activates the first or last document when no document is active', () => {
+            const { documents, service } = serviceWithOpenCards(['one', 'two', 'three'])
+            const internalService = service as unknown as { snapshot: OpenFilesSnapshot }
+
+            internalService.snapshot = { activeDocument: null, documents }
+            service.activateAdjacentDocument(1)
+            expect(service.getSnapshot().activeDocument).toBe(documents[0])
+
+            internalService.snapshot = { activeDocument: null, documents }
+            service.activateAdjacentDocument(-1)
+            expect(service.getSnapshot().activeDocument).toBe(documents[2])
+        })
+
+        it('does nothing when no document is open', () => {
+            const { service } = serviceWithOpenCards([])
+            const changed = vi.fn()
+            service.addEventListener('changed', changed)
+
+            service.activateAdjacentDocument(1)
+            service.activateAdjacentDocument(-1)
+
+            expect(service.getSnapshot()).toEqual({ activeDocument: null, documents: [] })
+            expect(changed).not.toHaveBeenCalled()
+        })
     })
 
     it('registers itself in service injector', () => {
