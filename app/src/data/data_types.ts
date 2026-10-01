@@ -476,6 +476,8 @@ export interface StorageService {
     loadAgentConversation?(project: ProjectReference, path: string): Promise<AgentConversation>
     loadActivityConversations?(project: ProjectReference, path: string): Promise<AgentConversation[]>
     loadProjectAsset?(project: ProjectReference, path: string): Promise<ProjectAsset>
+    /** Loads a supported image from an absolute path on the storage host. */
+    loadImageFile?(filePath: string): Promise<ProjectAsset>
     loadTextFile?(project: ProjectReference, path: string): Promise<MarkdownFile>
     loadProject(project: ProjectReference, workingFolder: string, excludedRootFolder?: string): Promise<StorageProjectFiles>
     loadFile?(project: ProjectReference, path: string): Promise<MarkdownFile>

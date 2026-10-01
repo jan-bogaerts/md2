@@ -105,6 +105,13 @@ export class LocalGitStorageService implements StorageService {
         return bridge.loadProjectAsset(project, path)
     }
 
+    async loadImageFile(filePath: string) {
+        const bridge = this.requireBridge()
+        if (!bridge.loadImageFile) throw new Error('Electron local Git bridge cannot load image files')
+
+        return bridge.loadImageFile(filePath)
+    }
+
     async loadTextFile(project: ProjectReference, path: string) {
         const bridge = this.requireBridge()
         if (!bridge.loadTextFile) throw new Error('Electron local Git bridge cannot load text files')

@@ -386,8 +386,12 @@ export class RemoteControlStorageService implements
         return this.request<string[]>('listAgentConversationReferences', [project, projectFolder])
     }
 
-    async loadProjectAsset(_project: ProjectReference, path: string): Promise<ProjectAsset> {
-        return this.request<ProjectAsset>('loadProjectAsset', [path])
+    async loadProjectAsset(project: ProjectReference, path: string): Promise<ProjectAsset> {
+        return this.request<ProjectAsset>('loadProjectAsset', [project, path])
+    }
+
+    async loadImageFile(filePath: string): Promise<ProjectAsset> {
+        return this.request<ProjectAsset>('loadImageFile', [filePath])
     }
 
     async loadTextFile(project: ProjectReference, path: string): Promise<MarkdownFile> {

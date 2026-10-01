@@ -328,6 +328,39 @@ describe('RemoteControlStorageService', () => {
         await expect(load).resolves.toEqual({ content: '{"version":2}', path })
     })
 
+    it('sends project and path when loading a project asset through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const asset = { content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'design/image.png' }
+        const load = service.loadProjectAsset(project, 'design/image.png')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'loadProjectAsset', params: [project, 'design/image.png'] })
+        socket.receive({ id: request.id, result: asset })
+
+        await expect(load).resolves.toEqual(asset)
+    })
+
+    it('sends the absolute path when loading an image file through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const asset = { content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'C:/images/photo.png' }
+        const load = service.loadImageFile('C:/images/photo.png')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'loadImageFile', params: ['C:/images/photo.png'] })
+        socket.receive({ id: request.id, result: asset })
+
+        await expect(load).resolves.toEqual(asset)
+    })
+
     it('loads current worktree diff through remote control', async () => {
         installWebSocket()
         const service = createService()

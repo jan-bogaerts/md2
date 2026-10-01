@@ -240,6 +240,7 @@ function createLocalBridgeDispatch(dependencies) {
         loadFile: (project, path) => localGitService.loadFile(project, path),
         loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
+        loadImageFile: (filePath) => localGitService.loadImageFile(filePath),
         loadProject: async (project, workingFolder, excludedRootFolder) => {
             await activateProject(project);
             if (excludedRootFolder === undefined) return localGitService.loadProject(project, workingFolder);

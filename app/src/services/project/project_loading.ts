@@ -335,6 +335,14 @@ export class ProjectLoading {
         return storage.loadProjectAsset(currentProject, path)
     }
 
+    /** Loads a supported image from an absolute path on the storage host. */
+    async loadImageFile(filePath: string): Promise<ProjectAsset> {
+        const { storage } = this.dependencies.requireDependencies()
+        if (!storage.loadImageFile) throw new Error('Image file loading is not available')
+
+        return storage.loadImageFile(filePath)
+    }
+
     async switchBranch(branch: string) {
         const { storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()

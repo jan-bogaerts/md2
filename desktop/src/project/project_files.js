@@ -227,6 +227,28 @@ async function loadProjectAsset(project, filePath) {
     };
 }
 
+/**
+ * Loads a supported image from an absolute host path. Original-location attachments live outside
+ * the project root by design, so no root check applies.
+ */
+async function loadImageFile(filePath) {
+    if (typeof filePath !== 'string' || filePath.length === 0) throw new Error('Missing image file path');
+    if (!path.isAbsolute(filePath)) throw new Error(`Image file path must be absolute: ${filePath}`);
+
+    const extension = path.extname(filePath).toLowerCase();
+    const contentType = PROJECT_ASSET_CONTENT_TYPES[extension];
+    if (!contentType) throw new Error(`Unsupported image file type: ${extension}`);
+
+    const content = await fs.promises.readFile(filePath);
+
+    return {
+        content: content.toString('base64'),
+        contentType,
+        encoding: 'base64',
+        path: normalizePath(filePath),
+    };
+}
+
 async function loadProjectConfig(project) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
@@ -485,6 +507,7 @@ module.exports = {
     listRepositoryFiles,
     listTopLevelFolders,
     loadFile,
+    loadImageFile,
     loadProject,
     loadProjectAsset,
     loadProjectConfig,

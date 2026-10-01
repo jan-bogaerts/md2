@@ -8,6 +8,7 @@ import type { MarkdownToolbarContext } from '../editor/toolbar/markdown_toolbar_
 import { CardPopupToolbarControls } from './card_popup_toolbar_controls'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { attachFilesToCardMarkdown } from '../../services/attachments/attachment_workflow'
+import { resolveCardImageSource } from '../../services/attachments/card_image_source'
 
 interface CardBodyEditorProps {
     cardTypes: CardTypeConfig[]
@@ -35,6 +36,12 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
         if (!card) throw new Error('Cannot attach files without an active board card')
 
         return attachFilesToCardMarkdown(card.path, files, insertMarkdown)
+    }, [dataSource])
+    const handleImagePreview = useCallback(async (src: string) => {
+        const card = dataSource.getActiveCard('board-card')
+        if (!card) return src
+
+        return resolveCardImageSource(card.path, src)
     }, [dataSource])
     const ToolbarContents = useCallback(
         (toolbarContext: MarkdownToolbarContext) => (
@@ -99,6 +106,7 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
                 dataSource={dataSource}
                 historyStore={historyStore}
                 imagePasteHandler={handleImagePaste}
+                imagePreviewHandler={handleImagePreview}
                 overlayContainer={overlayContainer}
                 readOnly={readOnly}
                 toolbarContents={ToolbarContents}

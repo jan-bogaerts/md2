@@ -54,6 +54,7 @@ const DATA_METHODS = [
     'loadAgentConversation',
     'loadActivityConversations',
     'loadFile',
+    'loadImageFile',
     'loadProject',
     'loadProjectAsset',
     'loadProjectConfig',

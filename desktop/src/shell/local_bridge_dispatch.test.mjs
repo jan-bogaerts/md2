@@ -86,6 +86,7 @@ function createDispatch(options = {}) {
         loadActionRunHistory: vi.fn(async () => []),
         loadCardActivity: vi.fn(async () => ({ actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 })),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
+        loadImageFile: vi.fn(async (filePath) => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: filePath })),
         loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', states: [{ state: 'ready' }] })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
@@ -1083,6 +1084,14 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadProjectAsset(project, 'actions/icon.png');
 
         expect(localGitService.loadProjectAsset).toHaveBeenCalledWith(project, 'actions/icon.png');
+    });
+
+    it('forwards absolute image file reads through the data bridge', async () => {
+        const { dispatch, localGitService } = createDispatch();
+
+        await dispatch.dataBridge.loadImageFile('C:/images/photo.png');
+
+        expect(localGitService.loadImageFile).toHaveBeenCalledWith('C:/images/photo.png');
     });
 
     it('exposes shared action run subscriptions through the action bridge', () => {

@@ -60,6 +60,8 @@ interface MarkdownEditorPresentationProps {
     /** Hide built-in attachment control while retaining attachment drops. */
     hideAttachmentControl?: boolean
     imagePasteHandler?: MarkdownImagePasteHandler
+    /** Maps a stored image `src` to a displayable source; the Markdown keeps the stored value. */
+    imagePreviewHandler?: (src: string) => Promise<string>
     /** Set false when containing surface owns Ctrl+F behavior. */
     localTextSearch?: boolean
     monospace?: boolean
@@ -133,6 +135,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         hideAttachmentControl = false,
         hideToolbar = false,
         imagePasteHandler,
+        imagePreviewHandler,
         localTextSearch = true,
         monospace = false,
         overlayContainer,
@@ -405,7 +408,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         thematicBreakPlugin(),
         linkPlugin(),
         linkDialogPlugin(),
-        imagePlugin(),
+        imagePlugin({ imagePreviewHandler }),
         tablePlugin(),
         codeBlockPlugin({ defaultCodeBlockLanguage: DEFAULT_CODE_LANGUAGE }),
         codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
