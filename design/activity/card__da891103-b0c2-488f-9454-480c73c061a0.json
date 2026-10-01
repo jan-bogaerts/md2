@@ -1804,6 +1804,14 @@
           "role": "assistant",
           "sequence": 32,
           "timestamp": "2026-10-01T17:44:09.116Z"
+        },
+        {
+          "content": "go",
+          "id": "submission-ded7f58b-7b52-4c18-842c-4b1e0f024d29",
+          "kind": "message",
+          "role": "user",
+          "sequence": 33,
+          "timestamp": "2026-10-01T17:44:20.696Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1818,14 +1826,14 @@
         }
       ],
       "startedAt": "2026-10-01T17:43:14.655Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 8285,
           "toolMs": 1127
         },
         "elapsedMs": 54461,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T17:44:20.696Z"
       },
       "title": "fix bug",
       "usage": {
