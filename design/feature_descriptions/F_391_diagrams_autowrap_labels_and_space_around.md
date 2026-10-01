@@ -9,4 +9,4 @@ affects:
 agents:
 policy:
 ---
-
+labels on diagram nodes should auto wrap and should use less padding
