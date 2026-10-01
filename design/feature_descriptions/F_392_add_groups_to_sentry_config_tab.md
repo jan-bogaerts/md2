@@ -3,7 +3,7 @@ author:
 id: F_392
 internalId: 4bcc15e9-9de2-4f17-8df9-40205ed9777c
 title: Add groups to sentry config tab
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,9 @@ policy:
 after: 50466266-0fa0-4392-855a-d21513ee700f
 branch: f_392_add_groups_to_sentry_config_tab
 worktree: 1
+changedFiles:
+  - app/src/components/config/sentry_config_section.grouped.test.tsx
+  - app/src/components/config/sentry_config_section.tsx
 ---
 
 On the config dialog, we have the project and sentry tabs. On the project tab, we already created groups. Now we need to do the same on the sentry tab. Group the items logically together, add title and some info where useful
