@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 67347
+        "usedTokens": 70833
       },
       "entries": [
         {
@@ -969,6 +969,110 @@
           "role": "user",
           "sequence": 73,
           "timestamp": "2026-10-01T09:11:58.533Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-74",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_032262199da364c8016abe23e0fec887d2825ed183bdc3986a",
+          "sequence": 74,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T09:12:01.776Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll trace when each path creates its user message so I can explain why the frontend receives different events.\n\n",
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-6-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 75,
+          "timestamp": "2026-10-01T09:12:03.019Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/agent/agent_runner_service.js' | Select-Object -Skip 100 -First 85\"",
+          "content": "        });            env: environment,\r\n            stdio: ['pipe', 'pipe', 'pipe'],\r\n            // windowsHide: true,\r\n        });\r\n        logAgentEvent('[agent:start]', {\r\n            arguments: configuredArguments,\r\n            cwd: rootPath,\r\n            actionRunId: request.actionRunId ?? null,\r\n            executable,\r\n            pid: child.pid,\r\n            runId: id,\r\n            startedAt,\r\n        });\r\n        const run = createRun({\r\n            agent,\r\n            child,\r\n            conversation,\r\n            environment,\r\n            executable,\r\n            id,\r\n            nextSequence,\r\n            onComplete,\r\n            onCompletionError,\r\n            onEvent,\r\n            reference,\r\n            request,\r\n            rootPath,\r\n            startedAt,\r\n            streaming,\r\n        });\r\n        attachRunProtocol(run, {\r\n            onCodexRuntimeEvent: (event) => this.handleCodexRuntimeEvent(event),\r\n",
+          "durationMs": 175,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-76",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/agent/agent_runner_service.js' | Select-Object -Skip 100 -First 85\"",
+          "providerItemId": "exec-fbcb7837-2066-4db6-a2ff-5fa8fb30437a",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:12:07.904Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"type: 'started'|emitRunEvent\\\\(run, \\\\{.*started|startedAt|createMessageEntry\\\" desktop/src/actions/agent/agent_runner_service.js desktop/src/actions/agent/agent_run_state.js\"",
+          "content": "",
+          "durationMs": 15,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-77",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"type: 'started'|emitRunEvent\\\\(run, \\\\{.*started|startedAt|createMessageEntry\\\" desktop/src/actions/agent/agent_runner_service.js desktop/src/actions/agent/agent_run_state.js\"",
+          "providerItemId": "exec-fad524e7-3256-4b90-91a6-d3ff55998b0b",
+          "sequence": 77,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:12:07.786Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_run.js' | Select-Object -Skip 620 -First 75\"",
+          "content": "            signal: this.controller.signal,\r\n            version: this.version,\r\n        });\r\n    }\r\n\r\n    async executeAgentAction(action, phase, isRoot, project) {\r\n        this.activeAgentProject = project;\r\n        this.promptQueueClosed = false;\r\n        const onActiveRunChange = (runId) => {\r\n            this.activeAgentRunId = runId;\r\n            if (runId) {\r\n                this.publish(action, phase, 'running', { interactionReady: true, type: 'agentState' });\r\n                void this.dispatchStreamingPrompt().catch(() => undefined);\r\n                if (this.autoFinishPending) {\r\n                    this.autoFinishPending = false;\r\n                    this.discardQueuedPrompts();\r\n                    this.agentRunnerService.finish(runId);\r\n                }\r\n                if (this.diagramWatcherFailure) this.agentRunnerService.stop(runId);\r\n            }\r\n            else {\r\n                this.activeAgentQuestionRequestId = null;\r\n                this.publish(action, phase, 'running', { interactionReady: false, type: 'agentState' });\r\n            }\r\n        };\r\n        const onEvent = (agentEvent) => {\r\n            if (agentEvent.type === 'started') {\r\n                const { continued, conversation } = agentEvent;\r\n                const update = { continued, conversation, kind: 'agentStarted' };\r\n                this.publish(action, phase, agentEvent.status, { type: 'update', update });\r\n                return;\r\n            }\r\n            if (agentEvent.type === 'closed') {\r\n                const update = {\r\n                    conversation: agentEvent.conversation,\r\n                    kind: 'agentClosed',\r\n                    persisted: agentEvent.persisted,\r\n                };\r\n                this.publish(action, phase, agentEvent.status, { type: 'update', update });\r\n                return;\r\n            }\r\n            if (agentEvent.type === 'state') {\r\n                this.publish(action, phase, agentEvent.status, {\r\n                    interactionReady: true,\r\n                    ...(agentEvent.timer ? { timer: agentEvent.timer } : {}),\r\n                    type: 'agentState',\r\n                });\r\n                if (agentEvent.status === 'waitingForInput') void this.dispatchStreamingPrompt().catch(() => undefined);\r\n                return;\r\n            }\r\n            if (agentEvent.type === 'question') {\r\n                this.activeAgentQuestionRequestId = agentEvent.requestId;\r\n                const update = {\r\n                    kind: 'agentQuestion',\r\n                    questions: agentEvent.questions,\r\n                    requestId: agentEvent.requestId,\r\n                };\r\n                this.publish(action, phase, agentEvent.status, { type: 'update', update });\r\n                return;\r\n            }\r\n            if (agentEvent.type === 'userMessage') {\r\n                const update = { kind: 'agentUserMessage', userMessage: agentEvent.userMessage };\r\n                this.publish(action, phase, agentEvent.status, { type: 'update', update });\r\n                return;\r\n            }\r\n            if (agentEvent.type === 'questionAnswered') {\r\n                let questionCleared = false;\r\n                if (this.activeAgentQuestionRequestId === agentEvent.requestId) {\r\n                    this.activeAgentQuestionRequestId = null;\r\n                    questionCleared = true;\r\n                }\r\n                const update = {\r\n                    kind: 'agentQuestionAnswer',\r\n                    requestId: agentEvent.requestId,\r\n                    userMessage: agentEvent.userMessage,\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-78",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_run.js' | Select-Object -Skip 620 -First 75\"",
+          "providerItemId": "exec-7061b57c-5a23-4109-9bab-8a5f85866084",
+          "sequence": 78,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:12:07.797Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-79",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_032262199da364c8016abe23eab0b087d292a315b8402b2180",
+          "sequence": 79,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T09:12:14.345Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/agent/agent_runner_service.js' | Select-Object -Skip 175 -First 65\"",
+          "content": "            onCompletionError,\r\n            onEvent,\r\n            reference,\r\n            request,\r\n            rootPath,\r\n            startedAt,\r\n            streaming,\r\n        });\r\n        attachRunProtocol(run, {\r\n            onCodexRuntimeEvent: (event) => this.handleCodexRuntimeEvent(event),\r\n            onMalformedOutput: (line) => this.handleMalformedOutput(id, line),\r\n            onProviderEvent: (event) => this.handleProviderEvent(id, event),\r\n            onStreamingEvent: (event) => this.handleStreamingEvent(id, event),\r\n            onStreamingLine: (line) => this.handleStreamingLine(id, line),\r\n            providerConversationId: request.providerConversationId,\r\n            rootPath,\r\n        });\r\n        this.processes.set(id, run);\r\n        this.runningConversationIds.add(conversation.id);\r\n\r\n        child.stdout.on('data', (chunk) => this.handleOutput(id, 'stdout', chunk));\r\n        child.stderr.on('data', (chunk) => this.handleOutput(id, 'stderr', chunk));\r\n        child.on('error', (error) => this.handleError(id, error));\r\n        child.stdin.on('error', (error) => this.handleError(id, error));\r\n        child.on('close', (exitCode) => {\r\n            void this.handleClose(id, exitCode ?? 1).finally(run.resolveClosed);\r\n        });\r\n        if (streaming) {\r\n            const initialPrompt = typeof request.contextInput === 'string' && request.contextInput.length > 0\r\n                ? `${request.contextInput}\\n\\n[User]\\n\\n${prompt}`\r\n                : prompt;\r\n            try {\r\n                await run.streamingAdapter.start(initialPrompt);\r\n            } catch (error) {\r\n                this.failStreamingRun(run, error);\r\n            }\r\n        } else {\r\n            if (typeof request.contextInput === 'string' && request.contextInput.length > 0) child.stdin.write(request.contextInput);\r\n            child.stdin.end();\r\n        }\r\n        const userMessage = lastMessageEntry(conversation);\r\n        if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');\r\n        emitRunEvent(run, {\r\n            continued: !!request.conversation,\r\n            conversation: initialConversation,\r\n            type: 'started',\r\n        });\r\n\r\n        return { conversation: initialConversation, reference, runId: id };\r\n    }\r\n\r\n    stop(runId) {\r\n        const run = this.requireRun(runId);\r\n        run.cancelled = true;\r\n        transitionConversationStatus(run.conversation, 'cancelled', new Date().toISOString(), run.phases);\r\n        this.clearFinishTimeout(run);\r\n\r\n        return this.ensureTermination(run);\r\n    }\r\n\r\n    suspend(runId) {\r\n        const run = this.requireRun(runId);\r\n        run.suspended = true;\r\n        this.clearFinishTimeout(run);\r\n\r\n",
+          "durationMs": 22,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-80",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/agent/agent_runner_service.js' | Select-Object -Skip 175 -First 65\"",
+          "providerItemId": "exec-25f6f830-6d37-4b70-97c3-c481aff1a896",
+          "sequence": 80,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:12:16.643Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "There are two ways to deliver a prompt because an agent turn can **start a process** or **write to an already running process**. In the start path, the backend creates the user message as part of the initial conversation and sends that conversation in `agentStarted` ([agent_runner_service.js](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/agent_runner_service.js:132)). In the live path, it writes the prompt, then emits `agentUserMessage` ([agent_run_interactions.js](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/agent_run_interactions.js:16)).\n\nYour architectural concern is valid at the **event contract**: the frontend has to recognize the same outcome—“this submission is now a conversation message”—in two different ways. That complicates reconciliation and makes the row switching easier to get wrong. The two delivery mechanisms have a reason to exist; exposing two different acknowledgment shapes to the chatlog is the questionable part.\n\n",
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-6-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 81,
+          "timestamp": "2026-10-01T09:12:26.248Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -986,19 +1090,19 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 23421,
-          "toolMs": 2843
+          "reasoningMs": 28595,
+          "toolMs": 3158
         },
         "elapsedMs": 143961,
         "runningStartedAt": "2026-10-01T09:11:58.533Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 891008,
-        "inputTokens": 68285,
-        "outputTokens": 3395,
-        "reasoningTokens": 780,
-        "totalTokens": 963468
+        "cachedInputTokens": 1094784,
+        "inputTokens": 72388,
+        "outputTokens": 3902,
+        "reasoningTokens": 913,
+        "totalTokens": 1171987
       },
       "usageSchemaVersion": 1,
       "viewed": true
