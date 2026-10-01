@@ -47,7 +47,7 @@ describe('DiagramLegend', () => {
     it('renders node and shared connection samples with canonical labels', () => {
         renderLegend()
 
-        expect(screen.getByLabelText('Diagram legend')).toHaveTextContent('focalbackendasyncsuccess')
+        expect(screen.getByLabelText('Diagram legend')).toHaveTextContent('ParticipantAsyncSuccess')
         expect(document.querySelector('[data-role="focal"]')).toBeInTheDocument()
         expect(document.querySelector('[data-kind="async"]')).toHaveAttribute('data-arrowhead', 'open')
         expect(document.querySelector('[data-kind="success"]')).toHaveAttribute('data-arrowhead', 'filled')

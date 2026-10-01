@@ -1,8 +1,10 @@
 import { Alert, Button, Checkbox, DialogActions, DialogContent, FormControlLabel, ListSubheader, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { useCallback, useMemo, useState, useSyncExternalStore, type ChangeEvent } from 'react'
 import {
-    diagramEdgeKindsForType, DIAGRAM_ROLES, type DiagramEdgeKind, type DiagramRole,
+    diagramEdgeKindsForType, DIAGRAM_NODE_KINDS, DIAGRAM_ROLES, requireDiagramNodeKind,
+    type DiagramEdgeKind, type DiagramNodeKind, type DiagramRole,
 } from '../../../services/diagrams/diagram_data'
+import { diagramNodeKindLabel, effectiveDiagramNodeKind } from '../../../services/diagrams/diagram_creation_tool_labels'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import { DiagramLegendEntryEditor } from './diagram_legend_entry_editor'
 import { useEditableDiagramEdgeIds, useEditableDiagramLegendEntryKeys, useEditableDiagramNodeIds } from '../editing/use_editable_diagram'
@@ -14,12 +16,13 @@ interface DiagramLegendDetailsEditorProps {
 
 const EMPTY_ENTRY_KEYS: readonly string[] = Object.freeze([])
 
-/** Tracks only node roles and connection kinds used by the current diagram. */
+/** Tracks node kinds and connection kinds used by the current diagram. */
 function useUsedLegendEntryKeys(session: DiagramEditSessionService) {
     const nodeIds = useEditableDiagramNodeIds(session) ?? EMPTY_ENTRY_KEYS
     const edgeIds = useEditableDiagramEdgeIds(session) ?? EMPTY_ENTRY_KEYS
     const subscribe = useCallback((listener: () => void) => {
         const unsubscribes = [
+            ...nodeIds.map((nodeId) => session.subscribeNodeField(nodeId, 'kind', listener)),
             ...nodeIds.map((nodeId) => session.subscribeNodeField(nodeId, 'role', listener)),
             ...edgeIds.map((edgeId) => session.subscribeEdgeField(edgeId, 'kind', listener)),
         ]
@@ -29,8 +32,13 @@ function useUsedLegendEntryKeys(session: DiagramEditSessionService) {
         }
     }, [edgeIds, nodeIds, session])
     const getSnapshot = useCallback(() => {
+        const diagramType = session.getMetadataFieldSnapshot('type')
+        if (!diagramType) return ''
         const keys = [
             ...nodeIds.map((nodeId) => `node:${session.getNodeFieldSnapshot(nodeId, 'role')}`),
+            ...nodeIds.map((nodeId) => `nodeKind:${effectiveDiagramNodeKind(
+                session.getNodeFieldSnapshot(nodeId, 'kind') ?? undefined, diagramType,
+            )}`),
             ...edgeIds.map((edgeId) => `connection:${session.getEdgeFieldSnapshot(edgeId, 'kind')}`),
         ]
 
@@ -48,7 +56,8 @@ function newEntryFor(entryKey: string, label: string) {
 
     return entryType === 'node'
         ? { ...typedLabel, role: semantic as DiagramRole }
-        : { ...typedLabel, kind: semantic as DiagramEdgeKind }
+        : entryType === 'nodeKind' ? { ...typedLabel, nodeKind: semantic as DiagramNodeKind }
+            : { ...typedLabel, kind: semantic as DiagramEdgeKind }
 }
 
 /**
@@ -63,10 +72,17 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
     const [addedLabel, setAddedLabel] = useState('')
     const [includeUsedTypes, setIncludeUsedTypes] = useState(false)
     const diagramType = session.getMetadataFieldSnapshot('type')
+    const preset = session.getMetadataFieldSnapshot('preset') ?? undefined
     const semanticOptions = useMemo(() => diagramType ? [
         ...DIAGRAM_ROLES.map((role) => ({ entryKey: `node:${role}`, label: `${role} node` })),
+        ...DIAGRAM_NODE_KINDS.filter((kind) => {
+            try {
+                requireDiagramNodeKind(kind, diagramType, preset, 'node.kind')
+                return true
+            } catch { return false }
+        }).map((kind) => ({ entryKey: `nodeKind:${kind}`, label: `${diagramNodeKindLabel(kind)} node kind` })),
         ...diagramEdgeKindsForType(diagramType).map((kind) => ({ entryKey: `connection:${kind}`, label: `${kind} connection` })),
-    ] : [], [diagramType])
+    ] : [], [diagramType, preset])
     const availableOptions = useMemo(
         () => semanticOptions.filter(({ entryKey }) => !entryKeys.includes(entryKey)),
         [entryKeys, semanticOptions],
@@ -77,7 +93,8 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
         && (includeUsedTypes || !usedEntryKeys.has(addedSemantic)) ? addedSemantic : ''
     const handleSemanticChange = (event: ChangeEvent<HTMLInputElement>) => {
         setAddedSemantic(event.target.value)
-        setAddedLabel(event.target.value.split(':')[1] ?? '')
+        const semantic = event.target.value.split(':')[1] ?? ''
+        setAddedLabel(event.target.value.startsWith('nodeKind:') ? diagramNodeKindLabel(semantic as DiagramNodeKind) : semantic)
         setValidationMessage(null)
     }
     const handleLabelChange = (event: ChangeEvent<HTMLInputElement>) => setAddedLabel(event.target.value)
@@ -90,12 +107,12 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
     }
     const handleAdd = () => {
         if (!selectedSemantic) {
-            setValidationMessage('Choose the node role or connection kind to add.')
+            setValidationMessage('Choose the node kind, node role, or connection kind to add.')
 
             return
         }
         if (session.addLegendEntry(newEntryFor(selectedSemantic, addedLabel)) === null) {
-            setValidationMessage('That node role or connection kind already has a legend entry.')
+            setValidationMessage('That node kind, node role, or connection kind already has a legend entry.')
 
             return
         }
@@ -111,7 +128,7 @@ export function DiagramLegendDetailsEditor({ onClose, session }: DiagramLegendDe
                     {validationMessage ? <Alert severity="error">{validationMessage}</Alert> : null}
                     {!session.getHasExplicitLegendSnapshot() ? (
                         <Typography color="text.secondary" variant="body2">
-                            This diagram has no explicit legend entries, so its legend is derived from the node roles and
+                            This diagram has no explicit legend entries, so its legend is derived from the node kinds and
                             connection kinds it uses. Adding an entry keeps those derived entries.
                         </Typography>
                     ) : null}

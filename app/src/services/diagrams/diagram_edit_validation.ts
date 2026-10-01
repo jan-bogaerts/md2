@@ -74,8 +74,9 @@ export function validateNewGroup(group: NewDiagramGroup) {
     requireOptionalGridNumber(group.y, 'groups.new.y')
 }
 
-export function validateNewLegendEntry(entry: NewDiagramLegendEntry, diagramType: DiagramData['meta']['type']) {
+export function validateNewLegendEntry(entry: NewDiagramLegendEntry, diagramType: DiagramData['meta']['type'], preset: DiagramData['meta']['preset']) {
     if ('role' in entry) requireDiagramEnum(entry.role, DIAGRAM_ROLES, 'meta.legend.new.role')
+    else if ('nodeKind' in entry) requireDiagramNodeKind(entry.nodeKind, diagramType, preset, 'meta.legend.new.nodeKind')
     else requireDiagramEdgeKind(entry.kind, diagramType, 'meta.legend.new.kind')
     if (entry.label !== undefined) requireDiagramString(entry.label, 'meta.legend.new.label')
 }

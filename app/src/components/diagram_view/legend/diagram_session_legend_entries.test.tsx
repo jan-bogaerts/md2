@@ -87,7 +87,7 @@ describe('DiagramSessionLegendEntries', () => {
         const session = startSession(diagram)
         const user = userEvent.setup()
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
-        const label = screen.getByRole('textbox', { name: 'Legend label for node:focal' })
+        const label = screen.getByRole('textbox', { name: 'Legend label for nodeKind:component' })
 
         await user.clear(label)
         await user.tab()
@@ -97,10 +97,10 @@ describe('DiagramSessionLegendEntries', () => {
         await user.clear(label)
         await user.type(label, 'Service')
         await user.tab()
-        expect(session.getLegendEntryFieldSnapshot('node:focal', 'label')).toBe('Service')
+        expect(session.getLegendEntryFieldSnapshot('nodeKind:component', 'label')).toBe('Service')
         await user.click(screen.getByRole('button', { name: 'Remove Service' }))
-        expect(session.getLegendEntryKeysSnapshot()).not.toContain('node:focal')
-        expect(screen.queryByRole('textbox', { name: 'Legend label for node:focal' })).not.toBeInTheDocument()
+        expect(session.getLegendEntryKeysSnapshot()).not.toContain('nodeKind:component')
+        expect(screen.queryByRole('textbox', { name: 'Legend label for nodeKind:component' })).not.toBeInTheDocument()
     })
 
     it('offers accessible role formatting and applies one New transaction', async () => {
@@ -167,9 +167,68 @@ describe('DiagramSessionLegendEntries', () => {
 
         render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
 
-        expect(screen.getByRole('textbox', { name: 'Legend label for node:focal' })).toHaveValue('focal')
-        expect(screen.getByRole('textbox', { name: 'Legend label for node:store' })).toHaveValue('store')
-        expect(screen.getByRole('textbox', { name: 'Legend label for connection:connection' })).toHaveValue('connection')
+        expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:component' })).toHaveValue('Component')
+        expect(screen.getByRole('textbox', { name: 'Legend label for connection:connection' })).toHaveValue('Connection')
+    })
+
+    it('updates derived labels when a used kind changes and preserves other rows', () => {
+        const flowDiagram: DiagramData = {
+            edges: [], groups: [],
+            meta: { description: 'Flow', preset: 'flowchart', title: 'Flow', type: 'flow', version: 1 },
+            nodes: [
+                { id: 'first', kind: 'start', label: 'First', role: 'focal' },
+                { id: 'second', kind: 'step', label: 'Second', role: 'focal' },
+            ],
+        }
+        const session = startSession(flowDiagram)
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+
+        expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:start' })).toHaveValue('Start')
+        expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:step' })).toHaveValue('Step')
+        act(() => { session.setNodeField('second', 'kind', 'end') })
+        expect(screen.queryByRole('textbox', { name: 'Legend label for nodeKind:step' })).not.toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:end' })).toHaveValue('End')
+        expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:start' })).toHaveValue('Start')
+    })
+
+    it('tracks added, changed, and removed connection kinds in New legend', () => {
+        const session = startSession(diagram)
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+
+        act(() => { session.setEdgeField('orders-store', 'kind', 'data') })
+        expect(screen.queryByRole('textbox', { name: 'Legend label for connection:connection' })).not.toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Legend label for connection:data' })).toHaveValue('Data')
+        act(() => { session.createEdge({ from: 'orders', kind: 'async', to: 'store' }) })
+        expect(screen.getByRole('textbox', { name: 'Legend label for connection:async' })).toHaveValue('Async')
+        act(() => { session.removeObjects([{ objectId: 'orders-store', objectKind: 'edge' }]) })
+        expect(screen.queryByRole('textbox', { name: 'Legend label for connection:data' })).not.toBeInTheDocument()
+    })
+
+    it('disables formatting for a saved node kind with no used nodes', () => {
+        const source: DiagramData = {
+            edges: [], groups: [],
+            meta: { description: 'Empty', legend: [{ label: 'Module', nodeKind: 'component' }], title: 'Empty', type: 'architecture', version: 1 },
+            nodes: [],
+        }
+        const session = startSession(source)
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+
+        expect(screen.getByRole('button', { name: 'Format Module' })).toBeDisabled()
+    })
+
+    it('chooses one used role before formatting a kind shared by several roles', async () => {
+        const session = startSession(diagram)
+        const user = userEvent.setup()
+        render(<ThemeProvider theme={theme}><DiagramSessionLegendEntries session={session} /></ThemeProvider>)
+
+        await user.click(screen.getByRole('button', { name: 'Format Component' }))
+        expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument()
+        await user.click(screen.getByRole('menuitem', { name: 'store' }))
+        await user.click(screen.getByRole('switch', { name: 'Bold' }))
+        await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+        expect(session.getNodeRoleFormattingSnapshot('store')?.font?.bold).toBe(true)
+        expect(session.getNodeRoleFormattingSnapshot('focal')).toBeUndefined()
     })
 
     it('reflects a renamed entry without re-reading the diagram', () => {
@@ -235,7 +294,7 @@ describe('DiagramLegend session tabs', () => {
         renderTabbedLegend(null)
 
         expect(screen.queryByLabelText('Diagram legend sides')).not.toBeInTheDocument()
-        expect(screen.getByLabelText('Diagram legend entries')).toHaveTextContent('focalstoreconnection')
+        expect(screen.getByLabelText('Diagram legend entries')).toHaveTextContent('ComponentConnection')
     })
 
     it('shows the New legend first and keeps Current reachable through its tab', async () => {
@@ -250,8 +309,28 @@ describe('DiagramLegend session tabs', () => {
 
         await userEvent.click(screen.getByRole('tab', { name: 'Current' }))
 
-        expect(screen.getByLabelText('Current diagram legend entries')).toHaveTextContent('focalstoreconnection')
+        expect(screen.getByLabelText('Current diagram legend entries')).toHaveTextContent('ComponentConnection')
         expect(screen.queryByLabelText('New diagram legend entries')).not.toBeInTheDocument()
+    })
+
+    it('keeps Current on saved labels while New follows edited kinds', async () => {
+        const flowDiagram: DiagramData = {
+            edges: [], groups: [],
+            meta: { description: 'Flow', preset: 'flowchart', title: 'Flow', type: 'flow', version: 1 },
+            nodes: [{ id: 'first', kind: 'start', label: 'First', role: 'focal' }],
+        }
+        const session = startSession(flowDiagram)
+        const service = new DiagramViewService()
+        render(
+            <ThemeProvider theme={theme}>
+                <DiagramLegend data={layout(flowDiagram)} service={service} session={session} />
+            </ThemeProvider>,
+        )
+
+        act(() => { session.setNodeField('first', 'kind', 'end') })
+        expect(screen.getByRole('textbox', { name: 'Legend label for nodeKind:end' })).toHaveValue('End')
+        await userEvent.click(screen.getByRole('tab', { name: 'Current' }))
+        expect(screen.getByLabelText('Current diagram legend entries')).toHaveTextContent('Start')
     })
 
     it('applies formatting only through the store selected by the Current or New tab', async () => {
@@ -277,7 +356,8 @@ describe('DiagramLegend session tabs', () => {
         expect(setCurrentFormatting).not.toHaveBeenCalled()
 
         await user.click(screen.getByRole('tab', { name: 'Current' }))
-        await user.click(screen.getByRole('button', { name: 'Format focal' }))
+        await user.click(screen.getByRole('button', { name: 'Format Component' }))
+        await user.click(screen.getByRole('menuitem', { name: 'focal' }))
         await user.click(screen.getByRole('switch', { name: 'Italic' }))
         await user.click(screen.getByRole('button', { name: 'Apply' }))
 

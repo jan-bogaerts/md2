@@ -17,7 +17,9 @@ interface DiagramLegendEntryEditorProps {
 function semanticLabel(entryKey: string) {
     const [entryType, semantic] = entryKey.split(':')
 
-    return entryType === 'node' ? `${semantic} node` : `${semantic} connection`
+    if (entryType === 'node') return `${semantic} node`
+    if (entryType === 'nodeKind') return `${semantic} node kind`
+    return `${semantic} connection`
 }
 
 /** Edits one legend entry, subscribing only to that entry's own label. */

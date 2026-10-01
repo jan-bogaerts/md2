@@ -1834,14 +1834,43 @@ describe('DiagramEditSessionService', () => {
 
         expect(service.addLegendEntry({ kind: 'data', label: 'Transfers' })).toBe('connection:data')
         const expectedLegend = [
-            { label: 'focal', role: 'focal' },
-            { label: 'store', role: 'store' },
-            { kind: 'connection', label: 'connection' },
+            { label: 'Component', nodeKind: 'component' },
+            { kind: 'connection', label: 'Connection' },
             { kind: 'data', label: 'Transfers' },
         ]
         expect(service.getEditableDiagram()?.meta.legend).toEqual(expectedLegend)
         const serialized = serializeDiagramData(service.getEditableDiagram() as DiagramData)
         expect(parseDiagramData(serialized).meta.legend).toEqual(expectedLegend)
+    })
+
+    it('saves separate custom labels for node kinds sharing one role and reloads them', () => {
+        const source: DiagramData = {
+            ...flowchartDiagram,
+            edges: [],
+            nodes: [
+                { id: 'start', kind: 'start', label: 'Begin', role: 'focal' },
+                { id: 'step', kind: 'step', label: 'Work', role: 'focal' },
+                { id: 'decision', kind: 'decision', label: 'Check', role: 'focal' },
+                { id: 'end', kind: 'end', label: 'Finish', role: 'focal' },
+            ],
+        }
+        const { service } = createHarness({ source })
+        service.start()
+
+        expect(service.selectLegendEntry('nodeKind:step')).toBe(true)
+        expect(service.materializeDerivedLegend()).toBe(true)
+        expect(service.getSelectedLegendEntryKeySnapshot()).toBe('nodeKind:step')
+        expect(service.setLegendEntryLabel('nodeKind:step', 'Process')).toBe(true)
+        expect(service.setLegendEntryLabel('nodeKind:decision', 'Branch')).toBe(true)
+        const saved = parseDiagramData(serializeDiagramData(service.getEditableDiagram() as DiagramData))
+        const { service: reloaded } = createHarness({ source: saved })
+        reloaded.start()
+
+        expect(reloaded.getLegendEntryKeysSnapshot()).toEqual([
+            'nodeKind:start', 'nodeKind:step', 'nodeKind:decision', 'nodeKind:end',
+        ])
+        expect(reloaded.getLegendEntryFieldSnapshot('nodeKind:step', 'label')).toBe('Process')
+        expect(reloaded.getLegendEntryFieldSnapshot('nodeKind:decision', 'label')).toBe('Branch')
     })
 
     it('rejects a derived duplicate and an incompatible connection kind before changing the legend', () => {

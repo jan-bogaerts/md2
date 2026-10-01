@@ -41,7 +41,10 @@ export type NewDiagramNode = Omit<DiagramNode, 'id'>
 export type NewDiagramEdge = Omit<DiagramEdge, 'id'>
 export type NewDiagramGroup = Omit<DiagramGroup, 'id'>
 export type NewDiagramSequenceFragment = Omit<DiagramSequenceFragment, 'id'>
-export type NewDiagramLegendEntry = { label?: string, role: DiagramRole } | { kind: DiagramEdgeKind, label?: string }
+export type NewDiagramLegendEntry =
+    | { label?: string, role: DiagramRole }
+    | { label?: string, nodeKind: DiagramNodeKind }
+    | { kind: DiagramEdgeKind, label?: string }
 
 export interface DiagramEditSessionSnapshot {
     sourceDiagramId: string

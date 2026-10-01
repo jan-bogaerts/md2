@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { layout } from '../../../services/diagrams/diagram_layout'
-import { derivedDiagramLegendEntries, diagramLegendEntries } from './diagram_legend_entries'
+import { diagramLegendEntries } from './diagram_legend_entries'
 
 describe('diagramLegendEntries', () => {
-    it('derives unique canonical roles and kinds in first-appearance order', () => {
+    it('derives unique Add tool labels for kinds in first-appearance order', () => {
         const data = layout({
             edges: [
                 { from: 'one', id: 'first', kind: 'async', to: 'two' },
@@ -20,10 +20,9 @@ describe('diagramLegendEntries', () => {
         })
 
         expect(diagramLegendEntries(data)).toEqual([
-            { entryType: 'node', label: 'store', role: 'store' },
-            { entryType: 'node', label: 'focal', role: 'focal' },
-            { entryType: 'connection', kind: 'async', label: 'async' },
-            { entryType: 'connection', kind: 'data', label: 'data' },
+            { entryType: 'nodeKind', label: 'Component', nodeKind: 'component', roles: ['store', 'focal'] },
+            { entryType: 'connection', kind: 'async', label: 'Async' },
+            { entryType: 'connection', kind: 'data', label: 'Data' },
         ])
     })
     it('uses explicit legend entries in stored order instead of deriving them', () => {
@@ -49,12 +48,49 @@ describe('diagramLegendEntries', () => {
         ])
     })
 
-    it('derives from supplied roles and kinds, removing duplicates in first-appearance order', () => {
-        expect(derivedDiagramLegendEntries(['store', 'focal', 'store'], ['call', 'call', 'return'])).toEqual([
-            { entryType: 'node', label: 'store', role: 'store' },
-            { entryType: 'node', label: 'focal', role: 'focal' },
-            { entryType: 'connection', kind: 'call', label: 'call' },
-            { entryType: 'connection', kind: 'return', label: 'return' },
+    it('keeps distinct flow node kinds despite shared role', () => {
+        const data = layout({
+            edges: [], groups: [],
+            meta: { description: 'Flow', preset: 'flowchart', title: 'Flow', type: 'flow', version: 1 },
+            nodes: ['start', 'end', 'step', 'decision'].map((kind, index) => ({ id: `node-${index}`, kind: kind as 'start' | 'end' | 'step' | 'decision', label: `Object ${index}`, role: 'focal' as const })),
+        })
+
+        expect(diagramLegendEntries(data).map(({ label }) => label)).toEqual(['Start', 'End', 'Step', 'Decision'])
+    })
+
+    it('resolves both mindmap labels even though Add offers one kind at a time', () => {
+        const data = layout({
+            edges: [{ from: 'root', id: 'link', kind: 'connection', to: 'topic' }], groups: [],
+            meta: { description: 'Mindmap', title: 'Mindmap', type: 'mindmap', version: 1 },
+            nodes: [
+                { id: 'root', kind: 'root', label: 'My idea', role: 'focal' },
+                { id: 'topic', kind: 'topic', label: 'My branch', role: 'backend' },
+            ],
+        })
+
+        expect(diagramLegendEntries(data).map(({ label }) => label)).toEqual(['Root', 'Topic', 'Connection'])
+    })
+
+    it('keeps an explicit kind label, role entry, connection label, and order', () => {
+        const data = layout({
+            edges: [{ from: 'one', id: 'link', kind: 'data', to: 'two' }], groups: [],
+            meta: {
+                description: 'Architecture', legend: [
+                    { kind: 'data', label: 'Sends' },
+                    { label: 'Storage', role: 'store' },
+                    { label: 'Module', nodeKind: 'component' },
+                ], title: 'Architecture', type: 'architecture', version: 1,
+            },
+            nodes: [
+                { id: 'one', label: 'One', role: 'focal' },
+                { id: 'two', label: 'Two', role: 'store' },
+            ],
+        })
+
+        expect(diagramLegendEntries(data)).toEqual([
+            { entryType: 'connection', kind: 'data', label: 'Sends' },
+            { entryType: 'node', label: 'Storage', role: 'store' },
+            { entryType: 'nodeKind', label: 'Module', nodeKind: 'component', roles: ['focal', 'store'] },
         ])
     })
 })

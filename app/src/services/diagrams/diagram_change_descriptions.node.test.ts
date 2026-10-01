@@ -357,6 +357,18 @@ describe('diagram change descriptions', () => {
         );
     });
 
+    it('describes a node-kind legend entry by kind', () => {
+        const change = diagramChange({
+            category: 'membership', field: 'legend', id: 'kind-add', objectId: 'nodeKind:step',
+            objectKind: 'legendEntry', originalValue: false, ownerId: 'diagram', value: true,
+        });
+        const source = reader({ changes: [change], legend: { 'nodeKind:step': 'Process' } });
+
+        expect(generateDiagramChangeDescription('kind-add', source)).toBe(
+            'Add legend entry "Process" for node kind "step".',
+        );
+    });
+
     it('fails clearly when a requested change no longer exists', () => {
         expect(() => generateDiagramChangeDescription('missing', reader())).toThrow('Diagram change missing does not exist');
     });

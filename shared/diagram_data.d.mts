@@ -63,6 +63,7 @@ export interface DiagramFormatting {
 
 export type DiagramLegendEntryData =
     | { label: string; role: DiagramRole }
+    | { label: string; nodeKind: DiagramNodeKind }
     | { kind: DiagramEdgeKind; label: string }
 export interface DiagramMeta {
     description: string

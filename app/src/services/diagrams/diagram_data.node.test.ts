@@ -182,6 +182,18 @@ describe('parseDiagramData', () => {
         expect(parseDiagramData(serializeDiagramData(parsed)).meta.legend).toEqual(legend)
     })
 
+    it('round-trips node-kind entries alongside existing role and connection entries', () => {
+        const diagram = validDiagram()
+        const legend = [
+            { label: 'Custom component', nodeKind: 'component' },
+            { label: 'Service', role: 'focal' },
+            { kind: 'connection', label: 'Calls' },
+        ]
+        diagram.meta = { ...diagram.meta, legend } as typeof diagram.meta
+
+        expect(parseDiagramData(serializeDiagramData(parseDiagramData(JSON.stringify(diagram)))).meta.legend).toEqual(legend)
+    })
+
     it('omits the legend key for diagrams without explicit entries', () => {
         const parsed = parseDiagramData(JSON.stringify(validDiagram()))
 
@@ -201,9 +213,13 @@ describe('parseDiagramData', () => {
             .toThrow('meta.legend[1] has duplicate entry for role:focal')
         expect(withLegend([{ kind: 'connection', label: 'One' }, { kind: 'connection', label: 'Two' }]))
             .toThrow('meta.legend[1] has duplicate entry for kind:connection')
+        expect(withLegend([{ label: 'One', nodeKind: 'component' }, { label: 'Two', nodeKind: 'component' }]))
+            .toThrow('meta.legend[1] has duplicate entry for nodeKind:component')
+        expect(withLegend([{ label: 'Both', nodeKind: 'component', role: 'focal' }]))
+            .toThrow('meta.legend[0] has exactly one of role, nodeKind or kind')
         expect(withLegend([{ kind: 'connection', label: 'Both', role: 'focal' }]))
-            .toThrow('meta.legend[0] has exactly one of role or kind')
-        expect(withLegend([{ label: 'Neither' }])).toThrow('meta.legend[0] has exactly one of role or kind')
+            .toThrow('meta.legend[0] has exactly one of role, nodeKind or kind')
+        expect(withLegend([{ label: 'Neither' }])).toThrow('meta.legend[0] has exactly one of role, nodeKind or kind')
         expect(withLegend([{ label: '   ', role: 'focal' }])).toThrow('meta.legend[0].label has invalid string')
         expect(withLegend([{ label: 'Unknown', role: 'nope' }])).toThrow('meta.legend[0].role has unsupported value nope')
         expect(withLegend('nope')).toThrow('meta.legend has invalid array')
@@ -215,6 +231,14 @@ describe('parseDiagramData', () => {
 
         expect(() => parseDiagramData(JSON.stringify(diagram)))
             .toThrow('meta.legend[0].kind has unsupported value call for architecture')
+    })
+
+    it('rejects a node-kind legend entry unsupported by its diagram type', () => {
+        const diagram = validDiagram()
+        diagram.meta = { ...diagram.meta, legend: [{ label: 'Start', nodeKind: 'start' }] } as typeof diagram.meta
+
+        expect(() => parseDiagramData(JSON.stringify(diagram)))
+            .toThrow('meta.legend[0].nodeKind has unsupported value start for architecture')
     })
 
     it('requires flow preset and accepts entity fields and cardinality', () => {

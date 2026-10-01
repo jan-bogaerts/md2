@@ -17,7 +17,7 @@ export function DiagramLegendEntryList({ entries, label, session, store }: Diagr
             aria-label={label}
             sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, minHeight: 0, overflowY: 'auto', p: 1.5 }}
         >
-            {entries.map((entry) => <DiagramLegendEntryRow entry={entry} key={entry.entryType === 'node' ? `node:${entry.role}` : `connection:${entry.kind}`} session={session} store={store} />)}
+            {entries.map((entry) => <DiagramLegendEntryRow entry={entry} key={entry.entryType === 'node' ? `node:${entry.role}` : entry.entryType === 'nodeKind' ? `nodeKind:${entry.nodeKind}` : `connection:${entry.kind}`} session={session} store={store} />)}
         </Box>
     )
 }
