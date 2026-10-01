@@ -384,20 +384,28 @@
           "sequence": 27,
           "timestamp": "2026-10-01T16:29:55.458Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Text beside label (Recommended)\nclaude-question-1: Clock: 0:30, 1:30",
+          "id": "agent-turn-35519169-69cf-4266-acab-ecc8b01a4f4a-answer-27",
+          "kind": "message",
+          "role": "user",
+          "sequence": 28,
+          "timestamp": "2026-10-01T16:32:12.177Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-50c2ba8a-b8bc-4401-b0fb-278dd7db1d63",
       "providerSessions": [],
       "startedAt": "2026-10-01T16:29:23.273Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 5875,
           "toolMs": 14913
         },
         "elapsedMs": 32185,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T16:32:12.177Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
