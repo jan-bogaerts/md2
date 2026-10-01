@@ -931,6 +931,14 @@
           "role": "assistant",
           "sequence": 69,
           "timestamp": "2026-10-01T09:09:42.132Z"
+        },
+        {
+          "content": "so this means we should not remove the conversation item when we receive the `agentPromptDispatched` message, right?",
+          "id": "submission-2fa8dbc7-e5c9-46b2-b1f5-9a6c1c0fe8a3",
+          "kind": "message",
+          "role": "user",
+          "sequence": 70,
+          "timestamp": "2026-10-01T09:11:02.273Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -945,14 +953,14 @@
         }
       ],
       "startedAt": "2026-10-01T08:58:59.287Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 21621,
           "toolMs": 2843
         },
         "elapsedMs": 137160,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T09:11:02.273Z"
       },
       "title": "+",
       "usage": {
