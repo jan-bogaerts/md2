@@ -10,8 +10,6 @@ agents:
   - design/activity/card__4bcc15e9-9de2-4f17-8df9-40205ed9777c.json
 policy:
 after: 50466266-0fa0-4392-855a-d21513ee700f
-branch: f_392_add_groups_to_sentry_config_tab
-worktree: 1
 changedFiles:
   - app/src/components/config/sentry_config_section.grouped.test.tsx
   - app/src/components/config/sentry_config_section.tsx
