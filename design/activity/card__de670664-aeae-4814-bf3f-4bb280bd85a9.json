@@ -959,6 +959,14 @@
           "role": "assistant",
           "sequence": 70,
           "timestamp": "2026-10-01T16:43:21.683Z"
+        },
+        {
+          "content": "One entry per node kind",
+          "id": "submission-eb80e89d-dbf4-4e60-b08e-663c9b298a95",
+          "kind": "message",
+          "role": "user",
+          "sequence": 71,
+          "timestamp": "2026-10-01T16:49:00.458Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -973,14 +981,14 @@
         }
       ],
       "startedAt": "2026-10-01T16:39:23.163Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 40318,
           "toolMs": 2886
         },
         "elapsedMs": 238520,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-01T16:49:00.458Z"
       },
       "title": "complete",
       "usage": {
