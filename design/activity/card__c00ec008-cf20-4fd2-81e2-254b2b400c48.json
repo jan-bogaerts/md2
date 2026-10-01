@@ -1340,6 +1340,38 @@
       "startedAt": "2026-10-01T16:57:13.144Z",
       "status": "completed",
       "rootConversationId": "agent-c16026cd-1713-4022-b547-8020138e94f7"
+    },
+    {
+      "commits": [
+        {
+          "commit": "8451b8c9f14b224efef0d7a815801c44ae080b80",
+          "committedAt": "2026-10-01T19:19:45+02:00",
+          "deletions": 8,
+          "filePaths": [
+            "app/src/components/shell/menu/app_menu.tsx",
+            "app/src/components/text_view/text_view.grouped.test.tsx",
+            "app/src/components/text_view/text_view.tsx",
+            "app/src/services/open_files_service.node.test.ts",
+            "app/src/services/open_files_service.ts",
+            "app/src/services/search/search_open_service.ts",
+            "app/src/services/shortcuts/keyboard_platform.node.test.ts",
+            "app/src/services/shortcuts/keyboard_platform.ts",
+            "app/src/services/shortcuts/keyboard_shortcut_service.node.test.ts",
+            "app/src/services/shortcuts/keyboard_shortcut_service.ts",
+            "app/src/services/shortcuts/list_tab_shortcuts.ts"
+          ],
+          "filesChanged": 11,
+          "insertions": 213,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-01T19:19:45+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "c00ec008-cf20-4fd2-81e2-254b2b400c48",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
