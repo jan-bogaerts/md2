@@ -1082,19 +1082,19 @@
           "agent": "codex",
           "conversationId": "01a0f6b0-3be9-7ea0-b3ef-227bdc6072bd",
           "createdAt": "2026-10-01T09:00:16.494Z",
-          "lastUsedAt": "2026-10-01T09:11:09.074Z",
-          "synchronizedThroughMessageId": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-5-assistant-1"
+          "lastUsedAt": "2026-10-01T09:12:26.248Z",
+          "synchronizedThroughMessageId": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-6-assistant-2"
         }
       ],
       "startedAt": "2026-10-01T08:58:59.287Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 28595,
           "toolMs": 3158
         },
-        "elapsedMs": 143961,
-        "runningStartedAt": "2026-10-01T09:11:58.533Z"
+        "elapsedMs": 171676,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
