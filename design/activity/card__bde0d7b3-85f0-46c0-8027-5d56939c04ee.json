@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 62828
+        "usedTokens": 67139
       },
       "entries": [
         {
@@ -814,6 +814,123 @@
           "role": "user",
           "sequence": 60,
           "timestamp": "2026-10-01T09:09:18.689Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-61",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_032262199da364c8016abe23413fbc87d2a94151fe193f0ef3",
+          "sequence": 61,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T09:09:21.351Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll trace the continuation path to see whether the claimed prompt becomes the next run’s input or gets dropped.\n\n",
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-4-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 62,
+          "timestamp": "2026-10-01T09:09:21.890Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_run.js' | Select-Object -Skip 770 -First 95\"",
+          "content": "            context: this.context,\r\n            conversationReservation: isRoot ? this.conversationReservation : null,\r\n            diagramFile,\r\n            diagramFooter: this.diagramFooter,\r\n            runId: this.runId,\r\n            onActiveRunChange,\r\n            ...(isRoot ? { onConversationSaved: this.markInitialConversationSaved.bind(this) } : {}),\r\n            onEvent,\r\n            project,\r\n            projectFolder: this.projectFolder,\r\n            primaryProject: this.project,\r\n            releasesFolder: this.releasesFolder,\r\n            runInput,\r\n            signal: this.controller.signal,\r\n            version: this.version,\r\n        };\r\n        const watcher = action.autoFinish?.when === 'diagram-created'\r\n            ? this.diagramOutputWatcherFactory({\r\n                diagramFile,\r\n                handleError: (error) => this.handleDiagramWatcherFailure(error),\r\n                handleReady: () => this.requestAutoFinish(),\r\n                projectRoot: project.rootPath,\r\n            })\r\n            : null;\r\n        try {\r\n            if (watcher) await watcher.start();\r\n            this.throwDiagramWatcherFailure();\r\n            let result = await this.agentExecutor.execute(input);\r\n            this.throwDiagramWatcherFailure();\r\n            const changedPaths = new Set(result.changedPaths ?? []);\r\n            let stderr = result.stderr ?? '';\r\n            let stdout = result.stdout ?? '';\r\n            let queuedPrompt = result.exitCode === 0\r\n                ? await this.claimNextQueuedPromptOrCloseQueue()\r\n                : null;\r\n            while (result.exitCode === 0 && queuedPrompt) {\r\n                result = await this.agentExecutor.execute({\r\n                    ...input,\r\n                    runInput: {\r\n                        ...runInput,\r\n                        continueFrom: result.reference,\r\n                        prompt: queuedPrompt.content,\r\n                        submissionId: queuedPrompt.id,\r\n                    },\r\n                });\r\n                this.throwDiagramWatcherFailure();\r\n                for (const changedPath of result.changedPaths ?? []) changedPaths.add(changedPath);\r\n                stderr += result.stderr ?? '';\r\n                stdout += result.stdout ?? '';\r\n                queuedPrompt = result.exitCode === 0 ? await this.claimNextQueuedPromptOrCloseQueue() : null;\r\n            }\r\n\r\n            return { ...result, changedPaths: [...changedPaths], stderr, stdout };\r\n        } finally {\r\n            if (watcher) await watcher.close();\r\n        }\r\n    }\r\n\r\n    handleDiagramWatcherFailure(error) {\r\n        this.diagramWatcherFailure = error instanceof Error ? error : new Error('Diagram output watcher failed');\r\n        if (this.activeAgentRunId) this.agentRunnerService.stop(this.activeAgentRunId);\r\n    }\r\n\r\n    throwDiagramWatcherFailure() {\r\n        if (this.diagramWatcherFailure) throw this.diagramWatcherFailure;\r\n    }\r\n\r\n    resolveActiveAgentPrompt(content) {\r\n        if (!this.activeAgentProject) throw new Error(`Action run has no active agent project: ${this.runId}`);\r\n\r\n        return resolvePopupPrompt(\r\n            content,\r\n            this.context,\r\n            this.activeAgentProject,\r\n            this.project,\r\n            this.projectFolder,\r\n            this.releasesFolder,\r\n            this.activeCardsFolder,\r\n            this.diagramPath ? resolveDiagramFile(this.activeAgentProject, this.diagramsFolder, this.diagramPath) : null,\r\n            this.version,\r\n        );\r\n    }\r\n\r\n    publish(action, phase, status, details) {\r\n        const event = {\r\n            actionId: action.id,\r\n            actionType: action.type,\r\n            autoFinish: action.autoFinish ?? null,\r\n            context: this.context,\r\n            runId: this.runId,\r\n            interactionReady: details.interactionReady ?? false,\r\n            phase,\r\n            output: action.output ?? null,\r\n            rootActionId: this.rootAction.id,\r\n            status,\r\n",
+          "durationMs": 33,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-63",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_run.js' | Select-Object -Skip 770 -First 95\"",
+          "providerItemId": "exec-d0e896b9-9a56-4f67-be0a-ade626612a42",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:09:25.808Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"queuedPrompt|continueFrom|runInput|executeAgent\" desktop/src/actions/action/action_run.js | Select-Object -Last 55'",
+          "content": "36:        this.runInput = snapshot.runInput;\r\n38:        this.version = snapshot.runInput.version;\r\n309:            if (this.requestedInput && this.runInput[this.requestedInput.type] === undefined) {\r\n401:        const command = action.type === 'command' && isRoot ? this.runInput.command ?? action.command : action.command;\r\n485:        if (action.type === 'command' && isRoot && this.runInput.continueFrom) {\r\n499:                ? await this.executeAgentAction(action, phase, isRoot, project)\r\n609:            command: isRoot ? this.runInput.command ?? action.command : action.command,\r\n626:    async executeAgentAction(action, phase, isRoot, project) {\r\n762:        const runInput = isRoot ? this.runInput : { extraPrompt: '' };\r\n783:            runInput,\r\n803:            let queuedPrompt = result.exitCode === 0\r\n806:            while (result.exitCode === 0 && queuedPrompt) {\r\n809:                    runInput: {\r\n810:                        ...runInput,\r\n811:                        continueFrom: result.reference,\r\n812:                        prompt: queuedPrompt.content,\r\n813:                        submissionId: queuedPrompt.id,\r\n820:                queuedPrompt = result.exitCode === 0 ? await this.claimNextQueuedPromptOrCloseQueue() : null;\r\n",
+          "durationMs": 41,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-64",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"queuedPrompt|continueFrom|runInput|executeAgent\" desktop/src/actions/action/action_run.js | Select-Object -Last 55'",
+          "providerItemId": "exec-324d5e0d-486d-446a-a01d-e6c4a861bc2c",
+          "sequence": 64,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:09:26.008Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-65",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_032262199da364c8016abe23496f4887d2be7e5195c3a75016",
+          "sequence": 65,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T09:09:29.721Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_agent_executor.js' | Select-Object -First 180\"",
+          "content": "const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');            ...executionResult,\r\n            agent: resolvedAgent.agent,\r\n            model: resolvedAgent.model,\r\n            permissionMode: resolvedAgent.permissionMode,\r\n            thinkingLevel: resolvedAgent.thinkingLevel,\r\n        };\r\n    }\r\n\r\n    async runAgentTurn(input, request, fallback) {\r\n        const result = await this.runAgentProcess(input, request);\r\n        if (!request.providerConversationId || !result.missingSession || result.turnStarted) return result;\r\n\r\n        const fallbackRequest = {\r\n            ...withoutProviderConversationId(request),\r\n            command: fallback.command,\r\n            conversation: result.conversation,\r\n            ...(fallback.contextInput ? { contextInput: fallback.contextInput } : {}),\r\n            reference: result.reference,\r\n            reuseLastUserMessage: true,\r\n        };\r\n\r\n        return this.runAgentProcess(input, fallbackRequest);\r\n    }\r\n\r\n    async runAgentProcess(input, request) {\r\n        const { promise, reject, resolve } = Promise.withResolvers();\r\n        const onComplete = (exitCode, run) => resolve({\r\n            command: request.command,\r\n            changedPaths: run.changedPaths ? [...run.changedPaths] : [],\r\n            conversation: run.conversation,\r\n            conversationId: run.conversation.id,\r\n            exitCode,\r\n            missingSession: run.missingSession,\r\n            prompt: request.prompt,\r\n",
+          "durationMs": 116,
+          "exitCode": 0,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-66",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'desktop/src/actions/action/action_agent_executor.js' | Select-Object -First 180\"",
+          "providerItemId": "exec-d3294537-6641-486f-9c5d-95d1fa1f864c",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-10-01T09:09:34.916Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"submissionId|continueFrom|prompt:\" desktop/src/actions/action/action_agent_executor.js desktop/src/actions/agent/agent_runner_service.js desktop/src/actions/agent/agent_run_* desktop/src/actions/agent/agent_conversation.js'",
+          "content": "rg: desktop/src/actions/agent/agent_run_*: The filename, directory name, or volume label syntax is incorrect. (os error 123)\ndesktop/src/actions/action/action_agent_executor.js:46:        const sourceConversation = input.runInput.continueFrom\ndesktop/src/actions/action/action_agent_executor.js:49:                continuationReferencePath(input.runInput.continueFrom),\ndesktop/src/actions/action/action_agent_executor.js:66:                    { output: input.action.output, prompt: input.runInput.prompt },\ndesktop/src/actions/action/action_agent_executor.js:114:        const reference = input.runInput.continueFrom\ndesktop/src/actions/action/action_agent_executor.js:115:            ? continuationReferencePath(input.runInput.continueFrom)\ndesktop/src/actions/action/action_agent_executor.js:131:            ...(input.runInput.submissionId ? { submissionId: input.runInput.submissionId } : {}),\ndesktop/src/actions/action/action_agent_executor.js:180:            prompt: request.prompt,\ndesktop/src/actions/agent/agent_runner_service.js:139:            conversation.entries.push(createMessageEntry(request.submissionId ?? `${id}-user`, 'user', prompt, startedAt, undefined, nextSequence));\ndesktop/src/actions/agent/agent_runner_service.js:254:    sendMessage(runId, content, submissionId) {\ndesktop/src/actions/agent/agent_runner_service.js:256:        return agentInteractions.sendMessage(this, this.requireStreamingRun(runId), content, submissionId);\n",
+          "durationMs": 48,
+          "exitCode": 1,
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-67",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"submissionId|continueFrom|prompt:\" desktop/src/actions/action/action_agent_executor.js desktop/src/actions/agent/agent_runner_service.js desktop/src/actions/agent/agent_run_* desktop/src/actions/agent/agent_conversation.js'",
+          "providerItemId": "exec-722ac61d-661d-45f1-984d-accfa4a79aee",
+          "sequence": 67,
+          "status": "failed",
+          "timestamp": "2026-10-01T09:09:34.896Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-event-68",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_032262199da364c8016abe2350f0d087d28f2d1e52d697df76",
+          "sequence": 68,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-01T09:09:38.187Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "No. I described that path imprecisely. For a queued continuation, the backend removes the prompt from the queue, then passes its content and submission ID as the **next agent run’s input** ([action_run.js](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action/action_run.js:803)). The executor sends that input when it starts the continued run ([action_agent_executor.js](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action/action_agent_executor.js:114)).\n\nSo the message is sent, but through a new run rather than `sendMessage` on the current streaming run. `agentPromptDispatched` still occurs before that new run succeeds; it only means the queue has handed off the prompt.\n\n",
+          "id": "agent-turn-9d27063a-9753-41f1-b958-f2c57d4d8351-turn-4-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 69,
+          "timestamp": "2026-10-01T09:09:42.132Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -831,19 +948,19 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 18912,
-          "toolMs": 2578
+          "reasoningMs": 21621,
+          "toolMs": 2843
         },
         "elapsedMs": 113717,
         "runningStartedAt": "2026-10-01T09:09:18.689Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 634880,
-        "inputTokens": 62963,
-        "outputTokens": 2803,
-        "reasoningTokens": 628,
-        "totalTokens": 701274
+        "cachedInputTokens": 824320,
+        "inputTokens": 67804,
+        "outputTokens": 3282,
+        "reasoningTokens": 715,
+        "totalTokens": 896121
       },
       "usageSchemaVersion": 1,
       "viewed": true
