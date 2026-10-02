@@ -3,7 +3,7 @@ author:
 id: B_256
 internalId: 21b6ec8e-0455-42ef-9680-36dd39c52fd5
 title: Scheduling actions requires local mode
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,12 @@ policy:
 after: 11011a61-0393-4aa1-9b89-f52be576aa72
 branch: b_256_scheduling_actions_requires_local_mode
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup_defaults.node.test.ts
+  - app/src/components/actions/run/schedule/action_schedule_owner.test.tsx
+  - app/src/services/actions/active_schedule_service.node.test.ts
+  - app/src/services/data/remote_control_storage_service.node.test.ts
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
 ---
 
 Tried to schedule an action over websocket. Got this error:
