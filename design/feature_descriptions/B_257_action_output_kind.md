@@ -11,4 +11,4 @@ policy:
 ---
 When editing an action in the action editor  we have the field ´output kind´ with 2 options.
 
-If you select ´regular´&#x20;
+If you select ´regular´ , the select remains empty, it should say ´regular´
