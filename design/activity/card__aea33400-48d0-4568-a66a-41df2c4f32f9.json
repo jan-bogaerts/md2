@@ -1,0 +1,68 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    },
+    "md2.custom-prompt": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "aea33400-48d0-4568-a66a-41df2c4f32f9",
+      "cardPath": "design/feature_descriptions/B_228_open_new_project_gives_error.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "can you check if design/feature_descriptions/B_228_open_new_project_gives_error.md is still valid? I think it has been fixed by a recent pr we received.",
+          "id": "submission-b3b80a8e-b144-4fd1-a32f-edabcb026d06",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-02T13:17:07.084Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-cbd671c9-4a55-44ba-9145-28cd48e02a07",
+      "providerSessions": [],
+      "startedAt": "2026-10-02T13:17:07.084Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-02T13:17:07.084Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "aea33400-48d0-4568-a66a-41df2c4f32f9",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
