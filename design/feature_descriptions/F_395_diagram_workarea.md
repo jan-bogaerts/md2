@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__e4aa0a7e-bcfd-4c1c-a665-9d9a2cf52918.json
 policy:
-branch: f_395_diagram_workarea
-worktree: 2
 changedFiles:
   - app/src/components/diagram_view/comparison/diagram_comparison.test.tsx
   - app/src/components/diagram_view/comparison/tabbed_diagram_comparison.test.tsx
