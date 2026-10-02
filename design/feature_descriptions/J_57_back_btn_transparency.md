@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__8dfd4334-fd0d-429c-84dc-1657bb0b73ee.json
 policy:
+branch: j_57_back_btn_transparency
+worktree: 3
 ---
 
 The app bar and markdown toolbar are wrapped on our own custom scrollbox. It shows a back button when not enough room and user scrolled.
