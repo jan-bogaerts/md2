@@ -6501,3 +6501,10 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-02T14:47:00.466Z,account_usage,claude,default,weekly,10080,2026-10-04T17:00:00.000Z,,,,,,6,0
 2026-10-02T14:51:00.484Z,account_usage,claude,default,weekly,10080,2026-10-04T16:59:00.000Z,,,,,,6,0
 2026-10-02T14:55:00.512Z,account_usage,claude,default,weekly,10080,2026-10-04T17:00:00.000Z,,,,,,6,0
+2026-10-02T14:58:38.832Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:03.000Z,,,,,,20,1
+2026-10-02T14:57:00.524Z,account_usage,claude,default,weekly,10080,2026-10-04T16:59:00.000Z,,,,,,6,0
+2026-10-02T14:59:39.176Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:04.000Z,,,,,,20,0
+2026-10-02T14:59:39.924Z,account_usage,codex,codex,primary,10080,2026-10-03T17:16:03.000Z,,,,,,20,0
+2026-10-02T15:00:06.333Z,token_usage,codex,,,,,54906,287872,1821,387,344986,,
+2026-10-02T15:00:38.529Z,token_usage,codex,,,,,55935,215936,1832,241,273944,,
+2026-10-02T15:01:06.098Z,token_usage,claude,,,,,22,498331,4525,0,502878,,
