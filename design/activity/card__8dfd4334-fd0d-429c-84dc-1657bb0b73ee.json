@@ -455,7 +455,7 @@
         "costUsd": 1.1678929999999998
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
@@ -498,6 +498,30 @@
       "startedAt": "2026-10-02T16:50:03.782Z",
       "status": "completed",
       "rootConversationId": "agent-0d68df54-824a-4fa6-8857-18994d795950"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-10-02T17:01:41.843Z",
+      "conversationIds": [
+        "agent-0d68df54-824a-4fa6-8857-18994d795950"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-2ae23e75-c96a-4377-88c4-34547471da37",
+      "origin": {
+        "cardInternalId": "8dfd4334-fd0d-429c-84dc-1657bb0b73ee",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-0d68df54-824a-4fa6-8857-18994d795950",
+      "startedAt": "2026-10-02T17:01:00.300Z",
+      "status": "completed"
     }
   ],
   "version": 5
