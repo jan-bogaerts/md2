@@ -3,7 +3,7 @@ author:
 id: F_405
 internalId: a7e89248-b83d-4ce4-b168-59e482d8adbc
 title: Stats release filter allow all and selection
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,16 @@ agents:
 policy:
 branch: f_405_stats_release_filter_allow_all_and_selection
 worktree: 1
+changedFiles:
+  - app/src/components/stats_view/stats_content.test.tsx
+  - app/src/components/stats_view/stats_menu_tab.test.tsx
+  - app/src/components/stats_view/stats_menu_tab.tsx
+  - app/src/services/stats/project_stats_service.node.test.ts
+  - app/src/services/stats/project_stats_service.ts
+  - app/src/services/stats/project_stats_types.ts
+  - app/src/services/stats/stats_options.node.test.ts
+  - app/src/services/stats/stats_options.ts
+  - app/src/services/stats/stats_snapshot_builder.ts
 ---
 
 On the stats view, we have a release filter. This works, but we should add 2 more things:
