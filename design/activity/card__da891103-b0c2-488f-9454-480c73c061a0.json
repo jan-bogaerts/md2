@@ -4229,6 +4229,41 @@
       "startedAt": "2026-10-01T17:43:14.654Z",
       "status": "completed",
       "rootConversationId": "agent-098cbe35-6f64-4894-be81-9cd1c3cfcde6"
+    },
+    {
+      "commits": [
+        {
+          "commit": "8cd8f182e64ca15f198fa175911dd5cbe139c879",
+          "committedAt": "2026-10-02T10:28:58+02:00",
+          "deletions": 83,
+          "filePaths": [
+            "app/src/components/actions/editor/action_editor.grouped.test.tsx",
+            "app/src/components/actions/editor/action_editor_content.tsx",
+            "app/src/components/actions/editor/list_action_editor.tsx",
+            "app/src/components/actions/editor/use_action_editor_controller.ts",
+            "app/src/components/editor/data_sources/card_markdown_data_source.node.test.ts",
+            "app/src/components/hooks/use_action_file_tree_actions.ts",
+            "app/src/components/text_view/file_tree_view.tsx",
+            "app/src/services/actions/action_draft_store.ts",
+            "app/src/services/actions/action_service.node.test.ts",
+            "app/src/services/actions/action_service.ts",
+            "app/src/services/data/data_service.service.test.ts",
+            "app/src/services/open_files_service.node.test.ts",
+            "app/src/services/open_files_service.ts",
+            "app/src/services/project/project_loading.test.ts"
+          ],
+          "filesChanged": 14,
+          "insertions": 270,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-02T10:28:58+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "da891103-b0c2-488f-9454-480c73c061a0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
