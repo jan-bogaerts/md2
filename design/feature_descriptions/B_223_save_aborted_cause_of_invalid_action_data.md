@@ -10,8 +10,6 @@ agents:
   - design/activity/card__da891103-b0c2-488f-9454-480c73c061a0.json
 policy:
 after: 2775052a-2e84-4466-a320-155c8ec05bac
-branch: b_223_save_aborted_cause_of_invalid_action_data
-worktree: 1
 changedFiles:
   - app/src/components/actions/editor/action_editor.grouped.test.tsx
   - app/src/components/actions/editor/action_editor_content.tsx
