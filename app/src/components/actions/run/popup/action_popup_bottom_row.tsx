@@ -8,6 +8,7 @@ import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'
 import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs'
+import { usePendingActionScheduleForCardAndAction } from '../../../hooks/use_pending_action_schedule'
 import {
     isBrowsingHistoricalConversation,
     type ActionConversationStore,
@@ -58,6 +59,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const settings = useActionRunSettings(action, settingsStore)
+    const scheduled = usePendingActionScheduleForCardAndAction(assignmentContext.cardInternalId, action.id)
     const boundRunId = useBoundRunId(bindingStore)
     const runStatus = useRunSelector(boundRunId, (run) => run?.status ?? 'idle')
     const agentActive = useRunSelector(boundRunId, (run) => {
@@ -213,6 +215,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                                     disabled={!settings.backendAvailable}
                                     onClick={handleToggleSchedule}
                                     size="small"
+                                    sx={{ color: scheduled ? 'warning.main' : undefined }}
                                 >
                                     <CalendarOutline sx={{ fontSize: 18 }} />
                                 </IconButton>

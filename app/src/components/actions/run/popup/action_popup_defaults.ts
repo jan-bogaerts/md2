@@ -181,6 +181,8 @@ export async function defaultScheduleAction(action: ActionDefinition, context: A
 
     await bridge.registerActionSchedule({ actionId: action.id, context, trigger })
     await activeScheduleService.refresh()
+    const { error } = activeScheduleService.getSnapshot()
+    if (error) throw new Error(error)
 }
 
 export function statusColor(status: PopupRunStatus) {

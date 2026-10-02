@@ -2,10 +2,12 @@ import { Box, ToggleButton, Tooltip } from '@mui/material'
 import Circle from 'mdi-material-ui/Circle'
 import HelpCircleOutline from 'mdi-material-ui/HelpCircleOutline'
 import Play from 'mdi-material-ui/Play'
+import TimerOutlined from '@mui/icons-material/TimerOutlined'
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionRunStatus } from '../../../../data/action_run_types'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
 import { useContextActionAgentState } from '../../../hooks/use_context_action_agent_state'
+import { usePendingActionScheduleForCardAndAction } from '../../../hooks/use_pending_action_schedule'
 
 interface ActionSelectorButtonProps {
     action: ActionDefinition
@@ -16,11 +18,13 @@ interface ActionSelectorButtonProps {
 /** One action selector leaf, including scoped live and persisted agent state. */
 export function ActionSelectorButton({ action, context, liveStatus }: ActionSelectorButtonProps) {
     const persistedState = useContextActionAgentState(action.id, context)
+    const scheduled = usePendingActionScheduleForCardAndAction(context.cardInternalId, action.id)
     const hasLiveState = liveStatus === 'queued' || liveStatus === 'running' || liveStatus === 'waitingForInput'
     const isQueued = liveStatus === 'queued'
     const isWaiting = liveStatus === 'waitingForInput' || (!hasLiveState && persistedState === 'waiting for input')
     const isRunning = liveStatus === 'running' || (!hasLiveState && persistedState === 'running')
     const hasUnseenResult = !hasLiveState && persistedState === 'unseen result'
+    const showScheduled = scheduled && !isQueued && !isWaiting && !isRunning && !hasUnseenResult
     const accessibleLabel = action.id === CUSTOM_PROMPT_ACTION_ID ? 'Custom prompt' : action.label
     const stateDescription = isQueued
         ? 'Action is queued'
@@ -30,7 +34,9 @@ export function ActionSelectorButton({ action, context, liveStatus }: ActionSele
                 ? 'Agent is running'
                 : hasUnseenResult
                     ? 'New agent result available'
-                    : null
+                    : showScheduled
+                        ? 'Action scheduled'
+                        : null
 
     return (
         <Tooltip
@@ -51,6 +57,14 @@ export function ActionSelectorButton({ action, context, liveStatus }: ActionSele
                                 borderColor: 'warning.main',
                                 color: 'warning.main',
                             },
+                        },
+                    }),
+                    ...(showScheduled && {
+                        '&.MuiToggleButton-root.MuiToggleButtonGroup-grouped': {
+                            borderColor: 'warning.main',
+                            color: 'warning.main',
+                            '&:hover': { borderColor: 'warning.main', color: 'warning.main' },
+                            '&.Mui-selected': { borderColor: 'warning.main', color: 'warning.main' },
                         },
                     }),
                     ...(isRunning && {
@@ -78,6 +92,7 @@ export function ActionSelectorButton({ action, context, liveStatus }: ActionSele
                 <Box component="span" sx={{ alignItems: 'center', display: 'inline-flex', gap: 0.5, position: 'relative', zIndex: 1 }}>
                     {isWaiting ? <HelpCircleOutline aria-hidden sx={{ fontSize: 13 }} /> : null}
                     {isRunning ? <Play aria-hidden sx={{ fontSize: 13 }} /> : null}
+                    {showScheduled ? <TimerOutlined aria-hidden sx={{ fontSize: 13 }} /> : null}
                     {action.label}
                 </Box>
                 {hasUnseenResult ? (

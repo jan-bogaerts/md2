@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ActionService } from './action_service'
-import type { AnySchedule } from '../../data/action_schedule_types'
+import type { ActionSchedule, AnySchedule } from '../../data/action_schedule_types'
 import type { DataService } from '../data/data_service'
 import type { Card, ProjectSnapshot } from '../../data/data_types'
 import type { ClaudeRateLimitService } from '../agents/claude_rate_limit_service'
 import type { CodexRateLimitService } from '../agents/codex_rate_limit_service'
 import { ActiveScheduleService } from './active_schedule_service'
 
-function schedule(): AnySchedule {
+function schedule(): ActionSchedule {
     return {
         actionId: 'implement',
         context: { cardInternalId: 'card-1', kind: 'card' },
@@ -26,9 +26,9 @@ function createHarness() {
     const codexEvents = new EventTarget()
     const bridge = {
         deleteSchedule: vi.fn(async () => []),
-        listActiveSchedules: vi.fn(async () => [schedule()]),
+        listActiveSchedules: vi.fn(async (): Promise<AnySchedule[]> => [schedule()]),
     }
-    const project = { branch: 'main', id: 'project', rootPath: 'C:/project' }
+    let project = { branch: 'main', id: 'project', rootPath: 'C:/project' }
     let cards = [{ header: { id: 'F-1', internalId: 'card-1', title: 'First' }, path: 'design/F-1.md' } as Card]
     const rateLimitState = { receivedAt: null, snapshot: null, stale: false }
     const actionService = Object.assign(actionEvents, { getActions: () => [] }) as unknown as ActionService
@@ -54,7 +54,13 @@ function createHarness() {
         getProject: () => project,
     })
 
-    return { bridge, dataEvents, service, setCards: (nextCards: Card[]) => { cards = nextCards } }
+    return {
+        bridge,
+        dataEvents,
+        service,
+        setCards: (nextCards: Card[]) => { cards = nextCards },
+        setProject: (nextProject: typeof project) => { project = nextProject },
+    }
 }
 
 describe('ActiveScheduleService', () => {
@@ -104,6 +110,76 @@ describe('ActiveScheduleService', () => {
         dataEvents.dispatchEvent(new Event('changed'))
 
         expect(service.getSnapshot().items[0].target?.path).toBe('design/F-1-renamed.md')
+        service.stop()
+    })
+
+    it('selects only pending actions for target card and action, and not trigger cards', async () => {
+        const { bridge, service } = createHarness()
+        const pending = schedule()
+        bridge.listActiveSchedules.mockResolvedValueOnce([
+            pending,
+            { ...pending, id: 'schedule-2' },
+            { ...pending, id: 'schedule-3', status: 'running' },
+            {...pending, context: { cardInternalId: 'card-2', kind: 'card' }, id: 'schedule-4', trigger: {cardInternalId: 'card-3', registrationState: 'todo', targetState: 'done', type: 'card-state'}},
+            { ...pending, context: { cardInternalId: 'card-4', kind: 'card' }, id: 'schedule-5', status: 'running' },
+            {
+                actionCompleted: false, actionId: 'implement', cardInternalIds: ['card-5'], createdAt: pending.createdAt,
+                currentIndex: 0, currentRunId: null, failure: null, id: 'schedule-6', kind: 'sequence', readyState: 'todo',
+                readyStateMet: false, status: 'pending', trigger: { type: 'now' },
+            },
+        ])
+        service.start()
+        await vi.waitFor(() => expect(service.getSnapshot().loading).toBe(false))
+
+        expect(service.hasPendingActionForCard('card-1')).toBe(true)
+        expect(service.hasPendingActionForCardAndAction('card-1', 'implement')).toBe(true)
+        expect(service.hasPendingActionForCardAndAction('card-1', 'other')).toBe(false)
+        expect(service.hasPendingActionForCardAndAction('card-2', 'implement')).toBe(true)
+        expect(service.hasPendingActionForCard('card-3')).toBe(false)
+        expect(service.hasPendingActionForCard('card-4')).toBe(false)
+        expect(service.hasPendingActionForCard('card-5')).toBe(false)
+        service.stop()
+    })
+
+    it('notifies scoped subscribers only when last matching pending schedule changes', async () => {
+        const { bridge, service } = createHarness()
+        const changedCard = vi.fn()
+        const changedAction = vi.fn()
+        const unrelatedAction = vi.fn()
+        service.subscribeCard('card-1', changedCard)
+        service.subscribeCardAction('card-1', 'implement', changedAction)
+        service.subscribeCardAction('card-1', 'other', unrelatedAction)
+        bridge.listActiveSchedules.mockResolvedValueOnce([schedule(), { ...schedule(), id: 'schedule-2' }])
+        service.start()
+        await vi.waitFor(() => expect(service.getSnapshot().loading).toBe(false))
+        expect(changedCard).toHaveBeenCalledTimes(1)
+        expect(changedAction).toHaveBeenCalledTimes(1)
+
+        bridge.listActiveSchedules.mockResolvedValueOnce([{ ...schedule(), id: 'schedule-2' }])
+        await service.refresh()
+        expect(changedCard).toHaveBeenCalledTimes(1)
+        expect(changedAction).toHaveBeenCalledTimes(1)
+
+        bridge.listActiveSchedules.mockResolvedValueOnce([])
+        await service.refresh()
+        expect(changedCard).toHaveBeenCalledTimes(2)
+        expect(changedAction).toHaveBeenCalledTimes(2)
+        expect(unrelatedAction).not.toHaveBeenCalled()
+        expect(service.hasPendingActionForCard('card-1')).toBe(false)
+        service.stop()
+    })
+
+    it('clears pending indicators before loading another project', async () => {
+        const { bridge, dataEvents, service, setProject } = createHarness()
+        service.start()
+        await vi.waitFor(() => expect(service.hasPendingActionForCard('card-1')).toBe(true))
+
+        bridge.listActiveSchedules.mockResolvedValueOnce([])
+        setProject({ branch: 'other', id: 'project', rootPath: 'C:/project' })
+        dataEvents.dispatchEvent(new Event('changed'))
+        expect(service.hasPendingActionForCard('card-1')).toBe(false)
+        await vi.waitFor(() => expect(service.getSnapshot().loading).toBe(false))
+        expect(service.hasPendingActionForCard('card-1')).toBe(false)
         service.stop()
     })
 })

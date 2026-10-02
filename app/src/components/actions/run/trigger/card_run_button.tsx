@@ -2,6 +2,7 @@ import { Box, Button, Tooltip } from '@mui/material'
 import Circle from 'mdi-material-ui/Circle'
 import HelpCircleOutline from 'mdi-material-ui/HelpCircleOutline'
 import Play from 'mdi-material-ui/Play'
+import TimerOutlined from '@mui/icons-material/TimerOutlined'
 import type { MouseEvent } from 'react'
 import type { ActionContext } from '../../../../data/action_context'
 import type { CardHeader } from '../../../../data/data_types'
@@ -10,6 +11,7 @@ import { agentStateDescription } from '../../../../services/agents/card_agent_st
 import { useCardAgentState } from '../../../hooks/use_agent_acknowledgements'
 import { useRunningActionForContext } from '../../../hooks/use_action_runs'
 import { useProjectReadOnly } from '../../../hooks/use_project_read_only'
+import { usePendingActionScheduleForCard } from '../../../hooks/use_pending_action_schedule'
 
 interface CardRunButtonProps {
     card: { header: Pick<CardHeader, 'internalId'> }
@@ -21,6 +23,7 @@ export function CardRunButton({ card, context }: CardRunButtonProps) {
     const agentState = useCardAgentState(card.header.internalId)
     const runningRun = useRunningActionForContext(context)
     const readOnly = useProjectReadOnly()
+    const scheduled = usePendingActionScheduleForCard(card.header.internalId)
     const liveStatus = runningRun?.status
     const isQueued = liveStatus === 'queued'
     const isWaiting = liveStatus ? liveStatus === 'waitingForInput' : agentState === 'waiting for input'
@@ -33,6 +36,7 @@ export function CardRunButton({ card, context }: CardRunButtonProps) {
             : isRunning && agentState !== 'running'
                 ? 'Action is running'
                 : agentStateDescription(agentState)
+    const showScheduled = scheduled && !isQueued && !isWaiting && !isRunning && !isUnseen
     const accent = isWaiting ? 'warning.main' : isUnseen ? 'info.main' : 'primary.main'
     const handleRun = (event: MouseEvent<HTMLButtonElement>) => {
         cardPopupService.toggleAction(context, event.currentTarget)
@@ -84,6 +88,7 @@ export function CardRunButton({ card, context }: CardRunButtonProps) {
             </Button>
             {isWaiting ? <HelpCircleOutline sx={{ color: accent, fontSize: 11, position: 'absolute', right: -2, top: -2, zIndex: 2 }} /> : null}
             {isUnseen ? <Circle sx={{ color: accent, fontSize: 8, position: 'absolute', right: 0, top: 0, zIndex: 2 }} /> : null}
+            {showScheduled ? <TimerOutlined aria-label="Action scheduled" sx={{ color: 'warning.main', fontSize: 12, position: 'absolute', right: 0, top: 0, zIndex: 2 }} /> : null}
         </Box>
     )
 

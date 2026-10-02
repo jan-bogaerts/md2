@@ -26,6 +26,19 @@ describe('defaultScheduleAction', () => {
         expect(registerActionSchedule).toHaveBeenCalledWith({ actionId: 'implement', context, trigger })
         expect(refresh).toHaveBeenCalledOnce()
     })
+
+    it('reports refresh failure after registration so schedule popover stays open', async () => {
+        setActionBridgeOverride({ registerActionSchedule: vi.fn(async () => undefined) } as unknown as ElectronActionBridge)
+        projectAccessService.setReadOnly(false)
+        vi.spyOn(activeScheduleService, 'refresh').mockResolvedValue(undefined)
+        vi.spyOn(activeScheduleService, 'getSnapshot').mockReturnValue({...activeScheduleService.getSnapshot(), error: 'Could not load schedules'})
+
+        await expect(defaultScheduleAction(
+            { id: 'implement' } as ActionDefinition,
+            { cardInternalId: 'card-1', kind: 'card' },
+            { timestamp: '2026-09-19T10:00:00.000Z', type: 'at' },
+        )).rejects.toThrow('Could not load schedules')
+    })
 })
 
 describe('defaultConvertPromptToAction', () => {

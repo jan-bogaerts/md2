@@ -465,7 +465,21 @@ describe('ActionPopup', () => {
             context: { kind: 'project' },
             trigger: { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
         }))
-        expect(screen.getByRole('status')).toHaveTextContent('Schedule registered')
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())
+        expect(screen.getByRole('dialog', { name: 'Run actions for Project' })).toBeInTheDocument()
+    })
+
+    it('colors Schedule control only while scheduled card action is selected', () => {
+        vi.spyOn(activeScheduleService, 'hasPendingActionForCardAndAction').mockImplementation(
+            (cardInternalId, actionId) => cardInternalId === 'card-1' && actionId === 'first',
+        )
+        renderPopup({ ...context, cardInternalId: 'card-1' })
+        const warningColor = createAppTheme('light').palette.warning.main
+        const scheduleButton = screen.getByRole('button', { name: 'Schedule' })
+        expect(scheduleButton).toHaveStyle({ color: warningColor })
+
+        fireEvent.click(screen.getByRole('button', { name: 'Second action' }))
+        expect(scheduleButton).not.toHaveStyle({ color: warningColor })
     })
 
     it('submits the edited command and resets it only after Electron accepts the run', async () => {
