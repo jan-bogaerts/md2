@@ -24,6 +24,7 @@ changedFiles:
   - app/src/services/actions/historical_card_activity_service.ts
   - app/src/services/data/data_service.ts
   - app/src/services/data/data_service_activity.node.test.ts
+after: bde0d7b3-85f0-46c0-8027-5d56939c04ee
 ---
 
 At the moment, the chat logs of released cards (or archived) are no longer visible. this is a problem.

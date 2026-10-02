@@ -19,6 +19,7 @@ changedFiles:
   - app/src/components/diagram_view/surface/diagram_zoom_viewport.tsx
   - app/src/services/diagrams/diagram_geometry_service.test.ts
   - app/src/services/diagrams/diagram_geometry_service.ts
+after: fe5a5bae-110a-49e6-ae74-60ed197c5c9b
 ---
 
 When we show a diagram in edit mode we should always show both hor and ver scrollbars. The workarea should also always be a little bigger then the available space, so user can always scroll and extend area by dragging items.
