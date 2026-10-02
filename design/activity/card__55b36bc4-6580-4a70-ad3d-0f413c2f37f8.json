@@ -254,6 +254,31 @@
     "cardInternalId": "55b36bc4-6580-4a70-ad3d-0f413c2f37f8",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-10-02T17:13:52.627Z",
+      "conversationIds": [
+        "agent-b7881501-bc90-4d61-82d3-1d914c435352"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-9a087c5f-be3b-437b-928a-07607f0ee05a",
+      "origin": {
+        "cardInternalId": "55b36bc4-6580-4a70-ad3d-0f413c2f37f8",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "agent-b7881501-bc90-4d61-82d3-1d914c435352",
+      "startedAt": "2026-10-02T17:04:33.157Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
