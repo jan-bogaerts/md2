@@ -20,7 +20,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "55b36bc4-6580-4a70-ad3d-0f413c2f37f8",
       "cardPath": "design/feature_descriptions/F_389_prepare_tutorials.md",
-      "completedAt": null,
+      "completedAt": "2026-10-02T17:13:52.358Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 45058
@@ -213,7 +213,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 16,
-          "timestamp": "2026-10-02T17:10:16.823Z"
+          "timestamp": "2026-10-02T17:13:52.358Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -223,12 +223,12 @@
           "agent": "claude",
           "conversationId": "3adcb6e0-ae45-4358-a7b1-1ba23879cd7e",
           "createdAt": "2026-10-02T17:05:03.784Z",
-          "lastUsedAt": "2026-10-02T17:10:16.823Z",
+          "lastUsedAt": "2026-10-02T17:13:52.358Z",
           "synchronizedThroughMessageId": "agent-turn-430fbc4d-fb6a-4f53-8793-71d6fbb22558-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-10-02T17:04:33.158Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 10421,
