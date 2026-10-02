@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "21b6ec8e-0455-42ef-9680-36dd39c52fd5",
+      "cardPath": "design/feature_descriptions/B_256_scheduling_actions_requires_local_mode.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_256_scheduling_actions_requires_local_mode.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "submission-82a67bb4-ac64-45be-b48e-8cccd24d5350",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-02T16:55:11.249Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-2a6796bf-738b-4a65-8a63-600959055d52",
+      "providerSessions": [],
+      "startedAt": "2026-10-02T16:55:11.249Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-02T16:55:11.249Z"
+      },
+      "title": "complete",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "21b6ec8e-0455-42ef-9680-36dd39c52fd5",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
