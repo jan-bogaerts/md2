@@ -9,5 +9,6 @@ affects:
 agents:
 policy:
 ---
+When editing an action in the action editor  we have the field ´output kind´ with 2 options.
 
-When editing an action in the action editor  we have the field ´output kind´ with 2 options
+If you select ´regular´&#x20;
