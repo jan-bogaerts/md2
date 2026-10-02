@@ -1194,7 +1194,7 @@
         "totalTokens": 1404010
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -1221,11 +1221,11 @@
         "agent-e9146208-a90b-47f9-9ba3-a15e94caf12e"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-3dd3f5dd-2204-4ffc-bec7-eb41955a59c1",
       "origin": {
@@ -1234,9 +1234,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-e9146208-a90b-47f9-9ba3-a15e94caf12e",
       "startedAt": "2026-10-02T08:13:37.325Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-e9146208-a90b-47f9-9ba3-a15e94caf12e"
     }
   ],
   "version": 5
