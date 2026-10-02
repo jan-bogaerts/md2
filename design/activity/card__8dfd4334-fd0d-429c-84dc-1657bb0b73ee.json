@@ -424,13 +424,50 @@
         "costUsd": 0.5604024
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "8dfd4334-fd0d-429c-84dc-1657bb0b73ee",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "5d8c40f03c6d6744adc089fb623f4038eabdfef9",
+          "committedAt": "2026-10-02T18:51:05+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/J_57_back_btn_transparency.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 27
+        }
+      ],
+      "completedAt": "2026-10-02T16:51:05.860Z",
+      "conversationIds": [
+        "agent-0d68df54-824a-4fa6-8857-18994d795950"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-f07c172c-b0c8-48ec-b892-f880f2c560e9",
+      "origin": {
+        "cardInternalId": "8dfd4334-fd0d-429c-84dc-1657bb0b73ee",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-0d68df54-824a-4fa6-8857-18994d795950",
+      "startedAt": "2026-10-02T16:50:03.782Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
