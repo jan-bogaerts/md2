@@ -27,6 +27,21 @@ describe('defaultScheduleAction', () => {
         expect(refresh).toHaveBeenCalledOnce()
     })
 
+    it('does not refresh or claim success when registration fails', async () => {
+        const failure = new Error('Scheduler unavailable')
+        const registerActionSchedule = vi.fn(async () => { throw failure })
+        setActionBridgeOverride({ registerActionSchedule } as unknown as ElectronActionBridge)
+        projectAccessService.setReadOnly(false)
+        const refresh = vi.spyOn(activeScheduleService, 'refresh').mockResolvedValue(undefined)
+
+        await expect(defaultScheduleAction(
+            { id: 'implement' } as ActionDefinition,
+            { cardInternalId: 'card-1', kind: 'card' },
+            { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
+        )).rejects.toBe(failure)
+        expect(refresh).not.toHaveBeenCalled()
+    })
+
     it('reports refresh failure after registration so schedule popover stays open', async () => {
         setActionBridgeOverride({ registerActionSchedule: vi.fn(async () => undefined) } as unknown as ElectronActionBridge)
         projectAccessService.setReadOnly(false)

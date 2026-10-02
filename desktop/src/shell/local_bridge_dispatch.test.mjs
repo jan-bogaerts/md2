@@ -1120,11 +1120,17 @@ describe('createLocalBridgeDispatch', () => {
 
         await expect(dispatch.actionBridge.listActiveSchedules()).resolves.toEqual([]);
         await expect(dispatch.actionBridge.deleteSchedule('schedule-1')).resolves.toEqual([]);
+        const actionRequest = {
+            actionId: 'implement', context: { cardInternalId: 'card-1', kind: 'card' },
+            trigger: { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
+        };
+        await expect(dispatch.actionBridge.registerActionSchedule(actionRequest)).resolves.toEqual({ id: 'schedule-1' });
         const request = { actionId: 'implement', cardInternalIds: ['card-1'], readyState: 'ready', trigger: { type: 'now' } };
         await expect(dispatch.actionBridge.registerSequenceSchedule(request)).resolves.toEqual({ id: 'sequence-1' });
 
         expect(actionSchedulerService.listActiveSchedules).toHaveBeenCalledOnce();
         expect(actionSchedulerService.deleteSchedule).toHaveBeenCalledWith('schedule-1');
+        expect(actionSchedulerService.registerActionSchedule).toHaveBeenCalledWith(actionRequest);
         expect(actionSchedulerService.registerSequenceSchedule).toHaveBeenCalledWith(request);
     });
 

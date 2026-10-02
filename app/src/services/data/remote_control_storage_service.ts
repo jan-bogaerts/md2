@@ -13,6 +13,7 @@ import type { AnySchedule } from '../../data/action_schedule_types'
 import type {
     ActionRunHistoryEntry,
     ActionRunHistoryRequest,
+    ActionScheduleRegistrationRequest,
     ActionRunRecoverySnapshot,
     ActiveActionRun,
     ActionConversationViewedEvent,
@@ -829,6 +830,18 @@ export class RemoteControlStorageService implements
 
     async runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string> {
         return this.requestWithAgentEvents<string>('runSearchRegexpAgent', [input], callback)
+    }
+
+    async registerActionSchedule(request: ActionScheduleRegistrationRequest): Promise<void> {
+        await this.request('registerActionSchedule', [request])
+    }
+
+    async listActiveSchedules(): Promise<AnySchedule[]> {
+        return this.request<AnySchedule[]>('listActiveSchedules', [])
+    }
+
+    async deleteSchedule(scheduleId: string): Promise<AnySchedule[]> {
+        return this.request<AnySchedule[]>('deleteSchedule', [scheduleId])
     }
 
     async startAction(request: ActionStartRequest): Promise<string> {

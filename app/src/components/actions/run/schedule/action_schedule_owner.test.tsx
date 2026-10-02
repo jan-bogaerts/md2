@@ -53,7 +53,9 @@ describe('ActionScheduleOwner registration', () => {
 
     it('registers selected trigger and closes only schedule popover after refresh', async () => {
         configureSources()
-        vi.mocked(defaultScheduleAction).mockResolvedValue(undefined)
+        let confirmRegistration!: () => void
+        const registration = new Promise<void>((resolve) => { confirmRegistration = resolve })
+        vi.mocked(defaultScheduleAction).mockReturnValue(registration)
         renderOpenOwner()
 
         fireEvent.click(screen.getByRole('button', { name: 'Schedule action' }))
@@ -63,6 +65,8 @@ describe('ActionScheduleOwner registration', () => {
             context,
             { timestamp: new Date('2099-07-07T10:30').toISOString(), type: 'at' },
         ))
+        expect(screen.getByRole('dialog', { name: 'Schedule action' })).toBeInTheDocument()
+        confirmRegistration()
         await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Schedule action' })).not.toBeInTheDocument())
         expect(screen.getByTestId('action-popup-scroll-body')).toBeInTheDocument()
     })

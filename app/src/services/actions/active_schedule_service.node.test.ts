@@ -88,6 +88,7 @@ describe('ActiveScheduleService', () => {
 
     it('asks backend to delete once and reloads canonical active list', async () => {
         const { bridge, service } = createHarness()
+        bridge.listActiveSchedules.mockResolvedValueOnce([schedule()]).mockResolvedValueOnce([])
         service.start()
         await vi.waitFor(() => expect(service.getSnapshot().items).toHaveLength(1))
 
@@ -97,6 +98,22 @@ describe('ActiveScheduleService', () => {
 
         expect(bridge.deleteSchedule).toHaveBeenCalledOnce()
         expect(bridge.listActiveSchedules).toHaveBeenCalledTimes(2)
+        expect(service.getSnapshot().items).toEqual([])
+        expect(service.getSnapshot().deletingScheduleIds).toEqual([])
+        service.stop()
+    })
+
+    it('keeps schedule visible and reports backend deletion failure', async () => {
+        const { bridge, service } = createHarness()
+        service.start()
+        await vi.waitFor(() => expect(service.getSnapshot().items).toHaveLength(1))
+        bridge.deleteSchedule.mockRejectedValueOnce(new Error('Scheduler unavailable'))
+
+        await expect(service.deleteSchedule('schedule-1')).rejects.toThrow('Scheduler unavailable')
+
+        expect(bridge.listActiveSchedules).toHaveBeenCalledOnce()
+        expect(service.getSnapshot().items).toHaveLength(1)
+        expect(service.getSnapshot().error).toBe('Scheduler unavailable')
         expect(service.getSnapshot().deletingScheduleIds).toEqual([])
         service.stop()
     })
