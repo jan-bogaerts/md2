@@ -2270,6 +2270,33 @@
       "startedAt": "2026-10-02T16:59:39.604Z",
       "status": "completed",
       "rootConversationId": "agent-32f5550d-a931-4633-9e35-5249e7d39fa9"
+    },
+    {
+      "commits": [
+        {
+          "commit": "720c98c2a69d0edd69874549cc3abbbd93988e76",
+          "committedAt": "2026-10-02T19:15:25+02:00",
+          "deletions": 222,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_capability_fields.tsx",
+            "app/src/components/actions/editor/action_definition_fields.grouped.test.tsx",
+            "app/src/components/actions/editor/action_definition_fields.tsx",
+            "app/src/components/actions/editor/action_definition_group.tsx",
+            "app/src/components/actions/editor/action_filter_editor.tsx",
+            "app/src/components/actions/editor/action_ordered_collection.tsx"
+          ],
+          "filesChanged": 6,
+          "insertions": 331,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-02T19:15:25+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "5603103d-1d57-40e8-afae-095f12ac1695",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
