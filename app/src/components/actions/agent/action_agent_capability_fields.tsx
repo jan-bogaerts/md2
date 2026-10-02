@@ -113,7 +113,7 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
             spacing={1.5}
             sx={{ bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}
         >
-            <ActionSectionLabel component="h3" id="action-agent-override-heading">Agent override</ActionSectionLabel>
+            <ActionSectionLabel component="h4" id="action-agent-override-heading">Agent override</ActionSectionLabel>
             <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
                 <ActionEditorField
                     error={!!errors.agent || !!agentCapabilityError}
