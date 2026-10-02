@@ -29,14 +29,14 @@ export function useActionEditorController(options: ActionEditorControllerOptions
 
     const [, setEditorRevision] = useState(0)
     useEffect(() => {
-        let previousAction = actionService.getActionById(actionId)
+        let previousAction = actionService.getEditableActionById(actionId)
         let previousDraft = actionService.draftStore.getDraft(actionId)
         let previousEditorState = previousAction?.editorState
         const handleChanged = (event: Event) => {
             const { actionId: changedActionId } = (event as CustomEvent<ActionDraftChangedDetail>).detail
             if (changedActionId !== actionId) return
 
-            const nextAction = actionService.getActionById(actionId)
+            const nextAction = actionService.getEditableActionById(actionId)
             const nextDraft = actionService.draftStore.getDraft(actionId)
             const nextEditorState = nextAction?.editorState
             if (nextAction === previousAction && nextDraft === previousDraft && nextEditorState === previousEditorState) return
@@ -54,13 +54,13 @@ export function useActionEditorController(options: ActionEditorControllerOptions
     const draft = actionService.draftStore.getDraft(actionId)
     const { conflict, definition, deleted, error: saveError, saving, validation } = draft
     useEffect(() => () => {
-        const actionExists = !!actionService.getActionById(actionId)
+        const actionExists = !!actionService.getEditableActionById(actionId)
         const deletedDraftExists = actionService.draftStore.getDeletedDraftActions()
             .some((candidate) => candidate.id === actionId)
         if (actionExists || deletedDraftExists) actionService.draftStore.commitDraft(actionId)
     }, [actionId])
     const phrases = useMemo(() => definition.phrases ?? [], [definition.phrases])
-    const publishedAction = actionService.getActionById(actionId) ?? action
+    const publishedAction = actionService.getEditableActionById(actionId) ?? action
     const editorState = reconcileActionPhraseEditorState(publishedAction.editorState, phrases)
     const { phrases: phraseEditorStates, selectedTab } = editorState
 
@@ -167,7 +167,7 @@ export function useActionEditorController(options: ActionEditorControllerOptions
         if (document) openFilesService.closeDocument(document)
     }
     const dirty = openDocument.dirty
-    const canRetry = !!saveError && validation.valid && dirty && !conflict && !saving
+    const canRetry = !!saveError && dirty && !conflict && !saving
 
     return {
         activeTab,
@@ -197,7 +197,7 @@ export function useActionEditorController(options: ActionEditorControllerOptions
         selectableActions: actions.filter(({ id }) => id !== action.id),
         selectedPhrase,
         sourcePath,
-        status: saveError ? 'Save failed. Retry to save changes.' : validation.valid ? null : 'Fix validation errors to save.',
+        status: saveError ? 'Save failed. Retry to save changes.' : validation.valid ? null : 'Saved action cannot run until validation errors are fixed.',
         validation,
     }
 }

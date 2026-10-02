@@ -16,7 +16,7 @@ function isSameFileTreeActions(first: FileTreeAction[], second: FileTreeAction[]
 }
 
 function getFileTreeActionsSnapshot(service: ActionService): FileTreeAction[] {
-    const nextSnapshot = service.getActions().map(({ builtin, label, sourcePath }) => ({ builtin, label, sourcePath }))
+    const nextSnapshot = service.getEditableActions().map(({ builtin, label, sourcePath }) => ({ builtin, label, sourcePath }))
     const currentSnapshot = snapshots.get(service)
     if (currentSnapshot && isSameFileTreeActions(currentSnapshot, nextSnapshot)) return currentSnapshot
 

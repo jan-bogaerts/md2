@@ -173,7 +173,7 @@ export function FileTreeView(props: FileTreeViewProps) {
         try {
             if (node.data.path) {
                 const object = cardsByPath.get(node.data.path)
-                    ?? actionService.getActionByPath(node.data.path)
+                    ?? actionService.getEditableActionByPath(node.data.path)
                     ?? agentInstructionsService.getFile(node.data.path)
                 if (!object) throw new Error(`Cannot open unknown document: ${node.data.path}`)
                 setSelectedNodeId(null)

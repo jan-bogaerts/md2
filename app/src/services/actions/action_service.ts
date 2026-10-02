@@ -11,9 +11,10 @@ import {
 import { generateUuid } from '../../data/uuid'
 import { getService, register } from '../service_injector'
 import {
-    loadTolerantActionDefinitionGraph,
+    validateActionDefinition,
     validateActionDefinitionGraph,
 } from './action_definition_loader'
+import { ActionValidationError } from '../../../../shared/action_definitions.mjs'
 import { ActionDraftStore } from './action_draft_store'
 import { actionPromptDraftService } from './action_prompt_draft_service'
 import { actionPath, actionValidationResult, nextActionName, preserveActionEditorStates } from './action_service_helpers'
@@ -86,9 +87,10 @@ export function serializeActionDefinition(definition: RawActionDefinition) {
     return `${JSON.stringify(definition, null, 2)}\n`
 }
 
-/** Owns loaded action objects, validation, creation, and valid-only persistence. */
+/** Owns raw editor definitions separately from runnable actions. */
 export class ActionService extends EventTarget {
     private actions: ActionDefinition[] = [BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT]
+    private editorActions: ActionDefinition[] = []
     private definitions: RawActionDefinitionEntry[] = []
     private error: string | null = null
     private files: ActionFile[] = []
@@ -161,7 +163,7 @@ export class ActionService extends EventTarget {
         const previousActionIds = new Set(this.actions.map(({ id }) => id))
         const previousDefinitions = new Map(this.definitions.map((entry) => [entry.definition.id, entry]))
         const previousDraftActionIds = this.draftStore.actionIds()
-        const { actions, definitions, issues } = loadTolerantActionDefinitionGraph(files, { validateAgentCapabilities: false })
+        const { actions, definitions, editorActions, issues } = this.loadEditableFiles(files)
         if (!preserveEditorState) {
             actionPromptDraftService.clearAll()
             this.draftStore.clear()
@@ -169,6 +171,7 @@ export class ActionService extends EventTarget {
             this.cancelledActionIds.clear()
         }
         this.actions = preserveEditorState ? preserveActionEditorStates(this.actions, actions) : actions
+        this.editorActions = preserveEditorState ? preserveActionEditorStates(this.editorActions, editorActions) : editorActions
         if (preserveEditorState) {
             const actionIds = new Set(this.actions.map(({ id }) => id))
             for (const actionId of previousActionIds) {
@@ -176,7 +179,7 @@ export class ActionService extends EventTarget {
             }
         }
         this.definitions = definitions
-        this.error = issues.length > 0 ? issues.map(({ message }) => message).join('\n') : null
+        this.error = issues.length > 0 ? issues.join('\n') : null
         this.files = files
         if (preserveEditorState) this.draftStore.reconcileDrafts(previousDefinitions)
         this.dispatchActionsChanged()
@@ -214,9 +217,10 @@ export class ActionService extends EventTarget {
         onPersisted?: () => void,
     ): Promise<ActionDefinition> {
         projectAccessService.requireWritable()
+        if (typeof definition.id !== 'string' || definition.id.trim().length === 0) {
+            throw new Error(`Cannot save action without an id: ${path}`)
+        }
         if (this.cancelledActionIds.has(definition.id)) throw new Error(`Action save cancelled after deletion: ${path}`)
-        const definitions = this.definitionsWithDefinition(path, definition)
-        const actions = preserveActionEditorStates(this.actions, validateActionDefinitionGraph(definitions))
         const content = serializeActionDefinition(definition)
         const persistedFile = { content, path: targetPath }
         const sourceStateFile = { content, path }
@@ -233,8 +237,10 @@ export class ActionService extends EventTarget {
             throw new Error(`Action save cancelled after external deletion: ${path}`)
         }
         this.files = this.filesWithFile(sourceStateFile)
+        const { actions, definitions, editorActions, issues } = this.loadEditableFiles(this.files)
         this.definitions = definitions
-        this.actions = actions
+        this.actions = preserveActionEditorStates(this.actions, actions)
+        this.editorActions = preserveActionEditorStates(this.editorActions, editorActions)
         this.publicationRevisionsByPath.set(path, (this.publicationRevisionsByPath.get(path) ?? 0) + 1)
         if (targetPath !== path) {
             this.publicationRevisionsByPath.set(
@@ -242,8 +248,8 @@ export class ActionService extends EventTarget {
                 (this.publicationRevisionsByPath.get(targetPath) ?? 0) + 1,
             )
         }
-        this.error = null
-        const savedAction = actions.find((action) => action.sourcePath === path)
+        this.error = issues.length > 0 ? issues.join('\n') : null
+        const savedAction = this.getEditableActionById(definition.id)
         if (!savedAction) throw new Error(`Missing saved action after persistence: ${path}`)
         actionPromptDraftService.invalidateIdlePreparedDrafts(savedAction.id)
         this.dispatchActionsChanged()
@@ -263,6 +269,18 @@ export class ActionService extends EventTarget {
 
     getActions(): ActionDefinition[] {
         return this.actions
+    }
+
+    getEditableActions(): ActionDefinition[] {
+        return [...this.actions, ...this.editorActions]
+    }
+
+    getEditableActionById(actionId: string): ActionDefinition | null {
+        return this.getActionById(actionId) ?? this.editorActions.find(({ id }) => id === actionId) ?? null
+    }
+
+    getEditableActionByPath(path: string): ActionDefinition | null {
+        return this.getActionByPath(path) ?? this.editorActions.find(({ sourcePath }) => sourcePath === path) ?? null
     }
 
     getActionByPath(path: string): ActionDefinition | null {
@@ -304,7 +322,7 @@ export class ActionService extends EventTarget {
     }
 
     setActionEditorState(actionId: string, editorState: ActionEditorState) {
-        const action = this.getActionById(actionId)
+        const action = this.getEditableActionById(actionId)
         if (!action) throw new Error(`Cannot save editor state for unknown action: ${actionId}`)
         action.editorState = editorState
         this.dispatchDraftChanged(actionId)
@@ -316,6 +334,7 @@ export class ActionService extends EventTarget {
 
     private resetState() {
         this.definitions = []
+        this.editorActions = []
         this.error = null
         this.files = []
         this.draftStore.clear()
@@ -327,6 +346,65 @@ export class ActionService extends EventTarget {
 
     private validateDefinitionInternal(path: string, definition: RawActionDefinition): ActionValidationResult {
         return actionValidationResult(() => validateActionDefinitionGraph(this.definitionsWithDefinition(path, definition)))
+    }
+
+    private loadEditableFiles(files: ActionFile[]) {
+        const definitions: RawActionDefinitionEntry[] = []
+        let runnableDefinitions: RawActionDefinitionEntry[] = []
+        const issues: string[] = []
+        const knownIds = new Set([BUILTIN_CUSTOM_PROMPT.id, BUILTIN_REMARKABLE_CONVERT.id])
+        for (const file of files) {
+            try {
+                const parsed: unknown = JSON.parse(file.content)
+                if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                    throw new Error(`Invalid action definition in ${file.path}`)
+                }
+                const definition = parsed as RawActionDefinition
+                if (typeof definition.id !== 'string' || definition.id.trim().length === 0) {
+                    throw new Error(`Missing action id in ${file.path}`)
+                }
+                if (knownIds.has(definition.id)) throw new Error(`Duplicate action id ${definition.id} in ${file.path}`)
+                knownIds.add(definition.id)
+                definitions.push({ definition, path: file.path })
+                const validation = actionValidationResult(() => validateActionDefinition(definition, file.path))
+                if (validation.valid) runnableDefinitions.push({ definition, path: file.path })
+                else if (validation.error) issues.push(validation.error)
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Invalid action json'
+                issues.push(error instanceof SyntaxError ? `Invalid action json in ${file.path}: ${message}` : message)
+            }
+        }
+        let actions: ActionDefinition[] = [BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT]
+        const maximumAttempts = runnableDefinitions.length + 1
+        for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
+            try {
+                actions = validateActionDefinitionGraph(runnableDefinitions)
+                break
+            } catch (error) {
+                const path = error instanceof ActionValidationError ? error.sourcePath : null
+                issues.push(error instanceof Error ? error.message : 'Invalid action graph')
+                if (!path || !runnableDefinitions.some((entry) => entry.path === path)) break
+                runnableDefinitions = runnableDefinitions.filter((entry) => entry.path !== path)
+            }
+        }
+        const runnableIds = new Set(actions.map(({ id }) => id))
+        const editorActions = definitions
+            .filter(({ definition }) => !runnableIds.has(definition.id))
+            .map(({ definition, path }) => {
+                const previous = this.getEditableActionById(definition.id)
+                const type = definition.type === 'command' ? 'command' : 'agent'
+                return {
+                    ...BUILTIN_CUSTOM_PROMPT,
+                    ...previous,
+                    builtin: false,
+                    id: definition.id,
+                    label: typeof definition.label === 'string' && definition.label.length > 0 ? definition.label : path.split(/[\\/]/u).at(-1) ?? path,
+                    sourcePath: path,
+                    type,
+                } as ActionDefinition
+            })
+
+        return { actions, definitions, editorActions, issues }
     }
 
     /** Reconciles core state (files/definitions/actions) once a path rename has been persisted. */
@@ -353,8 +431,12 @@ export class ActionService extends EventTarget {
             { definition, path: toPath },
         ]
 
-        this.actions = preserveActionEditorStates(this.actions, validateActionDefinitionGraph(this.definitions))
-        const committedAction = this.getActionById(actionId)
+        const { actions, definitions, editorActions, issues } = this.loadEditableFiles(this.files)
+        this.actions = preserveActionEditorStates(this.actions, actions)
+        this.editorActions = preserveActionEditorStates(this.editorActions, editorActions)
+        this.definitions = definitions
+        this.error = issues.length > 0 ? issues.join('\n') : null
+        const committedAction = this.getEditableActionById(actionId)
         if (!committedAction) throw new Error(`Missing action after committed rename from ${fromPath} to ${toPath}`)
         if (editorState) committedAction.editorState = editorState
 

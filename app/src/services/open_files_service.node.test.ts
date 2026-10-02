@@ -35,7 +35,7 @@ function owners(initialCards: Card[] = [], initialActions: ActionDefinition[] = 
     let actions = initialActions
     const dataOwner = Object.assign(new EventTarget(), {getState: () => ({ project: { branch: 'main', id: 'project' }, runningAgents: [], snapshot })})
     const actionOwner = Object.assign(new EventTarget(), {
-        getActions: () => actions,
+        getEditableActions: () => actions,
         draftStore: {
             getDeletedDraftActions: () => [],
             getDraft: (actionId: string): ActionDraftState => {
@@ -49,7 +49,7 @@ function owners(initialCards: Card[] = [], initialActions: ActionDefinition[] = 
                 }
             },
         },
-    }) as unknown as EventTarget & Pick<ActionService, 'getActions' | 'draftStore'>
+    }) as unknown as EventTarget & Pick<ActionService, 'getEditableActions' | 'draftStore'>
 
     return {
         actionOwner,

@@ -543,7 +543,7 @@ describe('ProjectLoading', () => {
         }
     })
 
-    it('blocks project navigation while an invalid action draft remains unsaved', async () => {
+    it('saves an invalid action draft before project navigation', async () => {
         configService.init()
         const storage = createStorage()
         const service = createDataService()
@@ -555,11 +555,12 @@ describe('ProjectLoading', () => {
         }])
         actionService.draftStore.updateDraft('action-run', { ...actionDefinition('run'), label: '' })
 
-        await expect(service.projectLoading.openProject({ branch: 'main', id: 'second' }))
-            .rejects.toThrow(/invalid unsaved changes/u)
+        await service.projectLoading.openProject({ branch: 'main', id: 'second' })
 
-        expect(service.getState().project?.id).toBe('first')
-        expect(actionService.draftStore.getDraft('action-run').definition.label).toBe('')
+        const requests = vi.mocked(storage.commit).mock.calls.map(([request]) => request)
+        const savedAction = requests.flatMap(({ files }) => files).find(({ path }) => path === 'actions/run.json')
+        expect(savedAction?.content).toContain('"label": ""')
+        expect(service.getState().project?.id).toBe('second')
     })
 
     it('blocks project switching until a deleted dirty action is recovered or discarded', async () => {
@@ -737,7 +738,7 @@ describe('ProjectLoading', () => {
         const warnings = recordDialogMessages('warning')
         const storage = createStorage({
             loadActionFiles: vi.fn(async () => [
-                { content: JSON.stringify({ ...actionDefinition('do'), name: 'Old name' }), path: 'actions/do.json' },
+                { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' },
                 { content: '{ invalid', path: 'actions/bad.json' },
                 { content: JSON.stringify({ command: 'npm test' }), path: 'actions/defaulted.json' },
             ]),
@@ -748,9 +749,10 @@ describe('ProjectLoading', () => {
         const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         expect(snapshot).not.toBeNull()
-        expect(actionService.getActions().map(({ id }) => id)).toEqual(expect.arrayContaining(['action-do', 'action-actions-defaulted']))
+        expect(actionService.getActions().map(({ id }) => id)).toContain('action-do')
+        expect(actionService.getActions().map(({ id }) => id)).not.toContain('action-actions-defaulted')
         expect(warnings.messages.join('\n')).toContain('actions/bad.json')
-        expect(warnings.messages.join('\n')).toContain('Missing id')
+        expect(warnings.messages.join('\n')).toContain('Missing action id')
         warnings.stop()
     })
 

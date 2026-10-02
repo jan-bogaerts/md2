@@ -132,6 +132,40 @@ describe('DataService', () => {
         expect(dataChanged).not.toHaveBeenCalled()
     })
 
+    it('commits invalid and valid actions with pending card and instruction files', async () => {
+        configService.init()
+        const actionFiles = [
+            { content: JSON.stringify({ command: 'run X', description: 'X', id: 'action-x', label: 'X', type: 'command' }), path: 'actions/x.json' },
+            { content: JSON.stringify({ command: 'run Y', description: 'Y', id: 'action-y', label: 'Y', type: 'command' }), path: 'actions/y.json' },
+        ]
+        const storage = createStorage({ loadActionFiles: vi.fn(async () => actionFiles) })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        const firstDefinition = actionService.draftStore.getDraft('action-x').definition
+        const secondDefinition = actionService.draftStore.getDraft('action-y').definition
+        actionService.draftStore.updateDraft('action-x', { ...firstDefinition, label: '' })
+        actionService.draftStore.updateDraft('action-y', { ...secondDefinition, label: 'Updated Y' })
+        service.cards.updateCardBody('design/F-1-root.md', '# Updated root')
+        service.scheduleFileCommit({ content: '# Updated instructions', path: 'AGENTS.md' }, 'Update AGENTS.md')
+
+        await projectPersistenceService.flushPendingChanges()
+
+        const requests = vi.mocked(storage.commit).mock.calls.map(([request]) => request)
+        const committedPaths = requests.flatMap(({ files, moves }) => [
+            ...files.map(({ path }) => path),
+            ...(moves ?? []).map(({ toPath }) => toPath),
+        ])
+        expect(committedPaths).toEqual(expect.arrayContaining([
+            'actions/x.json', 'actions/updated-y.json', 'design/F-1-root.md', 'AGENTS.md',
+        ]))
+        expect(actionService.draftStore.getDraft('action-x').validation.valid).toBe(false)
+        expect(actionService.getActionById('action-x')).toBeNull()
+        expect(actionService.getActionById('action-y')?.label).toBe('Updated Y')
+        expect(projectPersistenceService.getSnapshot().localSaveState).toBe('saved')
+    })
+
     it('does not forward action-only editor changes through DataService or persistence state', async () => {
         configService.init()
         const service = createDataService()
