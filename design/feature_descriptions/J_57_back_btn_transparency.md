@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__8dfd4334-fd0d-429c-84dc-1657bb0b73ee.json
 policy:
-branch: j_57_back_btn_transparency
-worktree: 3
 changedFiles:
   - app/src/components/horizontal_scroll_area.tsx
 ---
