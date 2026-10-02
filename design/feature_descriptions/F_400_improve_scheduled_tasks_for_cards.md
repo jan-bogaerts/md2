@@ -3,7 +3,7 @@ author:
 id: F_400
 internalId: ee69c5dd-bb25-4e62-8837-e250eae7cc88
 title: improve scheduled tasks for cards
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,21 @@ agents:
 policy:
 branch: f_400_improve_scheduled_tasks_for_cards
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
+  - app/src/components/actions/run/popup/action_popup_defaults.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_defaults.ts
+  - app/src/components/actions/run/popup/action_selector.test.tsx
+  - app/src/components/actions/run/popup/action_selector_button.tsx
+  - app/src/components/actions/run/schedule/action_schedule_owner.test.tsx
+  - app/src/components/actions/run/schedule/action_schedule_owner.tsx
+  - app/src/components/actions/run/trigger/card_run_button.test.tsx
+  - app/src/components/actions/run/trigger/card_run_button.tsx
+  - app/src/components/hooks/use_pending_action_schedule.ts
+  - app/src/services/actions/active_schedule_service.node.test.ts
+  - app/src/services/actions/active_schedule_service.ts
 ---
 
 * if a card has an action scheduled to be run, show a 'timer' icon on the card
