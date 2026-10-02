@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__5603103d-1d57-40e8-afae-095f12ac1695.json
 policy:
-branch: f_404_update_action_editor_layout_an_style
-worktree: 1
 changedFiles:
   - app/f404.vitest.config.ts
   - app/src/components/actions/agent/action_agent_capability_fields.tsx
