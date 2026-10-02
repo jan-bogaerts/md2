@@ -55,8 +55,8 @@ function handleActivityMetricChange(event: SelectChangeEvent) {
     setStatsControls({ activityMetric: event.target.value as StatsControlValues['activityMetric'] });
 }
 
-function handleActivityGranularityChange(event: SelectChangeEvent) {
-    setStatsControls({ activityGranularity: event.target.value as StatsControlValues['activityGranularity'] });
+function handleGranularityChange(event: SelectChangeEvent) {
+    setStatsControls({ granularity: event.target.value as StatsControlValues['granularity'] });
 }
 
 function handlePerformanceMetricChange(event: SelectChangeEvent) {
@@ -71,10 +71,6 @@ function handlePerformanceGroupingChange(event: SelectChangeEvent) {
     setStatsControls({ performanceGrouping: event.target.value as StatsControlValues['performanceGrouping'] });
 }
 
-function handlePerformanceGranularityChange(event: SelectChangeEvent) {
-    setStatsControls({ performanceGranularity: event.target.value as StatsControlValues['performanceGranularity'] });
-}
-
 function handleActionFilterChange(event: SelectChangeEvent<string[]>) {
     setStatsControls({ performanceActionIds: selectedValues(event.target.value) });
 }
@@ -85,10 +81,6 @@ function handleAgentFilterChange(event: SelectChangeEvent<string[]>) {
 
 function handleModelFilterChange(event: SelectChangeEvent<string[]>) {
     setStatsControls({ performanceModelIds: selectedValues(event.target.value) });
-}
-
-function handleUsageGranularityChange(event: SelectChangeEvent) {
-    setStatsControls({ usageGranularity: event.target.value as StatsControlValues['usageGranularity'] });
 }
 
 function handleTotalsGroupingChange(event: SelectChangeEvent) {
@@ -169,7 +161,7 @@ export function StatsMenuTab({ service = projectStatsService }: { service?: Proj
                             <MenuItem value="actions">Completed actions</MenuItem>
                             <MenuItem disabled={!snapshot.tokenTimeAvailable} value="tokens">Token usage</MenuItem>
                         </MenuSelect>
-                        <MenuSelect disabled={disabled} label="Activity granularity" onChange={handleActivityGranularityChange} value={controls.activityGranularity}>
+                        <MenuSelect disabled={disabled} label="Activity granularity" onChange={handleGranularityChange} value={controls.granularity}>
                             <MenuItem value="day">Day</MenuItem>
                             <MenuItem value="week">Week</MenuItem>
                             <MenuItem value="month">Month</MenuItem>
@@ -193,9 +185,10 @@ export function StatsMenuTab({ service = projectStatsService }: { service?: Proj
                             <MenuItem value="agent">Agent</MenuItem>
                             <MenuItem value="model">Model</MenuItem>
                         </MenuSelect>
-                        <MenuSelect disabled={disabled} label="Performance granularity" onChange={handlePerformanceGranularityChange} value={controls.performanceGranularity}>
+                        <MenuSelect disabled={disabled} label="Performance granularity" onChange={handleGranularityChange} value={controls.granularity}>
                             <MenuItem value="day">Day</MenuItem>
                             <MenuItem value="week">Week</MenuItem>
+                            <MenuItem value="month">Month</MenuItem>
                         </MenuSelect>
                         <MenuSelect<string[]>
                             disabled={disabled}
@@ -233,9 +226,10 @@ export function StatsMenuTab({ service = projectStatsService }: { service?: Proj
                     </>
                 ) : null}
                 {controls.dataset === 'usageComparison' ? (
-                    <MenuSelect disabled={disabled} label="Usage granularity" onChange={handleUsageGranularityChange} value={controls.usageGranularity}>
+                    <MenuSelect disabled={disabled} label="Usage granularity" onChange={handleGranularityChange} value={controls.granularity}>
                         <MenuItem value="day">Day</MenuItem>
                         <MenuItem value="week">Week</MenuItem>
+                        <MenuItem value="month">Month</MenuItem>
                     </MenuSelect>
                 ) : null}
                 {controls.dataset === 'totals' ? (

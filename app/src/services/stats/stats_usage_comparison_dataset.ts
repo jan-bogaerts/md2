@@ -8,7 +8,7 @@ import type {
     StatsControls,
     StatsDatasetSource,
     StatsOptions,
-    StatsShortGranularity,
+    StatsGranularity,
     StatsUnit,
 } from './project_stats_types';
 import { emptyTimeRow, unavailableTimeRow } from './stats_chart_rows';
@@ -102,7 +102,7 @@ function visibleAccountSeries(accountRows: UsageMetricsAccountRow[], options: St
 
 function accountSeriesRow(
     context: StatsBucketContext,
-    granularity: StatsShortGranularity,
+    granularity: StatsGranularity,
     series: StatsAccountSeriesOption,
     rows: UsageMetricsAccountRow[],
 ): StatsChartRow {
@@ -142,7 +142,7 @@ function accountSeriesRow(
 
 function comparisonAccountRows(
     contexts: StatsBucketContext[],
-    granularity: StatsShortGranularity,
+    granularity: StatsGranularity,
     seriesOptions: StatsAccountSeriesOption[],
     indexes: ComparisonIndexes,
 ): StatsChartRow[] {
@@ -162,7 +162,7 @@ function comparisonAccountRows(
 
 function projectTokenRows(
     contexts: StatsBucketContext[],
-    granularity: StatsShortGranularity,
+    granularity: StatsGranularity,
     tokenTimeAvailable: boolean,
     indexes: ComparisonIndexes,
 ): StatsChartRow[] {
@@ -221,7 +221,7 @@ export function longestWindowSeriesByProvider(seriesOptions: StatsAccountSeriesO
 
 function unavailableCostRow(
     context: StatsBucketContext,
-    granularity: StatsShortGranularity,
+    granularity: StatsGranularity,
     role: CostRole,
     series: StatsAccountSeriesOption,
     unavailableLabel: string,
@@ -239,7 +239,7 @@ function unavailableCostRow(
 
 function costProviderRow(
     context: StatsBucketContext,
-    granularity: StatsShortGranularity,
+    granularity: StatsGranularity,
     role: CostRole,
     series: StatsAccountSeriesOption,
     indexes: ComparisonIndexes,
@@ -297,7 +297,7 @@ function costProviderRow(
 
 function costRows(
     contexts: StatsBucketContext[],
-    granularity: StatsShortGranularity,
+    granularity: StatsGranularity,
     role: CostRole,
     seriesOptions: StatsAccountSeriesOption[],
     indexes: ComparisonIndexes,
@@ -316,7 +316,7 @@ function costRows(
 
 function ratioSeriesRow(
     context: StatsBucketContext,
-    granularity: StatsShortGranularity,
+    granularity: StatsGranularity,
     role: RatioRole,
     series: StatsAccountSeriesOption,
     indexes: ComparisonIndexes,
@@ -395,7 +395,7 @@ function ratioSeriesRow(
 
 function ratioRows(
     contexts: StatsBucketContext[],
-    granularity: StatsShortGranularity,
+    granularity: StatsGranularity,
     role: RatioRole,
     seriesOptions: StatsAccountSeriesOption[],
     indexes: ComparisonIndexes,
@@ -415,7 +415,7 @@ function ratioRows(
 
 function activityCountRows(
     context: StatsBucketContext,
-    granularity: StatsShortGranularity,
+    granularity: StatsGranularity,
     records: StatsActionFact[],
 ): StatsChartRow[] {
     const chartRole: StatsChartRole = 'activity';
@@ -467,7 +467,7 @@ function buildComparisonIndexes(
     agentProfiles: AgentProfile[],
     tokenRows: UsageMetricsTokenRow[],
     actions: StatsActionFact[],
-    granularity: StatsShortGranularity,
+    granularity: StatsGranularity,
 ): ComparisonIndexes {
     const recordedAt = (row: UsageMetricsAccountRow | UsageMetricsTokenRow) => row.recordedAt;
     const completedAt = (action: StatsActionFact) => action.completedAt;
@@ -495,7 +495,7 @@ function buildComparisonIndexes(
 
 /** Project work against account-wide consumption, aligned on one shared UTC bucket domain. */
 export function usageComparisonRows(source: StatsDatasetSource, controls: StatsControls, options: StatsOptions): StatsChartRow[] {
-    const granularity = controls.usageGranularity;
+    const granularity = controls.granularity;
     const accountRows = source.accountRows.filter(({ recordedAt }) => inRange(recordedAt, controls));
     const tokenRows = source.tokenRows.filter(({ recordedAt }) => inRange(recordedAt, controls));
     const actions = source.stats.actions.filter(({ completedAt }) => inRange(completedAt, controls));

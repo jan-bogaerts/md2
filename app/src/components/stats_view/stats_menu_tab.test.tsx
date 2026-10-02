@@ -110,8 +110,8 @@ describe('StatsMenuTab', () => {
     })
 
     it('switches datasets and shows only the controls belonging to the selection', async () => {
-        projectStatsService.setControls({ activityGranularity: 'month', activityMetric: 'actions', dataset: 'activityOverTime' })
         await openStats('controls', activityStorage())
+        projectStatsService.setControls({ granularity: 'month', activityMetric: 'actions', dataset: 'activityOverTime' })
         renderTab()
 
         expect(screen.getByRole('combobox', { name: 'Activity metric' })).toBeInTheDocument()
@@ -148,6 +148,25 @@ describe('StatsMenuTab', () => {
         chooseOption('Dataset', 'Activity over time')
         expect(screen.getByRole('combobox', { name: 'Activity granularity' })).toHaveTextContent('Month')
     })
+
+    it('shares Day, Week, and Month across report menus while Totals has no granularity control', async () => {
+        await openStats('granularity', activityStorage());
+        renderTab();
+
+        chooseOption('Activity granularity', 'Week');
+        chooseOption('Dataset', 'Agent/model performance');
+        expect(screen.getByRole('combobox', { name: 'Performance granularity' })).toHaveTextContent('Week');
+        chooseOption('Performance granularity', 'Month');
+        chooseOption('Dataset', 'Project usage vs account usage');
+        expect(screen.getByRole('combobox', { name: 'Usage granularity' })).toHaveTextContent('Month');
+        chooseOption('Usage granularity', 'Day');
+        chooseOption('Dataset', 'Activity over time');
+        expect(screen.getByRole('combobox', { name: 'Activity granularity' })).toHaveTextContent('Day');
+        expect(projectStatsService.getSnapshot().controls.granularity).toBe('day');
+
+        chooseOption('Dataset', 'Totals by Card/Action');
+        expect(screen.queryByRole('combobox', { name: /granularity/u })).toBeNull();
+    });
 
     it('keeps the entity filters multi-select, showing All when empty and a joined list otherwise', async () => {
         projectStatsService.setControls({ dataset: 'agentPerformance', performanceGrouping: 'agent', performanceMetric: 'duration' })

@@ -162,6 +162,67 @@ describe('ProjectStatsService view mode', () => {
     })
 })
 
+describe('ProjectStatsService shared granularity', () => {
+    it('uses calendar months across datasets and keeps choice through close and reopen', async () => {
+        const augustFirst = conversation({ id: 'august-first', completedAt: '2026-08-02T10:00:00.000Z' });
+        const augustSecond = conversation({ id: 'august-second', completedAt: '2026-08-12T10:00:00.000Z' });
+        const september = conversation({ id: 'september', completedAt: '2026-09-01T10:00:00.000Z' });
+        const records = [
+            agentRecord('august-run-1', augustFirst.completedAt!, augustFirst.id),
+            agentRecord('august-run-2', augustSecond.completedAt!, augustSecond.id),
+            agentRecord('september-run', september.completedAt!, september.id),
+        ];
+        const metrics = [
+            metricsHeader,
+            metricsRow('2026-08-02T10:00:00.000Z', 5),
+            metricsRow('2026-08-12T10:00:00.000Z', 7),
+            metricsRow('2026-09-01T10:00:00.000Z', 9),
+        ].join('\r\n');
+        const statsStorage = storage({
+            'design/activity/card__card-1.json': activityContent({ conversations: [augustFirst, augustSecond, september], records }),
+            'design/usage_metrics.csv': metrics,
+        });
+        const service = new ProjectStatsService();
+        await openService(service, statsStorage);
+
+        service.setControls({ granularity: 'month' });
+        expect(service.getSnapshot().rows.map(({ utcBucketStart, value }) => [utcBucketStart, value])).toEqual([
+            ['2026-08-01T00:00:00.000Z', 2],
+            ['2026-09-01T00:00:00.000Z', 1],
+        ]);
+
+        service.setControls({ dataset: 'agentPerformance', performanceAggregation: 'sum', performanceMetric: 'tokens' });
+        expect(service.getSnapshot().controls.granularity).toBe('month');
+        expect(service.getSnapshot().rows.map(({ utcBucketStart, value }) => [utcBucketStart, value])).toEqual([
+            ['2026-08-01T00:00:00.000Z', 20],
+            ['2026-09-01T00:00:00.000Z', 10],
+        ]);
+
+        service.setControls({ dataset: 'usageComparison' });
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'projectTokensTotal')
+            .map(({ utcBucketStart, value }) => [utcBucketStart, value])).toEqual([
+            ['2026-08-01T00:00:00.000Z', 12],
+            ['2026-09-01T00:00:00.000Z', 9],
+        ]);
+
+        service.close();
+        expect(service.getSnapshot().controls.granularity).toBe('month');
+        await service.open(cards, BUILTIN_AGENT_PROFILES);
+        expect(service.getSnapshot().controls.granularity).toBe('month');
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => chartRole === 'projectTokensTotal')
+            .map(({ utcBucketStart, value }) => [utcBucketStart, value])).toEqual([
+            ['2026-08-01T00:00:00.000Z', 12],
+            ['2026-09-01T00:00:00.000Z', 9],
+        ]);
+
+        service.bindProject({ config, project: { branch: 'main', id: 'another-project' }, storage: statsStorage });
+        expect(service.getSnapshot().controls.granularity).toBe('day');
+        service.setControls({ granularity: 'week' });
+        service.clear();
+        expect(service.getSnapshot().controls.granularity).toBe('day');
+    });
+});
+
 describe('ProjectStatsService source parsing', () => {
     it('discovers current and released card and project activity plus project usage metrics', () => {
         expect(findStatsSourcePaths([
@@ -408,7 +469,7 @@ describe('ProjectStatsService aggregation', () => {
             metricsRow('2026-09-01T00:00:00.000Z', 9),
         ].join('\r\n')
         await openService(service, storage({ 'design/usage_metrics.csv': metrics }))
-        service.setControls({ activityGranularity: 'week', activityMetric: 'tokens' })
+        service.setControls({ granularity: 'week', activityMetric: 'tokens' })
         expect(service.getSnapshot().rows.map(({ utcBucketStart, value }) => [utcBucketStart, value])).toEqual([
             ['2026-07-27T00:00:00.000Z', 5],
             ['2026-08-03T00:00:00.000Z', 7],
@@ -417,7 +478,7 @@ describe('ProjectStatsService aggregation', () => {
             ['2026-08-24T00:00:00.000Z', 0],
             ['2026-08-31T00:00:00.000Z', 9],
         ])
-        service.setControls({ activityGranularity: 'month' })
+        service.setControls({ granularity: 'month' })
         expect(service.getSnapshot().rows.map(({ utcBucketStart, value }) => [utcBucketStart, value])).toEqual([
             ['2026-08-01T00:00:00.000Z', 12],
             ['2026-09-01T00:00:00.000Z', 9],
@@ -658,7 +719,7 @@ describe('ProjectStatsService aggregation', () => {
             ['test', '2026-08-12T00:00:00.000Z', 1],
         ])
 
-        service.setControls({ activityGranularity: 'month', endUtc: '2026-10-31T23:59:59.999Z', startUtc: '2026-08-01T00:00:00.000Z' })
+        service.setControls({ granularity: 'month', endUtc: '2026-10-31T23:59:59.999Z', startUtc: '2026-08-01T00:00:00.000Z' })
         const monthTotals = new Map<string | null, number>()
         for (const { utcBucketStart, value } of service.getSnapshot().rows) {
             monthTotals.set(utcBucketStart, (monthTotals.get(utcBucketStart) ?? 0) + value)

@@ -53,7 +53,7 @@ describe('StatsContent', () => {
 
     it('shows local accessibility text and current chart values', async () => {
         const metrics = `${metricsHeader}\r\n2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,10,,\r\n`
-        projectStatsService.setControls({activityGranularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime', endUtc: null, startUtc: null})
+        projectStatsService.setControls({granularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime', endUtc: null, startUtc: null})
         projectStatsService.bindProject({ config, project: { branch: 'main', id: 'project' }, storage: metricsStorage(metrics) })
         await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
@@ -69,7 +69,7 @@ describe('StatsContent', () => {
         const metrics = `${metricsHeader}
 2026-08-12T10:00:00.000Z,token_usage,codex,,,,,300000,100000,28913,0,428913,,
 `
-        projectStatsService.setControls({ activityGranularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime' })
+        projectStatsService.setControls({ granularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime' })
         projectStatsService.bindProject({ config, project: { branch: 'main', id: 'token-format' }, storage: metricsStorage(metrics) })
         await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
@@ -111,7 +111,7 @@ describe('StatsContent', () => {
 
     it('renders the chart surface belonging to the selected dataset', async () => {
         const metrics = `${metricsHeader}\r\n2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,10,,\r\n`
-        projectStatsService.setControls({ activityGranularity: 'month', activityMetric: 'tokens', dataset: 'activityOverTime' })
+        projectStatsService.setControls({ granularity: 'month', activityMetric: 'tokens', dataset: 'activityOverTime' })
         projectStatsService.bindProject({ config, project: { branch: 'main', id: 'controls' }, storage: metricsStorage(metrics) })
         await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
@@ -263,7 +263,7 @@ function mockMatchMedia(matches: boolean) {
 
 async function openTokenActivity(id: string) {
     const metrics = `${metricsHeader}\r\n2026-08-12T10:00:00.000Z,token_usage,codex,,,,,3,2,4,1,10,,\r\n`
-    projectStatsService.setControls({ activityGranularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime' })
+    projectStatsService.setControls({ granularity: 'day', activityMetric: 'tokens', dataset: 'activityOverTime' })
     projectStatsService.bindProject({ config, project: { branch: 'main', id }, storage: metricsStorage(metrics) })
     await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
 }

@@ -20,7 +20,7 @@ function datasetRows(
     options: StatsOptions,
     samples: EligibleSample[],
 ): StatsChartRow[] {
-    if (controls.dataset === 'activityOverTime') return activityRows(source, controls, controls.activityGranularity);
+    if (controls.dataset === 'activityOverTime') return activityRows(source, controls, controls.granularity);
     if (controls.dataset === 'agentPerformance') return performanceRows(controls, samples);
     if (controls.dataset === 'usageComparison') return usageComparisonRows(source, controls, options);
 
