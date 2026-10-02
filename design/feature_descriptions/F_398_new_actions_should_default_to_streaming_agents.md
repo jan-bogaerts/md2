@@ -3,7 +3,7 @@ author:
 id: F_398
 internalId: 7489aafd-8dd1-4e15-b8fe-a92d5bb5cfc0
 title: new actions should default to streaming agents
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
