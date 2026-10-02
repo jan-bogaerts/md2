@@ -3,10 +3,13 @@
   "label": "build",
   "description": "Build a new version of the app",
   "type": "command",
-  "phrases": [],
-  "command": "npm run build:windows",
-  "showCommandWindow": true,
   "appliesTo": {
     "kind": "project"
-  }
+  },
+  "showCommandWindow": true,
+  "phrases": [],
+  "command": "npm run build:windows",
+  "onBefore": [
+    "update-project-version"
+  ]
 }
