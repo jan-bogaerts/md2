@@ -673,19 +673,19 @@
           "agent": "codex",
           "conversationId": "01a0fd20-6cb0-70f3-9050-1e4703fdeb0d",
           "createdAt": "2026-10-02T15:00:38.529Z",
-          "lastUsedAt": "2026-10-02T15:00:38.529Z",
-          "synchronizedThroughMessageId": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-turn-1-assistant-3"
+          "lastUsedAt": "2026-10-02T15:11:26.558Z",
+          "synchronizedThroughMessageId": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-10-02T14:59:15.268Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 20706,
           "toolMs": 3443
         },
-        "elapsedMs": 83261,
-        "runningStartedAt": "2026-10-02T15:10:33.572Z"
+        "elapsedMs": 136247,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
