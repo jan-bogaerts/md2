@@ -10,6 +10,22 @@ agents:
   - design/activity/card__55b36bc4-6580-4a70-ad3d-0f413c2f37f8.json
 policy:
 after: 11011a61-0393-4aa1-9b89-f52be576aa72
+changedFiles:
+  - README.md
+  - docs/README.md
+  - docs/actions/action-definition.md
+  - docs/actions/placeholders.md
+  - docs/actions/running-actions.md
+  - docs/concepts/cards-and-files.md
+  - docs/concepts/project-layout.md
+  - docs/guide/board-view.md
+  - docs/guide/configuration.md
+  - docs/guide/worktrees.md
+  - docs/tutorials/getting-started.md
+  - docs/tutorials/git-worktrees.md
+  - docs/tutorials/sequencing-and-scheduling.md
+  - docs/tutorials/working-with-cards.md
+  - docs/tutorials/working-with-diagrams.md
 ---
 * Getting started: first run, open project, special folders,...
 * Working wirh cards. The standard dev process, editor features, actions,..
