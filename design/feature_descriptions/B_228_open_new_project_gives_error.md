@@ -10,8 +10,6 @@ agents:
   - design/activity/card__aea33400-48d0-4568-a66a-41df2c4f32f9.json
 policy:
 after: f51c1aaf-449b-4374-9d7c-95b2c2477535
-branch: b_228_open_new_project_gives_error
-worktree: 1
 changedFiles:
   - app/src/services/release_operations.service.test.ts
 ---
