@@ -88,7 +88,7 @@ describe('VerticalDiagramComparison', () => {
         expect(current).toHaveStyle({ overflow: 'hidden' })
         expect(next).toHaveStyle({ overflow: 'hidden' })
         expect(within(current).getByLabelText('Current diagram scroller')).toHaveStyle({ overflow: 'auto' })
-        expect(within(next).getByLabelText('New diagram scroller')).toHaveStyle({ overflow: 'auto' })
+        expect(within(next).getByLabelText('New diagram scroller')).toHaveStyle({ overflowX: 'scroll', overflowY: 'scroll' })
         expect(within(current).getByRole('slider', { name: 'Current diagram zoom' })).toBeInTheDocument()
         expect(within(next).getByRole('slider', { name: 'New diagram zoom' })).toBeInTheDocument()
         expect(screen.queryByRole('dialog', { name: 'Diagram tools' })).not.toBeInTheDocument()

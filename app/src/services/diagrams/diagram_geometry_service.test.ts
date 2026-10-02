@@ -171,6 +171,65 @@ function edgeGrowthDiagram(): DiagramData {
 }
 
 describe('DiagramGeometryService surface growth', () => {
+    it('uses viewport minimum for an empty diagram without editing or saving it', () => {
+        const meta: DiagramData['meta'] = { description: '', title: 'Empty', type: 'architecture', version: 1 }
+        const emptyDiagram: DiagramData = { edges: [], groups: [], meta, nodes: [] }
+        const { geometry, session } = createHarness(emptyDiagram)
+        const originalJson = JSON.stringify(session.getEditableDiagram())
+        const originalWidth = geometry.getSurfaceFieldSnapshot('width')
+        const originalHeight = geometry.getSurfaceFieldSnapshot('height')
+
+        geometry.setViewportMinimum(600, 400)
+        expect(geometry.getSurfaceFieldSnapshot('width')).toBe(600)
+        expect(geometry.getSurfaceFieldSnapshot('height')).toBe(400)
+        geometry.setViewportMinimum(180, 120)
+        expect(geometry.getSurfaceFieldSnapshot('width')).toBe(Math.max(originalWidth, 180))
+        expect(geometry.getSurfaceFieldSnapshot('height')).toBe(Math.max(originalHeight, 120))
+        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.getChangeIdsSnapshot()).toEqual([])
+        expect(JSON.stringify(session.getEditableDiagram())).toBe(originalJson)
+    })
+
+    it('extends beyond minimum for node and group moves, then shrinks when moved back', () => {
+        const { geometry, session } = createHarness(edgeGrowthDiagram())
+        geometry.setViewportMinimum(500, 400)
+        session.setNodeField('moving', 'x', 600)
+        session.setNodeField('moving', 'y', 520)
+        expect(geometry.getSurfaceFieldSnapshot('width')).toBeGreaterThan(500)
+        expect(geometry.getSurfaceFieldSnapshot('height')).toBeGreaterThan(400)
+        session.setNodeField('moving', 'x', 80)
+        session.setNodeField('moving', 'y', 80)
+        expect(geometry.getSurfaceFieldSnapshot('width')).toBe(500)
+        expect(geometry.getSurfaceFieldSnapshot('height')).toBe(400)
+
+        const groupDiagram = edgeGrowthDiagram()
+        groupDiagram.groups.push({ height: 80, id: 'moving-group', label: 'Moving group', nodeIds: ['moving'], width: 120, x: 80, y: 80 })
+        const groupHarness = createHarness(groupDiagram)
+        groupHarness.geometry.setViewportMinimum(500, 400)
+        groupHarness.session.setGroupField('moving-group', 'x', 652)
+        groupHarness.session.setGroupField('moving-group', 'y', 540)
+        expect(groupHarness.geometry.getSurfaceFieldSnapshot('width')).toBeGreaterThan(500)
+        expect(groupHarness.geometry.getSurfaceFieldSnapshot('height')).toBeGreaterThan(400)
+        groupHarness.session.setGroupField('moving-group', 'x', 80)
+        groupHarness.session.setGroupField('moving-group', 'y', 80)
+        expect(groupHarness.geometry.getSurfaceFieldSnapshot('width')).toBe(500)
+        expect(groupHarness.geometry.getSurfaceFieldSnapshot('height')).toBe(400)
+    })
+
+    it('extends minimum by origin growth so left and top drag compensation keeps its scroll range', () => {
+        const { geometry, session } = createHarness(edgeGrowthDiagram())
+        geometry.setViewportMinimum(500, 400)
+        session.setNodeField('moving', 'x', 20)
+        session.setNodeField('moving', 'y', 20)
+
+        expect(geometry.getSurfaceFieldSnapshot('originX')).toBe(20)
+        expect(geometry.getSurfaceFieldSnapshot('originY')).toBe(20)
+        expect(geometry.getSurfaceFieldSnapshot('width')).toBe(520)
+        expect(geometry.getSurfaceFieldSnapshot('height')).toBe(420)
+        expect(geometry.getNodeGeometryFieldSnapshot('moving', 'x')).toBe(20)
+        expect(geometry.getNodeGeometryFieldSnapshot('moving', 'y')).toBe(20)
+    })
+
     it.each([
         { field: 'x' as const, value: 20, expectedOriginX: 20, expectedOriginY: 0 },
         { field: 'y' as const, value: 20, expectedOriginX: 0, expectedOriginY: 20 },

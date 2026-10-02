@@ -61,6 +61,7 @@ interface DiagramZoomViewportProps {
 
 const NewDiagram = memo(EditableDiagram)
 const KEYBOARD_RESIZE_STEP = 4
+const MINIMUM_SCROLL_RANGE = 64
 
 interface DiagramResizeTarget {
     direction: DiagramResizeDirection
@@ -208,6 +209,45 @@ export function DiagramZoomViewport({
         if (event.currentTarget.contains(event.target as Node)) pinch.handlePointerMoveCapture(event)
     }, [pinch])
     usePreserveDiagramZoomCenter(scrollerRef, scale, pinch.anchorRef)
+
+    const updateViewportMinimum = useCallback(() => {
+        const scroller = scrollerRef.current
+        const zoomSurface = zoomSurfaceRef.current
+        if (!scroller || !zoomSurface) return
+        if (scroller.clientWidth === 0 || scroller.clientHeight === 0) {
+            geometry.setViewportMinimum(0, 0)
+
+            return
+        }
+        const drawingSurface = zoomSurface.querySelector<HTMLElement>('[aria-label="New diagram"]')
+        const editor = zoomSurface.querySelector<HTMLElement>('[aria-label="New diagram editor"]')
+        if (!drawingSurface || !editor) throw new Error('Diagram editor surface is unavailable')
+        const scrollerStyle = window.getComputedStyle(scroller)
+        const editorStyle = window.getComputedStyle(editor)
+        const horizontalPadding = Number.parseFloat(scrollerStyle.paddingLeft) + Number.parseFloat(scrollerStyle.paddingRight)
+        const verticalPadding = Number.parseFloat(scrollerStyle.paddingTop) + Number.parseFloat(scrollerStyle.paddingBottom)
+        const drawingOffset = drawingSurface.getBoundingClientRect().top - zoomSurface.getBoundingClientRect().top
+        const editorBottomPadding = Number.parseFloat(editorStyle.paddingBottom) * scale
+        const width = Math.max(0, Math.ceil((scroller.clientWidth - horizontalPadding + MINIMUM_SCROLL_RANGE) / scale))
+        const height = Math.max(0, Math.ceil((
+            scroller.clientHeight - verticalPadding - drawingOffset - editorBottomPadding + MINIMUM_SCROLL_RANGE
+        ) / scale))
+        geometry.setViewportMinimum(width, height)
+    }, [geometry, scale])
+
+    useLayoutEffect(() => {
+        const scroller = scrollerRef.current
+        const header = zoomSurfaceRef.current?.querySelector<HTMLElement>('[aria-label="New diagram editor header"]')
+        if (!scroller || !header) return
+        const observer = new ResizeObserver(updateViewportMinimum)
+        observer.observe(scroller)
+        observer.observe(header)
+        updateViewportMinimum()
+
+        return () => observer.disconnect()
+    }, [updateViewportMinimum])
+
+    useEffect(() => () => geometry.setViewportMinimum(0, 0), [geometry])
 
     const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (!event.currentTarget.contains(event.target as Node)) return
@@ -509,7 +549,7 @@ export function DiagramZoomViewport({
             onPointerUp={handlePointerUp}
             onScroll={handleScroll}
             ref={scrollerRef}
-            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', px: 2, pb: 2, pt: 7, touchAction: panToolActive ? 'none' : 'pan-x pan-y' }}
+            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'scroll', overflowY: 'scroll', px: 2, pb: 2, pt: 7, touchAction: panToolActive ? 'none' : 'pan-x pan-y' }}
         >
             <Box data-testid="new-diagram-zoom-surface" ref={zoomSurfaceRef} sx={{ transformOrigin: 'top left', zoom: scale }}>
                 <NewDiagram

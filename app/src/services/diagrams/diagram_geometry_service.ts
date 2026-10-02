@@ -119,7 +119,9 @@ export class DiagramGeometryService extends EventTarget {
     private readonly groupsById = new Map<string, PositionedDiagramGroup>()
     private readonly nodesById = new Map<string, PositionedDiagramNode>()
     private objectUnsubscribes: (() => void)[] = []
+    private objectSurface: DiagramSurfaceSize = { height: 0, originX: 0, originY: 0, width: 0 }
     private surface: DiagramSurfaceSize = { height: 0, originX: 0, originY: 0, width: 0 }
+    private viewportMinimum = { height: 0, width: 0 }
 
     constructor(editSession: DiagramEditSessionService = diagramEditSessionService) {
         super()
@@ -174,6 +176,17 @@ export class DiagramGeometryService extends EventTarget {
 
     getSurfaceFieldSnapshot = (field: keyof DiagramSurfaceSize) => this.surface[field]
 
+    /** Sets view-only minimum dimensions in diagram coordinates without changing model data. */
+    setViewportMinimum(width: number, height: number) {
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width < 0 || height < 0) {
+            throw new Error('Diagram viewport minimum must have finite non-negative dimensions')
+        }
+        if (this.viewportMinimum.width === width && this.viewportMinimum.height === height) return
+
+        this.viewportMinimum = { height, width }
+        this.publishSurface()
+    }
+
     subscribeNodeGeometryField = (nodeId: string, field: PositionedNodeField, listener: () => void) => (
         this.subscribe(diagramGeometryFieldChangedEvent('node', nodeId, field), listener)
     )
@@ -224,6 +237,7 @@ export class DiagramGeometryService extends EventTarget {
         const diagram = this.editSession.getEditableDiagram() as DiagramData | null
         this.diagram = diagram
         if (!diagram) {
+            this.objectSurface = { height: 0, originX: 0, originY: 0, width: 0 }
             this.surface = { height: 0, originX: 0, originY: 0, width: 0 }
             this.dispatchEvent(new Event(diagramGeometryMembershipChangedEvent('activation')))
             this.dispatchEvent(new Event(diagramGeometryMembershipChangedEvent('fragment')))
@@ -241,7 +255,14 @@ export class DiagramGeometryService extends EventTarget {
         this.activationIds = Object.freeze(positioned.activations.map(({ id }) => id))
         this.edgeIds = Object.freeze(positioned.edges.map(({ id }) => id))
         this.fragmentIds = Object.freeze(positioned.fragments.map(({ id }) => id))
-        this.surface = { height: positioned.height, originX: positioned.originX, originY: positioned.originY, width: positioned.width }
+        const { height, originX, originY, width } = positioned
+        this.objectSurface = { height, originX, originY, width }
+        this.surface = {
+            height: Math.max(positioned.height, this.viewportMinimum.height + positioned.originY),
+            originX: positioned.originX,
+            originY: positioned.originY,
+            width: Math.max(positioned.width, this.viewportMinimum.width + positioned.originX),
+        }
         this.subscribeDiagramObjects()
         this.dispatchEvent(new Event(diagramGeometryMembershipChangedEvent('activation')))
         this.dispatchEvent(new Event(diagramGeometryMembershipChangedEvent('fragment')))
@@ -409,7 +430,7 @@ export class DiagramGeometryService extends EventTarget {
     private refreshActivations(participantId: string) {
         const node = this.nodesById.get(participantId)
         const diagram = this.requireDiagram()
-        const bottom = this.surface.height - this.surface.originY - ACTIVATION_BOTTOM_MARGIN
+        const bottom = this.objectSurface.height - this.objectSurface.originY - ACTIVATION_BOTTOM_MARGIN
         const previousIds = [...this.activationsById.keys()].filter((id) => activationOwnerId(id) === participantId)
         const rows = this.positionedEdgesInModelOrder(diagram)
         const next = node ? nodeActivations(node, rows, bottom) : []
@@ -473,18 +494,27 @@ export class DiagramGeometryService extends EventTarget {
             ? diagram.nodes.find(({ kind }) => kind === 'root') : undefined
         const root = rootModel && rootModel.x === undefined && rootModel.y === undefined
             ? this.nodesById.get(rootModel.id) : undefined
-        const originX = Math.max(this.surface.originX, measured.originX)
-        const originY = Math.max(this.surface.originY, measured.originY)
+        const originX = Math.max(this.objectSurface.originX, measured.originX)
+        const originY = Math.max(this.objectSurface.originY, measured.originY)
         const height = Math.max(
             measured.height + originY - measured.originY,
-            originY > this.surface.originY ? this.surface.height + originY - this.surface.originY : 0,
+            originY > this.objectSurface.originY ? this.objectSurface.height + originY - this.objectSurface.originY : 0,
             root ? (root.y + root.height / 2) * 2 + originY : 0,
         )
         const width = Math.max(
             measured.width + originX - measured.originX,
-            originX > this.surface.originX ? this.surface.width + originX - this.surface.originX : 0,
+            originX > this.objectSurface.originX ? this.objectSurface.width + originX - this.objectSurface.originX : 0,
             root ? (root.x + root.width / 2) * 2 + originX : 0,
         )
+        this.objectSurface = { height, originX, originY, width }
+        this.publishSurface()
+    }
+
+    private publishSurface() {
+        if (!this.diagram) return
+        const { originX, originY } = this.objectSurface
+        const height = Math.max(this.objectSurface.height, this.viewportMinimum.height + originY)
+        const width = Math.max(this.objectSurface.width, this.viewportMinimum.width + originX)
         if (originX !== this.surface.originX) {
             this.surface.originX = originX
             this.dispatchEvent(new Event(diagramGeometryFieldChangedEvent('surface', SURFACE_ID, 'originX')))
@@ -517,7 +547,7 @@ export class DiagramGeometryService extends EventTarget {
 
     private addNodeGeometry(node: DiagramNode) {
         const diagram = this.requireDiagram()
-        this.nodesById.set(node.id, nodeGeometry(diagram, node, this.surface.width, this.surface.height))
+        this.nodesById.set(node.id, nodeGeometry(diagram, node, this.objectSurface.width, this.objectSurface.height))
         this.subscribeNode(node)
     }
 

@@ -247,7 +247,7 @@ export function EditableDiagram({
             sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pb: 2 }}
             tabIndex={-1}
         >
-            <Box sx={{ bgcolor: 'background.default', left: 0, position: 'sticky', top: 0, width: 'fit-content', zIndex: 5 }}>
+            <Box aria-label="New diagram editor header" sx={{ bgcolor: 'background.default', left: 0, position: 'sticky', top: 0, width: 'fit-content', zIndex: 5 }}>
                 <EditableDiagramTitle session={session} />
                 <EditableDiagramDescription session={session} />
             </Box>

@@ -786,7 +786,7 @@ describe('DiagramView', () => {
                 />,
             )
 
-            expect(screen.getByLabelText('New diagram scroller')).toBeInTheDocument()
+            expect(screen.getByLabelText('New diagram scroller')).toHaveStyle({ overflowX: 'scroll', overflowY: 'scroll' })
             expect(screen.getByRole('slider', { name: 'New diagram zoom' })).toBeInTheDocument()
             expect(screen.queryByLabelText('Current diagram scroller')).not.toBeInTheDocument()
             expect(screen.queryByLabelText('Selected diagram comparison')).not.toBeInTheDocument()

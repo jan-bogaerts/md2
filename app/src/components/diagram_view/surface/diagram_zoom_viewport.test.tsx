@@ -90,9 +90,123 @@ function dispatchWheel(scroller: HTMLElement, options: WheelEventInit) {
     return event
 }
 
-afterEach(cleanup)
+let viewportResizeCallback: ResizeObserverCallback | null = null
+
+class ViewportResizeObserverStub {
+    private readonly callback: ResizeObserverCallback
+    constructor(callback: ResizeObserverCallback) { this.callback = callback }
+    observe(target: Element) {
+        if (target.getAttribute('aria-label') === 'New diagram scroller') viewportResizeCallback = this.callback
+    }
+    disconnect() {
+        if (viewportResizeCallback === this.callback) viewportResizeCallback = null
+    }
+}
+
+function triggerViewportResize() {
+    const callback = viewportResizeCallback
+    if (!callback) throw new Error('Expected viewport resize observer')
+    act(() => { callback([], {} as ResizeObserver) })
+}
+
+function expectViewportScrollRange(
+    scroller: HTMLElement,
+    drawingSurface: HTMLElement,
+    geometry: DiagramGeometryService,
+    scale: number,
+    viewportWidth: number,
+    viewportHeight: number,
+) {
+    const scrollerStyle = window.getComputedStyle(scroller)
+    const editor = screen.getByLabelText('New diagram editor')
+    const editorBottomPadding = Number.parseFloat(window.getComputedStyle(editor).paddingBottom) * scale
+    const horizontalPadding = Number.parseFloat(scrollerStyle.paddingLeft) + Number.parseFloat(scrollerStyle.paddingRight)
+    const verticalPadding = Number.parseFloat(scrollerStyle.paddingTop) + Number.parseFloat(scrollerStyle.paddingBottom)
+    const width = geometry.getSurfaceFieldSnapshot('width') * scale + horizontalPadding - viewportWidth
+    const height = geometry.getSurfaceFieldSnapshot('height') * scale + verticalPadding
+        + 80 * scale + editorBottomPadding - viewportHeight
+
+    expect(width).toBeGreaterThanOrEqual(64)
+    expect(height).toBeGreaterThanOrEqual(64)
+    expect(drawingSurface).toHaveStyle({
+        height: `${geometry.getSurfaceFieldSnapshot('height')}px`,
+        width: `${geometry.getSurfaceFieldSnapshot('width')}px`,
+    })
+}
+
+afterEach(() => {
+    cleanup()
+    vi.unstubAllGlobals()
+})
 
 describe('DiagramZoomViewport', () => {
+    it.each(['empty', 'small'])('keeps a scrollable drawing surface for %s diagrams through resize and zoom', (kind) => {
+        const meta: DiagramData['meta'] = { description: '', title: kind, type: 'architecture', version: 1 }
+        const nodes: DiagramData['nodes'] = kind === 'small'
+            ? [{ id: 'small', label: 'Small', role: 'focal', x: 40, y: 40 }] : []
+        const sourceDiagram: DiagramData = { edges: [], groups: [], meta, nodes }
+        const { geometry, groupDrawing, placement, selection, session } = createHarness(sourceDiagram)
+        const originalJson = JSON.stringify(session.getEditableDiagram())
+        viewportResizeCallback = null
+        vi.stubGlobal('ResizeObserver', ViewportResizeObserverStub)
+        render(
+            <DiagramZoomViewport
+                geometry={geometry} groupDrawing={groupDrawing} placement={placement} selection={selection} session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        const zoomSurface = screen.getByTestId('new-diagram-zoom-surface')
+        const drawingSurface = screen.getByLabelText('New diagram')
+        let viewportWidth = 400
+        let viewportHeight = 300
+        Object.defineProperty(scroller, 'clientWidth', { configurable: true, get: () => viewportWidth })
+        Object.defineProperty(scroller, 'clientHeight', { configurable: true, get: () => viewportHeight })
+        const zeroBounds = { bottom: 0, height: 0, left: 0, right: 0, toJSON: () => ({}), top: 0, width: 0, x: 0, y: 0 }
+        vi.spyOn(zoomSurface, 'getBoundingClientRect').mockReturnValue(zeroBounds)
+        vi.spyOn(drawingSurface, 'getBoundingClientRect').mockImplementation(() => {
+            const top = 80 * session.getViewportScaleSnapshot()
+
+            return { bottom: top, height: 0, left: 0, right: 0, toJSON: () => ({}), top, width: 0, x: 0, y: top }
+        })
+        expect(scroller).toHaveStyle({ overflowX: 'scroll', overflowY: 'scroll' })
+        triggerViewportResize()
+        expectViewportScrollRange(scroller, drawingSurface, geometry, 1, viewportWidth, viewportHeight)
+        act(() => { session.setViewportScale(0.05) })
+        expectViewportScrollRange(scroller, drawingSurface, geometry, 0.05, viewportWidth, viewportHeight)
+        act(() => { session.setViewportScale(2) })
+        expectViewportScrollRange(scroller, drawingSurface, geometry, 2, viewportWidth, viewportHeight)
+        viewportWidth = 700
+        viewportHeight = 500
+        triggerViewportResize()
+        expectViewportScrollRange(scroller, drawingSurface, geometry, 2, viewportWidth, viewportHeight)
+        fireEvent.pointerDown(drawingSurface, { button: 0, clientX: 500, clientY: 400, pointerId: 1, pointerType: 'mouse' })
+        expect(selection.getRectangleSnapshot()).not.toBeNull()
+        fireEvent.pointerUp(drawingSurface, { clientX: 500, clientY: 400, pointerId: 1 })
+        expect(session.getDirtySnapshot()).toBe(false)
+        expect(session.getChangeIdsSnapshot()).toEqual([])
+        expect(JSON.stringify(session.getEditableDiagram())).toBe(originalJson)
+
+        viewportHeight = 700
+        triggerViewportResize()
+        expectViewportScrollRange(scroller, drawingSurface, geometry, 2, viewportWidth, viewportHeight)
+        act(() => { groupDrawing.activate() })
+        fireEvent.pointerDown(drawingSurface, { button: 0, clientX: 500, clientY: 560, isPrimary: true, pointerId: 2 })
+        fireEvent.pointerMove(drawingSurface, { clientX: 600, clientY: 600, pointerId: 2 })
+        fireEvent.pointerUp(drawingSurface, { clientX: 600, clientY: 600, pointerId: 2 })
+        expect(groupDrawing.getPendingLabelBoxSnapshot()).toMatchObject({ x: 252, y: 200 })
+        act(() => { groupDrawing.cancelDrawing() })
+
+        const minimumWidth = geometry.getSurfaceFieldSnapshot('width')
+        const minimumHeight = geometry.getSurfaceFieldSnapshot('height')
+        act(() => { placement.activate({ defaults: { height: 72, label: 'Placed', role: 'focal', width: 160 }, kind: 'component' }) })
+        fireEvent.pointerDown(drawingSurface, { button: 0, clientX: 500, clientY: 560, isPrimary: true, pointerId: 3 })
+        fireEvent.pointerUp(drawingSurface, { clientX: 500, clientY: 560, pointerId: 3 })
+        expect(session.getEditableDiagram()?.nodes).toHaveLength(sourceDiagram.nodes.length + 1)
+        expect(session.getEditableDiagram()?.nodes.at(-1)).toMatchObject({ x: 252, y: 200 })
+        expect(geometry.getSurfaceFieldSnapshot('width')).toBeGreaterThan(minimumWidth)
+        expect(geometry.getSurfaceFieldSnapshot('height')).toBeGreaterThan(minimumHeight)
+    })
+
     it('keeps editable title and subtitle in one sticky header above drawing', () => {
         const { geometry, session } = createHarness()
         render(<DiagramZoomViewport geometry={geometry} session={session} />)

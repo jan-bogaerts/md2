@@ -84,6 +84,7 @@ describe('TabbedDiagramComparison', () => {
         expect(screen.queryByRole('dialog', { name: 'Diagram tools' })).not.toBeInTheDocument()
         expect(screen.getByRole('slider', { name: 'Current diagram zoom' })).toBeInTheDocument()
         expect(screen.getByRole('slider', { hidden: true, name: 'New diagram zoom' })).toBeInTheDocument()
+        expect(screen.getByLabelText('New diagram scroller')).toHaveStyle({ overflowX: 'scroll', overflowY: 'scroll' })
 
         currentTab.focus()
         await user.keyboard('{ArrowRight}{Enter}')
