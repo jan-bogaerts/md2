@@ -20,10 +20,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "5cbb6339-2a3c-4462-94cf-a575f916ad39",
       "cardPath": "design/feature_descriptions/B_257_action_output_kind.md",
-      "completedAt": "2026-10-02T17:52:30.372Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 50977
+        "usedTokens": 50055
       },
       "entries": [
         {
@@ -394,22 +394,281 @@
           "summary": [],
           "timestamp": "2026-10-02T17:52:30.229Z",
           "type": "reasoning"
+        },
+        {
+          "content": "Fix it for all that have same bug",
+          "id": "submission-3f2a99a0-561e-447d-bbea-2b0e4083e31d",
+          "kind": "message",
+          "role": "user",
+          "sequence": 29,
+          "timestamp": "2026-10-02T17:52:52.736Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-30",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdqWTqwtCJgFM66S5K15:thinking:0",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T17:52:57.282Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_257_action_output_kind.md\"}",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-31",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_257\n4\tinternalId: 5cbb6339-2a3c-4462-94cf-a575f916ad39\n5\ttitle: Action output kind\n6\tstatus: design\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__5cbb6339-2a3c-4462-94cf-a575f916ad39.json\n11\tpolicy:\n12\tafter: 11011a61-0393-4aa1-9b89-f52be576aa72\n13\t---\n14\tWhen editing an action in the action editor  we have the field ´output kind´ with 2 options.\n15\t\n16\tIf you select ´regular´ , the select remains empty, it should say ´regular´\n17\t\n18\t## Current state\n19\t\n20\t* `app/src/components/actions/editor/action_definition_fields.tsx` renders the Output kind field as an `ActionEditorField` with `select`, value `definition.output?.kind ?? ''`, and two options: `<MenuItem value=\"\">Regular</MenuItem>` and `<MenuItem value=\"diagram\">Diagram</MenuItem>`.\n21\t* `handleOutputChange` stores `output: undefined` for Regular and `{ kind: 'diagram' }` for Diagram. The saved data is correct; only the display is wrong.\n22\t* `app/src/components/actions/editor/action_editor_field.tsx` passes the select slot props `{ inputProps, labelId }` to the MUI `TextField`. It never sets `displayEmpty`.\n23\t* Cause: an MUI `Select` renders the label of the selected option only when the value is non-empty or `displayEmpty` is `true`. Regular has the value `''`, so the field shows a blank box both on load and after the user picks Regular.\n24\t* Other `ActionEditorField` selects with a `''` option have the same blank display (Icon, Ask user for, On state, Agent, Model, Permission mode). They are out of scope for this card.\n25\t\n26\t## Implementation details\n27\t\n28\t* `action_editor_field.tsx`: add an optional `displayEmpty?: boolean` prop to `ActionEditorFieldProps`. Destructure it from the props and pass it in the select slot props: `{ select: { displayEmpty, inputProps: { 'aria-describedby': describedBy }, labelId } }`. Text inputs ignore it.\n29\t  * Call-site impact: only the Output kind field passes `displayEmpty`. All other `ActionEditorField` call sites omit it and keep their current behavior (`displayEmpty` stays `undefined`).\n30\t* `action_definition_fields.tsx`: add `displayEmpty` to the Output kind `ActionEditorField`.\n31\t* No change to the stored action definition, `handleOutputChange`, or the auto-finish logic.\n32\t\n33\t## Acceptance criteria\n34\t\n35\t* When the action editor opens an action with no `output`, the Output kind field shows `Regular`.\n36\t* When the user changes Output kind from Diagram to Regular, the field shows `Regular` and the definition has no `output`.\n37\t* When the action has `output: { kind: 'diagram' }`, the field still shows `Diagram`.\n38\t* Other select fields in the action editor behave as before.\n39\t* Tests:\n40\t  * `action_definition_fields.grouped.test.tsx`: regression test: render a definition without `output` and expect `getByLabelText('Output kind')` to have text content `Regular`. This test fails before the fix.\n41\t  * `action_definition_fields.grouped.test.tsx`: switch from Diagram to Regular through the menu and expect the field to show `Regular`.",
+          "providerItemId": "toolu_01TA9JqzjXde3u6kXriB5DJB",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:52:57.879Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"<Select\\\\b|<TextField[^>]*\\\\bselect\\\\b\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"files_with_matches\"}",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-32",
+          "kind": "event",
+          "label": "Grep",
+          "output": "Found 19 files\napp\\src\\components\\diagram_view\\formatting\\diagram_formatting_popover.tsx\napp\\src\\components\\config\\config_value_editor.tsx\napp\\src\\components\\config\\sentry_config_section.tsx\napp\\src\\components\\text_view\\card_properties_panel.tsx\napp\\src\\components\\shell\\project\\project_open_dialog.tsx\napp\\src\\components\\shell\\project\\new_card_column_picker.tsx\napp\\src\\components\\shell\\menu\\menu_select.tsx\napp\\src\\components\\diagram_view\\formatting\\diagram_connection_formatting_popover.tsx\napp\\src\\components\\diagram_view\\formatting\\diagram_font_family_select.tsx\napp\\src\\components\\diagram_view\\details\\diagram_node_details_editor.tsx\napp\\src\\components\\diagram_view\\details\\diagram_edge_details_editor.tsx\napp\\src\\components\\config\\markdown_config_section.tsx\napp\\src\\components\\config\\agent_profiles_editor.tsx\napp\\src\\components\\card_view\\card_state_selector.tsx\napp\\src\\components\\actions\\run\\sequence\\card_sequence_dialog.tsx\napp\\src\\components\\actions\\run\\schedule\\schedule_trigger_fields.tsx\napp\\src\\components\\actions\\agent\\action_agent_question.tsx\napp\\src\\components\\shell\\menu\\branch_menu_select.tsx\napp\\src\\components\\shell\\project\\branch_switch_dialog.tsx",
+          "providerItemId": "toolu_011XFhDS9qcBFH8MXiRshnKn",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:52:58.962Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-33",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdqWqq34aSWptMeqBHNs:thinking:0",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T17:53:01.447Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"MenuItem value=\\\"\\\"|value=\\\\{''\\\\}\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-34",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\components\\actions\\agent\\action_agent_capability_fields.tsx:129:                    <MenuItem value=\"\">Application default</MenuItem>\napp\\src\\components\\actions\\agent\\action_agent_capability_fields.tsx:150:                    <MenuItem value=\"\">Select model</MenuItem>\napp\\src\\components\\actions\\agent\\action_agent_capability_fields.tsx:194:                    <MenuItem value=\"\">Application default</MenuItem>\napp\\src\\components\\actions\\conversation\\picker\\action_conversation_picker.tsx:34:            <MenuItem value=\"\">New conversation</MenuItem>\napp\\src\\components\\actions\\editor\\action_definition_fields.tsx:230:                            <MenuItem value=\"\">Regular</MenuItem>\napp\\src\\components\\actions\\editor\\action_definition_fields.tsx:234:                            <MenuItem value=\"\">No icon</MenuItem>\napp\\src\\components\\actions\\editor\\action_definition_fields.tsx:240:                        <MenuItem value=\"\">None</MenuItem>\napp\\src\\components\\actions\\editor\\action_definition_fields.tsx:272:                            <MenuItem value=\"\">No state trigger</MenuItem>\napp\\src\\components\\diagram_view\\details\\diagram_node_details_editor.tsx:280:                                        <MenuItem value=\"\">None</MenuItem>\napp\\src\\components\\diagram_view\\formatting\\diagram_font_family_select.tsx:16:            <MenuItem value=\"\">Theme default</MenuItem>\napp\\src\\components\\diagram_view\\details\\diagram_edge_details_editor.tsx:140:                                <MenuItem value=\"\">None</MenuItem>\napp\\src\\components\\diagram_view\\details\\diagram_edge_details_editor.tsx:144:                                <MenuItem value=\"\">None</MenuItem>",
+          "providerItemId": "toolu_011z9xFHuk97qQ5jMCM6okrh",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:53:02.237Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\actions\\\\editor\\\\action_editor_field.tsx\"}",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-35",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Stack, TextField, Typography } from '@mui/material'\n2\timport type { TextFieldProps } from '@mui/material'\n3\t\n4\texport interface ActionEditorFieldProps extends Omit<TextFieldProps, 'id' | 'label' | 'slotProps'> {\n5\t    fieldId: string\n6\t    label: string\n7\t}\n8\t\n9\t/** Action-editor field with a persistent label and linked helper text. */\n10\texport function ActionEditorField(props: ActionEditorFieldProps) {\n11\t    const { fieldId, helperText, label, ...textFieldProps } = props\n12\t    const labelId = `${fieldId}-label`\n13\t    const helperTextId = `${fieldId}-helper-text`\n14\t    const describedBy = helperText === undefined || helperText === null ? undefined : helperTextId\n15\t    const accessibilityProps = { 'aria-describedby': describedBy, 'aria-labelledby': labelId }\n16\t    const inputSlotProps = textFieldProps.select\n17\t        ? { select: { inputProps: { 'aria-describedby': describedBy }, labelId } }\n18\t        : { htmlInput: accessibilityProps }\n19\t\n20\t    return (\n21\t        <Stack spacing={0.75} sx={{ flex: 1, minWidth: 0 }}>\n22\t            <Typography color=\"text.secondary\" component=\"label\" htmlFor={fieldId} id={labelId} sx={{ fontWeight: 600 }} variant=\"caption\">\n23\t                {label}\n24\t            </Typography>\n25\t            <TextField\n26\t                {...textFieldProps}\n27\t                helperText={helperText}\n28\t                id={fieldId}\n29\t                slotProps={{\n30\t                    formHelperText: { id: helperTextId },\n31\t                    ...inputSlotProps,\n32\t                }}\n33\t                sx={{ minWidth: 0 }}\n34\t            />\n35\t        </Stack>\n36\t    )\n37\t}\n38\t",
+          "providerItemId": "toolu_01VsQ5DvTHq6cZzj1yWui8Tg",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:53:02.631Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-36",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdqX7V7JKFkaFhVrkLBQ:thinking:0",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T17:53:06.475Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components; sed -n 215,280p actions/editor/action_definition_fields.tsx; echo ----CAP; sed -n 115,200p actions/agent/action_agent_capability_fields.tsx; echo ----PICK; cat actions/conversation/picker/action_conversation_picker.tsx; echo ----FONT; cat diagram_view/formatting/diagram_font_family_select.tsx; echo ----NODE; sed -n 265,285p diagram_view/details/diagram_node_details_editor.tsx; echo ----EDGE; sed -n 125,150p diagram_view/details/diagram_edge_details_editor.tsx",
+          "content": "                        >\n                            <MenuItem value=\"agent\">Agent</MenuItem>\n                            <MenuItem value=\"command\">Command</MenuItem>\n                        </ActionEditorField>\n                        <ActionEditorField\n                            error={!!errors.output}\n                            fieldId=\"action-output-kind\"\n                            fullWidth\n                            helperText={errors.output}\n                            label=\"Output kind\"\n                            onChange={handleOutputChange}\n                            select\n                            size=\"small\"\n                            value={definition.output?.kind ?? ''}\n                        >\n                            <MenuItem value=\"\">Regular</MenuItem>\n                            <MenuItem value=\"diagram\">Diagram</MenuItem>\n                        </ActionEditorField>\n                        <ActionEditorField error={!!errors.icon} fieldId=\"action-icon\" fullWidth helperText={errors.icon} label=\"Icon\" name=\"icon\" onChange={handleOptionalTextChange} select size=\"small\" value={definition.icon ?? ''}>\n                            <MenuItem value=\"\">No icon</MenuItem>\n                            {iconPaths.map((path) => <MenuItem key={path} value={path}>{path}</MenuItem>)}\n                        </ActionEditorField>\n                    </Stack>\n                    <ActionEditorTextField error={!!errors.description} fieldId=\"action-description\" fullWidth helperText={errors.description} label=\"Description\" name=\"description\" onChange={handleRequiredTextChange} size=\"small\" source={definition} value={definition.description} />\n                    <ActionEditorField error={!!errors.userInput} fieldId=\"action-user-input\" fullWidth helperText={errors.userInput} label=\"Ask user for\" onChange={handleUserInputChange} select size=\"small\" value={definition.userInput?.type ?? ''}>\n                        <MenuItem value=\"\">None</MenuItem>\n                        <MenuItem value=\"version\">Version</MenuItem>\n                    </ActionEditorField>\n                    {definition.userInput?.type === 'version' ? (\n                        <ActionEditorField error={!!errors.userInput} fieldId=\"action-user-input-prompt\" fullWidth helperText={errors.userInput} label=\"Version question (optional)\" onChange={handleUserInputPromptChange} size=\"small\" value={definition.userInput.prompt ?? ''} />\n                    ) : null}\n                </ActionDefinitionGroup>\n                <ActionDefinitionGroup\n                    description=\"Choose when this action starts and how its agent or command runs.\"\n                    id=\"action-run-settings\"\n                    title=\"Run settings\"\n                >\n                    <Grid\n                        sx={{\n                            display: 'grid',\n                            gridTemplateColumns: { md: 'repeat(3, 1fr)', xs: '1fr' },\n                            columnGap: 2,\n                            alignItems: 'start',\n                        }}\n                    >\n                        <ActionEditorField\n                            error={!!errors.onState}\n                            fieldId=\"action-on-state\"\n                            fullWidth\n                            helperText={onStateHelperText}\n                            label=\"Run when card enters state\"\n                            name=\"onState\"\n                            onChange={handleOptionalTextChange}\n                            select\n                            size=\"small\"\n                            value={definition.onState ?? ''}\n                        >\n                            <MenuItem value=\"\">No state trigger</MenuItem>\n                            {missingState ? <MenuItem value={missingState}>{missingState} — unavailable</MenuItem> : null}\n                            {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}\n                        </ActionEditorField>\n\n                        <Stack>\n                            <Form\n[7025 characters omitted]\n ))}\n        </TextField>\n    )\n}\n----FONT\nimport { MenuItem, TextField } from '@mui/material';\nimport type { ChangeEvent } from 'react';\nimport { fontFamilyOptions } from '../../../theme/theme_config';\n\ninterface DiagramFontFamilySelectProps {\n    onChange(value: string): void;\n    value: string;\n}\n\n/** Font select with theme default and any saved custom family. */\nexport function DiagramFontFamilySelect({ onChange, value }: DiagramFontFamilySelectProps) {\n    const handleChange = (event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value);\n\n    return (\n        <TextField autoFocus fullWidth label=\"Font family\" onChange={handleChange} select size=\"small\" value={value}>\n            <MenuItem value=\"\">Theme default</MenuItem>\n            {fontFamilyOptions(value).map((option) => (\n                <MenuItem key={option.value} sx={{ fontFamily: option.value }} value={option.value}>\n                    {option.label}\n                </MenuItem>\n            ))}\n        </TextField>\n    );\n}\n----NODE\n                                    <TextField\n                                        label=\"Type\"\n                                        name={`${fieldIndex}:type`}\n                                        onChange={handleEntityFieldChange}\n                                        size=\"small\"\n                                        value={field.type}\n                                    />\n                                    <TextField\n                                        label=\"Key\"\n                                        name={`${fieldIndex}:key`}\n                                        onChange={handleEntityFieldChange}\n                                        select\n                                        size=\"small\"\n                                        value={field.key}\n                                    >\n                                        <MenuItem value=\"\">None</MenuItem>\n                                        <MenuItem value=\"primary\">Primary</MenuItem>\n                                        <MenuItem value=\"foreign\">Foreign</MenuItem>\n                                    </TextField>\n                                    <Tooltip title=\"Move field up\">\n                                        <span>\n----EDGE\n                    {diagramType === 'sequence' ? (\n                        <TextField label=\"Message row\" name=\"row\" onChange={handleFieldChange} select size=\"small\" value={draft.row}>\n                            {session.getEdgeIdsSnapshot().map((_edgeId, index) => (\n                                <MenuItem key={index} value={String(index + 1)}>{index + 1}</MenuItem>\n                            ))}\n                        </TextField>\n                    ) : null}\n                    {kindOptions.length > 1 ? (\n                        <TextField label=\"Kind\" name=\"kind\" onChange={handleFieldChange} select size=\"small\" value={draft.kind}>\n                            {kindOptions.map((kind) => <MenuItem key={kind} value={kind}>{kind}</MenuItem>)}\n                        </TextField>\n                    ) : null}\n                    {diagramType === 'entity' ? (\n                        <>\n                            <TextField label=\"From cardinality\" name=\"fromCardinality\" onChange={handleFieldChange} select size=\"small\" value={draft.fromCardinality}>\n                                <MenuItem value=\"\">None</MenuItem>\n                                {DIAGRAM_CARDINALITIES.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}\n                            </TextField>\n                            <TextField label=\"To cardinality\" name=\"toCardinality\" onChange={handleFieldChange} select size=\"small\" value={draft.toCardinality}>\n                                <MenuItem value=\"\">None</MenuItem>\n                                {DIAGRAM_CARDINALITIES.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}\n                            </TextField>\n                        </>\n                    ) : null}\n                </Stack>\n            </DialogContent>",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-37",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components; sed -n 215,280p actions/editor/action_definition_fields.tsx; echo ----CAP; sed -n 115,200p actions/agent/action_agent_capability_fields.tsx; echo ----PICK; cat actions/conversation/picker/action_conversation_picker.tsx; echo ----FONT; cat diagram_view/formatting/diagram_font_family_select.tsx; echo ----NODE; sed -n 265,285p diagram_view/details/diagram_node_details_editor.tsx; echo ----EDGE; sed -n 125,150p diagram_view/details/diagram_edge_details_editor.tsx",
+          "providerItemId": "toolu_01WKbjgAovdNoB27XGBuABU9",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:53:09.546Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-38",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdqXd85NSvWnuvGhKY1v:thinking:0",
+          "sequence": 38,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T17:53:16.857Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"ActionEditorField\\\\b\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"count\"}",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-39",
+          "kind": "event",
+          "label": "Grep",
+          "output": "actions\\editor\\action_selector_field.tsx:3\nactions\\agent\\action_agent_capability_fields.tsx:9\nactions\\editor\\action_filter_editor.tsx:5\nactions\\editor\\action_editor_text_field.tsx:2\nactions\\editor\\action_editor_field.tsx:1\nactions\\editor\\action_editor_field.grouped.test.tsx:3\nactions\\editor\\action_definition_fields.tsx:16\n\nFound 39 total occurrences across 7 files.",
+          "providerItemId": "toolu_01H53N12VCWkT7QBrEM7GydZ",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:53:17.751Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"pattern\":\"displayEmpty|Output kind|No icon|No state trigger|Application default\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\actions\",\"glob\":\"*.test.tsx\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-40",
+          "kind": "event",
+          "label": "Grep",
+          "output": "actions\\editor\\action_editor.grouped.test.tsx:323:        fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'No state trigger' }))\nactions\\editor\\action_definition_fields.grouped.test.tsx:90:        expect(details.getByLabelText('Output kind')).toBeInTheDocument()\nactions\\editor\\action_definition_fields.grouped.test.tsx:253:        expect(screen.getByLabelText('Output kind')).toHaveTextContent('Diagram')",
+          "providerItemId": "toolu_0172bYrdp3RvMsC9Bx2c8Wjy",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:53:18.821Z",
+          "type": "tool.Grep"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/actions/editor; grep -n -A12 \"<ActionEditorField\" action_selector_field.tsx action_filter_editor.tsx | grep -n \"select\\|value=\\|MenuItem value\"; echo ---; cat action_editor_field.grouped.test.tsx | head -60",
+          "content": "1:action_selector_field.tsx:20:        <ActionEditorField\n2:action_selector_field.tsx-21-            error={!!error}\n3:action_selector_field.tsx-22-            fieldId={fieldId}\n4:action_selector_field.tsx-23-            fullWidth\n5:action_selector_field.tsx-24-            helperText={error}\n6:action_selector_field.tsx-25-            label=\"Action\"\n7:action_selector_field.tsx-26-            name={name}\n8:action_selector_field.tsx-27-            onChange={onChange}\n9:action_selector_field.tsx-28-            select\n10:action_selector_field.tsx-29-            size=\"small\"\n11:action_selector_field.tsx-30-            value={value}\n12:action_selector_field.tsx-31-        >\n13:action_selector_field.tsx-32-            {!actions.some(({ id }) => id === value) ? <MenuItem value={value}>{value} — unavailable</MenuItem> : null}\n20:action_filter_editor.tsx-193-                            select\n22:action_filter_editor.tsx-195-                            value={field}\n36:action_filter_editor.tsx-227-                                select\n38:action_filter_editor.tsx-229-                                value={fieldValue}\n40:action_filter_editor.tsx-231-                                {options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}\n---\nimport { cleanup, render, screen } from '@testing-library/react'\nimport { afterEach, describe, expect, it } from 'vitest'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { ActionEditorField } from './action_editor_field'\n\ndescribe('ActionEditorField', () => {\n    afterEach(cleanup)\n\n    it('shows a persistent label and associates helper text with the control', () => {\n        render(\n            <AppThemeProvider>\n                <ActionEditorField error fieldId=\"test-action-name\" helperText=\"Name is required\" label=\"Name\" value=\"\" />\n            </AppThemeProvider>,\n        )\n\n        const control = screen.getByLabelText('Name')\n        const helperText = screen.getByText('Name is required')\n\n        expect(screen.getByText('Name', { selector: 'label' })).toBeVisible()\n        expect(control).toHaveAttribute('aria-describedby', helperText.id)\n        expect(control).toHaveAttribute('aria-labelledby', 'test-action-name-label')\n        expect(control).toHaveAttribute('aria-invalid', 'true')\n    })\n})",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-41",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/actions/editor; grep -n -A12 \"<ActionEditorField\" action_selector_field.tsx action_filter_editor.tsx | grep -n \"select\\|value=\\|MenuItem value\"; echo ---; cat action_editor_field.grouped.test.tsx | head -60",
+          "providerItemId": "toolu_01Wiu3qaSuRgbusgRc9et9WK",
+          "sequence": 41,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:53:21.212Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-42",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdqYUvjqbactw9osvEz1:thinking:0",
+          "sequence": 42,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T17:53:23.526Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Scope widened to all action-editor selects. Updating doc now.",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 43,
+          "timestamp": "2026-10-02T17:53:23.527Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; python - <<'EOF'\np='design/feature_descriptions/B_257_action_output_kind.md'\ns=open(p,encoding='utf-8',newline='').read()\nhead=s[:s.index('## Current state')]\nhead=head.replace('status: design','status: ready for implementation',1)\nbody='''## Current state\n\n* `app/src/components/actions/editor/action_editor_field.tsx` (`ActionEditorField`) wraps an MUI `TextField`. For selects it passes the select slot props `{ inputProps, labelId }`. It never sets `displayEmpty`.\n* Cause: an MUI `Select` renders the label of the selected option only when the value is non-empty or `displayEmpty` is `true`. An option with value `''` therefore shows a blank box, both on load and after the user picks it. `ActionEditorField` puts its label outside the box, so nothing is shown at all.\n* Affected `ActionEditorField` selects (all have a `<MenuItem value=\"\">` option):\n  * `action_definition_fields.tsx`: Output kind (`Regular`), Icon (`No icon`), Ask user for (`None`), Run when card enters state (`No state trigger`).\n  * `app/src/components/actions/agent/action_agent_capability_fields.tsx`: Agent (`Application default`), Model (`Select model`), Permission mode (`Application default`).\n* Output kind detail: `handleOutputChange` stores `output: undefined` for Regular and `{ kind: 'diagram' }` for Diagram. Stored data is correct; only the display is wrong. The same holds for the other fields.\n* Unaffected `ActionEditorField` selects: Type, Thinking level (`none` is a real value), `action_selector_field.tsx` (Action), and the two selects in `action_filter_editor.tsx`. None has a `''` option.\n* `app/src/components/actions/conversation/picker/action_conversation_picker.tsx` already sets `displayEmpty: true`. Not affected.\n* Out of scope: diagram selects using a plain `TextField` with a floating `label` (`diagram_font_family_select.tsx`, `diagram_node_details_editor.tsx` Key, `diagram_edge_details_editor.tsx` From/To cardinality). With `''` they show the floating label inside the box, not a blank box. Fixing them also needs `shrink` on the label; separate change.\n\n## Implementation details\n\n* `action_editor_field.tsx`: set `displayEmpty: true` in the select slot props: `{ select: { displayEmpty: true, inputProps: { 'aria-describedby': describedBy }, labelId } }`. No new prop.\n  * Call-site impact: `displayEmpty` only changes rendering when the value is `''`. The seven affected fields above get the fix. Unaffected selects have no `''` option, so with `''` they still render blank, as today. Text inputs do not use the select slot.\n* No change to call sites, stored action definitions, change handlers, or the auto-finish logic.\n\n## Acceptance criteria\n\n* When the action editor opens an action with no `output`, Output kind shows `Regular`.\n* When the user changes Output kind from Diagram to Regular, the field shows `Regular` and the definition has no `output`.\n* When the action has `output: { kind: 'diagram' }`, Output kind still shows `Diagram`.\n* With the empty value, Icon shows `No icon`, Ask user for shows `None`, Run when card enters state shows `No state trigger`, Agent shows `Application default`, Model shows `Select model`, Permission mode shows `Application default`.\n* Selects with a non-empty value show their selected option as before.\n* Tests:\n  * `action_editor_field.grouped.test.tsx`: regression test: render a select `ActionEditorField` with value `''` and a `<MenuItem value=\"\">None</MenuItem>` option; expect `getByLabelText(label)` to have text content `None`. Fails before the fix.\n  * `action_definition_fields.grouped.test.tsx`: render a definition without `output`; expect `getByLabelText('Output kind')` to have text content `Regular`.\n  * `action_definition_fields.grouped.test.tsx`: switch Output kind from Diagram to Regular through the menu; expect the field to show `Regular`.\n'''\nnl='\\r\\n' if '\\r\\n' in s else '\\n'\nopen(p,'w',encoding='utf-8',newline='').write(head+body.replace('\\n',nl))\nEOF\ngit diff --stat -- design/feature_descriptions/B_257_action_output_kind.md",
+          "content": " .../B_257_action_output_kind.md                    | 34 ++++++++++++++++++++--\n 1 file changed, 32 insertions(+), 2 deletions(-)",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-44",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; python - <<'EOF'\np='design/feature_descriptions/B_257_action_output_kind.md'\ns=open(p,encoding='utf-8',newline='').read()\nhead=s[:s.index('## Current state')]\nhead=head.replace('status: design','status: ready for implementation',1)\nbody='''## Current state\n\n* `app/src/components/actions/editor/action_editor_field.tsx` (`ActionEditorField`) wraps an MUI `TextField`. For selects it passes the select slot props `{ inputProps, labelId }`. It never sets `displayEmpty`.\n* Cause: an MUI `Select` renders the label of the selected option only when the value is non-empty or `displayEmpty` is `true`. An option with value `''` therefore shows a blank box, both on load and after the user picks it. `ActionEditorField` puts its label outside the box, so nothing is shown at all.\n* Affected `ActionEditorField` selects (all have a `<MenuItem value=\"\">` option):\n  * `action_definition_fields.tsx`: Output kind (`Regular`), Icon (`No icon`), Ask user for (`None`), Run when card enters state (`No state trigger`).\n  * `app/src/components/actions/agent/action_agent_capability_fields.tsx`: Agent (`Application default`), Model (`Select model`), Permission mode (`Application default`).\n* Output kind detail: `handleOutputChange` stores `output: undefined` for Regular and `{ kind: 'diagram' }` for Diagram. Stored data is correct; only the display is wrong. The same holds for the other fields.\n* Unaffected `ActionEditorField` selects: Type, Thinking level (`none` is a real value), `action_selector_field.tsx` (Action), and the two selects in `action_filter_editor.tsx`. None has a `''` option.\n* `app/src/components/actions/conversation/picker/action_conversation_picker.tsx` already sets `displayEmpty: true`. Not affected.\n* Out of scope: diagram selects using a plain `TextField` with a floating `label` (`diagram_font_family_select.tsx`, `diagram_node_details_editor.tsx` Key, `diagram_edge_details_editor.tsx` From/To cardinality). With `''` they show the floating label inside the box, not a blank box. Fixing them also needs `shrink` on the label; separate change.\n\n## Implementation details\n\n* `action_editor_field.tsx`: set `displayEmpty: true` in the select slot props: `{ select: { displayEmpty: true, inputProps: { 'aria-describedby': describedBy }, labelId } }`. No new prop.\n  * Call-site impact: `displayEmpty` only changes rendering when the value is `''`. The seven affected fields above get the fix. Unaffected selects have no `''` option, so with `''` they still render blank, as today. Text inputs do not use the select slot.\n* No change to call sites, stored action definitions, change handlers, or the auto-finish logic.\n\n## Acceptance criteria\n\n* When the action editor opens an action with no `output`, Output kind shows `Regular`.\n* When the user changes Output kind from Diagram to Regular, the field shows `Regular` and the definition has no `output`.\n* When the action has `output: { kind: 'diagram' }`, Output kind still shows `Diagram`.\n* With the empty value, Icon shows `No icon`, Ask user for shows `None`, Run when card enters state shows `No state trigger`, Agent shows `Application default`, Model shows `Select model`, Permission mode shows `Application default`.\n* Selects with a non-empty value show their selected option as before.\n* Tests:\n  * `action_editor_field.grouped.test.tsx`: regression test: render a select `ActionEditorField` with value `''` and a `<MenuItem value=\"\">None</MenuItem>` option; expect `getByLabelText(label)` to have text content `None`. Fails before the fix.\n  * `action_definition_fields.grouped.test.tsx`: render a definition without `output`; expect `getByLabelText('Output kind')` to have text content `Regular`.\n  * `action_definition_fields.grouped.test.tsx`: switch Output kind from Diagram to Regular through the menu; expect the field to show `Regular`.\n'''\nnl='\\r\\n' if '\\r\\n' in s else '\\n'\nopen(p,'w',encoding='utf-8',newline='').write(head+body.replace('\\n',nl))\nEOF\ngit diff --stat -- design/feature_descriptions/B_257_action_output_kind.md",
+          "providerItemId": "toolu_0169cpHj2grpUpBKFh3v1fRS",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:53:38.556Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-45",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdqZkzu843BBFhwZRMUb:thinking:0",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T17:53:40.023Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\B_257_action_output_kind.md\",\"limit\":20}",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-46",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: B_257\n4\tinternalId: 5cbb6339-2a3c-4462-94cf-a575f916ad39\n5\ttitle: Action output kind\n6\tstatus: ready for implementation\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__5cbb6339-2a3c-4462-94cf-a575f916ad39.json\n11\tpolicy:\n12\tafter: 11011a61-0393-4aa1-9b89-f52be576aa72\n13\t---\n14\tWhen editing an action in the action editor  we have the field ´output kind´ with 2 options.\n15\t\n16\tIf you select ´regular´ , the select remains empty, it should say ´regular´\n17\t\n18\t## Current state\n19\t\n20\t* `app/src/components/actions/editor/action_editor_field.tsx` (`ActionEditorField`) wraps an MUI `TextField`. For selects it passes the select slot props `{ inputProps, labelId }`. It never sets `displayEmpty`.",
+          "providerItemId": "toolu_01AzNGnV7FvNCyGxJTMGegJd",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:53:40.245Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-event-47",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdqZtGiAWS4fBpNAuFpe:thinking:0",
+          "sequence": 47,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T17:53:46.818Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI widened the design doc to cover every action-editor select with this bug and set `status` to `ready for implementation`. I took \"fix it\" to mean the doc scope, so no code changed. Say so if you wanted the code fix now.\n\n**Cause:** MUI `Select` shows nothing when the value is `''` unless `displayEmpty` is on. `ActionEditorField` (`app/src/components/actions/editor/action_editor_field.tsx`) never turns it on, and its label sits outside the box, so the box is fully blank.\n\n**Affected (7 fields, all have an empty-value option):**\n- In `action_definition_fields.tsx`: Output kind, Icon, Ask user for, Run when card enters state.\n- In `action_agent_capability_fields.tsx`: Agent, Model, Permission mode.\n\n**Planned fix:** one line in `action_editor_field.tsx`, always passing `displayEmpty: true` to the select. It needs no new prop and no call-site changes. It is safe for the other selects (Type, Thinking level, Action, the two filter selects) because none of them has an empty option, so they render as they do today.\n\n**Tests:**\n- New regression test in `action_editor_field.grouped.test.tsx`; it fails before the fix.\n- The two Output kind tests from before stay.\n\n**Left out:** three diagram selects use the same empty option, in `diagram_font_family_select.tsx`, `diagram_node_details_editor.tsx` (Key) and `diagram_edge_details_editor.tsx` (From/To cardinality). They use a plain `TextField` whose label floats inside the box, so they show \"Font family\" or \"Key\" instead of a blank box. Fixing them also needs the label to shrink. Should those go into this card too?",
+          "id": "agent-turn-004b450a-86d6-4633-91aa-7d64498e30e9-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 48,
+          "timestamp": "2026-10-02T17:53:46.845Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-2c720bf1-a56a-481f-996a-885cdb7258e2",
       "providerSessions": [],
       "startedAt": "2026-10-02T17:50:35.144Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 19944,
-          "toolMs": 20483
+          "reasoningMs": 39245,
+          "toolMs": 45158
         },
         "elapsedMs": 48710,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-02T17:52:52.736Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 350563,
+        "inputTokens": 16,
+        "outputTokens": 4995,
+        "reasoningTokens": 0,
+        "totalTokens": 355574,
+        "costUsd": 0.43110360000000003
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
@@ -426,11 +685,11 @@
         "agent-2c720bf1-a56a-481f-996a-885cdb7258e2"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-5f71c327-2785-4e05-95eb-9334d6ce318a",
       "origin": {
@@ -439,9 +698,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-2c720bf1-a56a-481f-996a-885cdb7258e2",
       "startedAt": "2026-10-02T17:50:35.142Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-2c720bf1-a56a-481f-996a-885cdb7258e2"
     }
   ],
   "version": 5
