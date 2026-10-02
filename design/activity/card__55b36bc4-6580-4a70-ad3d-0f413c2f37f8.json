@@ -248,6 +248,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "55b36bc4-6580-4a70-ad3d-0f413c2f37f8",
+      "cardPath": "design/feature_descriptions/F_389_prepare_tutorials.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read design/feature_descriptions/F_389_prepare_tutorials.md and write docs",
+          "id": "submission-a693ff80-107e-400e-b948-00060481dc5d",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-02T17:14:34.435Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-25bcb22a-4866-473c-9d7c-3c3f3302d074",
+      "providerSessions": [],
+      "startedAt": "2026-10-02T17:14:34.435Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-02T17:14:34.435Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -262,11 +290,11 @@
         "agent-b7881501-bc90-4d61-82d3-1d914c435352"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-9a087c5f-be3b-437b-928a-07607f0ee05a",
       "origin": {
@@ -275,9 +303,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-b7881501-bc90-4d61-82d3-1d914c435352",
       "startedAt": "2026-10-02T17:04:33.157Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-b7881501-bc90-4d61-82d3-1d914c435352"
     }
   ],
   "version": 5
