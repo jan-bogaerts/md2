@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "f272b881-ecee-472a-9a0b-ab4932175147",
+      "cardPath": "design/feature_descriptions/B_255_scheduled_task_did_not_start.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_255_scheduled_task_did_not_start.md. can you identify why the scheduled task did not start?",
+          "id": "submission-2b0aa2a0-57cd-44d1-ba2f-992e183e6eef",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-02T14:59:15.268Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-854a04c0-64b8-4f2b-981b-07899b2998d9",
+      "providerSessions": [],
+      "startedAt": "2026-10-02T14:59:15.268Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-02T14:59:15.268Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "f272b881-ecee-472a-9a0b-ab4932175147",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
