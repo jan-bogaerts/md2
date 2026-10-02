@@ -135,6 +135,14 @@
           "role": "assistant",
           "sequence": 9,
           "timestamp": "2026-10-02T17:05:03.784Z"
+        },
+        {
+          "content": "Doc/tutorials\n\nImplement is run agent, yes\n\nVideos may be linked to from tutorials  no move\n\nUpdate 389",
+          "id": "submission-465f9e9f-b9ac-4384-8e20-47b861a85cab",
+          "kind": "message",
+          "role": "user",
+          "sequence": 10,
+          "timestamp": "2026-10-02T17:10:01.567Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -149,14 +157,14 @@
         }
       ],
       "startedAt": "2026-10-02T17:04:33.158Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 9571,
           "toolMs": 10167
         },
         "elapsedMs": 30626,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-02T17:10:01.567Z"
       },
       "title": "+",
       "usage": {
