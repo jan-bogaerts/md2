@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__ee69c5dd-bb25-4e62-8837-e250eae7cc88.json
 policy:
-branch: f_400_improve_scheduled_tasks_for_cards
-worktree: 2
 changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx
