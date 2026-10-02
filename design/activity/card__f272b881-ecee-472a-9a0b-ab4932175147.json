@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 75277
+        "usedTokens": 83858
       },
       "entries": [
         {
@@ -672,6 +672,168 @@
           "role": "user",
           "sequence": 49,
           "timestamp": "2026-10-02T15:12:43.048Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-event-50",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fa0128a8a8da4ca016abfc9ef7c3c87d29b11f7ef2b9a58a5",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T15:12:56.181Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "That rules out project reload as the explanation. I’ll trace the path from registration to timer firing and action start, including how a start failure appears in the schedule status.\n\n",
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 51,
+          "timestamp": "2026-10-02T15:12:57.551Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/actions/action/action_runner_service.js' | Select-Object -Skip 155 -First 90\"",
+          "content": "        this.projectFolder = null;\r\n        this.releasesFolder = null;\r\n        this.configuredStates = [];\r\n        this.conversationReservations.clear();\r\n        this.actionDefinitionCache?.stop();\r\n    }\r\n\r\n    subscribe(listener) {\r\n        if (typeof listener !== 'function') throw new Error('Missing action run listener');\r\n        this.listeners.add(listener);\r\n\r\n        return () => this.listeners.delete(listener);\r\n    }\r\n\r\n    async start(request, options = {}) {\r\n        const startRequest = validateStartRequest(request);\r\n        this.requireReady();\r\n        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);\r\n        const origin = activityOrigin(startRequest.context);\r\n        const project = { ...this.project };\r\n        const actionsFolder = this.actionsFolder;\r\n        const rootAction = await this.loadRootAction(startRequest.actionId);\r\n        const requestedInput = userInputRequest(rootAction);\r\n        if (options.interactive === false && requestedInput && startRequest.runInput[requestedInput.type] === undefined) {\r\n            throw new Error(`Unattended action requires a supplied ${requestedInput.type}: ${rootAction.label}`);\r\n        }\r\n        const diagramPath = this.resolveStartDiagramPath(startRequest, rootAction);\r\n        if (options.interactive === false && hasStreamingAction(rootAction)) {\r\n            throw new Error(`Streaming action requires an interactive manual run: ${rootAction.label}`);\r\n        }\r\n        const conversationReservation = this.consumeConversationReservation(startRequest, rootAction);\r\n        const runId = options.runId ?? createRunId();\r\n        if (typeof runId !== 'string' || runId.length === 0) throw new Error('Invalid reserved action run ID');\r\n        if (this.runs.has(runId) || this.completedRunResults.has(runId)) throw new Error(`Action run already exists: ${runId}`);\r\n        const run = new ActionRun({\r\n            activeCardsFolder: this.activeCardsFolder,\r\n            actionsFolder,\r\n            activityOrigin: origin,\r\n            context: startRequest.context,\r\n            conversationReservation,\r\n            diagramFooter: this.diagramFooter,\r\n            diagramsFolder: this.diagramsFolder,\r\n            diagramPath,\r\n            runId,\r\n            project,\r\n            projectFolder: this.projectFolder,\r\n            releasesFolder: this.releasesFolder,\r\n            rootAction,\r\n            runInput: startRequest.runInput,\r\n            requestedInput,\r\n            startedAt: new Date().toISOString(),\r\n        }, {\r\n            actionWorktreeRunService: this.actionWorktreeRunService,\r\n            agentExecutor: this.agentExecutor,\r\n            agentRunnerService: this.agentRunnerService,\r\n            commandRunner: this.commandRunner,\r\n            commandWindowRunner: this.commandWindowRunner,\r\n            diagramOutputWatcherFactory: this.diagramOutputWatcherFactory,\r\n            localGitService: this.localGitService,\r\n            publisher: this.publish.bind(this),\r\n        });\r\n        this.runEvents.set(runId, []);\r\n        this.runs.set(runId, run);\r\n        run.start(this.finalizeRun.bind(this, run));\r\n        if (rootAction.type === 'agent') await run.waitForInitialConversationSave();\r\n\r\n        return runId;\r\n    }\r\n\r\n    async reserveConversation(request) {\r\n        const startRequest = validateStartRequest(request);\r\n        this.requireReady();\r\n        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);\r\n        if (startRequest.runInput.continueFrom) throw new Error('Continuing an agent conversation does not require a reservation');\r\n        const action = await this.loadRootAction(startRequest.actionId);\r\n        if (action.type !== 'agent') throw new Error('Cannot reserve a conversation for a command action');\r\n        const origin = activityOrigin(startRequest.context);\r\n        const conversationId = startRequest.runInput.conversationId ?? `agent-${crypto.randomUUID()}`;\r\n        const reference = this.localGitService.activityConversationReference(this.projectFolder, origin, conversationId);\r\n        const { activityPath } = parseConversationActivityReference(reference);\r\n        const reservation = { activityPath, conversationId, reference };\r\n        this.conversationReservations.set(reference, reservation);\r\n\r\n        return reservation;\r\n    }\r\n\r\n    consumeConversationReservation(startRequest, rootAction) {\r\n        const reservation = startRequest.conversationReservation;\r\n        if (!reservation) return null;\r\n        if (rootAction.type !== 'agent') throw new Error('Command action cannot use an agent conversation reservation');\r\n",
+          "durationMs": 111,
+          "exitCode": 0,
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-event-52",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/actions/action/action_runner_service.js' | Select-Object -Skip 155 -First 90\"",
+          "providerItemId": "exec-7ef23ff3-fd56-46f4-b80a-5e0f2714064e",
+          "sequence": 52,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:13:05.414Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 4 \\\"interactive: false|unattended|scheduled|runInput|start\\\\(request\\\" desktop/src/actions/action/action_runner_service.js desktop/src/actions/action -g '*.js' | Select-Object -First 180\"",
+          "content": "desktop/src/actions/action/action_runner_service.js-166-\r\ndesktop/src/actions/action/action_runner_service.js-167-        return () => this.listeners.delete(listener);\r\ndesktop/src/actions/action/action_runner_service.js-168-    }\r\ndesktop/src/actions/action/action_runner_service.js-169-\r\ndesktop/src/actions/action/action_runner_service.js:170:    async start(request, options = {}) {\r\ndesktop/src/actions/action/action_runner_service.js-171-        const startRequest = validateStartRequest(request);\r\ndesktop/src/actions/action/action_runner_service.js-172-        this.requireReady();\r\ndesktop/src/actions/action/action_runner_service.js-173-        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);\r\ndesktop/src/actions/action/action_runner_service.js-174-        const origin = activityOrigin(startRequest.context);\r\ndesktop/src/actions/action/action_runner_service.js-175-        const project = { ...this.project };\r\ndesktop/src/actions/action/action_runner_service.js-176-        const actionsFolder = this.actionsFolder;\r\ndesktop/src/actions/action/action_runner_service.js-177-        const rootAction = await this.loadRootAction(startRequest.actionId);\r\ndesktop/src/actions/action/action_runner_service.js-178-        const requestedInput = userInputRequest(rootAction);\r\ndesktop/src/actions/action/action_runner_service.js:179:        if (options.interactive === false && requestedInput && startRequest.runInput[requestedInput.type] === undefined) {\r\ndesktop/src/actions/action/action_runner_service.js-180-            throw new Error(`Unattended action requires a supplied ${requestedInput.type}: ${rootAction.label}`);\r\ndesktop/src/actions/action/action_runner_service.js-181-        }\r\ndesktop/src/actions/action/action_runner_service.js-182-        const diagramPath = this.resolveStartDiagramPath(startRequest, rootAction);\r\ndesktop/src/actions/action/action_runner_service.js-183-        if (options.interactive === false && hasStreamingAction(rootAction)) {\r\n--\r\ndesktop/src/actions/action/action_runner_service.js-200-            project,\r\ndesktop/src/actions/action/action_runner_service.js-201-            projectFolder: this.projectFolder,\r\ndesktop/src/actions/action/action_runner_service.js-202-            releasesFolder: this.releasesFolder,\r\ndesktop/src/actions/action/action_runner_service.js-203-            rootAction,\r\ndesktop/src/actions/action/action_runner_service.js:204:            runInput: startRequest.runInput,\r\ndesktop/src/actions/action/action_runner_service.js-205-            requestedInput,\r\ndesktop/src/actions/action/action_runner_service.js-206-            startedAt: new Date().toISOString(),\r\ndesktop/src/actions/action/action_runner_service.js-207-        }, {\r\ndesktop/src/actions/action/action_runner_service.js-208-            actionWorktreeRunService: this.actionWorktreeRunService,\r\n--\r\ndesktop/src/actions/action/action_runner_service.js-225-    async reserveConversation(request) {\r\ndesktop/src/actions/action/action_runner_service.js-226-        const startRequest = validateStartRequest(request);\r\ndesktop/src/actions/action/action_runner_service.js-227-        this.requireReady();\r\ndesktop/src/actions/action/action_runner_service.js-228-        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);\r\ndesktop/src/actions/action/action_runner_service.js:229:        if (startRequest.runInput.continueFrom) throw new Error('Continuing an agent conversation does not require a reservation');\r\ndesktop/src/actions/action/action_runner_service.js-230-        const action = await this.loadRootAction(startRequest.actionId);\r\ndesktop/src/actions/action/action_runner_service.js-231-        if (action.type !== 'agent') throw new Error('Cannot reserve a conversation for a command action');\r\ndesktop/src/actions/action/action_runner_service.js-232-        const origin = activityOrigin(startRequest.context);\r\ndesktop/src/actions/action/action_runner_service.js:233:        const conversationId = startRequest.runInput.conversationId ?? `agent-${crypto.randomUUID()}`;\r\ndesktop\n[9681 characters omitted]\nut.thinkingLevel, 'thinkingLevel'),\r\ndesktop/src/actions/action\\action_run_request.js:48:        version: runInput.version === undefined ? undefined : validateVersion(runInput.version),\r\ndesktop/src/actions/action\\action_run_request.js-49-    };\r\ndesktop/src/actions/action\\action_run_request.js-50-}\r\ndesktop/src/actions/action\\action_run_request.js-51-\r\ndesktop/src/actions/action\\action_run_request.js-52-function validateVersion(value) {\r\n--\r\ndesktop/src/actions/action\\action_run_request.js-88-    return {\r\ndesktop/src/actions/action\\action_run_request.js-89-        actionId: request.actionId,\r\ndesktop/src/actions/action\\action_run_request.js-90-        ...(conversationReservation ? { conversationReservation } : {}),\r\ndesktop/src/actions/action\\action_run_request.js-91-        context: validateContext(request.context),\r\ndesktop/src/actions/action\\action_run_request.js:92:        runInput: validateRunInput(request.runInput),\r\ndesktop/src/actions/action\\action_run_request.js-93-    };\r\ndesktop/src/actions/action\\action_run_request.js-94-}\r\ndesktop/src/actions/action\\action_run_request.js-95-\r\ndesktop/src/actions/action\\action_run_request.js-96-function validatePreparePromptRequest(request) {\r\n--\r\ndesktop/src/actions/action\\action_runner_service.js-166-\r\ndesktop/src/actions/action\\action_runner_service.js-167-        return () => this.listeners.delete(listener);\r\ndesktop/src/actions/action\\action_runner_service.js-168-    }\r\ndesktop/src/actions/action\\action_runner_service.js-169-\r\ndesktop/src/actions/action\\action_runner_service.js:170:    async start(request, options = {}) {\r\ndesktop/src/actions/action\\action_runner_service.js-171-        const startRequest = validateStartRequest(request);\r\ndesktop/src/actions/action\\action_runner_service.js-172-        this.requireReady();\r\ndesktop/src/actions/action\\action_runner_service.js-173-        assertReleasedCardActionAllowed(startRequest.context, this.releasesFolder);\r\ndesktop/src/actions/action\\action_runner_service.js-174-        const origin = activityOrigin(startRequest.context);\r\ndesktop/src/actions/action\\action_runner_service.js-175-        const project = { ...this.project };\r\ndesktop/src/actions/action\\action_runner_service.js-176-        const actionsFolder = this.actionsFolder;\r\ndesktop/src/actions/action\\action_runner_service.js-177-        const rootAction = await this.loadRootAction(startRequest.actionId);\r\ndesktop/src/actions/action\\action_runner_service.js-178-        const requestedInput = userInputRequest(rootAction);\r\ndesktop/src/actions/action\\action_runner_service.js:179:        if (options.interactive === false && requestedInput && startRequest.runInput[requestedInput.type] === undefined) {\r\ndesktop/src/actions/action\\action_runner_service.js-180-            throw new Error(`Unattended action requires a supplied ${requestedInput.type}: ${rootAction.label}`);\r\ndesktop/src/actions/action\\action_runner_service.js-181-        }\r\ndesktop/src/actions/action\\action_runner_service.js-182-        const diagramPath = this.resolveStartDiagramPath(startRequest, rootAction);\r\ndesktop/src/actions/action\\action_runner_service.js-183-        if (options.interactive === false && hasStreamingAction(rootAction)) {\r\n--\r\ndesktop/src/actions/action\\action_runner_service.js-200-            project,\r\ndesktop/src/actions/action\\action_runner_service.js-201-            projectFolder: this.projectFolder,\r\ndesktop/src/actions/action\\action_runner_service.js-202-            releasesFolder: this.releasesFolder,\r\ndesktop/src/actions/action\\action_runner_service.js-203-            rootAction,\r\ndesktop/src/actions/action\\action_runner_service.js:204:            runInput: startRequest.runInput,\r\ndesktop/src/actions/action\\action_runner_service.js-205-            requestedInput,\r\ndesktop/src/actions/action\\action_runner_service.js-206-            startedAt: new Date().toISOString(),\r\ndesktop/src/actions/action\\action_runner_service.js-207-        }, {\r\ndesktop/src/actions/action\\action_runner_service.js-208-            actionWorktreeRunService: this.actionWorktreeRunService,\r\n",
+          "durationMs": 95,
+          "exitCode": 1,
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-event-53",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 4 \\\"interactive: false|unattended|scheduled|runInput|start\\\\(request\\\" desktop/src/actions/action/action_runner_service.js desktop/src/actions/action -g '*.js' | Select-Object -First 180\"",
+          "providerItemId": "exec-db962bf4-88df-4a49-832f-d5892b4c435b",
+          "sequence": 53,
+          "status": "failed",
+          "timestamp": "2026-10-02T15:13:05.426Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/actions/action/action_scheduler_service.test.mjs' | Select-Object -Skip 700 -First 55\"",
+          "content": "\r\n\r\n        await vi.waitFor(() => expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done'));\r\n    });\r\n\r\n    it('emits shared action run events while firing a schedule', async () => {\r\n        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T09:59:00.000Z', type: 'at' });\r\n        const localGitService = createLocalGitService([schedule]);\r\n        const scheduler = createScheduler(localGitService);\r\n        const events = [];\r\n\r\n        scheduler.actionRunnerService.subscribe((event) => events.push(event));\r\n        await startProject(scheduler, localGitService);\r\n        await scheduler.fireSchedule('schedule-1');\r\n\r\n        expect(events.filter((event) => event.type === 'run').map((event) => event.status)).toEqual(['running', 'completed']);\r\n        expect(events[0]).toMatchObject({ actionId: 'implement', rootActionId: 'implement' });\r\n    });\r\n\r\n    it('applies a scheduled action thinking level and records it in history', async () => {\r\n        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' });\r\n        const localGitService = createLocalGitService([schedule], [createAgentAction('implement', { thinkingLevel: 'high' })]);\r\n        const agentRunner = vi.fn(async (_project, request) => successfulAgentResult(request));\r\n        const scheduler = createScheduler(localGitService, {\r\n            agentConfigProvider: () => agentConfig(),\r\n            agentRunnerService: { run: agentRunner },\r\n        });\r\n        await startProject(scheduler, localGitService);\r\n        await scheduler.fireSchedule('schedule-1');\r\n\r\n        expect(agentRunner).toHaveBeenCalledWith(project, expect.objectContaining({\r\n            command: [\r\n                'codex', '--model', 'gpt-5.5', '-c', 'model_reasoning_effort=high', '--sandbox', 'workspace-write',\r\n                '--ask-for-approval', 'on-request', '--search', 'exec', '--json',\r\n            ],\r\n        }), expect.any(Function));\r\n",
+          "durationMs": 96,
+          "exitCode": 0,
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-event-54",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/actions/action/action_scheduler_service.test.mjs' | Select-Object -Skip 700 -First 55\"",
+          "providerItemId": "exec-ca4634b7-d337-4fcb-b49b-33a99ca05dac",
+          "sequence": 54,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:13:05.581Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"\\\\.md2-schedules\\\\.json|saveActionSchedules|loadActionSchedules\\\" desktop/src/git/local_git_service.js shared/action_schedules.mjs | Select-Object -First 85\"",
+          "content": "shared/action_schedules.mjs:1:export const ACTION_SCHEDULES_FILE = '.md2-schedules.json';\r\n",
+          "durationMs": 75,
+          "exitCode": 0,
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-event-55",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"\\\\.md2-schedules\\\\.json|saveActionSchedules|loadActionSchedules\\\" desktop/src/git/local_git_service.js shared/action_schedules.mjs | Select-Object -First 85\"",
+          "providerItemId": "exec-3d01237f-ba23-4719-9315-2220e9cd2652",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:13:05.571Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-event-56",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fa0128a8a8da4ca016abfca04808887d2bd36a15543fc0e09",
+          "sequence": 56,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T15:13:12.412Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/actions/schedule/schedule_store.js' | Select-Object -First 65\"",
+          "content": "const {\r\n    ACTION_SCHEDULES_FILE,\r\n    createScheduleFile: createActionScheduleFile,\r\n    parseScheduleFile: parseActionScheduleFile,\r\n} = require('../../../../shared/action_schedules.mjs');\r\n\r\nfunction appendActionSchedule(schedules, schedule) {\r\n    return createActionScheduleFile([...schedules, schedule]).schedules;\r\n}\r\n\r\nfunction findPendingSchedule(schedules, scheduleId) {\r\n    const schedule = schedules.find((candidate) => candidate.id === scheduleId);\r\n    if (!schedule || schedule.status !== 'pending') return null;\r\n\r\n    return schedule;\r\n}\r\n\r\nfunction pendingTimedScheduleIds(schedules) {\r\n    return new Set(schedules\r\n        .filter((schedule) => schedule.status === 'pending'\r\n            && (schedule.trigger.type === 'at' || schedule.trigger.type === 'account-reset'))\r\n        .map((schedule) => schedule.id));\r\n}\r\n\r\nfunction pendingScheduleIds(schedules) {\r\n    return new Set(schedules.filter(({ status }) => status === 'pending').map(({ id }) => id));\r\n}\r\n\r\nfunction activeSchedules(schedules) {\r\n    return schedules.filter(({ status }) => status === 'pending' || status === 'running');\r\n}\r\n\r\nfunction deleteScheduleRecord(schedules, scheduleId) {\r\n    const schedule = schedules.find(({ id }) => id === scheduleId);\r\n    if (!schedule) throw new Error(`Schedule not found: ${scheduleId}`);\r\n\r\n    return createActionScheduleFile(schedules.filter(({ id }) => id !== scheduleId)).schedules;\r\n}\r\n\r\nfunction updateActionScheduleStatus(schedules, scheduleId, status) {\r\n    return createActionScheduleFile(schedules.map((schedule) => {\r\n        if (schedule.id !== scheduleId) return schedule;\r\n\r\n        return { ...schedule, status };\r\n    })).schedules;\r\n}\r\n\r\nfunction replaceScheduleRecord(schedules, schedule) {\r\n    if (!schedules.some(({ id }) => id === schedule.id)) throw new Error(`Schedule not found: ${schedule.id}`);\r\n\r\n    return createActionScheduleFile(schedules.map((candidate) => candidate.id === schedule.id ? schedule : candidate)).schedules;\r\n}\r\n\r\nfunction cancelPendingActionSchedule(schedules, scheduleId) {\r\n    const schedule = schedules.find((candidate) => candidate.id === scheduleId);\r\n    if (!schedule) throw new Error(`Action schedule not found: ${scheduleId}`);\r\n    if (schedule.status !== 'pending') throw new Error(`Cannot cancel action schedule with status ${schedule.status}`);\r\n\r\n    return updateActionScheduleStatus(schedules, scheduleId, 'cancelled');\r\n}\r\n\r\nmodule.exports = {\r\n    ACTION_SCHEDULES_FILE,\r\n    activeSchedules,\r\n    appendActionSchedule,\r\n",
+          "durationMs": 82,
+          "exitCode": 0,
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-event-57",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/actions/schedule/schedule_store.js' | Select-Object -First 65\"",
+          "providerItemId": "exec-b595f5c4-0532-455f-8ed0-512521862b53",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:13:18.584Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 3 \\\"unattended|requires a supplied|streaming action|status: 'failed'|marks.*failed|failed.*schedule\\\" desktop/src/actions/action/action_scheduler_service.test.mjs app/src/components/actions/run/schedule/action_schedule_owner.test.tsx | Select-Object -First 170\"",
+          "content": "desktop/src/actions/action/action_scheduler_service.test.mjs-344-        await expect(scheduler.listActiveSchedules()).resolves.toEqual([pendingSchedule, runningSchedule]);\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-345-    });\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-346-\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs:347:    it('marks an interrupted running action schedule failed during startup', async () => {\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-348-        const runningSchedule = { ...createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:02:00.000Z', type: 'at' }), status: 'running' };\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-349-        const localGitService = createLocalGitService([runningSchedule]);\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-350-        const errorReporter = vi.fn();\r\n--\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-352-\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-353-        await startProject(scheduler, localGitService);\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-354-\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs:355:        expect(localGitService.schedules()).toEqual([{ ...runningSchedule, status: 'failed' }]);\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-356-        expect(errorReporter).toHaveBeenCalledWith(expect.objectContaining({ message: 'Action schedule schedule-1 could not recover its interrupted run and was marked failed' }));\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-357-    });\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-358-\r\n--\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-827-        expect(agentRunner).not.toHaveBeenCalled();\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-828-        if (label === 'invalid') expect(localGitService.histories).toEqual([]);\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-829-        else {\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs:830:            expect(localGitService.histories).toEqual([expect.objectContaining({entry: expect.objectContaining({status: 'failed', type: 'command'})})]);\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-831-        }\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-832-    });\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-833-\r\n--\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-845-        expect(localGitService.histories[0]).toMatchObject({ entry: { command: 'echo done', status: 'completed', type: 'command' } });\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-846-        expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done');\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-847-        expect(localGitService.schedules()).toEqual([\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs:848:            { ...invalidSchedule, status: 'failed' },\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-849-            { ...validSchedule, status: 'completed' },\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-850-        ]);\r\ndesktop/src/actions/action/action_scheduler_service.test.mjs-851-    });\r\n",
+          "durationMs": 44,
+          "exitCode": 0,
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-event-58",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n -C 3 \\\"unattended|requires a supplied|streaming action|status: 'failed'|marks.*failed|failed.*schedule\\\" desktop/src/actions/action/action_scheduler_service.test.mjs app/src/components/actions/run/schedule/action_schedule_owner.test.tsx | Select-Object -First 170\"",
+          "providerItemId": "exec-e5137286-1d29-4dbe-b9d9-dea2af888de7",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:13:18.594Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/services/actions/active_schedule_projection.ts' | Select-Object -First 90\"",
+          "content": "import type { ActionDefinition } from '../../data/action_types'\r\nimport type { AnySchedule } from '../../data/action_schedule_types'\r\nimport type { Card } from '../../data/data_types'\r\nimport type { ClaudeRateLimitSnapshot } from '../../data/electron_claude_runtime_bridge'\r\nimport type { CodexRateLimitSnapshot } from '../../data/electron_codex_runtime_bridge'\r\n\r\nexport interface ActiveScheduleReference {\r\n    available: boolean\r\n    id: string\r\n    label: string\r\n    path: string | null\r\n}\r\n\r\nexport interface ActiveScheduleTrackerReference {\r\n    available: boolean\r\n    label: string\r\n}\r\n\r\nexport interface ActiveScheduleItem {\r\n    actionAvailable: boolean\r\n    actionLabel: string\r\n    schedule: AnySchedule\r\n    target: ActiveScheduleReference | null\r\n    tracker: ActiveScheduleTrackerReference | null\r\n    triggerCard: ActiveScheduleReference | null\r\n    unavailableReasons: string[]\r\n}\r\n\r\nexport interface ActiveScheduleProjectionSources {\r\n    actions: ActionDefinition[]\r\n    cards: Card[]\r\n    claudeSnapshot: ClaudeRateLimitSnapshot | null\r\n    codexSnapshot: CodexRateLimitSnapshot | null\r\n}\r\n\r\nfunction cardReference(cardInternalId: string, cards: Card[]): ActiveScheduleReference {\r\n    const card = cards.find(({ header }) => header.internalId === cardInternalId)\r\n    if (!card) return { available: false, id: cardInternalId, label: cardInternalId, path: null }\r\n\r\n    return {\r\n        available: true,\r\n        id: cardInternalId,\r\n        label: `${card.header.id} â€” ${card.header.title}`,\r\n        path: card.path,\r\n    }\r\n}\r\n\r\nfunction trackerReference(\r\n    schedule: AnySchedule,\r\n    claudeSnapshot: ClaudeRateLimitSnapshot | null,\r\n    codexSnapshot: CodexRateLimitSnapshot | null,\r\n): ActiveScheduleTrackerReference | null {\r\n    if (schedule.trigger.type !== 'account-reset') return null\r\n    const { agent, limitId, windowId } = schedule.trigger\r\n    if (agent === 'claude') {\r\n        const window = claudeSnapshot?.available && limitId === 'default'\r\n            ? claudeSnapshot.windows.find(({ id }) => id === windowId)\r\n            : null\r\n\r\n        return { available: !!window, label: `Claude / ${limitId} / ${windowId}` }\r\n    }\r\n    if (agent === 'codex') {\r\n        const bucket = codexSnapshot?.available\r\n            ? codexSnapshot.buckets.find((candidate) => candidate.limitId === limitId)\r\n            : null\r\n        const window = windowId === 'primary' || windowId === 'secondary' ? bucket?.[windowId] : null\r\n        const limitLabel = bucket?.limitName ?? limitId\r\n\r\n        return { available: !!window, label: `Codex / ${limitLabel} / ${windowId}` }\r\n    }\r\n\r\n    return { available: false, label: `${agent} / ${limitId} / ${windowId}` }\r\n}\r\n\r\n/** Builds renderer-only labels and availability from backend-owned schedule records. */\r\nexport function projectActiveSchedules(\r\n    schedules: readonly AnySchedule[],\r\n    sources: ActiveScheduleProjectionSources,\r\n): ActiveScheduleItem[] {\r\n    const { actions, cards, claudeSnapshot, codexSnapshot } = sources\r\n\r\n    return schedules.map((schedule) => {\r\n        const action = actions.find(({ id }) => id === schedule.actionId)\r\n        const targetCardInternalId = schedule.kind === 'action'\r\n            ? schedule.context.cardInternalId ?? null\r\n            : schedule.cardInternalIds[schedule.currentIndex]\r\n        const target = targetCardInternalId ? cardReference(targetCardInternalId, cards) : null\r\n        const triggerCard = schedule.trigger.type === 'card-state'\r\n            ? cardReference(schedule.trigger.cardInternalId, cards)\r\n            : null\r\n",
+          "durationMs": 69,
+          "exitCode": 0,
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-event-59",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/services/actions/active_schedule_projection.ts' | Select-Object -First 90\"",
+          "providerItemId": "exec-08779021-04b3-4b96-bb4d-7042c480e27b",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:13:18.629Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-event-60",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0fa0128a8a8da4ca016abfca1234b487d289ea34d967f5dfdb",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T15:13:25.567Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "You’re right. Since you created the schedule and kept the project loaded, **project activation cannot explain this missed run**. I was wrong to suggest it.\n\nI found a different failure path: when the timer fires, Electron starts the action unattended with empty input ([scheduler](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action/action_scheduler_service.js:530)). If that action requires input or interactive streaming, the [runner rejects the start](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action/action_runner_service.js:177). The scheduler then catches the error without reporting its reason and marks the schedule `failed` ([failure handling](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/action/action_scheduler_service.js:491)). Failed schedules are excluded from the active schedule list, so this can look like the task simply vanished.\n\nThat is a concrete possible explanation, but I can’t say it happened to your task without its persisted schedule status and action definition. The loaded project itself was not the cause.\n\n",
+          "id": "agent-turn-062782db-7f83-4d5f-bc1a-c3c7e5ae3d4e-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 61,
+          "timestamp": "2026-10-02T15:13:34.500Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -689,19 +851,19 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 20706,
-          "toolMs": 3443
+          "reasoningMs": 40805,
+          "toolMs": 3874
         },
         "elapsedMs": 136247,
         "runningStartedAt": "2026-10-02T15:12:43.048Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 471296,
-        "inputTokens": 75008,
-        "outputTokens": 2885,
-        "reasoningTokens": 523,
-        "totalTokens": 549712
+        "cachedInputTokens": 702080,
+        "inputTokens": 84172,
+        "outputTokens": 3700,
+        "reasoningTokens": 977,
+        "totalTokens": 790929
       },
       "usageSchemaVersion": 1,
       "viewed": true
