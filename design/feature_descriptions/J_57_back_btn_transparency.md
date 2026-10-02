@@ -27,7 +27,7 @@ This button has too much transparency. It is very hard to see the arrow.
 
 * Change `horizontal_scroll_area.tsx` only. Both scroll buttons share `buttonContainerSx`, so the fix applies to the back button and the forward button.
 * Make the button container background solid `background.paper`, so nothing scrolls visibly beneath the arrow.
-* Keep the fade as an edge hint, but move it outside the button: a `::after` pseudo-element on the container, placed against its inner edge (`left: '100%'` for the start button, `right: '100%'` for the end button), width a named constant `SCROLL_FADE_WIDTH` (16px), full height, `pointerEvents: 'none'`. The gradient runs from `background.paper` to `transparent` away from the button. Reuse `startFade`/`endFade`, changed to a 0% solid stop.
+* Keep the fade as an edge hint, but move it outside the button: a `::after` pseudo-element on the container, placed against its inner edge (`left: '100%'` for the start button, `right: '100%'` for the end button), width a named constant `SCROLL_FADE_WIDTH` (8px), full height, `pointerEvents: 'none'`. The gradient runs from `background.paper` to `transparent` away from the button. Reuse `startFade`/`endFade`, changed to a 0% solid stop.
 * Give the `IconButton` an opaque resting color `custom.text3` and hover color `primary.main`, per the ghost icon button rule in `STYLE_GUIDE.md`.
 * Keep `SCROLL_BUTTON_WIDTH`, scroll step, `aria-label`s, visibility logic, wheel, and focus behavior unchanged. No change to the three call sites.
 * Tests: the change is visual only. Existing `horizontal_scroll_area.test.tsx` must still pass; no new test, because tests asserting visual values are not kept. Run that test file, typecheck, and lint when implementing.
