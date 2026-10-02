@@ -197,6 +197,7 @@ export class ActionService extends EventTarget {
             description: 'Describe this action.',
             id: generateUuid(),
             label: 'New action',
+            streaming: true,
             phrases: [],
             prompt: 'Describe what the agent should do.',
             type: 'agent',

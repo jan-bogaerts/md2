@@ -2,8 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
 import { activeScheduleService } from '../../../../services/actions/active_schedule_service'
+import { dataService } from '../../../../services/data/data_service'
 import { projectAccessService } from '../../../../services/project/project_access_service'
-import { defaultScheduleAction } from './action_popup_defaults'
+import { defaultConvertPromptToAction, defaultScheduleAction } from './action_popup_defaults'
 
 describe('defaultScheduleAction', () => {
     afterEach(() => {
@@ -24,5 +25,32 @@ describe('defaultScheduleAction', () => {
 
         expect(registerActionSchedule).toHaveBeenCalledWith({ actionId: 'implement', context, trigger })
         expect(refresh).toHaveBeenCalledOnce()
+    })
+})
+
+describe('defaultConvertPromptToAction', () => {
+    afterEach(() => {
+        vi.restoreAllMocks()
+    })
+
+    it('writes a streaming agent action with selected settings', async () => {
+        vi.spyOn(dataService, 'getConfig').mockReturnValue({ actionsFolder: 'actions' } as never)
+        vi.spyOn(dataService, 'getState').mockReturnValue({ snapshot: { repositoryFiles: [] } } as never)
+        const saveProjectFile = vi.spyOn(dataService.cards, 'saveProjectFile').mockImplementation(async (file) => file)
+        const context = { cardInternalId: 'card-1', kind: 'card' as const, type: 'feature' }
+
+        const { definition, path } = await defaultConvertPromptToAction({
+            agent: 'codex', context, label: 'Review result', model: 'gpt-5.5',
+            permissionMode: 'ask-for-approval', prompt: 'Review this result',
+        })
+
+        expect(path).toBe('actions/review-result.json')
+        expect(definition.streaming).toBe(true)
+        const savedFile = saveProjectFile.mock.calls[0]?.[0]
+        if (!savedFile) throw new Error('Missing saved action file')
+        expect(JSON.parse(savedFile.content)).toMatchObject({
+            agent: 'codex', model: 'gpt-5.5', permissionMode: 'ask-for-approval',
+            streaming: true, type: 'agent',
+        })
     })
 })

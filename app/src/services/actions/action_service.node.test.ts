@@ -223,7 +223,7 @@ describe('ActionService', () => {
         expect(first.path).toBe('design/actions/new-action.json')
         expect(first.definition).toMatchObject({
             description: expect.any(String), id: expect.any(String), label: 'New action',
-            prompt: expect.any(String), type: 'agent',
+            prompt: expect.any(String), streaming: true, type: 'agent',
         })
         expect(service.validateDefinition(first.path, first.definition))
             .toEqual({ code: null, error: null, field: null, fieldPath: null, index: null, valid: true })

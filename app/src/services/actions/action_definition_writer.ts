@@ -43,6 +43,7 @@ export function createActionDefinition(input: ConvertPromptToActionInput): RawAc
         label: input.label.trim(),
         ...(input.model ? { model: input.model } : {}),
         ...(input.permissionMode ? { permissionMode: input.permissionMode } : {}),
+        streaming: true,
         phrases: [],
         prompt: input.prompt,
         type: 'agent',

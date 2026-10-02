@@ -520,9 +520,10 @@ describe('AppMenu', () => {
         const commitRequest = vi.mocked(bridge.commit).mock.calls.at(-1)?.[0]
         const actionFile = commitRequest?.files[0]
         if (!actionFile) throw new Error('Missing persisted action file')
-        const persistedDefinition = JSON.parse(actionFile.content) as { id: string, label: string }
+        const persistedDefinition = JSON.parse(actionFile.content) as { id: string, label: string, streaming: boolean }
 
         expect(actionFile.content).toMatch(/\{\n {2}"description": "Describe this action\.",/u)
+        expect(persistedDefinition.streaming).toBe(true)
         expect(actionService.getActionByPath(actionFile.path)).toMatchObject({
             id: persistedDefinition.id,
             label: persistedDefinition.label,
