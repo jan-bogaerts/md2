@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__5603103d-1d57-40e8-afae-095f12ac1695.json
 policy:
+branch: f_404_update_action_editor_layout_an_style
+worktree: 1
 ---
 See F\_392 where we applied groups to the sentry tab of the config dialog.
 
