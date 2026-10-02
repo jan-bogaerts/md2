@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__ee69c5dd-bb25-4e62-8837-e250eae7cc88.json
 policy:
+branch: f_400_improve_scheduled_tasks_for_cards
+worktree: 2
 ---
 
 * if a card has an action scheduled to be run, show a 'timer' icon on the card
