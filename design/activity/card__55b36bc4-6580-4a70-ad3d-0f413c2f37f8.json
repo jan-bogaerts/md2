@@ -21,6 +21,10 @@
       "cardInternalId": "55b36bc4-6580-4a70-ad3d-0f413c2f37f8",
       "cardPath": "design/feature_descriptions/F_389_prepare_tutorials.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 41724
+      },
       "entries": [
         {
           "content": "Read design/feature_descriptions/F_389_prepare_tutorials.md, propose content. Overview only",
@@ -29,6 +33,108 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-02T17:04:33.158Z"
+        },
+        {
+          "command": "cat design/feature_descriptions/F_389_prepare_tutorials.md; ls design/feature_descriptions | head -50; ls design",
+          "content": "---\nauthor: \nid: F_389\ninternalId: 55b36bc4-6580-4a70-ad3d-0f413c2f37f8\ntitle: Prepare tutorials\nstatus: design\nowner: \naffects:\nagents:\n  - design/activity/card__55b36bc4-6580-4a70-ad3d-0f413c2f37f8.json\npolicy:\nafter: 11011a61-0393-4aa1-9b89-f52be576aa72\n---\n* Getting started: first run, open project, special folders,...\n* Working wirh cards. The standard dev process, editor features, actions,..\n* Git worktrees: setup, using, merge conflicts\n* Sequencing and scheduling cards\n* Working with diagrams: rendering from code, creating new, implementing,...\n\nSome of these tutorials might already partially exist.&#x20;\n\nWe need to group them and make them easily accessible from main readme20260614_075636.jpg\n20260614_075638.jpg\nB_158_remotecontrolconnectionerror_remote_control_connection_was_replaced.md\nB_198_remotecontrolconnectionerror_remote_control_connection_closed.md\nB_205_file_watcher_adds_meta_data_to_the_wrong_files.md\nB_206_codex_account_usage.md\nB_209_delete_action_failed.md\nB_210_incorrect_layout_action_popup_for_commands.md\nB_212_images_in_cards_not_shown.md\nB_223_save_aborted_cause_of_invalid_action_data.md\nB_228_open_new_project_gives_error.md\nB_253_in_transmission_prompts_still_disapear.md\nB_254_released_cards_chat_logs.md\nB_255_scheduled_task_did_not_start.md\nB_256_scheduling_actions_requires_local_mode.md\nF-6-animations.md\nF_123_release_cards_very_slow.md\nF_180_add_extra_event_logging.md\nF_188_add_support_ctrl_tab_in_list_view.md\nF_198_reconnect_websocket_incomplete.md\nF_210_account_limits_use_icon.md\nF_226_investigate_integration_of_opencodex.md\nF_235_improve_default_values_for_agent_config.md\nF_237_add_menu_items_to_markdown_editor.md\nF_245_add_support_for_api_pricing_calculation.md\nF_249_add_support_to_compact.md\nF_257_size_of_usage_metrics_csv.md\nF_258_add_support_for_tags.md\nF_259_add_tags_to_stats.md\nF_260_remove_owner_components.md\nF_332_delete_conversations.md\nF_333_bad_error_diagram_action.md\nF_334_remove_5_hourly_account_usage.md\nF_335_include_cost_per_release.md\nF_366_add_support_for_agent_specific_instructions_on_actions_and_global.md\nF_367_add_support_for_jev.md\nF_374_add_docs_about_editable_diagrams.md\nF_377_extract_diagram_edit_transaction_plumbing.md\nF_378_extract_diagram_edit_snapshots_and_subscriptions.md\nF_380_add_possibility_to_support_task_tracking_tool.md\nF_381_check_for_codex_cli_updates_at_startup.md\nF_389_prepare_tutorials.md\nF_390_add_intro.md\nF_391_diagrams_autowrap_labels_and_space_around.md\nF_392_add_groups_to_sentry_config_tab.md\nF_393_autocommit_delay_on_project_config.md\nF_394_diagram_legend_items.md\nF_395_diagram_workarea.md\nF_396_day_week_filter_on_stats.md\nF_397_fix_render_update_version_script_prompt.md\nCODEMAP.md\nImpossible to add card mobile.md\nSTYLE_GUIDE.md\nactions\nactivity\nagent_token_usage.json\narchitecture\ncommunications\nconfig_style_guide.md\ndiagrams\nfeature descriptions\nfeature_descriptions\nproject_stats.json\nreleases\nusage_metrics.csv",
+          "id": "agent-turn-430fbc4d-fb6a-4f53-8793-71d6fbb22558-event-2",
+          "kind": "event",
+          "label": "cat design/feature_descriptions/F_389_prepare_tutorials.md; ls design/feature_descriptions | head -50; ls design",
+          "providerItemId": "toolu_01GCgQBWoP5s2YvnwuhuazW8",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:04:37.802Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-430fbc4d-fb6a-4f53-8793-71d6fbb22558-event-3",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdmpyVh34eFMBwmTyuje:thinking:0",
+          "sequence": 3,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T17:04:39.495Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "ls; ls docs 2>/dev/null; find . -path ./node_modules -prune -o -path '*/node_modules' -prune -o -iname '*tutorial*' -print -o -iname '*guide*.md' -print -o -iname '*getting*' -print | grep -v node_modules | head -40; grep -n '^#\\|\\](.*\\.md)' README.md | head -60",
+          "content": "LICENSE\nREADME.md\nagents.md\napp\ndesign\ndesktop\ndocs\nmd2.config.json\nnode_modules\npackage-lock.json\npackage.json\nreadonlymarkdown.jpg\nrelease\nscreenshots\nscripts\nshared\ntemp.jpg\ntofix.jpg\nREADME.md\n_config.yml\nactions\nconcepts\ncontributing\ngetting-started\nguide\nscreenshots\ntroubleshooting.md\n./design/config_style_guide.md\n./design/feature_descriptions/F_389_prepare_tutorials.md\n./design/releases/0_0_2/B_060_action_editor_violates_component_style_guide.md\n./design/releases/0_7_0/J_55_update_styling_guide_lines_for_cards.md\n./design/STYLE_GUIDE.md\n./docs/getting-started\n1:# md²\n11:## Videos\n18:## The feature card is the center\n35:## Works with\n42:## Without and with md²\n51:## Docs\n55:## Why md²\n57:### One dashboard for agents and worktrees\n63:### Context stays with the feature\n69:### Local Markdown as shared project knowledge\n75:### Visual diagrams for project structure\n81:### Reusable, controlled actions\n91:### Automation without unnecessary agent calls\n99:### Measure AI engineering cost and performance\n115:## Screenshots\n117:### Run agents from a feature\n123:### Keep the specification beside the work\n129:### Configure an agent action\n135:### Review cost per feature\n141:### Explore the project diagram\n149:## Mobile use\n166:## Getting started\n172:## Development setup\n176:### Prerequisites\n181:### Install\n190:### Run\n198:### Optional environment variables\n202:### Lint & test",
+          "id": "agent-turn-430fbc4d-fb6a-4f53-8793-71d6fbb22558-event-4",
+          "kind": "event",
+          "label": "ls; ls docs 2>/dev/null; find . -path ./node_modules -prune -o -path '*/node_modules' -prune -o -iname '*tutorial*' -print -o -iname '*guide*.md' -print -o -iname '*getting*' -print | grep -v node_modules | head -40; grep -n '^#\\|\\](.*\\.md)' README.md | head -60",
+          "providerItemId": "toolu_01EZTpkKoiw9wbTzCsqymuXi",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:04:41.091Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd docs; find . -name '*.md' | sort; echo ---; cat README.md; echo ---; sed -n 1,20p ../README.md; sed -n 45,56p ../README.md; sed -n 160,172p ../README.md",
+          "content": "./README.md\n./actions/action-definition.md\n./actions/agent-setup.md\n./actions/cookbook.md\n./actions/placeholders.md\n./actions/running-actions.md\n./concepts/actions-and-agents.md\n./concepts/cards-and-files.md\n./concepts/project-layout.md\n./concepts/storage-modes.md\n./concepts/usage-and-cost.md\n./contributing/architecture.md\n./contributing/development-setup.md\n./contributing/release-process.md\n./getting-started/first-project.md\n./getting-started/install.md\n./getting-started/your-first-card.md\n./guide/board-view.md\n./guide/configuration.md\n./guide/diagrams.md\n./guide/git-and-commits.md\n./guide/remote-control.md\n./guide/search.md\n./guide/stats.md\n./guide/text-view.md\n./guide/worktrees.md\n./troubleshooting.md\n---\n# md² documentation\n\nmd² is a local, Git-native workspace for coordinating coding agents, features, worktrees, prompts, commits, and automations. \nEvery card is a Markdown file, every action and log a json file, all in your repository — agents read and write the same files you do.\n\nKnow what AI-assisted work costs by agent, action, feature, and release. Stats connects project activity with measured time, tokens, tool calls, account usage, and estimated subscription cost, with filtered CSV export for further analysis.\n\n![md² board with a card and the action popup open](screenshots/Screenshot%202026-07-23%20180206.jpg)\n\n## Getting started\n\n| Page | What it covers |\n| --- | --- |\n| [Install](getting-started/install.md) | Windows installer, running from source, which agent CLIs to have |\n| [Open your first project](getting-started/first-project.md) | Local folder, GitHub repository, or a remote desktop app |\n| [Your first card](getting-started/your-first-card.md) | Create a card, add an action, run an agent on it |\n\n## Concepts\n\n| Page | What it covers |\n| --- | --- |\n| [Cards and files](concepts/cards-and-files.md) | Header fields, file names, card types, ordering |\n| [Project layout](concepts/project-layout.md) | Project, working, actions, releases, archive, activity folders |\n| [Storage modes](concepts/storage-modes.md) | Desktop, remote control, GitHub — and what each can do |\n| [Actions and agents](concepts/actions-and-agents.md) | Why actions exist, one-shot versus streaming, where runs happen |\n| [Usage and cost](concepts/usage-and-cost.md) | How time, tokens, account usage, and subscription-cost estimates are calculated |\n\n## Using md²\n\n| Page | What it covers |\n| --- | --- |\n| [Board view](guide/board-view.md) | Columns, cards, drag and drop, policies, card popup |\n| [List view](guide/text-view.md) | Tree, tabs, editors, conversation panel |\n| [Diagrams](guide/diagrams.md) | Create, explore, edit, review, and save diagrams |\n| [Stats](guide/stats.md) | Compare activity, agents, models, tokens, account usage, and estimated cost |\n| [Search](guide/search.md) | Text and RegExp search, scopes, results |\n| [Git and commits](guide/git-and-commits.md) | Auto-save, commit, push, pull, per-card commit diffs |\n| [Worktrees](guide/worktrees.md) | Register worktrees, assign to cards, commit and integrate |\n| [Remote control](guide/remote-control.md) | Drive the desktop app from a phone, and its security limits |\n| [Configuration](guide/configuration.md) | Every setting, and where it is stored |\n\n## Actions reference\n\n| Page | What it covers |\n| --- | --- |\n| [Action definition](actions/action-definition.md) | Every field, `appliesTo` filters, validation rules |\n| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`{% endraw %} |\n| [Running actions](actions/running-actions.md) | Entry points, popup, conversations, chains, state triggers, scheduling |\n| [Agent setup](actions/agent-setup.md) | Profiles, models, reasoning levels, conversation logs |\n| [Cookbook](actions/cookbook.md) | Copy-paste action definitions |\n\n## Contributing\n\n| Page | What it covers |\n| --- | --- |\n| [Development setup](contributing/development-setup.md) | Repo layout, install, run, test, package |\n| [Architecture](contributing/architecture.md) | Layers, storage services, the renderer-never-executes rule |\n| [Release process](contributing/release-process.md) | Completing a release, release notes, shipping a build |\n\n## Help\n\n- [Troubleshooting](troubleshooting.md) — disabled run buttons, Stats data, Git locks, worktree errors, and remote connections.\n---\n# md²\n\n**Plan, run, and track AI coding work feature by feature—with local Markdown cards and Git worktrees.**\n\n> **Download:** [Get the latest Windows x64 installer](https://github.com/jan-bogaerts/md2/releases/latest) · [Installation guide](https://jan-bogaerts.github.io/md2/getting-started/install/)\n>\n> **Platforms:** md² is an Electron desktop app. Windows x64 has a signed installer; macOS and Linux can run from source, but do not have prebuilt packages yet.\n\n[https://github.com/user-attachments/assets/260ec55c-2905-47fa-9952-8f07b8c31c13](https://github.com/user-attachments/assets/260ec55c-2905-47fa-9952-8f07b8c31c13)\n\n## Videos\n\n* [Merge an agent's worktree branch](https://github.com/user-attachments/assets/8d9b4f55-6d97-42ff-bba4-ef36c5a64513) — Merge a branch back into the main working branch after an agent finishes implementing a card.\n* [Resolve merge conflicts between worktrees](https://github.com/user-attachments/assets/c04324ce-273d-43b7-b739-02c7011cefad) — Let an agent resolve conflicts when multiple worktrees change the same files.\n* [Switch agents during a conversation](https://github.com/user-attachments/assets/5078f4b6-3434-44f7-94ea-3b831d998eab) — Assign another agent and automatically migrate the active conversation.\n* [Open link in VsCode](https://github.com/user-attachments/assets/05484930-e84f-437e-9baa-a83e8822c97f) - open links to source code files in cards or agent responses\n\n## The feature card is the center\n\nIn a traditional coding workflow, the source code is the center: you open a project and instruct an AI agent to change it. md² shifts the focus to the work being requested—a feature description, bug report, or job. Source-code changes remain the output, but they are no longer the organizing center.\n| -------------------------------------------------- | ------------------------------------------------------------------------------- |\n| Agent conversations grouped by chat                | Activity grouped by feature                                                     |\n| Worktrees identified by folders/windows            | Worktrees assigned to cards                                                     |\n| Repeated prompts scattered around                  | Reusable project actions                                                        |\n| Token use and subscription value largely invisible | Time, tokens, and estimated cost tracked by agent, action, feature, and release |\n\n## Docs\n\nFull docs: [https://jan-bogaerts.github.io/md2/](https://jan-bogaerts.github.io/md2/)\n\n## Why md²\n\n```powershell\ncloudflared tunnel --url http://localhost:20877\n```\n\nOpen the temporary `https://*.trycloudflare.com` URL printed by the command on your phone. Keep the command running while connected; stop it to close the tunnel. This is a [Cloudflare Quick Tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/). **Anyone with the public URL can control the desktop app** because md² remote control currently has no authentication.\n\n## Getting started\n\n1. [Download and install the latest Windows release](https://github.com/jan-bogaerts/md2/releases/latest), or follow the [source setup](https://jan-bogaerts.github.io/md2/contributing/development-setup/) on macOS or Linux.\n2. Click the GitHub icon, upper left corner, follow link to get a GitHub access token, copy-paste token in.\n3. Open project, select a folder that contains a git repository.\n\n## Development setup",
+          "id": "agent-turn-430fbc4d-fb6a-4f53-8793-71d6fbb22558-event-5",
+          "kind": "event",
+          "label": "cd docs; find . -name '*.md' | sort; echo ---; cat README.md; echo ---; sed -n 1,20p ../README.md; sed -n 45,56p ../README.md; sed -n 160,172p ../README.md",
+          "providerItemId": "toolu_01Cske913ftQkUWCWSGFdrMA",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:04:44.741Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-430fbc4d-fb6a-4f53-8793-71d6fbb22558-event-6",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdmqVN33mXXhtepPqKuD:thinking:0",
+          "sequence": 6,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T17:04:46.800Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/docs; for f in getting-started/*.md guide/diagrams.md guide/worktrees.md actions/running-actions.md concepts/cards-and-files.md concepts/project-layout.md; do echo \"== $f $(wc -l <$f)\"; grep '^##' $f; done; grep -rli 'after:\\|sequenc' . | head",
+          "content": "== getting-started/first-project.md 46\n## Desktop app\n## Web, against GitHub\n## Web, against a running desktop app\n## What gets created\n## Switching branch\n== getting-started/install.md 34\n## Windows\n## Other platforms\n## What you need for real work\n## Building the installer yourself\n== getting-started/your-first-card.md 58\n## 1. Create a card\n## 2. Edit it\n## 3. Move it\n## 4. Add an action\n## 5. Run it\n## 6. Look at what happened\n## Where to go next\n== guide/diagrams.md 29\n## Create a diagram\n## Explore saved diagrams\n## Edit and review\n## Diagram files and settings\n== guide/worktrees.md 42\n## Registering worktrees\n## Assigning a worktree to a card\n## Working from the card\n## Actions that require a worktree\n== actions/running-actions.md 75\n## Entry points\n## The action popup\n## Conversations\n## Chains\n## State triggers\n## Scheduling\n## When run is not available\n== concepts/cards-and-files.md 94\n## Anatomy of a card file\n## Header fields\n## File names\n## Card types\n## Ordering\n## New cards\n## Files that are not cards\n== concepts/project-layout.md 52\n## Folders\n## Active versus background cards\n## Completing a release\n## Configuration file\n./concepts/actions-and-agents.md\n./concepts/cards-and-files.md\n./guide/diagrams.md\n./guide/git-and-commits.md\n./guide/remote-control.md",
+          "id": "agent-turn-430fbc4d-fb6a-4f53-8793-71d6fbb22558-event-7",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/docs; for f in getting-started/*.md guide/diagrams.md guide/worktrees.md actions/running-actions.md concepts/cards-and-files.md concepts/project-layout.md; do echo \"== $f $(wc -l <$f)\"; grep '^##' $f; done; grep -rli 'after:\\|sequenc' . | head",
+          "providerItemId": "toolu_017qd8MqgzxPAiFagcBLr6qA",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-10-02T17:04:50.567Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-430fbc4d-fb6a-4f53-8793-71d6fbb22558-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cfdmqv5LMhSihg9UqniPF:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T17:05:00.104Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "I've proposed content for F_389 below. I haven't edited the file.\n\n## What exists today\n\n- **`docs/` is reference material**, organised by topic (Getting started, Concepts, Using md², Actions reference). The only task-style walkthrough is `getting-started/your-first-card.md`.\n- **The main `README.md`** has a Videos list with four clips (merging a worktree branch, resolving merge conflicts, switching agents, opening links in VS Code) and links to the docs site. It doesn't link to any tutorials.\n- **Partial overlap with the five planned tutorials:**\n  - Getting started: `install.md`, `first-project.md`, `your-first-card.md` and `concepts/project-layout.md`.\n  - Cards: `concepts/cards-and-files.md`, `guide/board-view.md`, `guide/text-view.md` and `actions/running-actions.md`.\n  - Worktrees: `guide/worktrees.md` covers registering, assigning and working from a card. Merge conflicts only appear as a video.\n  - Sequencing and scheduling: the \"Ordering\" section in `cards-and-files.md` and the \"Scheduling\" and \"Chains\" sections in `running-actions.md`. The `after:` header is not explained from the user's side.\n  - Diagrams: `guide/diagrams.md` is short (29 lines). It doesn't cover rendering from code or implementing a diagram.\n\n## Proposed content for F_389\n\n**Goal:** add task-oriented tutorials as a new `docs/tutorials/` section. Each tutorial walks through one workflow from start to finish and links to the existing reference pages instead of repeating them.\n\n**Tutorials:**\n1. **Getting started:** install, first run, GitHub token, opening a project, the special folders (working, actions, releases, archive, activity), and `md2.config.json`.\n2. **Working with cards:** the standard development process (create, describe, design, implement, review, release), editor features, running actions, conversations, and reading the results.\n3. **Git worktrees:** setup, assigning a worktree to a card, committing, merging back, and resolving merge conflicts with an agent. This would embed the existing videos.\n4. **Sequencing and scheduling cards:** card order, the `after` dependency, chains, state triggers, and scheduled actions.\n5. **Working with diagrams:** rendering from code, creating a new diagram, editing and reviewing it, and implementing from it.\n\n**Grouping and access:**\n- Add a \"Tutorials\" table to `docs/README.md`, above Concepts.\n- Add a \"Tutorials\" section to the main `README.md`, near Videos and Docs, that links to each tutorial on the docs site.\n- Optionally, move the videos into the tutorials they belong to.\n\n**Out of scope:** rewriting the reference pages. Each tutorial only links to them.\n\n## Questions\n\n- **Location:** should the tutorials go in a new `docs/tutorials/` folder, or should we expand the existing `getting-started/` pages?\n- **\"Implementing\" a diagram:** does this mean running an agent action on a diagram to generate code? I need that confirmed before scoping tutorial 5.\n- **Videos:** should they move into the tutorials, or stay in the main README?\n\nShould I write this overview into the F_389 file?",
+          "id": "agent-turn-430fbc4d-fb6a-4f53-8793-71d6fbb22558-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 9,
+          "timestamp": "2026-10-02T17:05:03.784Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -37,10 +143,22 @@
       "startedAt": "2026-10-02T17:04:33.158Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 9571,
+          "toolMs": 10167
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-02T17:04:33.158Z"
       },
       "title": "+",
+      "usage": {
+        "cachedInputTokens": 190559,
+        "inputTokens": 10,
+        "outputTokens": 2183,
+        "reasoningTokens": 0,
+        "totalTokens": 192752,
+        "costUsd": 0.277857
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
