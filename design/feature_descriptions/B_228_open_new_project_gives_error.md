@@ -10,6 +10,8 @@ agents:
   - design/activity/card__aea33400-48d0-4568-a66a-41df2c4f32f9.json
 policy:
 after: 11011a61-0393-4aa1-9b89-f52be576aa72
+branch: b_228_open_new_project_gives_error
+worktree: 1
 ---
 I opened an existing folder that contains a git repository. it showed the `project folders` dialog. after opening, we got this error:
 
