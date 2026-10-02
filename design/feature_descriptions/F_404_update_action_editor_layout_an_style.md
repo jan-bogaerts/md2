@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__5603103d-1d57-40e8-afae-095f12ac1695.json
 policy:
 ---
 See F\_392 where we applied groups to the sentry tab of the config dialog.
