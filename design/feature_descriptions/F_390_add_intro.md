@@ -8,7 +8,7 @@ owner:
 affects:
 agents:
 policy:
-after: 55b36bc4-6580-4a70-ad3d-0f413c2f37f8
+after: 22e1a692-a35c-4fe0-a4ea-70545e3e6009
 ---
 
 When app first runs and there is no project yet to open, we now show the ´open project´ folder i believe.
