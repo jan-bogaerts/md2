@@ -3,7 +3,7 @@ author:
 id: B_254
 internalId: 6a0c59e3-d151-440b-bf00-fb0f1b16c37e
 title: released cards chat logs
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,21 @@ agents:
 policy:
 branch: b_254_released_cards_chat_logs
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup.tsx
+  - app/src/components/actions/run/popup/action_popup_content.tsx
+  - app/src/components/actions/run/popup/action_popup_runtime.ts
+  - app/src/components/actions/run/popup/action_popup_types.ts
+  - app/src/components/actions/run/popup/agent_action.tsx
+  - app/src/components/actions/run/popup/command_action.tsx
+  - app/src/components/actions/run/popup/historical_card_actions.node.test.ts
+  - app/src/components/actions/run/popup/historical_card_actions.ts
+  - app/src/components/actions/run/state/action_history_store.ts
+  - app/src/services/actions/historical_card_activity_service.node.test.ts
+  - app/src/services/actions/historical_card_activity_service.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/data/data_service_activity.node.test.ts
 ---
 
 At the moment, the chat logs of released cards (or archived) are no longer visible. this is a problem.
