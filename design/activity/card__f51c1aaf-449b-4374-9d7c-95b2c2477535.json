@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "f51c1aaf-449b-4374-9d7c-95b2c2477535",
+      "cardPath": "design/feature_descriptions/F_397_fix_render_update_version_script_prompt.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/F_397_fix_render_update_version_script_prompt.md, write a proper prompt",
+          "id": "submission-38beb6e7-9f08-4cdf-819f-b96bb24a98d4",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-02T11:42:14.182Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-a6a477b2-ff3e-4237-82c7-0c254268e43b",
+      "providerSessions": [],
+      "startedAt": "2026-10-02T11:42:14.182Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-02T11:42:14.182Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "f51c1aaf-449b-4374-9d7c-95b2c2477535",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
