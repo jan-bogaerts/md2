@@ -1,0 +1,54 @@
+{
+  "actionSettings": {
+    "md2.custom-prompt": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "55b36bc4-6580-4a70-ad3d-0f413c2f37f8",
+      "cardPath": "design/feature_descriptions/F_389_prepare_tutorials.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read design/feature_descriptions/F_389_prepare_tutorials.md, propose content. Overview only",
+          "id": "submission-da689d93-c785-4a25-bad6-d1a82f848d2d",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-02T17:04:33.158Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-b7881501-bc90-4d61-82d3-1d914c435352",
+      "providerSessions": [],
+      "startedAt": "2026-10-02T17:04:33.158Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-02T17:04:33.158Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "55b36bc4-6580-4a70-ad3d-0f413c2f37f8",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
