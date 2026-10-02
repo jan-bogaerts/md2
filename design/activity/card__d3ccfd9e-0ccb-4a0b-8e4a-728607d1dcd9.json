@@ -21,6 +21,10 @@
       "cardInternalId": "d3ccfd9e-0ccb-4a0b-8e4a-728607d1dcd9",
       "cardPath": "design/feature_descriptions/F_402_add_scrollbars_to_placeholder_popup.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 52732
+      },
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_402_add_scrollbars_to_placeholder_popup.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -29,6 +33,275 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-02T14:59:40.232Z"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_402_add_scrollbars_to_placeholder_popup.md\"}",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-2",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_402\n4\tinternalId: d3ccfd9e-0ccb-4a0b-8e4a-728607d1dcd9\n5\ttitle: add scrollbars to placeholder popup\n6\tstatus: design\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__d3ccfd9e-0ccb-4a0b-8e4a-728607d1dcd9.json\n11\tpolicy:\n12\tafter: 11011a61-0393-4aa1-9b89-f52be576aa72\n13\t---\n14\t\n15\tsometimes there are more items on the 'placeholder' popup then can be shown, the popup doesn't have enough room.\n16\t\n17\tWe should show vertical scrollbars in that case.",
+          "providerItemId": "toolu_01PFbRa8jYVxeM8YJD5EDJCv",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-10-02T14:59:45.183Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-3",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdcJeDgKoQqLrtzX5jBk:thinking:0",
+          "sequence": 3,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T14:59:48.075Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"11011a61-0393-4aa1-9b89-f52be576aa72|placeholder popup|PlaceholderPopup|PlaceholderMenu|PlaceholderPicker\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\",\"glob\":\"!**/node_modules/**\"}",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-4",
+          "kind": "event",
+          "label": "Grep",
+          "output": "Found 61 files\ndesign\\feature_descriptions\\F_402_add_scrollbars_to_placeholder_popup.md\ndesign\\feature_descriptions\\B_228_open_new_project_gives_error.md\ndesign\\activity\\card__aea33400-48d0-4568-a66a-41df2c4f32f9.json\ndesign\\feature_descriptions\\F_378_extract_diagram_edit_snapshots_and_subscriptions.md\ndesign\\releases\\0_7_0\\card__da8a9e63-eeee-4911-a83c-5f1f9a38d911.json\ndesign\\releases\\0_7_0\\card__cb27b171-7487-436d-ad9c-ed07ce7dd6f1.json\ndesign\\releases\\0_6_0\\card__8df7d3db-c367-4792-b4f9-a9bd3ec9d674.json\ndesign\\releases\\0_6_0\\card__526d5eb3-f1f1-4d3e-a65f-a5721d69a23c.json\ndesign\\releases\\0_6_0\\card__3a81bbba-94cd-4b06-9c53-198d765510b9.json\ndesign\\releases\\0_5_0\\card__22fa2af9-9b97-47c2-931f-ed5a5a62f89d.json\ndesign\\releases\\0_4_0\\card__f1c69bfd-cfb3-40cd-8c1e-15e78f71f839.json\ndesign\\releases\\0_4_0\\card__dffba4e6-6ec5-4a40-8ee7-e68d4891aff3.json\ndesign\\releases\\0_4_0\\card__dcf2805e-c1f9-4aed-b160-e147134fe556.json\ndesign\\releases\\0_4_0\\card__d6f7cd44-6ed1-47b7-b37f-b048ece0a720.json\ndesign\\releases\\0_4_0\\card__d67b763d-819f-4e7e-aab5-c3c9f28e594d.json\ndesign\\releases\\0_4_0\\card__bee2d3c7-81e1-451a-bc4d-d4ba59c849e9.json\ndesign\\releases\\0_4_0\\card__ad4126b2-1203-4a30-b222-636148bf92b1.json\ndesign\\releases\\0_4_0\\card__8fc5eed5-9fc2-43a1-95d7-66c0aabd5d31.json\ndesign\\releases\\0_4_0\\card__8690b93e-98c4-486f-95b6-aacc10931a56.json\ndesign\\releases\\0_4_0\\card__70a705b9-4e44-4487-8ac9-48722ba0ef92.json\ndesign\\releases\\0_4_0\\card__6d6bf2a1-f9ac-430c-ad48-255ae837c9a0.json\ndesign\\releases\\0_4_0\\card__5936b8d1-a0b9-4d53-9edf-e753e80796dd.json\ndesign\\releases\\0_4_0\\card__4e0cc180-caab-4998-bb3f-63411cfa21de.json\ndesign\\releases\\0_4_0\\card__4d69acfd-e064-44bf-b04c-81496a09b374.json\ndesign\\releases\\0_4_0\\card__4a471f6a-6bca-4990-9e2d-38dc2df2ce9f.json\ndesign\\releases\\0_4_0\\card__4191dc0a-7628-45bf-ada1-b1366e9f05f9.json\ndesign\\releases\\0_4_0\\card__332eb86e-d703-4707-a8de-0bdec67e23f5.json\ndesign\\releases\\0_4_0\\card__2433b65f-efed-4a22-af41-529cd35af655.json\ndesign\\releases\\0_4_0\\card__168acbb7-c395-4962-9e69-96ec1fb6a594.json\ndesign\\releases\\0_4_0\\card__146d495f-955a-4b9d-bf70-80520208883d.json\ndesign\\releases\\0_4_0\\card__065a1db8-981d-4e22-8d62-8f8cc5995408.json\ndesign\\releases\\0_3_0\\card__fc4322fa-2432-4365-b355-32cf5e6e6af2.json\ndesign\\releases\\0_3_0\\card__e0010544-02b5-4372-82c7-bc05bd62929c.json\ndesign\\releases\\0_3_0\\card__d7bd3d2f-ec5c-4025-879a-5a715e2b4ffc.json\ndesign\\releases\\0_3_0\\card__d47986a5-1380-4dd1-adb9-fff106a9a143.json\ndesign\\releases\\0_3_0\\card__c1af41da-7012-48b8-a985-64cc138f8baa.json\ndesign\\releases\\0_3_0\\card__8fedf475-d0af-4fe3-9aa0-d00bdfacffa0.json\ndesign\\releases\\0_3_0\\card__894c324e-d9cf-400f-b964-5256ffff9b24.json\ndesign\\releases\\0_3_0\\card__7082348f-6737-4bef-ab60-2fdbcdf5da4e.json\ndesign\\releases\\0_3_0\\card__6874b231-0cef-4a8a-8b0b-cc91f3daff42.json\ndesign\\releases\\0_3_0\\card__4bb52e4a-38c7-47bd-9fe8-c49cdd08c0b0.json\ndesign\\releases\\0_3_0\\card__32276926-4cff-486d-88bb-a98fbe1bfd8a.json\ndesign\\releases\\0_3_0\\card__12b91511-c445-404c-afcb-bdaf300ef50b.json\ndesign\\releases\\0_3_0\\card__012efbb1-c938-4539-a646-0f263e72dea6.json\ndesign\\releases\\0_2_0\\card__dfbc6cef-75cf-4a68-8e34-e72a7724769e.json\ndesign\\releases\\0_2_0\\card__d078e271-bd1a-4a6d-86a0-d9cf3264c7e0.json\ndesign\\releases\\0_2_0\\card__ade75617-2ab1-40c9-ae62-01700b995632.json\ndesign\\releases\\0_2_0\\card__6ed58954-002c-45ea-87fe-4e6f0cae832d.json\ndesign\\releases\\0_2_0\\card__51db4329-b855-4084-9e87-a50d3ce8eb6e.json\ndesign\\releases\\0_2_0\\card__4d8ae085-bd65-46be-933d-83544fcf77fa.json\ndesign\\releases\\0_2_0\\card__1ebcfe45-9445-47e6-8619-6c72708bd91b.json\ndesign\\releases\\0_2_0\\card__1e3a953f-e81b-42a5-9586-0dbb87e389f8.json\ndesign\\releases\\0_1_0\\card__b8e6a902-e78b-43d3-9896-e43146873ba5.json\ndesign\\releases\\0_1_0\\card__9df160a1-c669-422b-aea5-da5655c12134.json\ndesign\\releases\\0_1_0\\card__5205bb65-078a-411a-9647-0796ad14953c.json\ndesign\\releases\\0_1_0\\card__50ec96d2-8e7c-471a-a33b-9cbd4210b5cb.json\ndesign\\releases\\0_1_0\\B_93_the_popups_are_hidden_behind_the_editor.md\ndesign\\activity\\card__48381c25-9fec-439b-9db0-321de114c33f.json\napp\\src\\components\\editor\\placeholders\\markdown_placeholder_typeahead_plugin.tsx\napp\\src\\components\\editor\\placeholders\\markdown_placeholder_menu.tsx\napp\\src\\components\\editor\\placeholders\\markdown_placeholder_menu.grouped.test.tsx",
+          "providerItemId": "toolu_01Gk85duMxqsk7AHTfvgXBPV",
+          "sequence": 4,
+          "status": "completed",
+          "timestamp": "2026-10-02T14:59:49.264Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\editor\\\\placeholders\\\\markdown_placeholder_menu.tsx\"}",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-5",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { List, Paper } from '@mui/material'\n2\timport { MarkdownPlaceholderOption } from './markdown_placeholder_option'\n3\timport { MarkdownPlaceholderOptionItem } from './markdown_placeholder_option_item'\n4\timport { useMarkdownTypeaheadStackPosition } from '../typeahead/markdown_typeahead_layer_context'\n5\t\n6\tinterface MarkdownPlaceholderMenuProps {\n7\t    onHighlight: (index: number) => void\n8\t    onSelect: (option: MarkdownPlaceholderOption) => void\n9\t    options: MarkdownPlaceholderOption[]\n10\t    selectedIndex: number | null\n11\t}\n12\t\n13\t/** Placeholder typeahead results rendered above the owning popup. */\n14\texport function MarkdownPlaceholderMenu(props: MarkdownPlaceholderMenuProps) {\n15\t    const { onHighlight, onSelect, options, selectedIndex } = props\n16\t    const stackPosition = useMarkdownTypeaheadStackPosition()\n17\t\n18\t    return (\n19\t        <Paper\n20\t            sx={(theme) => ({\n21\t                border: '1px solid',\n22\t                borderColor: 'divider',\n23\t                borderRadius: '14px',\n24\t                boxShadow: 8,\n25\t                minWidth: 280,\n26\t                overflow: 'hidden',\n27\t                position: 'relative',\n28\t                zIndex: theme.zIndex.modal + stackPosition + 1,\n29\t            })}\n30\t        >\n31\t            <List aria-label=\"Available placeholders\" dense disablePadding role=\"listbox\">\n32\t                {options.map((option, index) => (\n33\t                    <MarkdownPlaceholderOptionItem\n34\t                        index={index}\n35\t                        key={option.key}\n36\t                        onHighlight={onHighlight}\n37\t                        onSelect={onSelect}\n38\t                        placeholder={option.placeholder}\n39\t                        selectionOption={option}\n40\t                        selected={selectedIndex === index}\n41\t                        setRefElement={option.setRefElement}\n42\t                    />\n43\t                ))}\n44\t            </List>\n45\t        </Paper>\n46\t    )\n47\t}\n48\t",
+          "providerItemId": "toolu_01VLP1wSJv22xi7ebtwWqeRW",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-02T14:59:52.159Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\editor\\\\placeholders\\\\markdown_placeholder_typeahead_plugin.tsx\"}",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-6",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport {\n2\t    LexicalTypeaheadMenuPlugin,\n3\t    type MenuRenderFn,\n4\t    type TriggerFn,\n5\t} from '@lexical/react/LexicalTypeaheadMenuPlugin'\n6\timport { useCellValue } from '@mdxeditor/editor'\n7\timport type { TextNode } from 'lexical'\n8\timport { createPortal } from 'react-dom'\n9\timport { useCallback, useMemo, useState } from 'react'\n10\timport type { ActionPlaceholder } from '../../../data/action_placeholders'\n11\timport { formatActionPlaceholder } from '../../../data/action_placeholders'\n12\timport { markdownPlaceholderConfig$ } from './markdown_placeholder_config_cell'\n13\timport { MarkdownPlaceholderOption } from './markdown_placeholder_option'\n14\timport { MarkdownPlaceholderMenu } from './markdown_placeholder_menu'\n15\timport { matchPlaceholderTrigger } from './markdown_placeholder_trigger'\n16\t\n17\tfunction placeholderMatchesQuery(placeholder: ActionPlaceholder, query: string) {\n18\t    return placeholder.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())\n19\t}\n20\t\n21\t/** Shows supported placeholders at the caret after the user types `{{`. */\n22\texport function MarkdownPlaceholderTypeaheadPlugin() {\n23\t    const { overlayContainer, placeholders } = useCellValue(markdownPlaceholderConfig$)\n24\t    const [query, setQuery] = useState('')\n25\t    const options = useMemo(\n26\t        () => placeholders\n27\t            .filter((placeholder) => placeholderMatchesQuery(placeholder, query))\n28\t            .map((placeholder) => new MarkdownPlaceholderOption(placeholder)),\n29\t        [placeholders, query],\n30\t    )\n31\t\n32\t    const triggerFn = useCallback<TriggerFn>((text, editor) => {\n33\t        const match = matchPlaceholderTrigger(text, editor)\n34\t        if (!match || !placeholders.some((placeholder) => placeholderMatchesQuery(placeholder, match.matchingString))) return null\n35\t\n36\t        return match\n37\t    }, [placeholders])\n38\t\n39\t    const handleQueryChange = useCallback((nextQuery: string | null) => {\n40\t        setQuery(nextQuery ?? '')\n41\t    }, [])\n42\t\n43\t    const handleSelectOption = useCallback((\n44\t        option: MarkdownPlaceholderOption,\n45\t        textNodeContainingQuery: TextNode | null,\n46\t        closeMenu: () => void,\n47\t    ) => {\n48\t        if (!textNodeContainingQuery) return\n49\t\n50\t        textNodeContainingQuery.setTextContent(formatActionPlaceholder(option.placeholder.name))\n51\t        textNodeContainingQuery.selectEnd()\n52\t        closeMenu()\n53\t    }, [])\n54\t\n55\t    const renderMenu = useCallback<MenuRenderFn<MarkdownPlaceholderOption>>((anchorElementRef, itemProps) => {\n56\t        if (!anchorElementRef.current || itemProps.options.length === 0) return null\n57\t\n58\t        return createPortal(\n59\t            <MarkdownPlaceholderMenu\n60\t                onHighlight={itemProps.setHighlightedIndex}\n61\t                onSelect={itemProps.selectOptionAndCleanUp}\n62\t                options={itemProps.options}\n63\t                selectedIndex={itemProps.selectedIndex}\n64\t            />,\n65\t            anchorElementRef.current,\n66\t        )\n67\t    }, [])\n68\t\n69\t    return (\n70\t        <LexicalTypeaheadMenuPlugin<MarkdownPlaceholderOption>\n71\t            menuRenderFn={renderMenu}\n72\t            onQueryChange={handleQueryChange}\n73\t            onSelectOption={handleSelectOption}\n74\t            options={options}\n75\t            parent={overlayContainer ?? undefined}\n76\t            triggerFn={triggerFn}\n77\t        />\n78\t    )\n79\t}\n80\t",
+          "providerItemId": "toolu_01BrR9qZQQ4Dd5ZQyvSvQ1R3",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-10-02T14:59:52.760Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\editor\\\\placeholders\\\\markdown_placeholder_menu.grouped.test.tsx\"}",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-7",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { useTheme } from '@mui/material'\n2\timport { cleanup, fireEvent, render, screen } from '@testing-library/react'\n3\timport { afterEach, describe, expect, it, vi } from 'vitest'\n4\timport { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'\n5\timport { AppThemeProvider } from '../../../theme/theme_provider'\n6\timport { MarkdownPlaceholderMenu } from './markdown_placeholder_menu'\n7\timport { MarkdownPlaceholderOption } from './markdown_placeholder_option'\n8\timport { MarkdownTypeaheadLayerProvider } from '../typeahead/markdown_typeahead_layer_provider'\n9\t\n10\tconst STACK_POSITION = 3\n11\t\n12\tfunction PopupLayerProbe() {\n13\t    const theme = useTheme()\n14\t\n15\t    return <div data-testid=\"owning-popup-layer\" style={{ zIndex: theme.zIndex.modal + STACK_POSITION }} />\n16\t}\n17\t\n18\tdescribe('MarkdownPlaceholderMenu', () => {\n19\t    afterEach(cleanup)\n20\t\n21\t    it('includes diagram output path insertion choice', () => {\n22\t        expect(ACTION_PROMPT_PLACEHOLDERS).toContainEqual(expect.objectContaining({ name: 'diagram-file' }))\n23\t    })\n24\t\n25\t    it('renders above the owning popup stack layer and keeps option selection', () => {\n26\t        const thisCardPlaceholder = ACTION_PROMPT_PLACEHOLDERS.find(({ name }) => name === 'this-card')\n27\t        if (!thisCardPlaceholder) throw new Error('Missing this-card placeholder')\n28\t        const option = new MarkdownPlaceholderOption(thisCardPlaceholder)\n29\t        const onSelect = vi.fn()\n30\t\n31\t        render(\n32\t            <AppThemeProvider>\n33\t                <MarkdownTypeaheadLayerProvider stackPosition={STACK_POSITION}>\n34\t                    <PopupLayerProbe />\n35\t                    <MarkdownPlaceholderMenu\n36\t                        onHighlight={vi.fn()}\n37\t                        onSelect={onSelect}\n38\t                        options={[option]}\n39\t                        selectedIndex={0}\n40\t                    />\n41\t                </MarkdownTypeaheadLayerProvider>\n42\t            </AppThemeProvider>,\n43\t        )\n44\t\n45\t        const menuSurface = screen.getByRole('listbox', { name: 'Available placeholders' }).closest('.MuiPaper-root')\n46\t        if (!menuSurface) throw new Error('Missing placeholder menu surface')\n47\t        const popupLayer = screen.getByTestId('owning-popup-layer')\n48\t\n49\t        expect(menuSurface).toHaveStyle({ position: 'relative' })\n50\t        expect(Number.parseInt(getComputedStyle(menuSurface).zIndex, 10))\n51\t            .toBe(Number.parseInt(getComputedStyle(popupLayer).zIndex, 10) + 1)\n52\t\n53\t        fireEvent.click(screen.getByRole('option', { name: /this-card/u }))\n54\t        expect(onSelect).toHaveBeenCalledExactlyOnceWith(option)\n55\t    })\n56\t})\n57\t",
+          "providerItemId": "toolu_01EVfNgKtEZyMuwp23QfrkQb",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-10-02T14:59:53.311Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdcKEqXxBn9g56w8rX21:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T14:59:56.952Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/editor; ls placeholders typeahead; cat placeholders/markdown_placeholder_option_item.tsx placeholders/markdown_placeholder_option.ts* ; grep -rn \"maxHeight\\|overflowY\\|overflow:\" --include=*.tsx . | head -30",
+          "content": "placeholders:\nmarkdown_placeholder_config_cell.ts\nmarkdown_placeholder_menu.grouped.test.tsx\nmarkdown_placeholder_menu.tsx\nmarkdown_placeholder_option.ts\nmarkdown_placeholder_option_item.tsx\nmarkdown_placeholder_realm_plugin.ts\nmarkdown_placeholder_toolbar_control.grouped.test.tsx\nmarkdown_placeholder_toolbar_control.tsx\nmarkdown_placeholder_trigger.ts\nmarkdown_placeholder_typeahead_plugin.node.test.ts\nmarkdown_placeholder_typeahead_plugin.tsx\n\ntypeahead:\nmarkdown_typeahead_layer_context.ts\nmarkdown_typeahead_layer_provider.tsx\nimport { ListItemButton, ListItemText } from '@mui/material'\nimport type { MouseEvent, RefCallback } from 'react'\nimport { formatActionPlaceholder, type ActionPlaceholder } from '../../../data/action_placeholders'\nimport type { MarkdownPlaceholderOption } from './markdown_placeholder_option'\n\ninterface MarkdownPlaceholderOptionItemProps {\n    index: number\n    onHighlight: (index: number) => void\n    onSelect: (option: MarkdownPlaceholderOption) => void\n    placeholder: ActionPlaceholder\n    selectionOption: MarkdownPlaceholderOption\n    selected: boolean\n    setRefElement: RefCallback<HTMLElement>\n}\n\n/** One mouse- and keyboard-selectable entry in the placeholder typeahead popup. */\nexport function MarkdownPlaceholderOptionItem(props: MarkdownPlaceholderOptionItemProps) {\n    const { index, onHighlight, onSelect, placeholder, selected, selectionOption, setRefElement } = props\n\n    const handleMouseEnter = () => {\n        onHighlight(index)\n    }\n\n    const handleMouseDown = (event: MouseEvent<HTMLElement>) => {\n        event.preventDefault()\n    }\n\n    const handleClick = () => {\n        onSelect(selectionOption)\n    }\n\n    return (\n        <ListItemButton\n            aria-selected={selected}\n            id={`typeahead-item-${index}`}\n            onClick={handleClick}\n            onMouseDown={handleMouseDown}\n            onMouseEnter={handleMouseEnter}\n            ref={setRefElement}\n            role=\"option\"\n            selected={selected}\n            sx={{ alignItems: 'flex-start', gap: 1, py: 0.75 }}\n        >\n            <ListItemText\n                primary={formatActionPlaceholder(placeholder.name)}\n                secondary={placeholder.description}\n                slotProps={{ primary: { component: 'code' }, secondary: { variant: 'caption' } }}\n                sx={{ m: 0 }}\n            />\n        </ListItemButton>\n    )\n}\nimport { MenuOption } from '@lexical/react/LexicalTypeaheadMenuPlugin'\nimport type { ActionPlaceholder } from '../../../data/action_placeholders'\n\n/** Lexical typeahead option backed by one supported action placeholder. */\nexport class MarkdownPlaceholderOption extends MenuOption {\n    readonly placeholder: ActionPlaceholder\n\n    constructor(placeholder: ActionPlaceholder) {\n        super(placeholder.name)\n        this.placeholder = placeholder\n    }\n}\n./file_search/markdown_file_search_menu.tsx:53:                    overflow: 'hidden',\n./file_search/markdown_file_search_menu.tsx:63:                    sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}\n./markdown_editor.tsx:401:        '& .mdxeditor-toolbar': { bgcolor: 'background.paper', overflow: 'hidden', position: 'sticky', top: 0, zIndex: 1 },\n./placeholders/markdown_placeholder_menu.tsx:26:                overflow: 'hidden',\n./toolbar/markdown_emoji_picker_content.tsx:46:        <Box sx={{ display: 'flex', flexDirection: 'column', maxHeight: 400, width: 340 }}>\n./toolbar/markdown_emoji_picker_content.tsx:50:            <Box sx={{ overflowY: 'auto', px: 1, pb: 1 }}>",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-9",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/editor; ls placeholders typeahead; cat placeholders/markdown_placeholder_option_item.tsx placeholders/markdown_placeholder_option.ts* ; grep -rn \"maxHeight\\|overflowY\\|overflow:\" --include=*.tsx . | head -30",
+          "providerItemId": "toolu_015RXVw53ytXmxXQqRe8vnTL",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-10-02T14:59:59.177Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-10",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdcKfrRzQ1eiuGQvANE2:thinking:0",
+          "sequence": 10,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T15:00:02.511Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/editor; cat placeholders/markdown_placeholder_toolbar_control.tsx file_search/markdown_file_search_menu.tsx; grep -n \"placeholder\\|popup\" ../../../../design/STYLE_GUIDE.md | head; grep -n \"scrollIntoView\\|innerHeight\\|containerDiv.style\" ../../../node_modules/@lexical/react/LexicalTypeaheadMenuPlugin.dev.js | head -20; ls ../../../node_modules/@lexical/react/ | grep -i typeahead",
+          "content": "import DataObjectOutlined from '@mui/icons-material/DataObjectOutlined'\nimport { IconButton, Menu, MenuItem, Tooltip } from '@mui/material'\nimport { activeEditor$, useCellValue } from '@mdxeditor/editor'\nimport { CONTROLLED_TEXT_INSERTION_COMMAND } from 'lexical'\nimport { useState, type MouseEvent } from 'react'\nimport type { ActionPlaceholder } from '../../../data/action_placeholders'\nimport { formatActionPlaceholder } from '../../../data/action_placeholders'\nimport { dialogService } from '../../../services/dialog_service'\n\ninterface MarkdownPlaceholderToolbarControlProps {\n    overlayContainer?: HTMLElement | null\n    placeholders: readonly ActionPlaceholder[]\n}\n\n/** Toolbar menu that inserts a supported action placeholder at the active selection. */\nexport function MarkdownPlaceholderToolbarControl(props: MarkdownPlaceholderToolbarControlProps) {\n    const { overlayContainer, placeholders } = props\n    const activeEditor = useCellValue(activeEditor$)\n    const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)\n\n    const handleOpen = (event: MouseEvent<HTMLElement>) => {\n        setAnchorElement(event.currentTarget)\n    }\n\n    const handleClose = () => {\n        setAnchorElement(null)\n    }\n\n    const handlePlaceholderClick = (event: MouseEvent<HTMLElement>) => {\n        try {\n            const placeholderName = event.currentTarget.dataset.placeholderName\n            const placeholder = placeholders.find(({ name }) => name === placeholderName)\n            if (!placeholder) throw new Error(`Unknown Markdown placeholder: ${placeholderName}`)\n            if (!activeEditor) throw new Error('Cannot insert a placeholder without an active Markdown editor')\n\n            activeEditor.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, formatActionPlaceholder(placeholder.name))\n            activeEditor.focus()\n            handleClose()\n        } catch (error) {\n            dialogService.error(error, { fallbackMessage: 'Markdown placeholder could not be inserted' })\n        }\n    }\n\n    return (\n        <>\n            <Tooltip title=\"Insert placeholder\">\n                <span>\n                    <IconButton\n                        aria-controls={anchorElement ? 'markdown-placeholder-menu' : undefined}\n                        aria-expanded={!!anchorElement}\n                        aria-haspopup=\"menu\"\n                        aria-label=\"Insert placeholder\"\n                        disabled={!activeEditor}\n                        onClick={handleOpen}\n                        size=\"small\"\n                    >\n                        <DataObjectOutlined fontSize=\"small\" />\n                    </IconButton>\n                </span>\n            </Tooltip>\n            <Menu\n                anchorEl={anchorElement}\n                container={overlayContainer ?? undefined}\n                id=\"markdown-placeholder-menu\"\n                onClose={handleClose}\n                open={!!anchorElement}\n            >\n                {placeholders.map((placeholder) => (\n                    <MenuItem\n                        data-placeholder-name={placeholder.name}\n                        key={placeholder.name}\n                        onClick={handlePlaceholderClick}\n                        sx={{ alignItems: 'flex-start', display: 'flex', flexDirection: 'column' }}\n                    >\n                        <code>{formatActionPlaceholder(placeholder.name)}</code>\n                        <small>{placeholder.description}</small>\n                    </MenuItem>\n                ))}\n            </Menu>\n        </>\n    )\n}\nimport { Typography } from '@mui/material'\nimport { useCallback, useState } from 'react'\nimport { ResizablePopper } from '../../resizable_popper'\nimport type { MarkdownFileSearchOption } from './markdown_file_search_option'\nimport { FILE_SEARCH_OPTION_ESTIMATED_HEIGHT, MarkdownFileSearchResults } from './markdown_file_search_results'\nimport { MarkdownFileSearchSessionAnchor } from './markdown_file_search_session_anchor'\nimport type { MarkdownFileSearchAnchorRect } from './markdown_file_search_session_co\n[498 characters omitted]\nownFileSearchMenuProps {\n    anchorRect: MarkdownFileSearchAnchorRect\n    onHighlight: (index: number) => void\n    onSelect: (option: MarkdownFileSearchOption) => void\n    options: MarkdownFileSearchOption[]\n    selectedIndex: number | null\n}\n\n/** Virtualized project-file typeahead results. */\nexport function MarkdownFileSearchMenu(props: MarkdownFileSearchMenuProps) {\n    const { anchorRect, onHighlight, onSelect, options, selectedIndex } = props\n    const stackPosition = useMarkdownTypeaheadStackPosition()\n    const [sessionAnchor, setSessionAnchor] = useState<HTMLDivElement | null>(null)\n    const handleAnchorElement = useCallback((element: HTMLDivElement | null) => {\n        setSessionAnchor(element)\n    }, [])\n\n    return (\n        <>\n            <MarkdownFileSearchSessionAnchor anchorRect={anchorRect} setAnchorElement={handleAnchorElement} />\n            <ResizablePopper\n                anchorElement={sessionAnchor}\n                closeOnEscape={false}\n                constrainSizeToViewport\n                focusOnMount={false}\n                initialSize={FILE_SEARCH_MENU_SIZE}\n                labelId={FILE_SEARCH_TITLE_ID}\n                minimumSize={{ height: FILE_SEARCH_OPTION_ESTIMATED_HEIGHT, width: FILE_SEARCH_MENU_MIN_WIDTH }}\n                open={!!sessionAnchor}\n                paperSx={{\n                    border: '1px solid',\n                    borderColor: 'divider',\n                    borderRadius: '14px',\n                    boxShadow: 8,\n                    flexDirection: 'column',\n                    overflow: 'hidden',\n                }}\n                resizeFromAllSides\n                resizeLabel=\"Resize file selector\"\n                persistSizeOnResizeEndOnly\n                stackPosition={stackPosition + 1}\n                storageKey={MARKDOWN_FILE_SEARCH_SIZE_STORAGE_KEY}\n            >\n                <Typography\n                    id={FILE_SEARCH_TITLE_ID}\n                    sx={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}\n                >\n                    Project files\n                </Typography>\n                <MarkdownFileSearchResults\n                    onHighlight={onHighlight}\n                    onSelect={onSelect}\n                    options={options}\n                    selectedIndex={selectedIndex}\n                />\n            </ResizablePopper>\n        </>\n    )\n}\n34:| Card, dialog, popup, input surface | `background.paper` |\n41:| Muted / placeholder / disabled | `custom.text4` |\n72:- **Radius family (px):** buttons/icon-buttons 8 (small 6–7), inputs 9, cards 10, columns/panels 12, dialogs/popups 14, chips/pills 99, color swatches 3. `borderRadius: 1` covers the 8 case; use explicit `'9px'` etc. for the others.\n80:- **Elevation ladder (only where floating):** card hover `0 4px 12px rgba(16,24,40,0.12)`; dragging MUI `elevation 8` + `rotate(2deg)`; contained button `0 1px 2px rgba(16,24,40,0.15)`; dialog/popup `0 24px 60px rgba(16,24,40,0.28)`; scrim `rgba(16,24,40,0.45)` + `backdropFilter: blur(2px)`.\n124:- **Dialog / popup:** `Dialog`/`Popover` with `PaperProps` → `background.paper`, 1px `divider`, radius 14, big shadow; scrim via `slotProps.backdrop` (blur + tint). Bands separated by hairlines; footer on a `background.default` bar with top hairline; actions right-aligned (outlined Cancel + contained CTA). `autoFocus` first field; submit on `Enter` (`⌘/Ctrl+Enter` in a textarea); close on `Esc`/backdrop — except that a dialog holding unsaved multi-field input may refuse `backdropClick` (return early from `onClose(event, reason)`) so a stray click on the scrim cannot discard typed values; `Esc` and the Cancel button must still close it, and Cancel stays visible and enabled, including while loading.\n125:- **Empty state:** dashed target — `1.5px dashed custom.borderStrong`, radius 10, centered icon + `custom.text4` label. No \"click to add\" placeholder blocks.\ngrep: ../../../node_modules/@lexical/react/LexicalTypeaheadMenuPlugin.dev.js: No such file or directory",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-11",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/editor; cat placeholders/markdown_placeholder_toolbar_control.tsx file_search/markdown_file_search_menu.tsx; grep -n \"placeholder\\|popup\" ../../../../design/STYLE_GUIDE.md | head; grep -n \"scrollIntoView\\|innerHeight\\|containerDiv.style\" ../../../node_modules/@lexical/react/LexicalTypeaheadMenuPlugin.dev.js | head -20; ls ../../../node_modules/@lexical/react/ | grep -i typeahead",
+          "providerItemId": "toolu_01LTofo53fsmYNjcS3Zxg75P",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:00:04.717Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdcL5LZuiacG6DDwN1SE:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T15:00:08.828Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Reading Lexical typeahead positioning, then writing doc.",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 13,
+          "timestamp": "2026-10-02T15:00:08.830Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; f=$(find app/node_modules/@lexical/react node_modules/@lexical/react -name \"LexicalTypeaheadMenuPlugin.dev.js\" 2>/dev/null | head -1); echo $f; grep -n \"scrollIntoView\\|innerHeight\\|containerDiv.style\\|menuHeight\\|getBoundingClientRect\" $f | head -30",
+          "content": "app/node_modules/@lexical/react/dist/LexicalTypeaheadMenuPlugin.dev.js\n73:const scrollIntoViewIfNeeded = target => {\n78:  const typeaheadRect = typeaheadContainerNode.getBoundingClientRect();\n81:  if (typeaheadRect.top + typeaheadRect.height > window.innerHeight) {\n82:    typeaheadContainerNode.scrollIntoView({\n87:    typeaheadContainerNode.scrollIntoView({\n91:  target.scrollIntoView({\n144:  const tRect = targetElement.getBoundingClientRect();\n145:  const cRect = containerElement.getBoundingClientRect();\n306:        scrollIntoViewIfNeeded(option.ref.current);\n348:          scrollIntoViewIfNeeded(option.ref.current);\n400:  containerDiv.style.display = 'block';\n401:  containerDiv.style.position = 'absolute';\n439:      containerDiv.style.top = `${top + anchorHeight + 3 + (\n443:      containerDiv.style.left = `${left + window.pageXOffset}px`;\n444:      containerDiv.style.height = `${height}px`;\n445:      containerDiv.style.width = `${width}px`;\n448:        const menuRect = menuEle.getBoundingClientRect();\n449:        const menuHeight = menuRect.height;\n451:        const rootElementRect = rootElement.getBoundingClientRect();\n453:          containerDiv.style.left = `${\n459:        (top + menuHeight > window.innerHeight || top + menuHeight > rootElementRect.bottom) && top - rootElementRect.top > menuHeight + height) {\n460:          containerDiv.style.top = `${top - menuHeight - height + (\n707:              getRect: () => range.getBoundingClientRect(),",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-14",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; f=$(find app/node_modules/@lexical/react node_modules/@lexical/react -name \"LexicalTypeaheadMenuPlugin.dev.js\" 2>/dev/null | head -1); echo $f; grep -n \"scrollIntoView\\|innerHeight\\|containerDiv.style\\|menuHeight\\|getBoundingClientRect\" $f | head -30",
+          "providerItemId": "toolu_01WGthkz32QF6ARdWaUsYoMv",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:00:26.273Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdcMfeM4dYyq5UQXGSca:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T15:00:30.811Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; grep -l \"ready for implementation\" *.md | head -3; f=$(grep -l \"^## Acceptance criteria\\|^## acceptance criteria\" *.md | tail -1); echo $f; grep -n \"^#\" $f",
+          "content": "F_400_improve_scheduled_tasks_for_cards.md\nF_400_improve_scheduled_tasks_for_cards.md\n20:## Current state\n25:## implementation details\n31:## acceptance criteria",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-16",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; grep -l \"ready for implementation\" *.md | head -3; f=$(grep -l \"^## Acceptance criteria\\|^## acceptance criteria\" *.md | tail -1); echo $f; grep -n \"^#\" $f",
+          "providerItemId": "toolu_01JNrZwWAqQYFR2FpvPvvtSL",
+          "sequence": 16,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:00:34.380Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; sed -n 15,60p F_400_improve_scheduled_tasks_for_cards.md",
+          "content": "* if a card has an action scheduled to be run, show a 'timer' icon on the card\n* when the user schedules an action from the schedule popup on the action-popup, it says at the bottom 'task scheduled' (or similar). This is ok but the popup should close and the 'schedule icon' in the action-popup's input box, should show in orange ('warning' I think), like used for the 'run' button and action-buttons.\n* the action button on the action-popup should also use the 'alert' color and show a small timer icon to indicate it is scheduled.\n\n## Current state\n\n* Registering an action schedule refreshes `activeScheduleService`, but `ActionScheduleOwner` leaves the schedule popover open and displays \"Schedule registered\".\n* `ActiveScheduleService` loads pending and running schedules from the Electron scheduler. Board cards, the popup's Schedule control, and action selector buttons do not read this schedule state. They show only run and agent state.\n\n## implementation details\n\n* Derive scheduled indicators from pending action schedules in `activeScheduleService`. Match the action by `actionId` and its target card by `context.cardInternalId`; use `Card.header.internalId` for card identity. A card used only as a `card-state` trigger is not the scheduled action's target. Multiple matching schedules still produce one indicator.\n* Add a focused service selector and scoped subscription for the target card and card plus action. `CardRunButton` shows a timer icon when that card has a scheduled action. `ActionPopupBottomRow` colors the Schedule icon `warning.main` when its selected action is scheduled. `ActionSelectorButton` shows a small timer icon and uses `warning.main` for a scheduled action. Preserve existing running and waiting state indicators when those states apply.\n* After successful registration and schedule refresh, close only the schedule popover. Keep it open on failure and report the error through `dialogService`. Indicators update when a schedule is registered, deleted, executed, or the project changes; they do not depend on the popover being open.\n\n## acceptance criteria\n\n* Scheduling an action for a card closes the schedule popover after success. The card shows a timer; its action selector button shows a small timer and warning color; the Schedule icon shows warning color while that action is selected.\n* A different action on the same card, a different card, and a card used only as a trigger show no scheduled indicator. Switching selected actions updates the Schedule icon.\n* Deleting or completing the last pending matching schedule clears its indicators. If another pending matching schedule remains, indicators remain. Project changes clear indicators from the previous project.\n* Registration failure leaves the schedule popover open and shows an error. Existing running and waiting indicators remain visible.",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-17",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; sed -n 15,60p F_400_improve_scheduled_tasks_for_cards.md",
+          "providerItemId": "toolu_01J4cFdmdt2f9Ta1G7VsD63p",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:00:36.871Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; sed -i 's/^status: design$/status: ready for implementation/' F_402_add_scrollbars_to_placeholder_popup.md; cat >> F_402_add_scrollbars_to_placeholder_popup.md <<'EOF'\n\n## Current state\n\n* Typing `{{` in a Markdown editor opens the placeholder typeahead. `MarkdownPlaceholderTypeaheadPlugin` portals `MarkdownPlaceholderMenu` into Lexical's anchor element.\n* `MarkdownPlaceholderMenu` renders a `Paper` with `overflow: 'hidden'` and no maximum height. When the list is taller than the available space, the bottom options are clipped and cannot be reached by mouse.\n* Lexical flips the menu above the caret only when the space above is larger than the full menu height. On arrow-key navigation it calls `scrollIntoView` on the highlighted option, but nothing inside the menu scrolls.\n* The toolbar \"Insert placeholder\" control uses an MUI `Menu`, which already limits its height and scrolls. It is not part of this change.\n\n## implementation details\n\n* In `markdown_placeholder_menu.tsx`, add a named constant `PLACEHOLDER_MENU_MAX_HEIGHT = 320` (same value as `FILE_SEARCH_MENU_MAX_HEIGHT`). Make the `Paper` a flex column with `maxHeight: PLACEHOLDER_MENU_MAX_HEIGHT`; keep `overflow: 'hidden'` so the rounded corners still clip the content.\n* Make the `List` the scroll container: `overflowY: 'auto'`, `minHeight: 0`. The vertical scrollbar appears only when the options exceed the maximum height.\n* Keyboard navigation needs no extra code. Lexical's `scrollIntoView` on the highlighted option then scrolls the `List`. The fixed maximum height also lets Lexical's flip-above logic fit the menu more often.\n* Do not change the z-index layering, option selection, or filtering.\n\n## acceptance criteria\n\n* With more placeholders than fit in 320px, the placeholder typeahead shows a vertical scrollbar and the remaining options can be reached by scrolling.\n* With few placeholders, the menu sizes to its content and shows no scrollbar.\n* Arrow-key navigation past the visible options scrolls the highlighted option into view. Enter or click still inserts the highlighted placeholder.\n* The menu keeps its rounded border and still renders above the owning popup stack layer.\n* Test in `markdown_placeholder_menu.grouped.test.tsx`: the listbox has `overflow-y: auto` and the menu surface has the maximum height.\nEOF\nhead -8 F_402_add_scrollbars_to_placeholder_popup.md | tail -3",
+          "content": "status: ready for implementation\nowner: \naffects:",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-18",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; sed -i 's/^status: design$/status: ready for implementation/' F_402_add_scrollbars_to_placeholder_popup.md; cat >> F_402_add_scrollbars_to_placeholder_popup.md <<'EOF'\n\n## Current state\n\n* Typing `{{` in a Markdown editor opens the placeholder typeahead. `MarkdownPlaceholderTypeaheadPlugin` portals `MarkdownPlaceholderMenu` into Lexical's anchor element.\n* `MarkdownPlaceholderMenu` renders a `Paper` with `overflow: 'hidden'` and no maximum height. When the list is taller than the available space, the bottom options are clipped and cannot be reached by mouse.\n* Lexical flips the menu above the caret only when the space above is larger than the full menu height. On arrow-key navigation it calls `scrollIntoView` on the highlighted option, but nothing inside the menu scrolls.\n* The toolbar \"Insert placeholder\" control uses an MUI `Menu`, which already limits its height and scrolls. It is not part of this change.\n\n## implementation details\n\n* In `markdown_placeholder_menu.tsx`, add a named constant `PLACEHOLDER_MENU_MAX_HEIGHT = 320` (same value as `FILE_SEARCH_MENU_MAX_HEIGHT`). Make the `Paper` a flex column with `maxHeight: PLACEHOLDER_MENU_MAX_HEIGHT`; keep `overflow: 'hidden'` so the rounded corners still clip the content.\n* Make the `List` the scroll container: `overflowY: 'auto'`, `minHeight: 0`. The vertical scrollbar appears only when the options exceed the maximum height.\n* Keyboard navigation needs no extra code. Lexical's `scrollIntoView` on the highlighted option then scrolls the `List`. The fixed maximum height also lets Lexical's flip-above logic fit the menu more often.\n* Do not change the z-index layering, option selection, or filtering.\n\n## acceptance criteria\n\n* With more placeholders than fit in 320px, the placeholder typeahead shows a vertical scrollbar and the remaining options can be reached by scrolling.\n* With few placeholders, the menu sizes to its content and shows no scrollbar.\n* Arrow-key navigation past the visible options scrolls the highlighted option into view. Enter or click still inserts the highlighted placeholder.\n* The menu keeps its rounded border and still renders above the owning popup stack layer.\n* Test in `markdown_placeholder_menu.grouped.test.tsx`: the listbox has `overflow-y: auto` and the menu surface has the maximum height.\nEOF\nhead -8 F_402_add_scrollbars_to_placeholder_popup.md | tail -3",
+          "providerItemId": "toolu_015p942DhQa834zJvWGjDXVL",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:00:49.979Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-19",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdcPQxMCA4ftBuKGytKH:thinking:0",
+          "sequence": 19,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T15:00:56.805Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_402_add_scrollbars_to_placeholder_popup.md",
+          "deletions": 1,
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-20",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_402_add_scrollbars_to_placeholder_popup.md has been updated successfully. (note: the file had been modified on disk since you last read it — the edit applied cleanly, but the file contains other changes not in your context. Read it before edits that depend on surrounding content.)",
+          "providerItemId": "toolu_01NwRycRJ5wJyRYnxu9XBeXF",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-10-02T15:00:58.024Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfdcQ1N4FWPvtnkAp5hGx:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-02T15:01:06.043Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI added `Current state`, `implementation details` and `acceptance criteria` to `F_402_add_scrollbars_to_placeholder_popup.md` and changed its status to `ready for implementation`. Nothing is staged or committed.\n\nThe only referenced file I skipped was `design/activity/card__d3ccfd9e….json`, because it is an `agents` file.\n\n**Problem found in the code:**\n- Typing `{{` opens the placeholder popup, rendered by `MarkdownPlaceholderMenu` in `markdown_placeholder_menu.tsx`.\n- Its `Paper` surface uses `overflow: 'hidden'` and has no maximum height. When there are more options than room, the bottom ones are cut off and the mouse can't reach them.\n- Lexical (the editor library) already scrolls the highlighted option into view when you use the arrow keys. Nothing happens because the menu has no part that can scroll.\n\n**Planned fix:**\n- Add the constant `PLACEHOLDER_MENU_MAX_HEIGHT = 320` as the menu's maximum height. That is the same value the file-search popup uses.\n- Make the `List` the scrolling part with `overflowY: 'auto'`. The scrollbar only appears when the options exceed that height.\n- Arrow-key scrolling then works with no extra code.\n\n**Choices I made — please confirm or correct:**\n1. **Which popup:** I assumed \"placeholder popup\" means the `{{` popup. The toolbar \"Insert placeholder\" button uses an MUI `Menu`, which already limits its height and scrolls, so the doc lists it as not part of this change.\n2. **Fixed height:** I chose a fixed 320px cap rather than a height based on the window size. Say if you want it to follow the window height instead.\n3. **Test:** The planned test only checks that the list scrolls (`overflow-y: auto`). It deliberately doesn't check the 320px value, because AGENTS.md says not to keep tests of visual values.",
+          "id": "agent-turn-104abb09-78dd-4e03-b1e8-8e64a2d704a2-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 22,
+          "timestamp": "2026-10-02T15:01:06.098Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -37,10 +310,22 @@
       "startedAt": "2026-10-02T14:59:40.232Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 12972,
+          "toolMs": 42395
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-02T14:59:40.232Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 498331,
+        "inputTokens": 22,
+        "outputTokens": 4525,
+        "reasoningTokens": 0,
+        "totalTokens": 502878,
+        "costUsd": 0.47216179999999996
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
