@@ -2156,7 +2156,7 @@
         "totalTokens": 281288
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     },
     {
       "actionId": "update-project-version",
@@ -3690,11 +3690,11 @@
         "agent-9df54d42-c9b7-4371-9318-28e28f3cfb55"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-9f1aa995-5040-4c32-a2f4-bca7b1a495c6",
       "origin": {
@@ -3702,9 +3702,9 @@
       },
       "rootActionId": "update-project-version",
       "rootActionLabel": "render update version script",
-      "rootConversationId": "agent-9df54d42-c9b7-4371-9318-28e28f3cfb55",
       "startedAt": "2026-10-02T13:53:51.233Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-9df54d42-c9b7-4371-9318-28e28f3cfb55"
     }
   ],
   "version": 5

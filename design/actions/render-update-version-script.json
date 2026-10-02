@@ -1,5 +1,5 @@
 {
-  "id": "update-project-version",
+  "id": "render-update-project-version",
   "label": "render update version script",
   "description": "Generate a version update script for this project.",
   "type": "agent",
