@@ -3,7 +3,7 @@ author:
 id: F_400
 internalId: ee69c5dd-bb25-4e62-8837-e250eae7cc88
 title: improve scheduled tasks for cards
-status: new
+status: design
 owner: 
 affects:
 agents:

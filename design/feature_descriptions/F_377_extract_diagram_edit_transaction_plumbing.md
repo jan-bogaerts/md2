@@ -3,6 +3,7 @@ id: F_377
 internalId: 2245678c-d69e-4b1d-b6b8-cca720fc468d
 status: design
 title: Extract diagram edit transaction plumbing
+after: 2775052a-2e84-4466-a320-155c8ec05bac
 ---
 
 # Extract diagram edit transaction plumbing
