@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: e43f6e59-8ffb-4668-8c07-49858b1bfeaa
 ---
 
 add a switch to action definitions that, when enabled, hides the action on the action-popup.
