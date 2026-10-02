@@ -17,6 +17,7 @@ changedFiles:
   - app/src/components/actions/editor/action_definition_group.tsx
   - app/src/components/actions/editor/action_filter_editor.tsx
   - app/src/components/actions/editor/action_ordered_collection.tsx
+after: 21b6ec8e-0455-42ef-9680-36dd39c52fd5
 ---
 See F\_392 where we applied groups to the sentry tab of the config dialog.
 

@@ -11,6 +11,7 @@ agents:
 policy:
 changedFiles:
   - app/src/components/horizontal_scroll_area.tsx
+after: a7e89248-b83d-4ce4-b168-59e482d8adbc
 ---
 
 The app bar and markdown toolbar are wrapped on our own custom scrollbox. It shows a back button when not enough room and user scrolled.

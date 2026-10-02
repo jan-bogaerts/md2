@@ -21,6 +21,7 @@ changedFiles:
   - app/src/services/stats/stats_options.node.test.ts
   - app/src/services/stats/stats_options.ts
   - app/src/services/stats/stats_snapshot_builder.ts
+after: 5603103d-1d57-40e8-afae-095f12ac1695
 ---
 
 On the stats view, we have a release filter. This works, but we should add 2 more things:
