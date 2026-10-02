@@ -53,4 +53,23 @@ describe('MarkdownPlaceholderMenu', () => {
         fireEvent.click(screen.getByRole('option', { name: /this-card/u }))
         expect(onSelect).toHaveBeenCalledExactlyOnceWith(option)
     })
+
+    it('scrolls the option list when options exceed the menu height', () => {
+        const options = ACTION_PROMPT_PLACEHOLDERS.map((placeholder) => new MarkdownPlaceholderOption(placeholder))
+
+        render(
+            <AppThemeProvider>
+                <MarkdownTypeaheadLayerProvider stackPosition={STACK_POSITION}>
+                    <MarkdownPlaceholderMenu
+                        onHighlight={vi.fn()}
+                        onSelect={vi.fn()}
+                        options={options}
+                        selectedIndex={0}
+                    />
+                </MarkdownTypeaheadLayerProvider>
+            </AppThemeProvider>,
+        )
+
+        expect(screen.getByRole('listbox', { name: 'Available placeholders' })).toHaveStyle({ overflowY: 'auto' })
+    })
 })
