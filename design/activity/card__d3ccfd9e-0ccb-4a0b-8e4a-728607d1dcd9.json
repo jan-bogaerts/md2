@@ -843,6 +843,29 @@
       "startedAt": "2026-10-02T15:06:58.998Z",
       "status": "completed",
       "rootConversationId": "agent-272047a1-e2db-45ae-8083-824f8bb08c8c"
+    },
+    {
+      "commits": [
+        {
+          "commit": "8a4ffc69eaa6871f7da6fe6f9c8cb8c16314365b",
+          "committedAt": "2026-10-02T18:58:09+02:00",
+          "deletions": 1,
+          "filePaths": [
+            "app/src/components/editor/placeholders/markdown_placeholder_menu.grouped.test.tsx",
+            "app/src/components/editor/placeholders/markdown_placeholder_menu.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 25,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-02T18:58:09+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d3ccfd9e-0ccb-4a0b-8e4a-728607d1dcd9",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
