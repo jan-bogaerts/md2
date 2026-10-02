@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__5cbb6339-2a3c-4462-94cf-a575f916ad39.json
 policy:
 ---
 When editing an action in the action editor  we have the field ´output kind´ with 2 options.
