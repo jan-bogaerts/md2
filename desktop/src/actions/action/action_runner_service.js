@@ -40,15 +40,6 @@ function requireConfiguredStates(states) {
     });
 }
 
-function hasStreamingAction(action, visited = new Set()) {
-    if (visited.has(action.id)) return false;
-    visited.add(action.id);
-    if (action.type === 'agent' && action.streaming) return true;
-
-    return [...action.onBefore, ...action.onAfter, ...action.on.map(({ action: linkedAction }) => linkedAction)]
-        .some((linkedAction) => hasStreamingAction(linkedAction, visited));
-}
-
 function userInputRequest(action, visited = new Set()) {
     if (visited.has(action.id)) return null;
     visited.add(action.id);
@@ -180,9 +171,6 @@ class ActionRunnerService {
             throw new Error(`Unattended action requires a supplied ${requestedInput.type}: ${rootAction.label}`);
         }
         const diagramPath = this.resolveStartDiagramPath(startRequest, rootAction);
-        if (options.interactive === false && hasStreamingAction(rootAction)) {
-            throw new Error(`Streaming action requires an interactive manual run: ${rootAction.label}`);
-        }
         const conversationReservation = this.consumeConversationReservation(startRequest, rootAction);
         const runId = options.runId ?? createRunId();
         if (typeof runId !== 'string' || runId.length === 0) throw new Error('Invalid reserved action run ID');

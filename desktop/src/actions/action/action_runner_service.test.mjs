@@ -357,7 +357,7 @@ describe('ActionRunnerService', () => {
         await expect(runner.startProject(project, paths, states)).rejects.toThrow(message);
     });
 
-    it('rejects unattended streaming chains before starting a process', async () => {
+    it('starts an unattended streaming action in a chain and waits for it to finish', async () => {
         const files = [
             actionFile('main', { command: 'main', onAfter: ['stream'] }),
             actionFile('stream', {
@@ -368,13 +368,30 @@ describe('ActionRunnerService', () => {
             }),
         ];
         const { agentRunnerService, commandRunner, runner } = createRunner(files);
+        let completeAgentRun;
+        agentRunnerService.start.mockImplementation(async (_project, request, _onEvent, onComplete, _onError, onConversationSaved) => {
+            onConversationSaved?.();
+            completeAgentRun = () => onComplete(0, {
+                changedPaths: [], conversation: { id: 'agent-1' }, missingSession: false,
+                reference: 'conversation.json', stderr: '', stdout: '', turnStarted: true,
+            });
 
-        await expect(runner.start(
+            return { runId: 'agent-1' };
+        });
+        agentRunnerService.finish = vi.fn(() => completeAgentRun());
+
+        const runId = await runner.start(
             { actionId: 'main', context, runInput: {} },
             { interactive: false },
-        )).rejects.toThrow('Streaming action requires an interactive manual run');
-        expect(commandRunner).not.toHaveBeenCalled();
-        expect(agentRunnerService.start).not.toHaveBeenCalled();
+        );
+        await vi.waitFor(() => expect(agentRunnerService.start).toHaveBeenCalledOnce());
+        expect(agentRunnerService.start.mock.calls[0][1].streaming).toBe(true);
+        expect(commandRunner).toHaveBeenCalledOnce();
+        expect(runner.runs.has(runId)).toBe(true);
+
+        runner.finishAgentRun(runId);
+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });
+        expect(agentRunnerService.finish).toHaveBeenCalledWith('agent-1');
     });
 
     it('returns current actions folder and clears readiness on stop', async () => {

@@ -188,7 +188,7 @@ function createScheduler(localGitService, timerDependencies = {}) {
         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
     };
     const configuredAgentRunnerService = timerDependencies.agentRunnerService ?? { run: vi.fn() };
-    const agentRunnerService = {
+    const agentRunnerService = configuredAgentRunnerService.start ? configuredAgentRunnerService : {
         start: vi.fn(async (runProject, request, onEvent, onComplete) => {
             void configuredAgentRunnerService.run(runProject, request, onEvent).then((result) => onComplete(result.exitCode, {conversation: { id: 'agent-1' }, reference: 'design/activity/project.json#conversation=agent-1', stderr: result.stderr, stdout: result.stdout}));
 
@@ -314,6 +314,37 @@ describe('ActionSchedulerService', () => {
 
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done');
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+    });
+
+    it('starts a scheduled streaming agent and completes after the session is finished', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' });
+        const localGitService = createLocalGitService([schedule], [createAgentAction('implement', { streaming: true })]);
+        let completeAgentRun;
+        const agentRunnerService = {
+            finish: vi.fn(() => completeAgentRun()),
+            start: vi.fn(async (_project, request, _onEvent, onComplete, _onError, onConversationSaved) => {
+                onConversationSaved();
+                completeAgentRun = () => onComplete(0, {
+                    changedPaths: [], conversation: { id: 'agent-1' }, missingSession: false,
+                    reference: 'conversation.json', stderr: '', stdout: '', turnStarted: true,
+                });
+
+                return { runId: 'agent-1' };
+            }),
+            stop: vi.fn(),
+        };
+        const scheduler = createScheduler(localGitService, { agentRunnerService });
+        await startProject(scheduler, localGitService);
+
+        const firing = scheduler.fireSchedule(schedule.id);
+        await vi.waitFor(() => expect(agentRunnerService.start).toHaveBeenCalledOnce());
+        expect(agentRunnerService.start.mock.calls[0][1].streaming).toBe(true);
+        expect(localGitService.schedules()[0].status).toBe('running');
+
+        const runId = agentRunnerService.start.mock.calls[0][1].actionRunId;
+        scheduler.actionRunnerService.finishAgentRun(runId);
+        await firing;
+        expect(localGitService.schedules()[0].status).toBe('completed');
     });
 
     it('cancels a pending timer and marks the schedule cancelled', async () => {
