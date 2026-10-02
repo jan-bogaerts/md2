@@ -2122,19 +2122,19 @@
           "agent": "claude",
           "conversationId": "d31492fa-1cc2-4cae-9300-7c1e23255c0e",
           "createdAt": "2026-10-02T17:19:10.808Z",
-          "lastUsedAt": "2026-10-02T17:19:10.808Z",
-          "synchronizedThroughMessageId": "agent-turn-8414aeb8-2a76-44f5-a1bc-327661575217-turn-1-assistant-14"
+          "lastUsedAt": "2026-10-02T17:48:16.034Z",
+          "synchronizedThroughMessageId": "agent-turn-8414aeb8-2a76-44f5-a1bc-327661575217-turn-2-assistant-5"
         }
       ],
       "startedAt": "2026-10-02T17:14:34.435Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
-          "reasoningMs": 55827,
+          "reasoningMs": 61688,
           "toolMs": 245416
         },
-        "elapsedMs": 276373,
-        "runningStartedAt": "2026-10-02T17:46:29.685Z"
+        "elapsedMs": 382722,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
