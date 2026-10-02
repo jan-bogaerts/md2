@@ -12,6 +12,7 @@ import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionUsageScopeStore } from './action_usage_scope_store'
 import { ActionUsageValuesService } from './action_usage_values_service'
 import type { ActionPopupRuntime } from './action_popup_types'
+import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
 
 type ActionPopupBindings = Omit<ActionPopupRuntime, 'runValidationError' | 'settingsStore'>
 
@@ -21,6 +22,7 @@ export function createActionPopupBindings(
     context: ActionContext,
     requestedRunId?: string,
     requestedConversationPath?: string,
+    historicalEntries?: ActionRunHistoryEntry[] | null,
 ): ActionPopupBindings {
     const initialRunId = requestedConversationPath
         ? null
@@ -32,7 +34,7 @@ export function createActionPopupBindings(
     bindingStore.trackInitialRun(action.id, context)
     const conversationStore = new ActionConversationStore(action.id, context, bindingStore)
     if (requestedConversationPath) conversationStore.configureInitialSelection(requestedConversationPath)
-    const historyStore = new ActionHistoryStore(action, context)
+    const historyStore = new ActionHistoryStore(action, context, historicalEntries)
     const usageScopeStore = new ActionUsageScopeStore()
     const usageValuesService = new ActionUsageValuesService({
         action,

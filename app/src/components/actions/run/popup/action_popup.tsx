@@ -1,15 +1,18 @@
-import { useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react'
 import { displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../../../data/action_context'
 import { dataService } from '../../../../services/data/data_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { cardAgentState } from '../../../../services/agents/card_agent_state'
+import { historicalCardActivityService } from '../../../../services/actions/historical_card_activity_service'
+import { CUSTOM_PROMPT_ACTION_ID } from '../../../../data/action_types'
 import { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'
 import { useActions } from '../../../hooks/use_actions'
 import { useProjectState } from '../../../hooks/use_project_state'
 import { useProjectActionWorktree } from '../../../hooks/use_worktrees'
 import { ActionPopupContent } from './action_popup_content'
 import { resolveInitialActionId, type PersistedActionStates } from './action_popup_initial_action'
+import { historicalActionHistory, historicalCardActions } from './historical_card_actions'
 
 export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'
 
@@ -93,7 +96,32 @@ export function ActionPopup(props: ActionPopupProps) {
         () => projectContextWithWorktree(context, projectActionWorktree),
         [context, projectActionWorktree],
     )
-    const actions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
+    const applicableActions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
+    const historicalCard = context.kind === 'file' && context.cardInternalId
+        ? snapshot?.backgroundCards.find(({ header }) => header.internalId === context.cardInternalId) ?? null
+        : null
+    const historicalReferences = historicalCard?.header.agentLogReferences.join('\u0000') ?? null
+    const activityKey = historicalCard && project && historicalReferences !== null
+        ? `${project.id}\u0000${project.branch}\u0000${historicalCard.header.internalId}\u0000${historicalReferences}`
+        : null
+    const subscribeActivity = useCallback((listener: () => void) => activityKey
+        ? historicalCardActivityService.subscribe(activityKey, listener)
+        : () => undefined, [activityKey])
+    const getActivitySnapshot = useCallback(() => activityKey
+        ? historicalCardActivityService.getSnapshot(activityKey)
+        : null, [activityKey])
+    const activities = useSyncExternalStore(subscribeActivity, getActivitySnapshot, getActivitySnapshot)
+    useEffect(() => {
+        if (!historicalCard?.header.internalId || !activityKey) return
+        const cardInternalId = historicalCard.header.internalId
+        const controller = new AbortController()
+        void historicalCardActivityService.load(activityKey, cardInternalId, controller.signal)
+
+        return () => controller.abort()
+    }, [activityKey, historicalCard?.header.internalId])
+    const actions = useMemo(() => activities
+        ? historicalCardActions(applicableActions, loadedActions, activities)
+        : applicableActions, [activities, applicableActions, loadedActions])
     const [selectedActionId, setSelectedActionId] = useState<string | null>(() => resolveInitialActionId(
         actions,
         initialActionId,
@@ -113,9 +141,17 @@ export function ActionPopup(props: ActionPopupProps) {
         : actions
     const { id: target, title: targetTitle } = resolvePopupTarget(context, snapshot)
     const releasesFolder = dataService.getConfig()?.releasesFolder
+    const historicalSelectionReadOnly = historicalCard && selectedAction
+        && selectedAction.id !== CUSTOM_PROMPT_ACTION_ID
+        && !applicableActions.some(({ id }) => id === selectedAction.id)
     const readOnlyMessage = releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)
         ? RELEASED_CARD_RUN_MESSAGE
-        : null
+        : historicalSelectionReadOnly
+            ? 'Historical action cannot be run in this card context.'
+            : null
+    const historicalEntries = useMemo(() => activities && selectedAction && project
+        ? historicalActionHistory(activities, selectedAction.id, project.rootPath ?? project.id)
+        : null, [activities, selectedAction, project])
 
     const handleSelectAction = (actionId: string) => {
         setSelectedActionId(actionId)
@@ -138,6 +174,7 @@ export function ActionPopup(props: ActionPopupProps) {
             assignmentContext={effectiveContext}
             baseContext={context}
             fullHeight={fullHeight}
+            historicalEntries={historicalEntries}
             initialConversationPath={selectedAction.id === initialActionId ? initialConversationPath : undefined}
             initialRunId={selectedAction.id === initialActionId ? initialRunId : undefined}
             onClose={handleClose}

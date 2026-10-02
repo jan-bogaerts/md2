@@ -1,5 +1,6 @@
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
+import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
 import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'
 import type { ActionConversationStore } from '../../conversation/state/action_conversation_store'
 import type { ActionConversationSearchService } from '../../conversation/search/action_conversation_search_service'
@@ -18,6 +19,7 @@ export interface ActionPopupContentProps {
     baseContext: ActionContext
     draggable?: boolean
     fullHeight: boolean
+    historicalEntries?: ActionRunHistoryEntry[] | null
     initialConversationPath?: string
     initialRunId?: string
     onActivate?: () => void

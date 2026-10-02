@@ -3,6 +3,7 @@ import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
 import { ActionConversationChat } from '../../conversation/action_conversation_chat'
 import { ActionScheduleOwner } from '../schedule/action_schedule_owner'
+import { ActionRunHistoryOwner } from '../state/action_run_history_owner'
 import { ActionAgentInteraction } from './action_agent_interaction'
 import { ActionRunDisabledMessage } from './action_run_disabled_message'
 import type { ActionPopupRuntime } from './action_popup_types'
@@ -15,12 +16,14 @@ interface AgentActionProps {
     popupVisible?: boolean
     readOnlyMessage: string | null
     runtime: ActionPopupRuntime
+    showHistoricalHistory?: boolean
 }
 
 /** Agent conversation, prompt, interaction, and scheduling content. */
 export function AgentAction(props: AgentActionProps) {
-    const { action, assignmentContext, baseContext, popupEntryId, popupVisible, readOnlyMessage, runtime } = props
-    const { bindingStore, conversationSearchService, conversationStore, runValidationError, scheduleStore, settingsStore } = runtime
+    const { action, assignmentContext, baseContext, popupEntryId, popupVisible, readOnlyMessage, runtime, showHistoricalHistory } = props
+    const { bindingStore, conversationSearchService, conversationStore, historyStore } = runtime
+    const { runValidationError, scheduleStore, settingsStore } = runtime
 
     if (readOnlyMessage) {
         return (
@@ -34,6 +37,7 @@ export function AgentAction(props: AgentActionProps) {
                     searchService={conversationSearchService}
                     store={conversationStore}
                 />
+                {showHistoricalHistory ? <ActionRunHistoryOwner store={historyStore} /> : null}
                 <Typography color="text.secondary" role="note" variant="caption">{readOnlyMessage}</Typography>
             </Stack>
         )
@@ -49,6 +53,7 @@ export function AgentAction(props: AgentActionProps) {
                 runtime={runtime}
             />
             <ActionScheduleOwner action={action} context={baseContext} store={scheduleStore} />
+            {showHistoricalHistory ? <ActionRunHistoryOwner store={historyStore} /> : null}
             <ActionRunDisabledMessage action={action} settingsStore={settingsStore} />
             {runValidationError ? (
                 <Typography color="error.main" role="alert" variant="caption">

@@ -26,6 +26,7 @@ import { ActionPopup, CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_
 import { useMarkdownTypeaheadStackPosition } from '../../../editor/typeahead/markdown_typeahead_layer_context'
 import { configService } from '../../../../services/config/config_service'
 import { BUILTIN_AGENT_PROFILES } from '../../../../data/agent_profiles'
+import { createActivityFile, type CardActivityFile } from '../../../../../../shared/card_activity.mjs'
 
 const renderProbes = vi.hoisted(() => ({
     agentPrompt: vi.fn(),
@@ -3458,6 +3459,97 @@ describe('ActionPopup', () => {
 
         expect(onClose).toHaveBeenCalledOnce()
         expect(consoleError).not.toHaveBeenCalled()
+    })
+
+    describe('background card activity', () => {
+        function backgroundCard(cardInternalId: string, path: string): Card {
+            return {
+                agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: false,
+                header: {
+                    affects: [], after: null, agentLogReferences: [`${path}/card__${cardInternalId}.json`],
+                    author: null, changedFiles: [], id: 'F-010', internalId: cardInternalId, owner: null,
+                    policy: {}, references: [], status: 'archived', title: 'Old card',
+                },
+                path,
+            }
+        }
+
+        function activity(cardInternalId: string): CardActivityFile {
+            const value = createActivityFile({ cardInternalId, kind: 'card' })
+            value.records.push({
+                commits: [], completedAt: '2026-08-01T12:01:00.000Z', conversationIds: [],
+                details: { command: 'run', output: `${cardInternalId} output`, type: 'command' },
+                origin: { cardInternalId, kind: 'card' }, rootActionId: 'removed', rootActionLabel: 'Removed command',
+                runId: `${cardInternalId}-run`, startedAt: '2026-08-01T12:00:00.000Z', status: 'completed',
+            })
+            return value
+        }
+
+        function mockBackgroundCard(card: Card) {
+            vi.spyOn(dataService, 'getState').mockReturnValue({
+                project, runningAgents: [],
+                snapshot: { activeCards: [], backgroundCards: [card], repositoryFiles: [], workingFolder: 'design' },
+            })
+        }
+
+        it.each([
+            { path: 'design/releases/0_7_0/F-010.md', released: true },
+            { path: 'design/archive/F-010.md', released: false },
+        ])('shows stored command history for $path', async ({ path, released }) => {
+            const card = backgroundCard('card-1', path)
+            mockBackgroundCard(card)
+            vi.spyOn(dataService, 'getConfig').mockReturnValue({ ...configService.getProjectConfig(), releasesFolder: 'design/releases' })
+            vi.spyOn(dataService, 'loadReferencedCardActivities').mockResolvedValue([activity('card-1')])
+            actionService.loadFromFiles([file(commandDefinition('current', { label: 'Current command' }))])
+
+            renderPopup({ cardInternalId: 'card-1', file: path, kind: 'file', state: 'archived' })
+
+            const actionGroup = within(screen.getByRole('group', { name: 'Actions' }))
+            const historicalButton = await actionGroup.findByRole('button', { name: 'Removed command' })
+            fireEvent.click(historicalButton)
+            expect(await screen.findByText(/card-1 output/u)).toBeInTheDocument()
+            expect(screen.getByText(released
+                ? 'Released cards are read-only. Create a new card for more work.'
+                : 'Historical action cannot be run in this card context.')).toBeInTheDocument()
+            expect(actionGroup.getByRole('button', { name: 'Custom prompt' })).toBeInTheDocument()
+        })
+
+        it('reports referenced activity load failure', async () => {
+            const path = 'design/archive/F-010.md'
+            mockBackgroundCard(backgroundCard('card-1', path))
+            vi.spyOn(dataService, 'loadReferencedCardActivities').mockRejectedValue(new Error('Activity file missing'))
+            const report = vi.spyOn(dialogService, 'error')
+
+            renderPopup({ cardInternalId: 'card-1', file: path, kind: 'file', state: 'archived' })
+
+            await waitFor(() => expect(report).toHaveBeenCalledWith(expect.objectContaining({ message: 'Activity file missing' }), {fallbackMessage: 'Could not load card activity'}))
+        })
+
+        it('opens conversation from removed action by conversation ID on released card', async () => {
+            const path = 'design/releases/0_7_0/F-010.md'
+            mockBackgroundCard(backgroundCard('card-1', path))
+            vi.spyOn(dataService, 'getConfig').mockReturnValue({ ...configService.getProjectConfig(), releasesFolder: 'design/releases' })
+            const storedConversation = agentConversation({
+                actionId: 'removed-agent', cardInternalId: 'card-1',
+                entries: [{ content: 'Stored answer', id: 'message-1', kind: 'message', role: 'assistant', timestamp: '2026-08-01T12:01:00.000Z' }],
+                path: 'design/releases/0_7_0/activity/card__card-1.json#conversation=conversation-1',
+                status: 'completed', title: 'Stored discussion',
+            })
+            const storedActivity = createActivityFile({ cardInternalId: 'card-1', kind: 'card' })
+            storedActivity.conversations.push(storedConversation)
+            vi.spyOn(dataService, 'loadReferencedCardActivities').mockResolvedValue([storedActivity])
+            vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([storedConversation])
+            vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(storedConversation)
+            actionService.loadFromFiles([file(commandDefinition('current'))])
+
+            renderPopup({ cardInternalId: 'card-1', file: path, kind: 'file', state: 'released' })
+            fireEvent.click(await screen.findByRole('button', { name: 'removed-agent' }))
+            fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Conversation history' }))
+            fireEvent.click(await screen.findByRole('option', { name: /Stored discussion/u }))
+
+            expect(await screen.findByText('Stored answer')).toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+        })
     })
 
     describe('ActionPopup card id badge tooltip', () => {

@@ -17,11 +17,12 @@ interface CommandActionProps {
     baseContext: ActionContext
     readOnlyMessage: string | null
     runtime: ActionPopupRuntime
+    showHistoricalHistory?: boolean
 }
 
 /** Command status, history, scheduling, and run controls. */
 export function CommandAction(props: CommandActionProps) {
-    const { action, assignmentContext, baseContext, readOnlyMessage, runtime } = props
+    const { action, assignmentContext, baseContext, readOnlyMessage, runtime, showHistoricalHistory } = props
     const {
         bindingStore, conversationStore, historyStore, inputStore, resultStore, runValidationError, scheduleStore,
         settingsStore,
@@ -36,6 +37,7 @@ export function CommandAction(props: CommandActionProps) {
     if (readOnlyMessage) {
         return (
             <Stack data-testid="action-popup-scroll-body" spacing={2} sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 1.5, py: 1 }}>
+                {showHistoricalHistory ? <ActionRunHistoryOwner store={historyStore} /> : null}
                 <Typography color="text.secondary" role="note" variant="caption">{readOnlyMessage}</Typography>
             </Stack>
         )

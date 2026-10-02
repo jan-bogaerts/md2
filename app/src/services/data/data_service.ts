@@ -32,6 +32,7 @@ import type { OpenDocumentSaveReference } from '../open_files_service'
 import { CARD_CHANGED_EVENT, CARD_FIELDS, cardCollectionFieldChangedEvent, cardFieldChangedEvent, type CardField } from './card_events'
 import { projectAgentTokenUsageService } from '../agents/project_agent_token_usage_service'
 import { withExpectedPersistenceOutcomes } from '../project/expected_persistence_storage'
+import { parseActivityFile } from '../../../../shared/card_activity.mjs'
 
 export { CARD_CHANGED_EVENT, cardCollectionFieldChangedEvent, cardFieldChangedEvent } from './card_events'
 export type { CardField } from './card_events'
@@ -278,6 +279,24 @@ export class DataService extends EventTarget {
         if (!context.cardInternalId) return this.agents.listProjectAgentConversations()
 
         return this.agents.ensureAgentConversationsForCard(context.cardInternalId)
+    }
+    /** Reads every activity reference for one card without deriving a path from its current location. */
+    async loadReferencedCardActivities(cardInternalId: string) {
+        const { storage } = this.requireDependencies()
+        const currentProject = this.projectState.project
+        if (!currentProject) throw new Error('Cannot load card activity before a project is open')
+        const loadTextFile = storage.loadTextFile?.bind(storage)
+        if (!loadTextFile) throw new Error('Card activity loading requires a storage bridge')
+        const snapshot = this.projectState.snapshot
+        const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]
+        const card = cards.find(({ header }) => header.internalId === cardInternalId)
+        if (!card) throw new Error(`Cannot load activity for unknown card: ${cardInternalId}`)
+
+        const paths = [...new Set(card.header.agentLogReferences)]
+        return Promise.all(paths.map(async (path) => {
+            const file = await loadTextFile(currentProject, path)
+            return parseActivityFile(file.content, { cardInternalId, kind: 'card' })
+        }))
     }
     async loadAgentConversation(path: string) {
         const { storage } = this.requireDependencies()

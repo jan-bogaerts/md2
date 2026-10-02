@@ -19,10 +19,13 @@ export class ActionHistoryStore {
     private readonly listeners = new Set<Listener>()
     private request = 0
     private snapshot = INITIAL_SNAPSHOT
+    private readonly historicalEntries: ActionRunHistoryEntry[] | null
 
-    constructor(action: ActionDefinition, context: ActionContext) {
+    constructor(action: ActionDefinition, context: ActionContext, historicalEntries: ActionRunHistoryEntry[] | null = null) {
         this.action = action
         this.context = context
+        this.historicalEntries = historicalEntries
+        if (historicalEntries) this.snapshot = { entries: historicalEntries, error: null }
     }
 
     readonly getSnapshot = () => this.snapshot
@@ -34,6 +37,7 @@ export class ActionHistoryStore {
     }
 
     async load() {
+        if (this.historicalEntries) return
         const request = this.request + 1
         this.request = request
         this.publish({ ...this.snapshot, error: null })
