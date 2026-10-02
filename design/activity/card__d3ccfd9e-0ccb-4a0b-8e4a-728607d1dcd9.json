@@ -335,13 +335,50 @@
         "costUsd": 0.47216179999999996
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "d3ccfd9e-0ccb-4a0b-8e4a-728607d1dcd9",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "30d2223a62a3290062528c655daad37c7c6d4c77",
+          "committedAt": "2026-10-02T17:01:07+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_402_add_scrollbars_to_placeholder_popup.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 23
+        }
+      ],
+      "completedAt": "2026-10-02T15:01:07.525Z",
+      "conversationIds": [
+        "agent-d017c0d2-b36a-4ecf-9e99-38cf55327858"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-39f0bedc-6468-4339-a8a2-146a5f681873",
+      "origin": {
+        "cardInternalId": "d3ccfd9e-0ccb-4a0b-8e4a-728607d1dcd9",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-d017c0d2-b36a-4ecf-9e99-38cf55327858",
+      "startedAt": "2026-10-02T14:59:40.231Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
