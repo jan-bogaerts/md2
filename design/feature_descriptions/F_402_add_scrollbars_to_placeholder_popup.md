@@ -3,7 +3,7 @@ author:
 id: F_402
 internalId: d3ccfd9e-0ccb-4a0b-8e4a-728607d1dcd9
 title: add scrollbars to placeholder popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,9 @@ policy:
 after: 11011a61-0393-4aa1-9b89-f52be576aa72
 branch: f_402_add_scrollbars_to_placeholder_popup
 worktree: 3
+changedFiles:
+  - app/src/components/editor/placeholders/markdown_placeholder_menu.grouped.test.tsx
+  - app/src/components/editor/placeholders/markdown_placeholder_menu.tsx
 ---
 
 sometimes there are more items on the 'placeholder' popup then can be shown, the popup doesn't have enough room.
