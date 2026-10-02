@@ -3,7 +3,7 @@ author:
 id: F_404
 internalId: 5603103d-1d57-40e8-afae-095f12ac1695
 title: Update action editor layout an style
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,14 @@ agents:
 policy:
 branch: f_404_update_action_editor_layout_an_style
 worktree: 1
+changedFiles:
+  - app/f404.vitest.config.ts
+  - app/src/components/actions/agent/action_agent_capability_fields.tsx
+  - app/src/components/actions/editor/action_definition_fields.grouped.test.tsx
+  - app/src/components/actions/editor/action_definition_fields.tsx
+  - app/src/components/actions/editor/action_definition_group.tsx
+  - app/src/components/actions/editor/action_filter_editor.tsx
+  - app/src/components/actions/editor/action_ordered_collection.tsx
 ---
 See F\_392 where we applied groups to the sentry tab of the config dialog.
 
