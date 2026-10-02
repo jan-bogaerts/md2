@@ -3258,6 +3258,40 @@
       "startedAt": "2026-10-02T14:58:37.774Z",
       "status": "completed",
       "rootConversationId": "agent-7f989266-4098-401d-b43d-68b67a974724"
+    },
+    {
+      "commits": [
+        {
+          "commit": "083279677def96b1575adbffd39a59a294d49772",
+          "committedAt": "2026-10-02T18:57:10+02:00",
+          "deletions": 15,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_popup_defaults.node.test.ts",
+            "app/src/components/actions/run/popup/action_popup_defaults.ts",
+            "app/src/components/actions/run/popup/action_selector.test.tsx",
+            "app/src/components/actions/run/popup/action_selector_button.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_owner.test.tsx",
+            "app/src/components/actions/run/schedule/action_schedule_owner.tsx",
+            "app/src/components/actions/run/trigger/card_run_button.test.tsx",
+            "app/src/components/actions/run/trigger/card_run_button.tsx",
+            "app/src/components/hooks/use_pending_action_schedule.ts",
+            "app/src/services/actions/active_schedule_service.node.test.ts",
+            "app/src/services/actions/active_schedule_service.ts"
+          ],
+          "filesChanged": 13,
+          "insertions": 245,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-02T18:57:10+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "ee69c5dd-bb25-4e62-8837-e250eae7cc88",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
