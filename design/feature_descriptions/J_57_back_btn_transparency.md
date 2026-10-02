@@ -3,7 +3,7 @@ author:
 id: J_57
 internalId: 8dfd4334-fd0d-429c-84dc-1657bb0b73ee
 title: Back btn transparency
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,8 @@ agents:
 policy:
 branch: j_57_back_btn_transparency
 worktree: 3
+changedFiles:
+  - app/src/components/horizontal_scroll_area.tsx
 ---
 
 The app bar and markdown toolbar are wrapped on our own custom scrollbox. It shows a back button when not enough room and user scrolled.
