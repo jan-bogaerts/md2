@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__d3ccfd9e-0ccb-4a0b-8e4a-728607d1dcd9.json
 policy:
-after: 11011a61-0393-4aa1-9b89-f52be576aa72
+after: ee69c5dd-bb25-4e62-8837-e250eae7cc88
 branch: f_402_add_scrollbars_to_placeholder_popup
 worktree: 3
 changedFiles:
