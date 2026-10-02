@@ -978,13 +978,50 @@
         "totalTokens": 1074871
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "a7e89248-b83d-4ce4-b168-59e482d8adbc",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "58fe8a7b69cf574db3c3a9e85d2890874a761058",
+          "committedAt": "2026-10-02T19:18:10+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_405_stats_release_filter_allow_all_and_selection.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 23
+        }
+      ],
+      "completedAt": "2026-10-02T17:18:11.096Z",
+      "conversationIds": [
+        "agent-d8019c2d-dd90-4680-bf58-736738be1dff"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-f4960aa4-02c3-44b7-a44f-2e300e459a91",
+      "origin": {
+        "cardInternalId": "a7e89248-b83d-4ce4-b168-59e482d8adbc",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-d8019c2d-dd90-4680-bf58-736738be1dff",
+      "startedAt": "2026-10-02T17:13:41.816Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
