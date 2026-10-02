@@ -511,6 +511,49 @@ describe('ReleaseOperations', () => {
         expect(committedStats.releases.v1.actions).toEqual([expect.objectContaining({ identity: 'project:run-done' })])
     })
 
+    it('keeps project conversations loadable after a release archives project activity', async () => {
+        configService.init()
+        const projectActivityPath = 'activity/project.json'
+        const cardFile: MarkdownFile = {
+            content: '---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: done\n---\n# Root',
+            path: 'design/F-1-root.md',
+        }
+        const projectActivity = createActivityFile({ kind: 'project' })
+        projectActivity.conversations.push({
+            actionId: 'review', cardInternalId: null, cardPath: null,
+            completedAt: '2026-08-17T10:01:00.000Z', entries: [], hasExplicitTitle: true,
+            id: 'conversation-done', providerSessions: [], startedAt: '2026-08-17T10:00:00.000Z',
+            status: 'completed', title: 'Review', viewed: true,
+        })
+        projectActivity.records.push({
+            commits: [], completedAt: '2026-08-17T10:01:00.000Z', conversationIds: ['conversation-done'],
+            details: { agent: 'claude', model: 'opus', type: 'agent' }, origin: { kind: 'project' },
+            rootActionId: 'review', rootActionLabel: 'Review', rootConversationId: 'conversation-done',
+            runId: 'run-done', startedAt: '2026-08-17T10:00:00.000Z', status: 'completed',
+        })
+        const projectActivityContent = JSON.stringify(projectActivity)
+        const summaryContent = serializeAgentTokenUsageSummary(createAgentTokenUsageSummary())
+        const storage = createStorage({
+            listRepositoryFiles: vi.fn(async () => [cardFile.path, projectActivityPath]),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadTextFile: vi.fn(async (_project, path) => (
+                path === projectActivityPath ? { content: projectActivityContent, path } : { content: summaryContent, path }
+            )),
+        })
+        const service = createDataService()
+        service.init({ storage })
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        await service.releases.completeRelease('v1', [])
+
+        const releaseCommit = vi.mocked(storage.commit).mock.calls
+            .map(([request]) => request)
+            .find(({ message }) => message === 'Complete release v1')
+        expect(releaseCommit?.files.map(({ path }) => path)).toContain('history/v1/project.json')
+        await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual(expect.any(Array))
+    })
+
     it('writes no project activity file when the release finds nothing archivable', async () => {
         configService.init()
         const projectActivityPath = 'activity/project.json'

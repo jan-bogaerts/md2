@@ -1,7 +1,7 @@
 import { ACTION_SCHEDULES_FILE } from '../../data/action_schedule_types'
 import { deriveStatesFromCards, mergeStatesWithDefaults } from '../../data/card_ordering'
 import type { CardSeparator } from '../../data/card_identifiers'
-import { isMissingWorkingFolderError, resolveProjectConfigPaths, type MarkdownFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../../data/data_types'
+import { isMissingWorkingFolderError, resolveProjectConfigPaths, type AgentConversation, type MarkdownFile, type ProjectAsset, type ProjectConfig, type ProjectReference, type ProjectSnapshot, type ProjectWatchEvent, type StorageService } from '../../data/data_types'
 import { actionService, type ActionReloadChange } from '../actions/action_service'
 import { configService } from '../config/config_service'
 import {
@@ -138,6 +138,7 @@ export interface ProjectLoadingDeps {
     files(): MarkdownFile[]
     flushPendingChanges(): Promise<void>
     hydrateActiveCardConversations(): Promise<void>
+    hydrateProjectConversations(): Promise<AgentConversation[]>
     matchesCurrentContent(path: string, content: string): boolean
     isCurrentLoad(project: ProjectReference, projectLoadToken: number): boolean
     mergeBackgroundProjectFiles(files: MarkdownFile[], workingFolder: string, repositoryFiles: string[]): void
@@ -264,6 +265,7 @@ export class ProjectLoading {
             initializeMissingProjectStates(projectConfig ?? null, currentSnapshot)
             this.prepareAgentConversationLoading(projectLoadToken)
             this.dependencies.dispatchChanged()
+            void this.hydrateProjectConversations()
             void this.hydrateActiveCardConversations()
             reportActionLoadIssues()
 
@@ -381,6 +383,7 @@ export class ProjectLoading {
 
         const projectLoadToken = this.dependencies.beginProjectLoad()
         this.prepareAgentConversationLoading(projectLoadToken)
+        void this.hydrateProjectConversations()
         const projectFiles = await storage.loadProject(currentProject, config.projectFolder)
         const repositoryFiles = await storage.listRepositoryFiles(currentProject)
         await agentInstructionsService.load(currentProject, repositoryFiles, storage)
@@ -629,6 +632,15 @@ export class ProjectLoading {
 
     private shouldApplyProjectLoad(project: ProjectReference, projectLoadToken: number) {
         return this.dependencies.isCurrentLoad(project, projectLoadToken)
+    }
+
+    /** Preloads project-origin conversations once conversation loading is prepared for the current project load. */
+    private async hydrateProjectConversations() {
+        try {
+            await this.dependencies.hydrateProjectConversations()
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Could not load project agent conversations' })
+        }
     }
 
     private async hydrateActiveCardConversations() {

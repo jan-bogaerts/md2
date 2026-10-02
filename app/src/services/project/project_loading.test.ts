@@ -417,13 +417,70 @@ describe('ProjectLoading', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         expect(loadedTextPaths(storage.loadTextFile)).toEqual(['agent_token_usage.json'])
-        expect(storage.listAgentConversationReferences).not.toHaveBeenCalled()
-        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
         await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([projectConversation])
 
         expect(storage.listAgentConversationReferences).toHaveBeenCalledTimes(1)
         expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1)
         expect(storage.commit).not.toHaveBeenCalled()
+    })
+
+    it('preloads project conversations only after conversation loading is prepared for the opened project', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        const calls: string[] = []
+        const prepareProjectConversationLoad = service.agents.prepareProjectConversationLoad.bind(service.agents)
+        vi.spyOn(service.agents, 'prepareProjectConversationLoad').mockImplementation((projectLoadToken) => {
+            calls.push('prepare')
+            prepareProjectConversationLoad(projectLoadToken)
+        })
+        vi.spyOn(service.agents, 'listProjectAgentConversations').mockImplementation(async () => {
+            calls.push('preload')
+
+            return []
+        })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(calls).toEqual(['prepare', 'preload'])
+    })
+
+    it('reports a failed project conversation preload through the dialog service', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        const failure = new Error('project conversations unavailable')
+        vi.spyOn(service.agents, 'listProjectAgentConversations').mockRejectedValue(failure)
+        const reportError = vi.spyOn(dialogService, 'error')
+
+        try {
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+            await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(
+                failure,
+                { fallbackMessage: 'Could not load project agent conversations' },
+            ))
+            expect(reportError).toHaveBeenCalledOnce()
+        } finally {
+            reportError.mockRestore()
+        }
+    })
+
+    it('opens a project without conversation loading errors', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        const errors = recordDialogMessages('error')
+
+        try {
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            await flushPromises()
+
+            expect(errors.messages).toEqual([])
+            await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([])
+        } finally {
+            errors.stop()
+        }
     })
 
     it('does not parse or repair malformed history when reopening a project', async () => {
@@ -845,7 +902,7 @@ describe('ProjectLoading', () => {
             expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['projects/demo/notes/project-note.md'])
         })
         expect(service.getConfig()?.actionsFolder).toBe('projects/demo/actions')
-        expect(storage.listAgentConversationReferences).not.toHaveBeenCalled()
+        expect(storage.listAgentConversationReferences).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo')
     })
 
     it('dispatches the root snapshot before loading background subfolder and history cards', async () => {

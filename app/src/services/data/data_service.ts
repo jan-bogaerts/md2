@@ -460,6 +460,7 @@ export class DataService extends EventTarget {
             files: () => this.projectState.files,
             flushPendingChanges: flushAggregatePendingChanges,
             hydrateActiveCardConversations: () => this.agents.hydrateActiveCardConversations(),
+            hydrateProjectConversations: () => this.agents.listProjectAgentConversations(),
             matchesCurrentContent: (path, content) => this.projectState.matchesCurrentContent(path, content),
             isCurrentLoad: (project, projectLoadToken) => this.projectState.isCurrentLoad(project, projectLoadToken),
             mergeBackgroundProjectFiles: (files, workingFolder, repositoryFiles) => (
@@ -516,9 +517,21 @@ export class DataService extends EventTarget {
             files: () => this.projectState.files,
             project: () => this.projectState.project,
             requireDependencies: () => this.requireDependencies(),
-            resetAgentConversations: () => this.agents.resetLoadedConversations(),
+            resetAgentConversations: () => this.restartAgentConversationLoading(),
             snapshot: () => this.projectState.snapshot,
         }
+    }
+
+    /** Clears loaded conversations and reloads them for the still-open project, e.g. after a release archived activity. */
+    private restartAgentConversationLoading() {
+        this.agents.resetLoadedConversations()
+        this.agents.prepareProjectConversationLoad(this.projectState.projectToken)
+        void this.agents.listProjectAgentConversations().catch((error: unknown) => {
+            dialogService.error(error, { fallbackMessage: 'Could not load project agent conversations' })
+        })
+        void this.agents.hydrateActiveCardConversations().catch((error: unknown) => {
+            dialogService.error(error, { fallbackMessage: 'Could not load card agent conversations' })
+        })
     }
 
     private refreshSnapshot(workingFolder: string) {
