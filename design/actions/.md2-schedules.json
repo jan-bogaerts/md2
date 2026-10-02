@@ -1,0 +1,23 @@
+{
+  "schedules": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "context": {
+        "kind": "card",
+        "file": "design/feature_descriptions/F_377_extract_diagram_edit_transaction_plumbing.md",
+        "title": "Extract diagram edit transaction plumbing",
+        "cardInternalId": "2245678c-d69e-4b1d-b6b8-cca720fc468d",
+        "type": "feature",
+        "state": "design"
+      },
+      "createdAt": "2026-10-02T13:07:28.823Z",
+      "id": "schedule-1790946448823-9wdts29b",
+      "kind": "action",
+      "status": "failed",
+      "trigger": {
+        "timestamp": "2026-10-02T13:12:00.000Z",
+        "type": "at"
+      }
+    }
+  ]
+}

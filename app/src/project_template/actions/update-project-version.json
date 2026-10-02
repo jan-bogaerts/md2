@@ -1,9 +1,0 @@
-{
-  "id": "update-project-version",
-  "label": "Update project version",
-  "description": "Generate and run a version update script for this project.",
-  "type": "agent",
-  "appliesTo": { "kind": "project" },
-  "userInput": { "type": "version", "prompt": "Version for this project" },
-  "prompt": "Update this project's version to {{version}}. First read the project's release and build documentation, then inspect its actual manifests and existing version scripts. Determine which files this project owns and what version format each expects; for example, a project may require MAJOR.MINOR.PATCH, but do not impose that format on another project. Create or update a project-specific script that validates its input, updates the explicitly identified files to the supplied value, and reports failures without leaving any single file partially written. Run that script with the supplied version. Add focused tests for the script and run only relevant checks. Report files changed and any failure."
-}
