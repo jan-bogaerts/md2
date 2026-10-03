@@ -450,7 +450,7 @@ describe('ActionPopup', () => {
             registerActionSchedule,
         } as unknown as typeof window.md2Actions
         vi.spyOn(activeScheduleService, 'refresh').mockResolvedValue(undefined)
-        worktreeService.setProjectActionWorktree(1)
+        worktreeService.setProjectActionWorktree('feature')
         actionService.loadFromFiles([
             file(commandDefinition('project-command', { appliesTo: { kind: 'project' }, label: 'Project command' })),
         ])
@@ -1834,7 +1834,7 @@ describe('ActionPopup', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Primary worktree' }))
         fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }))
 
-        await waitFor(() => expect(setCardWorktree).toHaveBeenCalledWith('design/F-010.md', 1))
+        await waitFor(() => expect(setCardWorktree).toHaveBeenCalledWith('design/F-010.md', 'feature'))
     })
 
     it('keeps card selection and reports the error when worktree preparation fails', async () => {
@@ -1869,13 +1869,13 @@ describe('ActionPopup', () => {
 
     it('prepares project action prompts with the session assignment', async () => {
         actionService.loadFromFiles([file(agentDefinition('review', { appliesTo: { kind: 'project' }, label: 'Review project' }))])
-        worktreeService.setProjectActionWorktree(1)
+        worktreeService.setProjectActionWorktree('feature')
 
         renderPopup({ kind: 'project' })
 
         await waitFor(() => expect(window.md2Actions?.prepareActionPrompt).toHaveBeenCalledWith({
             actionId: 'review',
-            context: { kind: 'project', worktree: '1' },
+            context: { kind: 'project', worktree: '1', worktreeBranch: 'feature' },
         }))
     })
 

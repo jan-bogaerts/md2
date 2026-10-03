@@ -6,7 +6,8 @@ import type { AgentConversation } from '../../../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { dataService } from '../../../../services/data/data_service'
-import { createActionPopupBindings } from './action_popup_runtime'
+import { worktreeService } from '../../../../services/project/worktree_service';
+import { createActionPopupBindings, worktreeValidationMessage } from './action_popup_runtime';
 
 const action = { id: 'build', label: 'Build', type: 'agent' } as ActionDefinition
 const context: ActionContext = {
@@ -133,3 +134,18 @@ describe('createActionPopupBindings', () => {
         bindings.bindingStore.dispose()
     })
 })
+
+describe('worktreeValidationMessage', () => {
+    it('validates the captured branch after renumbering and blocks its disappearance', () => {
+        const selected = {
+            branch: 'selected', error: null, parkingBranch: 'md2/parking/selected', path: 'C:/selected',
+            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
+        };
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([selected]);
+        const assignedContext = { ...context, worktree: '6', worktreeBranch: selected.branch };
+        expect(worktreeValidationMessage(action, assignedContext)).toBeNull();
+        records.mockReturnValue([{ ...selected, branch: 'other' }]);
+        expect(worktreeValidationMessage(action, assignedContext)).toMatch(/unavailable/u);
+        expect(worktreeValidationMessage(action, { ...context, worktree: '1' })).toMatch(/no stored branch/u);
+    });
+});

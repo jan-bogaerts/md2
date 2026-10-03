@@ -162,9 +162,19 @@ describe('cardContext / fileContext / folderContext / projectContext', () => {
     })
 
     it('adds and removes a project-session worktree assignment', () => {
-        expect(projectContextWithWorktree(projectContext(), 2)).toEqual({ kind: 'project', worktree: '2' })
-        expect(projectContextWithWorktree({ kind: 'project', worktree: '2' }, null)).toEqual({ kind: 'project' })
+        expect(projectContextWithWorktree(projectContext(), 2, 'feature')).toEqual({ kind: 'project', worktree: '2', worktreeBranch: 'feature' })
+        expect(projectContextWithWorktree({ kind: 'project', worktree: '2', worktreeBranch: 'feature' }, null, null)).toEqual({ kind: 'project' })
     })
+
+    it('captures a card assignment branch while retaining its stable action identity', () => {
+        const assignedCard = card('F-010', 'design');
+        assignedCard.header.worktree = 6;
+        assignedCard.header.worktreeValue = '6';
+        assignedCard.header.branch = 'feature/selected';
+        const context = cardContext(assignedCard, DEFAULT_CARD_TYPES);
+        expect(context).toMatchObject({ worktree: '6', worktreeBranch: 'feature/selected' });
+        expect(actionContextIdentity(context)).toBe(actionContextIdentity({ ...context, worktree: '1' }));
+    });
 })
 
 describe('actionMatchesContext', () => {

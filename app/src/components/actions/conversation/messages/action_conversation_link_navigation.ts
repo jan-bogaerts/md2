@@ -5,6 +5,7 @@ import { workspaceNavigationService } from '../../../../services/project/workspa
 import { workspaceViewService } from '../../../../services/project/workspace_view_service'
 import { worktreeService } from '../../../../services/project/worktree_service'
 import type { ProjectSnapshot, WorktreeRecord } from '../../../../data/data_types'
+import { resolveWorktreeAssignment } from '../../../../../../shared/worktree_assignment.mjs';
 
 const ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:\//iu
 const ENCODED_ABSOLUTE_WINDOWS_PATH_PATTERN = /^[a-z]:(?:%2f|%5c)/iu
@@ -76,14 +77,15 @@ export function resolveConversationRepositoryRoot(
 
     const cards = [...snapshot.activeCards, ...snapshot.backgroundCards]
     const card = cards.find(({ header }) => header.internalId === cardInternalId)
-    const worktree = card?.header.worktree
+    if (!card) return primaryRepositoryRoot;
+    const worktree = card.header.worktree;
     if (worktree === null || worktree === undefined) return primaryRepositoryRoot
     if (!Number.isInteger(worktree) || worktree < 1) throw new Error(`Card has invalid worktree assignment: ${String(worktree)}`)
 
-    const record = worktrees[worktree - 1]
-    if (!record) throw new Error(`Assigned worktree ${worktree} does not exist`)
-    if (!record.valid) throw new Error(`Assigned worktree ${worktree} is invalid: ${record.error ?? 'unknown error'}`)
-    if (!record.path) throw new Error(`Assigned worktree ${worktree} has no folder path`)
+    const resolution = resolveWorktreeAssignment(worktrees, card.header.branch);
+    if (resolution.error !== null) throw new Error(resolution.error);
+    const { record } = resolution;
+    if (!record.path) throw new Error(`Assigned worktree branch ${card.header.branch} has no folder path`);
 
     return record.path
 }

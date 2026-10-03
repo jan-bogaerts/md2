@@ -44,6 +44,7 @@ function resolveScheduledCardContext(files, cardTypes, cardInternalId) {
     const context = { cardInternalId, file: path, kind: 'card', state, title, type };
     if (typeof fields.worktree === 'string' && fields.worktree.trim().length > 0) {
         context.worktree = fields.worktree.trim();
+        if (typeof fields.branch === 'string' && fields.branch.length > 0) context.worktreeBranch = fields.branch;
     }
     if (typeof fields.worktreeError === 'string' && fields.worktreeError.trim().length > 0) {
         context.worktreeError = fields.worktreeError.trim();

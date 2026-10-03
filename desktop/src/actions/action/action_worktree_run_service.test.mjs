@@ -14,7 +14,7 @@ function result() {
 }
 
 function service() {
-    return new ActionWorktreeRunService({worktreeService: { resolve: vi.fn(async () => cardProject) }});
+    return new ActionWorktreeRunService({worktreeService: { resolveBranch: vi.fn(async () => ({ index: 1, record: cardProject })) }});
 }
 
 function runWithCardLock(runService, context, operation, options = {}) {
@@ -22,13 +22,21 @@ function runWithCardLock(runService, context, operation, options = {}) {
 }
 
 describe('ActionWorktreeRunService', () => {
+    it('routes by the captured branch while reporting the current display number', async () => {
+        const runService = service();
+        const runner = vi.fn(async () => result());
+        const run = await runService.execute(primaryProject, action(true), { kind: 'card', worktree: '6', worktreeBranch: 'card' }, runner);
+        expect(runService.worktreeService.resolveBranch).toHaveBeenCalledWith(primaryProject, 'card');
+        expect(runner).toHaveBeenCalledWith({ branch: 'card', id: cardProject.path, rootPath: cardProject.path });
+        expect(run.runWorktree).toBe(1);
+    });
     it('runs actions in an assigned card worktree without requiring needsWorkTree', async () => {
         const runner = vi.fn(async () => result());
 
         const run = await service().execute(
             primaryProject,
             action(),
-            { file: 'design/F-1.md', kind: 'card', worktree: '1' },
+            { file: 'design/F-1.md', kind: 'card', worktree: '1', worktreeBranch: 'card' },
             runner,
         );
 
@@ -51,7 +59,7 @@ describe('ActionWorktreeRunService', () => {
         const run = await service().execute(
             primaryProject,
             action(true),
-            { file: 'design/F-1.md', kind: 'card', worktree: '1' },
+            { file: 'design/F-1.md', kind: 'card', worktree: '1', worktreeBranch: 'card' },
             runner,
         );
 
@@ -65,7 +73,7 @@ describe('ActionWorktreeRunService', () => {
         const run = await service().execute(
             primaryProject,
             action(),
-            { kind: 'project', worktree: '1' },
+            { kind: 'project', worktree: '1', worktreeBranch: 'card' },
             runner,
         );
 
@@ -80,7 +88,8 @@ describe('ActionWorktreeRunService', () => {
                 worktree: 2, worktreeBranch: 'feature/conflict',
             })),
         };
-        const runService = new ActionWorktreeRunService({ mergeConflictService, worktreeService: { resolve: vi.fn() } });
+        const worktreeService = { requireConflictCheckout: vi.fn(async () => undefined), resolveBranch: vi.fn() };
+        const runService = new ActionWorktreeRunService({ mergeConflictService, worktreeService });
         const runner = vi.fn(async () => result());
 
         const run = await runService.execute(
@@ -91,6 +100,7 @@ describe('ActionWorktreeRunService', () => {
         );
 
         expect(mergeConflictService.requireSession).toHaveBeenCalledWith({ sessionId: 'session-1' });
+        expect(worktreeService.requireConflictCheckout).toHaveBeenCalledWith(expect.objectContaining({ worktreeBranch: 'feature/conflict' }));
         expect(runner).toHaveBeenCalledWith({ branch: 'feature/conflict', id: 'C:/worktrees/conflict', rootPath: 'C:/worktrees/conflict' });
         expect(run).toMatchObject({ repositoryRoot: 'C:/worktrees/conflict', runWorktree: 2 });
     });
@@ -102,7 +112,7 @@ describe('ActionWorktreeRunService', () => {
             .rejects.toThrow(/requires a worktree assignment/u);
         await expect(service().execute(primaryProject, action(true), { kind: 'project' }, runner))
             .rejects.toThrow(/requires a worktree assignment/u);
-        await expect(service().execute(primaryProject, action(true), { kind: 'file', worktree: '1' }, runner))
+        await expect(service().execute(primaryProject, action(true), { kind: 'file', worktree: '1', worktreeBranch: 'card' }, runner))
             .rejects.toThrow(/requires card or project context/u);
         expect(runner).not.toHaveBeenCalled();
     });
@@ -119,22 +129,22 @@ describe('ActionWorktreeRunService', () => {
         )).rejects.toThrow('broken');
 
         expect(runner).not.toHaveBeenCalled();
-        expect(runService.worktreeService.resolve).not.toHaveBeenCalled();
+        expect(runService.worktreeService.resolveBranch).not.toHaveBeenCalled();
     });
 
     it('rejects needsWorkTree actions when the card reports a worktree error', async () => {
         const runner = vi.fn(async () => result());
 
-        await expect(service().execute(primaryProject, action(true), { kind: 'card', worktree: '1', worktreeError: 'assignment broken' }, runner))
+        await expect(service().execute(primaryProject, action(true), { kind: 'card', worktree: '1', worktreeBranch: 'card', worktreeError: 'assignment broken' }, runner))
             .rejects.toThrow('assignment broken');
         expect(runner).not.toHaveBeenCalled();
     });
 
     it('propagates invalid configured worktree entries from the worktree service', async () => {
-        const runService = new ActionWorktreeRunService({worktreeService: { resolve: vi.fn(async () => { throw new Error('Configured worktree 2 is invalid: gone'); }) }});
+        const runService = new ActionWorktreeRunService({worktreeService: { resolveBranch: vi.fn(async () => { throw new Error('Configured worktree 2 is invalid: gone'); }) }});
         const runner = vi.fn(async () => result());
 
-        await expect(runService.execute(primaryProject, action(true), { kind: 'card', worktree: '2' }, runner))
+        await expect(runService.execute(primaryProject, action(true), { kind: 'card', worktree: '2', worktreeBranch: 'card' }, runner))
             .rejects.toThrow('Configured worktree 2 is invalid: gone');
         expect(runner).not.toHaveBeenCalled();
     });
@@ -206,13 +216,13 @@ describe('ActionWorktreeRunService', () => {
         const firstCompletion = Promise.withResolvers();
         const order = [];
         const queued = vi.fn();
-        const first = runWithCardLock(runService, {cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card', worktree: '1'}, async () => {
+        const first = runWithCardLock(runService, {cardInternalId: 'card-1', file: 'design/F-1.md', kind: 'card', worktree: '1', worktreeBranch: 'card'}, async () => {
             order.push('first-start');
             await firstCompletion.promise;
             order.push('first-end');
             return result();
         });
-        const second = runWithCardLock(runService, {cardInternalId: 'card-1', file: 'design/F-1-renamed.md', kind: 'card', worktree: '2'}, async () => {
+        const second = runWithCardLock(runService, {cardInternalId: 'card-1', file: 'design/F-1-renamed.md', kind: 'card', worktree: '2', worktreeBranch: 'card'}, async () => {
             order.push('second-start');
             order.push('second-end');
             return result();

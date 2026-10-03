@@ -4,7 +4,7 @@ import ArrowUp from 'mdi-material-ui/ArrowUp'
 import SourceBranch from 'mdi-material-ui/SourceBranch'
 import { useState } from 'react'
 import type { MouseEvent } from 'react'
-import type { WorktreeRecord } from '../data/data_types'
+import type { WorktreeAssignment } from '../data/data_types';
 import { dialogService } from '../services/dialog_service'
 import { configService } from '../services/config/config_service'
 import { isWorktreeIntegratable, worktreeService } from '../services/project/worktree_service'
@@ -15,11 +15,7 @@ import { WorktreeIntegrationDialog } from './worktree_integration_dialog'
 import { WorktreeUnassignDialog } from './worktree_unassign_dialog'
 import { cardPopupService } from '../services/card_popup_service'
 
-export interface WorktreeAssignment {
-    worktree?: number | null
-    worktreeError?: string | null
-    worktreeValue?: string | null
-}
+export type { WorktreeAssignment } from '../data/data_types';
 
 export type WorktreeAssignmentTarget = { cardInternalId: string, kind: 'card', path: string } | { kind: 'project' }
 type CommitAction = 'commit' | 'integrate' | 'update'
@@ -32,18 +28,17 @@ interface WorktreeSelectorProps {
     primaryPath: string | null
 }
 
-function assignmentState(assignment: WorktreeAssignment, worktrees: WorktreeRecord[]) {
+function assignmentState(assignment: WorktreeAssignment) {
     if (assignment.worktreeError) {
         return { error: assignment.worktreeError, folder: 'invalid assignment', value: assignment.worktreeValue ?? '?' }
     }
     const worktree = assignment.worktree ?? null
     if (worktree === null) return { error: null, folder: null, value: 'P' }
 
-    const record = worktrees[worktree - 1]
-    if (!record) return { error: `Configured worktree ${worktree} does not exist`, folder: 'missing folder', value: String(worktree) }
-    if (!record.valid) return { error: `${record.path}: ${record.error}`, folder: record.path, value: String(worktree) }
+    const resolution = worktreeService.getAssignmentState(assignment);
+    if (resolution.error) return { error: resolution.error, folder: 'unavailable assignment', value: String(worktree) };
 
-    return { error: null, folder: record.path, value: String(worktree) }
+    return { error: null, folder: resolution.record?.path ?? null, value: String(resolution.index) };
 }
 
 /** Shared worktree assignment button and menu used by cards and action popups. */
@@ -65,9 +60,9 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         projectDirty: hasPendingProjectChanges,
         record: assignedRecord,
         records: worktrees,
-    } = useWorktreeSelectorState({ assignedWorktree, cardPath })
+    } = useWorktreeSelectorState({ assignment, cardPath });
     const selectorDisabled = disabled || preparing
-    const state = assignmentState(assignment, worktrees)
+    const state = assignmentState(assignment);
     const hasActiveCardWorktree = assignmentTarget.kind === 'card' && assignedWorktree !== null
         && !state.error && !!assignedRecord?.valid
     const hasActiveProjectWorktree = assignmentTarget.kind === 'project' && assignedWorktree !== null
@@ -107,10 +102,10 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
         setAnchorElement(event.currentTarget)
     }
     const handleClose = () => setAnchorElement(null)
-    const assignWorktree = async (worktree: number | null) => {
+    const assignWorktree = async (branch: string | null) => {
         try {
-            if (assignmentTarget.kind === 'project') worktreeService.setProjectActionWorktree(worktree)
-            else await worktreeService.setCardWorktree(assignmentTarget.path, worktree)
+            if (assignmentTarget.kind === 'project') worktreeService.setProjectActionWorktree(branch);
+            else await worktreeService.setCardWorktree(assignmentTarget.path, branch);
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not update worktree assignment' })
         }
@@ -135,7 +130,7 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                 await worktreeService.setCardWorktree(assignmentTarget.path, null)
                 return
             } catch (error) {
-                if (worktreeService.getRecords()[assignedWorktree - 1]?.status.dirty) {
+                if (worktreeService.getAssignmentState(assignment).record?.status.dirty) {
                     setCommitMessage(worktreeService.getCardCommitMessage(assignmentTarget.path))
                     setUnassignDialogOpen(true)
                     return
@@ -148,11 +143,11 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
     }
     const handleWorktree = async (event: MouseEvent<HTMLElement>) => {
         try {
-            const worktree = Number.parseInt(event.currentTarget.dataset.worktree ?? '', 10)
-            if (!Number.isInteger(worktree)) throw new Error('Missing worktree menu index')
+            const branch = event.currentTarget.dataset.worktreeBranch;
+            if (!branch) throw new Error('Missing worktree menu branch');
 
             handleClose()
-            await assignWorktree(worktree)
+            await assignWorktree(branch);
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not update worktree assignment' })
         }
@@ -389,14 +384,14 @@ export function WorktreeSelector(props: WorktreeSelectorProps) {
                             Integrate into project
                             </MenuItem>
                         </>
-                    ) : worktrees.map((record, index) => (record.valid ? (
+                    ) : worktrees.map((record, index) => (record.valid && record.branch ? (
                         <MenuItem
-                            data-worktree={index + 1}
+                            data-worktree-branch={record.branch}
                             disabled={assignmentTarget.kind === 'card'
-                            && !worktreeService.isWorktreeAvailableForCard(index + 1, assignmentTarget.path)}
+                            && !worktreeService.isWorktreeAvailableForCard(record.branch, assignmentTarget.cardInternalId)}
                             key={`${index}-${record.path}`}
                             onClick={handleWorktree}
-                            selected={assignment.worktree === index + 1}
+                            selected={assignment.branch === record.branch}
                         >
                             {index + 1} — {record.path}
                         </MenuItem>

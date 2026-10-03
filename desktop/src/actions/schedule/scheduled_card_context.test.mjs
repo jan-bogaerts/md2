@@ -8,7 +8,7 @@ const cardTypes = [{ idPrefix: 'F', type: 'feature' }];
 
 function cardFile(path, title = 'Renamed card', worktreeError = '') {
     return {
-        content: `---\nid: F_356\ninternalId: stable-card\nstatus: ready\ntitle: ${title}\nworktree: 2\nworktreeError: ${worktreeError}\n---\n\n# Card`,
+        content: `---\nid: F_356\ninternalId: stable-card\nstatus: ready\ntitle: ${title}\nworktree: 2\nbranch: feature\nworktreeError: ${worktreeError}\n---\n\n# Card`,
         path,
     };
 }
@@ -25,6 +25,7 @@ describe('resolveScheduledCardContext', () => {
             title: 'Renamed card',
             type: 'feature',
             worktree: '2',
+            worktreeBranch: 'feature',
         });
     });
 

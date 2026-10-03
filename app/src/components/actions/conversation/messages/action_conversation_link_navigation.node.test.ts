@@ -153,7 +153,7 @@ describe('action conversation link navigation', () => {
         const state = dataService.getState()
         const card: Card = {
             agentConversationErrors: [], agentConversations: [], content: '', hasFrontmatter: true, isActive: true, path: 'design/F-1.md',
-            header: { affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: 'F-1', internalId: 'card-1', owner: null, policy: {}, references: [], status: 'design', title: 'Card', worktree: 1 },
+            header: { affects: [], after: null, agentLogReferences: [], branch: 'card-1', changedFiles: [], author: null, id: 'F-1', internalId: 'card-1', owner: null, policy: {}, references: [], status: 'design', title: 'Card', worktree: 1 },
         }
         if (!state.snapshot) throw new Error('Missing test snapshot')
         state.snapshot.activeCards.push(card)
@@ -166,6 +166,7 @@ describe('action conversation link navigation', () => {
 
         await openActionConversationLink('src/only.js:12', 'card-1')
         card.header.worktree = 2
+        card.header.branch = 'card-2';
         await openActionConversationLink('src/only.js:12', 'card-1')
         card.header.worktree = null
         await openActionConversationLink('src/only.js:12', 'card-1')
@@ -176,10 +177,17 @@ describe('action conversation link navigation', () => {
     })
 
     it('rejects invalid current worktree assignment without primary fallback', () => {
-        const snapshot = { activeCards: [{ header: { internalId: 'card-1', worktree: 1 } }], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' }
-        const worktrees = [{ error: 'folder missing', path: 'C:/worktrees/1', valid: false }]
+        const snapshot = { activeCards: [{ header: { branch: 'card-1', internalId: 'card-1', worktree: 1 } }], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' };
+        const worktrees = [{ branch: 'card-1', error: 'folder missing', path: 'C:/worktrees/1', valid: false }];
 
         expect(() => resolveConversationRepositoryRoot('card-1', 'C:/repo', snapshot as never, worktrees as never))
-            .toThrow('Assigned worktree 1 is invalid')
+            .toThrow('Assigned worktree branch "card-1" is invalid');
     })
+
+    it('keeps local links on the assigned branch when list positions change', () => {
+        const snapshot = { activeCards: [{ header: { branch: 'selected', internalId: 'card-1', worktree: 2 } }], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' };
+        const selected = { branch: 'selected', error: null, path: 'C:/selected', valid: true };
+        expect(resolveConversationRepositoryRoot('card-1', 'C:/repo', snapshot as never, [selected] as never)).toBe(selected.path);
+        expect(() => resolveConversationRepositoryRoot('card-1', 'C:/repo', snapshot as never, [{ ...selected, branch: 'other' }] as never)).toThrow(/unavailable/u);
+    });
 })

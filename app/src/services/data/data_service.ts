@@ -126,6 +126,7 @@ function cardFieldChanged(field: CardField, previousCard: CardAddedEventDetail['
     if (field === 'title') return previousHeader.title !== header.title
 
     return previousHeader.worktree !== header.worktree
+        || previousHeader.branch !== header.branch
         || previousHeader.worktreeError !== header.worktreeError
         || previousHeader.worktreeValue !== header.worktreeValue
 }

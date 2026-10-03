@@ -365,13 +365,13 @@ describe('RemoteControlStorageService', () => {
     it('loads current worktree diff through remote control', async () => {
         installWebSocket()
         const service = createService()
-        const load = service.generateWorktreeDiff({ worktree: 2 })
+        const load = service.generateWorktreeDiff({ worktree: 2, worktreeBranch: 'feature' })
         const socket = lastSocket()
 
         socket.open()
         await flushPromises()
         const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
-        expect(request).toMatchObject({ method: 'generateWorktreeDiff', params: [{ worktree: 2 }] })
+        expect(request).toMatchObject({ method: 'generateWorktreeDiff', params: [{ worktree: 2, worktreeBranch: 'feature' }] })
         socket.receive({ id: request.id, result: { files: [], repositoryRoot: 'C:/worktree' } })
 
         await expect(load).resolves.toEqual({ files: [], repositoryRoot: 'C:/worktree' })
@@ -427,8 +427,8 @@ describe('RemoteControlStorageService', () => {
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
         const selection = service.selectWorktreeFolder()
         const addition = service.addWorktree(project, 'C:/feature')
-        const preparationRequest = { branchName: 'card-title', project, worktree: 1 }
-        const operationRequest = { project, worktree: 1 }
+        const preparationRequest = { branchName: 'card-title', project, worktree: 1, worktreeBranch: 'feature' }
+        const operationRequest = { project, worktree: 1, worktreeBranch: 'feature' }
         const integrationRequest = { ...operationRequest, cardInternalId: 'stable-card-id', projectFolder: 'design' }
         const commitRequest = { ...operationRequest, message: 'F-1: Card' }
         const commit = service.commitWorktree(commitRequest)

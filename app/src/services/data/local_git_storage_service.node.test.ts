@@ -99,8 +99,8 @@ describe('LocalGitStorageService binary write path', () => {
                 pullWorktree, pushWorktree, refreshWorktrees, removeWorktree, selectWorktreeFolder,
             }),
         })
-        const preparationRequest = { branchName: 'card-title', project, worktree: 1 }
-        const operationRequest = { project, worktree: 1 }
+        const preparationRequest = { branchName: 'card-title', project, worktree: 1, worktreeBranch: 'feature' }
+        const operationRequest = { project, worktree: 1, worktreeBranch: 'feature' }
         const commitRequest = { ...operationRequest, message: 'F-1: Card' }
 
         await expect(service.selectWorktreeFolder()).resolves.toBe('C:/feature')

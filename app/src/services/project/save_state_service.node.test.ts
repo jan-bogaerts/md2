@@ -55,7 +55,7 @@ describe('SaveStateService', () => {
         const storage = withSaveStateTracking(createStorage({ integrateWorktree }), service)
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
 
-        const result = storage.integrateWorktree?.({ project, worktree: 1 })
+        const result = storage.integrateWorktree?.({ project, worktree: 1, worktreeBranch: 'feature' });
         expect(service.getState().isSaving).toBe(true)
 
         pendingIntegration.resolve({ status: 'completed' })

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
@@ -10,7 +10,7 @@ const { MergeConflictService } = require('./merge_conflict_service');
 const { WorktreeService, parseWorktreeList } = require('./worktree_service');
 
 async function createRepository() {
-    const folderPath = await mkdtemp(join(tmpdir(), 'md2-worktree-sync-'));
+    const folderPath = await realpath(await mkdtemp(join(tmpdir(), 'md2-worktree-sync-')));
     const primaryPath = join(folderPath, 'primary');
     const linkedPath = join(folderPath, 'linked');
     await mkdir(primaryPath);
@@ -260,9 +260,9 @@ describe('WorktreeService merge conflict lifecycle', () => {
             await runGit(repository.primaryPath, ['commit', '-m', 'Primary conflict']);
             await service.refreshLocal();
 
-            const outcome = await service.rebase(project, 1);
+            const outcome = await service.rebase(project, 'feature');
             expect(outcome).toMatchObject({ status: 'conflict', session: { conflictedPaths: ['base.txt'], operation: 'rebase', phase: 'rebase' } });
-            await expect(service.push(project, 1)).rejects.toThrow('active merge conflict session');
+            await expect(service.push(project, 'feature')).rejects.toThrow('active merge conflict session');
 
             await writeFile(join(repository.linkedPath, 'base.txt'), 'resolved\n');
             await service.mergeConflictService.markResolved({ path: 'base.txt', sessionId: outcome.session.id });
@@ -290,7 +290,7 @@ describe('WorktreeService merge conflict lifecycle', () => {
             await service.refreshLocal();
             const linkedCheckpoint = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
 
-            const outcome = await service.integrate(project, 1, { cardInternalId: 'card-1', deleteBranch: true, projectFolder: 'design' });
+            const outcome = await service.integrate(project, 'feature', { cardInternalId: 'card-1', deleteBranch: true, projectFolder: 'design' });
             expect(outcome).toMatchObject({ status: 'conflict', session: { conflictedPaths: ['base.txt'], operation: 'integrate', phase: 'rebase' } });
             const primaryCheckpoint = service.mergeConflictService.getInternalSession().checkpointCommit;
 
@@ -316,7 +316,7 @@ describe('WorktreeService merge conflict lifecycle', () => {
             await commitConflictingChanges(repository);
             await service.refreshLocal();
             const linkedCheckpoint = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
-            const outcome = await service.integrate(project, 1, { cardInternalId: 'card-1', projectFolder: 'design' });
+            const outcome = await service.integrate(project, 'feature', { cardInternalId: 'card-1', projectFolder: 'design' });
             const primaryCheckpoint = service.mergeConflictService.getInternalSession().checkpointCommit;
             await writeFile(join(repository.linkedPath, 'base.txt'), 'resolved\n');
             await service.mergeConflictService.markResolved({ path: 'base.txt', sessionId: outcome.session.id });
@@ -345,7 +345,7 @@ describe('WorktreeService merge conflict lifecycle', () => {
             await service.startProject(project);
             await commitConflictingChanges(repository);
             await service.refreshLocal();
-            const outcome = await service.integrate(project, 1, { cardInternalId: 'card-1', projectFolder: 'design' });
+            const outcome = await service.integrate(project, 'feature', { cardInternalId: 'card-1', projectFolder: 'design' });
             await writeFile(join(outcome.session.repositoryRoot, 'base.txt'), 'resolved\n');
             await service.mergeConflictService.markResolved({ path: 'base.txt', sessionId: outcome.session.id });
             await runGit(repository.linkedPath, ['-c', 'core.editor=true', 'rebase', '--continue']);
@@ -373,7 +373,7 @@ describe('WorktreeService merge conflict lifecycle', () => {
             await service.startProject(project);
             await commitConflictingChanges(repository);
             await service.refreshLocal();
-            const outcome = await service.integrate(project, 1, { cardInternalId: 'card-1', projectFolder: 'design' });
+            const outcome = await service.integrate(project, 'feature', { cardInternalId: 'card-1', projectFolder: 'design' });
             await writeFile(join(repository.linkedPath, 'base.txt'), 'resolved\n');
             await service.mergeConflictService.markResolved({ path: 'base.txt', sessionId: outcome.session.id });
             await runGit(repository.linkedPath, ['-c', 'core.editor=true', 'rebase', '--continue']);
@@ -446,7 +446,7 @@ describe('WorktreeService integration synchronization', () => {
             await commitLinkedChange(repository.linkedPath);
             await service.refreshLocal();
 
-            const integration = await service.integrate(project, 1);
+            const integration = await service.integrate(project, 'feature');
             const linkedCommit = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
             const linkedBranch = await runGit(repository.linkedPath, ['branch', '--show-current']);
             const finalRecord = states.at(-1).records[0];
@@ -456,7 +456,7 @@ describe('WorktreeService integration synchronization', () => {
             expect(finalRecord.branch).toBe('feature');
             expect(finalRecord.status.baseAhead).toBe(0);
             expect(finalRecord.status.baseBehind).toBe(0);
-            await expect(service.integrate(project, 1)).rejects.toThrow('Linked worktree has no changes to integrate');
+            await expect(service.integrate(project, 'feature')).rejects.toThrow('Linked worktree has no changes to integrate');
         } finally {
             service.stopProject();
             await rm(repository.folderPath, { force: true, recursive: true });
@@ -474,12 +474,12 @@ describe('WorktreeService integration synchronization', () => {
             await service.startProject(project);
             await commitLinkedChange(repository.linkedPath);
             await service.refreshLocal();
-            await service.integrate(project, 1);
+            await service.integrate(project, 'feature');
             await writeFile(join(repository.primaryPath, 'activity.json'), '{}\n');
             await runGit(repository.primaryPath, ['add', 'activity.json']);
             await runGit(repository.primaryPath, ['commit', '-m', 'Record activity']);
 
-            await service.synchronize(project, 1);
+            await service.synchronize(project, 'feature');
 
             const projectCommit = await runGit(repository.primaryPath, ['rev-parse', 'HEAD']);
             const linkedCommit = await runGit(repository.linkedPath, ['rev-parse', 'HEAD']);
@@ -502,13 +502,13 @@ describe('WorktreeService integration synchronization', () => {
             await service.startProject(project);
             await commitLinkedChange(repository.linkedPath);
             await service.refreshLocal();
-            await service.integrate(project, 1);
+            await service.integrate(project, 'feature');
             await writeFile(join(repository.primaryPath, 'activity.json'), '{}\n');
             await runGit(repository.primaryPath, ['add', 'activity.json']);
             await runGit(repository.primaryPath, ['commit', '-m', 'Record activity']);
             await writeFile(join(repository.linkedPath, 'uncommitted.txt'), 'keep\n');
 
-            await expect(service.synchronize(project, 1)).rejects.toThrow('Linked worktree has uncommitted changes');
+            await expect(service.synchronize(project, 'feature')).rejects.toThrow('Linked worktree has uncommitted changes');
 
             expect(await runGit(repository.linkedPath, ['branch', '--show-current'])).toBe('feature');
             expect(await runGit(repository.linkedPath, ['status', '--porcelain'])).toContain('uncommitted.txt');
@@ -527,7 +527,7 @@ describe('WorktreeService local branch deletion', () => {
 
         try {
             await service.startProject(project);
-            await service.park(project, 1);
+            await service.park(project, 'feature');
             await service.deleteBranch(project, 'feature');
 
             expect(await runGit(repository.primaryPath, ['branch', '--list', 'feature'])).toBe('');

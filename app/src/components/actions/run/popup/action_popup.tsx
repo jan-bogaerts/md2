@@ -9,7 +9,7 @@ import { CUSTOM_PROMPT_ACTION_ID } from '../../../../data/action_types'
 import { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'
 import { useActions } from '../../../hooks/use_actions'
 import { useProjectState } from '../../../hooks/use_project_state'
-import { useProjectActionWorktree } from '../../../hooks/use_worktrees'
+import { useProjectActionWorktree, useProjectActionWorktreeBranch } from '../../../hooks/use_worktrees';
 import { ActionPopupContent } from './action_popup_content'
 import { resolveInitialActionId, type PersistedActionStates } from './action_popup_initial_action'
 import { historicalActionHistory, historicalCardActions } from './historical_card_actions'
@@ -92,9 +92,10 @@ export function ActionPopup(props: ActionPopupProps) {
     const { actions: loadedActions } = useActions()
     const { project, snapshot } = useProjectState()
     const projectActionWorktree = useProjectActionWorktree()
+    const projectActionWorktreeBranch = useProjectActionWorktreeBranch();
     const effectiveContext = useMemo(
-        () => projectContextWithWorktree(context, projectActionWorktree),
-        [context, projectActionWorktree],
+        () => projectContextWithWorktree(context, projectActionWorktree, projectActionWorktreeBranch),
+        [context, projectActionWorktree, projectActionWorktreeBranch],
     )
     const applicableActions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
     const historicalCard = context.kind === 'file' && context.cardInternalId

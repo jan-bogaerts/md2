@@ -266,26 +266,26 @@ function createLocalBridgeDispatch(dependencies) {
         prepareWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree preparation request');
 
-            return worktreeService.prepare(request.project, request.worktree, request.branchName);
+            return worktreeService.prepare(request.project, request.worktreeBranch, request.branchName);
         },
         commitWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree commit request');
 
-            return worktreeService.commit(request.project, request.worktree, request.message);
+            return worktreeService.commit(request.project, request.worktreeBranch, request.message);
         },
         discardWorktreeChanges: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree discard request');
 
-            return worktreeService.discard(request.project, request.worktree);
+            return worktreeService.discard(request.project, request.worktreeBranch);
         },
         deleteLocalBranch: (project, branchName) => worktreeService.deleteBranch(project, branchName),
         integrateWorktree: async (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree integration request');
             const metadata = worktreeIntegrationMetadata(request);
-            const integration = await worktreeService.integrate(request.project, request.worktree, metadata);
+            const integration = await worktreeService.integrate(request.project, request.worktreeBranch, metadata);
             if (integration.status === 'conflict') return integration;
 
-            await finalizeIntegration(request.project, request.worktree, integration, metadata, false);
+            await finalizeIntegration(request.project, request.worktreeBranch, integration, metadata, false);
 
             return { status: 'completed' };
         },
@@ -296,7 +296,7 @@ function createLocalBridgeDispatch(dependencies) {
             const session = outcome.session;
             await finalizeIntegration(
                 { branch: session.projectBranch, id: session.projectId, rootPath: session.projectRoot },
-                session.worktree,
+                session.worktreeBranch,
                 outcome,
                 session.metadata,
                 true,
@@ -324,12 +324,12 @@ function createLocalBridgeDispatch(dependencies) {
         parkWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree parking request');
 
-            return worktreeService.park(request.project, request.worktree);
+            return worktreeService.park(request.project, request.worktreeBranch);
         },
         pullWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree pull request');
 
-            return worktreeService.pull(request.project, request.worktree);
+            return worktreeService.pull(request.project, request.worktreeBranch);
         },
         pull: (project) => worktreeService.pullPrimary(project),
         push: async (project) => {
@@ -339,12 +339,12 @@ function createLocalBridgeDispatch(dependencies) {
         pushWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree push request');
 
-            return worktreeService.push(request.project, request.worktree);
+            return worktreeService.push(request.project, request.worktreeBranch);
         },
         rebaseWorktree: (request) => {
             if (!request || typeof request !== 'object') throw new Error('Missing worktree rebase request');
 
-            return worktreeService.rebase(request.project, request.worktree);
+            return worktreeService.rebase(request.project, request.worktreeBranch);
         },
         onWorktreesChanged: (callback) => worktreeService.subscribe(callback),
         refreshWorktrees: (project) => worktreeService.refreshRemote(project),
@@ -386,7 +386,7 @@ function createLocalBridgeDispatch(dependencies) {
         ),
     };
 
-    async function finalizeIntegration(project, worktree, integration, metadata, activeConflict, conflictRequest = null) {
+    async function finalizeIntegration(project, worktreeBranch, integration, metadata, activeConflict, conflictRequest = null) {
         if (!integration || typeof integration.commit !== 'string' || typeof integration.branch !== 'string') {
             throw new Error('Worktree integration returned no commit metadata');
         }
@@ -420,8 +420,8 @@ function createLocalBridgeDispatch(dependencies) {
         }
         if (tracking && !progress.worktreeSynchronized) {
             try {
-                if (activeConflict) await worktreeService.synchronizeConflict(project, worktree);
-                else await worktreeService.synchronize(project, worktree);
+                if (activeConflict) await worktreeService.synchronizeConflict(project);
+                else await worktreeService.synchronize(project, worktreeBranch);
                 if (activeConflict) progress = mergeConflictService.updateMetadata(conflictRequest, { worktreeSynchronized: true });
             } catch (error) {
                 throw new Error(`Worktree integrated and card history tracked, but linked worktree synchronization failed: ${errorMessage(error)}`, { cause: error });
@@ -431,12 +431,12 @@ function createLocalBridgeDispatch(dependencies) {
         try {
             if (activeConflict) {
                 if (!progress.worktreeParked) {
-                    await worktreeService.parkConflict(project, worktree);
+                    await worktreeService.parkConflict(project);
                     progress = mergeConflictService.updateMetadata(conflictRequest, { worktreeParked: true });
                 }
                 await worktreeService.deleteBranchConflict(project, progress.branchName);
             } else {
-                await worktreeService.park(project, worktree);
+                await worktreeService.park(project, worktreeBranch);
                 await worktreeService.deleteBranch(project, progress.branchName);
             }
         } catch (error) {

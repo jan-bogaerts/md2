@@ -165,6 +165,14 @@ export interface WorktreeRecord {
     valid: boolean
 }
 
+/** Persisted numbers mark assignment; the branch selects the checkout. */
+export interface WorktreeAssignment {
+    branch?: string | null;
+    worktree?: number | null;
+    worktreeError?: string | null;
+    worktreeValue?: string | null;
+}
+
 export interface WorktreeState {
     error: string | null
     primaryStatus: WorktreeStatus | null
@@ -189,11 +197,15 @@ export interface PrepareWorktreeRequest {
     branchName?: string
     project: ProjectReference
     worktree: number
+    /** Branch currently expected in the selected checkout before preparation. */
+    worktreeBranch: string;
 }
 
 export interface WorktreeOperationRequest {
     project: ProjectReference
     worktree: number
+    /** Assignment locator; the numeric worktree value is a display hint. */
+    worktreeBranch: string;
 }
 
 export interface CardWorktreeIntegrationRequest extends WorktreeOperationRequest {

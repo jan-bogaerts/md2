@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { mkdir, mkdtemp, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rename, rm, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path, { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -192,7 +192,7 @@ describe('diff-service', () => {
     });
 
     it('reads complete worktree contribution without changing HEAD, index, or files', async () => {
-        const folderPath = await mkdtemp(join(tmpdir(), 'md2-worktree-diff-'));
+        const folderPath = await realpath(await mkdtemp(join(tmpdir(), 'md2-worktree-diff-')));
         const primaryPath = join(folderPath, 'primary');
         const linkedPath = join(folderPath, 'linked');
         await mkdir(primaryPath);
@@ -225,7 +225,7 @@ describe('diff-service', () => {
                 status: await runGit(linkedPath, ['status', '--porcelain=v1']),
             };
 
-            const result = await generateWorktreeDiff(project, { worktree: 1 }, service);
+            const result = await generateWorktreeDiff(project, { worktree: 1, worktreeBranch: 'feature' }, service);
 
             expect(result.repositoryRoot).toBe(path.resolve(linkedPath));
             expect(result.files.some(({ path: filePath }) => filePath === 'primary-only.txt')).toBe(false);
@@ -257,7 +257,7 @@ describe('diff-service', () => {
 
         await expect(generateWorktreeDiff(
             { branch: 'main', id: 'local', rootPath: 'C:/primary' },
-            { worktree: 3 },
+            { worktree: 3, worktreeBranch: 'missing' },
             invalidService,
             { readFile: readFileValue },
         )).rejects.toThrow('Configured worktree 3 does not exist');
@@ -273,7 +273,7 @@ describe('diff-service', () => {
         };
         await expect(generateWorktreeDiff(
             { branch: 'main', id: 'local', rootPath: 'C:/primary' },
-            { worktree: 1 },
+            { worktree: 1, worktreeBranch: 'feature' },
             removedService,
             { readFile: readFileValue, readRevisionFile: vi.fn(async () => { throw new Error('fatal: not a git repository'); }) },
         )).rejects.toThrow('fatal: not a git repository');
@@ -310,7 +310,7 @@ describe('diff-service', () => {
         );
         const absolute = await resolveEditorTarget(
             project,
-            { path: 'C:/repo/src/file.js', repositoryRoot: 'C:/worktree' },
+            { path: path.resolve('C:/repo/src/file.js'), repositoryRoot: 'C:/worktree' },
             ['C:/worktree'],
             statFile,
         );

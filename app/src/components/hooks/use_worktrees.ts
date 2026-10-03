@@ -15,6 +15,10 @@ export function useProjectActionWorktree() {
     return useSyncExternalStore(subscribe, () => worktreeService.getProjectActionWorktree())
 }
 
+export function useProjectActionWorktreeBranch() {
+    return useSyncExternalStore(subscribe, () => worktreeService.getProjectActionWorktreeBranch());
+}
+
 export function usePrimaryWorktreeStatus() {
     return useSyncExternalStore(subscribe, () => worktreeService.getPrimaryStatus())
 }

@@ -211,7 +211,7 @@ async function generateWorktreeDiff(project, request, worktreeService, dependenc
     const readRevisionFileValue = dependencies.readRevisionFile
         ?? ((worktreePath, revision, filePath) => readRevisionFile(worktreePath, revision, filePath, execFileAsync));
 
-    const context = await worktreeService.readDiffContext(project, request.worktree);
+    const context = await worktreeService.readDiffContext(project, request.worktreeBranch);
     const changes = parseNameStatus(context.changes);
     const trackedPaths = new Set(changes.map(({ path: filePath }) => filePath));
     for (const filePath of parseNullSeparatedValues(context.untracked)) {

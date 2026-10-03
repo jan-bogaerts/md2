@@ -56,6 +56,7 @@ export function ActionPopupFrame(
         ? Number.parseInt(assignmentContext.worktree, 10)
         : null
     const worktreeAssignment = {
+        branch: assignmentContext.worktreeBranch,
         worktree: parsedWorktree,
         worktreeError: assignmentContext.worktreeError ?? null,
         worktreeValue: assignmentContext.worktree ?? null,

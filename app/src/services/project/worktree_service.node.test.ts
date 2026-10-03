@@ -18,7 +18,8 @@ const second: WorktreeRecord = {
 function card(path: string, title: string, worktree: number | null): Card {
     return {
         agentConversationErrors: [], agentConversations: [], content: '', header: {
-            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: path, internalId: path,
+            affects: [], after: null, agentLogReferences: [], branch: worktree === 1 ? first.branch : worktree === 2 ? second.branch : null,
+            changedFiles: [], author: null, id: path, internalId: path,
             owner: null, policy: {}, references: [], status: 'ready', title, worktree, worktreeError: null, worktreeValue: worktree ? String(worktree) : null,
         }, hasFrontmatter: true, isActive: true, path,
     }
@@ -88,6 +89,85 @@ describe('WorktreeService', () => {
         setActionBridgeOverride(null)
         vi.restoreAllMocks()
     })
+
+    it('derives the same checkout after another registration is removed without rewriting the card', () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        const assignedCard = card('design/F-1.md', 'Selected feature', 2);
+        assignedCard.header.branch = second.branch;
+        initService(service, storage, snapshot([assignedCard]));
+        emit(project, [first, second]);
+        expect(service.getAssignmentState(assignedCard.header)).toMatchObject({ error: null, index: 2, record: second });
+        emit(project, [second]);
+        expect(service.getAssignmentState(assignedCard.header)).toMatchObject({ error: null, index: 1, record: second });
+        expect(assignedCard.header.worktree).toBe(2);
+        expect(storage.prepareWorktree).not.toHaveBeenCalled();
+    });
+
+    it('does not substitute a healthy checkout at a removed assignment position', () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        initService(service, storage);
+        emit(project, [first]);
+        const assignment = { branch: second.branch, worktree: 1 };
+        expect(service.getAssignmentState(assignment)).toMatchObject({ error: expect.stringMatching(/unavailable/u), record: null });
+    });
+
+    it('sends the same branch for card operations after list renumbering without saving metadata', async () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        const assignedCard = card('design/F-1.md', 'Selected feature', 2);
+        const { assignCardWorktree } = initService(service, storage, snapshot([assignedCard]));
+        emit(project, [first, second]);
+        emit(project, [second]);
+        await service.commitCardWorktree(assignedCard.path, 'Selected feature');
+        await service.setCardWorktree(assignedCard.path, second.branch);
+        expect(storage.commitWorktree).toHaveBeenCalledWith({ message: 'Selected feature', project, worktree: 1, worktreeBranch: second.branch });
+        expect(storage.prepareWorktree).not.toHaveBeenCalled();
+        expect(assignCardWorktree).not.toHaveBeenCalled();
+        expect(assignedCard.header.worktree).toBe(2);
+    });
+
+    it('blocks an assignment with no stored branch and permits explicit clearing without touching Git', async () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        const assignedCard = card('design/F-1.md', 'Legacy assignment', 1);
+        assignedCard.header.branch = null;
+        const { unassignCardWorktree } = initService(service, storage, snapshot([assignedCard]));
+        emit(project, [first]);
+        await expect(service.commitCardWorktree(assignedCard.path, 'Change')).rejects.toThrow(/no stored branch/u);
+        expect(storage.commitWorktree).not.toHaveBeenCalled();
+        await service.setCardWorktree(assignedCard.path, null);
+        expect(storage.parkWorktree).not.toHaveBeenCalled();
+        expect(unassignCardWorktree).toHaveBeenCalledWith(assignedCard.path);
+    });
+
+    it('keeps ownership bound to branch and card internal ID after list changes or card moves', () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        const assignedCard = card('design/renamed.md', 'Assigned', 2);
+        assignedCard.header.internalId = 'stable-card';
+        initService(service, storage, snapshot([assignedCard]));
+        emit(project, [second]);
+        expect(service.isWorktreeAvailableForCard(second.branch!, 'stable-card')).toBe(true);
+        expect(service.isWorktreeAvailableForCard(second.branch!, 'another-card')).toBe(false);
+        expect(service.isWorktreeAvailableForCard(first.branch!, 'another-card')).toBe(true);
+    });
+
+    it('captures project branch selection and blocks a removed selection instead of using its old slot', async () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        initService(service, storage);
+        emit(project, [first, second]);
+        service.setProjectActionWorktree(second.branch);
+        emit(project, [second]);
+        expect(service.getProjectActionWorktree()).toBe(1);
+        await service.commitProjectWorktree('Selected project change');
+        expect(storage.commitWorktree).toHaveBeenCalledWith({ message: 'Selected project change', project, worktree: 1, worktreeBranch: second.branch });
+        emit(project, [first]);
+        await expect(service.updateProjectWorktree()).rejects.toThrow(/unavailable/u);
+        expect(storage.rebaseWorktree).not.toHaveBeenCalled();
+    });
 
     it('replaces records from pushed state and preserves identity for equal records', () => {
         const { emit, storage } = createStorage()
@@ -234,9 +314,9 @@ describe('WorktreeService', () => {
         const { assignCardWorktree } = initService(service, storage, snapshot([activeCard]))
         emit(project, [first])
 
-        await service.setCardWorktree(activeCard.path, 1)
+        await service.setCardWorktree(activeCard.path, first.branch)
 
-        expect(storage.prepareWorktree).toHaveBeenCalledWith({ branchName: 'design-f-1-md-prepare-this-card', project, worktree: 1 })
+        expect(storage.prepareWorktree).toHaveBeenCalledWith({ branchName: 'design-f-1-md-prepare-this-card', project, worktree: 1, worktreeBranch: first.branch })
         expect(assignCardWorktree).toHaveBeenCalledWith(activeCard.path, 1, 'design-f-1-md-prepare-this-card')
     })
 
@@ -250,8 +330,8 @@ describe('WorktreeService', () => {
         const { assignCardWorktree } = initService(service, storage, snapshot([firstCard, secondCard]))
         emit(project, [first])
 
-        const firstAssignment = service.setCardWorktree(firstCard.path, 1)
-        expect(service.isWorktreeAvailableForCard(1, secondCard.path)).toBe(false)
+        const firstAssignment = service.setCardWorktree(firstCard.path, first.branch)
+        expect(service.isWorktreeAvailableForCard(first.branch!, secondCard.header.internalId!)).toBe(false)
         pendingPreparation.resolve()
         await firstAssignment
 
@@ -284,7 +364,7 @@ describe('WorktreeService', () => {
 
         await service.commitCardWorktree(assignedCard.path, 'F-1: Assigned')
 
-        expect(storage.commitWorktree).toHaveBeenCalledWith({ message: 'F-1: Assigned', project, worktree: 1 })
+        expect(storage.commitWorktree).toHaveBeenCalledWith({ message: 'F-1: Assigned', project, worktree: 1, worktreeBranch: first.branch })
         expect(storage.pushWorktree).not.toHaveBeenCalled()
         expect(storage.parkWorktree).not.toHaveBeenCalled()
         expect(assignCardWorktree).not.toHaveBeenCalled()
@@ -305,7 +385,7 @@ describe('WorktreeService', () => {
         emit(project, [{ ...first, status: { ...first.status, dirty: true } }])
         expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)
         await expect(service.generateCardWorktreeDiff(assignedCard.path)).resolves.toEqual({ files: [], repositoryRoot: first.path })
-        expect(generateWorktreeDiff).toHaveBeenCalledWith({ worktree: 1 })
+        expect(generateWorktreeDiff).toHaveBeenCalledWith({ worktree: 1, worktreeBranch: first.branch })
 
         emit(project, [{ ...first, status: { ...first.status, baseAhead: 1, dirty: false } }])
         expect(service.canIntegrateCardWorktree(assignedCard.path)).toBe(true)
@@ -341,11 +421,13 @@ describe('WorktreeService', () => {
             vi.mocked(storage.integrateWorktree!).mock.invocationCallOrder[0],
         )
         expect(storage.integrateWorktree).toHaveBeenCalledWith({
+            branchName: assignedCard.header.branch,
             cardInternalId: assignedCard.header.internalId,
             deleteBranch: false,
             project,
             projectFolder: 'design',
             worktree: 1,
+            worktreeBranch: assignedCard.header.branch,
         })
     })
 
@@ -353,19 +435,19 @@ describe('WorktreeService', () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
         const assignedCard = card('design/F-1.md', 'Assigned', 1)
-        assignedCard.header.branch = 'f-1-assigned'
         const { clearCardBranch, unassignCardWorktree } = initService(service, storage, snapshot([assignedCard]))
         emit(project, [first])
 
         await service.integrateCardWorktree(assignedCard.path, true)
 
         expect(storage.integrateWorktree).toHaveBeenCalledWith({
-            branchName: 'f-1-assigned',
+            branchName: assignedCard.header.branch,
             cardInternalId: assignedCard.header.internalId,
             deleteBranch: true,
             project,
             projectFolder: 'design',
             worktree: 1,
+            worktreeBranch: assignedCard.header.branch,
         })
         expect(storage.parkWorktree).not.toHaveBeenCalled()
         expect(storage.deleteLocalBranch).not.toHaveBeenCalled()
@@ -384,7 +466,6 @@ describe('WorktreeService', () => {
         }))
         const service = new WorktreeService()
         const assignedCard = card('design/F-1.md', 'Assigned', 1)
-        assignedCard.header.branch = 'f-1-assigned'
         const { clearCardBranch, unassignCardWorktree } = initService(service, storage, snapshot([assignedCard]))
         emit(project, [first])
 
@@ -392,7 +473,7 @@ describe('WorktreeService', () => {
 
         expect(unassignCardWorktree).not.toHaveBeenCalled()
         expect(clearCardBranch).not.toHaveBeenCalled()
-        expect(assignedCard.header.branch).toBe('f-1-assigned')
+        expect(assignedCard.header.branch).toBe(first.branch)
     })
 
     it('integrates a project worktree without card tracking fields', async () => {
@@ -400,10 +481,10 @@ describe('WorktreeService', () => {
         const service = new WorktreeService()
         initService(service, storage)
         emit(project, [first])
-        service.setProjectActionWorktree(1)
+        service.setProjectActionWorktree(first.branch)
 
         await service.integrateProjectWorktree()
 
-        expect(storage.integrateWorktree).toHaveBeenCalledWith({ project, worktree: 1 })
+        expect(storage.integrateWorktree).toHaveBeenCalledWith({ project, worktree: 1, worktreeBranch: first.branch })
     })
 })

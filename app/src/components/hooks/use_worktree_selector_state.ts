@@ -1,11 +1,11 @@
 import { useRef, useSyncExternalStore } from 'react'
-import type { WorktreeRecord } from '../../data/data_types'
+import type { WorktreeAssignment, WorktreeRecord } from '../../data/data_types';
 import { projectPersistenceService } from '../../services/project/project_persistence_service'
 import { worktreeService } from '../../services/project/worktree_service'
 
 export interface WorktreeSelectorTarget {
     /** The assigned linked worktree, or null when the target sits on the primary worktree. */
-    assignedWorktree: number | null
+    assignment: WorktreeAssignment;
     /** The card being assigned, or null for the project-level target. */
     cardPath: string | null
 }
@@ -35,11 +35,11 @@ function subscribe(onStoreChange: () => void) {
  * show project changes, so targets on the primary worktree never observe the repo-wide flags.
  */
 export function useWorktreeSelectorState(target: WorktreeSelectorTarget): WorktreeSelectorState {
-    const { assignedWorktree, cardPath } = target
+    const { assignment, cardPath } = target;
     const cache = useRef<WorktreeSelectorState | null>(null)
     const getSnapshot = () => {
         const records = worktreeService.getRecords()
-        const record = assignedWorktree === null ? null : records[assignedWorktree - 1] ?? null
+        const record = worktreeService.getAssignmentState(assignment).record;
         const preparing = cardPath === null
             ? worktreeService.isPreparingProjectWorktree()
             : worktreeService.isPreparingCard(cardPath)

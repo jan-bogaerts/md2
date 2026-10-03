@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { withGitIndexMutations } = require('./git_index_coordinator');
+const { resolveWorktreeAssignment } = require('../../../shared/worktree_assignment.mjs');
 
 const PARKING_BRANCH_PREFIX = 'md2/parking/';
 const REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);
@@ -155,9 +156,9 @@ class WorktreeService {
     }
 
     /** Read Git metadata needed to compare one linked worktree with its project-branch merge base. */
-    async readDiffContext(project, index) {
+    async readDiffContext(project, branchName) {
         const activeProject = this.requireActiveProject(project);
-        const record = this.resolve(activeProject, index);
+        const { record } = await this.resolveBranch(activeProject, branchName);
         const baseCommit = await this.runGit(record.path, ['merge-base', activeProject.branch, 'HEAD']);
         if (baseCommit.length === 0) throw new Error(`Cannot find merge base for linked worktree: ${record.path}`);
 
@@ -167,13 +168,32 @@ class WorktreeService {
         return { baseCommit, changes, path: record.path, untracked };
     }
 
-    resolve(project, index) {
-        if (!Number.isInteger(index) || index <= 0) throw new Error(`Invalid card worktree index: ${String(index)}`);
-        const record = this.getRecords(project)[index - 1];
-        if (!record) throw new Error(`Configured worktree ${index} does not exist`);
-        if (!record.valid) throw new Error(`Configured worktree ${index} is invalid: ${record.error}`);
+    /** Resolve against live Git metadata; display numbers never select a checkout. */
+    async resolveBranch(project, branchName) {
+        const activeProject = this.requireActiveProject(project);
+        if (typeof branchName !== 'string' || branchName.length === 0) {
+            throw new Error('Assigned worktree has no stored branch. Select a worktree again.');
+        }
+        const records = await this.readWorktreeRecords(activeProject);
+        if (this.project !== activeProject) throw new Error('Opened project changed during worktree resolution');
+        this.records = records;
+        this.publish(null);
+        const resolution = resolveWorktreeAssignment(records, branchName);
+        if (resolution.error) throw new Error(resolution.error);
+        await this.requireRepositoryMatch(activeProject, resolution.record);
+        const record = await this.revalidateRecord(resolution.record, activeProject.branch);
+        if (record.branch !== branchName) throw new Error(`Assigned worktree branch changed to ${record.branch}, expected ${branchName}: ${record.path}`);
 
-        return record;
+        return { index: resolution.index, record };
+    }
+
+    /** A registered folder may have been replaced by a checkout of another repository. */
+    async requireRepositoryMatch(project, record) {
+        const primaryDirectory = await this.runGit(project.rootPath, ['rev-parse', '--git-common-dir']);
+        const linkedDirectory = await this.runGit(record.path, ['rev-parse', '--git-common-dir']);
+        const primaryRoot = await canonicalPath(path.resolve(project.rootPath, primaryDirectory));
+        const linkedRoot = await canonicalPath(path.resolve(record.path, linkedDirectory));
+        if (pathKey(primaryRoot) !== pathKey(linkedRoot)) throw new Error(`Assigned worktree belongs to another repository: ${record.path}`);
     }
 
     async resolvePath(project, folderPath) {
@@ -288,11 +308,11 @@ class WorktreeService {
         });
     }
 
-    prepare(project, index, branchName) {
+    prepare(project, worktreeBranch, branchName) {
         return this.enqueueMutation(async () => {
             if (typeof branchName !== 'string' || branchName.length === 0) throw new Error('Missing worktree branch name');
             const activeProject = this.requireActiveProject(project);
-            const cachedRecord = this.resolve(activeProject, index);
+            const { record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
             const record = await this.requireClean(cachedRecord, activeProject.branch);
             await this.runGit(activeProject.rootPath, ['check-ref-format', '--branch', branchName]);
             if (record.branch !== branchName) {
@@ -304,11 +324,11 @@ class WorktreeService {
         });
     }
 
-    commit(project, index, message) {
+    commit(project, worktreeBranch, message) {
         return this.enqueueMutation(async () => {
             if (typeof message !== 'string' || message.trim().length === 0) throw new Error('Missing worktree commit message');
             const activeProject = this.requireActiveProject(project);
-            const cachedRecord = this.resolve(activeProject, index);
+            const { record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
             const record = await this.revalidateRecord(cachedRecord, activeProject.branch);
             if (!record.status.dirty) throw new Error('Linked worktree has no changes to commit');
             await this.runGit(record.path, ['add', '-A']);
@@ -317,9 +337,9 @@ class WorktreeService {
         });
     }
 
-    push(project, index) {
+    push(project, worktreeBranch) {
         return this.enqueueMutation(async () => {
-            const record = this.resolve(project, index);
+            const { record } = await this.resolveBranch(project, worktreeBranch);
             const upstream = await this.upstream(record.path, record.branch);
             if (upstream.length > 0) await this.runGit(record.path, ['push']);
             else {
@@ -330,10 +350,10 @@ class WorktreeService {
         });
     }
 
-    pull(project, index) {
+    pull(project, worktreeBranch) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
-            const cachedRecord = this.resolve(activeProject, index);
+            const { record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
             const record = await this.requireClean(cachedRecord, activeProject.branch);
             const upstream = await this.upstream(record.path, record.branch);
             if (upstream.length === 0) throw new Error(`Worktree branch has no configured upstream: ${record.branch}`);
@@ -342,13 +362,13 @@ class WorktreeService {
         });
     }
 
-    rebase(project, index) {
+    rebase(project, worktreeBranch) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
-            await this.commitPrimaryChanges(activeProject);
-            const cachedRecord = this.resolve(activeProject, index);
+            const { index, record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
             const record = await this.requireClean(cachedRecord, activeProject.branch);
             if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
+            await this.commitPrimaryChanges(activeProject);
             const worktreeCheckpointCommit = await this.runGit(record.path, ['rev-parse', 'HEAD']);
             try {
                 await this.runGit(record.path, ['rebase', activeProject.branch]);
@@ -382,14 +402,15 @@ class WorktreeService {
         });
     }
 
-    integrate(project, index, metadata = {}) {
+    integrate(project, worktreeBranch, metadata = {}) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
-            await this.commitPrimaryChanges(activeProject);
-            const checkpointCommit = await this.runGit(activeProject.rootPath, ['rev-parse', 'HEAD']);
-            const cachedRecord = this.resolve(activeProject, index);
+            const { index, record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
             let record = await this.requireClean(cachedRecord, activeProject.branch);
             if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
+            await this.commitPrimaryChanges(activeProject);
+            const checkpointCommit = await this.runGit(activeProject.rootPath, ['rev-parse', 'HEAD']);
+            record = await this.requireClean(record, activeProject.branch);
             const worktreeCheckpointCommit = await this.runGit(record.path, ['rev-parse', 'HEAD']);
             if (record.status.baseBehind > 0) {
                 try {
@@ -457,6 +478,9 @@ class WorktreeService {
         return this.enqueueMutation(async () => {
             const conflictService = this.requireMergeConflictService();
             let session = conflictService.requireSession(request);
+            const activeProject = this.requireActiveProject({ branch: session.projectBranch, rootPath: session.projectRoot });
+            if (session.phase === 'finalize') await this.requireRepositoryMatch(activeProject, { path: session.worktreeRoot });
+            else await this.requireConflictCheckout(session);
             const continuesSquashConflict = session.phase === 'squash';
             const conflictedPaths = await conflictService.listConflictedPaths(session.repositoryRoot);
             if (conflictedPaths.length > 0) {
@@ -479,8 +503,7 @@ class WorktreeService {
                 }
             }
 
-            const activeProject = this.requireActiveProject({ branch: session.projectBranch, rootPath: session.projectRoot });
-            const record = this.resolve(activeProject, session.worktree);
+            const record = await this.resolveConflictWorktree(activeProject);
             try {
                 const externalIntegration = continuesSquashConflict
                     ? null
@@ -520,6 +543,7 @@ class WorktreeService {
         return this.enqueueMutation(async () => {
             const conflictService = this.requireMergeConflictService();
             const session = conflictService.requireSession(request);
+            await this.requireConflictCheckout(session);
             const rebaseActive = session.phase === 'rebase' && await conflictService.isRebaseActive(session);
             if (rebaseActive) await this.runGit(session.repositoryRoot, ['rebase', '--abort']);
             else {
@@ -538,19 +562,21 @@ class WorktreeService {
         conflictService.clear(request);
     }
 
-    synchronizeConflict(project, index) {
+    synchronizeConflict(project) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
-            const record = this.resolve(activeProject, index);
+            const record = await this.resolveConflictWorktree(activeProject);
+            await this.requireClean(record, activeProject.branch);
             await this.synchronizeRecord(activeProject, record);
             await this.refreshAfterMutation();
         }, true);
     }
 
-    parkConflict(project, index) {
+    parkConflict(project) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
-            const record = this.resolve(activeProject, index);
+            const record = await this.resolveConflictWorktree(activeProject);
+            await this.requireClean(record, activeProject.branch);
             await this.parkPath(activeProject, record.path);
             await this.refreshAfterMutation();
         }, true);
@@ -562,6 +588,31 @@ class WorktreeService {
             await this.deleteBranchNow(activeProject, branchName);
             await this.refreshAfterMutation();
         }, true);
+    }
+
+    /** Conflict recovery stays on the checkout captured when the operation paused. */
+    async resolveConflictWorktree(project) {
+        const session = this.requireMergeConflictService().getInternalSession();
+        if (!session) throw new Error('No active merge conflict session');
+        const { record } = await this.resolveBranch(project, session.worktreeBranch);
+        const expectedRoot = await canonicalPath(session.worktreeRoot);
+        const actualRoot = await canonicalPath(record.path);
+        if (pathKey(expectedRoot) !== pathKey(actualRoot)) throw new Error('Conflict worktree checkout changed. Restore the original checkout before continuing.');
+
+        return record;
+    }
+
+    /** A detached checkout is expected only while the captured rebase is active. */
+    async requireConflictCheckout(session) {
+        const project = this.requireActiveProject({ branch: session.projectBranch, rootPath: session.projectRoot });
+        await this.requireRepositoryMatch(project, { path: session.worktreeRoot });
+        const primaryBranch = (await this.runGit(project.rootPath, ['branch', '--show-current'])).trim();
+        if (primaryBranch !== project.branch) throw new Error(`Primary worktree is on ${primaryBranch || 'a detached HEAD'}, expected ${project.branch}`);
+        const branch = (await this.runGit(session.worktreeRoot, ['branch', '--show-current'])).trim();
+        if (branch === session.worktreeBranch) return;
+        if (branch.length === 0 && session.phase === 'rebase' && await this.requireMergeConflictService().isRebaseActive(session)) return;
+
+        throw new Error(`Conflict worktree is on ${branch || 'a detached HEAD'}, expected ${session.worktreeBranch}: ${session.worktreeRoot}`);
     }
 
     async continueConflictRebase(session) {
@@ -641,10 +692,10 @@ class WorktreeService {
         return this.mergeConflictService;
     }
 
-    synchronize(project, index) {
+    synchronize(project, worktreeBranch) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
-            const cachedRecord = this.resolve(activeProject, index);
+            const { record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
             const record = await this.requireClean(cachedRecord, activeProject.branch);
             if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
             await this.synchronizeRecord(activeProject, record);
@@ -652,19 +703,19 @@ class WorktreeService {
         });
     }
 
-    discard(project, index) {
+    discard(project, worktreeBranch) {
         return this.enqueueMutation(async () => {
-            const record = this.resolve(project, index);
+            const { record } = await this.resolveBranch(project, worktreeBranch);
             await this.runGit(record.path, ['reset', '--hard', 'HEAD']);
             await this.runGit(record.path, ['clean', '-fd']);
             await this.refreshAfterMutation();
         });
     }
 
-    park(project, index) {
+    park(project, worktreeBranch) {
         return this.enqueueMutation(async () => {
             const activeProject = this.requireActiveProject(project);
-            const cachedRecord = this.resolve(activeProject, index);
+            const { record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
             const record = await this.requireClean(cachedRecord, activeProject.branch);
             await this.parkPath(activeProject, record.path);
             await this.refreshAfterMutation();
@@ -677,6 +728,11 @@ class WorktreeService {
             this.stopTimer();
             if (!this.project) throw new Error('Worktree service has no active project');
             if (!allowConflict) this.mergeConflictService?.assertMutationAllowed(this.project.rootPath);
+            const activeProject = this.project;
+            const records = await this.readWorktreeRecords(activeProject);
+            if (this.project !== activeProject) throw new Error('Opened project changed before worktree operation');
+            this.records = records;
+            this.publish(null);
             const mutationRoots = [
                 this.project.rootPath,
                 ...this.records.filter(({ valid }) => valid).map(({ path: recordPath }) => recordPath),
@@ -723,6 +779,7 @@ class WorktreeService {
     async revalidateRecord(record, projectBranch) {
         const branch = (await this.runGit(record.path, ['branch', '--show-current'])).trim();
         if (branch.length === 0) throw new Error(`Linked worktree has detached HEAD: ${record.path}`);
+        if (branch !== record.branch) throw new Error(`Assigned worktree branch changed to ${branch}, expected ${record.branch}: ${record.path}`);
         const status = await this.status(record.path, branch, projectBranch);
         const refreshedRecord = { ...record, branch, status };
         this.records = this.records.map((candidate) => pathKey(candidate.path) === pathKey(record.path) ? refreshedRecord : candidate);

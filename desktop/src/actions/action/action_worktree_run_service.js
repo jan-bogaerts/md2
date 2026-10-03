@@ -56,6 +56,7 @@ class ActionWorktreeRunService {
                 throw new Error('Merge conflict action requires active session binding');
             }
             const session = this.mergeConflictService.requireSession({ sessionId: context.conflictSessionId });
+            await this.worktreeService.requireConflictCheckout(session);
             const branch = session.repositoryRoot === session.projectRoot ? session.projectBranch : session.worktreeBranch;
 
             return {
@@ -78,11 +79,12 @@ class ActionWorktreeRunService {
         const index = worktreeIndex(context);
         if (index === null) throw new Error(`Action "${action.label}" requires a worktree assignment`);
 
-        const record = await this.worktreeService.resolve(primaryProject, index);
+        const resolution = await this.worktreeService.resolveBranch(primaryProject, context.worktreeBranch);
+        const { record } = resolution;
 
         return {
             runProject: { ...primaryProject, branch: record.branch, id: record.path, rootPath: record.path },
-            runWorktree: index,
+            runWorktree: resolution.index,
         };
     }
 

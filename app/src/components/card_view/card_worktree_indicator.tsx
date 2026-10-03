@@ -18,7 +18,10 @@ export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {
 
     return (
         <WorktreeSelector
-            assignment={{ worktree: assignment.worktree, worktreeError: assignment.error, worktreeValue: assignment.value }}
+            assignment={{
+                branch: assignment.branch, worktree: assignment.worktree,
+                worktreeError: assignment.error, worktreeValue: assignment.value,
+            }}
             assignmentTarget={{ cardInternalId, kind: 'card', path: cardPath }}
             labelPrefix={cardId}
             primaryPath={primaryPath}

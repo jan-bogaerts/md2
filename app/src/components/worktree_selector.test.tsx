@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { WorktreeRecord } from '../data/data_types'
 import { dialogService } from '../services/dialog_service'
@@ -15,7 +15,7 @@ const worktrees: WorktreeRecord[] = [
         status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: true,
     },
     {
-        branch: null, error: 'Folder missing', parkingBranch: 'md2/parking/missing', path: 'C:\\missing',
+        branch: 'missing', error: 'Folder missing', parkingBranch: 'md2/parking/missing', path: 'C:\\missing',
         status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false }, valid: false,
     },
 ]
@@ -41,7 +41,7 @@ function renderAssignedWorktree(record: WorktreeRecord) {
     render(
         <AppThemeProvider>
             <WorktreeSelector
-                assignment={{ worktree: 1 }}
+                assignment={{ branch: record.branch, worktree: 1 }}
                 assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                 primaryPath="C:\\primary"
             />
@@ -59,12 +59,39 @@ describe('WorktreeSelector', () => {
         vi.restoreAllMocks()
     })
 
+    it('keeps the selected branch and status while its display number changes', () => {
+        const selected = { ...worktrees[0], branch: 'selected', path: 'C:\\selected', status: { ...worktrees[0].status, dirty: true } };
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([worktrees[0], selected]);
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree');
+        const assignment = { branch: selected.branch, worktree: 2 };
+        render(<AppThemeProvider><WorktreeSelector assignment={assignment} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} /></AppThemeProvider>);
+        expect(screen.getByRole('button', { name: /Worktree 2: C:\\selected.*dirty yes/u })).toBeInTheDocument();
+        act(() => {
+            records.mockReturnValue([selected]);
+            worktreeService.dispatchEvent(new Event('changed'));
+        });
+        expect(screen.getByRole('button', { name: /Worktree 1: C:\\selected.*dirty yes/u })).toBeInTheDocument();
+        expect(assignment.worktree).toBe(2);
+        expect(setCardWorktree).not.toHaveBeenCalled();
+    });
+
+    it('blocks lifecycle controls for a missing branch while offering explicit reselection', () => {
+        withRecords([worktrees[0]]);
+        const setCardWorktree = vi.spyOn(worktreeService, 'setCardWorktree').mockResolvedValue();
+        render(<AppThemeProvider><WorktreeSelector assignment={{ branch: 'removed', worktree: 1 }} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} /></AppThemeProvider>);
+        fireEvent.click(screen.getByRole('button', { name: /branch "removed" is unavailable/u }));
+        expect(screen.queryByRole('menuitem', { name: 'Commit' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('menuitem', { name: 'Integrate into project' })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('menuitem', { name: /1 — C:\\feature/u }));
+        expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', 'feature');
+    });
+
     it('lists Primary and valid linked worktrees while retaining the current invalid assignment', () => {
         withRecords(worktrees)
         render(
             <AppThemeProvider>
                 <WorktreeSelector
-                    assignment={{ worktree: 2, worktreeError: null, worktreeValue: '2' }}
+                    assignment={{ branch: 'missing', worktree: 2, worktreeError: null, worktreeValue: '2' }}
                     assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath={'C:\\primary'}
                 />
@@ -76,7 +103,7 @@ describe('WorktreeSelector', () => {
         expect(screen.getByRole('menuitem', { name: /Primary — C:\\primary/u })).toBeInTheDocument()
         expect(screen.getByRole('menuitem', { name: /1 — C:\\feature/u })).toBeInTheDocument()
         expect(screen.queryByRole('menuitem', { name: /^2 — C:\\missing$/u })).not.toBeInTheDocument()
-        expect(screen.getByRole('menuitem', { name: /2 — C:\\missing: Folder missing/u })).toBeInTheDocument()
+        expect(screen.getByRole('menuitem', { name: /2 — .*C:\\missing: Folder missing/u })).toBeInTheDocument()
     })
 
     it('cannot open while a run is active', () => {
@@ -125,7 +152,7 @@ describe('WorktreeSelector', () => {
         render(
             <AppThemeProvider>
                 <WorktreeSelector
-                    assignment={{ worktree: 1 }}
+                    assignment={{ branch: worktrees[0].branch, worktree: 1 }}
                     assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
@@ -300,7 +327,7 @@ describe('WorktreeSelector', () => {
         render(
             <AppThemeProvider>
                 <WorktreeSelector
-                    assignment={{ worktree: 1 }}
+                    assignment={{ branch: worktrees[0].branch, worktree: 1 }}
                     assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
@@ -394,7 +421,7 @@ describe('WorktreeSelector', () => {
         render(
             <AppThemeProvider>
                 <WorktreeSelector
-                    assignment={{ worktree: 1 }}
+                    assignment={{ branch: worktrees[0].branch, worktree: 1 }}
                     assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
@@ -418,7 +445,7 @@ describe('WorktreeSelector', () => {
         render(
             <AppThemeProvider>
                 <WorktreeSelector
-                    assignment={{ worktree: 1 }}
+                    assignment={{ branch: worktrees[0].branch, worktree: 1 }}
                     assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
@@ -441,7 +468,7 @@ describe('WorktreeSelector', () => {
         render(
             <AppThemeProvider>
                 <WorktreeSelector
-                    assignment={{ worktree: 1 }}
+                    assignment={{ branch: worktrees[0].branch, worktree: 1 }}
                     assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />
@@ -464,7 +491,7 @@ describe('WorktreeSelector', () => {
         render(
             <AppThemeProvider>
                 <WorktreeSelector
-                    assignment={{ worktree: 1 }}
+                    assignment={{ branch: worktrees[0].branch, worktree: 1 }}
                     assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }}
                     primaryPath="C:\\primary"
                 />

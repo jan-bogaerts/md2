@@ -15,9 +15,17 @@ The list shows each worktree's folder, current branch, and status.
 
 ## Assigning a worktree to a card
 
-Use the worktree indicator on the card (or the same selector in the card properties). Picking a worktree writes a one-based index into the card's `worktree` header field; picking **project folder** clears it and the card works in the main checkout.
+Use the worktree indicator on the card (or the same selector in the card properties). Picking a worktree prepares the card's feature branch and stores that branch in its `branch` header field. The `worktree` field marks the assignment and retains the number shown when it was selected. Picking **Primary** clears the assignment and the card works in the main checkout.
 
-A worktree can only be assigned to one active card at a time. An index that no longer matches a registered worktree is reported on the card as a worktree error instead of silently running somewhere wrong.
+A worktree can only be assigned to one active card at a time. Assignments follow the stored branch, and the indicator shows its current position in Git's list. Removing or pruning an unrelated worktree may change the displayed number; it does not change the assigned checkout or rewrite the card.
+
+If the assigned branch is missing, ambiguous, locked, prunable, detached, or otherwise invalid, md² blocks its actions and Git operations with an assignment error. An older assignment without a stored branch also requires explicit reselection. It never substitutes the checkout now occupying the old number.
+
+After external disk cleanup, refresh the worktree list in Project settings. If your assigned checkout still exists, continue normally. Otherwise restore it on its stored branch or explicitly select another valid worktree from the indicator. Selecting **Primary** on an unavailable assignment clears its card metadata without running Git in another checkout. md² does not automatically recreate or prune deleted worktrees.
+
+After clearing or changing a card's assignment, close and reopen any action popup for that card so its execution context uses the current selection.
+
+Before launching an action or operating on an assignment, the desktop checks fresh Git registrations, the checkout's branch, and its repository. Conflict recovery uses the branch and checkout captured when the operation paused, even if other registrations have changed.
 
 ## Working from the card
 
@@ -51,9 +59,9 @@ A merge-conflict action receives {% raw %}`{{conflict-file}}`{% endraw %} (per-f
 
 ## Actions that require a worktree
 
-An action with `"needsWorkTree": true` only runs with card context and a valid worktree assignment. Missing assignment, invalid index, or an unavailable folder rejects the run before any process starts, and the validation error is shown in the popup.
+An action with `"needsWorkTree": true` only runs with card or project context and a valid worktree assignment. A missing or invalid assignment rejects the run before any agent or command starts, and the validation error is shown in the popup.
 
-Without `needsWorkTree`, actions run in the opened project folder.
+Actions with an assignment use that worktree even without `needsWorkTree`. Unassigned actions use the opened project folder when a worktree is not required. Project popup selections also follow their captured branch until the project is closed or reloaded.
 
 md² never creates, assigns, commits, merges, or cherry-picks on its own during a run. Moving code between worktree and project is something you do from the card menu or through explicit actions you defined.
 

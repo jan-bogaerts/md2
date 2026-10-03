@@ -5,6 +5,7 @@ import { actionService } from '../actions/action_service'
 import { projectPersistenceService } from '../project/project_persistence_service'
 import { GithubStorageService } from '../github/github_storage_service'
 import { openFilesService } from '../open_files_service'
+import { cardFieldChangedEvent } from './card_events';
 import {
     createDeferred,
     createDataService,
@@ -24,6 +25,23 @@ describe('DataService', () => {
         configService.clear()
         openFilesService.clear()
     })
+
+    it('publishes a scoped worktree update after applying a branch-only card change', async () => {
+        configService.init();
+        const service = createDataService();
+        service.init({ storage: createStorage() });
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' });
+        const path = 'design/F-1-root.md';
+        service.cards.updateCardHeaderFields(path, { branch: 'feature/first', worktree: '1' });
+        const worktreeChanged = vi.fn();
+        const bodyChanged = vi.fn();
+        service.addEventListener(cardFieldChangedEvent(path, 'worktree'), worktreeChanged);
+        service.addEventListener(cardFieldChangedEvent(path, 'body'), bodyChanged);
+        service.cards.updateCardHeaderFields(path, { branch: 'feature/second' });
+        expect(worktreeChanged).toHaveBeenCalledOnce();
+        expect(bodyChanged).not.toHaveBeenCalled();
+        expect(service.getState().snapshot?.activeCards.find((card) => card.path === path)?.header.branch).toBe('feature/second');
+    });
 
     it('routes project and card conversation lists through AgentIntegration loaders', async () => {
         const service = createDataService()

@@ -28,7 +28,7 @@ function card(worktree: number | null, conversations: AgentConversation[] = []):
         agentConversations: conversations,
         content: '# Card',
         header: {
-            affects: [], after: null, agentLogReferences: [], changedFiles: [], author: null, id: 'F-1', internalId: 'f-1', owner: null,
+            affects: [], after: null, agentLogReferences: [], branch: worktree === null ? null : 'feature', changedFiles: [], author: null, id: 'F-1', internalId: 'f-1', owner: null,
             policy: {}, references: [], status: 'design', title: 'Card', worktree, worktreeError: null,
             worktreeValue: worktree === null ? null : String(worktree),
         },
@@ -68,7 +68,7 @@ describe('CardWorktreeIndicator', () => {
         fireEvent.click(screen.getByRole('button', { name: 'F-1: C:\\\\primary' }))
         fireEvent.click(screen.getByRole('menuitem', { name: '1 — C:\\feature' }))
 
-        expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', 1)
+        expect(setCardWorktree).toHaveBeenCalledWith('design/F-1.md', 'feature')
     })
 
     it('shows an out-of-bounds index in an error state', async () => {

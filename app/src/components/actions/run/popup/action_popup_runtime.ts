@@ -74,9 +74,5 @@ export function worktreeValidationMessage(action: ActionDefinition, context: Act
 
     const worktree = Number.parseInt(context.worktree, 10)
     if (!Number.isSafeInteger(worktree)) return `Invalid worktree index: ${context.worktree}`
-    const record = worktreeService.getRecords()[worktree - 1]
-    if (!record) return `Configured worktree ${worktree} does not exist`
-    if (!record.valid) return `Configured worktree ${worktree} is invalid: ${record.error}`
-
-    return null
+    return worktreeService.getAssignmentState({ branch: context.worktreeBranch, worktree }).error;
 }
