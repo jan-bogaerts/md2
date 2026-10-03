@@ -2,6 +2,7 @@
 id: B_258
 internalId: de054ddb-e1e5-44b7-a7a5-e16a9481a65f
 title: Worktree action filters use a stale number after renumbering
+status: design
 ---
 
 ## Bug
@@ -26,4 +27,3 @@ Actions shown and triggered for a card should agree with the worktree identified
 * With a card's stored number at 2 and its assigned branch now at position 1, verify which `appliesTo.worktree` value matches in the popup and in scheduled card action matching.
 * Verify an action filtered to the number now occupied by another checkout does not match this card.
 * Verify normal assignments and unavailable branches retain their existing behavior.
-
