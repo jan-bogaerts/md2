@@ -3,7 +3,7 @@ author:
 id: B_253
 internalId: bde0d7b3-85f0-46c0-8027-5d56939c04ee
 title: in-transmission prompts still disapear
-status: ready
+status: to fix
 owner: 
 affects:
 agents:
@@ -19,7 +19,6 @@ changedFiles:
   - app/src/services/actions/action_run_registry.ts
   - desktop/src/actions/agent/agent_runner_service.js
   - desktop/src/actions/agent/agent_runner_state.test.mjs
-after: da891103-b0c2-488f-9454-480c73c061a0
 ---
 See [F\_383\_prompts\_need\_to\_be\_shown\_faster.md](design/releases/0_7_0/F_383_prompts_need_to_be_shown_faster.md) where we improved the way prompts are shown in the conversation log.
 
