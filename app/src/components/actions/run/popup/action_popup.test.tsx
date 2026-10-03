@@ -1852,6 +1852,27 @@ describe('ActionPopup', () => {
         ))
     })
 
+    it.each(['card', 'file'] as const)('refreshes %s popup filters after worktree renumbering', async (kind) => {
+        const otherWorktree = { ...validWorktree, branch: 'other', path: 'C:/other' };
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([otherWorktree, validWorktree]);
+        actionService.loadFromFiles([
+            file(commandDefinition('generic', { label: 'Generic action' })),
+            file(commandDefinition('one', { appliesTo: { worktree: '1' }, label: 'Worktree one action' })),
+            file(commandDefinition('two', { appliesTo: { worktree: '2' }, label: 'Worktree two action' })),
+        ]);
+        renderPopup({ ...context, kind, worktree: '2', worktreeBranch: validWorktree.branch! });
+        expect(screen.getByRole('button', { name: 'Worktree two action' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Worktree one action' })).not.toBeInTheDocument();
+
+        act(() => {
+            records.mockReturnValue([validWorktree, otherWorktree]);
+            worktreeService.dispatchEvent(new CustomEvent('changed'));
+        });
+
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Worktree one action' })).toBeInTheDocument());
+        expect(screen.queryByRole('button', { name: 'Worktree two action' })).not.toBeInTheDocument();
+    });
+
     it('uses project session assignment for action filtering and resets it on project load', async () => {
         actionService.loadFromFiles([
             file(commandDefinition('assigned', { appliesTo: { kind: 'project', worktree: '1' }, label: 'Assigned action' })),

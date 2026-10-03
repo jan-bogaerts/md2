@@ -206,6 +206,7 @@ function createScheduler(localGitService, timerDependencies = {}) {
     });
 
     return new ActionSchedulerService({
+        worktreeService: { getRecords: vi.fn(() => []) },
         agentCommandProvider: () => 'agent-command',
         clearTimeout: vi.fn(),
         localGitService,
@@ -886,7 +887,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([schedule]);
         localGitService.loadProject.mockResolvedValue({
             files: [{
-                content: '---\nid: F_022\ninternalId: card-022\nstatus: in progress\ntitle: Renamed card\nworktree: 7\n---\n',
+                content: '---\nid: F_022\ninternalId: card-022\nstatus: in progress\ntitle: Renamed card\nworktree: 2\nbranch: feature\n---\n',
                 path: 'design/renamed/F-022-renamed.md',
             }],
         });
@@ -896,7 +897,13 @@ describe('ActionSchedulerService', () => {
             startProject: vi.fn(),
             wait: vi.fn(async (runId) => ({ failure: null, runId, status: 'completed' })),
         };
-        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        const worktreeService = {
+            getRecords: vi.fn(() => [
+                { branch: 'feature', error: null, path: 'C:/feature', valid: true },
+                { branch: 'other', error: null, path: 'C:/other', valid: true },
+            ]),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService, worktreeService });
         await startProject(scheduler, localGitService);
 
         await scheduler.fireSchedule(schedule.id);
@@ -910,7 +917,8 @@ describe('ActionSchedulerService', () => {
                 state: 'in progress',
                 title: 'Renamed card',
                 type: 'feature',
-                worktree: '7',
+                worktree: '1',
+                worktreeBranch: 'feature',
             },
             runInput: {},
         }, { interactive: false, runId: expect.stringMatching(/^action-/u) });

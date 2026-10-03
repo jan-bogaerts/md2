@@ -11,6 +11,7 @@ import { useActions } from '../../../hooks/use_actions'
 import { useClaudeRateLimits } from '../../../hooks/use_claude_rate_limits'
 import { useCodexRateLimits } from '../../../hooks/use_codex_rate_limits'
 import { useProjectConfig } from '../../../hooks/use_project_config'
+import { useWorktrees } from '../../../hooks/use_worktrees';
 import { accountTrackerOptions, cardScheduleOptions, scheduleTargetStates } from '../schedule/action_schedule_options'
 import { ScheduleTriggerFields, type ScheduleTriggerFieldsChange, type ScheduleTriggerSnapshot } from '../schedule/schedule_trigger_fields'
 import { cardSequenceActions } from './card_sequence_actions'
@@ -55,6 +56,7 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
     const activeCards = useSyncExternalStore(subscribeActiveCards, getActiveCards, getActiveCards)
     const { actions } = useActions()
     const projectConfig = useProjectConfig()
+    const worktrees = useWorktrees();
     const claudeState = useClaudeRateLimits()
     const codexState = useCodexRateLimits()
     const { setNodeRef } = useDroppable({ id: CARD_SEQUENCE_DROP_ID })
@@ -64,8 +66,8 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
         return card ? [card] : []
     }), [activeCards, snapshot.cardInternalIds])
     const availableActions = useMemo(
-        () => cardSequenceActions(actions, selectedCards, projectConfig?.cardTypes ?? []),
-        [actions, projectConfig?.cardTypes, selectedCards],
+        () => cardSequenceActions(actions, selectedCards, projectConfig?.cardTypes ?? [], worktrees),
+        [actions, projectConfig?.cardTypes, selectedCards, worktrees],
     )
     const readyStates = useMemo(() => scheduleTargetStates(projectConfig?.states), [projectConfig?.states])
     const accountTrackers = useMemo(() => accountTrackerOptions(claudeState, codexState), [claudeState, codexState])

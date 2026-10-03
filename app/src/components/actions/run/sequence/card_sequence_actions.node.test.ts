@@ -31,11 +31,11 @@ describe('cardSequenceActions', () => {
             BUILTIN_CUSTOM_PROMPT,
         ]
 
-        expect(cardSequenceActions(actions, [card('one', 'F-1', 'todo'), card('two', 'B-2', 'todo')], DEFAULT_CARD_TYPES)
+        expect(cardSequenceActions(actions, [card('one', 'F-1', 'todo'), card('two', 'B-2', 'todo')], DEFAULT_CARD_TYPES, [])
             .map(({ id }) => id)).toEqual(['all', 'todo'])
     })
 
     it('returns no actions before a card is selected', () => {
-        expect(cardSequenceActions([action('all')], [], DEFAULT_CARD_TYPES)).toEqual([])
+        expect(cardSequenceActions([action('all')], [], DEFAULT_CARD_TYPES, [])).toEqual([])
     })
 })

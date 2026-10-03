@@ -1,4 +1,5 @@
 const { parseHeaderFields, splitHeader } = require('../../../../shared/markdown_header_fields.mjs');
+const { actionWorktreeContext } = require('../../../../shared/action_worktree_context.mjs');
 
 const CARD_ID_PATTERN = /^(.+?)[-_]\d+$/u;
 
@@ -32,7 +33,7 @@ function resolveCardType(cardId, cardTypes, cardInternalId) {
 }
 
 /** Resolves current card fields by stable internal identity and builds a fresh action context. */
-function resolveScheduledCardContext(files, cardTypes, cardInternalId) {
+function resolveScheduledCardContext(files, cardTypes, cardInternalId, worktrees) {
     const matches = files.map(parseCard).filter((card) => card?.fields.internalId.trim() === cardInternalId);
     if (matches.length === 0) throw new Error(`Scheduled card not found: ${cardInternalId}`);
     if (matches.length > 1) throw new Error(`Duplicate scheduled card identity: ${cardInternalId}`);
@@ -50,7 +51,9 @@ function resolveScheduledCardContext(files, cardTypes, cardInternalId) {
         context.worktreeError = fields.worktreeError.trim();
     }
 
-    return context;
+    const assignment = actionWorktreeContext(worktrees, context.worktree, context.worktreeBranch, context.worktreeError);
+
+    return { ...context, ...assignment };
 }
 
 module.exports = { resolveScheduledCardContext };

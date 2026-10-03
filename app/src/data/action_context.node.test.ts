@@ -1,10 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { worktreeService } from '../services/project/worktree_service';
 import {
     ACTION_CONTEXT_FILTER_DESCRIPTORS,
     actionContextIdentity,
     actionMatchesContext,
     actionsForContext,
     cardContext,
+    contextWithCurrentWorktree,
     diagramContext,
     displayActionsForContext,
     fileContext,
@@ -15,7 +17,13 @@ import {
     validateActionContextFilterValue,
 } from './action_context'
 import { BUILTIN_CUSTOM_PROMPT, BUILTIN_REMARKABLE_CONVERT, type ActionDefinition } from './action_types'
-import { DEFAULT_CARD_TYPES, type Card } from './data_types'
+import { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from './data_types'
+
+const assignedWorktree: WorktreeRecord = {
+    branch: 'feature/selected', error: null, parkingBranch: null, path: 'C:/feature', valid: true,
+    status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
+};
+const otherWorktree: WorktreeRecord = { ...assignedWorktree, branch: 'other', path: 'C:/other' };
 
 function action(name: string, appliesTo: ActionDefinition['appliesTo']): ActionDefinition {
     return {
@@ -178,6 +186,7 @@ describe('cardContext / fileContext / folderContext / projectContext', () => {
 })
 
 describe('actionMatchesContext', () => {
+    afterEach(() => vi.restoreAllMocks());
     const context = cardContext(card('F-010', 'design'), DEFAULT_CARD_TYPES)
 
     it('matches when every appliesTo field equals the context', () => {
@@ -198,6 +207,80 @@ describe('actionMatchesContext', () => {
         expect(actionMatchesContext(BUILTIN_CUSTOM_PROMPT, context)).toBe(true)
         expect(actionMatchesContext(BUILTIN_CUSTOM_PROMPT, folderContext('history', true))).toBe(true)
     })
+
+    it.each([cardContext, fileContext])('matches current checkout numbers without rewriting card metadata', (buildContext) => {
+        const assignedCard = card('F-010', 'design');
+        assignedCard.header.worktree = 2;
+        assignedCard.header.worktreeValue = '2';
+        assignedCard.header.branch = assignedWorktree.branch;
+        const originalHeader = { ...assignedCard.header };
+        const normalContext = buildContext(assignedCard, DEFAULT_CARD_TYPES, [otherWorktree, assignedWorktree]);
+        const renumberedContext = buildContext(assignedCard, DEFAULT_CARD_TYPES, [assignedWorktree, otherWorktree]);
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([otherWorktree, assignedWorktree]);
+
+        expect(actionMatchesContext(action('normal', { worktree: '2' }), normalContext)).toBe(true);
+        records.mockReturnValue([assignedWorktree, otherWorktree]);
+        expect(actionMatchesContext(action('current', { worktree: '1' }), renumberedContext)).toBe(true);
+        expect(actionMatchesContext(action('other', { worktree: '2' }), renumberedContext)).toBe(false);
+        expect(assignedCard.header).toEqual(originalHeader);
+        expect(actionContextIdentity(renumberedContext)).toBe(actionContextIdentity(normalContext));
+    });
+
+    it.each([
+        ['unavailable', [otherWorktree]],
+        ['invalid', [{ ...assignedWorktree, valid: false, error: 'missing folder' }]],
+        ['duplicate', [assignedWorktree, assignedWorktree]],
+    ])('rejects numeric worktree filters for an %s branch while keeping other filters usable', (_label, records) => {
+        const assignedCard = card('F-010', 'design');
+        assignedCard.header.worktreeValue = '2';
+        assignedCard.header.branch = assignedWorktree.branch;
+        const context = cardContext(assignedCard, DEFAULT_CARD_TYPES, records);
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue(records);
+
+        expect(context.worktree).toBe('2');
+        expect(actionMatchesContext(action('stale', { worktree: '2' }), context)).toBe(false);
+        expect(actionMatchesContext(action('current', { worktree: '1' }), context)).toBe(false);
+        expect(actionMatchesContext(action('state', { state: 'design' }), context)).toBe(true);
+    });
+
+    it.each(['0', '-1', 'broken', '9007199254740992'])('blocks invalid assignment %s even when the branch exists', (value) => {
+        const assignedCard = card('F-010', 'design');
+        assignedCard.header.worktreeValue = value;
+        assignedCard.header.branch = assignedWorktree.branch;
+        const context = cardContext(assignedCard, DEFAULT_CARD_TYPES, [assignedWorktree]);
+
+        expect(context.worktreeError).toBe(`Invalid worktree index: ${value}`);
+        expect(actionMatchesContext(action('invalid', { worktree: value }), context)).toBe(false);
+    });
+
+    it('blocks a missing assignment branch and preserves persisted assignment errors', () => {
+        const assignedCard = card('F-010', 'design');
+        assignedCard.header.worktreeValue = '2';
+        const missingBranchContext = cardContext(assignedCard, DEFAULT_CARD_TYPES, [assignedWorktree]);
+        vi.spyOn(worktreeService, 'getRecords').mockReturnValue([assignedWorktree]);
+        expect(actionMatchesContext(action('missing-branch', { worktree: '2' }), missingBranchContext)).toBe(false);
+        assignedCard.header.branch = assignedWorktree.branch;
+        assignedCard.header.worktreeError = 'Needs repair';
+        const context = cardContext(assignedCard, DEFAULT_CARD_TYPES, [assignedWorktree]);
+
+        expect(context.worktreeError).toBe('Needs repair');
+        expect(actionMatchesContext(action('assigned', { worktree: '2' }), context)).toBe(false);
+    });
+
+    it('refreshes a captured context when its assignment becomes available after the worktree list loads', () => {
+        const assignedCard = card('F-010', 'design');
+        assignedCard.header.worktreeValue = '2';
+        assignedCard.header.branch = assignedWorktree.branch;
+        const context = cardContext(assignedCard, DEFAULT_CARD_TYPES, []);
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([]);
+        expect(actionMatchesContext(action('current', { worktree: '1' }), context)).toBe(false);
+
+        records.mockReturnValue([assignedWorktree, otherWorktree]);
+        const refreshedContext = contextWithCurrentWorktree(context, [assignedWorktree, otherWorktree]);
+        expect(refreshedContext.worktree).toBe('1');
+        expect(actionMatchesContext(action('current', { worktree: '1' }), context)).toBe(true);
+        expect(actionMatchesContext(action('other', { worktree: '2' }), context)).toBe(false);
+    });
 })
 
 describe('actionsForContext', () => {
