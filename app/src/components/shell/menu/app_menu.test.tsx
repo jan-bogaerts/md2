@@ -117,7 +117,9 @@ function createResetStorage(): StorageService {
     }
 }
 
-function renderMenu(isMobile = false, initialProjectOpenResolution: ProjectOpenResolution | null = null) {
+function renderMenu(isMobile = false, initialProjectOpenResolution: ProjectOpenResolution | null = null, isCompactHeader = isMobile) {
+    const mediaQuery = window.matchMedia('(max-width: 479px)');
+    vi.spyOn(window, 'matchMedia').mockReturnValue({ ...mediaQuery, matches: isCompactHeader });
     return render(
         <AppThemeProvider>
             <DialogDisplay />
@@ -388,6 +390,14 @@ describe('AppMenu', () => {
         expect(shortcutEvent.defaultPrevented).toBe(false)
         expect(commit).not.toHaveBeenCalled()
     })
+
+    it('keeps search text and mobile actions at intermediate workspace widths', () => {
+        renderMenu(true, null, false);
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Open menu' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument();
+    });
 
     it('renders mobile Home controls in responsive order and hides desktop-only actions', () => {
         renderMenu(true)

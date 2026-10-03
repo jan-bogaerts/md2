@@ -1,4 +1,4 @@
-import { AppBar, Box, Button, Divider, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
+import { AppBar, Box, Button, Divider, ToggleButton, ToggleButtonGroup, Tooltip, useMediaQuery } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
 import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
@@ -97,6 +97,7 @@ function scopedTabViewMode(tab: AppMenuTab) {
     return VIEW_SCOPED_TABS.find((entry) => entry.tab.value === tab)?.viewMode ?? null
 }
 const PROJECT_CONTEXT = projectContext()
+const COMPACT_HEADER_MAX_WIDTH = 479;
 
 /** Tabbed app menu hosting project, account and agent actions. */
 export function AppMenu(props: AppMenuProps) {
@@ -111,6 +112,7 @@ export function AppMenu(props: AppMenuProps) {
         onOpenMobileMenu,
         regexpAgent,
     } = props
+    const isCompactHeader = useMediaQuery(`(max-width: ${COMPACT_HEADER_MAX_WIDTH}px)`);
     const project = useProjectReference()
     const { hasPendingPush, hasPendingSave } = useProjectPersistence()
     const primaryWorktreeStatus = usePrimaryWorktreeStatus()
@@ -520,6 +522,7 @@ export function AppMenu(props: AppMenuProps) {
             <MainToolbar
                 availableTabs={availableMenuTabs}
                 currentTab={visibleCurrentTab}
+                isCompact={isCompactHeader}
                 isMobile={isMobile}
                 isNewActionDisabled={!project || readOnly}
                 isNewCardDisabled={!actions.isProjectOpen || readOnly}
