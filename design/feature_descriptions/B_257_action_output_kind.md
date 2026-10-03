@@ -3,7 +3,7 @@ author:
 id: B_257
 internalId: 5cbb6339-2a3c-4462-94cf-a575f916ad39
 title: Action output kind
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,12 @@ policy:
 after: de054ddb-e1e5-44b7-a7a5-e16a9481a65f
 branch: b_257_action_output_kind
 worktree: 1
+changedFiles:
+  - app/.b257.vitest.config.ts
+  - app/src/components/actions/agent/action_agent_capability_fields.grouped.test.tsx
+  - app/src/components/actions/editor/action_definition_fields.grouped.test.tsx
+  - app/src/components/actions/editor/action_editor_field.grouped.test.tsx
+  - app/src/components/actions/editor/action_editor_field.tsx
 ---
 When editing an action in the action editor  we have the field ´output kind´ with 2 options.
 
