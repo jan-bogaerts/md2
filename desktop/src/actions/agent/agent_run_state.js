@@ -1,4 +1,5 @@
 const { JsonLineBuffer } = require('./agent_event_utils');
+const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 const { createPhaseTracker } = require('./agent_conversation_phases');
@@ -67,6 +68,7 @@ function createRun({
         child,
         changedPaths: new Set(),
         closed,
+        claudeUsageTracker: null,
         conversation,
         codexCacheErrorReported: false,
         currentAssistantEntryIndex: null,
@@ -129,6 +131,11 @@ function attachRunProtocol(run, {
     rootPath,
 }) {
     const writeLine = (message) => writeJsonLine(run.child.stdin, message);
+    const providerSession = run.conversation.providerSessions.find(({ agent, conversationId }) =>
+        agent === run.agent && conversationId === providerConversationId);
+    run.claudeUsageTracker = run.agent === 'claude'
+        ? new ClaudeUsageTracker(providerConversationId, providerSession?.usageBaseline)
+        : null;
     run.streamingAdapter = run.streaming
         ? createAgentStreamingAdapter(
             run.agent,
@@ -137,12 +144,13 @@ function attachRunProtocol(run, {
             rootPath,
             providerConversationId,
             onCodexRuntimeEvent,
+            run.claudeUsageTracker,
         )
         : null;
     run.protocolLines = run.streaming ? new JsonLineBuffer(run.id, onStreamingLine) : null;
     run.parser = run.streaming
         ? null
-        : createAgentProviderProtocolParser(run.agent, onProviderEvent, onMalformedOutput, rootPath);
+        : createAgentProviderProtocolParser(run.agent, onProviderEvent, onMalformedOutput, rootPath, run.claudeUsageTracker);
 
     return run;
 }

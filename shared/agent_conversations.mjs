@@ -1,4 +1,4 @@
-import { normalizeAgentTokenUsage } from './agent_usage_math.mjs';
+import { normalizeAgentTokenUsage, validateAgentTokenUsage } from './agent_usage_math.mjs';
 
 const AGENT_MESSAGE_ROLES = new Set(['assistant', 'user']);
 const AGENT_STATUSES = new Set(['cancelled', 'completed', 'failed', 'running', 'waitingForInput']);
@@ -214,6 +214,24 @@ function normalizeEvent(value) {
     };
 }
 
+/** Retain raw provider accounting state separately from displayed conversation totals. */
+function normalizeProviderUsageBaseline(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid provider usage baseline');
+    const { costUsd, resultId, tokens } = value;
+    if (costUsd !== undefined && (typeof costUsd !== 'number' || !Number.isFinite(costUsd) || costUsd < 0)) {
+        throw new Error('Invalid provider usage baseline costUsd');
+    }
+    if (resultId !== undefined && (typeof resultId !== 'string' || resultId.length === 0)) {
+        throw new Error('Invalid provider usage baseline resultId');
+    }
+
+    return {
+        ...(costUsd !== undefined ? { costUsd } : {}),
+        ...(resultId !== undefined ? { resultId } : {}),
+        ...(tokens !== undefined ? { tokens: validateAgentTokenUsage(tokens, tokens?.totalTokens) } : {}),
+    };
+}
+
 function normalizeProviderSession(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
     const agent = optionalString(value.agent);
@@ -223,7 +241,9 @@ function normalizeProviderSession(value) {
     const synchronizedThroughMessageId = optionalString(value.synchronizedThroughMessageId);
     if (!agent || !conversationId || !createdAt || !lastUsedAt || !synchronizedThroughMessageId) return null;
 
-    return { agent, conversationId, createdAt, lastUsedAt, synchronizedThroughMessageId };
+    const usageBaseline = value.usageBaseline !== undefined ? normalizeProviderUsageBaseline(value.usageBaseline) : undefined;
+
+    return { agent, conversationId, createdAt, lastUsedAt, synchronizedThroughMessageId, ...(usageBaseline ? { usageBaseline } : {}) };
 }
 
 function normalizeContextWindowUsage(value) {

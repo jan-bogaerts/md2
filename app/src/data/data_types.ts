@@ -325,12 +325,19 @@ export interface AgentConversationMessage {
     timestamp: string
 }
 
+export interface AgentProviderUsageBaseline {
+    costUsd?: number
+    resultId?: string
+    tokens?: AgentTokenUsage
+}
+
 export interface AgentProviderSession {
     agent: string
     conversationId: string
     createdAt: string
     lastUsedAt: string
     synchronizedThroughMessageId: string
+    usageBaseline?: AgentProviderUsageBaseline
 }
 
 export interface AgentQuestionOption {

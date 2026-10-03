@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url);
 const { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');
 const { CodexRuntimeService } = require('./codex_runtime_service');
 const { createRun } = require('./agent_run_state');
+const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 
 function diagnosticStreamingEvent(content, providerItemId) {
@@ -59,6 +60,36 @@ function emittedStatuses(onEvent, type) {
 }
 
 describe('AgentRunnerService published run status', () => {
+    it.each([true, false])('saves the Claude baseline together with accounted usage (streaming: %s)', async (streaming) => {
+        const { run, service } = streamingRunService();
+        service.claudeUsagePoller = { requestPoll: vi.fn() };
+        run.agent = 'claude';
+        run.child = { pid: 10 };
+        run.streaming = streaming;
+        run.providerConversationId = 'session-1';
+        run.conversation.id = 'conversation-1';
+        run.conversation.entries = [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }];
+        run.claudeUsageTracker = new ClaudeUsageTracker();
+        const usage = run.claudeUsageTracker.read({
+            modelUsage: { main: { cacheCreationInputTokens: 0, cacheReadInputTokens: 0, inputTokens: 300, outputTokens: 50 } },
+            session_id: 'session-1', total_cost_usd: 0.10, type: 'result', uuid: 'result-1',
+        });
+        if (streaming) {
+            await service.handleStreamingEvent(run.id, { error: null, type: 'turnCompleted', usage });
+        } else {
+            run.turnUsage = usage;
+            await service.handleClose(run.id, 0);
+        }
+        const saved = service.persistConversation.mock.calls[0][0].conversation;
+
+        expect(saved.usage).toMatchObject({ costUsd: 0.10, totalTokens: 350 });
+        expect(saved.providerSessions[0].usageBaseline).toEqual({
+            costUsd: 0.10,
+            resultId: 'result-1',
+            tokens: { cachedInputTokens: 0, inputTokens: 300, outputTokens: 50, reasoningTokens: 0, totalTokens: 350 },
+        });
+    });
+
     it('keeps waitingForInput on tool, usage and output events while a question is pending', async () => {
         const { onEvent, run, service } = streamingRunService();
 

@@ -10,6 +10,44 @@ import type { StorageService } from '../../data/data_types'
 import { listAgentConversationReferences, parseAgentConversationLog } from './agent_conversation_service'
 
 describe('parseAgentConversationLog', () => {
+    it('keeps the raw provider baseline separate from previously displayed usage across reloads', () => {
+        const tokens = { cachedInputTokens: 0, inputTokens: 300, outputTokens: 50, reasoningTokens: 0, totalTokens: 350 }
+        const usageBaseline = { costUsd: 0.10, resultId: 'result-1', tokens }
+        const source = {
+            entries: [], id: 'conversation-1', startedAt: '2026-10-04T00:00:00.000Z', status: 'completed',
+            providerSessions: [{
+                agent: 'claude', conversationId: 'session-1', createdAt: '2026-10-04T00:00:00.000Z',
+                lastUsedAt: '2026-10-04T00:00:01.000Z', synchronizedThroughMessageId: 'assistant-1', usageBaseline,
+            }],
+            usage: { cachedInputTokens: 0, costUsd: 0.35, inputTokens: 100, outputTokens: 20, reasoningTokens: 0, totalTokens: 120 },
+            usageSchemaVersion: 1,
+        }
+
+        const saved = parseAgentConversationLog(JSON.stringify(source), 'activity.json')
+
+        expect(saved.providerSessions[0].usageBaseline).toEqual(usageBaseline)
+        expect(saved.usage).toMatchObject({ costUsd: 0.35, totalTokens: 120 })
+    })
+
+    it.each([
+        null,
+        { costUsd: -1 },
+        { costUsd: '0.10' },
+        { resultId: '' },
+        { tokens: { inputTokens: 10 } },
+        { tokens: null },
+    ])('rejects malformed persisted provider accounting state %j', (usageBaseline) => {
+        const source = {
+            entries: [], id: 'conversation-1', startedAt: '2026-10-04T00:00:00.000Z', status: 'completed',
+            providerSessions: [{
+                agent: 'claude', conversationId: 'session-1', createdAt: '2026-10-04T00:00:00.000Z',
+                lastUsedAt: '2026-10-04T00:00:01.000Z', synchronizedThroughMessageId: 'assistant-1', usageBaseline,
+            }],
+        }
+
+        expect(() => parseAgentConversationLog(JSON.stringify(source), 'activity.json')).toThrow(/Invalid provider (token )?usage/u)
+    })
+
     it.each([AGENT_RESULT_MAX_LENGTH - 1, AGENT_RESULT_MAX_LENGTH])(
         'preserves a command result containing %i characters byte-for-byte',
         (length) => {
