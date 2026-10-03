@@ -4784,19 +4784,19 @@
           "agent": "codex",
           "conversationId": "01a10189-92b4-7621-8a5f-c06ae3cab2f8",
           "createdAt": "2026-10-03T11:35:51.479Z",
-          "lastUsedAt": "2026-10-03T11:48:49.833Z",
-          "synchronizedThroughMessageId": "agent-turn-8bcfef15-00f9-45f3-89e1-e186cff402e8-turn-2-assistant-3"
+          "lastUsedAt": "2026-10-03T11:51:59.843Z",
+          "synchronizedThroughMessageId": "agent-turn-93d8e734-bd69-4f50-9327-c5239d213284-turn-1-assistant-2"
         }
       ],
       "startedAt": "2026-10-03T11:32:35.421Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 85631,
           "toolMs": 12656
         },
-        "elapsedMs": 298018,
-        "runningStartedAt": "2026-10-03T11:51:44.227Z"
+        "elapsedMs": 313634,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
@@ -4807,7 +4807,7 @@
         "totalTokens": 2747020
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {

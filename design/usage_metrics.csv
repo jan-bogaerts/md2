@@ -6610,3 +6610,4 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-03T11:41:38.158Z,account_usage,claude,default,weekly,10080,2026-10-04T17:00:00.000Z,,,,,,8,0
 2026-10-03T11:43:38.164Z,account_usage,claude,default,weekly,10080,2026-10-04T16:59:00.000Z,,,,,,8,0
 2026-10-03T11:44:10.116Z,token_usage,codex,,,,,17355,843904,1697,978,863934,,
+2026-10-03T11:51:59.843Z,token_usage,codex,,,,,2690,274688,239,22,277639,,
