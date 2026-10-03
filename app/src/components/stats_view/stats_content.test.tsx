@@ -152,11 +152,11 @@ describe('StatsContent', () => {
         await projectStatsService.open([], BUILTIN_AGENT_PROFILES)
         renderContent()
 
-        act(() => projectStatsService.setControls({ releaseIdentity: completedReleaseIdentity('v1') }))
+        act(() => projectStatsService.setControls({ releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('v1')] } }))
 
         await waitFor(() => expect(projectStatsService.getSnapshot().rows).toEqual([expect.objectContaining({ actionId: 'ship', value: 1 })]))
 
-        act(() => projectStatsService.setControls({ releaseIdentity: completedReleaseIdentity('empty') }))
+        act(() => projectStatsService.setControls({ releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('empty')] } }))
 
         await waitFor(() => expect(screen.getByText('No stats data matches current filters.')).toBeInTheDocument())
     })

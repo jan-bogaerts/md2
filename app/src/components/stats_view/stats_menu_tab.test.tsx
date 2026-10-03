@@ -194,9 +194,22 @@ describe('StatsMenuTab', () => {
 
         expect(screen.getByRole('combobox', { name: 'Releases' })).toHaveTextContent('Current release')
         fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Releases' }))
-        expect(screen.getAllByRole('option').map(({ textContent }) => textContent)).toEqual(['Current release', 'v1'])
+        expect(screen.getAllByRole('option').map(({ textContent }) => textContent)).toEqual(['All releases', 'Current release', 'v1'])
         fireEvent.click(screen.getByRole('option', { name: 'v1' }))
-        expect(projectStatsService.getSnapshot().controls.releaseIdentity).toBe(completedReleaseIdentity('v1'))
+        expect(projectStatsService.getSnapshot().controls.releaseSelection).toEqual({mode: 'selected', identities: ['current-release', completedReleaseIdentity('v1')]})
+
+        fireEvent.click(screen.getByRole('option', { name: 'Current release' }))
+        expect(projectStatsService.getSnapshot().controls.releaseSelection).toEqual({mode: 'selected', identities: [completedReleaseIdentity('v1')]})
+        fireEvent.click(screen.getByRole('option', { name: 'v1' }))
+        fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' })
+        await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull())
+        expect(screen.getByRole('combobox', { name: 'Releases' })).toHaveTextContent('No releases')
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Releases' }))
+        fireEvent.click(screen.getByRole('option', { name: 'All releases' }))
+        expect(projectStatsService.getSnapshot().controls.releaseSelection).toEqual({ mode: 'all' })
+        fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' })
+        await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull())
+        expect(screen.getByRole('combobox', { name: 'Releases' })).toHaveTextContent('All releases')
 
         expect(screen.getByRole('combobox', { name: 'Token number format' })).toHaveTextContent('Shortened (1.2K)')
         chooseOption('Token number format', 'Exact (1,234)')
@@ -229,10 +242,17 @@ describe('StatsMenuTab', () => {
 
     it('exports the current rows and disables the export when no rows match', async () => {
         projectStatsService.setControls({ activityMetric: 'actions', dataset: 'activityOverTime' })
-        await openStats('export', activityStorage())
+        const releaseConversation = { ...storedConversation, actionId: 'ship', id: 'conversation-2' }
+        const releaseRecord = {
+            ...agentRecord, conversationIds: [releaseConversation.id], rootActionId: 'ship',
+            rootActionLabel: 'Ship', rootConversationId: releaseConversation.id, runId: 'run-2',
+        }
+        await openStats('export', activityStorage({'design/history/v1/card__card-1.json': JSON.stringify({actionSettings: {}, conversations: [releaseConversation], origin, records: [releaseRecord], version: 4})}))
         renderTab()
 
         expect(screen.getByRole('button', { name: 'Export CSV' })).toBeEnabled()
+        act(() => projectStatsService.setControls({ releaseSelection: { mode: 'all' } }))
+        expect(projectStatsService.getSnapshot().rows.filter(({ value }) => value > 0)).toHaveLength(2)
         fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
         expect(downloadStatsCsv).toHaveBeenCalledWith('activityOverTime', projectStatsService.getSnapshot().rows)
 

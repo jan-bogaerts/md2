@@ -12,6 +12,7 @@ export type StatsPerformanceGrouping = 'agent' | 'model';
 export type StatsTotalsGrouping = 'card' | 'action';
 export type StatsTotalsMetric = 'cost' | 'duration' | 'tokens';
 export type StatsStatus = 'idle' | 'loading' | 'ready' | 'error';
+export type StatsReleaseSelection = { mode: 'all' } | { mode: 'selected'; identities: string[] };
 export type StatsChartRole =
     | 'primary'
     | 'activity'
@@ -53,7 +54,7 @@ export interface StatsControls {
     performanceGrouping: StatsPerformanceGrouping;
     performanceMetric: StatsPerformanceMetric;
     performanceModelIds: string[];
-    releaseIdentity: string;
+    releaseSelection: StatsReleaseSelection;
     shortTokenCounts: boolean;
     startUtc: string | null;
     totalsGrouping: StatsTotalsGrouping;
@@ -180,7 +181,7 @@ export const INITIAL_CONTROLS: StatsControls = {
     performanceGrouping: 'agent',
     performanceMetric: 'duration',
     performanceModelIds: [],
-    releaseIdentity: CURRENT_RELEASE_IDENTITY,
+    releaseSelection: { mode: 'selected', identities: [CURRENT_RELEASE_IDENTITY] },
     shortTokenCounts: true,
     startUtc: null,
     totalsGrouping: 'card',

@@ -12,12 +12,15 @@ import type {
     StatsChartRow,
     StatsControls as StatsControlValues,
     StatsDataset,
+    StatsReleaseOption,
 } from '../../services/stats/project_stats_types';
 import { MenuIconButton } from '../shell/menu/menu_icon_button';
 import { MenuSelect } from '../shell/menu/menu_select';
 import { Section } from '../shell/menu/section';
 import { Tab } from '../shell/menu/tab';
 import { downloadStatsCsv } from './stats_csv';
+
+const ALL_RELEASES_IDENTITY = 'all-releases';
 
 function localDateTimeValue(isoTimestamp: string | null) {
     if (!isoTimestamp) return '';
@@ -45,6 +48,12 @@ function selectedValues(value: string | string[]) {
 
 function multipleValueLabel(value: string[]) {
     return value.length === 0 ? 'All' : value.join(', ');
+}
+
+function releaseValueLabel(releases: StatsReleaseOption[], values: string[]) {
+    if (values.includes(ALL_RELEASES_IDENTITY)) return 'All releases';
+    if (values.length === 0) return 'No releases';
+    return values.map((identity) => releases.find((release) => release.identity === identity)?.label ?? identity).join(', ');
 }
 
 function handleDatasetChange(event: SelectChangeEvent) {
@@ -99,8 +108,14 @@ function handleEndChange(event: ChangeEvent<HTMLInputElement>) {
     setStatsControls({ endUtc: isoTimestampFromInput(event.target.value) });
 }
 
-function handleReleaseChange(event: SelectChangeEvent) {
-    setStatsControls({ releaseIdentity: event.target.value });
+function handleReleaseChange(event: SelectChangeEvent<string[]>) {
+    const values = selectedValues(event.target.value);
+    const currentSelection = projectStatsService.getSnapshot().controls.releaseSelection;
+    if (values.includes(ALL_RELEASES_IDENTITY) && currentSelection.mode !== 'all') {
+        setStatsControls({ releaseSelection: { mode: 'all' } });
+        return;
+    }
+    setStatsControls({ releaseSelection: { mode: 'selected', identities: values.filter((value) => value !== ALL_RELEASES_IDENTITY) } });
 }
 
 function handleTokenFormatChange(event: SelectChangeEvent) {
@@ -121,6 +136,10 @@ export function StatsMenuTab({ service = projectStatsService }: { service?: Proj
     const [dateRangeAnchorElement, setDateRangeAnchorElement] = useState<HTMLSpanElement | null>(null);
     const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
     const { controls, options, rows } = snapshot;
+    const releaseValues = controls.releaseSelection.mode === 'all'
+        ? [ALL_RELEASES_IDENTITY]
+        : controls.releaseSelection.identities;
+    const renderReleaseValue = releaseValueLabel.bind(null, options.releases);
     const disabled = snapshot.status === 'loading' || snapshot.status === 'error';
     const handleExport = exportStats.bind(null, controls.dataset, rows);
     const selectTables = service.setViewModeChoice.bind(service, 'tables');
@@ -248,7 +267,8 @@ export function StatsMenuTab({ service = projectStatsService }: { service?: Proj
             </Section>
             <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
             <Section label="Filters">
-                <MenuSelect disabled={disabled} label="Releases" onChange={handleReleaseChange} value={controls.releaseIdentity}>
+                <MenuSelect<string[]> disabled={disabled} label="Releases" multiple onChange={handleReleaseChange} renderValue={renderReleaseValue} value={releaseValues}>
+                    <MenuItem value={ALL_RELEASES_IDENTITY}>All releases</MenuItem>
                     {options.releases.map(({ identity, label }) => <MenuItem key={identity} value={identity}>{label}</MenuItem>)}
                 </MenuSelect>
                 <MenuSelect disabled={disabled} label="Token number format" minWidth={160} onChange={handleTokenFormatChange} value={controls.shortTokenCounts ? 'short' : 'exact'}>

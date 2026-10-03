@@ -8,7 +8,8 @@ import {
     type StatsOptions,
 } from './project_stats_types';
 import { activityRows } from './stats_activity_dataset';
-import { buildOptions, buildReleaseOptions, reconcileControls } from './stats_options';
+import { buildOptions, buildReleaseOptions, reconcileControls, reconcileReleaseSelection } from './stats_options';
+import { mergeStats } from './project_stats_loader';
 import { eligibleSamples, performanceRows, type EligibleSample } from './stats_performance_dataset';
 import { inRange } from './stats_time_buckets';
 import { totalsRows } from './stats_totals_dataset';
@@ -39,16 +40,20 @@ function omittedTimerCount(source: StatsDatasetSource, controls: StatsControls) 
 /** Reconciles controls against the loaded source, then aggregates the selected dataset once. */
 export function buildSnapshot(source: LoadedStatsSource, requestedControls: StatsControls): ProjectStatsSnapshot {
     const releases = buildReleaseOptions(source);
-    const releaseIdentity = releases.some(({ identity }) => identity === requestedControls.releaseIdentity)
-        ? requestedControls.releaseIdentity
-        : releases[0].identity;
-    const selectedRelease = releases.find(({ identity }) => identity === releaseIdentity);
-    if (!selectedRelease) throw new Error('Selected stats release is unavailable');
-    const stats = selectedRelease.releaseName === null ? source.currentStats : source.releaseStats[selectedRelease.releaseName];
-    if (!stats) throw new Error(`Missing stats for release ${selectedRelease.releaseName}`);
+    const releaseSelection = reconcileReleaseSelection(requestedControls.releaseSelection, releases);
+    const selectedIdentities = releaseSelection.mode === 'all'
+        ? new Set(releases.map(({ identity }) => identity))
+        : new Set(releaseSelection.identities);
+    const statsSources = releases.filter(({ identity }) => selectedIdentities.has(identity)).map(({ releaseName }) => {
+        if (releaseName === null) return source.currentStats;
+        const stats = source.releaseStats[releaseName];
+        if (!stats) throw new Error(`Missing stats for release ${releaseName}`);
+        return stats;
+    });
+    const stats = mergeStats(statsSources);
     const datasetSource: StatsDatasetSource = { ...source, stats };
     const options = buildOptions(datasetSource, releases);
-    const controls = reconcileControls({ ...requestedControls, releaseIdentity }, options);
+    const controls = reconcileControls({ ...requestedControls, releaseSelection }, options);
     const performance = eligibleSamples(datasetSource, controls);
     const rows = datasetRows(datasetSource, controls, options, performance.samples);
     const excludedSampleCount = Object.values(performance.exclusionCounts).reduce((total, count) => total + count, 0);

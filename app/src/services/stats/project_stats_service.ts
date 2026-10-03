@@ -76,7 +76,14 @@ export class ProjectStatsService extends EventTarget {
         this.close();
         this.binding = null;
         this.projectKey = null;
-        this.publish({ ...this.snapshot, controls: { ...this.snapshot.controls, granularity: INITIAL_CONTROLS.granularity } });
+        this.publish({
+            ...this.snapshot,
+            controls: {
+                ...this.snapshot.controls,
+                granularity: INITIAL_CONTROLS.granularity,
+                releaseSelection: INITIAL_CONTROLS.releaseSelection,
+            },
+        });
         if (this.viewModeChoice !== null) {
             this.viewModeChoice = null;
             this.dispatchEvent(new Event('viewModeChanged'));

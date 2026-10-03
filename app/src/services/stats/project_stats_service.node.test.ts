@@ -551,14 +551,14 @@ describe('ProjectStatsService aggregation', () => {
         const service = new ProjectStatsService()
 
         await openService(service, statsStorage)
-        service.setControls({ releaseIdentity: completedReleaseIdentity('v1') })
+        service.setControls({ releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('v1')] } })
         expect(service.getSnapshot().rows).toMatchObject([{ value: 1 }])
         expect(statsStorage.commit).toHaveBeenCalledWith(expect.objectContaining({ message: 'Update calculated release stats' }))
         service.close()
         vi.mocked(statsStorage.loadTextFile!).mockClear()
 
         await service.open(cards, BUILTIN_AGENT_PROFILES)
-        service.setControls({ releaseIdentity: completedReleaseIdentity('v1') })
+        service.setControls({ releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('v1')] } })
 
         expect(service.getSnapshot().rows).toMatchObject([{ value: 1 }])
         expect(statsStorage.loadTextFile).not.toHaveBeenCalledWith(project, releasePath)
@@ -610,20 +610,20 @@ describe('ProjectStatsService aggregation', () => {
         const service = new ProjectStatsService()
         await openService(service, statsStorage)
 
-        expect(service.getSnapshot().controls.releaseIdentity).toBe('current-release')
+        expect(service.getSnapshot().controls.releaseSelection).toEqual({ mode: 'selected', identities: ['current-release'] })
         expect(service.getSnapshot().options.releases.map(({ label }) => label)).toEqual([
             'Current release', 'empty', 'v1', 'v2',
         ])
         expect(service.getSnapshot().rows).toMatchObject([{ actionId: 'review', value: 1 }])
 
-        service.setControls({ releaseIdentity: completedReleaseIdentity('v1') })
+        service.setControls({ releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('v1')] } })
         expect(service.getSnapshot().rows).toMatchObject([{ actionId: 'ship', value: 1 }])
         expect(statsStorage.listRepositoryFiles).toHaveBeenCalledTimes(1)
 
         service.setControls({ endUtc: '2026-08-12T23:59:59.999Z', startUtc: '2026-08-12T00:00:00.000Z' })
         expect(service.getSnapshot().rows.every(({ value }) => value === 0)).toBe(true)
 
-        service.setControls({ endUtc: null, releaseIdentity: completedReleaseIdentity('empty'), startUtc: null })
+        service.setControls({ endUtc: null, releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('empty')] }, startUtc: null })
         expect(service.getSnapshot().rows).toEqual([])
     })
 
@@ -665,13 +665,23 @@ describe('ProjectStatsService aggregation', () => {
             chartRole === 'accountUsage' || chartRole === 'projectTokensTotal'
         ))
 
-        service.setControls({ releaseIdentity: completedReleaseIdentity('v1') })
+        service.setControls({ releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('v1')] } })
         const releaseSnapshot = service.getSnapshot()
         expect(releaseSnapshot.rows.filter(({ chartRole, value }) => chartRole === 'activity' && value > 0))
             .toEqual([expect.objectContaining({ actionId: 'ship', value: 1 })])
         expect(releaseSnapshot.rows.filter(({ chartRole }) => (
             chartRole === 'accountUsage' || chartRole === 'projectTokensTotal'
         ))).toEqual(currentTelemetry)
+
+        service.setControls({ releaseSelection: { mode: 'all' } })
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => (
+            chartRole === 'accountUsage' || chartRole === 'projectTokensTotal'
+        ))).toEqual(currentTelemetry)
+        service.setControls({ releaseSelection: { mode: 'selected', identities: [] } })
+        expect(service.getSnapshot().rows.filter(({ chartRole }) => (
+            chartRole === 'accountUsage' || chartRole === 'projectTokensTotal'
+        ))).toEqual(currentTelemetry)
+        service.setControls({ releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('v1')] } })
 
         service.setControls({ dataset: 'agentPerformance', performanceMetric: 'duration' })
         expect(service.getSnapshot().rows[3]).toEqual(expect.objectContaining({ seriesIdentity: 'codex unmeasured', value: 2_500 }))
@@ -689,15 +699,85 @@ describe('ProjectStatsService aggregation', () => {
         }
         const service = new ProjectStatsService()
         await openService(service, storage(files))
-        service.setControls({ releaseIdentity: completedReleaseIdentity('v1') })
+        service.setControls({ releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('v1')] } })
         expect(service.getSnapshot().rows).toMatchObject([{ actionId: 'ship' }])
 
         service.close()
         delete files[releasePath]
         await service.open(cards, BUILTIN_AGENT_PROFILES)
 
-        expect(service.getSnapshot().controls.releaseIdentity).toBe('current-release')
+        expect(service.getSnapshot().controls.releaseSelection).toEqual({ mode: 'selected', identities: ['current-release'] })
         expect(service.getSnapshot().rows).toMatchObject([{ actionId: 'review', value: 1 }])
+    })
+
+    it('combines selected releases once per fact and scopes every report', async () => {
+        const sharedConversation = conversation({ id: 'shared-conversation' })
+        const secondConversation = conversation({ actionId: 'ship', completedAt: '2026-08-13T10:00:00.000Z', id: 'second-conversation' })
+        const sharedActivity = activityContent({
+            conversations: [sharedConversation],
+            records: [agentRecord('shared-run', sharedConversation.completedAt!, sharedConversation.id)],
+        })
+        const statsStorage = storage({
+            'design/activity/card__card-1.json': sharedActivity,
+            'design/history/v1/card__card-1.json': sharedActivity,
+            'design/history/v2/card__card-1.json': activityContent({
+                conversations: [secondConversation],
+                records: [agentRecord('second-run', secondConversation.completedAt!, secondConversation.id, { rootActionId: 'ship', rootActionLabel: 'Ship' })],
+            }),
+            'design/history/empty/README.md': 'Empty release',
+        })
+        const service = new ProjectStatsService()
+        await openService(service, statsStorage)
+        service.setControls({ releaseSelection: { mode: 'selected', identities: ['current-release', completedReleaseIdentity('v1'), completedReleaseIdentity('v2')] } })
+
+        expect(service.getSnapshot().rows.filter(({ value }) => value > 0)).toMatchObject([
+            { actionId: 'review', value: 1 }, { actionId: 'ship', value: 1 },
+        ])
+        expect(service.getSnapshot().options.actions.map(({ identity }) => identity)).toEqual(['review', 'ship'])
+        service.setControls({ dataset: 'agentPerformance' })
+        expect(service.getSnapshot().options.agents).toEqual([{ identity: 'codex', label: 'codex' }])
+        expect(service.getSnapshot().rows.filter(({ value }) => value === 1_500)).toHaveLength(2)
+        service.setControls({ dataset: 'totals', totalsGrouping: 'action', totalsMetric: 'duration' })
+        expect(service.getSnapshot().rows.filter(({ value }) => value > 0).map(({ identity, value }) => ({ identity, value })))
+            .toEqual([{ identity: 'review', value: 1_500 }, { identity: 'ship', value: 1_500 }])
+        service.setControls({ dataset: 'usageComparison' })
+        expect(service.getSnapshot().rows.filter(({ chartRole, value }) => chartRole === 'activity' && value > 0)).toHaveLength(2)
+
+        service.setControls({ releaseSelection: { mode: 'all' } })
+        expect(service.getSnapshot().rows.filter(({ chartRole, value }) => chartRole === 'activity' && value > 0)).toHaveLength(2)
+        service.setControls({ releaseSelection: { mode: 'selected', identities: [] } })
+        expect(service.getSnapshot().rows.filter(({ chartRole, value }) => chartRole === 'activity' && value > 0)).toEqual([])
+    })
+
+    it('keeps release selection across sessions and reconciles added and removed folders', async () => {
+        const firstPath = 'design/history/v1/card__card-1.json'
+        const secondPath = 'design/history/v2/card__card-1.json'
+        const files: Record<string, string> = {
+            'design/activity/card__card-1.json': activityContent({ records: [actionRecord('current', '2026-08-12T10:00:00.000Z')] }),
+            [firstPath]: activityContent({ records: [actionRecord('first', '2026-08-13T10:00:00.000Z')] }),
+        }
+        const service = new ProjectStatsService()
+        await openService(service, storage(files))
+        service.setControls({ releaseSelection: { mode: 'all' } })
+        service.close()
+        files[secondPath] = activityContent({ records: [actionRecord('second', '2026-08-14T10:00:00.000Z')] })
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
+        expect(service.getSnapshot().controls.releaseSelection).toEqual({ mode: 'all' })
+        expect(service.getSnapshot().rows.reduce((total, { value }) => total + value, 0)).toBe(3)
+
+        service.setControls({ releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('v1'), completedReleaseIdentity('v2')] } })
+        service.close()
+        delete files[firstPath]
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
+        expect(service.getSnapshot().controls.releaseSelection).toEqual({ mode: 'selected', identities: [completedReleaseIdentity('v2')] })
+
+        service.setControls({ releaseSelection: { mode: 'selected', identities: [] } })
+        service.close()
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
+        expect(service.getSnapshot().controls.releaseSelection).toEqual({ mode: 'selected', identities: [] })
+        service.bindProject({ config, project: { branch: 'main', id: 'different-project' }, storage: storage(files) })
+        await service.open(cards, BUILTIN_AGENT_PROFILES)
+        expect(service.getSnapshot().controls.releaseSelection).toEqual({ mode: 'selected', identities: ['current-release'] })
     })
 
     it('zero-fills day ranges and emits stable stacked action series', async () => {

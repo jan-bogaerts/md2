@@ -186,8 +186,20 @@ describe('reconcileControls', () => {
 
     it('falls back to current release when selected completed release disappears', () => {
         const options = buildOptions(source(), buildReleaseOptions(loadedSource()))
-        const reconciled = reconcileControls(controls({ releaseIdentity: completedReleaseIdentity('removed') }), options)
+        const reconciled = reconcileControls(controls({ releaseSelection: { mode: 'selected', identities: [completedReleaseIdentity('removed')] } }), options)
 
-        expect(reconciled.releaseIdentity).toBe(CURRENT_RELEASE_IDENTITY)
+        expect(reconciled.releaseSelection).toEqual({ mode: 'selected', identities: [CURRENT_RELEASE_IDENTITY] })
+    })
+
+    it('keeps surviving and empty release choices, and preserves an intentionally empty list', () => {
+        const loaded = loadedSource({ releaseStats: { v1: { actions: [], conversations: [] }, empty: { actions: [], conversations: [] } } })
+        const options = buildOptions(source(), buildReleaseOptions(loaded))
+        const selected = reconcileControls(controls({releaseSelection: {mode: 'selected', identities: [completedReleaseIdentity('removed'), completedReleaseIdentity('empty')]}}), options)
+
+        expect(selected.releaseSelection).toEqual({ mode: 'selected', identities: [completedReleaseIdentity('empty')] })
+        expect(reconcileControls(controls({ releaseSelection: { mode: 'selected', identities: [] } }), options).releaseSelection)
+            .toEqual({ mode: 'selected', identities: [] })
+        expect(reconcileControls(controls({ releaseSelection: { mode: 'all' } }), options).releaseSelection)
+            .toEqual({ mode: 'all' })
     })
 })
