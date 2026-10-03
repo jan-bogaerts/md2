@@ -66,7 +66,34 @@ Limitation: state changes are detected in the app. A card edited to a new status
 
 ## Scheduling
 
-**Schedule** in the popup picks a date and time. The schedule is stored as JSON in the repository, and the desktop app registers timers for it when the project loads. When it fires, the same runner executes the same chain. Schedule state is tracked separately from execution state, and the desktop app watches the schedule file so external edits are picked up.
+**Schedule** in the popup runs the action later. Pick a trigger:
+
+| Trigger | Fires |
+| --- | --- |
+| **Set date and time** | At the chosen moment. |
+| **When account usage resets** | When the chosen agent's usage limit window resets. Pick the agent, then the limit and window. |
+| **When another card enters state** | When the chosen card reaches the chosen column. |
+
+The schedule is stored as JSON in the repository, and the desktop app registers it when the project loads. When it fires, the same runner executes the same chain. Schedule state is tracked separately from execution state, and the desktop app watches the schedule file so external edits are picked up.
+
+**View active schedules** on the **Run** tab of the menu lists every pending schedule and sequence with its trigger. **Open** jumps to the target; **Delete** removes the schedule after confirmation.
+
+## Card sequences
+
+A sequence runs one action on several cards, one card at a time. Open it with **Add sequence** on the **Run** tab of the menu.
+
+| Field | Meaning |
+| --- | --- |
+| Action | Only actions that apply to every card in the list are offered. Built-in actions are excluded. |
+| Cards | Active cards, in run order. Add them with **Add cards** or by dragging from the board; drag to reorder; **Delete** removes the selected card. |
+| Ready state | The column a card must reach before the sequence moves to the next card. |
+| Schedule trigger | **Now**, or one of the schedule triggers above. A trigger card cannot also be in the sequence. |
+
+**Start** (or **Schedule**) registers it. For each card the action runs unattended. The sequence advances only when the run completed **and** the card is in the ready state, in either order. A failed run fails the sequence; a cancelled run cancels it. After the last card, the sequence is completed.
+
+## Finishing streaming actions in a chain
+
+**Finish** ends the conversation and lets the chain continue. Ctrl+click or long-press **Finish** to choose between stopping the remaining linked actions and finishing only this conversation.
 
 ## When run is not available
 

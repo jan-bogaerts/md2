@@ -4717,19 +4717,19 @@
           "agent": "codex",
           "conversationId": "01a10189-92b4-7621-8a5f-c06ae3cab2f8",
           "createdAt": "2026-10-03T11:35:51.479Z",
-          "lastUsedAt": "2026-10-03T11:35:51.479Z",
-          "synchronizedThroughMessageId": "agent-turn-8bcfef15-00f9-45f3-89e1-e186cff402e8-turn-1-assistant-4"
+          "lastUsedAt": "2026-10-03T11:44:10.116Z",
+          "synchronizedThroughMessageId": "agent-turn-8bcfef15-00f9-45f3-89e1-e186cff402e8-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-10-03T11:32:35.421Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 85048,
           "toolMs": 12119
         },
-        "elapsedMs": 196058,
-        "runningStartedAt": "2026-10-03T11:42:28.156Z"
+        "elapsedMs": 298018,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {

@@ -47,7 +47,7 @@ Step-by-step walkthroughs of one workflow each. They link to the reference pages
 | [Stats](guide/stats.md) | Compare activity, agents, models, tokens, account usage, and estimated cost |
 | [Search](guide/search.md) | Text and RegExp search, scopes, results |
 | [Git and commits](guide/git-and-commits.md) | Auto-save, commit, push, pull, per-card commit diffs |
-| [Worktrees](guide/worktrees.md) | Register worktrees, assign to cards, commit and integrate |
+| [Worktrees](guide/worktrees.md) | Register worktrees, assign to cards, commit, integrate, resolve merge conflicts |
 | [Remote control](guide/remote-control.md) | Drive the desktop app from a phone, and its security limits |
 | [Configuration](guide/configuration.md) | Every setting, and where it is stored |
 
@@ -56,8 +56,8 @@ Step-by-step walkthroughs of one workflow each. They link to the reference pages
 | Page | What it covers |
 | --- | --- |
 | [Action definition](actions/action-definition.md) | Every field, `appliesTo` filters, validation rules |
-| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`{% endraw %} |
-| [Running actions](actions/running-actions.md) | Entry points, popup, conversations, chains, state triggers, scheduling |
+| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`, diagram and conflict placeholders{% endraw %} |
+| [Running actions](actions/running-actions.md) | Entry points, popup, conversations, chains, state triggers, scheduling, card sequences |
 | [Agent setup](actions/agent-setup.md) | Profiles, models, reasoning levels, conversation logs |
 | [Cookbook](actions/cookbook.md) | Copy-paste action definitions |
 

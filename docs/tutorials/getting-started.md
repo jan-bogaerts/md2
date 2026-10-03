@@ -22,7 +22,7 @@ Reference: [Configuration](../guide/configuration.md), [Agent setup](../actions/
 
 You only need a token to open a repository through GitHub in the browser, without the desktop app.
 
-1. Click the GitHub button in the app bar.
+1. Click the GitHub button in the upper right corner.
 2. Follow the link to create a personal access token with repository access.
 3. Paste the token in.
 
@@ -45,15 +45,17 @@ md² keeps everything in ordinary files inside your repository:
 
 ```text
 <repo>/
-  <project folder>/
-    <working folder>/   <- active cards: the board
+  design/               <- project folder
+    active/             <- working folder: active cards, the board
     actions/            <- action definitions (*.json)
     diagrams/           <- saved diagrams
-    <releases folder>/  <- one subfolder per completed release
+    history/            <- releases folder: one subfolder per completed release
     archived/           <- cards archived one at a time
     activity/           <- conversation and run logs
   md2.config.json       <- project configuration
 ```
+
+These are the default names. All except `activity` can be renamed in the project configuration.
 
 | Folder | Use it for |
 | --- | --- |

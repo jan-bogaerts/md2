@@ -71,6 +71,12 @@ Add or change types in the config dialog, section **Project**.
 
 Column order is stored in the `after` field, not in a separate index file. Dragging a card rewrites at most a few files instead of the whole column, which keeps diffs and merges small.
 
+- The top card of a column has no `after`.
+- An `after` pointing to a card in another column, or to a card that no longer exists, makes the card the head of its own chain.
+- Deleting a card relinks the card below it to the card above it.
+
+`after` is ordering only; it does not stop a card from running. To make work wait for another card, use a schedule or a card sequence — see [Running actions](../actions/running-actions.md#scheduling).
+
 ## New cards
 
 New cards get the configured **card body template** inserted before whatever body you type. The default template is:

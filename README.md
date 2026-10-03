@@ -174,7 +174,7 @@ Open the temporary `https://*.trycloudflare.com` URL printed by the command on y
 ## Getting started
 
 1. [Download and install the latest Windows release](https://github.com/jan-bogaerts/md2/releases/latest), or follow the [source setup](https://jan-bogaerts.github.io/md2/contributing/development-setup/) on macOS or Linux.
-2. Click the GitHub icon, upper left corner, follow link to get a GitHub access token, copy-paste token in.
+2. Click the GitHub icon, upper right corner, follow link to get a GitHub access token, copy-paste token in.
 3. Open project, select a folder that contains a git repository.
 
 ## Development setup

@@ -19,6 +19,8 @@ Placeholders let one action definition work for every card. They are written as 
 | `{{parent-node}}` | Label of the selected item when running a child diagram action. |
 | `{{diagram-changes}}` | Generated text from reviewed diagram edits when sending changes to an agent. |
 | `{{version}}` | Free-form answer confirmed for the current action run. Linked actions use the same answer. |
+| `{{conflict-file}}` | Path of the conflicted file the action was started for in the merge conflict dialog. |
+| `{{conflict-files}}` | Paths of all files still conflicted in the merge conflict session, one per line. |
 
 They work in both `prompt` (agent actions) and `command` (command actions).
 
@@ -50,6 +52,7 @@ In the prompt editor, type `{{` for a typeahead list, or insert one from the too
 
 - A card placeholder only resolves when the action runs with card context. Use `appliesTo` with `"kind": "card"` so an action that needs `{{card-file}}` or `{{this-card}}` is only offered where it makes sense.
 - Diagram placeholders need diagram context. `{{diagram-file}}` also needs an output path, `{{parent-node}}` needs a selected item in a child diagram context, and `{{diagram-changes}}` needs reviewed changes from the editor.
+- Conflict placeholders need merge-conflict context. `{{conflict-file}}` only resolves when the action was started for one file, not from **all remaining files**.
 - `{{card-prompt}}` is empty when you run without typing anything. Write prompts that read fine either way.
 - `{{version}}` requires a confirmed or explicitly supplied version. Without one, executable text fails before it runs.
 - During linked-worktree actions, `{{repository-folder}}`, `{{project-folder}}`, and `{{active-cards-folder}}` remain under the opened repository. Only `{{worktree-folder}}` changes to the linked worktree.

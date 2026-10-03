@@ -8,7 +8,7 @@ Switch between **Board**, **List**, and **Stats** with the toggle in the applica
 
 One column per configured state, in configuration order, each with its card count and a **+** button that creates a card straight into that column. Columns marked `alwaysVisible` are shown even when empty; the others appear when they hold cards.
 
-Configure columns in the config dialog, section **Project**, key `project.states` — the state name, its color, and whether it is always visible.
+Configure columns in the config dialog, section **Project**, key `project.states` — the state name, its color, whether it is always visible, and an optional **Default action**. The default action is preselected when you press **Run** on a card in that column, unless another action on the card is running or waiting for input.
 
 ## The card
 

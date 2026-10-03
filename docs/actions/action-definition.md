@@ -55,7 +55,7 @@ An object of context filters. Every configured filter must match for the action 
 
 | Filter | Matches |
 | --- | --- |
-| `kind` | Context type, for example `card`, `diagram`, `file`, `folder`. |
+| `kind` | Context type: `card`, `diagram`, `file`, `folder`, `merge-conflict`, or `project`. Agent actions with `merge-conflict` appear in the merge conflict dialog; see [Worktrees](../guide/worktrees.md#merge-conflicts). |
 | `type` | Card type, for example `feature`, `bug`. |
 | `state` | Card status. |
 | `file` | File the context points at. |
