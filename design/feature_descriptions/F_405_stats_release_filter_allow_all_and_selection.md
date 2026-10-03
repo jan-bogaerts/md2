@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__a7e89248-b83d-4ce4-b168-59e482d8adbc.json
 policy:
-branch: f_405_stats_release_filter_allow_all_and_selection
-worktree: 1
 changedFiles:
   - app/src/components/stats_view/stats_content.test.tsx
   - app/src/components/stats_view/stats_menu_tab.test.tsx
