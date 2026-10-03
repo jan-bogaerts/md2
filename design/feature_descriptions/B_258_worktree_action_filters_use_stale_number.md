@@ -3,6 +3,8 @@ id: B_258
 internalId: de054ddb-e1e5-44b7-a7a5-e16a9481a65f
 title: Worktree action filters use a stale number after renumbering
 status: ready for implementation
+agents:
+  - design/activity/card__de054ddb-e1e5-44b7-a7a5-e16a9481a65f.json
 ---
 
 ## Bug
