@@ -42,7 +42,7 @@
       },
       "title": "implement",
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     },
     {
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
@@ -86,6 +86,34 @@
       "title": "implement",
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "de054ddb-e1e5-44b7-a7a5-e16a9481a65f",
+      "cardPath": "design/feature_descriptions/B_258_worktree_action_filters_use_stale_number.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_258_worktree_action_filters_use_stale_number.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/B_258_worktree_action_filters_use_stale_number.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "submission-22816518-acaa-487e-bdfe-ee2bf7c6e32a",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-03T14:16:18.948Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-45f950eb-c366-48fe-aaa7-d30836530f66",
+      "providerSessions": [],
+      "startedAt": "2026-10-03T14:16:18.948Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-03T14:16:18.948Z"
+      },
+      "title": "implement",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -124,11 +152,11 @@
         "agent-47e81e80-2867-43e4-8478-c29a809e043c"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-0725a609-16d6-43d6-b5c1-58fcbf222ded",
       "origin": {
@@ -137,9 +165,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-47e81e80-2867-43e4-8478-c29a809e043c",
       "startedAt": "2026-10-03T12:14:54.875Z",
-      "status": "failed"
+      "status": "failed",
+      "rootConversationId": "agent-47e81e80-2867-43e4-8478-c29a809e043c"
     }
   ],
   "version": 5
