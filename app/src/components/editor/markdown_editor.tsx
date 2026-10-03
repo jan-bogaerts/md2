@@ -39,6 +39,11 @@ import { MarkdownAttachmentControl } from './attachments/markdown_attachment_con
 import type { AttachmentMarkdownInserter } from '../../services/attachments/attachment_workflow'
 import type { MarkdownDraftBinding } from '../../services/markdown/markdown_draft'
 import { useMarkdownDraft } from './data_sources/use_markdown_draft'
+import { markdownBreakPlugin } from './markdown_break_realm_plugin';
+import { markdownReferencePlugin } from './references/markdown_reference_realm_plugin';
+import { markdownSourcePlugin } from './source/markdown_source_realm_plugin';
+import { MarkdownSourceModeControls } from './source/markdown_source_mode_controls';
+import type { MarkdownSourceController } from './source/markdown_source_controller';
 
 const DEFAULT_CODE_LANGUAGE = ''
 const CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }
@@ -112,10 +117,6 @@ interface MarkdownDocumentSnapshot {
     markdown: string
 }
 
-interface MarkdownProcessingError {
-    error: string
-}
-
 function initialDocument(props: MarkdownEditorProps): MarkdownDocumentSnapshot {
     if (props.draft) return { target: null, markdown: props.draft.getSnapshot() }
     if (!props.dataSource) return { target: null, markdown: props.markdown }
@@ -154,9 +155,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const { markdownContentSx, mode } = useAppTheme()
     const editorRef = useRef<MDXEditorMethods>(null)
     const plainTextEditorRef = useRef<LexicalEditor | null>(null)
+    const sourceControllerRef = useRef<MarkdownSourceController | null>(null);
     const activeDraftRef = useRef(draft)
     const activeTargetRef = useRef(initialDocumentSnapshot.target)
     const latestMarkdownRef = useRef(initialDocumentSnapshot.markdown)
+    const serializedRichMarkdownRef = useRef<string | null>(null);
     const lastEmittedMarkdownRef = useRef(initialDocumentSnapshot.markdown)
     const dirtyBaselineEstablishedRef = useRef(false)
     const missingEditorReportedRef = useRef(false)
@@ -185,7 +188,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         const activeDraft = activeDraftRef.current
         if (activeDraft) {
             const editorMarkdown = readEditorContent()
-            if (editorMarkdown !== undefined && editorMarkdown !== latestMarkdownRef.current) {
+            const unchangedRichText = !plainText && !sourceControllerRef.current?.sourceActive
+                && editorMarkdown === serializedRichMarkdownRef.current;
+            if (editorMarkdown !== undefined && editorMarkdown !== latestMarkdownRef.current && !unchangedRichText) {
                 latestMarkdownRef.current = editorMarkdown
                 activeDraft.edit(editorMarkdown)
             }
@@ -205,7 +210,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         queueMicrotask(() => applyPendingDocumentChangeRef.current())
 
         return true
-    }, [binding, dataSource, readEditorContent, setDirty])
+    }, [binding, dataSource, plainText, readEditorContent, setDirty])
 
     const prepareDocumentSwitch = useCallback((detail: ActiveMarkdownDocumentChangedDetail, nextMarkdown: string) => {
         if (detail.discard) lastEmittedMarkdownRef.current = latestMarkdownRef.current
@@ -232,6 +237,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         replacingMarkdownRef.current = true
         const plainTextEditor = plainTextEditorRef.current
         if (plainText && plainTextEditor) writePlainText(plainTextEditor, markdown)
+        else if (sourceControllerRef.current) sourceControllerRef.current.replaceMarkdown(markdown);
         else editorRef.current?.setMarkdown(markdown)
         replacingMarkdownRef.current = false
     }, [plainText])
@@ -286,13 +292,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             return
         }
 
-        const normalizedMarkdown = readEditorContent()
-        if (normalizedMarkdown !== undefined) {
-            latestMarkdownRef.current = normalizedMarkdown
-            lastEmittedMarkdownRef.current = normalizedMarkdown
+        const initialText = plainText ? readEditorContent() : undefined;
+        if (initialText !== undefined) {
+            latestMarkdownRef.current = initialText;
+            lastEmittedMarkdownRef.current = initialText;
         }
         dirtyBaselineEstablishedRef.current = true
-    }, [readEditorContent])
+    }, [plainText, readEditorContent])
 
     useEffect(() => {
         const unregister = registerMarkdownEditorStage(flush)
@@ -314,12 +320,23 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         },
     }), [flush, replaceMarkdown, setDirty])
 
-    const handleEditorChange = useCallback((serializedMarkdown: string) => {
+    const handleEditorChange = useCallback((serializedMarkdown: string, initialNormalization = false) => {
+        if (!plainText) {
+            if (initialNormalization) {
+                serializedRichMarkdownRef.current = serializedMarkdown;
+                return;
+            }
+            if (sourceControllerRef.current?.transitioning) return;
+            if (!sourceControllerRef.current?.sourceActive) {
+                if (serializedMarkdown === serializedRichMarkdownRef.current) return;
+                serializedRichMarkdownRef.current = serializedMarkdown;
+            }
+        }
         const markdown = plainText ? readEditorContent() ?? serializedMarkdown : serializedMarkdown
         if (replacingMarkdownRef.current || latestMarkdownRef.current === markdown) return
 
         latestMarkdownRef.current = markdown
-        if (!dirtyBaselineEstablishedRef.current) return
+        if (!dirtyBaselineEstablishedRef.current && plainText) return;
         setDirty(markdown !== lastEmittedMarkdownRef.current)
         onLiveChangeRef.current?.(markdown)
         activeDraftRef.current?.edit(markdown)
@@ -327,16 +344,15 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         if (dataSource && binding && activeTarget) dataSource.edit(binding, activeTarget, markdown)
     }, [binding, dataSource, plainText, readEditorContent, setDirty])
 
-    const handleEditorError = useCallback(({ error }: MarkdownProcessingError) => {
-        dialogService.error(new Error(error), { fallbackMessage: 'Markdown could not be parsed' })
-    }, [])
-
     const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
         if (!flushOnBlur || event.currentTarget.contains(event.relatedTarget)) return
         flush()
     }
 
     const insertMarkdown = useCallback((markdown: string) => {
+        const sourceController = sourceControllerRef.current;
+        if (sourceController?.sourceActive) return sourceController.insertMarkdown(markdown);
+        sourceController?.validateRichInsertion(markdown);
         const editor = editorRef.current
         if (!editor) throw new Error('Markdown editor is not mounted')
 
@@ -350,6 +366,23 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         () => ({ initialText: initialDocumentSnapshot.markdown, onEditorReady: handlePlainTextEditorReady }),
         [handlePlainTextEditorReady, initialDocumentSnapshot.markdown],
     )
+    const getMarkdown = useCallback(() => latestMarkdownRef.current, []);
+    const handleSourceReady = useCallback((controller: MarkdownSourceController) => {
+        sourceControllerRef.current = controller;
+    }, []);
+    const handleRichTextBaseline = useCallback((markdown: string) => {
+        serializedRichMarkdownRef.current = markdown;
+    }, []);
+    const sourceConfig = useMemo(() => ({
+        compact: hideToolbar,
+        getMarkdown,
+        getTarget,
+        historyStore,
+        imagePasteHandler,
+        initialViewMode: viewMode === 'source' ? 'source' as const : 'rich-text' as const,
+        onReady: handleSourceReady,
+        onRichTextBaseline: handleRichTextBaseline,
+    }), [getMarkdown, getTarget, handleRichTextBaseline, handleSourceReady, hideToolbar, historyStore, imagePasteHandler, viewMode]);
 
     const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])
 
@@ -378,6 +411,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const onAttachFiles = attachmentHandler && !hideAttachmentControl ? attachFiles : undefined
     const toolbarContents = useCallback(() => (
         <HorizontalScrollArea>
+            {!plainText && !hideToolbar && viewMode !== 'diff' ? <MarkdownSourceModeControls /> : null}
             {!hideToolbar ? (
                 customToolbarContents?.({ onAttachFiles })
                 ?? (
@@ -391,11 +425,14 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             ) : null}
             {hideToolbar && onAttachFiles ? <MarkdownAttachmentControl disabled={readOnly} onFiles={onAttachFiles} /> : null}
         </HorizontalScrollArea>
-    ), [customToolbarContents, hideToolbar, onAttachFiles, overlayContainer, placeholders, readOnly])
+    ), [customToolbarContents, hideToolbar, onAttachFiles, overlayContainer, placeholders, plainText, readOnly, viewMode])
     const editorSx = {
         ...markdownContentSx,
         ...(monospace ? {'& .mdxeditor-content, & .mdxeditor-content *': { fontFamily: 'monospace !important' }} : {}),
         '& .mdxeditor-toolbar': { bgcolor: 'background.paper', overflow: 'hidden', position: 'sticky', top: 0, zIndex: 1 },
+        '& .mdxeditor-source-editor .cm-editor, & .mdxeditor-source-editor .cm-gutters': {bgcolor: 'background.paper', color: 'text.primary'},
+        '& .mdxeditor-source-editor .cm-cursor, & .mdxeditor-source-editor .cm-dropCursor': {borderLeftColor: 'text.primary'},
+        '& .mdxeditor-source-editor .cm-selectionBackground': {bgcolor: 'action.selected'},
     }
     const historyPlugin = historyPluginConfig ? markdownDocumentHistoryPlugin(historyPluginConfig) : null
     const plugins = [
@@ -411,7 +448,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         codeMirrorPlugin({ codeBlockLanguages: CODE_BLOCK_LANGUAGES }),
         ...(plainText ? [markdownPlainTextPlugin(plainTextConfig)] : [markdownShortcutPlugin()]),
         plainMarkdownPlugin(),
-        ...(viewMode ? [diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode })] : []),
+        ...(!plainText ? [
+            markdownBreakPlugin(),
+            markdownReferencePlugin(),
+            viewMode === 'diff' ? diffSourcePlugin({ diffMarkdown: diffMarkdown ?? '', viewMode }) : markdownSourcePlugin(sourceConfig),
+        ] : []),
         ...(!hideToolbar || onAttachFiles ? [toolbarPlugin({ toolbarContents })] : []),
         markdownPlaceholderPlugin({ overlayContainer, placeholders }),
         markdownFileSearchPlugin({ overlayContainer, repositoryFiles }),
@@ -433,13 +474,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
                 contentEditableClassName="mdxeditor-content"
                 markdown={plainText ? '' : initialDocumentSnapshot.markdown}
                 onChange={handleEditorChange}
-                onError={handleEditorError}
                 overlayContainer={overlayContainer}
                 plugins={plugins}
                 readOnly={readOnly}
                 ref={editorRef}
                 suppressHtmlProcessing
                 suppressSharedHistory={!!historyStore}
+                trim={false}
             />
         </Box>
     )

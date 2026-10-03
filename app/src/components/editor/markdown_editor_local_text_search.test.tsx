@@ -88,6 +88,7 @@ function capturedSearchPopperProps() {
     return call[0]
 }
 
+// Keep this module isolated: its MUI Popper mock must be installed before MarkdownEditor is imported.
 describe('MarkdownEditor local text search', () => {
     afterEach(cleanup)
 

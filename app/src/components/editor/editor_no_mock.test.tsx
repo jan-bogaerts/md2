@@ -1,7 +1,6 @@
 import './attachments/attachment_choice_dialog.grouped.test'
 import './attachments/markdown_attachment_control.grouped.test'
 import './markdown_editor.grouped.test'
-import './markdown_editor_local_text_search.grouped.test'
 import './toolbar/markdown_emoji_toolbar_control.grouped.test'
 import './file_search/markdown_file_search_menu.grouped.test'
 import './file_search/markdown_file_search_menu_renderer.grouped.test'

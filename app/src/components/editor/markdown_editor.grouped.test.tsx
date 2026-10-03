@@ -153,19 +153,6 @@ describe('MarkdownEditor', () => {
         expect(document.querySelector('[data-html-processing-suppressed="true"]')).not.toBeNull()
     })
 
-    it('reports Markdown parser errors through the dialog service', () => {
-        const reportError = vi.spyOn(dialogService, 'error')
-        renderEditor()
-
-        fireEvent.click(screen.getByTestId('emit-markdown-error'))
-
-        expect(reportError).toHaveBeenCalledExactlyOnceWith(
-            new Error('Invalid Markdown'),
-            { fallbackMessage: 'Markdown could not be parsed' },
-        )
-        reportError.mockRestore()
-    })
-
     it('imports plain clipboard text as markdown', () => {
         const markdown = '# Title\n\n- Item\n\n[Link](https://example.com)\n\n```js\nconst value = 1;\n```'
         renderEditor()

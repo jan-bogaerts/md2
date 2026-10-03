@@ -146,8 +146,9 @@ export function MarkdownPastePlugin() {
             event.preventDefault()
             return true
         } catch (error) {
+            event.preventDefault();
             dialogService.error(error, { fallbackMessage: 'Clipboard content could not be pasted' })
-            return false
+            return true;
         }
     }, [config])
 

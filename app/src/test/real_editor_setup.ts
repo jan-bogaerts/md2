@@ -31,3 +31,7 @@ globalThis.ResizeObserver = TestResizeObserver
 
 // jsdom has no layout, so scrollIntoView does not exist.
 if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {}
+
+// CodeMirror measures text ranges; jsdom has no layout APIs for those ranges.
+if (!Range.prototype.getBoundingClientRect) Range.prototype.getBoundingClientRect = () => new DOMRect();
+if (!Range.prototype.getClientRects) Range.prototype.getClientRects = () => Object.assign([], { item: () => null });
