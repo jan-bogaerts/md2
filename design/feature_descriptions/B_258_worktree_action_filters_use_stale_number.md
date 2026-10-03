@@ -2,9 +2,26 @@
 id: B_258
 internalId: de054ddb-e1e5-44b7-a7a5-e16a9481a65f
 title: Worktree action filters use a stale number after renumbering
-status: ready for implementation
+status: ready
 agents:
   - design/activity/card__de054ddb-e1e5-44b7-a7a5-e16a9481a65f.json
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup.tsx
+  - app/src/components/actions/run/sequence/card_sequence_actions.node.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_actions.ts
+  - app/src/components/actions/run/sequence/card_sequence_dialog.tsx
+  - app/src/components/actions/run/trigger/action_entry_points.grouped.test.tsx
+  - app/src/components/actions/run/trigger/action_entry_points.tsx
+  - app/src/data/action_context.node.test.ts
+  - app/src/data/action_context.ts
+  - desktop/main.js
+  - desktop/src/actions/action/action_scheduler_service.js
+  - desktop/src/actions/action/action_scheduler_service.test.mjs
+  - desktop/src/actions/schedule/scheduled_card_context.js
+  - desktop/src/actions/schedule/scheduled_card_context.test.mjs
+  - shared/action_worktree_context.d.mts
+  - shared/action_worktree_context.mjs
 ---
 
 ## Bug
