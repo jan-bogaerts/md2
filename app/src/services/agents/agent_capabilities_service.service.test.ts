@@ -1,148 +1,170 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ElectronDataBridge } from '../../data/electron_data_bridge'
-import { configService } from '../config/config_service'
-import { AgentCapabilitiesService, type AgentCapabilitiesProvider } from './agent_capabilities_service'
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { AgentModelCatalog } from '../../data/agent_model_catalog';
+import { mergeAgentProfiles, type AgentProfile } from '../../data/agent_profiles';
+import type { ProjectReference } from '../../data/data_types';
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge';
+import { agentCatalogFixture } from '../../test/agent_catalog_fixture';
+import { AgentCapabilitiesService, agentCatalogKey, type AgentCapabilitiesProvider } from './agent_capabilities_service';
+
+const profiles = mergeAgentProfiles([]);
+const codex = profiles.find(({ name }) => name === 'codex')!;
+const claude = profiles.find(({ name }) => name === 'claude')!;
+const project: ProjectReference = { branch: 'main', id: 'repo', rootPath: '/repo' };
+
+function deferredValue<T>() {
+    let resolveValue: (value: T) => void = () => undefined;
+    const promise = new Promise<T>((resolve) => { resolveValue = resolve; });
+
+    return { promise, resolve: resolveValue };
+}
 
 function provider(overrides: Partial<AgentCapabilitiesProvider> = {}): AgentCapabilitiesProvider {
     return {
-        getAgentAvailability: vi.fn(async () => ({
-            claude: { available: true, error: null },
-            codex: { available: true, error: null },
-        })),
-        getModels: vi.fn(async () => ['model-a']),
-        getThinkingLevels: vi.fn(async () => ['none', 'low', 'medium', 'high', 'max']),
+        getAgentAvailability: vi.fn(async () => ({ codex: { available: true, error: null } })),
+        getConnectionIdentity: () => 'host-1',
+        getModelCatalog: vi.fn(async (profile) => agentCatalogFixture(profile, [profile.name === 'codex' ? 'gpt-6.1-sol' : 'sonnet'])),
         ...overrides,
-    }
-}
-
-function deferred<T>() {
-    let resolvePromise: (value: T) => void = () => undefined
-    const promise = new Promise<T>((resolve) => {
-        resolvePromise = resolve
-    })
-
-    return { promise, resolve: resolvePromise }
-}
-
-function createAvailabilityBridge() {
-    return {loadAgentAvailability: vi.fn(async () => ({ codex: { available: true, error: null } }))} as unknown as ElectronDataBridge
+    };
 }
 
 describe('AgentCapabilitiesService', () => {
     afterEach(() => {
-        configService.clear()
-        delete window.md2Data
-    })
+        vi.useRealTimers();
+        setActionBridgeOverride(null);
+        delete window.md2Data;
+    });
 
-    it('owns availability, model, and thinking-level results', async () => {
-        const capabilitiesProvider = provider()
-        const service = new AgentCapabilitiesService(capabilitiesProvider)
+    it('allows retry after a provider rejects discovery synchronously', async () => {
+        const capabilities = provider({ getModelCatalog: vi.fn(() => { throw new Error('Client unavailable'); }) });
+        const service = new AgentCapabilitiesService(capabilities);
+        const key = agentCatalogKey(codex, project);
+        await service.loadCatalog(codex, project);
+        expect(service.getCatalogSnapshot(key).error).toBe('Client unavailable');
+        vi.mocked(capabilities.getModelCatalog).mockResolvedValue(agentCatalogFixture(codex, ['gpt-6.1-sol']));
 
-        await service.loadModels('codex')
-        await service.loadThinkingLevels('codex', 'model-a')
+        await service.loadCatalog(codex, project, true);
 
-        expect(capabilitiesProvider.getAgentAvailability).toHaveBeenCalledOnce()
-        expect(capabilitiesProvider.getModels).toHaveBeenCalledWith('codex')
-        expect(capabilitiesProvider.getThinkingLevels).toHaveBeenCalledWith('codex', 'model-a')
-        expect(service.getSnapshot()).toEqual({
-            availability: {
-                error: null,
-                loading: false,
-                values: {
-                    claude: { available: true, error: null },
-                    codex: { available: true, error: null },
-                },
-            },
-            models: { error: null, loading: false, values: ['model-a'] },
-            thinkingLevels: { error: null, loading: false, values: ['none', 'low', 'medium', 'high', 'max'] },
-        })
-    })
+        expect(service.getCatalogSnapshot(key).catalog?.models[0].id).toBe('gpt-6.1-sol');
+        expect(service.getCatalogSnapshot(key).error).toBeNull();
+    });
 
-    it('loads configured profile overrides and fixed thinking levels without provider credentials', async () => {
-        configService.init({
-            desktopConfig: {
-                agentProfiles: [{ command: ['codex'], defaultThinkingLevel: 'none', models: ['override-a', 'override-b'], name: 'codex' }],
-                agentSelection: { activeAgent: 'codex', permissionMode: 'ask-for-approval', settingsByAgent: { codex: { model: 'override-a', thinkingLevel: 'none' } } },
-            },
-        })
-        window.md2Data = createAvailabilityBridge()
-        const service = new AgentCapabilitiesService()
+    it('keeps catalogs scoped while deduplicating requests for the same context', async () => {
+        const pending = deferredValue<AgentModelCatalog>();
+        const capabilities = provider({
+            getModelCatalog: vi.fn(async (profile) => profile.name === 'codex'
+                ? await pending.promise : agentCatalogFixture(profile, ['sonnet'])),
+        });
+        const service = new AgentCapabilitiesService(capabilities);
+        const changed = vi.fn();
+        service.addEventListener('changed', changed);
+        const first = service.loadCatalog(codex, project);
+        const duplicate = service.loadCatalog(codex, project);
+        await service.loadCatalog(claude, project);
+        pending.resolve(agentCatalogFixture(codex, ['gpt-6.1-sol']));
+        await first;
+        await duplicate;
 
-        await service.loadModels('codex')
-        await service.loadThinkingLevels('codex', 'override-a')
+        expect(capabilities.getModelCatalog).toHaveBeenCalledTimes(2);
+        expect(service.getCatalogSnapshot(agentCatalogKey(codex, project)).catalog?.models[0].id).toBe('gpt-6.1-sol');
+        expect(service.getCatalogSnapshot(agentCatalogKey(claude, project)).catalog?.models[0].id).toBe('sonnet');
+        expect(changed).not.toHaveBeenCalled();
+    });
 
-        expect(service.getSnapshot().models.values).toEqual(['override-a', 'override-b'])
-        expect(service.getSnapshot().thinkingLevels.values).toEqual(['none', 'low', 'medium', 'high', 'max'])
-    })
+    it('refreshes expired catalogs, uses draft commands, and separates working directories', async () => {
+        vi.useFakeTimers();
+        const capabilities = provider();
+        const service = new AgentCapabilitiesService(capabilities);
+        await service.loadCatalog(codex, project);
+        await service.loadCatalog(codex, project);
+        expect(capabilities.getModelCatalog).toHaveBeenCalledOnce();
+        await service.loadCatalog(codex, project, true);
+        const worktree = { ...project, rootPath: '/worktree' };
+        const draft = { ...codex, command: ['/new/codex'] };
+        await service.loadCatalog(codex, worktree);
+        await service.loadCatalog(draft, project);
+        expect(capabilities.getModelCatalog).toHaveBeenCalledWith(draft, project, false);
+        await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+        expect(service.getCatalogSnapshot(agentCatalogKey(codex, project)).stale).toBe(true);
+        await service.loadCatalog(codex, project, true);
+        expect(capabilities.getModelCatalog).toHaveBeenCalledTimes(5);
+    });
 
-    it('reports invalid model lists and unavailable executables', async () => {
-        const invalidService = new AgentCapabilitiesService(provider({ getModels: vi.fn(async () => ['same', 'same']) }))
-        await invalidService.loadModels('codex')
-        expect(invalidService.getSnapshot().models.error).toContain('duplicate')
+    it('discards in-flight catalog and availability responses from a previous host', async () => {
+        const previous = deferredValue<AgentModelCatalog>();
+        const previousAvailability = deferredValue<Record<string, { available: boolean; error: string | null }>>();
+        let connection = 'host-1';
+        const capabilities = provider({
+            getAgentAvailability: vi.fn().mockImplementationOnce(async () => await previousAvailability.promise)
+                .mockResolvedValue({ codex: { available: true, error: null } }),
+            getConnectionIdentity: () => connection,
+            getModelCatalog: vi.fn().mockImplementationOnce(async () => await previous.promise)
+                .mockResolvedValue(agentCatalogFixture(codex, ['new-model'])),
+        });
+        const service = new AgentCapabilitiesService(capabilities);
+        const oldCatalog = service.loadCatalog(codex, project);
+        const oldAvailability = service.initialize();
+        connection = 'host-2';
+        await service.reload();
+        await service.loadCatalog(codex, project);
+        previous.resolve(agentCatalogFixture(codex, ['old-model']));
+        previousAvailability.resolve({ codex: { available: false, error: 'Old host missing' } });
+        await oldCatalog;
+        await oldAvailability;
 
-        const unavailableService = new AgentCapabilitiesService(provider({getAgentAvailability: vi.fn(async () => ({codex: { available: false, error: 'Executable not found for codex: codex' }}))}))
-        await unavailableService.loadModels('codex')
-        expect(unavailableService.getSnapshot().models.error).toBe('Executable not found for codex: codex')
-    })
+        expect(service.getCatalogSnapshot(agentCatalogKey(codex, project)).catalog?.models[0].id).toBe('new-model');
+        expect(service.getSnapshot().availability.values.codex.available).toBe(true);
+    });
 
-    it('rejects empty and malformed capability results', async () => {
-        const emptyService = new AgentCapabilitiesService(provider({ getModels: vi.fn(async () => []) }))
-        await emptyService.loadModels('codex')
-        expect(emptyService.getSnapshot().models.error).toContain('missing or empty')
+    it('retains the last catalog as stale when refresh fails and allows retry', async () => {
+        const capabilities = provider();
+        const service = new AgentCapabilitiesService(capabilities);
+        await service.loadCatalog(codex, project);
+        vi.mocked(capabilities.getModelCatalog).mockRejectedValueOnce(new Error('Client disconnected'));
+        await service.loadCatalog(codex, project, true);
+        expect(service.getCatalogSnapshot(agentCatalogKey(codex, project))).toMatchObject({catalog: { models: [{ id: 'gpt-6.1-sol' }] }, error: 'Client disconnected', loading: false, stale: true});
+        await service.loadCatalog(codex, project, true);
+        expect(service.getCatalogSnapshot(agentCatalogKey(codex, project))).toMatchObject({ error: null, stale: false });
+    });
 
-        const malformedService = new AgentCapabilitiesService(provider({getThinkingLevels: vi.fn(async () => [' low'])}))
-        await malformedService.loadThinkingLevels('codex', 'model-a')
-        expect(malformedService.getSnapshot().thinkingLevels.error).toContain('malformed')
-    })
+    it('rejects malformed, empty, duplicated and cross-agent catalogs', async () => {
+        const catalog = agentCatalogFixture(codex, ['gpt-6.1-sol']);
+        const invalidCatalogs = [
+            { ...catalog, models: [] },
+            { ...catalog, models: [...catalog.models, ...catalog.models] },
+            { ...catalog, models: [{ ...catalog.models[0], reasoningEfforts: undefined }] },
+            { ...catalog, agent: 'claude' },
+        ];
+        for (const invalid of invalidCatalogs) {
+            const service = new AgentCapabilitiesService(provider({ getModelCatalog: vi.fn(async () => invalid as AgentModelCatalog) }));
+            await service.loadCatalog(codex, project);
+            expect(service.getCatalogSnapshot(agentCatalogKey(codex, project)).error).toBeTruthy();
+            expect(service.getCatalogSnapshot(agentCatalogKey(codex, project)).catalog).toBeNull();
+        }
+    });
 
-    it('reports a local capability error outside Electron', async () => {
-        configService.init()
-        const service = new AgentCapabilitiesService()
+    it('uses the active remote action bridge rather than local desktop capabilities', async () => {
+        const local = vi.fn();
+        window.md2Data = { loadAgentModelCatalog: local } as unknown as typeof window.md2Data;
+        const remote = {
+            loadAgentAvailability: vi.fn(async () => ({ codex: { available: true, error: null } })),
+            loadAgentModelCatalog: vi.fn(async () => agentCatalogFixture(codex, ['remote-model'])),
+        };
+        setActionBridgeOverride(remote as unknown as ElectronActionBridge);
+        const service = new AgentCapabilitiesService();
+        await service.initialize();
+        await service.loadCatalog(codex, project, true);
 
-        await service.loadModels('codex')
+        expect(local).not.toHaveBeenCalled();
+        expect(remote.loadAgentModelCatalog).toHaveBeenCalledWith({ agent: 'codex', profile: codex, project, refresh: true });
+        expect(service.getCatalogSnapshot(agentCatalogKey(codex, project)).catalog?.models[0].id).toBe('remote-model');
+    });
 
-        expect(service.getSnapshot().models.error).toBe('Agent executable availability requires the Electron desktop app')
-    })
-
-    it('caches availability, models, and thinking levels', async () => {
-        const capabilitiesProvider = provider()
-        const service = new AgentCapabilitiesService(capabilitiesProvider)
-
-        await service.loadModels('codex')
-        await service.loadModels('codex')
-        await service.loadThinkingLevels('codex', 'model-a')
-        await service.loadThinkingLevels('codex', 'model-a')
-
-        expect(capabilitiesProvider.getAgentAvailability).toHaveBeenCalledOnce()
-        expect(capabilitiesProvider.getModels).toHaveBeenCalledOnce()
-        expect(capabilitiesProvider.getThinkingLevels).toHaveBeenCalledOnce()
-    })
-
-    it('rejects stale model and thinking-level responses after selection changes', async () => {
-        const codexModels = deferred<string[]>()
-        const claudeModels = deferred<string[]>()
-        const firstThinkingLevels = deferred<string[]>()
-        const secondThinkingLevels = deferred<string[]>()
-        const getModels = vi.fn((agent: string) => agent === 'codex' ? codexModels.promise : claudeModels.promise)
-        const getThinkingLevels = vi.fn((_agent: string, model: string) => (
-            model === 'model-a' ? firstThinkingLevels.promise : secondThinkingLevels.promise
-        ))
-        const service = new AgentCapabilitiesService(provider({ getModels, getThinkingLevels }))
-
-        const firstModelLoad = service.loadModels('codex')
-        const secondModelLoad = service.loadModels('claude')
-        claudeModels.resolve(['claude-model'])
-        await secondModelLoad
-        codexModels.resolve(['codex-model'])
-        await firstModelLoad
-        expect(service.getSnapshot().models.values).toEqual(['claude-model'])
-
-        const firstThinkingLoad = service.loadThinkingLevels('claude', 'model-a')
-        const secondThinkingLoad = service.loadThinkingLevels('claude', 'model-b')
-        secondThinkingLevels.resolve(['high'])
-        await secondThinkingLoad
-        firstThinkingLevels.resolve(['low'])
-        await firstThinkingLoad
-        expect(service.getSnapshot().thinkingLevels.values).toEqual(['high'])
-    })
-})
+    it('keeps custom profiles configured and reports a clear error for an older builtin host', async () => {
+        const custom: AgentProfile = { command: ['custom'], models: ['my-model'], defaultThinkingLevel: 'none', name: 'custom' };
+        const service = new AgentCapabilitiesService();
+        await service.loadCatalog(custom, project);
+        expect(service.getCatalogSnapshot(agentCatalogKey(custom, project)).catalog?.source).toBe('configured');
+        await service.loadCatalog(codex, project);
+        expect(service.getCatalogSnapshot(agentCatalogKey(codex, project)).error).toBe('Dynamic model discovery requires an updated desktop host');
+    });
+});

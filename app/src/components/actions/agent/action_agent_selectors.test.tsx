@@ -23,7 +23,12 @@ const selectorState = vi.hoisted(() => ({
         model: 'gpt-5.5',
         permissionMode: 'ask-for-approval' as 'ask-for-approval' | 'approve-for-me' | 'full-access' | '',
         permissionModeSupported: true,
-        selectedAgentModels: ['gpt-5.5', 'gpt-5.6-sol'],
+        modelOptions: ['gpt-5.5', 'gpt-5.6-sol'].map((id) => ({ id, displayName: id, available: true })),
+        modelCatalog: { loading: false, stale: false, error: null as string | null, refresh: vi.fn() },
+        thinkingLevelOptions: ['none', 'low', 'medium', 'high', 'max'],
+        fastAvailable: true,
+        speedSupported: true,
+        speedMode: undefined as 'default' | 'standard' | 'fast' | undefined,
         selection: {
             activeAgent: 'codex', permissionMode: 'ask-for-approval',
             settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'high' } },
@@ -55,12 +60,47 @@ function renderSelectors(setSettings = vi.fn()) {
     return { ...rendered, setSettings }
 }
 
-function openSubmenu(name: 'Agent' | 'Model' | 'Thinking level') {
+function openSubmenu(name: 'Agent' | 'Model' | 'Thinking level' | 'Speed') {
     fireEvent.click(screen.getByRole('button', { name: 'Model' }))
-    fireEvent.click(screen.getByRole('menuitem', { name }))
+    fireEvent.click(screen.getByRole('menuitem', { name: name === 'Speed' ? /^Speed/u : name }))
 }
 
 describe('ActionAgentSelectors', () => {
+    it('selects an advertised model by its native ID while displaying its friendly name', () => {
+        const { setSettings } = renderSelectors();
+        selectorState.settings.modelOptions.push({ available: true, displayName: 'GPT 6.1 Sol', id: 'gpt-6.1-sol' });
+        openSubmenu('Model');
+        fireEvent.click(screen.getByRole('menuitem', { name: 'GPT 6.1 Sol' }));
+        expect(setSettings).toHaveBeenCalledWith(expect.objectContaining({settingsByAgent: { codex: { model: 'gpt-6.1-sol', thinkingLevel: 'high' } }}), false);
+    });
+
+    it('persists Fast for Codex and offers refresh through the model menu', () => {
+        const { setSettings } = renderSelectors();
+        openSubmenu('Speed');
+        fireEvent.click(screen.getByRole('menuitem', { name: /Fast.*Higher provider usage/u }));
+        expect(setSettings).toHaveBeenCalledWith(expect.objectContaining({settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'high', speedMode: 'fast' } }}), false);
+        fireEvent.click(screen.getByRole('button', { name: 'Model' }));
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Refresh models' }));
+        expect(selectorState.settings.modelCatalog.refresh).toHaveBeenCalledOnce();
+    });
+
+    it('hides unknown Fast support but retains a disabled saved Fast preference', () => {
+        selectorState.settings.fastAvailable = false;
+        const { rerender } = renderSelectors();
+        openSubmenu('Speed');
+        expect(screen.queryByRole('menuitem', { name: /Fast/u })).not.toBeInTheDocument();
+        selectorState.settings.speedMode = 'fast';
+        rerender(<AppThemeProvider><ActionAgentSelectors action={action} bindingStore={bindingStore}
+            settingsStore={{ setSettings: vi.fn() } as unknown as ActionRunSettingsStore} /></AppThemeProvider>);
+        expect(screen.getByRole('menuitem', { name: /Fast — unavailable/u })).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('shows no speed controls for Claude', () => {
+        selectorState.settings.agent = 'claude';
+        renderSelectors();
+        fireEvent.click(screen.getByRole('button', { name: 'Model' }));
+        expect(screen.queryByRole('menuitem', { name: /^Speed/u })).not.toBeInTheDocument();
+    });
     beforeEach(() => {
         selectorState.runStatus = null
         selectorState.settings = {
@@ -75,7 +115,12 @@ describe('ActionAgentSelectors', () => {
             model: 'gpt-5.5',
             permissionMode: 'ask-for-approval',
             permissionModeSupported: true,
-            selectedAgentModels: ['gpt-5.5', 'gpt-5.6-sol'],
+            modelOptions: ['gpt-5.5', 'gpt-5.6-sol'].map((id) => ({ id, displayName: id, available: true })),
+            modelCatalog: { loading: false, stale: false, error: null as string | null, refresh: vi.fn() },
+            thinkingLevelOptions: ['none', 'low', 'medium', 'high', 'max'],
+            fastAvailable: true,
+            speedSupported: true,
+            speedMode: undefined as 'default' | 'standard' | 'fast' | undefined,
             selection: {
                 activeAgent: 'codex', permissionMode: 'ask-for-approval',
                 settingsByAgent: { codex: { model: 'gpt-5.5', thinkingLevel: 'high' } },
@@ -101,7 +146,7 @@ describe('ActionAgentSelectors', () => {
         fireEvent.click(modelButton)
         const menu = screen.getByRole('menu', { name: 'Agent model settings' })
 
-        expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Agent', 'Model', 'Thinking level'])
+        expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual(expect.arrayContaining(['Agent', 'Model', 'Thinking level', 'Refresh models']))
         fireEvent.click(within(menu).getByRole('menuitem', { name: 'Model' }))
         expect(screen.getByRole('menu', { name: 'Model choices' })).toHaveTextContent('gpt-5.6-sol')
     })
@@ -194,7 +239,7 @@ describe('ActionAgentSelectors', () => {
             ...selectorState.settings,
             agent: 'claude',
             model: 'sonnet',
-            selectedAgentModels: ['default', 'sonnet', 'opus'],
+            modelOptions: ['default', 'sonnet', 'opus'].map((id) => ({ id, displayName: id, available: true })),
         }
         const settingsStore = { setSettings: vi.fn() } as unknown as ActionRunSettingsStore
         rerender(

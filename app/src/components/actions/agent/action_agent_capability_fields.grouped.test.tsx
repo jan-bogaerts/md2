@@ -5,6 +5,8 @@ import { AgentCapabilitiesService, type AgentCapabilitiesProvider } from '../../
 import { configService } from '../../../services/config/config_service'
 import { AppThemeProvider } from '../../../theme/theme_provider'
 import { ActionAgentCapabilityFields } from './action_agent_capability_fields'
+import { agentCatalogFixture } from '../../../test/agent_catalog_fixture';
+import type { AgentModelCatalog } from '../../../data/agent_model_catalog';
 
 const definition: RawActionDefinition = {
     agent: 'codex',
@@ -23,8 +25,8 @@ function provider(overrides: Partial<AgentCapabilitiesProvider> = {}): AgentCapa
             claude: { available: true, error: null },
             codex: { available: true, error: null },
         })),
-        getModels: vi.fn(async () => ['configured-model']),
-        getThinkingLevels: vi.fn(async () => ['none', 'low', 'medium', 'high', 'max']),
+        getModelCatalog: vi.fn(async (profile) => agentCatalogFixture(profile, ['configured-model'])),
+        getConnectionIdentity: () => 'host',
         ...overrides,
     }
 }
@@ -65,18 +67,13 @@ describe('ActionAgentCapabilityFields', () => {
     })
 
     it('preserves stored selections while requests load and selections switch', () => {
-        const neverModels = new Promise<string[]>(() => undefined)
-        const neverThinkingLevels = new Promise<string[]>(() => undefined)
-        const service = new AgentCapabilitiesService(provider({
-            getModels: vi.fn(async () => neverModels),
-            getThinkingLevels: vi.fn(async () => neverThinkingLevels),
-        }))
+        const neverModels = new Promise<AgentModelCatalog>(() => undefined)
+        const service = new AgentCapabilitiesService(provider({getModelCatalog: vi.fn(async () => neverModels)}))
         const rendered = renderFields(service)
 
         expect(screen.getByLabelText('Model')).toHaveTextContent('stored-model')
         expect(screen.getByLabelText('Thinking level')).toHaveTextContent('high')
         expect(screen.getByText('Loading models…')).toBeInTheDocument()
-        expect(screen.getByText('Loading thinking levels…')).toBeInTheDocument()
 
         const switchedDefinition = { ...definition, agent: 'claude', model: 'removed-model', thinkingLevel: 'max' }
         rendered.rerender(
@@ -90,10 +87,11 @@ describe('ActionAgentCapabilityFields', () => {
     })
 
     it('shows empty capability results as field errors', async () => {
-        const service = new AgentCapabilitiesService(provider({ getModels: vi.fn(async () => []) }))
+        const capabilities = provider({ getModelCatalog: vi.fn(async (profile) => agentCatalogFixture(profile, [])) });
+        const service = new AgentCapabilitiesService(capabilities);
         renderFields(service, { ...definition, model: undefined, thinkingLevel: undefined })
 
-        await waitFor(() => expect(screen.getByText('Model for codex capability list is missing or empty')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('Model catalog is empty in agent model catalog')).toBeInTheDocument())
         expect(screen.getByLabelText('Model')).toHaveAttribute('aria-invalid', 'true')
         expect(screen.getByLabelText('Model')).toHaveAttribute('aria-disabled', 'true')
     })

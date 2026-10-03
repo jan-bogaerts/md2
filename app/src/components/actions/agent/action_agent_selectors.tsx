@@ -14,7 +14,8 @@ import type { ActionDefinition } from '../../../data/action_types'
 import {
     PERMISSION_MODE_OPTIONS,
     THINKING_LEVELS,
-    supportsThinkingLevel,
+    SPEED_MODE_OPTIONS,
+    validateSpeedMode,
     validatePermissionMode,
     validateThinkingLevel,
     type PermissionMode,
@@ -25,6 +26,7 @@ import {
     selectModel,
     selectPermissionMode,
     selectThinkingLevel,
+    selectSpeedMode,
 } from '../../../data/agent_selection'
 import type { ActionRun } from '../../../services/actions/action_run_registry'
 import type { ActionRunSettingsStore } from '../../../services/actions/action_run_settings_service'
@@ -52,7 +54,7 @@ const COMPACT_THINKING_LEVEL_LABELS: Record<ThinkingLevel, string> = {
     none: 'none',
 }
 
-type AgentSettingsSubmenu = 'agent' | 'model' | 'thinkingLevel'
+type AgentSettingsSubmenu = 'agent' | 'model' | 'thinkingLevel' | 'speedMode';
 
 function selectRunStatus(run: ActionRun | null) {
     return run?.status ?? null
@@ -79,7 +81,7 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
         ? permissionOption?.label ?? 'Security'
         : 'Permission controls are unsupported by this agent'
     const selectedProfile = settings.agentProfiles.find(({ name }) => name === settings.agent) ?? null
-    const selectedModelAvailable = settings.selectedAgentModels.includes(settings.model)
+    const selectedModel = settings.modelOptions.find(({ id }) => id === settings.model);
 
     const handleOpenModelMenu = (event: MouseEvent<HTMLButtonElement>) => setModelMenuAnchor(event.currentTarget)
     const handleCloseSubmenu = () => {
@@ -145,6 +147,12 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
         handleCloseSecurityMenu()
     }
 
+    const handleSpeedModeChange = (event: MouseEvent<HTMLElement>) => {
+        const speedMode = validateSpeedMode(event.currentTarget.dataset.speedMode, 'action run input');
+        settingsStore.setSettings(selectSpeedMode(settings.selection, speedMode), changedWhileWaiting);
+        handleCloseModelMenu();
+    };
+
     return (
         <Box aria-label="Agent settings" role="group" sx={{ alignItems: 'center', display: 'flex', flexShrink: 1, gap: 0.5, minWidth: 0 }}>
             <Button
@@ -167,7 +175,7 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                     data-model-label
                     sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 >
-                    {settings.model || 'Default'}
+                    {(selectedModel?.displayName ?? settings.model) || 'Default'}
                 </Box>
                 <Box component="span" data-thinking-level sx={{ flexShrink: 0 }}>
                     <Box
@@ -226,6 +234,14 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                     <ListItemText>Agent</ListItemText>
                     <ChevronRight fontSize="small" />
                 </MenuItem>
+                {settings.agent === 'codex' ? (
+                    <MenuItem aria-haspopup="menu" data-submenu="speedMode" onClick={handleOpenSubmenu} onKeyDown={handleSubmenuKeyDown}>
+                        <ListItemText primary="Speed" secondary={SPEED_MODE_OPTIONS.find(({ value }) => value === (settings.speedMode ?? 'default'))?.label} />
+                        <ChevronRight fontSize="small" />
+                    </MenuItem>
+                ) : null}
+                <MenuItem disabled={settings.modelCatalog.loading} onClick={settings.modelCatalog.refresh}>Refresh models</MenuItem>
+                {settings.modelCatalog.error ? <MenuItem disabled>{settings.modelCatalog.error}</MenuItem> : null}
                 <MenuItem
                     aria-haspopup="menu"
                     data-submenu="model"
@@ -286,19 +302,15 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 slotProps={{ list: { 'aria-label': 'Model choices', onKeyDown: handleNestedMenuKeyDown } }}
                 transformOrigin={{ horizontal: 'left', vertical: 'top' }}
             >
-                {(!selectedModelAvailable ? [settings.model] : []).concat(
-                    settings.selectedAgentModels.length > 0 ? settings.selectedAgentModels : [''],
-                ).map((model) => (
+                {settings.modelOptions.map(({ available, description, displayName, id }) => (
                     <MenuItem
-                        data-model={model}
-                        disabled={model === settings.model && !selectedModelAvailable}
-                        key={model || 'default'}
+                        data-model={id}
+                        disabled={!available || settings.modelCatalog.loading || settings.modelCatalog.stale}
+                        key={id}
                         onClick={handleModelChange}
-                        selected={model === settings.model}
+                        selected={id === settings.model}
                     >
-                        {model === settings.model && !selectedModelAvailable
-                            ? `${model || 'Default'} — unavailable`
-                            : model || 'Default'}
+                        <ListItemText primary={available ? displayName : `${displayName} — unavailable`} secondary={description} />
                     </MenuItem>
                 ))}
             </Menu>
@@ -311,7 +323,7 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 transformOrigin={{ horizontal: 'left', vertical: 'top' }}
             >
                 {THINKING_LEVELS.map((thinkingLevel) => {
-                    const available = !!selectedProfile && supportsThinkingLevel(selectedProfile, thinkingLevel)
+                    const available = settings.thinkingLevelOptions.includes(thinkingLevel);
 
                     return (
                         <MenuItem
@@ -327,6 +339,30 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                         </MenuItem>
                     )
                 })}
+            </Menu>
+            <Menu
+                anchorEl={submenuAnchor}
+                anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+                onClose={handleCloseSubmenu}
+                open={submenu === 'speedMode'}
+                slotProps={{ list: { 'aria-label': 'Speed choices', onKeyDown: handleNestedMenuKeyDown } }}
+                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+            >
+                {SPEED_MODE_OPTIONS.filter(({ value }) => value !== 'fast' || settings.fastAvailable || settings.speedMode === 'fast')
+                    .map(({ label, value }) => (
+                        <MenuItem
+                            data-speed-mode={value}
+                            disabled={value !== 'default' && (!settings.speedSupported || (value === 'fast' && !settings.fastAvailable))}
+                            key={value}
+                            onClick={handleSpeedModeChange}
+                            selected={value === (settings.speedMode ?? 'default')}
+                        >
+                            <ListItemText primary={value === 'fast' && !settings.fastAvailable ? `${label} — unavailable` : label}
+                                secondary={value === 'fast'
+                                    ? settings.fastAvailable ? 'Higher provider usage' : 'Refresh models or choose another speed.'
+                                    : undefined} />
+                        </MenuItem>
+                    ))}
             </Menu>
             <Menu
                 anchorEl={securityMenuAnchor}

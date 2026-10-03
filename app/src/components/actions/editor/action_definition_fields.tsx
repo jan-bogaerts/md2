@@ -108,6 +108,7 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
             permissionMode: undefined,
             prompt: undefined,
             thinkingLevel: undefined,
+            speedMode: undefined,
             trackFileChanges: undefined,
             streaming: undefined,
             type: 'command',

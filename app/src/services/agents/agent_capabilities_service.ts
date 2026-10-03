@@ -1,183 +1,225 @@
-import { findAgentProfile } from '../../data/agent_profiles'
-import { getElectronDataBridge, type AgentAvailability } from '../../data/electron_data_bridge'
-import { getElectronActionBridge } from '../../data/electron_action_bridge'
-import { configService } from '../config/config_service'
-import { register } from '../service_injector'
+import { supportsModelDiscovery, type AgentProfile } from '../../data/agent_profiles';
+import { validateAgentModelCatalog, type AgentModelCatalog } from '../../data/agent_model_catalog';
+import type { ProjectReference } from '../../data/data_types';
+import { getElectronDataBridge, type AgentAvailability } from '../../data/electron_data_bridge';
+import { getElectronActionBridge } from '../../data/electron_action_bridge';
+import { register } from '../service_injector';
 
-export interface CapabilityState<T = string[]> {
-    error: string | null
-    loading: boolean
-    values: T
+export interface CapabilityState<T> {
+    error: string | null;
+    loading: boolean;
+    values: T;
 }
 
 export interface AgentCapabilitiesSnapshot {
-    availability: CapabilityState<Record<string, AgentAvailability>>
-    models: CapabilityState
-    thinkingLevels: CapabilityState
+    availability: CapabilityState<Record<string, AgentAvailability>>;
+}
+
+export interface AgentCatalogSnapshot {
+    catalog: AgentModelCatalog | null;
+    error: string | null;
+    loading: boolean;
+    stale: boolean;
 }
 
 export interface AgentCapabilitiesProvider {
-    getAgentAvailability(): Promise<Record<string, AgentAvailability>>
-    getModels(agent: string): Promise<string[]>
-    getThinkingLevels(agent: string, model: string): Promise<string[]>
+    getAgentAvailability(): Promise<Record<string, AgentAvailability>>;
+    getModelCatalog(profile: AgentProfile, project: ProjectReference | null, refresh: boolean): Promise<AgentModelCatalog>;
+    getConnectionIdentity(): unknown;
 }
 
-const THINKING_LEVELS = ['none', 'low', 'medium', 'high', 'max']
-const EMPTY_CAPABILITY_STATE: CapabilityState = { error: null, loading: false, values: [] }
-const EMPTY_AVAILABILITY_STATE: CapabilityState<Record<string, AgentAvailability>> = { error: null, loading: false, values: {} }
-const EMPTY_SNAPSHOT: AgentCapabilitiesSnapshot = {
-    availability: EMPTY_AVAILABILITY_STATE,
-    models: EMPTY_CAPABILITY_STATE,
-    thinkingLevels: EMPTY_CAPABILITY_STATE,
+interface CatalogContext {
+    connection: unknown;
+    pending: Promise<void> | null;
+    snapshot: AgentCatalogSnapshot;
+    timer: ReturnType<typeof setTimeout> | null;
 }
+
+const CATALOG_TTL_MS = 5 * 60 * 1000;
+const MAX_CATALOG_CONTEXTS = 32;
+const EMPTY_CATALOG: AgentCatalogSnapshot = { catalog: null, error: null, loading: false, stale: false };
+const EMPTY_SNAPSHOT: AgentCapabilitiesSnapshot = { availability: { error: null, loading: false, values: {} } };
 
 function errorMessage(error: unknown) {
-    return error instanceof Error ? error.message : 'Agent capability request failed'
+    return error instanceof Error ? error.message : 'Agent capability request failed';
 }
 
-function validateCapabilityValues(values: unknown, capability: string) {
-    if (!Array.isArray(values) || values.length === 0) throw new Error(`${capability} capability list is missing or empty`)
-    if (values.some((value) => typeof value !== 'string' || value.length === 0 || value.trim() !== value)) {
-        throw new Error(`${capability} capability list is malformed`)
-    }
-    if (new Set(values).size !== values.length) throw new Error(`${capability} capability list contains duplicate values`)
+function currentBridge() {
+    return getElectronActionBridge() ?? getElectronDataBridge();
+}
 
-    return values
+function configuredCatalog(profile: AgentProfile): AgentModelCatalog {
+    return {
+        agent: profile.name,
+        fetchedAt: Date.now(),
+        models: profile.models.map((id) => ({ displayName: id, hidden: false, id, reasoningEfforts: null, serviceTiers: [] })),
+        provider: profile.name,
+        source: 'configured',
+    };
 }
 
 const configuredProfileProvider: AgentCapabilitiesProvider = {
+    getConnectionIdentity: currentBridge,
     async getAgentAvailability() {
-        const dataBridge = getElectronDataBridge()
-        const actionBridge = getElectronActionBridge()
-        const loadAvailability = dataBridge?.loadAgentAvailability?.bind(dataBridge)
-            ?? actionBridge?.loadAgentAvailability?.bind(actionBridge)
-        if (!loadAvailability) throw new Error('Agent executable availability requires the Electron desktop app')
+        const bridge = currentBridge();
+        if (!bridge?.loadAgentAvailability) throw new Error('Agent executable availability requires the Electron desktop app');
 
-        return loadAvailability()
+        return bridge.loadAgentAvailability();
     },
-    async getModels(agent) {
-        const profile = findAgentProfile(configService.get('desktop.agentProfiles'), agent)
-        if (!profile) throw new Error(`Unknown agent profile: ${agent}`)
+    async getModelCatalog(profile, project, refresh) {
+        if (!supportsModelDiscovery(profile)) return configuredCatalog(profile);
+        const bridge = currentBridge();
+        if (!bridge?.loadAgentModelCatalog) throw new Error('Dynamic model discovery requires an updated desktop host');
 
-        return validateCapabilityValues(profile.models, `Model for ${agent}`)
+        return bridge.loadAgentModelCatalog({ agent: profile.name, profile, ...(project ? { project } : {}), refresh });
     },
-    async getThinkingLevels() {
-        return THINKING_LEVELS
-    },
+};
+
+/** Identifies capability inputs; the connection itself is checked separately. */
+export function agentCatalogKey(profile: AgentProfile, project: ProjectReference | null) {
+    return JSON.stringify([profile, project?.id, project?.branch, project?.rootPath]);
 }
 
-/** Owns cached agent capability state and rejects stale provider responses. */
+/** Owns model catalogs per provider, host, profile and working directory. */
 export class AgentCapabilitiesService extends EventTarget {
-    private availabilityPromise: Promise<void> | null = null
-    private modelCache = new Map<string, string[]>()
-    private modelRequest = 0
-    private provider: AgentCapabilitiesProvider
-    private snapshot = EMPTY_SNAPSHOT
-    private thinkingLevelCache = new Map<string, string[]>()
-    private thinkingLevelRequest = 0
+    private availabilityPromise: Promise<void> | null = null;
+    private availabilityRequest: object | null = null;
+    private readonly catalogs = new Map<string, CatalogContext>();
+    private readonly provider: AgentCapabilitiesProvider;
+    private snapshot = EMPTY_SNAPSHOT;
 
     constructor(provider: AgentCapabilitiesProvider = configuredProfileProvider) {
-        super()
-        this.provider = provider
-        register('agentCapabilitiesService', this)
+        super();
+        this.provider = provider;
+        register('agentCapabilitiesService', this);
     }
 
     getSnapshot() {
-        return this.snapshot
+        return this.snapshot;
+    }
+
+    getConnectionIdentity() {
+        return this.provider.getConnectionIdentity();
+    }
+
+    getCatalogSnapshot(key: string) {
+        const context = this.catalogs.get(key);
+
+        return context && context.connection === this.getConnectionIdentity() ? context.snapshot : EMPTY_CATALOG;
     }
 
     initialize() {
-        if (!this.availabilityPromise) this.availabilityPromise = this.loadAvailability()
+        if (!this.availabilityPromise) this.availabilityPromise = this.loadAvailability();
 
-        return this.availabilityPromise
+        return this.availabilityPromise;
     }
 
-    /** Re-read agent availability from the currently active bridge, discarding the cached result. */
+    /** Discard old host/configuration results when the active connection changes. */
     reload() {
-        this.availabilityPromise = this.loadAvailability()
+        this.clearCatalogs();
+        this.availabilityPromise = this.loadAvailability();
 
-        return this.availabilityPromise
+        return this.availabilityPromise;
     }
 
-    clear() {
-        this.modelRequest += 1
-        this.thinkingLevelRequest += 1
-        this.update({ ...this.snapshot, models: EMPTY_CAPABILITY_STATE, thinkingLevels: EMPTY_CAPABILITY_STATE })
-    }
-
-    async loadModels(agent: string) {
-        const request = this.modelRequest + 1
-        this.modelRequest = request
-        this.thinkingLevelRequest += 1
-        const cachedValues = this.modelCache.get(agent)
-        this.update({
-            ...this.snapshot,
-            models: cachedValues
-                ? { error: null, loading: false, values: cachedValues }
-                : { error: null, loading: true, values: [] },
-            thinkingLevels: EMPTY_CAPABILITY_STATE,
-        })
-        if (cachedValues) return
-
-        try {
-            await this.initialize()
-            this.requireAvailableAgent(agent)
-            const values = validateCapabilityValues(await this.provider.getModels(agent), `Model for ${agent}`)
-            if (request !== this.modelRequest) return
-            this.modelCache.set(agent, values)
-            this.update({ ...this.snapshot, models: { error: null, loading: false, values } })
-        } catch (error) {
-            if (request !== this.modelRequest) return
-            this.update({ ...this.snapshot, models: { error: errorMessage(error), loading: false, values: [] } })
+    loadCatalog(profile: AgentProfile, project: ProjectReference | null, refresh = false) {
+        const key = agentCatalogKey(profile, project);
+        const connection = this.getConnectionIdentity();
+        const previous = this.catalogs.get(key);
+        if (previous && previous.connection === connection && previous.pending) return previous.pending;
+        if (previous && previous.connection === connection && previous.snapshot.catalog && !previous.snapshot.stale && !refresh) {
+            return Promise.resolve();
         }
+        if (previous?.timer) clearTimeout(previous.timer);
+        if (!previous && this.catalogs.size >= MAX_CATALOG_CONTEXTS) this.evictOldestCatalog();
+        const catalog = previous && previous.connection === connection ? previous.snapshot.catalog : null;
+        const context: CatalogContext = {
+            connection,
+            pending: null,
+            snapshot: { catalog, error: null, loading: true, stale: !!catalog },
+            timer: null,
+        };
+        this.catalogs.set(key, context);
+        context.pending = this.readCatalog(key, context, profile, project, refresh);
+        this.dispatchEvent(new Event(`catalog:${key}`));
+
+        return context.pending;
     }
 
-    async loadThinkingLevels(agent: string, model: string) {
-        const request = this.thinkingLevelRequest + 1
-        this.thinkingLevelRequest = request
-        const cacheKey = `${agent}\u0000${model}`
-        const cachedValues = this.thinkingLevelCache.get(cacheKey)
-        this.update({
-            ...this.snapshot,
-            thinkingLevels: cachedValues
-                ? { error: null, loading: false, values: cachedValues }
-                : { error: null, loading: true, values: [] },
-        })
-        if (cachedValues) return
-
-        try {
-            const values = validateCapabilityValues(await this.provider.getThinkingLevels(agent, model), 'Thinking-level')
-            if (request !== this.thinkingLevelRequest) return
-            this.thinkingLevelCache.set(cacheKey, values)
-            this.update({ ...this.snapshot, thinkingLevels: { error: null, loading: false, values } })
-        } catch (error) {
-            if (request !== this.thinkingLevelRequest) return
-            this.update({ ...this.snapshot, thinkingLevels: { error: errorMessage(error), loading: false, values: [] } })
+    private clearCatalogs() {
+        const keys = [...this.catalogs.keys()];
+        for (const context of this.catalogs.values()) {
+            if (context.timer) clearTimeout(context.timer);
         }
+        this.catalogs.clear();
+        for (const key of keys) this.dispatchEvent(new Event(`catalog:${key}`));
+    }
+
+    private evictOldestCatalog() {
+        const key = this.catalogs.keys().next().value;
+        if (key === undefined) return;
+        const context = this.catalogs.get(key);
+        if (context?.timer) clearTimeout(context.timer);
+        this.catalogs.delete(key);
+        this.dispatchEvent(new Event(`catalog:${key}`));
+    }
+
+    private async readCatalog(
+        key: string,
+        context: CatalogContext,
+        profile: AgentProfile,
+        project: ProjectReference | null,
+        refresh: boolean,
+    ) {
+        await Promise.resolve();
+        try {
+            const catalog = validateAgentModelCatalog(await this.provider.getModelCatalog(profile, project, refresh));
+            if (catalog.agent !== profile.name) throw new Error('Model catalog belongs to a different agent');
+            if (!this.isCurrentCatalog(key, context)) return;
+            context.snapshot = { catalog, error: null, loading: false, stale: false };
+            // A remote host's wall clock may differ; age this view from receipt on the local clock.
+            context.timer = setTimeout(() => this.expireCatalog(key, context), CATALOG_TTL_MS);
+        } catch (error) {
+            if (!this.isCurrentCatalog(key, context)) return;
+            context.snapshot = {
+                catalog: context.snapshot.catalog,
+                error: errorMessage(error),
+                loading: false,
+                stale: !!context.snapshot.catalog,
+            };
+        } finally {
+            context.pending = null;
+        }
+        if (this.isCurrentCatalog(key, context)) this.dispatchEvent(new Event(`catalog:${key}`));
+    }
+
+    private isCurrentCatalog(key: string, context: CatalogContext) {
+        return this.catalogs.get(key) === context && context.connection === this.getConnectionIdentity();
+    }
+
+    private expireCatalog(key: string, context: CatalogContext) {
+        if (!this.isCurrentCatalog(key, context)) return;
+        context.timer = null;
+        context.snapshot = { ...context.snapshot, stale: true };
+        this.dispatchEvent(new Event(`catalog:${key}`));
     }
 
     private async loadAvailability() {
-        this.update({ ...this.snapshot, availability: { error: null, loading: true, values: {} } })
-
+        const request = {};
+        const connection = this.getConnectionIdentity();
+        this.availabilityRequest = request;
+        this.snapshot = { availability: { error: null, loading: true, values: {} } };
+        this.dispatchEvent(new Event('changed'));
         try {
-            const values = await this.provider.getAgentAvailability()
-            this.update({ ...this.snapshot, availability: { error: null, loading: false, values } })
+            const values = await this.provider.getAgentAvailability();
+            if (request !== this.availabilityRequest || connection !== this.getConnectionIdentity()) return;
+            this.snapshot = { availability: { error: null, loading: false, values } };
         } catch (error) {
-            this.update({ ...this.snapshot, availability: { error: errorMessage(error), loading: false, values: {} } })
+            if (request !== this.availabilityRequest || connection !== this.getConnectionIdentity()) return;
+            this.snapshot = { availability: { error: errorMessage(error), loading: false, values: {} } };
         }
-    }
-
-    private requireAvailableAgent(agent: string) {
-        if (this.snapshot.availability.error) throw new Error(this.snapshot.availability.error)
-        const availability = this.snapshot.availability.values[agent]
-        if (!availability) throw new Error(`Agent executable availability is missing for ${agent}`)
-        if (!availability.available) throw new Error(availability.error ?? `Agent executable is unavailable for ${agent}`)
-    }
-
-    private update(snapshot: AgentCapabilitiesSnapshot) {
-        this.snapshot = snapshot
-        this.dispatchEvent(new CustomEvent<AgentCapabilitiesSnapshot>('changed', { detail: snapshot }))
+        this.dispatchEvent(new Event('changed'));
     }
 }
 
-export const agentCapabilitiesService = new AgentCapabilitiesService()
+export const agentCapabilitiesService = new AgentCapabilitiesService();

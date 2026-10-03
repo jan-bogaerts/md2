@@ -7,6 +7,7 @@ import {
     supportsPermissionMode,
     validatePermissionMode,
     validateThinkingLevel,
+    validateSpeedMode,
 } from './agent_profiles.mjs'
 
 const defaultProfile = findAgentProfile([], DEFAULT_AGENT_PROFILE_NAME)
@@ -43,6 +44,7 @@ export function validateAgentSettings(value, source) {
     return {
         model: requireString(settings.model, `${source}.model`, true),
         thinkingLevel: validateThinkingLevel(settings.thinkingLevel, `${source}.thinkingLevel`),
+        ...(settings.speedMode !== undefined ? { speedMode: validateSpeedMode(settings.speedMode, `${source}.speedMode`) } : {}),
     }
 }
 
@@ -62,7 +64,12 @@ export function validateAgentSelectionState(value, source, allowEmptyPermissionM
 
 export function resolveAgentSettings(agent, profiles, sources = []) {
     const remembered = sources.find((source) => source?.settingsByAgent && Object.hasOwn(source.settingsByAgent, agent))
-    if (remembered) return remembered.settingsByAgent[agent]
+    if (remembered) {
+        const speedMode = sources.find((source) => source?.settingsByAgent?.[agent]?.speedMode !== undefined)
+            ?.settingsByAgent[agent].speedMode;
+
+        return speedMode === undefined ? remembered.settingsByAgent[agent] : { ...remembered.settingsByAgent[agent], speedMode };
+    }
 
     const profile = findAgentProfile(profiles, agent)
     if (!profile) return { model: '', thinkingLevel: 'none' }
@@ -71,13 +78,28 @@ export function resolveAgentSettings(agent, profiles, sources = []) {
 }
 
 export function resolveAgentSelectionState(selection, profiles, fallbackSources = []) {
-    if (Object.hasOwn(selection.settingsByAgent, selection.activeAgent)) return selection
-    const activeSettings = resolveAgentSettings(selection.activeAgent, profiles, fallbackSources)
+    const currentSettings = selection.settingsByAgent[selection.activeAgent];
+    const activeSettings = resolveAgentSettings(selection.activeAgent, profiles, [selection, ...fallbackSources]);
+    if (currentSettings && currentSettings.speedMode === activeSettings.speedMode) return selection;
 
     return {
         ...selection,
         settingsByAgent: { ...selection.settingsByAgent, [selection.activeAgent]: activeSettings },
     }
+}
+
+export function selectSpeedMode(selection, speedMode) {
+    const current = selection.settingsByAgent[selection.activeAgent];
+    if (!current) throw new Error(`Missing settings for active agent: ${selection.activeAgent}`);
+    const validated = validateSpeedMode(speedMode, 'agent selection');
+    if (selection.activeAgent !== 'codex' && validated !== 'default') {
+        throw new Error(`Speed settings are unsupported for ${selection.activeAgent}`);
+    }
+
+    return {
+        ...selection,
+        settingsByAgent: { ...selection.settingsByAgent, [selection.activeAgent]: { ...current, speedMode: validated } },
+    };
 }
 
 export function selectAgent(selection, agent, profiles, fallbackSources = []) {
@@ -124,5 +146,6 @@ export function projectAgentSelection(selection, profiles = []) {
         model: settings.model,
         ...(profile && supportsPermissionMode(profile) ? { permissionMode: selection.permissionMode } : {}),
         thinkingLevel: settings.thinkingLevel,
+        ...(settings.speedMode !== undefined ? { speedMode: settings.speedMode } : {}),
     }
 }

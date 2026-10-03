@@ -1,3 +1,4 @@
+import { createAgentModelCatalogStub } from '../test/agent_model_catalog_stub.mjs';
 import { describe, expect, it, vi } from 'vitest';
 import { createRequire } from 'node:module';
 
@@ -162,12 +163,14 @@ function createDispatch(options = {}) {
         editorCommand: 'code -g "{{file}}:{{line}}"',
     };
     const saveDesktopConfig = vi.fn((_store, values) => values);
+    const agentModelCatalogService = createAgentModelCatalogStub();
     const diffService = { generateDiff: vi.fn(), generateWorktreeDiff: vi.fn(), openInEditor: vi.fn() };
     const projectStatsWorkerService = {
         calculate: vi.fn(async () => ({ stats: { actions: [], conversations: [] }, warnings: [] })),
         cancel: vi.fn(async () => undefined),
     };
     const dispatch = createLocalBridgeDispatch({
+        agentModelCatalogService,
         actionRunnerService,
         actionSchedulerService,
         actionWorktreeRunService,
@@ -191,6 +194,7 @@ function createDispatch(options = {}) {
     });
 
     return {
+        agentModelCatalogService,
         actionRunnerService,
         actionSchedulerService,
         agentExecutableAvailability,
@@ -234,6 +238,28 @@ function backendCardWatcher(localGitService) {
 }
 
 describe('createLocalBridgeDispatch', () => {
+    it('discovers catalogs for a draft client in the requested checkout across both bridge surfaces', async () => {
+        const { dispatch, agentModelCatalogService } = createDispatch();
+        const profile = { name: 'codex', command: ['/draft/client'], models: ['gpt-6.1-sol'] };
+        const project = { branch: 'topic', id: '/worktree', rootPath: '/worktree' };
+        const request = { agent: 'codex', profile, project, refresh: true };
+
+        await dispatch.dataBridge.loadAgentModelCatalog(request);
+        await dispatch.actionBridge.loadAgentModelCatalog(request);
+
+        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(1, profile, '/worktree', true);
+        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(2, profile, '/worktree', true);
+    });
+
+    it('rejects mismatched catalog profiles and malformed refresh requests before discovery', async () => {
+        const { dispatch, agentModelCatalogService } = createDispatch();
+
+        await expect(dispatch.dataBridge.loadAgentModelCatalog({ agent: 'codex', profile: { name: 'claude' } }))
+            .rejects.toThrow('does not match');
+        await expect(dispatch.actionBridge.loadAgentModelCatalog({ agent: 'codex', refresh: 'yes' }))
+            .rejects.toThrow('refresh');
+        expect(agentModelCatalogService.load).not.toHaveBeenCalled();
+    });
     it('forwards project watcher failures to the bridge subscriber', () => {
         const { dispatch, localGitService } = createDispatch();
         const callback = vi.fn();

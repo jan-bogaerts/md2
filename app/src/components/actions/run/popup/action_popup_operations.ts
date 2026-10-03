@@ -121,6 +121,7 @@ async function runWithPrompt(
                 ...(settings.model ? { model: settings.model } : {}),
                 ...(settings.permissionMode ? { permissionMode: settings.permissionMode } : {}),
                 thinkingLevel: settings.thinkingLevel,
+                ...(settings.speedMode !== undefined ? { speedMode: settings.speedMode } : {}),
             }
             : { command: prompt }
         const handleStarted = (runId: string) => {
@@ -281,6 +282,7 @@ export async function convertPromptToAction(input: ActionPopupOperationInput) {
             ...(settings.model ? { model: settings.model } : {}),
             ...(settings.permissionMode ? { permissionMode: settings.permissionMode } : {}),
             prompt,
+            ...(settings.speedMode !== undefined ? { speedMode: settings.speedMode } : {}),
         }
         const result = await defaultConvertPromptToAction(convertInput)
         inputStore.setConvertMessage(`Saved ${result.path}`)

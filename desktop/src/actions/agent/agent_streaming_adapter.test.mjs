@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 const { createAgentProviderProtocolParser } = require('./agent_provider_protocol');
 const { createAgentStreamingAdapter } = require('./agent_streaming_adapter');
 
-function harness(agent, providerConversationId = null) {
+function harness(agent, providerConversationId = null, executionSettings = {}) {
     const events = [];
     const runtimeEvents = [];
     const writes = [];
@@ -17,6 +17,7 @@ function harness(agent, providerConversationId = null) {
         'C:\\repo',
         providerConversationId,
         (event) => runtimeEvents.push(event),
+        executionSettings,
     );
 
     return { adapter, events, runtimeEvents, writes };
@@ -1140,6 +1141,31 @@ describe('CodexStreamingAdapter', () => {
             },
         });
         expect(events).toContainEqual({ conversationId: 'thread-1', type: 'sessionStarted' });
+    });
+
+    it.each([
+        [null, 'priority', 'thread/start'],
+        ['saved-thread', 'default', 'thread/resume'],
+    ])('applies explicit model, effort and tier on %s and every new turn', async (sessionId, serviceTier, method) => {
+        const settings = { model: 'gpt-6.1-sol', effort: 'xhigh', serviceTier };
+        const { adapter, writes } = harness('codex', sessionId, settings);
+        await adapter.start('first prompt');
+        await adapter.handleMessage({ id: 1, result: {} });
+        expect(writes[3]).toMatchObject({method, params: {model: 'gpt-6.1-sol', serviceTier, config: { model_reasoning_effort: 'xhigh' }}});
+        await adapter.handleMessage({ id: 3, result: { thread: { id: 'saved-thread' }, model: 'gpt-6.1-sol', serviceTier } });
+        expect(writes[4]).toMatchObject({ method: 'turn/start', params: settings });
+        expect(adapter.resolvedSettings).toEqual({ model: 'gpt-6.1-sol', serviceTier });
+        await adapter.sendMessage('second prompt');
+        expect(writes[5]).toMatchObject({ method: 'turn/start', params: settings });
+    });
+
+    it.each(['default', undefined])('refuses to infer when the requested Fast tier is not acknowledged: %s', async (serviceTier) => {
+        const { adapter, events, writes } = harness('codex', null, { model: 'gpt-6.1-sol', serviceTier: 'priority' });
+        await adapter.start('prompt');
+        await adapter.handleMessage({ id: 1, result: {} });
+        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread' }, model: 'gpt-6.1-sol', serviceTier } });
+        expect(events).toContainEqual(expect.objectContaining({ type: 'fatal', content: expect.stringContaining('did not acknowledge') }));
+        expect(writes.some(({ method }) => method === 'turn/start')).toBe(false);
     });
 
     it('publishes initial, updated, and unavailable account rate-limit runtime events', async () => {

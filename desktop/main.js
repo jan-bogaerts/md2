@@ -16,6 +16,7 @@ const {
 } = require('./src/shell/application_state_store');
 const { readDesktopConfig, resolveBridgeAllowedOrigins, saveDesktopConfig } = require('./src/shell/config');
 const { AgentRunnerService } = require('./src/actions/agent/agent_runner_service');
+const { AgentModelCatalogService } = require('./src/actions/agent/agent_model_catalog_service');
 const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_service');
 const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');
 const { UsageMetricsService } = require('./src/actions/agent/usage_metrics_service');
@@ -83,6 +84,7 @@ const store = new Store();
 const applicationStateStore = createApplicationStateStore(Store);
 Store.initRenderer();
 const agentExecutableResolver = new AgentExecutableResolver();
+const agentModelCatalogService = new AgentModelCatalogService({ executableResolver: agentExecutableResolver });
 const claudeRuntimeService = new ClaudeRuntimeService();
 const codexRuntimeService = new CodexRuntimeService();
 const usageMetricsService = new UsageMetricsService({ errorReporter: captureError });
@@ -104,6 +106,7 @@ const actionWorktreeRunService = new ActionWorktreeRunService({
     worktreeService,
 });
 const actionRunnerService = new ActionRunnerService({
+    agentModelCatalogService,
     actionWorktreeRunService,
     agentConfigProvider: () => readDesktopConfig(store),
     agentRunnerService,
@@ -142,6 +145,7 @@ const actionSchedulerService = new ActionSchedulerService({
 });
 const projectStatsWorkerService = new ProjectStatsWorkerService();
 const localBridgeDispatch = createLocalBridgeDispatch({
+    agentModelCatalogService,
     actionRunnerService,
     actionSchedulerService,
     actionWorktreeRunService,
@@ -383,6 +387,7 @@ async function stopAndQuit() {
         actionSchedulerService.stop();
         await actionRunnerService.suspend();
         await agentRunnerService.stopAll();
+        await agentModelCatalogService.stop();
         await trackEvent('electron_stop');
         await flush();
     } catch {

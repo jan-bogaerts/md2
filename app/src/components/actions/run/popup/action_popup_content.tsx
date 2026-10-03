@@ -18,8 +18,8 @@ export function ActionPopupContent(props: ActionPopupContentProps) {
     const settingsStore = useMemo(
         () => assignmentContext.cardInternalId
             ? actionRunSettingsService.getCardStore(assignmentContext.cardInternalId, action.id)
-            : actionRunSettingsService.getSessionStore(action.id, settingsContextIdentity),
-        [action.id, assignmentContext.cardInternalId, settingsContextIdentity],
+            : actionRunSettingsService.getSessionStore(action.id, settingsContextIdentity, assignmentContext.kind),
+        [action.id, assignmentContext.cardInternalId, assignmentContext.kind, settingsContextIdentity],
     )
     const bindings = useMemo(
         () => createActionPopupBindings(action, assignmentContext, initialRunId, initialConversationPath),

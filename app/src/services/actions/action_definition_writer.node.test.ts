@@ -39,6 +39,12 @@ describe('action definition writer helpers', () => {
         expect(actionFilePath('actions', 'Review Feature')).toBe('actions/review-feature.json')
     })
 
+    it.each(['default', 'standard', 'fast'] as const)('preserves explicit %s speed when saving a prompt as an action', (speedMode) => {
+        const definition = createActionDefinition({ agent: 'codex', context, label: 'Review', prompt: 'review', speedMode });
+
+        expect(definition.speedMode).toBe(speedMode);
+    });
+
     it('detects occupied action paths across slash and case variants', () => {
         expect(actionFilePathIsOccupied('actions/review.json', ['ACTIONS\\REVIEW.JSON'])).toBe(true)
         expect(actionFilePathIsOccupied('actions/review.json', ['actions/other.json'])).toBe(false)

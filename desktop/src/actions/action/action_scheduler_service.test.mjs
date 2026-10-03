@@ -1,3 +1,4 @@
+import { createAgentModelCatalogStub } from '../../test/agent_model_catalog_stub.mjs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -198,6 +199,7 @@ function createScheduler(localGitService, timerDependencies = {}) {
     };
     const agentConfigProvider = timerDependencies.agentConfigProvider ?? (() => agentConfig());
     const actionRunnerService = timerDependencies.actionRunnerService ?? new ActionRunnerService({
+        agentModelCatalogService: createAgentModelCatalogStub(),
         actionWorktreeRunService,
         agentConfigProvider,
         agentRunnerService,

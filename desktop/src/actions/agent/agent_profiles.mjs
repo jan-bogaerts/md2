@@ -42,6 +42,7 @@ export function resolveAgentCommand(config, selection = {}, streaming = false) {
     const remembered = resolveAgentSettings(agent, profiles, [configuredSelection]);
     const model = (selection.model ?? remembered.model) || defaultModelForProfile(profile);
     const thinkingLevel = selection.thinkingLevel ?? remembered.thinkingLevel;
+    const speedMode = selection.speedMode === undefined ? remembered.speedMode : selection.speedMode;
     const permissionMode = selection.permissionMode !== undefined
         ? selection.permissionMode
         : supportsPermissionMode(profile)
@@ -52,6 +53,7 @@ export function resolveAgentCommand(config, selection = {}, streaming = false) {
         model,
         ...(permissionMode !== undefined ? { permissionMode } : {}),
         thinkingLevel,
+        ...(speedMode !== undefined ? { speedMode } : {}),
     }, 'desktop config');
 
     const searchEnabled = config.codexSearchEnabled ?? true;
@@ -60,5 +62,8 @@ export function resolveAgentCommand(config, selection = {}, streaming = false) {
         ? buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode)
         : buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled, permissionMode);
 
-    return { agent, command, model, ...(permissionMode !== undefined ? { permissionMode } : {}), profile, thinkingLevel };
+    return {
+        agent, command, model, ...(permissionMode !== undefined ? { permissionMode } : {}), profile, thinkingLevel,
+        ...(speedMode !== undefined ? { speedMode } : {}),
+    };
 }

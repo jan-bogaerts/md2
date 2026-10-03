@@ -40,8 +40,8 @@ describe('ActionRunSettingsStore', () => {
     it('loads saved settings and publishes only its scoped event', async () => {
         const load = vi.fn(async () => firstSettings)
         const reportError = vi.fn()
-        const store = new ActionRunSettingsStore('review', 'card-1', { load, reportError, save: vi.fn() })
-        const otherStore = new ActionRunSettingsStore('review', 'card-2', { load, reportError, save: vi.fn() })
+        const store = new ActionRunSettingsStore('review', 'card-1', 'card', { load, reportError, save: vi.fn() })
+        const otherStore = new ActionRunSettingsStore('review', 'card-2', 'card', { load, reportError, save: vi.fn() })
         const changed = vi.fn()
         const unrelatedChanged = vi.fn()
         store.addEventListener('changed', changed)
@@ -57,7 +57,7 @@ describe('ActionRunSettingsStore', () => {
 
     it('updates optimistically, persists complete settings, and retains waiting dirtiness until applied', async () => {
         const save = vi.fn(async () => undefined)
-        const store = new ActionRunSettingsStore('review', 'card-1', {load: vi.fn(async () => null), reportError: vi.fn(), save})
+        const store = new ActionRunSettingsStore('review', 'card-1', 'card', {load: vi.fn(async () => null), reportError: vi.fn(), save})
         await store.load()
 
         store.setSettings(firstSettings, true)
@@ -77,7 +77,7 @@ describe('ActionRunSettingsStore', () => {
             .mockImplementationOnce(() => secondSave.promise)
             .mockResolvedValueOnce(undefined)
         const reportError = vi.fn()
-        const store = new ActionRunSettingsStore('review', 'card-1', {load: vi.fn(async () => null), reportError, save})
+        const store = new ActionRunSettingsStore('review', 'card-1', 'card', {load: vi.fn(async () => null), reportError, save})
         await store.load()
 
         store.setSettings(firstSettings, false)
@@ -96,7 +96,7 @@ describe('ActionRunSettingsStore', () => {
     it('reports load failure and does not expose defaults as loaded settings', async () => {
         const error = new Error('malformed activity')
         const reportError = vi.fn()
-        const store = new ActionRunSettingsStore('review', 'card-1', {load: vi.fn(async () => { throw error }), reportError, save: vi.fn()})
+        const store = new ActionRunSettingsStore('review', 'card-1', 'card', {load: vi.fn(async () => { throw error }), reportError, save: vi.fn()})
 
         await store.load()
 
@@ -106,7 +106,7 @@ describe('ActionRunSettingsStore', () => {
 
     it('keeps non-card settings session-only', () => {
         const save = vi.fn()
-        const store = new ActionRunSettingsStore('review', null, {load: vi.fn(), reportError: vi.fn(), save})
+        const store = new ActionRunSettingsStore('review', null, 'project', {load: vi.fn(), reportError: vi.fn(), save})
 
         store.setSettings(firstSettings, false)
 
@@ -124,7 +124,7 @@ describe('ActionRunSettingsStore', () => {
                 version: 4,
             })),
         } as unknown as ElectronActionBridge)
-        const store = new ActionRunSettingsStore('review', 'card-1')
+        const store = new ActionRunSettingsStore('review', 'card-1', 'card')
 
         await store.load()
 
@@ -153,15 +153,15 @@ describe('ActionRunSettingsService', () => {
         const projectStateOwner = new ProjectStateOwner()
         const service = new ActionRunSettingsService()
         service.init(projectStateOwner)
-        const first = service.getSessionStore('review', 'folder\u0000design')
+        const first = service.getSessionStore('review', 'folder\u0000design', 'folder')
         first.setSettings(firstSettings, false)
 
-        expect(service.getSessionStore('review', 'folder\u0000design')).toBe(first)
-        expect(service.getSessionStore('review', 'folder\u0000design').getSnapshot().settings).toEqual(firstSettings)
-        expect(service.getSessionStore('build', 'folder\u0000design')).not.toBe(first)
-        expect(service.getSessionStore('review', 'file\u0000design/F-1.md')).not.toBe(first)
+        expect(service.getSessionStore('review', 'folder\u0000design', 'folder')).toBe(first)
+        expect(service.getSessionStore('review', 'folder\u0000design', 'folder').getSnapshot().settings).toEqual(firstSettings)
+        expect(service.getSessionStore('build', 'folder\u0000design', 'folder')).not.toBe(first)
+        expect(service.getSessionStore('review', 'file\u0000design/F-1.md', 'file')).not.toBe(first)
 
         projectStateOwner.setProject({ branch: 'main', id: 'second' })
-        expect(service.getSessionStore('review', 'folder\u0000design')).not.toBe(first)
+        expect(service.getSessionStore('review', 'folder\u0000design', 'folder')).not.toBe(first)
     })
 })

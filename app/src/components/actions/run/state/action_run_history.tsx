@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
 import { dialogService } from '../../../../services/dialog_service'
 import { CommitReferenceRow } from '../../conversation/events/commit_reference_row'
+import { agentSpeedLabel } from '../../../../data/agent_speed_label';
 
 interface HistoryEntryRowProps {
     entry: ActionRunHistoryEntry
@@ -36,7 +37,7 @@ function newestFirstHistoryEntries(entries: ActionRunHistoryEntry[]) {
 function HistoryEntryRow(props: HistoryEntryRowProps) {
     const { entry } = props
     const configuration = entry.type === 'agent'
-        ? [entry.agent, entry.model, entry.thinkingLevel, entry.permissionMode].filter((value) => !!value).join(' / ')
+        ? [entry.agent, entry.model, entry.thinkingLevel, entry.permissionMode, agentSpeedLabel(entry)].filter((value) => !!value).join(' / ')
         : ''
     const agentLabel = configuration ? ` (${configuration})` : ''
     const completedAt = new Date(entry.completedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })

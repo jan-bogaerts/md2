@@ -3,6 +3,7 @@ import type { AgentProfile } from '../../data/agent_profiles'
 import { THINKING_LEVELS, type ThinkingLevel } from '../../data/agent_profiles'
 import {
     resolveAgentSelectionState,
+    resolveAgentSettings,
     type AgentSelectionState,
 } from '../../data/agent_selection'
 import { register } from '../service_injector'
@@ -28,11 +29,14 @@ export class ActionAgentSelectionDraftService {
         const definitionThinkingLevel = THINKING_LEVELS.includes(definition.thinkingLevel as ThinkingLevel)
             ? definition.thinkingLevel as ThinkingLevel
             : 'none'
-        const definitionSettings = definition.agent && definition.model
+        const rememberedSettings = resolveAgentSettings(activeAgent, profiles, [desktopSelection]);
+        const definitionSettings = definition.agent || definition.speedMode !== undefined
             ? {
-                [definition.agent]: {
-                    model: definition.model,
-                    thinkingLevel: definitionThinkingLevel,
+                [activeAgent]: {
+                    ...rememberedSettings,
+                    model: definition.model ?? rememberedSettings.model,
+                    thinkingLevel: definition.thinkingLevel === undefined ? rememberedSettings.thinkingLevel : definitionThinkingLevel,
+                    ...(definition.speedMode !== undefined ? { speedMode: definition.speedMode } : {}),
                 },
             }
             : {}

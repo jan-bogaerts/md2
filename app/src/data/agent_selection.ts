@@ -8,6 +8,7 @@ export {
     selectModel,
     selectPermissionMode,
     selectThinkingLevel,
+    selectSpeedMode,
     validateAgentSelectionState,
     validateAgentSettings,
 } from '../../../shared/agent_selection.mjs'

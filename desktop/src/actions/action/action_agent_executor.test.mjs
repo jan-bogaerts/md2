@@ -1,3 +1,4 @@
+import { createAgentModelCatalogStub } from '../../test/agent_model_catalog_stub.mjs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -44,6 +45,7 @@ function createExecutor(overrides = {}) {
         loadFile: vi.fn(async () => ({ content: '---\ntitle: Card\n---\n# Card', path: cardContext.file })),
     };
     const executor = new ActionAgentExecutor({
+        agentModelCatalogService: createAgentModelCatalogStub(),
         agentConfigProvider: () => agentConfig(),
         agentRunnerService,
         localGitService,

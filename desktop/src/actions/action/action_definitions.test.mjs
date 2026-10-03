@@ -29,6 +29,17 @@ const IMPLEMENT = {
 const LINT = {command: 'npm run lint', description: 'Lint', id: 'action-lint', label: 'Lint', type: 'command'};
 
 describe('loadActionDefinitions', () => {
+    it('preserves new builtin model IDs and explicit speed while rejecting unsupported action speeds', () => {
+        const definition = { ...IMPLEMENT, agent: 'codex', model: 'gpt-6.1-sol', speedMode: 'fast' };
+        const action = loadActionDefinitions([file('implement', definition)]).find(({ id }) => id === IMPLEMENT.id);
+        expect(action).toMatchObject({ model: 'gpt-6.1-sol', speedMode: 'fast' });
+        expect(validationError([file('implement', { ...definition, agent: 'claude' })]))
+            .toMatchObject({ code: 'unsupported-speed-mode', field: 'speedMode' });
+        expect(validationError([file('implement', { ...definition, speedMode: 'turbo' })]))
+            .toMatchObject({ code: 'invalid-speed-mode', field: 'speedMode' });
+        const defaults = loadActionDefinitions([file('implement', IMPLEMENT)]).find(({ id }) => id === IMPLEMENT.id);
+        expect(defaults).not.toHaveProperty('speedMode');
+    });
     it('loads version requests on both action types and routes invalid values', () => {
         const actions = loadActionDefinitions([
             file('implement', { ...IMPLEMENT, userInput: { prompt: 'Which version?', type: 'version' } }),

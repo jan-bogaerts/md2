@@ -131,6 +131,31 @@ export function useCardPolicy(path: string | null, service: DataService = dataSe
     return useCardField(path, 'policy', selectPolicy, service)
 }
 
+/** Read the assignment by canonical card identity without subscribing to its body or activity. */
+export function useCardWorktreeByInternalId(internalId: string | null, service: DataService = dataService) {
+    const snapshotRef = useRef<CardWorktreeSnapshot | null>(null);
+    const select = useCallback((card: Card | null) => {
+        if (!card) return null;
+        const next = {
+            branch: card.header.branch, error: card.header.worktreeError,
+            value: card.header.worktreeValue, worktree: card.header.worktree,
+        };
+        const previous = snapshotRef.current;
+        const unchanged = previous
+            && previous.branch === next.branch
+            && previous.error === next.error
+            && previous.value === next.value
+            && previous.worktree === next.worktree;
+        if (unchanged) return previous;
+
+        snapshotRef.current = next;
+
+        return next;
+    }, []);
+
+    return useCardFieldByInternalId(internalId, 'worktree', select, service);
+}
+
 /** Reads stable worktree projection for one card. */
 export function useCardWorktree(path: string | null, service: DataService = dataService) {
     const snapshotRef = useRef<CardWorktreeSnapshot | null>(null)

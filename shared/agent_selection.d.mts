@@ -1,8 +1,9 @@
-import type { AgentProfile, PermissionMode, ThinkingLevel } from './agent_profiles.mjs'
+import type { AgentProfile, PermissionMode, ThinkingLevel, SpeedMode } from './agent_profiles.mjs'
 
 export interface AgentSettings {
     model: string
     thinkingLevel: ThinkingLevel
+    speedMode?: SpeedMode
 }
 
 export interface AgentSelectionState {
@@ -16,6 +17,7 @@ export interface FlatAgentSelection {
     model: string
     permissionMode?: PermissionMode | ''
     thinkingLevel: ThinkingLevel
+    speedMode?: SpeedMode
 }
 
 export const DEFAULT_AGENT_SELECTION: AgentSelectionState
@@ -27,5 +29,6 @@ export function resolveAgentSelectionState(selection: AgentSelectionState, profi
 export function selectAgent(selection: AgentSelectionState, agent: string, profiles: AgentProfile[], fallbackSources?: AgentSelectionState[]): AgentSelectionState
 export function selectModel(selection: AgentSelectionState, model: string): AgentSelectionState
 export function selectThinkingLevel(selection: AgentSelectionState, thinkingLevel: ThinkingLevel): AgentSelectionState
+export function selectSpeedMode(selection: AgentSelectionState, speedMode: SpeedMode): AgentSelectionState
 export function selectPermissionMode(selection: AgentSelectionState, permissionMode: PermissionMode): AgentSelectionState
 export function projectAgentSelection(selection: AgentSelectionState, profiles?: AgentProfile[]): FlatAgentSelection

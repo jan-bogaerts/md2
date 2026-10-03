@@ -1,4 +1,4 @@
-const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');
+const { buildResumeAgentCommand } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
 const { appendCurrentCardReferences } = require('./action_card_references');
 const { resolveAgentPrompt, resolvePopupPrompt } = require('./action_text');
@@ -28,6 +28,7 @@ function executionCommand(resolvedAgent, providerSession, streaming) {
 class ActionAgentExecutor {
     constructor(dependencies) {
         this.agentConfigProvider = dependencies.agentConfigProvider;
+        this.agentModelCatalogService = dependencies.agentModelCatalogService;
         this.agentRunnerService = dependencies.agentRunnerService;
         this.localGitService = dependencies.localGitService;
     }
@@ -36,13 +37,16 @@ class ActionAgentExecutor {
         const config = this.agentConfigProvider();
         const permissionMode = input.runInput.permissionMode ?? input.action.permissionMode;
         const thinkingLevel = input.runInput.thinkingLevel ?? input.action.thinkingLevel;
+        const speedMode = input.runInput.speedMode ?? input.action.speedMode;
         const streaming = input.action.streaming;
-        const resolvedAgent = resolveAgentCommand(config, {
+        if (!this.agentModelCatalogService) throw new Error('Agent model catalog service is not available');
+        const resolvedAgent = await this.agentModelCatalogService.resolveExecution(config, {
             ...(input.runInput.agent ? { agent: input.runInput.agent } : (input.action.agent ? { agent: input.action.agent } : {})),
             ...(input.runInput.model ? { model: input.runInput.model } : (input.action.model ? { model: input.action.model } : {})),
             ...(permissionMode ? { permissionMode } : {}),
             ...(thinkingLevel ? { thinkingLevel } : {}),
-        }, streaming);
+            ...(speedMode !== undefined && speedMode !== null ? { speedMode } : {}),
+        }, streaming, input.project.rootPath);
         const sourceConversation = input.runInput.continueFrom
             ? await this.localGitService.loadAgentConversation(
                 input.primaryProject,
@@ -121,6 +125,7 @@ class ActionAgentExecutor {
             activityProject: input.primaryProject,
             ...(input.context.file ? { cardPath: input.context.file } : {}),
             command,
+            executionSettings: resolvedAgent.executionSettings,
             ...(sourceConversation ? { conversation: sourceConversation, reference } : {}),
             ...(!sourceConversation ? {
                 conversationId: input.conversationReservation?.conversationId ?? input.runInput.conversationId,
@@ -149,6 +154,7 @@ class ActionAgentExecutor {
             model: resolvedAgent.model,
             permissionMode: resolvedAgent.permissionMode,
             thinkingLevel: resolvedAgent.thinkingLevel,
+            ...(resolvedAgent.speedMode !== undefined ? { speedMode: resolvedAgent.speedMode } : {}),
         };
     }
 
@@ -182,6 +188,7 @@ class ActionAgentExecutor {
             stderr: run.stderr,
             stdout: run.stdout,
             turnStarted: run.turnStarted,
+            ...(run.streamingAdapter?.resolvedSettings ? { acknowledgedSettings: run.streamingAdapter.resolvedSettings } : {}),
         });
         const onEvent = (agentEvent) => input.onEvent(agentEvent);
         const started = await this.agentRunnerService.start(

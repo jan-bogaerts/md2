@@ -1,5 +1,7 @@
+import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service';
+import { snapshotCatalogFixture } from '../../test/agent_catalog_fixture';
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import type { ConfigEntry } from '../../services/config/config_service'
 import { dialogService } from '../../services/dialog_service'
 import { ConfigValueEditor } from './config_value_editor'
@@ -16,6 +18,8 @@ const desktopSelectionEntry: ConfigEntry = {
 }
 
 describe('ConfigValueEditor', () => {
+    beforeEach(() => { vi.spyOn(agentCapabilitiesService, 'getCatalogSnapshot').mockImplementation(snapshotCatalogFixture); });
+    afterEach(() => { vi.restoreAllMocks(); });
     it('reports invalid slider config without crashing the config page', () => {
         const entry: ConfigEntry = {
             defaultValue: 30000,
