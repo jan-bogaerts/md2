@@ -408,6 +408,31 @@
     "cardInternalId": "22e1a692-a35c-4fe0-a4ea-70545e3e6009",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-10-04T16:39:50.111Z",
+      "conversationIds": [
+        "agent-186ca6df-c584-48f8-8e1c-2f058758b7ba"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-4cf5984f-bf68-48d3-936d-27301b76256a",
+      "origin": {
+        "cardInternalId": "22e1a692-a35c-4fe0-a4ea-70545e3e6009",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-186ca6df-c584-48f8-8e1c-2f058758b7ba",
+      "startedAt": "2026-10-04T16:32:14.980Z",
+      "status": "cancelled"
+    }
+  ],
   "version": 5
 }
