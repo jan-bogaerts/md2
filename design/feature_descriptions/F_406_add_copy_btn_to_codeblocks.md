@@ -3,7 +3,7 @@ author:
 id: F_406
 internalId: 64933355-a3df-4476-b05f-c82b0c81b02a
 title: Add copy btn to codeblocks
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,16 @@ policy:
 after: 86f8b326-7ca2-40c8-bcbf-3b596f3efa1e
 branch: f_406_add_copy_btn_to_codeblocks
 worktree: 2
+changedFiles:
+  - .f406_browser_checks.js
+  - app/.f406_grouped.config.mjs
+  - app/.f406_preview.html
+  - app/.f406_preview.tsx
+  - app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx
+  - app/src/components/actions/conversation/messages/action_conversation_code_block.test.tsx
+  - app/src/components/actions/conversation/messages/action_conversation_code_block.tsx
+  - app/src/components/actions/conversation/messages/action_conversation_message.test.tsx
+  - app/src/components/actions/conversation/messages/action_conversation_message.tsx
 ---
 
 In the chatlogs on the action popup, we have code block elements in the text log items (markdown).
