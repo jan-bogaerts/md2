@@ -10,8 +10,6 @@ agents:
   - design/activity/card__5cbb6339-2a3c-4462-94cf-a575f916ad39.json
 policy:
 after: de054ddb-e1e5-44b7-a7a5-e16a9481a65f
-branch: b_257_action_output_kind
-worktree: 1
 changedFiles:
   - app/.b257.vitest.config.ts
   - app/src/components/actions/agent/action_agent_capability_fields.grouped.test.tsx
