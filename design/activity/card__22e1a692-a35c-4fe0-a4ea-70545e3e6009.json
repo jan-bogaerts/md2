@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "22e1a692-a35c-4fe0-a4ea-70545e3e6009",
       "cardPath": "design/feature_descriptions/F_335_include_cost_per_release.md",
-      "completedAt": "2026-10-04T16:39:49.795Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 71438
@@ -369,6 +369,14 @@
           "summary": [],
           "timestamp": "2026-10-04T16:39:15.733Z",
           "type": "reasoning"
+        },
+        {
+          "content": "I stopped you. Indeed if these values are already available, the only thing we need to change is how it is shown. Insead of only in tooltip, show them in popup",
+          "id": "submission-afff590e-5068-424a-9ae2-c2854fb81d0c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 30,
+          "timestamp": "2026-10-04T16:41:24.813Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -383,14 +391,14 @@
         }
       ],
       "startedAt": "2026-10-04T16:32:14.981Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 38017,
           "toolMs": 662
         },
         "elapsedMs": 203613,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-04T16:41:24.813Z"
       },
       "title": "complete",
       "usage": {
@@ -416,11 +424,11 @@
         "agent-186ca6df-c584-48f8-8e1c-2f058758b7ba"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-4cf5984f-bf68-48d3-936d-27301b76256a",
       "origin": {
@@ -429,9 +437,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-186ca6df-c584-48f8-8e1c-2f058758b7ba",
       "startedAt": "2026-10-04T16:32:14.980Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-186ca6df-c584-48f8-8e1c-2f058758b7ba"
     }
   ],
   "version": 5
