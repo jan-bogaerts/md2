@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__ecdd9654-d1ba-4f4f-9fcc-27997480e062.json
 policy:
-branch: f_407_diagram_continuous_add_with_ctrl
-worktree: 1
 ---
 
 When edting diagrams, the ´add tool´ currently always uses a ´continuous add´ method until user presses escape or selects different tool.
