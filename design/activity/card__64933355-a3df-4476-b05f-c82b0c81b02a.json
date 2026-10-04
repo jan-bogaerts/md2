@@ -1799,6 +1799,32 @@
       "startedAt": "2026-10-04T16:24:07.740Z",
       "status": "completed",
       "rootConversationId": "agent-162bef55-25b1-411e-9c82-6979c416ddc1"
+    },
+    {
+      "commits": [
+        {
+          "commit": "ae7b7ae3368535452180fed7a4537db1e55fede0",
+          "committedAt": "2026-10-04T19:00:08+02:00",
+          "deletions": 21,
+          "filePaths": [
+            "app/src/components/actions/conversation/action_conversation_chat.grouped.test.tsx",
+            "app/src/components/actions/conversation/messages/action_conversation_code_block.test.tsx",
+            "app/src/components/actions/conversation/messages/action_conversation_code_block.tsx",
+            "app/src/components/actions/conversation/messages/action_conversation_message.test.tsx",
+            "app/src/components/actions/conversation/messages/action_conversation_message.tsx"
+          ],
+          "filesChanged": 5,
+          "insertions": 215,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-04T19:00:08+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "64933355-a3df-4476-b05f-c82b0c81b02a",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
