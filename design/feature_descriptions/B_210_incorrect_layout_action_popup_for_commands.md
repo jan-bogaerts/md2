@@ -10,6 +10,8 @@ agents:
   - design/activity/card__df7f7a94-ee33-44a3-b499-2b230d484fef.json
 policy:
 after: 421a382c-ec00-4741-a8f7-eab2a949fcfe
+branch: b_210_incorrect_layout_action_popup_for_commands
+worktree: 2
 ---
 for command actions, the layout is incorrect: we show a splitter above the markdown input and the run history below the input.
 
