@@ -32,40 +32,49 @@ export const ActionConversationMessage = memo(function ActionConversationMessage
             className="conversation-message"
             sx={{
                 alignSelf: entry.role === 'user' ? 'flex-end' : 'flex-start',
-                bgcolor: entry.role === 'user' ? 'custom.primaryBg' : 'custom.track',
-                borderRadius: 1,
+                display: 'flex',
+                flexDirection: 'column',
                 flexShrink: 0,
+                gap: 0.5,
                 maxWidth: '88%',
                 minWidth: 0,
-                overflowWrap: 'anywhere',
-                px: 1.25,
-                py: 1,
-                ...markdownContentSx,
-                '&& .mdxeditor-content pre': {
-                    bgcolor: 'background.paper',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    boxSizing: 'border-box',
-                    maxWidth: '100%',
-                    overflowWrap: 'anywhere',
-                    p: 1,
-                    whiteSpace: 'pre-wrap',
-                    width: '100%',
-                },
             }}
         >
-            <ActionConversationLinkContext value={conversation.cardInternalId ?? null}>
-                <Box className="mdxeditor-content">
-                    <ReactMarkdown
-                        components={MARKDOWN_COMPONENTS}
-                        remarkPlugins={[remarkGfm]}
-                        urlTransform={actionConversationUrlTransform}
-                    >
-                        {entry.content}
-                    </ReactMarkdown>
-                </Box>
-            </ActionConversationLinkContext>
+            <Box
+                sx={{
+                    bgcolor: entry.role === 'user' ? 'custom.primaryBg' : 'custom.track',
+                    borderRadius: 1,
+                    minWidth: 0,
+                    overflowWrap: 'anywhere',
+                    px: 1.25,
+                    py: 1,
+                    ...markdownContentSx,
+                    '&& .mdxeditor-content pre': {
+                        bgcolor: 'background.paper',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        boxSizing: 'border-box',
+                        maxWidth: '100%',
+                        overflowWrap: 'anywhere',
+                        p: 1,
+                        whiteSpace: 'pre-wrap',
+                        width: '100%',
+                    },
+                }}
+            >
+                <ActionConversationLinkContext value={conversation.cardInternalId ?? null}>
+                    <Box className="mdxeditor-content">
+                        <ReactMarkdown
+                            components={MARKDOWN_COMPONENTS}
+                            remarkPlugins={[remarkGfm]}
+                            urlTransform={actionConversationUrlTransform}
+                        >
+                            {entry.content}
+                        </ReactMarkdown>
+                    </Box>
+                </ActionConversationLinkContext>
+            </Box>
             <ActionConversationMessageCommands commands={commands} message={entry} tracker={tracker} />
         </Box>
     )
