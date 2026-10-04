@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "86f8b326-7ca2-40c8-bcbf-3b596f3efa1e",
       "cardPath": "design/feature_descriptions/J_58_move_chatlog_item_icons_outside_of_box.md",
-      "completedAt": null,
+      "completedAt": "2026-10-04T16:22:05.845Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 54532
@@ -493,21 +493,29 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 35,
-          "timestamp": "2026-10-04T16:22:05.480Z"
+          "timestamp": "2026-10-04T16:22:05.845Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-e0a70329-d650-4bb1-bd06-a18c3c61f05b",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a107b7-24dc-7bf1-b1a6-c7e329d9ff36",
+          "createdAt": "2026-10-04T16:22:05.845Z",
+          "lastUsedAt": "2026-10-04T16:22:05.845Z",
+          "synchronizedThroughMessageId": "agent-turn-fbb740f6-158a-484f-ba88-5966d3da4819-turn-1-assistant-4"
+        }
+      ],
       "startedAt": "2026-10-04T16:20:04.799Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 11018,
           "toolMs": 773
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-04T16:20:04.799Z"
+        "elapsedMs": 121046,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
