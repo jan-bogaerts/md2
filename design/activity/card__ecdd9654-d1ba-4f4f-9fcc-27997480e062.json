@@ -417,20 +417,28 @@
           "sequence": 27,
           "timestamp": "2026-10-04T17:06:02.113Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Checked at commit (Recommended)\nclaude-question-1: Keep auto-switch (Recommended)\nclaude-question-2: Return to Select (Recommended)\nclaude-question-3: Remove Escape",
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-answer-27",
+          "kind": "message",
+          "role": "user",
+          "sequence": 28,
+          "timestamp": "2026-10-04T17:08:59.513Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-df2933c3-cd05-47b6-9994-24eed3fc28ed",
       "providerSessions": [],
       "startedAt": "2026-10-04T17:05:13.239Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 14948,
           "toolMs": 20071
         },
         "elapsedMs": 48874,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-04T17:08:59.513Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
