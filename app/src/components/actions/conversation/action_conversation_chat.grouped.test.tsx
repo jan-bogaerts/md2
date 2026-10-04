@@ -142,7 +142,7 @@ class TranscriptTestConversationStore extends EventTarget {
     private readonly snapshot = { conversations: [], loading: false, selectedConversation: null }
     private readonly submissions: [] = []
     private readonly submissionEvents = new EventTarget()
-    readonly getSubmissions = () => this.submissions
+    readonly getVisibleSubmissions = () => this.submissions;
     readonly subscribeSubmissions = (listener: () => void) => {
         this.submissionEvents.addEventListener('changed', listener)
 
@@ -1071,7 +1071,7 @@ describe('ActionConversationChat', () => {
         fireEvent.click(summaryButton)
 
         expect(summaryButton).toHaveAttribute('aria-expanded', 'true')
-        const detailButtons = within(group).getAllByRole('button').slice(1)
+        const detailButtons = within(group).getAllByRole('button', { name: /details/u });
         expect(detailButtons).toHaveLength(entries.length)
         expect(detailButtons.map(({ textContent }) => textContent)).toEqual([
             'Command callCompleted',
@@ -1153,8 +1153,8 @@ describe('ActionConversationChat', () => {
         fireEvent.click(firstSummary)
         fireEvent.click(secondSummary)
 
-        expect(within(groups[0]).getAllByRole('button')).toHaveLength(3)
-        expect(within(groups[1]).getAllByRole('button')).toHaveLength(3)
+        expect(within(groups[0]).getAllByRole('button', { name: /details/u })).toHaveLength(2);
+        expect(within(groups[1]).getAllByRole('button', { name: /details/u })).toHaveLength(2);
         expect(screen.getByRole('button', { name: 'Reasoning details' })).toHaveAttribute('aria-expanded', 'false')
         expect(screen.queryByText('Visible reasoning')).not.toBeInTheDocument()
     })
@@ -1173,7 +1173,7 @@ describe('ActionConversationChat', () => {
 
         fireEvent.click(summaryButton)
 
-        const detailButtons = within(group).getAllByRole('button').slice(1)
+        const detailButtons = within(group).getAllByRole('button', { name: /details/u });
         expect(detailButtons.map(({ textContent }) => textContent)).toEqual([
             'Completed callCompleted',
             'Failed callFailed',
@@ -1270,7 +1270,7 @@ describe('ActionConversationChat', () => {
         const group = screen.getByRole('group', { name: 'Terminal tool calls' })
         expect(screen.getByRole('button', { name: 'Tools called (3)' })).toBe(summaryButton)
         expect(summaryButton).toHaveAttribute('aria-expanded', 'true')
-        const detailButtons = within(group).getAllByRole('button').slice(1)
+        const detailButtons = within(group).getAllByRole('button', { name: /details/u });
         expect(detailButtons.map(({ textContent }) => textContent)).toEqual([
             'First callCompleted',
             'Second callCompleted',

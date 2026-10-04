@@ -10,8 +10,9 @@ import { actionConversationUrlTransform } from './action_conversation_url_transf
 import type { ActionConversationChatlogTracker } from '../transcript/action_conversation_chatlog_tracker'
 import type { ActionConversationCommandOperations } from '../state/action_conversation_command_service'
 import { ActionConversationMessageCommands } from './action_conversation_message_commands'
+import { ActionConversationCodeBlock } from './action_conversation_code_block';
 
-const MARKDOWN_COMPONENTS = { a: ActionConversationLink }
+const MARKDOWN_COMPONENTS = { a: ActionConversationLink, pre: ActionConversationCodeBlock };
 
 interface ActionConversationMessageProps {
     commands: ActionConversationCommandOperations
@@ -49,18 +50,7 @@ export const ActionConversationMessage = memo(function ActionConversationMessage
                     px: 1.25,
                     py: 1,
                     ...markdownContentSx,
-                    '&& .mdxeditor-content pre': {
-                        bgcolor: 'background.paper',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 1,
-                        boxSizing: 'border-box',
-                        maxWidth: '100%',
-                        overflowWrap: 'anywhere',
-                        p: 1,
-                        whiteSpace: 'pre-wrap',
-                        width: '100%',
-                    },
+
                 }}
             >
                 <ActionConversationLinkContext value={conversation.cardInternalId ?? null}>
