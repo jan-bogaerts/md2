@@ -1,13 +1,46 @@
 ---
 internalId: 25184e4d-b340-439f-bf0a-dd54afd466b2
 id: F_249
-status: ready for implementation
+status: ready
 title: add support to compact
 after: 64933355-a3df-4476-b05f-c82b0c81b02a
 agents:
   - design/activity/card__25184e4d-b340-439f-bf0a-dd54afd466b2.json
 branch: f_249_add_support_to_compact
 worktree: 3
+changedFiles:
+  - app/compact_review.html
+  - app/compact_review.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx
+  - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
+  - app/src/components/actions/run/popup/action_prompt_menu.grouped.test.tsx
+  - app/src/components/actions/run/popup/action_prompt_menu.test.tsx
+  - app/src/components/actions/run/popup/action_prompt_menu.tsx
+  - app/src/data/action_run_types.ts
+  - app/src/data/electron_action_bridge.ts
+  - app/src/services/actions/action_compact_service.node.test.ts
+  - app/src/services/actions/action_compact_service.ts
+  - app/src/services/actions/action_run_registry.ts
+  - app/src/services/data/remote_control_storage_service.node.test.ts
+  - app/src/services/data/remote_control_storage_service.ts
+  - app/vitest.compact_review.config.ts
+  - desktop/src/actions/action/action_agent_executor.js
+  - desktop/src/actions/action/action_agent_executor.test.mjs
+  - desktop/src/actions/action/action_compact_queue.test.mjs
+  - desktop/src/actions/action/action_run.js
+  - desktop/src/actions/action/action_runner_service.js
+  - desktop/src/actions/agent/agent_claude_streaming_adapter.js
+  - desktop/src/actions/agent/agent_compact.test.mjs
+  - desktop/src/actions/agent/agent_run_interactions.js
+  - desktop/src/actions/agent/agent_run_state.js
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/actions/agent/agent_streaming_adapter.js
+  - desktop/src/actions/agent/agent_streaming_event_handlers.js
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
+  - desktop/src/shell/preload.js
+  - desktop/src/shell/preload.test.mjs
 ---
 chat needs to be compacted sometimes. we need a button for this.
 
