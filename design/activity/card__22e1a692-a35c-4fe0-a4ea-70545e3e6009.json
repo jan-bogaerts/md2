@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "22e1a692-a35c-4fe0-a4ea-70545e3e6009",
       "cardPath": "design/feature_descriptions/F_335_include_cost_per_release.md",
-      "completedAt": null,
+      "completedAt": "2026-10-04T16:39:49.795Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 71071
+        "usedTokens": 71438
       },
       "entries": [
         {
@@ -319,6 +319,56 @@
           "role": "user",
           "sequence": 25,
           "timestamp": "2026-10-04T16:38:33.002Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-80928a27-6ed5-4174-a635-6421ec62c140-event-26",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0259aa4067ce8bb5016ac2810da16087d2b53c2a0971e6de4c",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-04T16:38:41.533Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Existing `costUsd` field stores USD amounts reported by provider. Release completion already sums those amounts into `agent_token_usage.json`; popup shows them only in token tooltip. Missing costs currently get skipped, so sum can be incomplete.\n\nWill document visible reported costs and explicit “Data missing” labels, with no estimates.\n\n\n",
+          "id": "agent-turn-80928a27-6ed5-4174-a635-6421ec62c140-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 27,
+          "timestamp": "2026-10-04T16:39:49.795Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'design/feature_descriptions/F_335_include_cost_per_release.md'\nGet-Content -LiteralPath 'shared/agent_token_usage_summary.mjs'\nGet-Content -LiteralPath 'shared/agent_token_usage_summary.d.mts'\nGet-Content -LiteralPath 'app/src/components/agents/agent_usage_display.tsx'\nrg -n 'costUsd|releaseUsage|nextSummary|loadStoredSummary|CARD_ACTIVITY_FILE|projectUsage' app/src/services/release_operations.ts app/src/services/agents/project_agent_token_usage_service.ts desktop/src/actions/agent/project_agent_token_usage.js desktop/src/actions/agent/agent_claude_events.js\"",
+          "content": "---\r\nauthor: \r\nid: F_335\r\ninternalId: 22e1a692-a35c-4fe0-a4ea-70545e3e6009\r\ntitle: include cost per release\r\nstatus: design\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__22e1a692-a35c-4fe0-a4ea-70545e3e6009.json\r\npolicy:\r\nafter: 11011a61-0393-4aa1-9b89-f52be576aa72\r\n---\r\nwe show the total token count usage in the status bar. when the user clicks on this, we show a popup with the token count divided over release versions and the current.\r\n\r\nWe should also include the cost of each release. we should pre-calculate this upon release and store so we don't need to recalculate this every time (value doesn't change anyway).\r\n\r\nFinally, also show total cost.\r\n\r\nExisting project wont yet have the precalculated data, so this should be done when loaded.\r\nexport const AGENT_TOKEN_USAGE_SCHEMA_VERSION = 1\r\nexport const AGENT_TOKEN_USAGE_FILE_NAME = 'agent_token_usage.json'\r\n\r\nfunction requireUsageNumber(value, fieldName) {\r\n    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {\r\n        throw new Error(`Malformed agent token usage summary: invalid ${fieldName}`)\r\n    }\r\n\r\n    return value\r\n}\r\n\r\nexport function emptySummaryUsage() {\r\n    return {\r\n        cachedInputTokens: 0,\r\n        inputTokens: 0,\r\n        legacyTotalTokens: 0,\r\n        outputTokens: 0,\r\n        reasoningTokens: 0,\r\n        totalTokens: 0,\r\n    }\r\n}\r\n\r\nexport function legacySummaryUsage(totalTokens, costUsd) {\r\n    const usage = { ...emptySummaryUsage(), legacyTotalTokens: totalTokens, totalTokens }\r\n    if (costUsd !== undefined) usage.costUsd = costUsd\r\n\r\n    return parseSummaryUsage(usage, 'legacy usage')\r\n}\r\n\r\nexport function correctedSummaryUsage(usage) {\r\n    return parseSummaryUsage({ ...usage, legacyTotalTokens: 0 }, 'corrected usage')\r\n}\r\n\r\nexport function addSummaryUsage(usages) {\r\n    const total = emptySummaryUsage()\r\n    let hasCost = false\r\n    for (const usage of usages) {\r\n        total.cachedInputTokens += usage.cachedInputTokens\r\n        total.inputTokens += usage.inputTokens\r\n        total.legacyTotalTokens += usage.legacyTotalTokens\r\n        total.outputTokens += usage.outputTokens\r\n        total.reasoningTokens += usage.reasoningTokens\r\n        if (usage.costUsd !== undefined) {\r\n            total.costUsd = (total.costUsd ?? 0) + usage.costUsd\r\n            hasCost = true\r\n        }\r\n    }\r\n    total.totalTokens = total.legacyTotalTokens\r\n        + total.inputTokens\r\n        + total.cachedInputTokens\r\n        + total.outputTokens\r\n        + total.reasoningTokens\r\n    if (!hasCost) delete total.costUsd\r\n\r\n    return total\r\n}\r\n\r\nexport function createAgentTokenUsageSummary(projectUsage = emptySummaryUsage(), releases = {}) {\r\n    return { projectUsage, releases, schemaVersion: AGENT_TOKEN_USAGE_SCHEMA_VERSION }\r\n}\r\n\r\nexport function agentTokenUsageFilePath(projectFolder) {\r\n    if (typeof projectFolder !== 'string') throw new Error('Missing agent token usage projectFolder')\r\n    const normalizedProjectFolder = projectFolder.replace(/\\\\/gu, '/').replace(/^\\/+|\\/+$/gu, '')\r\n\r\n    return normalizedProjectFolder.length > 0\r\n        ? `${normalizedProjectFolder}/${AGENT_TOKEN_USAGE_FILE_NAME}`\r\n        : AGENT_TOKEN_USAGE_FILE_NAME\r\n}\r\n\r\nexport function parseSummaryUsage(value, fieldName) {\r\n    if (!value || typeof value !== 'object' || Array.isArray(value)) {\r\n        throw new Error(`Malformed agent token usage summary: invalid ${fieldName}`)\r\n    }\r\n    const allowedFields = new Set([\r\n        'cachedInputTokens', 'costUsd', 'inputTokens', 'legacyTotalTokens',\r\n        'outputTokens', 'reasoningTokens', 'totalTokens',\r\n    ])\r\n    const unknownField = Object.keys(value).find((name) => !allowedFields.has(name))\r\n    if (unknownField) throw new Error(`Malformed agent token usage summary: unexpected ${fieldName}.${unknownField}`)\r\n    const usage = {\r\n        cachedInputTokens: requireUsageNumber(value.cachedInputTokens, `${fieldName}.cachedInputTokens`),\r\n        inputTokens: requireUsageNumber(value.inputTokens, `${fieldName}.inputTokens`),\r\n        legacyTotalTokens: requireUsageNumber(value.legacyTotalTo\n[7202 characters omitted]\nreleases)\napp/src/services/agents/project_agent_token_usage_service.ts:164:            await this.loadStoredSummary(loadedProject)\napp/src/services/agents/project_agent_token_usage_service.ts:171:    private async loadStoredSummary(loadedProject: LoadedProjectUsage) {\ndesktop/src/actions/agent/project_agent_token_usage.js:24:const projectUsageWriteQueues = new Map();\ndesktop/src/actions/agent/project_agent_token_usage.js:27:    const previousWrite = projectUsageWriteQueues.get(filePath) ?? Promise.resolve();\ndesktop/src/actions/agent/project_agent_token_usage.js:30:    projectUsageWriteQueues.set(filePath, queueTail);\ndesktop/src/actions/agent/project_agent_token_usage.js:32:        if (projectUsageWriteQueues.get(filePath) === queueTail) projectUsageWriteQueues.delete(filePath);\ndesktop/src/actions/agent/project_agent_token_usage.js:41:    if (conversation.usageSchemaVersion === undefined) return legacySummaryUsage(usage.totalTokens, usage.costUsd);\ndesktop/src/actions/agent/project_agent_token_usage.js:45:        ...(usage.costUsd !== undefined ? { costUsd: usage.costUsd } : {}),\ndesktop/src/actions/agent/project_agent_token_usage.js:65:    if (next.costUsd !== undefined || previous.costUsd !== undefined) {\ndesktop/src/actions/agent/project_agent_token_usage.js:66:        delta.costUsd = (next.costUsd ?? 0) - (previous.costUsd ?? 0);\ndesktop/src/actions/agent/project_agent_token_usage.js:67:        if (!Number.isFinite(delta.costUsd) || delta.costUsd < 0) throw new Error('Agent conversation cost decreased');\ndesktop/src/actions/agent/project_agent_token_usage.js:104:    const projectUsages = [];\ndesktop/src/actions/agent/project_agent_token_usage.js:105:    const releaseUsages = new Map();\ndesktop/src/actions/agent/project_agent_token_usage.js:110:            const costUsd = activity.conversations.reduce((total, conversation) => total + (conversation.usage?.costUsd ?? 0), 0);\ndesktop/src/actions/agent/project_agent_token_usage.js:111:            const hasCost = activity.conversations.some((conversation) => conversation.usage?.costUsd !== undefined);\ndesktop/src/actions/agent/project_agent_token_usage.js:113:            usage = legacySummaryUsage(totalTokens, hasCost ? costUsd : undefined);\ndesktop/src/actions/agent/project_agent_token_usage.js:117:        projectUsages.push(usage);\ndesktop/src/actions/agent/project_agent_token_usage.js:121:        releaseUsages.set(releaseName, [...(releaseUsages.get(releaseName) ?? []), usage]);\ndesktop/src/actions/agent/project_agent_token_usage.js:123:    const releases = Object.fromEntries([...releaseUsages.entries()].map(([name, usages]) => [name, addSummaryUsage(usages)]));\ndesktop/src/actions/agent/project_agent_token_usage.js:125:    return createAgentTokenUsageSummary(addSummaryUsage(projectUsages), releases);\ndesktop/src/actions/agent/project_agent_token_usage.js:164:        let nextSummary;\ndesktop/src/actions/agent/project_agent_token_usage.js:171:            nextSummary = {\ndesktop/src/actions/agent/project_agent_token_usage.js:173:                projectUsage: addSummaryUsage([summary.projectUsage, delta]),\ndesktop/src/actions/agent/project_agent_token_usage.js:187:            await writeActivityFile(summaryPath, nextSummary);\ndesktop/src/actions/agent/project_agent_token_usage.js:196:        return { activity: nextActivity, relativePath: activityRelativePath, summary: nextSummary };\napp/src/services/release_operations.ts:107:    if (conversation.usageSchemaVersion === undefined) return legacySummaryUsage(usage.totalTokens, usage.costUsd)\napp/src/services/release_operations.ts:111:        ...(usage.costUsd !== undefined ? { costUsd: usage.costUsd } : {}),\napp/src/services/release_operations.ts:120:function releaseUsage(activityFiles: MarkdownFile[]) {\napp/src/services/release_operations.ts:226:            const nextSummary = {\napp/src/services/release_operations.ts:230:                    [safeReleaseName]: releaseUsage([\napp/src/services/release_operations.ts:255:                    { ...summaryFile, content: serializeAgentTokenUsageSummary(nextSummary) },\n",
+          "durationMs": 39,
+          "exitCode": 0,
+          "id": "agent-turn-80928a27-6ed5-4174-a635-6421ec62c140-event-28",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content -LiteralPath 'design/feature_descriptions/F_335_include_cost_per_release.md'\nGet-Content -LiteralPath 'shared/agent_token_usage_summary.mjs'\nGet-Content -LiteralPath 'shared/agent_token_usage_summary.d.mts'\nGet-Content -LiteralPath 'app/src/components/agents/agent_usage_display.tsx'\nrg -n 'costUsd|releaseUsage|nextSummary|loadStoredSummary|CARD_ACTIVITY_FILE|projectUsage' app/src/services/release_operations.ts app/src/services/agents/project_agent_token_usage_service.ts desktop/src/actions/agent/project_agent_token_usage.js desktop/src/actions/agent/agent_claude_events.js\"",
+          "providerItemId": "exec-86b8972a-f005-48b0-9284-bd14c519cff4",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-10-04T16:38:50.184Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-80928a27-6ed5-4174-a635-6421ec62c140-event-29",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0259aa4067ce8bb5016ac2811d6bbc87d286d36565083cada0",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-04T16:39:15.733Z",
+          "type": "reasoning"
         }
       ],
       "hasExplicitTitle": true,
@@ -333,14 +383,14 @@
         }
       ],
       "startedAt": "2026-10-04T16:32:14.981Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
-          "reasoningMs": 8755,
-          "toolMs": 590
+          "reasoningMs": 38017,
+          "toolMs": 662
         },
-        "elapsedMs": 126987,
-        "runningStartedAt": "2026-10-04T16:38:33.002Z"
+        "elapsedMs": 203613,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
