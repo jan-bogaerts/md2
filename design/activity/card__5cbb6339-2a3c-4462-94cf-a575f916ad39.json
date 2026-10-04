@@ -1695,11 +1695,11 @@
         "agent-a5a2e17d-faed-4531-81f7-2bc0ab58b091"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-f32a93c9-9fdd-43f0-a137-f3f63df55890",
       "origin": {
@@ -1708,9 +1708,34 @@
       },
       "rootActionId": "5c6ec911-a3e8-46d3-8500-46875d67b78d",
       "rootActionLabel": "fix bug",
-      "rootConversationId": "agent-a5a2e17d-faed-4531-81f7-2bc0ab58b091",
       "startedAt": "2026-10-03T15:25:37.194Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-a5a2e17d-faed-4531-81f7-2bc0ab58b091"
+    },
+    {
+      "commits": [
+        {
+          "commit": "a555ad5ab000feae253bfd411225cbd33a970aea",
+          "committedAt": "2026-10-04T18:22:35+02:00",
+          "deletions": 1,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_capability_fields.grouped.test.tsx",
+            "app/src/components/actions/editor/action_definition_fields.grouped.test.tsx",
+            "app/src/components/actions/editor/action_editor_field.grouped.test.tsx",
+            "app/src/components/actions/editor/action_editor_field.tsx"
+          ],
+          "filesChanged": 4,
+          "insertions": 66,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-04T18:22:35+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "5cbb6339-2a3c-4462-94cf-a575f916ad39",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
