@@ -8,6 +8,7 @@ owner:
 affects:
 agents:
 policy:
+after: 11011a61-0393-4aa1-9b89-f52be576aa72
 ---
 On the action-popup, in the chatlog, we show the chatlog items. The text boxes have 3 icons at the bottom.&#x20;
 
