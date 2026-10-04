@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "df7f7a94-ee33-44a3-b499-2b230d484fef",
       "cardPath": "design/feature_descriptions/B_210_incorrect_layout_action_popup_for_commands.md",
-      "completedAt": null,
+      "completedAt": "2026-10-04T17:16:16.373Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 74146
@@ -710,7 +710,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 51,
-          "timestamp": "2026-10-04T17:13:05.168Z"
+          "timestamp": "2026-10-04T17:16:16.373Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -720,12 +720,12 @@
           "agent": "codex",
           "conversationId": "01a107be-80db-7953-8602-fbb90dcdeb40",
           "createdAt": "2026-10-04T16:29:32.655Z",
-          "lastUsedAt": "2026-10-04T17:13:05.168Z",
+          "lastUsedAt": "2026-10-04T17:16:16.373Z",
           "synchronizedThroughMessageId": "agent-turn-96438a15-f088-4614-bb77-c90e9345f592-turn-2-assistant-3"
         }
       ],
       "startedAt": "2026-10-04T16:28:07.378Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 28949,
@@ -743,7 +743,7 @@
         "totalTokens": 572351
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
