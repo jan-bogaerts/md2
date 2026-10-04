@@ -10,7 +10,10 @@ agents:
 policy:
 after: 11011a61-0393-4aa1-9b89-f52be576aa72
 ---
-
 we show the total token count usage in the status bar. when the user clicks on this, we show a popup with the token count divided over release versions and the current.
 
-We should also include the cost of each release. we should pre-calculate this upon release and store so we don't need to recalculate this every time (value doesn't change anyway)
+We should also include the cost of each release. we should pre-calculate this upon release and store so we don't need to recalculate this every time (value doesn't change anyway).
+
+Finally, also show total cost.
+
+Existing project wont yet have the precalculated data, so this should be done when loaded.
