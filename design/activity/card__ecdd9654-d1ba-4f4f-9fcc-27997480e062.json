@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 76600
+        "usedTokens": 90470
       },
       "entries": [
         {
@@ -342,10 +342,11 @@
           "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-26",
           "kind": "event",
           "label": "AskUserQuestion",
+          "output": "The user answered: \"When does Ctrl decide continuous add? Today a tool stays active after each successful add until Escape or another tool is chosen.\"=\"Checked at commit (Recommended)\", \"Mindmap: placing the root node today auto-switches to the Topic tool. Keep that?\"=\"Keep auto-switch (Recommended)\", \"Fragment tool (sequence) opens a dialog and has no canvas gesture. Include it?\"=\"Return to Select (Recommended)\", \"Escape while a tool is active: keep it as cancel?\"=\"Remove Escape\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
           "providerItemId": "toolu_01KaWGMuV5AC4Af4zTsGmWbg",
           "sequence": 26,
-          "status": "inProgress",
-          "timestamp": "2026-10-04T17:06:02.110Z",
+          "status": "completed",
+          "timestamp": "2026-10-04T17:08:59.534Z",
           "type": "tool.AskUserQuestion"
         },
         {
@@ -425,6 +426,187 @@
           "role": "user",
           "sequence": 28,
           "timestamp": "2026-10-04T17:08:59.513Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-29",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfhZn6uDPpVfUkPPnWFt7:thinking:0",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-04T17:09:14.796Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"subscribeActiveTool\\\\(|Escape\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"glob\":\"{services/diagrams/*.ts,components/diagram_view/**/*.ts*}\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-30",
+          "kind": "event",
+          "label": "Grep",
+          "output": "components\\diagram_view\\diagram_view.test.tsx:563:    it('emphasizes one-hop Current relations, moves target on selection, and exits by button or Escape', async () => {\ncomponents\\diagram_view\\diagram_view.test.tsx:584:        await user.keyboard('{Escape}')\ncomponents\\diagram_view\\diagram_view.test.tsx:599:        fireEvent.keyDown(window, { key: 'Escape' })\ncomponents\\diagram_view\\diagram_view.test.tsx:640:        fireEvent.keyDown(window, { key: 'Escape' })\ncomponents\\diagram_view\\diagram_view.test.tsx:663:        await user.keyboard('{Escape}')\ncomponents\\diagram_view\\diagram_view.test.tsx:667:        await user.keyboard('{Escape}')\nservices\\diagrams\\diagram_edge_drawing_service.ts:134:        this.session.subscribeActiveTool(this.handleActiveToolChanged)\nservices\\diagrams\\diagram_edit_session_service.test.ts:274:        service.subscribeActiveTool(toolChanged)\nservices\\diagrams\\diagram_edit_session_service.test.ts:299:        service.subscribeActiveTool(toolChanged)\nservices\\diagrams\\diagram_edit_session_service.test.ts:331:        service.subscribeActiveTool(toolChanged)\nservices\\diagrams\\diagram_group_drawing_service.ts:71:        this.session.subscribeActiveTool(this.handleActiveToolChanged)\ncomponents\\diagram_view\\surface\\diagram_zoom_viewport.tsx:433:        if (event.defaultPrevented || event.key !== 'Escape') return\nservices\\diagrams\\diagram_move_service.test.ts:158:    it('restores geometry when Escape cancellation or a tool switch ends the transient gesture', () => {\ncomponents\\diagram_view\\surface\\diagram_zoom_viewport.test.tsx:368:    it('keeps an invalid edge target recoverable until Escape cancels it', () => {\ncomponents\\diagram_view\\surface\\diagram_zoom_viewport.test.tsx:384:        fireEvent.keyDown(window, { key: 'Escape' })\ncomponents\\diagram_view\\surface\\diagram_zoom_viewport.test.tsx:391:    it('leaves Add active when an inline field or dialog owns Escape', async () => {\ncomponents\\diagram_view\\surface\\diagram_zoom_viewport.test.tsx:402:        await user.keyboard('{Escape}')\ncomponents\\diagram_view\\surface\\diagram_zoom_viewport.test.tsx:406:        await user.keyboard('{Escape}')\ncomponents\\diagram_view\\surface\\diagram_zoom_viewport.test.tsx:857:    it('supports keyboard resizing and restores pointer resize when Escape cancels it', () => {\ncomponents\\diagram_view\\surface\\diagram_zoom_viewport.test.tsx:877:        fireEvent.keyDown(window, { key: 'Escape' })\ncomponents\\diagram_view\\surface\\diagram_zoom_viewport.test.tsx:929:    it('restores the scroll position when Escape or a cancelled pointer ends a pan', () => {\ncomponents\\diagram_view\\surface\\diagram_zoom_viewport.test.tsx:939:        fireEvent.keyDown(window, { key: 'Escape' })\nservices\\diagrams\\diagram_node_placement_service.ts:100:        this.session.subscribeActiveTool(this.handleActiveToolChanged)\ncomponents\\diagram_view\\surface\\diagram_current_viewport.tsx:73:        if (event.defaultPrevented || event.key !== 'Escape') return\ncomponents\\diagram_view\\surface\\diagram_current_viewport.test.tsx:153:    it('restores the scroll position recorded at pointer down when Escape cancels the pan', () => {\ncomponents\\diagram_view\\surface\\diagram_current_viewport.test.tsx:158:        fireEvent.keyDown(window, { key: 'Escape' })\ncomponents\\diagram_view\\creation_tools\\diagram_add_control.tsx:114:        if (event.key !== 'Escape') return;\ncomponents\\diagram_view\\creation_tools\\diagram_add_control.test.tsx:126:    it('closes popper with Escape and returns focus to dropdown', async () => {\ncomponents\\diagram_view\\creation_tools\\diagram_add_control.test.tsx:133:        await user.keyboard('{Escape}');\nservices\\diagrams\\diagram_resize_service.test.ts:189:    it('rolls back when Escape cancellation or another gesture replaces resize', () => {\ncomponents\\diagram_view\\legend\\diagram_legend_details_editor.test.tsx:145:        await userEvent.keyboard('{Escape}')\ncomponents\\diagram_view\\legend\\diagram_legend_details_editor.test.tsx:152:        await userEvent.keyboard('{Escape}')\ncomponents\\diagram_view\\legend\\diagram_legend_details_editor.test.tsx:164:        await userEvent.keyboard('{Escape}')\ncomponents\\diagram_view\\legend\\diagram_legend_entry_editor.tsx:54:        if (event.key === 'Escape') setDraftLabel(label)\ncomponents\\diagram_view\\legend\\diagram_legend_entry_row.tsx:68:        if (event.key === 'Escape') {\ncomponents\\diagram_view\\formatting\\diagram_connection_formatting_popover.test.tsx:55:            await user.keyboard('{Escape}');\ncomponents\\diagram_view\\formatting\\diagram_connection_formatting_popover.test.tsx:67:        await user.keyboard('{Escape}');\ncomponents\\diagram_view\\legend\\diagram_session_legend_entries.test.tsx:128:        await user.keyboard('{Escape}')\ncomponents\\diagram_view\\legend\\diagram_session_legend_entries.test.tsx:149:        await user.keyboard('{Escape}')\nservices\\diagrams\\diagram_selection_service.ts:91:        this.session.subscribeActiveTool(this.handleActiveToolChange)\ncomponents\\diagram_view\\formatting\\diagram_formatting_popover.test.tsx:56:            await user.keyboard('{Escape}');\ncomponents\\diagram_view\\formatting\\diagram_formatting_popover.test.tsx:70:        await user.keyboard('{Escape}');\ncomponents\\diagram_view\\formatting\\diagram_formatting_scale_control.test.tsx:158:        await user.keyboard('{Escape}')\ncomponents\\diagram_view\\editing\\diagram_inline_metadata_field.tsx:35:        if (event.key === 'Escape') {\ncomponents\\diagram_view\\editing\\diagram_inline_node_controls.tsx:32:        if (event.key === 'Escape') {",
+          "providerItemId": "toolu_01W31KNJ8UB5iXLP8twctKvw",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-10-04T17:09:16.205Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"pattern\":\"handleActiveToolChange =\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\services\\\\diagrams\\\\diagram_selection_service.ts\",\"output_mode\":\"content\",\"-A\":8}",
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-31",
+          "kind": "event",
+          "label": "Grep",
+          "output": "227:    private handleActiveToolChange = () => {\n228-        if (this.session.getActiveToolSnapshot() !== 'select') this.clearRectangle()\n229-    }\n230-\n231-    private handleSessionChange = () => {\n232-        this.clearRectangle()\n233-        this.clear()\n234-    }\n235-",
+          "providerItemId": "toolu_014vGVecQfHcZxcPLM9ZuNUL",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-10-04T17:09:18.124Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-32",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfhZoU7CUPAgoBm7LwyMy:thinking:0",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-04T17:09:20.243Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; grep -n \"^#\" F_406_add_copy_btn_to_codeblocks.md",
+          "content": "29:## Current state\n36:## implementation details\n45:## acceptance criteria",
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-33",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; grep -n \"^#\" F_406_add_copy_btn_to_codeblocks.md",
+          "providerItemId": "toolu_01JpbQgUkuiXA6fFr2xnbwF8",
+          "sequence": 33,
+          "status": "completed",
+          "timestamp": "2026-10-04T17:09:20.683Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_406_add_copy_btn_to_codeblocks.md\",\"offset\":25}",
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-34",
+          "kind": "event",
+          "label": "Read",
+          "output": "25\tIn the chatlogs on the action popup, we have code block elements in the text log items (markdown).\n26\t\n27\tWhen the mouse is over them, we should show a copy icon. When pressed, copy content of code block\n28\t\n29\t## Current state\n30\t\n31\t* `app/src/components/actions/conversation/messages/action_conversation_message.tsx` renders user and assistant message Markdown with `ReactMarkdown` and `remark-gfm`. Its component overrides handle links only; fenced and indented code blocks use ordinary `<pre><code>` elements. Inline code means code inside a paragraph, without a `<pre>` block.\n32\t* Code blocks already retain whitespace, wrap long lines, and use configured Markdown typography plus theme colors. Historical and streaming messages share this renderer. Streaming means message content can still grow while an agent runs.\n33\t* `action_conversation_message_commands.tsx` offers Copy message, which copies the entire source Markdown. `action_conversation_copy_button.tsx` already provides an accessible copy icon and reports failures through `dialogService`. No code-block copy control exists.\n34\t* `app/src/services/clipboard_text.ts` owns clipboard writing, including the existing fallback for remote-control pages served over plain HTTP. Its tests cover unavailable or rejected Clipboard API writes and fallback failures.\n35\t\n36\t## implementation details\n37\t\n38\t* Add `action_conversation_code_block.tsx` beside the message renderer. Register it as the `pre` override in `MARKDOWN_COMPONENTS`, retaining the existing link override. The component owns code-block layout and copy-text extraction; keep `<pre><code>` semantics and language classes. Place the copy button beside the `<pre>` inside a positioned wrapper, rather than inside code text.\n39\t* Reuse `ActionConversationCopyButton` with tooltip and `aria-label` set to `Copy code block`. Supply only the parsed code element's text: no Markdown fences, language label, surrounding prose, or control text. Preserve spaces, tabs, blank lines, and the trailing newline produced by the Markdown renderer; do not trim. Derive text from current render input so a streaming update changes the next copied value. Empty blocks copy an empty string if that is their rendered text.\n40\t* Place the icon at the block's upper-right corner. Keep it mounted but transparent at rest; show it when that block is hovered or contains keyboard focus. On devices without hover, keep it visible. Reserve space so the icon never covers code and revealing it does not move content. Keep keyboard activation, text selection, wrapping, and theme styling intact. Follow `design/STYLE_GUIDE.md` and `design/architecture/architectural_decisions.md`.\n41\t* Keep existing shared behavior. `ActionConversationCopyButton` callers are `ActionConversationMessageCommands` and `ActionConversationEventRow`; both retain their labels, source payloads, and error handling. `copyTextToClipboard` callers are that shared copy button, `CardPathMenuItems`, and `RemoteControlConnectionInfo`; all retain current clipboard behavior. Neither shared helper needs modification. Copying requires no conversation mutation, persistence change, new application state, or Electron bridge.\n42\t* Add component tests with mocked clipboard boundaries for multiple blocks, fenced blocks with and without language labels, indented blocks, whitespace, empty blocks, inline code exclusion, streaming updates, keyboard activation, and error reporting. Add message-renderer integration coverage proving the override is wired in and Copy message still copies source Markdown. Retain existing code-block rendering coverage in `action_conversation_chat.grouped.test.tsx` and copy coverage in `action_conversation_item_commands.test.tsx` and `clipboard_text.test.ts`.\n43\t* During implementation, run affected test files independently and `npm run lint` in `app/`. Manually verify hover/focus visibility, devices without hover, narrow messages, long lines, and light/dark themes; DOM tests alone cannot establish these visual interactions.\n44\t\n45\t## acceptance criteria\n46\t\n47\t1. Every fenced or indented code block in an action-popup user or assistant message has its own Copy code block icon. Inline code has no block copy icon. This works for historical messages and messages still streaming.\n48\t2. Hovering a block reveals its icon; leaving hides it unless keyboard focus remains within that block. Keyboard users can reach and activate the button. Devices without hover show the icon continuously. Tooltip and accessible name identify the action.\n49\t3. Activating an icon copies only that block's rendered code text, preserving whitespace and rendered trailing newline. Multiple blocks copy independently. After a streaming update, the next click copies the updated text. Empty blocks do not throw.\n50\t4. Copy failures reach `dialogService` through the existing shared button. Copy remains available while a conversation runs and in read-only projects, because it does not modify project data.\n51\t5. Revealing or activating the icon does not shift content or cover code. Existing wrapping, selection, language classes, Markdown typography, and light/dark styling remain usable. Whole-message Copy and event Copy retain their existing payloads and behavior.\n52\t",
+          "providerItemId": "toolu_01GYkpooRoCtp2SibBr9hCWb",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-10-04T17:09:22.208Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-35",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfhZomWxHkjiV5jbNpEUP:thinking:0",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-04T17:09:24.378Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; sed -i 's/^status: design$/status: ready for implementation/' F_407_diagram_continuous_add_with_ctrl.md; cat >> F_407_diagram_continuous_add_with_ctrl.md <<'EOF'\n\n## Current state\n\n* `app/src/components/diagram_view/creation_tools/diagram_add_control.tsx` renders the Add button (last selected creation tool) and the Choose Add tool menu. `activateCreationTool` activates one of four flows: node placement, edge drawing, group drawing, or the sequence fragment dialog. The Add button tooltip is `Add <label>`, or `Choose an Add tool` when no tool exists.\n* Continuous add means: after one object is created, the same Add tool stays active, so the next click creates another object. Today every flow is continuous:\n  * `DiagramNodePlacementService.place` creates the node, selects it, and keeps `node:<kind>` active. Exception: placing a mindmap `root` immediately activates the Topic tool (`MINDMAP_TOPIC_PLACEMENT`).\n  * `DiagramEdgeDrawingService.completeTarget` creates the edge, selects it, and keeps `edge:<kind>` active. Clicking empty canvas instead of a target node keeps the source preview.\n  * `DiagramGroupDrawingService.finishDrawing` stores the drawn rectangle as a pending label box; `completeGroup` (called by `diagram_group_label_form.tsx`) creates the group and keeps `group` active. Cancelling the label dialog calls `cancelDrawing`, which also keeps `group` active.\n  * The fragment flow sets active tool `fragment` and opens `DiagramFragmentDialog`. Closing that dialog leaves `fragment` active, so the Add button stays pressed.\n* `diagram_zoom_viewport.tsx` drives the canvas gestures: node placement commits on pointer-up (`place`), edges commit on the pointer-down that hits a target node (`completeTarget`), groups finish on pointer-up (`finishDrawing`). `handleWindowKeyDown` makes Escape cancel the active edge, node, or group tool and switch to `select`. That Escape handling is the only way, besides choosing another tool, to stop adding.\n* Switching to `select` already clears placement/drawing state through each service's `handleActiveToolChanged` listener. `DiagramSelectionService` keeps the current selection on tool change, so the newly created object stays selected.\n* No Ctrl modifier is read by any add flow. Ctrl-click on nodes/edges/groups toggles multi-selection, but active add gestures set `suppressClickRef`, so that click handler does not fire while adding.\n\n## implementation details\n\n* Rule: Ctrl state is read at the moment an add commits. Ctrl held: tool stays active (continuous add). Ctrl not held: after the successful add, active tool becomes `select`. Releasing Ctrl alone changes nothing. A failed add (service returns `null`) keeps the tool active so the user can retry. Read `event.ctrlKey` only, as the feature specifies.\n* `DiagramNodePlacementService.place(point, continueAdding)`: after a successful create, if `definition.kind === 'root'` keep the existing switch to `MINDMAP_TOPIC_PLACEMENT` regardless of Ctrl; otherwise call `this.session.setActiveTool('select')` when `continueAdding` is false. Only call site: `handlePointerUp` in `diagram_zoom_viewport.tsx`, passing `event.ctrlKey`.\n* `DiagramEdgeDrawingService.completeTarget(nodeId, point, continueAdding)`: after a successful create, call `this.session.setActiveTool('select')` when `continueAdding` is false. Only call site: `handlePointerDown` in `diagram_zoom_viewport.tsx`, passing `event.ctrlKey`.\n* `DiagramGroupDrawingService.finishDrawing(point, continueAdding)`: store `continueAdding` with the pending label box (cleared in `clearDrawing`). `completeGroup` keeps its signature (call site `diagram_group_label_form.tsx` unchanged); after a successful create it calls `this.session.setActiveTool('select')` when the stored value is false. Ctrl is read on rectangle release, because the label dialog submit is a keyboard/button action. Cancelling the label dialog keeps current behavior (tool stays `group`). Only `finishDrawing` call site: `handlePointerUp` in `diagram_zoom_viewport.tsx`, passing `event.ctrlKey`.\n* Fragment: in `activateCreationTool`, replace `session.setActiveTool('fragment')` with `session.setLastSelectedCreationTool('fragment')` followed by `session.setActiveTool('select')`, then `fragmentDialog.openCreate()`. The Add button keeps Fragment as last selected tool; after the dialog closes (save or cancel) the active tool is Select. No Ctrl continuous mode for fragments.\n* Remove Escape handling for add tools: delete the edge drawing, node placement, and group drawing branches from `handleWindowKeyDown` in `diagram_zoom_viewport.tsx`. Keep Escape for pan, resize, move, and emphasis. Dialogs (group label, fragment) keep their own Escape close. Consequence: an edge with a chosen source but no target is abandoned by choosing Select, Pan, or another tool; pointer-cancel and lost pointer capture still cancel node/group gestures.\n* Tooltip: Add button tooltip becomes `Add <label> (hold Ctrl to add multiple)` for node, edge, and group tools; Fragment keeps `Add Fragment`. `aria-label` stays `Add <label>` so existing role queries keep working. `Choose an Add tool` stays unchanged.\n* Tests:\n  * Service tests (`diagram_node_placement_service.test.ts`, `diagram_edge_drawing_service.test.ts`, `diagram_group_drawing_service.test.ts`): with `continueAdding` true the tool stays active; with false it becomes `select` and the new object stays selected; failed creates keep the tool; mindmap root still switches to Topic without Ctrl.\n  * `diagram_zoom_viewport.test.tsx`: pointer events with and without `ctrlKey` for node, edge, and group. Existing tests asserting Escape cancels add tools (`keeps an invalid edge target recoverable until Escape cancels it`, `leaves Add active when an inline field or dialog owns Escape`) are stale by intent; rewrite them to the new behavior. Pan/resize Escape tests stay.\n  * `diagram_add_control.test.tsx`: tooltip text for node and Fragment tools; Fragment activation opens the dialog, keeps Fragment as last selected tool, and leaves active tool `select`.\n* Run affected test files independently and `npm run lint` in `app/`.\n\n## acceptance criteria\n\n1. Without Ctrl, adding one node, edge, or group returns the active tool to Select; the new object is selected and the Add button keeps the same last selected tool.\n2. With Ctrl held when the add commits (node: mouse release; edge: click on target node; group: mouse release of the rectangle), the tool stays active and the next add uses the same tool.\n3. Placing a mindmap root still switches to the Topic tool; Topic adds then follow criteria 1 and 2.\n4. A failed add (invalid target, rejected create) keeps the tool active.\n5. Choosing Fragment opens the fragment dialog; after it closes, the active tool is Select and the Add button still offers Fragment.\n6. Escape no longer cancels or exits node, edge, or group add tools. Escape still cancels pan, resize, and move gestures, clears emphasis, and closes dialogs.\n7. Hovering the Add button for a node, edge, or group tool shows `Add <label> (hold Ctrl to add multiple)`.\nEOF\nhead -8 F_407_diagram_continuous_add_with_ctrl.md",
+          "content": "claude-sonnet-5[1m] is temporarily unavailable (timed out), so auto mode cannot determine the safety of Bash right now. Wait a moment and then try this action again. If it keeps failing, continue with other tasks that don't require this action and come back to it later. Note: reading files, searching code, and other read-only operations do not require the classifier and can still be used.",
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-36",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; sed -i 's/^status: design$/status: ready for implementation/' F_407_diagram_continuous_add_with_ctrl.md; cat >> F_407_diagram_continuous_add_with_ctrl.md <<'EOF'\n\n## Current state\n\n* `app/src/components/diagram_view/creation_tools/diagram_add_control.tsx` renders the Add button (last selected creation tool) and the Choose Add tool menu. `activateCreationTool` activates one of four flows: node placement, edge drawing, group drawing, or the sequence fragment dialog. The Add button tooltip is `Add <label>`, or `Choose an Add tool` when no tool exists.\n* Continuous add means: after one object is created, the same Add tool stays active, so the next click creates another object. Today every flow is continuous:\n  * `DiagramNodePlacementService.place` creates the node, selects it, and keeps `node:<kind>` active. Exception: placing a mindmap `root` immediately activates the Topic tool (`MINDMAP_TOPIC_PLACEMENT`).\n  * `DiagramEdgeDrawingService.completeTarget` creates the edge, selects it, and keeps `edge:<kind>` active. Clicking empty canvas instead of a target node keeps the source preview.\n  * `DiagramGroupDrawingService.finishDrawing` stores the drawn rectangle as a pending label box; `completeGroup` (called by `diagram_group_label_form.tsx`) creates the group and keeps `group` active. Cancelling the label dialog calls `cancelDrawing`, which also keeps `group` active.\n  * The fragment flow sets active tool `fragment` and opens `DiagramFragmentDialog`. Closing that dialog leaves `fragment` active, so the Add button stays pressed.\n* `diagram_zoom_viewport.tsx` drives the canvas gestures: node placement commits on pointer-up (`place`), edges commit on the pointer-down that hits a target node (`completeTarget`), groups finish on pointer-up (`finishDrawing`). `handleWindowKeyDown` makes Escape cancel the active edge, node, or group tool and switch to `select`. That Escape handling is the only way, besides choosing another tool, to stop adding.\n* Switching to `select` already clears placement/drawing state through each service's `handleActiveToolChanged` listener. `DiagramSelectionService` keeps the current selection on tool change, so the newly created object stays selected.\n* No Ctrl modifier is read by any add flow. Ctrl-click on nodes/edges/groups toggles multi-selection, but active add gestures set `suppressClickRef`, so that click handler does not fire while adding.\n\n## implementation details\n\n* Rule: Ctrl state is read at the moment an add commits. Ctrl held: tool stays active (continuous add). Ctrl not held: after the successful add, active tool becomes `select`. Releasing Ctrl alone changes nothing. A failed add (service returns `null`) keeps the tool active so the user can retry. Read `event.ctrlKey` only, as the feature specifies.\n* `DiagramNodePlacementService.place(point, continueAdding)`: after a successful create, if `definition.kind === 'root'` keep the existing switch to `MINDMAP_TOPIC_PLACEMENT` regardless of Ctrl; otherwise call `this.session.setActiveTool('select')` when `continueAdding` is false. Only call site: `handlePointerUp` in `diagram_zoom_viewport.tsx`, passing `event.ctrlKey`.\n* `DiagramEdgeDrawingService.completeTarget(nodeId, point, continueAdding)`: after a successful create, call `this.session.setActiveTool('select')` when `continueAdding` is false. Only call site: `handlePointerDown` in `diagram_zoom_viewport.tsx`, passing `event.ctrlKey`.\n* `DiagramGroupDrawingService.finishDrawing(point, continueAdding)`: store `continueAdding` with the pending label box (cleared in `clearDrawing`). `completeGroup` keeps its signature (call site `diagram_group_label_form.tsx` unchanged); after a successful create it calls `this.session.setActiveTool('select')` when the stored value is false. Ctrl is read on rectangle release, because the label dialog submit is a keyboard/button action. Cancelling the label dialog keeps current behavior (tool stays `group`). Only `finishDrawing` call site: `handlePointerUp` in `diagram_zoom_viewport.tsx`, passing `event.ctrlKey`.\n* Fragment: in `activateCreationTool`, replace `session.setActiveTool('fragment')` with `session.setLastSelectedCreationTool('fragment')` followed by `session.setActiveTool('select')`, then `fragmentDialog.openCreate()`. The Add button keeps Fragment as last selected tool; after the dialog closes (save or cancel) the active tool is Select. No Ctrl continuous mode for fragments.\n* Remove Escape handling for add tools: delete the edge drawing, node placement, and group drawing branches from `handleWindowKeyDown` in `diagram_zoom_viewport.tsx`. Keep Escape for pan, resize, move, and emphasis. Dialogs (group label, fragment) keep their own Escape close. Consequence: an edge with a chosen source but no target is abandoned by choosing Select, Pan, or another tool; pointer-cancel and lost pointer capture still cancel node/group gestures.\n* Tooltip: Add button tooltip becomes `Add <label> (hold Ctrl to add multiple)` for node, edge, and group tools; Fragment keeps `Add Fragment`. `aria-label` stays `Add <label>` so existing role queries keep working. `Choose an Add tool` stays unchanged.\n* Tests:\n  * Service tests (`diagram_node_placement_service.test.ts`, `diagram_edge_drawing_service.test.ts`, `diagram_group_drawing_service.test.ts`): with `continueAdding` true the tool stays active; with false it becomes `select` and the new object stays selected; failed creates keep the tool; mindmap root still switches to Topic without Ctrl.\n  * `diagram_zoom_viewport.test.tsx`: pointer events with and without `ctrlKey` for node, edge, and group. Existing tests asserting Escape cancels add tools (`keeps an invalid edge target recoverable until Escape cancels it`, `leaves Add active when an inline field or dialog owns Escape`) are stale by intent; rewrite them to the new behavior. Pan/resize Escape tests stay.\n  * `diagram_add_control.test.tsx`: tooltip text for node and Fragment tools; Fragment activation opens the dialog, keeps Fragment as last selected tool, and leaves active tool `select`.\n* Run affected test files independently and `npm run lint` in `app/`.\n\n## acceptance criteria\n\n1. Without Ctrl, adding one node, edge, or group returns the active tool to Select; the new object is selected and the Add button keeps the same last selected tool.\n2. With Ctrl held when the add commits (node: mouse release; edge: click on target node; group: mouse release of the rectangle), the tool stays active and the next add uses the same tool.\n3. Placing a mindmap root still switches to the Topic tool; Topic adds then follow criteria 1 and 2.\n4. A failed add (invalid target, rejected create) keeps the tool active.\n5. Choosing Fragment opens the fragment dialog; after it closes, the active tool is Select and the Add button still offers Fragment.\n6. Escape no longer cancels or exits node, edge, or group add tools. Escape still cancels pan, resize, and move gestures, clears emphasis, and closes dialogs.\n7. Hovering the Add button for a node, edge, or group tool shows `Add <label> (hold Ctrl to add multiple)`.\nEOF\nhead -8 F_407_diagram_continuous_add_with_ctrl.md",
+          "providerItemId": "toolu_01UYMj92LjFmULypnfpDC3wu",
+          "sequence": 36,
+          "status": "failed",
+          "timestamp": "2026-10-04T17:10:57.093Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-37",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfhZvmjnWZZyaNwh2iPiA:thinking:0",
+          "sequence": 37,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-04T17:10:58.623Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nWriting doc sections now (shell blocked, switching to Edit).",
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 38,
+          "timestamp": "2026-10-04T17:10:58.624Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md",
+          "deletions": 1,
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-39",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01H8GjT27WoTbPeV6B9pKa5E",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-10-04T17:10:59.694Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md",
+          "deletions": 1,
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-40",
+          "insertions": 38,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01BsMHSFn42ZUEimi7metgqw",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-10-04T17:11:17.665Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-event-41",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfhZxHAcxDEQCTnUd284b:thinking:0",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-04T17:11:24.327Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI added `Current state`, `implementation details` and `acceptance criteria` to `design/feature_descriptions/F_407_diagram_continuous_add_with_ctrl.md`, and set `status` to `ready for implementation`. Nothing is staged or committed.\n\nHow your answers shaped the design:\n- **When Ctrl counts:** it is read when an add completes: releasing the mouse for a node, clicking the target node for an edge, or releasing the mouse after drawing a group rectangle. With Ctrl held, the tool stays active. Without it, the tool switches back to Select after that one add. Releasing Ctrl on its own changes nothing.\n- **Groups:** Ctrl is read when the rectangle is released, not when the label dialog is submitted, because submitting the dialog is a keyboard or button action. Cancelling that dialog keeps the Group tool active, as it does today.\n- **Mindmap root:** placing it still switches to the Topic tool, whether or not Ctrl is held.\n- **Fragment:** opening it sets the tool to Select and opens the dialog, so the tool is Select once the dialog closes. The Add button still offers Fragment.\n- **Escape:** it no longer cancels node, edge or group add tools. It still cancels pan, resize and move, clears emphasis, and closes dialogs.\n\nA few rules I added that you didn't specify:\n- **Abandoning an edge:** with Escape gone, the only way to drop an edge that has a start point but no target yet is to pick Select, Pan or another tool. Clicking empty canvas still keeps the edge preview.\n- **Failed adds:** an add that fails, such as an invalid target, keeps the tool active.\n- **Tooltip:** node, edge and group tools show `Add <label> (hold Ctrl to add multiple)`. The accessible name stays `Add <label>`.\n- **Mac:** only the Ctrl key is checked, not Cmd.\n\nTwo existing Escape tests in `diagram_zoom_viewport.test.tsx` will be out of date after this change, and the doc says to rewrite them.",
+          "id": "agent-turn-3d90e65b-ee1f-4a2a-b96a-936435bdb246-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 42,
+          "timestamp": "2026-10-04T17:11:24.358Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -434,13 +616,21 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 14948,
-          "toolMs": 20071
+          "reasoningMs": 36560,
+          "toolMs": 135514
         },
         "elapsedMs": 48874,
         "runningStartedAt": "2026-10-04T17:08:59.513Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 1260129,
+        "inputTokens": 38,
+        "outputTokens": 13051,
+        "reasoningTokens": 0,
+        "totalTokens": 1273218,
+        "costUsd": 1.0894618000000003
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
