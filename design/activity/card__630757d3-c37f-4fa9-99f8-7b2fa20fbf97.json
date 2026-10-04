@@ -1,0 +1,68 @@
+{
+  "actionSettings": {
+    "5b88355d-f964-459a-bc67-6618650866ba": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    },
+    "md2.custom-prompt": {
+      "activeAgent": "claude",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-6-sol",
+          "thinkingLevel": "medium"
+        },
+        "claude": {
+          "model": "opus",
+          "thinkingLevel": "medium"
+        }
+      }
+    }
+  },
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "630757d3-c37f-4fa9-99f8-7b2fa20fbf97",
+      "cardPath": "design/feature_descriptions/F_374_add_docs_about_editable_diagrams.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read design/feature_descriptions/F_374_add_docs_about_editable_diagrams.md. Can you check if there is still somerhing missing in the docs?",
+          "id": "submission-97ba90c9-6083-41b1-9420-21d3e19f8ce8",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-04T16:29:57.495Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-f11ef119-3f96-48d9-bf4a-77427e70f809",
+      "providerSessions": [],
+      "startedAt": "2026-10-04T16:29:57.495Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-04T16:29:57.495Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "630757d3-c37f-4fa9-99f8-7b2fa20fbf97",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
