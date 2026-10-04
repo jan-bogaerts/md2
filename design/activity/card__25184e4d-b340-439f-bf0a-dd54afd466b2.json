@@ -289,6 +289,14 @@
           "role": "assistant",
           "sequence": 22,
           "timestamp": "2026-10-04T16:21:37.370Z"
+        },
+        {
+          "content": "* Both\n* Always allowed. Queue if needed\n* Also on mobile, but no space between hamburger icon and agent selector",
+          "id": "submission-f29be0c5-21d8-4db2-bdf1-0bd303ac51b1",
+          "kind": "message",
+          "role": "user",
+          "sequence": 23,
+          "timestamp": "2026-10-04T16:26:34.054Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -303,14 +311,14 @@
         }
       ],
       "startedAt": "2026-10-04T16:19:08.048Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 15743,
           "toolMs": 1130
         },
         "elapsedMs": 149322,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-04T16:26:34.054Z"
       },
       "title": "complete",
       "usage": {
@@ -321,7 +329,7 @@
         "totalTokens": 591553
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
