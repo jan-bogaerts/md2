@@ -20,10 +20,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "ecdd9654-d1ba-4f4f-9fcc-27997480e062",
       "cardPath": "design/feature_descriptions/F_407_diagram_continuous_add_with_ctrl.md",
-      "completedAt": "2026-10-04T17:11:25.054Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 90470
+        "usedTokens": 94419
       },
       "entries": [
         {
@@ -607,6 +607,95 @@
           "role": "assistant",
           "sequence": 42,
           "timestamp": "2026-10-04T17:11:25.054Z"
+        },
+        {
+          "content": "* Abandone edge with escape should remain",
+          "id": "submission-e702ffd9-f309-4a96-8d51-62e4c1f1f7c5",
+          "kind": "message",
+          "role": "user",
+          "sequence": 43,
+          "timestamp": "2026-10-04T17:14:43.608Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-35660255-857e-4c90-aa45-9b77fbd33941-event-44",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfhaDZT66uaE7CvzGFBDu:thinking:0",
+          "sequence": 44,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-04T17:14:49.162Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md",
+          "deletions": 1,
+          "id": "agent-turn-35660255-857e-4c90-aa45-9b77fbd33941-event-45",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01TF2j7wjFR28L49VkfrkvJ3",
+          "sequence": 45,
+          "status": "completed",
+          "timestamp": "2026-10-04T17:14:52.868Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md",
+          "deletions": 1,
+          "id": "agent-turn-35660255-857e-4c90-aa45-9b77fbd33941-event-46",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01EzNDMJFgVfPoPfznaKVesm",
+          "sequence": 46,
+          "status": "completed",
+          "timestamp": "2026-10-04T17:14:55.456Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md",
+          "deletions": 1,
+          "id": "agent-turn-35660255-857e-4c90-aa45-9b77fbd33941-event-47",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01JhyedSYPJJhrsFrTUw6nCU",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-10-04T17:14:57.619Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-35660255-857e-4c90-aa45-9b77fbd33941-event-48",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfhaEVdv9Cfeg18UcKfMx:thinking:0",
+          "sequence": 48,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-04T17:15:02.434Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "I updated `F_407_diagram_continuous_add_with_ctrl.md` so Escape still abandons an edge in progress.\n\n- **Implementation details:** the Escape handling for edges now runs only when an edge has a start point but no target yet. In that case it does what it does today: it cancels the edge and switches to Select. The Escape handling for nodes and groups is still removed. Escape while an edge tool is active but no start point is chosen does nothing.\n- **Tests:** `keeps an invalid edge target recoverable until Escape cancels it` should stay valid, judging by its name; I haven't read the test body. Tests where Escape exits a node or group tool still need rewriting. I added a new test: Escape with an edge tool but no start point keeps the tool active.\n- **Acceptance criterion 6:** it now says Escape abandons an edge that has a start point but no target, then returns to Select.\n\nDecision for you: I kept the switch to Select after Escape abandons an edge, because that is current behaviour. If you'd rather keep the edge tool active so the next edge can start straight away, say so and I'll change it.",
+          "id": "agent-turn-35660255-857e-4c90-aa45-9b77fbd33941-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 49,
+          "timestamp": "2026-10-04T17:15:02.480Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -621,26 +710,26 @@
         }
       ],
       "startedAt": "2026-10-04T17:05:13.239Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 36560,
-          "toolMs": 135514
+          "reasoningMs": 43460,
+          "toolMs": 143970
         },
         "elapsedMs": 194415,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-04T17:14:43.608Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1260129,
-        "inputTokens": 38,
-        "outputTokens": 13051,
+        "cachedInputTokens": 1446293,
+        "inputTokens": 42,
+        "outputTokens": 15005,
         "reasoningTokens": 0,
-        "totalTokens": 1273218,
-        "costUsd": 1.0894618000000003
+        "totalTokens": 1461340,
+        "costUsd": 2.286054600000001
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -667,11 +756,11 @@
         "agent-df2933c3-cd05-47b6-9994-24eed3fc28ed"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-48001642-b3ea-4970-a52d-f23e27022b9e",
       "origin": {
@@ -680,9 +769,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-df2933c3-cd05-47b6-9994-24eed3fc28ed",
       "startedAt": "2026-10-04T17:05:13.238Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-df2933c3-cd05-47b6-9994-24eed3fc28ed"
     }
   ],
   "version": 5
