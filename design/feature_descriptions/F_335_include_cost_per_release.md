@@ -3,13 +3,17 @@ author:
 id: F_335
 internalId: 22e1a692-a35c-4fe0-a4ea-70545e3e6009
 title: include cost per release
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__22e1a692-a35c-4fe0-a4ea-70545e3e6009.json
 policy:
 after: 11011a61-0393-4aa1-9b89-f52be576aa72
+changedFiles:
+  - app/src/components/shell/project_agent_usage_details.test.tsx
+  - app/src/components/shell/project_agent_usage_details.tsx
+  - app/src/components/shell/project_agent_usage_summary.test.tsx
 ---
 The status bar shows total token usage. Clicking it opens a popup with project totals and Current, Archived, and release rows. Show the existing provider-reported cost beside token usage in this popup, rather than only in the token tooltip.
 
