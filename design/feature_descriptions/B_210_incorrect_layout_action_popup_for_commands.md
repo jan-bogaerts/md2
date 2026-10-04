@@ -3,7 +3,7 @@ author:
 id: B_210
 internalId: df7f7a94-ee33-44a3-b499-2b230d484fef
 title: incorrect layout action popup for commands
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,11 @@ policy:
 after: 421a382c-ec00-4741-a8f7-eab2a949fcfe
 branch: b_210_incorrect_layout_action_popup_for_commands
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/popup/action_input_layout_store.test.ts
+  - app/src/components/actions/run/popup/action_input_layout_store.ts
+  - app/src/components/actions/run/popup/action_input_splitter.tsx
+  - app/src/components/actions/run/popup/action_layout_surface.tsx
 ---
 for command actions, the layout is incorrect: we show a splitter above the markdown input and the run history below the input.
 
