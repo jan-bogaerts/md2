@@ -3,7 +3,7 @@ author:
 id: F_407
 internalId: ecdd9654-d1ba-4f4f-9fcc-27997480e062
 title: Diagram continuous add with ctrl
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

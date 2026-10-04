@@ -5316,6 +5316,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": false
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": null,
+      "cardPath": null,
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "There are 2 prs waiting for review. Can you look at them",
+          "id": "submission-4bed15fa-fe32-46cb-b800-371fb9609f89",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-04T17:22:08.459Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-9325c279-79ee-4d14-a758-a3542f0214b2",
+      "providerSessions": [],
+      "startedAt": "2026-10-04T17:22:08.459Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-04T17:22:08.459Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -5485,11 +5513,11 @@
         "agent-4fad7a23-77cd-4b26-a0b6-01f6b57be428"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-90e68497-fadc-48f0-b7b4-1acd7f84397f",
       "origin": {
@@ -5497,9 +5525,9 @@
       },
       "rootActionId": "6e05571a-e93b-4e56-be1a-520efa28fd3f",
       "rootActionLabel": "merge",
-      "rootConversationId": "agent-4fad7a23-77cd-4b26-a0b6-01f6b57be428",
       "startedAt": "2026-10-04T16:43:06.479Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-4fad7a23-77cd-4b26-a0b6-01f6b57be428"
     }
   ],
   "version": 5

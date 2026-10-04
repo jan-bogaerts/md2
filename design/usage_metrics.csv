@@ -6689,3 +6689,7 @@ recorded_at,record_type,provider,limit_id,window_id,window_duration_minutes,rese
 2026-10-04T17:15:02.480Z,token_usage,claude,,,,,4,186164,1954,0,188122,,
 2026-10-04T17:14:43.611Z,account_usage,claude,default,weekly,10080,2026-10-11T16:59:00.000Z,,,,,,1,1
 2026-10-04T17:16:58.671Z,token_usage,claude,,,,,24,661157,4696,0,665877,,
+2026-10-04T17:19:15.626Z,token_usage,codex,,,,,45694,195712,1287,37,242730,,
+2026-10-04T17:17:35.752Z,account_usage,claude,default,weekly,10080,2026-10-11T16:59:00.000Z,,,,,,2,1
+2026-10-04T17:22:26.040Z,account_usage,codex,codex,primary,10080,2026-10-10T11:32:43.000Z,,,,,,4,1
+2026-10-04T17:23:09.647Z,token_usage,claude,,,,,50,2475538,16749,0,2492337,,
