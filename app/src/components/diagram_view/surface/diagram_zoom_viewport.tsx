@@ -265,7 +265,7 @@ export function DiagramZoomViewport({
             event.preventDefault()
             suppressClickRef.current = true
             const nodeId = diagramConnectionNodeIdFromTarget(event.target)
-            if (drawing.hasSource()) drawing.completeTarget(nodeId, point)
+            if (drawing.hasSource()) drawing.completeTarget(nodeId, point, event.ctrlKey)
             else if (nodeId) drawing.beginSource(nodeId, point)
 
             return
@@ -360,10 +360,10 @@ export function DiagramZoomViewport({
         completingGestureRef.current = true
         if (activePointerGestureRef.current === 'placement') {
             suppressClickRef.current = true
-            placement.place(pointerDiagramPoint(event.clientX, event.clientY))
+            placement.place(pointerDiagramPoint(event.clientX, event.clientY), event.ctrlKey)
         } else if (activePointerGestureRef.current === 'group') {
             suppressClickRef.current = true
-            groupDrawing.finishDrawing(pointerDiagramPoint(event.clientX, event.clientY))
+            groupDrawing.finishDrawing(pointerDiagramPoint(event.clientX, event.clientY), event.ctrlKey)
         } else if (activePointerGestureRef.current === 'resize') resize.completeResize()
         else movement.completeMove()
         completingGestureRef.current = false
@@ -432,31 +432,11 @@ export function DiagramZoomViewport({
     const handleWindowKeyDown = useCallback((event: KeyboardEvent) => {
         if (event.defaultPrevented || event.key !== 'Escape') return
         if (event.target instanceof Element && event.target.closest('input, textarea, [contenteditable="true"], [role="dialog"]')) return
-        if (drawing.isDrawingActive()) {
+        if (drawing.isDrawingActive() && drawing.hasSource()) {
             event.preventDefault()
             suppressClickRef.current = false
             drawing.cancelDrawing()
             session.setActiveTool('select')
-
-            return
-        }
-        if (placement.isPlacementActive()) {
-            event.preventDefault()
-            suppressClickRef.current = false
-            placement.cancelPlacement()
-            session.setActiveTool('select')
-            activePointerGestureRef.current = null
-            releaseActivePointer()
-
-            return
-        }
-        if (groupDrawing.isDrawingActive()) {
-            event.preventDefault()
-            suppressClickRef.current = false
-            groupDrawing.cancelDrawing()
-            session.setActiveTool('select')
-            activePointerGestureRef.current = null
-            releaseActivePointer()
 
             return
         }
@@ -474,6 +454,7 @@ export function DiagramZoomViewport({
 
             return
         }
+        if (activePointerGestureRef.current === 'placement' || activePointerGestureRef.current === 'group') return
 
         event.preventDefault()
         suppressClickRef.current = false
@@ -481,7 +462,7 @@ export function DiagramZoomViewport({
         else movement.cancelMove()
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [drawing, emphasis, endPanGesture, groupDrawing, movement, pan, placement, releaseActivePointer, resize, session])
+    }, [drawing, emphasis, endPanGesture, movement, pan, releaseActivePointer, resize, session])
 
     const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
         if (!event.currentTarget.contains(event.target as Node)) return

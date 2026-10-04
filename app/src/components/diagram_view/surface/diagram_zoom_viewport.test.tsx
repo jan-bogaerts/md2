@@ -361,7 +361,7 @@ describe('DiagramZoomViewport', () => {
             to: 'store',
         })
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: edgeId, objectKind: 'edge' }])
-        expect(session.getActiveToolSnapshot()).toBe('edge:data')
+        expect(session.getActiveToolSnapshot()).toBe('select')
         expect(screen.queryByTestId('diagram-edge-drawing-preview')).not.toBeInTheDocument()
     })
 
@@ -388,23 +388,82 @@ describe('DiagramZoomViewport', () => {
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
 
-    it('leaves Add active when an inline field or dialog owns Escape', async () => {
-        const { geometry, placement, selection, session } = createHarness()
-        const details = new DiagramObjectDetailsService()
-        const user = userEvent.setup()
-        render(<DiagramZoomViewport details={details} geometry={geometry} placement={placement} selection={selection} session={session} />)
+    it('keeps node and group Add tools active on Escape', () => {
+        const { geometry, groupDrawing, placement, selection, session } = createHarness()
+        render(
+            <DiagramZoomViewport
+                geometry={geometry}
+                groupDrawing={groupDrawing}
+                placement={placement}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
         act(() => {
             placement.activate({ defaults: { height: 72, label: 'New component', role: 'focal', width: 160 }, kind: 'component' })
         })
 
-        const title = screen.getByRole('textbox', { name: 'Diagram title' })
-        title.focus()
-        await user.keyboard('{Escape}')
+        fireEvent.keyDown(window, { key: 'Escape' })
         expect(session.getActiveToolSnapshot()).toBe('node:component')
 
-        act(() => { details.open({ objectId: 'orders', objectKind: 'node' }) })
-        await user.keyboard('{Escape}')
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 27 })
+        fireEvent.keyDown(window, { key: 'Escape' })
+        fireEvent.pointerUp(scroller, { clientX: 100, clientY: 80, pointerId: 27 })
+        expect(session.getNodeIdsSnapshot()).toHaveLength(3)
+
+        act(() => { groupDrawing.activate() })
+        fireEvent.keyDown(window, { key: 'Escape' })
+        expect(session.getActiveToolSnapshot()).toBe('group')
+    })
+
+    it('keeps an edge Add tool without a chosen source active on Escape', () => {
+        const { drawing, geometry, selection, session } = createHarness()
+        render(<DiagramZoomViewport drawing={drawing} geometry={geometry} selection={selection} session={session} />)
+        act(() => { drawing.activate({ kind: 'connection' }) })
+
+        fireEvent.keyDown(window, { key: 'Escape' })
+
+        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
+    })
+
+    it('keeps node, edge, and group Add tools active when Ctrl is held as the add commits', async () => {
+        const { drawing, geometry, groupDrawing, placement, selection, session } = createHarness()
+        const user = userEvent.setup()
+        render(
+            <DiagramZoomViewport
+                drawing={drawing}
+                geometry={geometry}
+                groupDrawing={groupDrawing}
+                placement={placement}
+                selection={selection}
+                session={session}
+            />,
+        )
+        const scroller = screen.getByLabelText('New diagram scroller')
+        act(() => {
+            placement.activate({ defaults: { height: 72, label: 'New component', role: 'focal', width: 160 }, kind: 'component' })
+        })
+
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 41 })
+        fireEvent.pointerUp(scroller, { clientX: 100, clientY: 80, ctrlKey: true, pointerId: 41 })
+        expect(session.getNodeIdsSnapshot()).toHaveLength(3)
         expect(session.getActiveToolSnapshot()).toBe('node:component')
+
+        act(() => { drawing.activate({ kind: 'connection' }) })
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Orders' }), { button: 0, clientX: 400, clientY: 140, isPrimary: true, pointerId: 42 })
+        fireEvent.pointerDown(screen.getByRole('button', { name: 'Store' }), { button: 0, clientX: 520, clientY: 140, ctrlKey: true, isPrimary: true, pointerId: 43 })
+        expect(session.getEdgeIdsSnapshot()).toHaveLength(2)
+        expect(session.getActiveToolSnapshot()).toBe('edge:connection')
+
+        act(() => { groupDrawing.activate() })
+        fireEvent.pointerDown(scroller, { button: 0, clientX: 100, clientY: 80, isPrimary: true, pointerId: 44 })
+        fireEvent.pointerMove(scroller, { clientX: 220, clientY: 180, pointerId: 44 })
+        fireEvent.pointerUp(scroller, { clientX: 220, clientY: 180, ctrlKey: true, pointerId: 44 })
+        await user.type(screen.getByRole('textbox', { name: 'Label' }), 'Platform')
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+        expect(session.getGroupIdsSnapshot()).toHaveLength(2)
+        expect(session.getActiveToolSnapshot()).toBe('group')
     })
 
     it('uses sequence lifelines to insert a message at the chosen row', () => {
@@ -465,7 +524,7 @@ describe('DiagramZoomViewport', () => {
         const nodeId = session.getNodeIdsSnapshot()[2]
         expect(session.getNodeSnapshot(nodeId)).toMatchObject({ kind: 'component', x: 100, y: 44 })
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: nodeId, objectKind: 'node' }])
-        expect(session.getActiveToolSnapshot()).toBe('node:component')
+        expect(session.getActiveToolSnapshot()).toBe('select')
         expect(screen.getByRole('button', { name: 'New component' })).not.toHaveAttribute('aria-disabled')
     })
 
@@ -537,6 +596,7 @@ describe('DiagramZoomViewport', () => {
         expect(selection.getSelectionSnapshot()).toEqual([{ objectId: groupId, objectKind: 'group' }])
         await waitFor(() => expect(screen.getByRole('button', { name: 'Platform' })).toHaveAttribute('aria-pressed', 'true'))
         expect(screen.queryByTestId('diagram-group-drawing-preview')).not.toBeInTheDocument()
+        expect(session.getActiveToolSnapshot()).toBe('select')
     })
 
     it('creates nothing when pointer cancellation ends node placement', () => {

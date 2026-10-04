@@ -55,6 +55,7 @@ function sameBox(left: DiagramGroupDrawingBox, right: DiagramGroupDrawingBox) {
 
 /** Owns Group tool gesture, preview, pending label, and one committed group creation. */
 export class DiagramGroupDrawingService extends EventTarget {
+    private continueAdding = false
     private pendingLabelBox: DiagramGroupDrawingBox | null = null
     private preview: DiagramGroupDrawingBox | null = null
     private readonly selection: Pick<DiagramSelectionService, 'replace'>
@@ -116,12 +117,14 @@ export class DiagramGroupDrawingService extends EventTarget {
         return true
     }
 
-    finishDrawing(point: DiagramGroupDrawingPoint) {
+    /** Stores the drawn box for labeling; `continueAdding` (Ctrl held on release) keeps Add active after the group is created. */
+    finishDrawing(point: DiagramGroupDrawingPoint, continueAdding: boolean) {
         this.updateDrawing(point)
         const preview = this.preview
         if (!preview) throw new Error('Cannot finish group drawing without a preview')
 
         this.startPoint = null
+        this.continueAdding = continueAdding
         this.setPendingLabelBox(preview)
         this.session.completeTransientGesture()
 
@@ -136,9 +139,11 @@ export class DiagramGroupDrawingService extends EventTarget {
         const groupId = this.session.createGroup({ ...box, label, nodeIds: [] })
         if (!groupId) return null
 
+        const continueAdding = this.continueAdding
         this.selection.replace([{ objectId: groupId, objectKind: 'group' }])
         this.clearDrawing()
         this.session.completeTransientGesture()
+        if (!continueAdding) this.session.setActiveTool('select')
 
         return groupId
     }
@@ -161,6 +166,7 @@ export class DiagramGroupDrawingService extends EventTarget {
     private readonly handleSessionChanged = () => this.clearDrawing()
 
     private clearDrawing() {
+        this.continueAdding = false
         this.startPoint = null
         this.setPreview(null)
         this.setPendingLabelBox(null)

@@ -46,6 +46,14 @@ interface DiagramAddControlProps {
     session?: DiagramEditSessionService;
 }
 
+/** Add button tooltip; Ctrl continuous add applies to every tool except Fragment. */
+function addTooltip(definition: DiagramCreationToolDefinition | null) {
+    if (!definition) return 'Choose an Add tool';
+    if (definition.category === 'fragment') return `Add ${definition.label}`;
+
+    return `Add ${definition.label} (hold Ctrl to add multiple)`;
+}
+
 function activateCreationTool(
     definition: DiagramCreationToolDefinition,
     dependencies: Required<Omit<DiagramAddControlProps, 'session'>> & { session: DiagramEditSessionService },
@@ -55,7 +63,8 @@ function activateCreationTool(
     if (definition.category === 'edge') return drawing.activate({ kind: definition.edgeKind });
     if (definition.category === 'group') return groupDrawing.activate();
 
-    session.setActiveTool('fragment');
+    session.setLastSelectedCreationTool('fragment');
+    session.setActiveTool('select');
     fragmentDialog.openCreate();
 
     return true;
@@ -131,7 +140,7 @@ export function DiagramAddControl({
     return (
         <>
             <ButtonGroup aria-label="Add diagram object" size="small" variant="outlined">
-                <Tooltip title={selectedDefinition ? `Add ${selectedDefinition.label}` : 'Choose an Add tool'}>
+                <Tooltip title={addTooltip(selectedDefinition)}>
                     <span>
                         <Button
                             aria-label={`Add ${selectedLabel}`}
