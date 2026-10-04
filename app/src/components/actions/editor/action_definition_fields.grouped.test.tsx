@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition, RawActionDefinition } from '../../../data/action_types'
 import { actionService } from '../../../services/actions/action_service'
@@ -64,6 +65,41 @@ describe('ActionDefinitionFields', () => {
         configService.clear()
         vi.restoreAllMocks()
     })
+
+    it('shows Regular and default labels when optional definition fields are absent', () => {
+        const definition = {
+            command: 'run',
+            description: 'Run checks',
+            id: 'check-action',
+            label: 'Check',
+            type: 'command',
+        } satisfies RawActionDefinition;
+        const getDefinition = renderFields(definition);
+
+        expect(screen.getByLabelText('Output kind')).toHaveTextContent('Regular');
+        expect(screen.getByLabelText('Icon')).toHaveTextContent('No icon');
+        expect(screen.getByLabelText('Ask user for')).toHaveTextContent('None');
+        expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('No state trigger');
+        expect(getDefinition().output).toBeUndefined();
+    });
+
+    it('shows Regular and clears output when Diagram changes to Regular', async () => {
+        const user = userEvent.setup();
+        const definition = {
+            ...sharedFields,
+            command: 'run',
+            output: { kind: 'diagram' },
+            type: 'command',
+        } satisfies RawActionDefinition;
+        const getDefinition = renderFields(definition);
+
+        expect(screen.getByLabelText('Output kind')).toHaveTextContent('Diagram');
+        await user.click(screen.getByLabelText('Output kind'));
+        await user.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Regular' }));
+
+        expect(screen.getByLabelText('Output kind')).toHaveTextContent('Regular');
+        expect(getDefinition().output).toBeUndefined();
+    });
 
     it('groups agent controls under four ordered definition headings', () => {
         renderFields({
