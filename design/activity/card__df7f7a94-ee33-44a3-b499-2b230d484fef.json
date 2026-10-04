@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "df7f7a94-ee33-44a3-b499-2b230d484fef",
+      "cardPath": "design/feature_descriptions/B_210_incorrect_layout_action_popup_for_commands.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read design/feature_descriptions/B_210_incorrect_layout_action_popup_for_commands.md. Its an old bug. Can you investigate if still valid?",
+          "id": "submission-18cc9afc-4f6f-4d75-a81e-0cfc887750e5",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-04T16:28:07.378Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-00ed5ecf-3915-4026-be1c-47e01e5f18a3",
+      "providerSessions": [],
+      "startedAt": "2026-10-04T16:28:07.378Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-04T16:28:07.378Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "df7f7a94-ee33-44a3-b499-2b230d484fef",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
