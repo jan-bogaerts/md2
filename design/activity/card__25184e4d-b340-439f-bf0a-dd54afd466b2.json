@@ -5184,6 +5184,55 @@
       "startedAt": "2026-10-04T16:35:35.604Z",
       "status": "completed",
       "rootConversationId": "agent-9e5c2061-6ccb-4f0c-aa63-1eaf42b2a2e6"
+    },
+    {
+      "commits": [
+        {
+          "commit": "240e44a6d54f0add6d18193b5a3b463d1810c8b4",
+          "committedAt": "2026-10-05T11:24:23+02:00",
+          "deletions": 89,
+          "filePaths": [
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_prompt_menu.test.tsx",
+            "app/src/components/actions/run/popup/action_prompt_menu.tsx",
+            "app/src/data/action_run_types.ts",
+            "app/src/data/electron_action_bridge.ts",
+            "app/src/services/actions/action_compact_service.node.test.ts",
+            "app/src/services/actions/action_compact_service.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "app/src/services/data/remote_control_storage_service.node.test.ts",
+            "app/src/services/data/remote_control_storage_service.ts",
+            "desktop/src/actions/action/action_agent_executor.js",
+            "desktop/src/actions/action/action_agent_executor.test.mjs",
+            "desktop/src/actions/action/action_compact_queue.test.mjs",
+            "desktop/src/actions/action/action_run.js",
+            "desktop/src/actions/action/action_runner_service.js",
+            "desktop/src/actions/agent/agent_claude_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_compact.test.mjs",
+            "desktop/src/actions/agent/agent_run_interactions.js",
+            "desktop/src/actions/agent/agent_run_state.js",
+            "desktop/src/actions/agent/agent_runner_service.js",
+            "desktop/src/actions/agent/agent_streaming_adapter.js",
+            "desktop/src/actions/agent/agent_streaming_event_handlers.js",
+            "desktop/src/shell/local_bridge_dispatch.js",
+            "desktop/src/shell/local_bridge_dispatch.test.mjs",
+            "desktop/src/shell/preload.js",
+            "desktop/src/shell/preload.test.mjs"
+          ],
+          "filesChanged": 28,
+          "insertions": 1509,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-05T11:24:23+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "25184e4d-b340-439f-bf0a-dd54afd466b2",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
