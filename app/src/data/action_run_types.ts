@@ -56,6 +56,21 @@ export interface AgentConversationReservation {
     reference: string
 }
 
+export interface ActionCompactRequest {
+    actionId: string;
+    context: ActionContext;
+    conversationId: string;
+    provider: string;
+    reference: string;
+    requestId: string;
+}
+
+export interface ActionCompactState extends ActionCompactRequest {
+    message?: string;
+    runId?: string;
+    state: 'queued' | 'running' | 'completed' | 'failed';
+}
+
 export interface ActionStartRequest {
     actionId: string
     conversationReservation?: AgentConversationReservation
@@ -140,10 +155,12 @@ interface ActionRunEventBase {
 }
 
 export type ActionRunUpdate =
+    | { kind: 'agentCompact', request: ActionCompactState }
     | {
         continued?: boolean
         conversation: AgentConversation
         kind: 'agentStarted'
+        provider?: string;
     }
     | {
         conversation: AgentConversation

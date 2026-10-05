@@ -99,6 +99,23 @@ async function flushPromises() {
 }
 
 describe('RemoteControlStorageService', () => {
+    it('transports compact request identity and receives queued acknowledgement', async () => {
+        installWebSocket();
+        const service = createService();
+        const request = {
+            actionId: 'review', context: { kind: 'project' as const }, conversationId: 'conversation-1',
+            provider: 'claude', reference: 'activity.json#conversation=conversation-1', requestId: 'compact-1',
+        };
+        const compact = service.compactActionConversation(request);
+        const socket = lastSocket();
+        socket.open();
+        await flushPromises();
+        const sent = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] };
+        expect(sent).toMatchObject({ method: 'compactActionConversation', params: [request] });
+        socket.receive({ id: sent.id, result: { ...request, state: 'queued' } });
+        await expect(compact).resolves.toMatchObject({ ...request, state: 'queued' });
+    });
+
     afterEach(() => {
         vi.unstubAllGlobals()
     })

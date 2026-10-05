@@ -118,7 +118,11 @@ class AgentRunnerService {
         const command = requireCommand(request?.command);
         readOptionalString(request?.actionId, 'actionId');
         const cardPath = readOptionalString(request?.cardPath, 'cardPath');
-        const prompt = requireString(request?.prompt, 'prompt');
+        const compactOnly = request.compactOnly === true;
+        if (compactOnly && (!request.conversation || !request.providerConversationId || !request.streaming)) {
+            throw new Error('Compact-only startup requires an existing streaming provider session');
+        }
+        const prompt = compactOnly ? null : requireString(request?.prompt, 'prompt');
         console.log('[agent prompt]', prompt);
         const agent = requireString(request?.agent ?? 'generic', 'agent');
         const streaming = request.streaming === true;
@@ -134,7 +138,9 @@ class AgentRunnerService {
         if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);
         const lastMessage = lastMessageEntry(conversation);
         const conversationBeforePrompt = request.reuseLastUserMessage ? null : snapshotConversation(conversation);
-        if (request.reuseLastUserMessage) {
+        if (compactOnly) {
+            // The existing transcript remains intact; initialization is not a user message.
+        } else if (request.reuseLastUserMessage) {
             if (lastMessage?.role !== 'user' || lastMessage.content !== prompt) throw new Error('Missing failed-turn user message for agent retry');
         } else {
             conversation.entries.push(createMessageEntry(request.submissionId ?? `${id}-user`, 'user', prompt, startedAt, undefined, nextSequence));
@@ -206,7 +212,8 @@ class AgentRunnerService {
                 ? `${request.contextInput}\n\n[User]\n\n${prompt}`
                 : prompt;
             try {
-                await run.streamingAdapter.start(initialPrompt);
+                if (compactOnly) await run.streamingAdapter.startSession();
+                else await run.streamingAdapter.start(initialPrompt);
             } catch (error) {
                 this.failStreamingRun(run, error);
             }
@@ -215,13 +222,14 @@ class AgentRunnerService {
             child.stdin.end();
         }
         const userMessage = lastMessageEntry(conversation);
-        if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
+        if (!compactOnly && (!userMessage || userMessage.role !== 'user')) throw new Error('Missing current agent user message');
         emitRunEvent(run, {
             continued: !!request.conversation,
             conversation: conversationBeforePrompt ?? initialConversation,
+            provider: run.agent,
             type: 'started',
         });
-        if (conversationBeforePrompt) emitRunEvent(run, { type: 'userMessage', userMessage });
+        if (!compactOnly && conversationBeforePrompt) emitRunEvent(run, { type: 'userMessage', userMessage });
 
         return { conversation: initialConversation, reference, runId: id };
     }
@@ -256,6 +264,39 @@ class AgentRunnerService {
     sendMessage(runId, content, submissionId) {
         console.log('[agent prompt]', content);
         return agentInteractions.sendMessage(this, this.requireStreamingRun(runId), content, submissionId);
+    }
+
+    /** A parked status alone does not prove that provider writes are safe. */
+    canCompact(runId) {
+        const run = this.processes.get(runId);
+        return !!run && run.sessionReady && !run.turnActive && !run.activeCompact
+            && !hasPendingInteraction(run) && !run.finishing && !run.cancelled && !run.streamingFailure;
+    }
+
+    async compact(runId, request) {
+        const run = this.requireStreamingRun(runId);
+        await agentInteractions.queueInteractionWrite(run, async () => {
+            if (request.conversationId !== run.conversation.id || request.provider !== run.agent) {
+                throw new Error('Compact target does not match the initialized provider conversation');
+            }
+            if (!this.canCompact(runId)) throw new Error('Agent session is not at a safe compact dispatch point');
+            run.activeCompact = request;
+            run.turnActive = true;
+            try {
+                await run.streamingAdapter.compact();
+            } catch (error) {
+                this.failStreamingRun(run, error);
+                throw error;
+            }
+        });
+    }
+
+    settleCompact(run, error, explanation) {
+        if (this.processes.get(run.id) !== run) return;
+        const request = run.activeCompact;
+        if (!request) return;
+        run.activeCompact = null;
+        emitRunEvent(run, { error, explanation, requestId: request.requestId, type: 'compactSettled' });
     }
 
     sendStreamingMessage(run, content) {
@@ -687,6 +728,7 @@ class AgentRunnerService {
         const message = redactSecrets(error.message, run.secretValues);
         const timestamp = new Date().toISOString();
         run.streamingFailure = new Error(message);
+        this.settleCompact(run, message);
         transitionConversationStatus(run.conversation, 'failed', timestamp, run.phases);
         run.waitingForQuestion = false;
         run.pendingQuestionRequestId = null;
@@ -729,6 +771,7 @@ class AgentRunnerService {
                 const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
                 run.stderr += `${separator}${run.streamingFailure.message}`;
             }
+            this.settleCompact(run, run.streamingFailure?.message ?? 'Compaction cancelled before provider confirmation');
             const succeeded = (exitCode === 0 || (run.finishing && run.finishForced))
                 && !run.missingSession
                 && !run.cancelled

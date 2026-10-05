@@ -1,5 +1,7 @@
 import type { ActionFile } from '../../data/action_types'
 import type {
+    ActionCompactRequest,
+    ActionCompactState,
     ActionQueuedPrompt,
     ActionRunEvent,
     ActionPromptRequest,
@@ -637,6 +639,10 @@ export class RemoteControlStorageService implements
 
     async sendActionMessage(runId: string, content: string): Promise<void> {
         await this.request('sendActionMessage', [runId, content])
+    }
+
+    async compactActionConversation(request: ActionCompactRequest): Promise<ActionCompactState> {
+        return this.request('compactActionConversation', [request]);
     }
 
     async splitActionConversation(reference: string, messageId: string): Promise<AgentConversation> {

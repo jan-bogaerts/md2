@@ -83,6 +83,7 @@ const DATA_METHODS = [
     'stopAgent',
 ];
 const ACTION_METHODS = [
+    'compactActionConversation',
     'acquireReleaseCardLocks',
     'answerActionApproval',
     'answerActionQuestion',

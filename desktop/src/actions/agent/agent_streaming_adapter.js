@@ -184,6 +184,7 @@ class CodexStreamingAdapter {
         // One turn record per thread, so a child turn cannot clear the root turn's items or end it early.
         this.threadStates = new Map();
         this.threadId = null;
+        this.compaction = null;
     }
 
     threadState(threadId) {
@@ -206,10 +207,26 @@ class CodexStreamingAdapter {
 
     async start(prompt) {
         this.initialPrompt = requireMessage(prompt);
+        await this.initialize();
+    }
+
+    /** Resume an existing thread without starting a user turn. */
+    async startSession() {
+        if (!this.providerConversationId) throw new Error('Missing Codex provider session for compact');
+        await this.initialize();
+    }
+
+    async initialize() {
         await this.sendRequest('initialize', {
             capabilities: { experimentalApi: true },
             clientInfo: { name: CODEX_CLIENT_NAME, version: CODEX_CLIENT_VERSION },
         }, 'initialize');
+    }
+
+    async compact() {
+        if (!this.threadId || this.rootState().activeTurnId || this.compaction) throw new Error('Codex session is not ready to compact');
+        this.compaction = { confirmed: false };
+        await this.sendRequest('thread/compact/start', { threadId: this.threadId }, 'compact');
     }
 
     async sendMessage(content) {
@@ -369,6 +386,11 @@ class CodexStreamingAdapter {
         this.pendingRequests.delete(message.id);
         if (message.error) {
             const content = message.error.message ?? `Codex ${purpose} failed`;
+            if (purpose === 'compact') {
+                this.compaction = null;
+                await this.onEvent({ error: content, type: 'compactRejected' });
+                return;
+            }
             if (purpose === 'rateLimitsRead') {
                 await this.onRuntimeEvent({ kind: 'unavailable', observedAt: Date.now() });
                 return;
@@ -412,7 +434,8 @@ class CodexStreamingAdapter {
                 return;
             }
             await this.onEvent({ conversationId: this.threadId, type: 'sessionStarted' });
-            await this.sendMessage(this.initialPrompt);
+            if (this.initialPrompt !== null) await this.sendMessage(this.initialPrompt);
+            await this.onEvent({ type: 'sessionReady' });
             return;
         }
         if (purpose === 'rateLimitsRead') {
@@ -638,9 +661,12 @@ class CodexStreamingAdapter {
         this.pendingQuestions.clear();
         const contextWindowUsage = state.turnContextWindowUsage;
         const usage = this.turnUsageTotal();
+        const compaction = this.compaction;
+        this.compaction = null;
         await this.onEvent({
+            ...(compaction ? { compaction } : {}),
             ...(contextWindowUsage !== undefined ? { contextWindowUsage } : {}),
-            error,
+            error: compaction && params.turn?.status !== 'completed' ? error ?? 'Codex compaction did not complete' : error,
             type: 'turnCompleted',
             usage,
         });
@@ -770,6 +796,7 @@ class CodexStreamingAdapter {
         }
         state.activeItems.delete(item.id);
         state.completedItemIds.add(item.id);
+        if (!isChild && item.type === 'contextCompaction' && this.compaction) this.compaction.confirmed = true;
     }
 
     async requireActiveItem(context, method, itemId, expectedType) {

@@ -65,7 +65,14 @@ function answerQuestion(service, run, requestId, answers) {
         run.secretValues ??= new Set();
         secretAnswerValues(pendingQuestions, answers).forEach((answer) => run.secretValues.add(answer));
         try {
-            await run.streamingAdapter.answerQuestion(requestId, answers);
+            if (run.restoredQuestions) {
+                const providerContent = Object.entries(answers)
+                    .map(([questionId, answer]) => `${questionId}: ${Array.isArray(answer) ? answer.join(', ') : answer}`)
+                    .join('\n');
+                await run.streamingAdapter.sendMessage(providerContent);
+                run.turnActive = true;
+                run.restoredQuestions = false;
+            } else await run.streamingAdapter.answerQuestion(requestId, answers);
         } catch (error) {
             service.failStreamingRun(run, error);
             throw error;
@@ -97,7 +104,8 @@ function answerQuestion(service, run, requestId, answers) {
 function dismissQuestions(service, run, requestId) {
     return queueInteractionWrite(run, async () => {
         requirePendingQuestion(run, requestId);
-        await run.streamingAdapter.dismissQuestion(requestId);
+        if (run.restoredQuestions) run.restoredQuestions = false;
+        else await run.streamingAdapter.dismissQuestion(requestId);
         const timestamp = new Date().toISOString();
         const event = {
             ...createEventEntry(

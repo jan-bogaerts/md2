@@ -8,6 +8,9 @@ const { createLocalBridgeDispatch } = require('./local_bridge_dispatch');
 function createDispatch(options = {}) {
     const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }));
     const actionRunnerService = {
+        compactConversation: vi.fn(async (request) => ({ ...request, state: 'queued' })),
+        cancelCompactsForPath: vi.fn(async () => undefined),
+        cancelCompactsForConversation: vi.fn(async () => undefined),
         answerInput: vi.fn(),
         answerAgentApproval: vi.fn(),
         answerAgentQuestion: vi.fn(),
@@ -57,6 +60,7 @@ function createDispatch(options = {}) {
     };
     const updateCodexCli = vi.fn(async () => undefined);
     const localGitService = {
+        loadAgentConversation: vi.fn(async (_project, reference) => ({ id: 'conversation-1', path: reference })),
         appendAndCommitSystemActivity: vi.fn(async () => undefined),
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
@@ -261,6 +265,15 @@ describe('createLocalBridgeDispatch', () => {
             .rejects.toThrow('refresh');
         expect(agentModelCatalogService.load).not.toHaveBeenCalled();
     });
+
+    it('routes captured compact requests separately from agent prompts', async () => {
+        const { dispatch, actionRunnerService } = createDispatch();
+        const request = { conversationId: 'conversation-1', provider: 'codex', reference: 'activity.json', requestId: 'compact-1' };
+        await expect(dispatch.actionBridge.compactActionConversation(request)).resolves.toMatchObject({ ...request, state: 'queued' });
+        expect(actionRunnerService.compactConversation).toHaveBeenCalledWith(request);
+        expect(actionRunnerService.enqueueAgentPrompt).not.toHaveBeenCalled();
+    });
+
     it('forwards project watcher failures to the bridge subscriber', () => {
         const { dispatch, localGitService } = createDispatch();
         const callback = vi.fn();

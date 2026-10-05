@@ -1,4 +1,4 @@
-const { buildResumeAgentCommand } = require('../agent/agent_profiles.mjs');
+const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
 const { appendCurrentCardReferences } = require('./action_card_references');
 const { resolveAgentPrompt, resolvePopupPrompt } = require('./action_text');
@@ -34,6 +34,7 @@ class ActionAgentExecutor {
     }
 
     async execute(input) {
+        if (input.compactOnly) return this.executeCompact(input);
         const config = this.agentConfigProvider();
         const permissionMode = input.runInput.permissionMode ?? input.action.permissionMode;
         const thinkingLevel = input.runInput.thinkingLevel ?? input.action.thinkingLevel;
@@ -156,6 +157,25 @@ class ActionAgentExecutor {
             thinkingLevel: resolvedAgent.thinkingLevel,
             ...(resolvedAgent.speedMode !== undefined ? { speedMode: resolvedAgent.speedMode } : {}),
         };
+    }
+
+    /** Resume only the captured provider session; never synthesize continuation input. */
+    async executeCompact(input) {
+        const conversation = await this.localGitService.loadAgentConversation(input.primaryProject, input.runInput.continueFrom);
+        const expectedCardInternalId = input.activityOrigin.kind === 'card' ? input.activityOrigin.cardInternalId : null;
+        if (conversation.id !== input.runInput.conversationId || (conversation.cardInternalId ?? null) !== expectedCardInternalId
+            || conversation.actionId !== input.action.id) throw new Error('Compact conversation identity or ownership changed');
+        const providerSession = conversation.providerSessions.find(({ agent }) => agent === input.runInput.agent);
+        if (!providerSession?.conversationId) throw new Error('Missing provider session for compact');
+        const resolvedAgent = resolveAgentCommand(this.agentConfigProvider(), { agent: providerSession.agent }, true);
+        const request = {
+            actionId: input.action.id, actionRunId: input.runId, activityOrigin: input.activityOrigin,
+            activityProject: input.primaryProject, agent: resolvedAgent.agent,
+            command: executionCommand(resolvedAgent, providerSession, true), compactOnly: true, conversation,
+            projectFolder: input.projectFolder, providerConversationId: providerSession.conversationId,
+            reference: input.runInput.continueFrom, releasesFolder: input.releasesFolder, streaming: true, title: conversation.title,
+        };
+        return this.runAgentProcess(input, request);
     }
 
     async runAgentTurn(input, request, fallback) {

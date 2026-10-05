@@ -39,6 +39,7 @@ const EMPTY_ACTION_RUN_STORES: ActionRunStore[] = []
 const LOST_DURING_RECONNECTION_FAILURE = 'Action run state was lost during reconnection'
 
 export interface ActionRun {
+    agentProvider?: string;
     activeActionAutoFinish: ActionDefinition['autoFinish']
     activeActionId: string | null
     activeActionStreaming: boolean
@@ -791,6 +792,10 @@ export class ActionRunRegistry extends EventTarget {
     }
 
     private handleEvent(event: ActionRunEvent) {
+        if (event.type === 'update' && event.update.kind === 'agentCompact') {
+            this.dispatchEvent(new CustomEvent('compactRequest', { detail: event }));
+            return;
+        }
         const currentStatus = this.runs.get(event.runId)?.getSnapshot().status
         if (
             currentStatus
@@ -879,6 +884,7 @@ export class ActionRunRegistry extends EventTarget {
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             next = {
                 ...next,
+                agentProvider: event.update.provider,
                 conversation: event.update.conversation,
                 conversationChange: { kind: 'replace' },
                 conversationPersisted: null,

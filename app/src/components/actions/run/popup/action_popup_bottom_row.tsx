@@ -27,12 +27,7 @@ import type { ActionScheduleStore } from '../schedule/action_schedule_store'
 import { useActionRunSettings } from '../../shared/use_action_run_settings'
 import { ActionPopupFinishButton } from './action_popup_finish_button'
 import { ActionAgentSelectors } from '../../agent/action_agent_selectors'
-import { MarkdownAttachmentControl } from '../../../editor/attachments/markdown_attachment_control'
-import {
-    attachFilesToCardMarkdown,
-    attachFilesToOriginalMarkdown,
-} from '../../../../services/attachments/attachment_workflow'
-import { dialogService } from '../../../../services/dialog_service'
+import { ActionPromptMenu } from './action_prompt_menu';
 import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 interface ActionPopupBottomRowProps {
@@ -132,16 +127,6 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
         settings,
         settingsStore,
     }
-    const attachmentCopyTarget = assignmentContext.file
-
-    const handleAttachmentFiles = (files: File[]) => {
-        const operation = attachmentCopyTarget
-            ? attachFilesToCardMarkdown(attachmentCopyTarget, files, promptDraft.requestInsertion)
-            : attachFilesToOriginalMarkdown(files, promptDraft.requestInsertion)
-        void operation.catch((error: unknown) => {
-            dialogService.error(error, { fallbackMessage: 'Files could not be attached' })
-        })
-    }
     const handlePrimaryRun = async () => {
         if (browsingHistory) return
 
@@ -183,17 +168,17 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                     '@container (max-width: 420px)': { '& [data-footer-selectors]': { minWidth: 0 } },
                 }}
             >
-                {action.type === 'agent' && !isMobile ? (
-                    <MarkdownAttachmentControl
-                        disabled={editorSnapshot.preparationStatus !== 'ready'}
-                        onFiles={handleAttachmentFiles}
-                    />
-                ) : null}
-                <Box data-footer-selectors sx={{ flexShrink: 1, minWidth: 158, overflow: 'hidden' }}>
-                    {action.type === 'agent' ? (
-                        <ActionAgentSelectors action={action} bindingStore={bindingStore} settingsStore={settingsStore} />
-                    ) : null}
-                </Box>
+                {action.type === 'agent' ? (
+                    <Box sx={{ alignItems: 'center', display: 'flex', gap: isMobile ? 0 : 1, minWidth: 0 }}>
+                        <ActionPromptMenu
+                            actionId={action.id} bindingStore={bindingStore} context={assignmentContext}
+                            conversationStore={conversationStore} promptDraft={promptDraft}
+                        />
+                        <Box data-footer-selectors sx={{ flexShrink: 1, minWidth: 158, overflow: 'hidden' }}>
+                            <ActionAgentSelectors action={action} bindingStore={bindingStore} settingsStore={settingsStore} />
+                        </Box>
+                    </Box>
+                ) : <Box data-footer-selectors sx={{ flexShrink: 1, minWidth: 158, overflow: 'hidden' }} />}
                 <Box
                     data-footer-controls
                     sx={{ alignItems: 'center', display: 'flex', flexShrink: 0, gap: 1, justifyContent: 'flex-end', minWidth: 64 }}

@@ -18,10 +18,31 @@ const { redactSecrets } = require('./agent_secret_redaction');
 const { requireString } = require('./agent_run_validation');
 
 function handleSessionStarted(service, run, event) {
+    if (run.request.compactOnly && event.conversationId !== run.request.providerConversationId) {
+        throw new Error('Provider resumed another session while compacting');
+    }
     run.providerConversationId = event.conversationId;
 }
 
+async function handleSessionReady(service, run) {
+    run.sessionReady = true;
+    if (run.restoredQuestions) {
+        transitionConversationStatus(run.conversation, 'waitingForInput', new Date().toISOString(), run.phases);
+        await service.persistCheckpoint(run);
+        emitRunEvent(run, { questions: run.pendingQuestions, requestId: run.pendingQuestionRequestId, type: 'question' });
+        emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
+    }
+    emitRunEvent(run, { type: 'sessionReady' });
+}
+
+async function handleCompactRejected(service, run, event) {
+    run.turnActive = false;
+    await service.persistCheckpoint(run);
+    service.settleCompact(run, event.error);
+}
+
 function handleTurnStarted(service, run) {
+    run.turnActive = true;
     run.assistantItemIndex = 0;
     run.assistantItems.clear();
     run.currentAssistantEntryIndex = null;
@@ -215,6 +236,11 @@ async function handleTurnCompleted(service, run, event, timestamp) {
     run.conversation.completedAt = null;
     await service.persistCheckpoint(run);
     emitRunEvent(run, { state: 'waitingForInput', type: 'state' });
+    if (run.activeCompact) {
+        const confirmed = event.compaction?.confirmed === true;
+        const explanation = event.compaction?.explanation;
+        service.settleCompact(run, confirmed ? null : explanation ?? 'Provider did not confirm compaction', explanation);
+    }
 }
 
 /** Keyed by streaming event type; unknown types are ignored. Each handler takes `(service, run, event, timestamp)`. */
@@ -231,6 +257,8 @@ const STREAMING_EVENT_HANDLERS = {
     question: handleQuestion,
     sessionFailed: handleSessionFailed,
     sessionStarted: handleSessionStarted,
+    sessionReady: handleSessionReady,
+    compactRejected: handleCompactRejected,
     transcript: handleTranscript,
     turnCompleted: handleTurnCompleted,
     turnStarted: handleTurnStarted,

@@ -755,7 +755,7 @@ describe('ActionPopup', () => {
         expect(bottomRow).toHaveAttribute('data-embedded', 'true')
         expect(within(bottomRow).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
         expect(editorRegion).toHaveStyle({ overflowY: 'auto' })
-        expect(within(promptSurface).getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
+        expect(within(promptSurface).getByRole('button', { name: 'Prompt menu' })).toBeInTheDocument()
         expect(editorRegion.contains(bottomRow)).toBe(false)
         expect(screen.getAllByTestId('action-popup-bottom-row')).toHaveLength(1)
     })
@@ -786,7 +786,7 @@ describe('ActionPopup', () => {
             .toBeInTheDocument()
     })
 
-    it('keeps usage absent from project-scoped agent popups', () => {
+    it('shows project token usage without card changes in project-scoped agent popups', () => {
         actionService.loadFromFiles([file(agentDefinition('review', {
             appliesTo: { kind: 'project' },
             label: 'Review project',
@@ -794,7 +794,7 @@ describe('ActionPopup', () => {
 
         renderPopup({ kind: 'project' })
 
-        expect(screen.queryByRole('button', { name: /^Tokens,/u })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Tokens, Action/project scope' })).toHaveTextContent('tokens: 0')
         expect(screen.queryByRole('button', { name: /^Changes,/u })).not.toBeInTheDocument()
     })
 
@@ -1285,7 +1285,7 @@ describe('ActionPopup', () => {
             runListener?.({ ...eventBase, status: 'waitingForInput', type: 'agentState' })
             runListener?.({
                 ...eventBase,
-                status: 'running',
+                status: 'waitingForInput',
                 type: 'update',
                 update: {
                     entry: { content: 'Accepted queue entry', dispatchState: 'queued', id: 'prompt-1', revision: 0 },
