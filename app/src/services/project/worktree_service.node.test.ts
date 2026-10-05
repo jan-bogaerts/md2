@@ -459,6 +459,7 @@ describe('WorktreeService', () => {
         const { emit, storage } = createStorage()
         storage.integrateWorktree = vi.fn(async () => ({
             session: {
+                branch: 'feature',
                 conflictedPaths: ['src/file.ts'], externalResolverConfigured: false, id: 'session-1',
                 operation: 'integrate' as const, phase: 'rebase' as const, repositoryRoot: 'C:/feature', worktree: 1,
             },

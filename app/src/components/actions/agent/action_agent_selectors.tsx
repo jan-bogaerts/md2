@@ -2,6 +2,7 @@ import ShieldOutlined from '@mui/icons-material/ShieldOutlined'
 import {
     Box,
     Button,
+    Divider,
     IconButton,
     ListItemText,
     Menu,
@@ -234,14 +235,6 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                     <ListItemText>Agent</ListItemText>
                     <ChevronRight fontSize="small" />
                 </MenuItem>
-                {settings.agent === 'codex' ? (
-                    <MenuItem aria-haspopup="menu" data-submenu="speedMode" onClick={handleOpenSubmenu} onKeyDown={handleSubmenuKeyDown}>
-                        <ListItemText primary="Speed" secondary={SPEED_MODE_OPTIONS.find(({ value }) => value === (settings.speedMode ?? 'default'))?.label} />
-                        <ChevronRight fontSize="small" />
-                    </MenuItem>
-                ) : null}
-                <MenuItem disabled={settings.modelCatalog.loading} onClick={settings.modelCatalog.refresh}>Refresh models</MenuItem>
-                {settings.modelCatalog.error ? <MenuItem disabled>{settings.modelCatalog.error}</MenuItem> : null}
                 <MenuItem
                     aria-haspopup="menu"
                     data-submenu="model"
@@ -260,6 +253,15 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                     <ListItemText>Thinking level</ListItemText>
                     <ChevronRight fontSize="small" />
                 </MenuItem>
+                {settings.agent === 'codex' ? (
+                    <MenuItem aria-haspopup="menu" data-submenu="speedMode" onClick={handleOpenSubmenu} onKeyDown={handleSubmenuKeyDown}>
+                        <ListItemText primary="Speed" />
+                        <ChevronRight fontSize="small" />
+                    </MenuItem>
+                ) : null}
+                {settings.modelCatalog.error ? <MenuItem disabled>{settings.modelCatalog.error}</MenuItem> : null}
+                <Divider />
+                <MenuItem disabled={settings.modelCatalog.loading} onClick={settings.modelCatalog.refresh}>Refresh models</MenuItem>
             </Menu>
             <Menu
                 anchorEl={submenuAnchor}

@@ -22,6 +22,7 @@ const worktrees: WorktreeRecord[] = [
 
 /** A paused integration session, as desktop reports it through the conflict outcome. */
 const conflictSession = {
+    branch: 'main',
     conflictedPaths: ['src/one.ts'],
     externalResolverConfigured: false,
     id: 'session-1',

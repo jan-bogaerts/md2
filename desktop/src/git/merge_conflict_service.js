@@ -35,6 +35,7 @@ function publicSession(session, resolverCommand) {
     if (!session) return null;
 
     return {
+        branch: session.repositoryRoot === session.projectRoot ? session.projectBranch : session.worktreeBranch,
         conflictedPaths: session.conflictedPaths,
         externalResolverConfigured: typeof resolverCommand === 'string' && resolverCommand.length > 0,
         id: session.id,

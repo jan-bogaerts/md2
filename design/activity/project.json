@@ -11651,19 +11651,19 @@
           "agent": "codex",
           "conversationId": "01a10bdc-d125-7bf0-a52f-ca56dc460b0e",
           "createdAt": "2026-10-05T11:41:00.547Z",
-          "lastUsedAt": "2026-10-05T11:41:00.547Z",
-          "synchronizedThroughMessageId": "agent-turn-d7fa45f8-e11a-4187-8dfe-d5f24f16eb66-turn-1-assistant-3"
+          "lastUsedAt": "2026-10-05T11:44:32.507Z",
+          "synchronizedThroughMessageId": "agent-turn-d7fa45f8-e11a-4187-8dfe-d5f24f16eb66-turn-2-assistant-4"
         }
       ],
       "startedAt": "2026-10-05T11:39:43.092Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 14331,
           "toolMs": 59187
         },
-        "elapsedMs": 77455,
-        "runningStartedAt": "2026-10-05T11:41:39.721Z"
+        "elapsedMs": 250241,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {

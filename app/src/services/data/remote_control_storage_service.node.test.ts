@@ -514,6 +514,7 @@ describe('RemoteControlStorageService', () => {
         installWebSocket()
         const service = createService()
         const session = {
+            branch: 'topic',
             conflictedPaths: ['src/file.ts'], externalResolverConfigured: true, id: 'session-1',
             operation: 'rebase' as const, phase: 'rebase' as const, repositoryRoot: 'C:/repo', worktree: 1,
         }
