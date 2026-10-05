@@ -169,7 +169,7 @@ export function ActionPopupBottomRow(props: ActionPopupBottomRowProps) {
                 }}
             >
                 {action.type === 'agent' ? (
-                    <Box sx={{ alignItems: 'center', display: 'flex', gap: isMobile ? 0 : 1, minWidth: 0 }}>
+                    <Box sx={{ alignItems: 'center', display: isMobile ? 'flex' : 'contents', gap: 0, minWidth: 0 }}>
                         <ActionPromptMenu
                             actionId={action.id} bindingStore={bindingStore} context={assignmentContext}
                             conversationStore={conversationStore} promptDraft={promptDraft}

@@ -1,6 +1,6 @@
 import AttachFileOutlined from '@mui/icons-material/AttachFileOutlined';
 import CompressOutlined from '@mui/icons-material/CompressOutlined';
-import MenuOutlined from '@mui/icons-material/MenuOutlined';
+import MoreVertOutlined from '@mui/icons-material/MoreVertOutlined';
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type MouseEvent } from 'react';
 import type { ActionContext } from '../../../../data/action_context';
@@ -94,7 +94,7 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
                     aria-expanded={!!anchor} aria-haspopup="menu" aria-label="Prompt menu"
                     onClick={openMenu} size="small" sx={{ flexShrink: 0 }}
                 >
-                    <MenuOutlined sx={{ fontSize: 18 }} />
+                    <MoreVertOutlined sx={{ fontSize: 18 }} />
                 </IconButton>
             </Tooltip>
             <Menu anchorEl={anchor} onClose={closeMenu} open={!!anchor}>
