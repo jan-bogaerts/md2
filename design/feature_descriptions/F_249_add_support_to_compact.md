@@ -23,6 +23,7 @@ changedFiles:
   - app/src/services/data/remote_control_storage_service.node.test.ts
   - app/src/services/data/remote_control_storage_service.ts
   - app/vitest.compact_review.config.ts
+  - app/vitest.compact_spacing.config.ts
   - desktop/src/actions/action/action_agent_executor.js
   - desktop/src/actions/action/action_agent_executor.test.mjs
   - desktop/src/actions/action/action_compact_queue.test.mjs
