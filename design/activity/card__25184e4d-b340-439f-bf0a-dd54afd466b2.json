@@ -618,7 +618,7 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "25184e4d-b340-439f-bf0a-dd54afd466b2",
       "cardPath": "design/feature_descriptions/F_249_add_support_to_compact.md",
-      "completedAt": null,
+      "completedAt": "2026-10-05T13:39:10.489Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 134412
@@ -6501,6 +6501,23 @@
           "role": "assistant",
           "sequence": 432,
           "timestamp": "2026-10-05T13:18:11.209Z"
+        },
+        {
+          "content": "ok, go",
+          "id": "submission-ad5039b2-4236-4f0c-a00f-0e5bfdc71373",
+          "kind": "message",
+          "role": "user",
+          "sequence": 433,
+          "timestamp": "2026-10-05T13:39:05.542Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll add a spinner while compact runs and a badge for queued requests, scoped to the displayed conversation.\n\n\n",
+          "id": "agent-turn-fdb1aeb6-12c8-48a3-8860-2172f7c59829-turn-4-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 434,
+          "timestamp": "2026-10-05T13:39:10.489Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -6510,19 +6527,19 @@
           "agent": "codex",
           "conversationId": "01a107c5-57f6-7081-b2b9-9fdb9ad2934e",
           "createdAt": "2026-10-04T16:37:33.314Z",
-          "lastUsedAt": "2026-10-05T12:51:14.309Z",
-          "synchronizedThroughMessageId": "agent-turn-fdb1aeb6-12c8-48a3-8860-2172f7c59829-turn-2-assistant-1"
+          "lastUsedAt": "2026-10-05T13:18:11.209Z",
+          "synchronizedThroughMessageId": "agent-turn-fdb1aeb6-12c8-48a3-8860-2172f7c59829-turn-3-assistant-3"
         }
       ],
       "startedAt": "2026-10-04T16:35:35.605Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
           "reasoningMs": 1090392,
           "toolMs": 1451488
         },
-        "elapsedMs": 3803848,
-        "runningStartedAt": "2026-10-05T13:16:23.758Z"
+        "elapsedMs": 3916019,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
