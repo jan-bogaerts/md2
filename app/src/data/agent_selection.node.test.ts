@@ -7,6 +7,7 @@ import {
     selectModel,
     selectPermissionMode,
     selectThinkingLevel,
+    selectSpeedMode,
     validateAgentSelectionState,
     type AgentSelectionState,
 } from './agent_selection'
@@ -18,6 +19,22 @@ const selection: AgentSelectionState = {
 }
 
 describe('agent selection', () => {
+    it('inherits speed independently of the first scope that supplies model and reasoning', () => {
+        const desktop = selectSpeedMode(selection, 'fast');
+        expect(resolveAgentSettings('codex', BUILTIN_AGENT_PROFILES, [selection, desktop]))
+            .toEqual({ model: 'gpt-5.5', thinkingLevel: 'high', speedMode: 'fast' });
+        const providerDefault = selectSpeedMode(selection, 'default');
+        expect(resolveAgentSettings('codex', BUILTIN_AGENT_PROFILES, [providerDefault, desktop]).speedMode).toBe('default');
+    });
+
+    it('remembers Codex Fast when switching providers without projecting it into Claude', () => {
+        const fast = selectSpeedMode(selection, 'fast');
+        const switched = selectAgent(fast, 'claude', BUILTIN_AGENT_PROFILES);
+        expect(projectAgentSelection(switched)).not.toHaveProperty('speedMode');
+        expect(() => selectSpeedMode(switched, 'fast')).toThrow('unsupported');
+        expect(projectAgentSelection(selectAgent(switched, 'codex', BUILTIN_AGENT_PROFILES)).speedMode).toBe('fast');
+        expect(validateAgentSelectionState(fast, 'test')).toEqual(fast);
+    });
     it('restores remembered settings and keeps shared permission mode when switching agent', () => {
         const withClaude: AgentSelectionState = {
             ...selection,

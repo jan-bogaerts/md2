@@ -163,12 +163,14 @@ function codexReceiverThreadIds(item) {
 }
 
 class CodexStreamingAdapter {
-    constructor(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent) {
+    constructor(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent, executionSettings = {}) {
         this.writeLine = writeLine;
         this.onEvent = onEvent;
         this.onRuntimeEvent = onRuntimeEvent;
         this.providerConversationId = providerConversationId;
         this.rootPath = rootPath;
+        this.executionSettings = executionSettings;
+        this.resolvedSettings = null;
         // Child thread id to the collaboration item that started it. Entries live for the run, because a
         // child thread keeps reporting after that collaboration item has completed.
         this.childThreads = new Map();
@@ -222,7 +224,7 @@ class CodexStreamingAdapter {
             });
             return;
         }
-        await this.sendRequest('turn/start', { input, threadId: this.threadId });
+        await this.sendRequest('turn/start', { ...this.executionSettings, input, threadId: this.threadId });
     }
 
     async answerQuestion(requestId, answers) {
@@ -386,16 +388,29 @@ class CodexStreamingAdapter {
             if (this.providerConversationId) {
                 await this.sendRequest('thread/resume', {
                     cwd: this.rootPath,
+                    ...this.threadSettings(),
                     threadId: this.providerConversationId,
                 }, 'threadResume');
                 return;
             }
-            await this.sendRequest('thread/start', { cwd: this.rootPath }, 'threadStart');
+            await this.sendRequest('thread/start', { cwd: this.rootPath, ...this.threadSettings() }, 'threadStart');
             return;
         }
         if (purpose === 'threadStart' || purpose === 'threadResume') {
             this.threadId = message.result?.thread?.id ?? message.result?.threadId ?? this.providerConversationId;
             if (!this.threadId) throw new Error('Codex app-server did not return a thread id');
+            this.resolvedSettings = {
+                ...(typeof message.result.model === 'string' ? { model: message.result.model } : {}),
+                ...(Object.hasOwn(message.result, 'serviceTier') ? { serviceTier: message.result.serviceTier } : {}),
+            };
+            if (this.executionSettings.serviceTier !== undefined
+                && this.resolvedSettings.serviceTier !== this.executionSettings.serviceTier) {
+                await this.onEvent({
+                    content: `Codex did not acknowledge the requested service tier ${this.executionSettings.serviceTier}. Update the client or choose Provider default.`,
+                    type: 'fatal',
+                });
+                return;
+            }
             await this.onEvent({ conversationId: this.threadId, type: 'sessionStarted' });
             await this.sendMessage(this.initialPrompt);
             return;
@@ -409,6 +424,16 @@ class CodexStreamingAdapter {
                 ? { kind: 'snapshot', observedAt: Date.now(), payload: message.result }
                 : { kind: 'unavailable', observedAt: Date.now() });
         }
+    }
+
+    threadSettings() {
+        const { model, effort, serviceTier } = this.executionSettings;
+
+        return {
+            ...(model !== undefined ? { model } : {}),
+            ...(serviceTier !== undefined ? { serviceTier } : {}),
+            ...(effort !== undefined ? { config: { model_reasoning_effort: effort } } : {}),
+        };
     }
 
     /**
@@ -813,10 +838,11 @@ function createAgentStreamingAdapter(
     rootPath,
     providerConversationId = null,
     onRuntimeEvent = async () => undefined,
+    executionSettings = {},
 ) {
     if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId);
     if (agent === 'codex') {
-        return new CodexStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent);
+        return new CodexStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent, executionSettings);
     }
 
     throw new Error(`Agent profile does not support streaming: ${agent}`);

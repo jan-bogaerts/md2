@@ -23,6 +23,7 @@ import { ResizablePopper } from '../../resizable_popper'
 import { SearchResults } from './search_results'
 import { useProjectConfig } from '../../hooks/use_project_config'
 import { SearchCardPreviewDialog } from './search_card_preview_dialog'
+import { SEARCH_INPUT_STYLES, SEARCH_SHORTCUT_STYLES } from './search_field_styles';
 
 const RESULTS_MAX_HEIGHT = 420
 const RESULTS_WIDTH = 460
@@ -40,6 +41,7 @@ function isPathInFolder(path: string, folder: string) {
 
 interface SearchPanelProps {
     initialQuery: string
+    placeholder?: string;
     onClose: () => void
     onQueryChange: (query: string) => void
     /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */
@@ -48,7 +50,7 @@ interface SearchPanelProps {
 
 /** Top-shell search: plain/RegExp text search over the loaded project with grouped, navigable results. */
 export function SearchPanel(props: SearchPanelProps) {
-    const { initialQuery, onClose, onQueryChange, regexpAgent = defaultSearchRegexpAgent } = props
+    const { initialQuery, onClose, onQueryChange, placeholder = 'Search cards…', regexpAgent = defaultSearchRegexpAgent } = props;
     const { snapshot } = useProjectState()
     const projectConfig = useProjectConfig()
     const { actions } = useActions()
@@ -231,7 +233,7 @@ export function SearchPanel(props: SearchPanelProps) {
                     fullWidth
                     onChange={handleQueryChange}
                     onFocus={handleSearchFocus}
-                    placeholder="Search cards…"
+                    placeholder={placeholder}
                     size="small"
                     slotProps={{
                         htmlInput: { 'aria-label': 'Search project' },
@@ -240,15 +242,7 @@ export function SearchPanel(props: SearchPanelProps) {
                                 <InputAdornment position="end">
                                     <Box
                                         component="span"
-                                        sx={{
-                                            border: 1,
-                                            borderColor: 'divider',
-                                            borderRadius: 0.5,
-                                            color: 'text.disabled',
-                                            fontSize: 10.5,
-                                            lineHeight: 1.4,
-                                            px: 0.75,
-                                        }}
+                                        sx={SEARCH_SHORTCUT_STYLES}
                                     >
                                         {shortcutLabel}
                                     </Box>
@@ -259,13 +253,7 @@ export function SearchPanel(props: SearchPanelProps) {
                                     <Magnify fontSize="small" />
                                 </InputAdornment>
                             ),
-                            sx: {
-                                bgcolor: 'background.default',
-                                borderRadius: 99,
-                                fontSize: 13,
-                                height: 32,
-                                '& fieldset': { borderColor: 'divider' },
-                            },
+                            sx: SEARCH_INPUT_STYLES,
                         },
                     }}
                     value={query}

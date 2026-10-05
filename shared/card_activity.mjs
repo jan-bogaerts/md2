@@ -1,5 +1,6 @@
 import { parseAgentConversationValue } from './agent_conversations.mjs';
 import { validateAgentSelectionState } from './agent_selection.mjs';
+import { validateSpeedMode } from './agent_profiles.mjs';
 
 const ACTIVITY_VERSION = 5;
 export const LEGACY_ACTIVITY_VERSION = 1;
@@ -118,6 +119,14 @@ function parseAgentDetails(value, index) {
         if (value[fieldName] === undefined) continue;
         if (fieldName === 'agent' && value[fieldName] === null) details[fieldName] = null;
         else details[fieldName] = requiredString(value[fieldName], `records[${index}].details.${fieldName}`);
+    }
+    if (value.speedMode !== undefined) details.speedMode = validateSpeedMode(value.speedMode, 'activity agent details');
+    if (value.acknowledgedModel !== undefined) {
+        details.acknowledgedModel = requiredString(value.acknowledgedModel, 'activity agent acknowledged model');
+    }
+    if (value.acknowledgedServiceTier !== undefined) {
+        details.acknowledgedServiceTier = value.acknowledgedServiceTier === null
+            ? null : requiredString(value.acknowledgedServiceTier, 'activity agent acknowledged service tier');
     }
 
     return details;

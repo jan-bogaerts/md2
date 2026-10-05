@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "package:windows": "electron-builder --config electron-builder.config.cjs --win nsis --x64",
+    "package:local-test": "node packaging/build_local_test.js",
     "postinstall": "node prepare_native_helpers.js",
     "postpackage:windows": "node packaging/verify_windows_package.mjs",
     "start": "node start_electron.js",

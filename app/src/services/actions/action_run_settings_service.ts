@@ -1,6 +1,7 @@
 import type { CardActivityFile } from '../../../../shared/card_activity.mjs'
+import type { ActionContext } from '../../data/action_context';
 import { parseActivityValueForMigration } from '../../../../shared/card_activity.mjs'
-import type { PermissionMode, ThinkingLevel } from '../../data/agent_profiles'
+import type { PermissionMode, ThinkingLevel, SpeedMode } from '../../data/agent_profiles'
 import type { AgentSelectionState } from '../../data/agent_selection'
 import { getElectronActionBridge } from '../../data/electron_action_bridge'
 import type { ProjectReference } from '../../data/data_types'
@@ -13,6 +14,7 @@ export interface ResolvedActionRunSettings {
     model: string
     permissionMode?: PermissionMode | ''
     thinkingLevel: ThinkingLevel
+    speedMode?: SpeedMode;
 }
 
 export interface ActionRunSettingsSnapshot {
@@ -84,7 +86,8 @@ const DEFAULT_DEPENDENCIES: ActionRunSettingsStoreDependencies = {
 /** Owns one action/context setting snapshot and scoped change events. */
 export class ActionRunSettingsStore extends EventTarget {
     private readonly actionId: string
-    private readonly cardInternalId: string | null
+    readonly cardInternalId: string | null
+    readonly contextKind: ActionContext['kind'];
     private readonly dependencies: ActionRunSettingsStoreDependencies
     private lastPersistedSettingsChangedWhileWaiting = false
     private lastPersistedSettings: AgentSelectionState | null = null
@@ -96,6 +99,7 @@ export class ActionRunSettingsStore extends EventTarget {
     constructor(
         actionId: string,
         cardInternalId: string | null,
+        contextKind: ActionContext['kind'],
         dependencies: ActionRunSettingsStoreDependencies = DEFAULT_DEPENDENCIES,
     ) {
         super()
@@ -103,6 +107,7 @@ export class ActionRunSettingsStore extends EventTarget {
         if (cardInternalId !== null && cardInternalId.length === 0) throw new Error('Action settings cardInternalId is required')
         this.actionId = actionId
         this.cardInternalId = cardInternalId
+        this.contextKind = contextKind;
         this.dependencies = dependencies
         this.snapshot = cardInternalId
             ? { ...INITIAL_SESSION_SNAPSHOT, loading: true }
@@ -204,20 +209,20 @@ export class ActionRunSettingsService {
         const current = this.cardStores.get(key)
         if (current) return current
 
-        const store = new ActionRunSettingsStore(actionId, cardInternalId)
+        const store = new ActionRunSettingsStore(actionId, cardInternalId, 'card');
         this.cardStores.set(key, store)
         void store.load()
 
         return store
     }
 
-    getSessionStore(actionId: string, contextIdentity: string) {
+    getSessionStore(actionId: string, contextIdentity: string, contextKind: ActionContext['kind']) {
         if (contextIdentity.length === 0) throw new Error('Action settings context identity is required')
         const key = `${contextIdentity}\u0000${actionId}`
         const current = this.sessionStores.get(key)
         if (current) return current
 
-        const store = new ActionRunSettingsStore(actionId, null)
+        const store = new ActionRunSettingsStore(actionId, null, contextKind);
         this.sessionStores.set(key, store)
 
         return store

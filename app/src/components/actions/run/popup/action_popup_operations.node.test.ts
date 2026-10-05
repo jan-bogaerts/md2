@@ -52,7 +52,7 @@ const defaultSelection: AgentSelectionState = {activeAgent: 'codex', permissionM
 
 function operationInput(
     inputStore: ActionRunInputStore,
-    settingsStore = new ActionRunSettingsStore(action.id, null),
+    settingsStore = new ActionRunSettingsStore(action.id, null, 'project'),
     conversationStore: Pick<ActionPopupOperationInput['conversationStore'], 'continuationPath' | 'getSnapshot' | 'load'> = {
         continuationPath: () => 'conversation.json',
         getSnapshot: () => ({ conversations: [], loading: false, pinningConversationId: null, selectedConversation: null }),
@@ -306,7 +306,7 @@ describe('runPopupAction waiting follow-up', () => {
 
     it('restarts from persisted conversation with changed settings', async () => {
         const inputStore = new ActionRunInputStore()
-        const settingsStore = new ActionRunSettingsStore(action.id, null)
+        const settingsStore = new ActionRunSettingsStore(action.id, null, 'project')
         settingsStore.setSettings(selectModel(defaultSelection, 'gpt-5.6'), true)
         actionPromptDraftService.getDraft(action.id, context, 'conversation-1', { prepare: false }).edit('Next request')
         restartAction.mockImplementation(async (_runId, _action, _context, _runInput, onStarted) => {
@@ -327,7 +327,7 @@ describe('runPopupAction waiting follow-up', () => {
 
     it('preserves prompt and reports restart failure', async () => {
         const inputStore = new ActionRunInputStore()
-        const settingsStore = new ActionRunSettingsStore(action.id, null)
+        const settingsStore = new ActionRunSettingsStore(action.id, null, 'project')
         settingsStore.setSettings(defaultSelection, true)
         const draft = actionPromptDraftService.getDraft(action.id, context, 'conversation-1', { prepare: false })
         draft.edit('Keep request')
@@ -345,7 +345,7 @@ describe('runPopupAction waiting follow-up', () => {
 
     it('restores draft when replacement run fails before persisting submitted message', async () => {
         const inputStore = new ActionRunInputStore()
-        const settingsStore = new ActionRunSettingsStore(action.id, null)
+        const settingsStore = new ActionRunSettingsStore(action.id, null, 'project')
         settingsStore.setSettings(defaultSelection, true)
         const previousConversation = storedConversation([{content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z'}])
         const conversationStore = {
@@ -386,7 +386,7 @@ describe('runPopupAction waiting follow-up', () => {
 
     it('does not restore draft after failed replacement persisted submitted message', async () => {
         const inputStore = new ActionRunInputStore()
-        const settingsStore = new ActionRunSettingsStore(action.id, null)
+        const settingsStore = new ActionRunSettingsStore(action.id, null, 'project')
         settingsStore.setSettings(defaultSelection, true)
         const previousConversation = storedConversation([{content: 'Earlier answer', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: '2026-01-01T00:01:00.000Z'}])
         const failedConversation = {

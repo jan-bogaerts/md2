@@ -1,4 +1,4 @@
-const { resolveAgentCommand } = require('../actions/agent/agent_profiles.mjs');
+const { findAgentProfile } = require('../actions/agent/agent_profiles.mjs');
 const { CardStateTracker } = require('../actions/card/card_state_tracker');
 const { ConversationViewEvents } = require('../actions/activity/conversation_view_events');
 const { resolveProjectPaths } = require('../project/project_paths');
@@ -40,13 +40,17 @@ function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
 
-function resolveSearchAgent(config) {
-    const resolved = resolveAgentCommand(config);
+async function loadAgentModelCatalog(dependencies, currentProject, request) {
+    const { agentModelCatalogService, desktopConfigStore, readDesktopConfig } = dependencies;
+    if (!agentModelCatalogService) throw new Error('Agent model catalog service is not available');
+    if (!request || typeof request.agent !== 'string' || request.agent.length === 0) throw new Error('Missing catalog agent');
+    if (request.refresh !== undefined && typeof request.refresh !== 'boolean') throw new Error('Invalid catalog refresh value');
+    const { agentProfiles } = readDesktopConfig(desktopConfigStore);
+    const profile = request.profile === undefined ? findAgentProfile(agentProfiles, request.agent) : request.profile;
+    if (!profile || profile.name !== request.agent) throw new Error('Catalog profile does not match its agent');
+    const cwd = request.project === undefined ? currentProject?.rootPath ?? process.cwd() : request.project?.rootPath;
 
-    return {
-        agent: resolved.agent,
-        command: resolved.command,
-    };
+    return await agentModelCatalogService.load(profile, cwd, request.refresh === true);
 }
 
 function createLocalBridgeDispatch(dependencies) {
@@ -55,6 +59,7 @@ function createLocalBridgeDispatch(dependencies) {
         actionSchedulerService,
         actionWorktreeRunService,
         agentExecutableAvailability,
+        agentModelCatalogService,
         agentRunnerService,
         claudeRuntimeService,
         codexRuntimeService,
@@ -237,6 +242,7 @@ function createLocalBridgeDispatch(dependencies) {
             return agentExecutableAvailability(agentProfiles);
         },
         loadDesktopConfig: () => readDesktopConfig(desktopConfigStore),
+        loadAgentModelCatalog: (request) => loadAgentModelCatalog(dependencies, currentLocalProject, request),
         loadFile: (project, path) => localGitService.loadFile(project, path),
         loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
@@ -538,6 +544,7 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.cancel(runId);
         },
+        loadAgentModelCatalog: (request) => loadAgentModelCatalog(dependencies, currentLocalProject, request),
         answerActionInput: (runId, response) => {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
@@ -617,7 +624,11 @@ function createLocalBridgeDispatch(dependencies) {
         runSearchRegexpAgent: async (input, callback) => {
             if (typeof input !== 'string' || input.length === 0) throw new Error('Missing regular expression search input');
 
-            const resolved = resolveSearchAgent(readDesktopConfig(desktopConfigStore));
+            if (!agentModelCatalogService) throw new Error('Agent model catalog service is not available');
+            if (!currentLocalProject) throw new Error('No project is selected for agent search');
+            const resolved = await agentModelCatalogService.resolveExecution(
+                readDesktopConfig(desktopConfigStore), {}, false, currentLocalProject.rootPath,
+            );
             const projectConfig = await localGitService.loadProjectConfig(currentLocalProject);
             const projectFolder = typeof projectConfig?.projectFolder === 'string' ? projectConfig.projectFolder : '';
             const configuredReleasesFolder = typeof projectConfig?.releasesFolder === 'string' ? projectConfig.releasesFolder : 'history';
@@ -629,6 +640,7 @@ function createLocalBridgeDispatch(dependencies) {
                 activityOrigin: { kind: 'project' },
                 activityProject: currentLocalProject,
                 command: resolved.command,
+                executionSettings: resolved.executionSettings,
                 prompt: `${SEARCH_AGENT_PROMPT_PREFIX}${input}`,
                 projectFolder,
                 releasesFolder,

@@ -118,6 +118,59 @@ describe('SearchControl', () => {
         expect(screen.getByText('⌘⇧F')).toBeInTheDocument()
     })
 
+    it.each([
+        ['full', 'Search cards…'], ['search', 'Search'], ['shortcut', ''],
+    ] as const)('keeps the complete shortcut in the %s launcher', (presentation, placeholder) => {
+        setClientPlatform('Windows', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
+        render(<SearchControl presentation={presentation} />);
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveAttribute('placeholder', placeholder);
+        expect(screen.getByText('Ctrl+Shift+F')).toBeVisible();
+    });
+
+    it.each(['full', 'search', 'shortcut'] as const)('opens editable search when clicking the keycap in the %s launcher', async (presentation) => {
+        const user = userEvent.setup();
+        setClientPlatform('Windows', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
+        render(<SearchControl presentation={presentation} />);
+
+        await user.click(screen.getByText('Ctrl+Shift+F'));
+
+        const editableField = screen.getAllByRole('textbox', { name: 'Search project' }).find((element) => !element.hasAttribute('readonly'));
+        expect(editableField).toHaveFocus();
+    });
+
+    it('opens editable search from the narrow icon with a pointer', async () => {
+        const user = userEvent.setup();
+        render(<SearchControl presentation="icon" />);
+
+        expect(screen.queryByRole('textbox', { name: 'Search project' })).not.toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Search' }));
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus();
+        expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument();
+    });
+
+    it.each(['shortcut', 'icon'] as const)('opens editable search from the keyboard in the %s presentation', (presentation) => {
+        render(<SearchControl presentation={presentation} />);
+
+        act(() => searchOpenService.requestOpen());
+
+        const editableField = screen.getAllByRole('textbox', { name: 'Search project' }).find((element) => !element.hasAttribute('readonly'));
+        expect(editableField).toHaveFocus();
+    });
+
+    it('keeps the entered query when resizing from the inline field to the icon popover', async () => {
+        const user = userEvent.setup();
+        const { rerender } = render(<SearchControl presentation="full" />);
+        await user.click(screen.getByRole('textbox', { name: 'Search project' }));
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta');
+
+        rerender(<SearchControl presentation="icon" />);
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Beta');
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus();
+    });
+
     it('opens and focuses desktop search when requested by the search service', () => {
         render(<SearchControl />)
 

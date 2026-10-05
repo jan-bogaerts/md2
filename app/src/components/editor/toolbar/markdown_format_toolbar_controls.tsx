@@ -1,6 +1,6 @@
 import {
     BlockTypeSelect, BoldItalicUnderlineToggles, CreateLink, InsertCodeBlock, InsertTable,
-    InsertThematicBreak, ListsToggle, Separator, UndoRedo,
+    InsertThematicBreak, ListsToggle, Separator, UndoRedo, useCellValue, viewMode$,
 } from '@mdxeditor/editor'
 import type { ReactNode } from 'react'
 import type { ActionPlaceholder } from '../../../data/action_placeholders'
@@ -9,6 +9,7 @@ import { MarkdownEmojiToolbarControl } from './markdown_emoji_toolbar_control'
 import { MarkdownListIndentToolbarControls } from './markdown_list_indent_toolbar_controls'
 import { MarkdownLocalTextSearchToolbarControl } from '../local_search/markdown_local_text_search_toolbar_control'
 import { MarkdownPlaceholderToolbarControl } from '../placeholders/markdown_placeholder_toolbar_control'
+import { MarkdownSourceUndoRedo } from '../source/markdown_source_undo_redo';
 
 interface MarkdownFormatToolbarControlsProps {
     endControls?: ReactNode
@@ -22,10 +23,13 @@ interface MarkdownFormatToolbarControlsProps {
 /** The full formatting command set supported by the shared markdown editor. */
 export function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarControlsProps = {}) {
     const { endControls, onAttachFiles, overlayContainer, placeholders = [], readOnly = false, undoRedoControls } = props
+    const sourceActive = useCellValue(viewMode$) === 'source';
 
     return (
         <>
-            {!readOnly ? (
+            {!readOnly && sourceActive ? <MarkdownSourceUndoRedo /> : null}
+            {!readOnly && sourceActive && onAttachFiles ? <MarkdownAttachmentControl disabled={false} onFiles={onAttachFiles} /> : null}
+            {!readOnly && !sourceActive ? (
                 <>
                     {undoRedoControls ?? <UndoRedo />}
                     <Separator />
@@ -45,8 +49,8 @@ export function MarkdownFormatToolbarControls(props: MarkdownFormatToolbarContro
                     <Separator />
                 </>
             ) : null}
-            <MarkdownLocalTextSearchToolbarControl />
-            {!readOnly && placeholders.length > 0 ? (
+            {!sourceActive ? <MarkdownLocalTextSearchToolbarControl /> : null}
+            {!readOnly && !sourceActive && placeholders.length > 0 ? (
                 <>
                     <Separator />
                     <MarkdownPlaceholderToolbarControl overlayContainer={overlayContainer} placeholders={placeholders} />

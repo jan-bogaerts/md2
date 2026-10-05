@@ -24,7 +24,13 @@ if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => 
 
 // MDXEditor is Lexical/contenteditable-based and does not render in jsdom, so
 // swap it for a textarea stub with the same markdown/onChange contract.
-vi.mock('@mdxeditor/editor', () => import('./mdx_editor_stub'))
+vi.mock('@mdxeditor/editor', async () => {
+    const actual = await vi.importActual<typeof import('@mdxeditor/editor')>('@mdxeditor/editor');
+    const stub = await import('./mdx_editor_stub');
+    return { ...actual, ...stub };
+});
+// Source conversion and CodeMirror commands are exercised by the real-editor project.
+vi.mock('../components/editor/source/markdown_source_realm_plugin', () => ({ markdownSourcePlugin: () => ({}) }));
 vi.mock('@mdxeditor/editor/style.css', () => ({}))
 vi.mock('@lexical/react/LexicalComposerContext', async () => {
     const { useLexicalComposerContextStub } = await import('./lexical_composer_context_stub')

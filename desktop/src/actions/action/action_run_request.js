@@ -1,5 +1,6 @@
+const { validateSpeedMode } = require('../../../../shared/agent_profiles.mjs');
 const ALLOWED_REQUEST_FIELDS = new Set(['actionId', 'context', 'conversationReservation', 'runInput']);
-const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'command', 'conversationId', 'continueFrom', 'diagramPath', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'submissionId', 'thinkingLevel', 'version']);
+const ALLOWED_RUN_INPUT_FIELDS = new Set(['agent', 'command', 'conversationId', 'continueFrom', 'diagramPath', 'extraPrompt', 'model', 'permissionMode', 'prompt', 'submissionId', 'thinkingLevel', 'speedMode', 'version']);
 const CONTEXT_KINDS = new Set(['card', 'diagram', 'file', 'folder', 'merge-conflict', 'project']);
 
 function readOptionalString(value, fieldName) {
@@ -45,6 +46,7 @@ function validateRunInput(runInput = {}) {
         ...readPrompt(runInput),
         submissionId: readOptionalString(runInput.submissionId, 'submissionId'),
         thinkingLevel: readOptionalString(runInput.thinkingLevel, 'thinkingLevel'),
+        ...(runInput.speedMode !== undefined ? { speedMode: validateSpeedMode(runInput.speedMode, 'action run input') } : {}),
         version: runInput.version === undefined ? undefined : validateVersion(runInput.version),
     };
 }

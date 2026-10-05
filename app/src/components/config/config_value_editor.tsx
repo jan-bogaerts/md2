@@ -1,5 +1,6 @@
 import {
     Box,
+    Button,
     FormControl,
     FormControlLabel,
     FormHelperText,
@@ -20,6 +21,7 @@ import type { ConfigEntry, ConfigValue } from '../../services/config/config_serv
 import { dialogService } from '../../services/dialog_service'
 import {
     findAgentProfile,
+    defaultModelForProfile,
     mergeAgentProfiles,
     PERMISSION_MODE_OPTIONS,
     supportsThinkingLevel,
@@ -27,6 +29,8 @@ import {
     validateAgentSelection,
     validatePermissionMode,
     validateThinkingLevel,
+    SPEED_MODE_OPTIONS,
+    validateSpeedMode,
     type AgentProfile,
 } from '../../data/agent_profiles'
 import {
@@ -35,6 +39,7 @@ import {
     selectModel,
     selectPermissionMode,
     selectThinkingLevel,
+    selectSpeedMode,
     type AgentSelectionState,
 } from '../../data/agent_selection'
 import { formatDuration } from '../actions/conversation/status/conversation_duration'
@@ -42,6 +47,11 @@ import { AgentProfilesEditor } from './agent_profiles_editor'
 import { CardTypesEditor } from './card_types_editor'
 import { ColumnsEditor } from './columns_editor'
 import type { CardTypeConfig, StateConfig } from '../../data/data_types'
+import { useAgentModelCatalog } from '../hooks/use_agent_model_catalog';
+import { useProjectReference } from '../hooks/use_project_reference';
+import { findCatalogModel, modelFastTier, modelThinkingLevels } from '../../data/agent_model_catalog';
+import { agentModelOptions } from '../../data/agent_model_options';
+import { agentCatalogSelectionError } from '../../data/agent_catalog_selection';
 
 const CONFIG_PLACEHOLDER_PARTS_PATTERN = /(\{\{[^{}]+\}\})/u
 const CONFIG_PLACEHOLDER_PATTERN = /^\{\{[^{}]+\}\}$/u
@@ -92,9 +102,18 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
     const [numberText, setNumberText] = useState(() => (entry.type === 'number' ? String(value) : ''))
     const [numberValid, setNumberValid] = useState(true)
     const agentProfiles = mergeAgentProfiles((values?.['desktop.agentProfiles'] ?? []) as AgentProfile[])
-    const desktopAgentSelection = (values?.['desktop.agentSelection'] ?? null) as AgentSelectionState | null
+    const desktopAgentSelection = (entry.key === 'desktop.agentSelection' ? value : null) as AgentSelectionState | null;
     const selectedAgentProfile = findAgentProfile(agentProfiles, desktopAgentSelection?.activeAgent ?? '')
-    const selectedAgentModels = selectedAgentProfile?.models ?? []
+    const selectedSettings = desktopAgentSelection?.settingsByAgent[desktopAgentSelection.activeAgent];
+    const project = useProjectReference();
+    const modelCatalog = useAgentModelCatalog(selectedAgentProfile, project);
+    const selectedAgentModels = agentModelOptions(modelCatalog.catalog, selectedSettings?.model ?? '');
+    const effectiveModel = selectedSettings?.model || (selectedAgentProfile ? defaultModelForProfile(selectedAgentProfile) : '');
+    const advertisedModel = modelCatalog.catalog ? findCatalogModel(modelCatalog.catalog, effectiveModel) : null;
+    const availableThinkingLevels = modelThinkingLevels(selectedAgentProfile?.name ?? '', advertisedModel);
+    const fastAvailable = !!modelCatalog.catalog && !modelCatalog.stale && !modelCatalog.error
+        && !!modelFastTier(modelCatalog.catalog, advertisedModel);
+    const speedSupported = modelCatalog.catalog?.provider === 'openai' && selectedAgentProfile?.name === 'codex';
     const stringValue = value as string
     const selectOptions = entry.type === 'select' ? entry.options ?? [] : null
     const selectValue = stringValue
@@ -151,7 +170,9 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
                 ? selectModel(selection, event.target.value)
                 : fieldName === 'thinkingLevel'
                     ? selectThinkingLevel(selection, validateThinkingLevel(event.target.value, 'desktop agent selection'))
-                    : selectPermissionMode(selection, validatePermissionMode(event.target.value, 'desktop agent selection'))
+                    : fieldName === 'speedMode'
+                        ? selectSpeedMode(selection, validateSpeedMode(event.target.value, 'desktop agent selection'))
+                        : selectPermissionMode(selection, validatePermissionMode(event.target.value, 'desktop agent selection'))
         onChange(entry.key, nextSelection)
     }
 
@@ -186,8 +207,9 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
         const activeSettings = selection.settingsByAgent[selection.activeAgent]
         if (!activeSettings) return null
         const selectionError = desktopSelectionError(selection, agentProfiles)
+            ?? modelCatalog.error
+            ?? agentCatalogSelectionError(modelCatalog.catalog, { agent: selection.activeAgent, ...activeSettings, model: effectiveModel });
         const agentAvailable = !!selectedAgentProfile
-        const modelAvailable = selectedAgentModels.includes(activeSettings.model)
 
         return (
             <FormControl disabled={disabled} error={!!selectionError} fullWidth sx={OUTLINED_FIELD_BLOCK_SX}>
@@ -211,7 +233,7 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
                         {agentProfiles.map(({ name }) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
                     </TextField>
                     <TextField
-                        disabled={disabled}
+                        disabled={disabled || modelCatalog.loading}
                         fullWidth
                         label="Model"
                         name="model"
@@ -220,16 +242,17 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
                         size="small"
                         value={activeSettings.model}
                     >
-                        {!modelAvailable ? (
-                            <MenuItem disabled value={activeSettings.model}>
-                                {activeSettings.model || 'Default'} — unavailable
+                        {!activeSettings.model ? <MenuItem value="">Profile default</MenuItem> : null}
+                        {selectedAgentModels.map(({ available, displayName, id }) => (
+                            <MenuItem disabled={!available || modelCatalog.stale} key={id} value={id}>
+                                {available ? displayName : `${displayName} — unavailable`}
                             </MenuItem>
-                        ) : null}
-                        {selectedAgentModels.map((model) => <MenuItem key={model} value={model}>{model}</MenuItem>)}
+                        ))}
                     </TextField>
                     <TextField disabled={disabled} fullWidth label="Thinking level" name="thinkingLevel" onChange={handleDesktopSelectionChange} select size="small" value={activeSettings.thinkingLevel}>
                         {THINKING_LEVELS.map((level) => {
-                            const available = !!selectedAgentProfile && supportsThinkingLevel(selectedAgentProfile, level)
+                            const available = availableThinkingLevels.includes(level)
+                                && !!selectedAgentProfile && supportsThinkingLevel(selectedAgentProfile, level);
 
                             return (
                                 <MenuItem disabled={!available} key={level} value={level}>
@@ -244,6 +267,19 @@ export function ConfigValueEditor(props: ConfigValueEditorProps) {
                         ))}
                     </TextField>
                 </Stack>
+                {selection.activeAgent === 'codex' ? (
+                    <TextField disabled={disabled} label="Speed" name="speedMode" onChange={handleDesktopSelectionChange}
+                        select size="small" sx={{ mt: 1, minWidth: 180 }} value={activeSettings.speedMode ?? 'default'}>
+                        {SPEED_MODE_OPTIONS.filter(({ value }) => value !== 'fast' || fastAvailable || activeSettings.speedMode === 'fast')
+                            .map(({ label, value }) => (
+                                <MenuItem disabled={value !== 'default' && (!speedSupported || (value === 'fast' && !fastAvailable))}
+                                    key={value} value={value}>{label}</MenuItem>
+                            ))}
+                    </TextField>
+                ) : null}
+                <Button disabled={disabled || modelCatalog.loading} onClick={modelCatalog.refresh} size="small" sx={{ mt: 1 }}>
+                    Refresh models
+                </Button>
                 <FormHelperText sx={{ m: 0, mt: 1 }}>{selectionError ?? description}</FormHelperText>
             </FormControl>
         )

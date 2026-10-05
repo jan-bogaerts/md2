@@ -1,5 +1,5 @@
 import type { ActionContext } from '../../data/action_context'
-import type { PermissionMode } from '../../data/agent_profiles'
+import type { PermissionMode, SpeedMode } from '../../data/agent_profiles'
 import type { RawActionDefinition } from '../../data/action_types'
 import { generateUuid } from '../../data/uuid'
 
@@ -13,6 +13,7 @@ export interface ConvertPromptToActionInput {
     model?: string
     permissionMode?: PermissionMode
     prompt: string
+    speedMode?: SpeedMode
 }
 
 function toActionFileName(label: string) {
@@ -46,6 +47,7 @@ export function createActionDefinition(input: ConvertPromptToActionInput): RawAc
         streaming: true,
         phrases: [],
         prompt: input.prompt,
+        ...(input.speedMode !== undefined ? { speedMode: input.speedMode } : {}),
         type: 'agent',
     }
 }

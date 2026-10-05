@@ -45,12 +45,11 @@ describe('MarkdownEditor plain text mode with installed MDXEditor', () => {
         expect(handle.current?.getMarkdown()).toBe(WINDOWS_PATH)
     })
 
-    it('still serializes markdown source when plain text mode is off', () => {
+    it('preserves untouched Markdown source when plain text mode is off', () => {
         const handle = renderEditor(COMMAND, false)
 
         const markdown = handle.current?.getMarkdown() ?? ''
 
-        expect(markdown).toContain('\\_electron.ps1')
-        expect(markdown).not.toBe(COMMAND)
+        expect(markdown).toBe(COMMAND)
     })
 })

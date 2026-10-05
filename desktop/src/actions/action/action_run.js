@@ -426,6 +426,7 @@ class ActionRun {
 
         try {
             const result = await this.executeAction(action, phase, isRoot);
+            const acknowledgedSettings = result.acknowledgedSettings;
             if (this.controller.signal.aborted) {
                 this.publish(action, phase, 'cancelled', {
                     command: Array.isArray(result.command) ? result.command.join(' ') : result.command,
@@ -435,6 +436,11 @@ class ActionRun {
                     reference: result.reference,
                     conversationId: result.conversationId,
                     thinkingLevel: result.thinkingLevel,
+                    ...(result.speedMode !== undefined ? { speedMode: result.speedMode } : {}),
+                    ...(acknowledgedSettings?.model !== undefined ? { acknowledgedModel: acknowledgedSettings.model } : {}),
+                    ...(acknowledgedSettings?.serviceTier !== undefined
+                        ? { acknowledgedServiceTier: acknowledgedSettings.serviceTier }
+                        : {}),
                     type: 'action',
                 });
                 const cancellationError = new ActionCancellationError('Action cancelled');
@@ -452,6 +458,9 @@ class ActionRun {
                 reference: result.reference,
                 conversationId: result.conversationId,
                 thinkingLevel: result.thinkingLevel,
+                ...(result.speedMode !== undefined ? { speedMode: result.speedMode } : {}),
+                ...(acknowledgedSettings?.model !== undefined ? { acknowledgedModel: acknowledgedSettings.model } : {}),
+                ...(acknowledgedSettings?.serviceTier !== undefined ? { acknowledgedServiceTier: acknowledgedSettings.serviceTier } : {}),
                 type: 'action',
             });
             this.clearActiveAction(action);

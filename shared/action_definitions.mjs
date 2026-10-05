@@ -1,4 +1,4 @@
-import { validateAgentSelection, validateThinkingLevel } from './agent_profiles.mjs'
+import { validateAgentSelection, validateThinkingLevel, validateSpeedMode } from './agent_profiles.mjs'
 
 function normalizeActionId(value) {
     if (typeof value !== 'string' || value.length === 0) throw new Error('Missing action id')
@@ -12,7 +12,7 @@ const ACTION_TYPES = ['agent', 'command']
 const LEGACY_FIELDS = ['after', 'before', 'runIn', 'text']
 export const ACTION_DEFINITION_FIELDS = Object.freeze([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'output', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases', 'userInput',
+    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'speedMode', 'permissionMode', 'prompt', 'command', 'phrases', 'userInput',
 ])
 export const ACTION_AUTO_FINISH_FIELDS = Object.freeze(['when', 'state'])
 export const ACTION_OUTPUT_FIELDS = Object.freeze(['kind'])
@@ -33,7 +33,7 @@ export const REMARKABLE_CONVERT_ACTION_ID = 'md2.convert-remarkable-images-to-te
 // Fields the editor can route an error to. Anything else routes to the general summary.
 const ROUTABLE_FIELDS = new Set([
     'id', 'label', 'description', 'type', 'icon', 'appliesTo', 'output', 'onBefore', 'on', 'onAfter',
-    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'permissionMode', 'prompt', 'command', 'phrases', 'userInput',
+    'onState', 'needsWorkTree', 'showCommandWindow', 'trackFileChanges', 'streaming', 'autoFinish', 'agent', 'model', 'thinkingLevel', 'speedMode', 'permissionMode', 'prompt', 'command', 'phrases', 'userInput',
 ])
 
 /**
@@ -324,6 +324,16 @@ function readAutoFinish(value, streaming, output, dependencies, source) {
 }
 
 function validateAgentFields(raw, dependencies, source) {
+    if (raw.speedMode !== undefined) {
+        try {
+            validateSpeedMode(raw.speedMode, source);
+        } catch (error) {
+            throw fail(error.message, error.code, source, 'speedMode');
+        }
+        if (raw.type !== 'agent' || (raw.speedMode !== 'default' && raw.agent !== 'codex')) {
+            throw fail('Explicit speed settings require a Codex agent action', 'unsupported-speed-mode', source, 'speedMode');
+        }
+    }
     if (raw.model !== undefined && raw.agent === undefined) throw fail(`Action model requires agent in ${source}`, 'agent-required', source, 'model')
     if (raw.permissionMode !== undefined && raw.agent === undefined) throw fail(`Action permissionMode requires agent in ${source}`, 'agent-required', source, 'permissionMode')
     if (raw.thinkingLevel !== undefined && (raw.agent === undefined || raw.model === undefined)) {
@@ -338,11 +348,14 @@ function validateAgentFields(raw, dependencies, source) {
             agent: raw.agent,
             model: raw.model ?? '',
             permissionMode: raw.permissionMode,
+            speedMode: raw.speedMode,
         }, source)
     } catch (error) {
         // Route by the tagged code, never by message text.
         const field = error.code === 'unknown-agent'
             ? 'agent'
+            : error.code?.includes('speed-mode')
+                ? 'speedMode'
             : error.code?.includes('permission-mode')
                 ? 'permissionMode'
                 : 'model'
@@ -402,6 +415,7 @@ function validateRawDefinition(value, source, dependencies) {
         showCommandWindow: value.showCommandWindow ?? false,
         sourcePath: source,
         thinkingLevel: readOptionalString(value.thinkingLevel, 'thinkingLevel', source),
+        ...(value.speedMode !== undefined ? { speedMode: readOptionalString(value.speedMode, 'speedMode', source) } : {}),
         trackFileChanges: value.trackFileChanges ?? false,
         streaming,
         type,
@@ -504,6 +518,7 @@ export function validateActionDefinitionGraph(entries, dependencies = {}) {
             showCommandWindow: raw.showCommandWindow,
             sourcePath: raw.sourcePath,
             thinkingLevel: raw.thinkingLevel ?? null,
+            ...(raw.speedMode !== undefined ? { speedMode: raw.speedMode } : {}),
             trackFileChanges: raw.trackFileChanges,
             streaming: raw.streaming,
             type: raw.type,

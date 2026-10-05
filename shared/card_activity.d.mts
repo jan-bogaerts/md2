@@ -24,6 +24,9 @@ export interface AgentActivityDetails {
     model?: string
     permissionMode?: string
     thinkingLevel?: string
+    speedMode?: import('./agent_profiles.mjs').SpeedMode;
+    acknowledgedModel?: string;
+    acknowledgedServiceTier?: string | null;
     type: 'agent'
 }
 

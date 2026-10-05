@@ -10,6 +10,7 @@ import {
     SESSION_ID_PLACEHOLDER,
     THINKING_LEVELS,
     supportsThinkingLevel,
+    supportsModelDiscovery,
     type AgentProfile,
 } from '../../data/agent_profiles'
 
@@ -120,7 +121,7 @@ function validateForm(form: AgentProfileFormState, usedNames: string[]) {
     }
     if (models.length === 0) errors.push('At least one model is required.')
     if (new Set(models).size !== models.length) errors.push('Model names must be unique.')
-    if (defaultModel.length > 0 && models.length > 0 && !models.includes(defaultModel)) {
+    if (!supportsModelDiscovery({ name }) && defaultModel.length > 0 && models.length > 0 && !models.includes(defaultModel)) {
         errors.push(`Default model must be one of: ${models.join(', ')}`)
     }
     if (form.monthlySubscriptionCostUsd.trim().length > 0
@@ -194,7 +195,11 @@ function AgentProfileForm(props: AgentProfileFormProps) {
                     value={form.command}
                 />
                 <TextField disabled={disabled} fullWidth label="Model argument" name="modelArgument" onChange={onTextChange} size="small" value={form.modelArgument} />
-                <TextField disabled={disabled} fullWidth helperText="Comma-separated model names." label="Models" name="models" onChange={onTextChange} size="small" value={form.models} />
+                <TextField disabled={disabled} fullWidth
+                    helperText={supportsModelDiscovery({ name: form.name })
+                        ? 'Model choices are discovered from this client. This legacy list does not limit selectable models.'
+                        : 'Comma-separated model names.'}
+                    label="Models" name="models" onChange={onTextChange} size="small" value={form.models} />
                 <TextField disabled={disabled} fullWidth label="Profile default model" name="defaultModel" onChange={onTextChange} size="small" value={form.defaultModel} />
                 <TextField
                     disabled={disabled}

@@ -43,7 +43,7 @@ interface StubEditorProps {
     className?: string
     contentEditableClassName?: string
     markdown: string
-    onChange?: (markdown: string) => void
+    onChange?: (markdown: string, initialNormalization?: boolean) => void
     onError?: (payload: { error: string; source: string }) => void
     overlayContainer?: HTMLElement | null
     plugins?: StubPlugin[]
@@ -79,6 +79,9 @@ export const Cell = <T,>(initialValue: T): StubCell<T> => ({ initialValue })
 export const activeEditor$ = Cell(null)
 export const addComposerChild$ = Cell<ComponentType | null>(null)
 export const addImportVisitor$ = Cell(null)
+export const addExportVisitor$ = Cell(null);
+export const addLexicalNode$ = Cell(null);
+export const viewMode$ = Cell('rich-text');
 export const markdown$ = Cell('')
 export const rootEditor$ = Cell(null)
 export const setMarkdown$ = Cell(null)
@@ -114,6 +117,10 @@ class StubRealm {
     register<T>(cell: StubCell<T>) {
         if (!this.values.has(cell)) this.values.set(cell, cell.initialValue)
     }
+
+    pubIn(values: Record<string, unknown>) {
+        Object.entries(values).forEach(([key, value]) => this.values.set(key as unknown as StubCell<unknown>, value));
+    }
 }
 
 const StubRealmContext = createContext<StubRealm | null>(null)
@@ -123,6 +130,10 @@ export const useCellValue = <T,>(cell: StubCell<T>) => {
 
     return realm?.getValue(cell) ?? cell.initialValue
 }
+export const useCellValues = (...cells: StubCell<unknown>[]) => {
+    const realm = useContext(StubRealmContext);
+    return cells.map((cell) => realm?.getValue(cell) ?? cell.initialValue);
+};
 export const realmPlugin = <T,>(definition: StubRealmPluginDefinition<T>) => {
     const unknownDefinition = definition as StubRealmPluginDefinition<unknown>
 
@@ -274,7 +285,7 @@ export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(
         })
 
         useEffect(() => {
-            onChange?.(latestMarkdownRef.current)
+            onChange?.(latestMarkdownRef.current, true)
         }, [onChange])
 
         useEffect(() => testLexicalEditor.registerUpdateListener(({ editorState }) => {

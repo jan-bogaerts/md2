@@ -1,22 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { BUILTIN_AGENT_PROFILES, buildResumeAgentCommand, migrateAgentProfiles, validateAgentProfiles } from './agent_profiles'
+import { buildResumeAgentCommand, migrateAgentProfiles, validateAgentProfiles, validateAgentSelection } from './agent_profiles'
 
 describe('agent profile validation', () => {
-    it('provides configured models for built-in profiles', () => {
-        expect(BUILTIN_AGENT_PROFILES).toEqual([
-            expect.objectContaining({
-                defaultModel: 'gpt-5.6-sol',
-                defaultThinkingLevel: 'medium',
-                models: ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5'],
-                name: 'codex',
-            }),
-            expect.objectContaining({
-                defaultModel: 'default',
-                defaultThinkingLevel: 'medium',
-                models: ['default', 'sonnet', 'fable', 'opus', 'haiku'],
-                name: 'claude',
-            }),
-        ])
+    it('defers builtin model membership to runtime discovery while custom profiles retain their configured list', () => {
+        expect(() => validateAgentSelection([], { agent: 'codex', model: 'new-provider-model', thinkingLevel: 'medium' }, 'test'))
+            .not.toThrow();
+        expect(() => validateAgentSelection([], { agent: 'claude', model: 'new-claude-alias', thinkingLevel: 'none' }, 'test'))
+            .not.toThrow();
+        const custom = { command: ['custom'], models: ['known-model'], defaultThinkingLevel: 'none' as const, name: 'custom' };
+        expect(() => validateAgentSelection([custom], { agent: 'custom', model: 'unknown-model', thinkingLevel: 'none' }, 'test'))
+            .toThrow('Unknown model');
     })
 
     it('accepts resume command templates and drops legacy session patterns', () => {

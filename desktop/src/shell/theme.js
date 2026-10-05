@@ -4,12 +4,12 @@ const DEFAULT_THEME_MODE = 'light';
 const DARK_TITLE_BAR_OVERLAY = {
     color: '#212121',
     symbolColor: '#e9e9e9',
-    height: 40,
+    height: 44,
 };
 const LIGHT_TITLE_BAR_OVERLAY = {
     color: '#fafafa',
     symbolColor: '#212121',
-    height: 40,
+    height: 44,
 };
 
 function isThemeMode(value) {

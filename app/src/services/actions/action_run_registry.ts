@@ -123,6 +123,10 @@ function createLog(event: ActionRunEvent): ActionRunLogEntry {
         stderr: '',
         stdout: '',
         ...(event.type === 'action' && event.thinkingLevel ? { thinkingLevel: event.thinkingLevel } : {}),
+        ...(event.type === 'action' && event.speedMode !== undefined ? { speedMode: event.speedMode } : {}),
+        ...(event.type === 'action' && event.acknowledgedModel !== undefined ? { acknowledgedModel: event.acknowledgedModel } : {}),
+        ...(event.type === 'action' && event.acknowledgedServiceTier !== undefined
+            ? { acknowledgedServiceTier: event.acknowledgedServiceTier } : {}),
     }
 }
 
@@ -159,6 +163,9 @@ function updateActionLogs(logs: ActionRunLogEntry[], event: Extract<ActionRunEve
         ...(event.permissionMode ? { permissionMode: event.permissionMode } : {}),
         status: event.status,
         ...(event.thinkingLevel ? { thinkingLevel: event.thinkingLevel } : {}),
+        ...(event.speedMode !== undefined ? { speedMode: event.speedMode } : {}),
+        ...(event.acknowledgedModel !== undefined ? { acknowledgedModel: event.acknowledgedModel } : {}),
+        ...(event.acknowledgedServiceTier !== undefined ? { acknowledgedServiceTier: event.acknowledgedServiceTier } : {}),
     }
 
     return next

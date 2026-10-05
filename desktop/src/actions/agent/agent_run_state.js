@@ -137,6 +137,7 @@ function attachRunProtocol(run, {
             rootPath,
             providerConversationId,
             onCodexRuntimeEvent,
+            run.request.executionSettings,
         )
         : null;
     run.protocolLines = run.streaming ? new JsonLineBuffer(run.id, onStreamingLine) : null;

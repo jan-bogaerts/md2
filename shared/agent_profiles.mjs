@@ -22,7 +22,7 @@ export const PERMISSION_MODE_OPTIONS = [
     },
 ]
 
-const CODEX_MAX_THINKING_LEVEL = 'xhigh'
+export const CODEX_MAX_THINKING_LEVEL = 'xhigh'
 
 function buildCodexOutputCommand(command, searchEnabled) {
     return [...command, ...(searchEnabled ? ['--search'] : []), 'exec', '--json']
@@ -121,7 +121,7 @@ function validateAgentProfile(profile, index, names) {
         profile.monthlySubscriptionCostUsd,
         `desktop.agentProfiles[${index}].monthlySubscriptionCostUsd`,
     )
-    if (defaultModel && !models.includes(defaultModel)) {
+    if (defaultModel && !supportsModelDiscovery({ name }) && !models.includes(defaultModel)) {
         throw new Error(`Invalid default model for agent profile ${name}: ${defaultModel}`)
     }
     const defaultThinkingLevel = validateThinkingLevel(
@@ -211,7 +211,7 @@ export function validateAgentSelection(profiles, selection, source) {
         error.code = 'invalid-model-list'
         throw error
     }
-    if (selection.model.length > 0 && !allowedModels.includes(selection.model)) {
+    if (!supportsModelDiscovery(profile) && selection.model.length > 0 && !allowedModels.includes(selection.model)) {
         const error = new Error(`Unknown model for agent profile ${selection.agent} in ${source}: ${selection.model}`)
         error.code = 'unknown-model'
         throw error
@@ -232,6 +232,35 @@ export function validateAgentSelection(profiles, selection, source) {
             throw error
         }
     }
+    if (selection.speedMode !== undefined) {
+        const speedMode = validateSpeedMode(selection.speedMode, source);
+        if (speedMode !== 'default' && profile.name !== 'codex') {
+            const error = new Error(`Agent profile does not support speed settings: ${profile.name}`);
+            error.code = 'unsupported-speed-mode';
+            throw error;
+        }
+    }
+}
+
+export const SPEED_MODES = ['default', 'standard', 'fast'];
+export const SPEED_MODE_OPTIONS = [
+    { value: 'default', label: 'Provider default' },
+    { value: 'standard', label: 'Standard' },
+    { value: 'fast', label: 'Fast' },
+];
+
+export function validateSpeedMode(value, source) {
+    if (!SPEED_MODES.includes(value)) {
+        const error = new Error(`Invalid speed mode in ${source}: ${String(value)}`);
+        error.code = 'invalid-speed-mode';
+        throw error;
+    }
+
+    return value;
+}
+
+export function supportsModelDiscovery(profile) {
+    return profile.name === 'codex' || profile.name === 'claude';
 }
 
 export function validatePermissionMode(value, source) {
@@ -349,7 +378,22 @@ const RESUME_COMMAND_ADAPTERS = new Map([
     ['codex', buildCodexResumeCommand],
 ])
 
-export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined) {
+function buildSpeedCommand(command, profile, settings) {
+    const speedMode = settings.speedMode === undefined ? 'default' : validateSpeedMode(settings.speedMode, 'agent command');
+    if (speedMode === 'default') return command;
+    if (profile.name !== 'codex') throw new Error(`Speed settings are unsupported for ${profile.name}`);
+    if (typeof settings.serviceTier !== 'string' || settings.serviceTier.length === 0) {
+        throw new Error('Explicit speed mode requires a validated provider service tier');
+    }
+
+    return [
+        ...command,
+        ...(speedMode === 'fast' ? ['-c', 'features.fast_mode=true'] : []),
+        '-c', `service_tier=${JSON.stringify(settings.serviceTier)}`,
+    ];
+}
+
+export function buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled = true, permissionMode = undefined, speedSettings = {}) {
     const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)
     let command = buildAgentCommand(profile, model)
 
@@ -359,6 +403,7 @@ export function buildAgentExecutionCommand(profile, model, thinkingLevel, search
         command = thinkingAdapter(command, validatedThinkingLevel)
     }
     command = buildPermissionModeCommand(command, profile, permissionMode)
+    command = buildSpeedCommand(command, profile, speedSettings);
 
     const outputAdapter = OUTPUT_COMMAND_ADAPTERS.get(profile.name)
 
@@ -369,7 +414,7 @@ export function supportsAgentStreaming(profile) {
     return STREAMING_COMMAND_ADAPTERS.has(profile.name)
 }
 
-export function buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode = undefined) {
+export function buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode = undefined, speedSettings = {}) {
     if (!supportsAgentStreaming(profile)) throw new Error(`Agent profile does not support streaming: ${profile.name}`)
     const validatedThinkingLevel = validateThinkingLevel(thinkingLevel, `agent profile ${profile.name}`)
     let command = buildAgentCommand(profile, model)
@@ -380,6 +425,7 @@ export function buildAgentStreamingCommand(profile, model, thinkingLevel, permis
         command = thinkingAdapter(command, validatedThinkingLevel)
     }
     command = buildPermissionModeCommand(command, profile, permissionMode)
+    command = buildSpeedCommand(command, profile, speedSettings);
 
     return STREAMING_COMMAND_ADAPTERS.get(profile.name)(command)
 }

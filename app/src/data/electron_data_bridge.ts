@@ -56,6 +56,7 @@ export interface ElectronDataBridge {
     integrateWorktree?(request: IntegrateWorktreeRequest): Promise<WorktreeOperationOutcome>
     launchMergeConflictResolver?(request: MergeConflictPathRequest): Promise<void>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
+    loadAgentModelCatalog?(request: AgentModelCatalogRequest): Promise<AgentModelCatalog>;
     loadAgentConversation?(path: string): Promise<AgentConversation>
     loadActivityConversations?(path: string): Promise<AgentConversation[]>
     loadActionFiles(project: ProjectReference, actionsFolder: string): Promise<ActionFile[]>
@@ -108,3 +109,4 @@ declare global {
 export function getElectronDataBridge() {
     return window.md2Data ?? null
 }
+import type { AgentModelCatalog, AgentModelCatalogRequest } from './agent_model_catalog';

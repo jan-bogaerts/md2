@@ -736,6 +736,10 @@ export class RemoteControlStorageService implements
         return this.request<Record<string, AgentAvailability>>('loadAgentAvailability', [])
     }
 
+    async loadAgentModelCatalog(request: AgentModelCatalogRequest): Promise<AgentModelCatalog> {
+        return await this.request<AgentModelCatalog>('loadAgentModelCatalog', [request]);
+    }
+
     async loadDesktopConfig(): Promise<DesktopConfigValues> {
         return this.request<DesktopConfigValues>('loadDesktopConfig', [])
     }
@@ -1329,3 +1333,4 @@ export class RemoteControlStorageService implements
         return this.socket
     }
 }
+import type { AgentModelCatalog, AgentModelCatalogRequest } from '../../data/agent_model_catalog';

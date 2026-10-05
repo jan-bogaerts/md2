@@ -1,6 +1,7 @@
 import { Box, Stack, Typography } from '@mui/material'
 import type { ActionRunLogEntry } from '../../../../data/action_run_types'
 import { actionStatusLabel } from '../../shared/action_status'
+import { agentSpeedLabel } from '../../../../data/agent_speed_label';
 
 interface ActionRunStatusProps {
     color: string
@@ -24,6 +25,7 @@ export function ActionRunStatus(props: ActionRunStatusProps) {
                             {log.phase}: {log.message}{log.stdout || log.stderr ? ` — ${log.stdout}${log.stderr}` : ''}
                             {log.thinkingLevel ? ` (thinking: ${log.thinkingLevel})` : ''}
                             {log.permissionMode ? ` (permissions: ${log.permissionMode})` : ''}
+                            {agentSpeedLabel(log) ? ` (${agentSpeedLabel(log)})` : ''}
                         </Typography>
                     ))}
                 </Stack>

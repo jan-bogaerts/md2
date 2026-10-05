@@ -1,4 +1,4 @@
-import { MenuItem, Stack } from '@mui/material'
+import { Button, MenuItem, Stack } from '@mui/material'
 import type { ChangeEvent } from 'react'
 import { useEffect } from 'react'
 import {
@@ -8,6 +8,9 @@ import {
     supportsPermissionMode,
     validatePermissionMode,
     validateThinkingLevel,
+    SPEED_MODE_OPTIONS,
+    supportsThinkingLevel,
+    validateSpeedMode,
 } from '../../../data/agent_profiles'
 import {
     projectAgentSelection,
@@ -15,12 +18,17 @@ import {
     selectModel,
     selectPermissionMode,
     selectThinkingLevel,
+    selectSpeedMode,
 } from '../../../data/agent_selection'
 import type { RawActionDefinition } from '../../../data/action_types'
 import { agentCapabilitiesService, type AgentCapabilitiesService } from '../../../services/agents/agent_capabilities_service'
 import { actionAgentSelectionDraftService } from '../../../services/actions/action_agent_selection_draft_service'
 import { useAgentCapabilities } from '../../hooks/use_agent_capabilities'
 import { useConfigValue } from '../../hooks/use_config_value'
+import { useAgentModelCatalog } from '../../hooks/use_agent_model_catalog';
+import { useProjectReference } from '../../hooks/use_project_reference';
+import { findCatalogModel, modelFastTier, modelThinkingLevels } from '../../../data/agent_model_catalog';
+import { agentModelOptions } from '../../../data/agent_model_options';
 import { ActionEditorField } from '../editor/action_editor_field'
 import { ActionSectionLabel } from '../shared/action_section_label'
 
@@ -37,19 +45,18 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
     const profiles = mergeAgentProfiles(useConfigValue('desktop.agentProfiles'))
     const desktopSelection = useConfigValue('desktop.agentSelection')
     const selection = actionAgentSelectionDraftService.getSelection(sourcePath, definition, desktopSelection, profiles)
-    const { availability, models, thinkingLevels } = useAgentCapabilities(service)
+    const { availability } = useAgentCapabilities(service)
     const selectedProfile = definition.agent ? findAgentProfile(profiles, definition.agent) : null
-
-    useEffect(() => {
-        if (definition.agent) void service.loadModels(definition.agent)
-        else service.clear()
-    }, [definition.agent, service])
-
-    useEffect(() => {
-        if (definition.agent && definition.model) {
-            void service.loadThinkingLevels(definition.agent, definition.model)
-        }
-    }, [definition.agent, definition.model, service])
+    const project = useProjectReference();
+    const models = useAgentModelCatalog(selectedProfile, project, service);
+    const modelOptions = agentModelOptions(models.catalog, definition.model ?? '');
+    const advertisedModel = models.catalog && definition.model ? findCatalogModel(models.catalog, definition.model) : null;
+    const configuredThinkingLevels: string[] = modelThinkingLevels(definition.agent ?? '', advertisedModel)
+        .filter((level) => level === 'none' || (!!selectedProfile && supportsThinkingLevel(selectedProfile, level)));
+    const thinkingLevelValues = definition.thinkingLevel && !configuredThinkingLevels.includes(definition.thinkingLevel)
+        ? [definition.thinkingLevel, ...configuredThinkingLevels] : configuredThinkingLevels;
+    const fastAvailable = !!models.catalog && !models.stale && !models.error && !!modelFastTier(models.catalog, advertisedModel);
+    const speedSupported = models.catalog?.provider === 'openai' && definition.agent === 'codex';
 
     useEffect(() => () => {
         actionAgentSelectionDraftService.clearSelection(sourcePath)
@@ -58,13 +65,24 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
     const handleAgentChange = (event: ChangeEvent<HTMLInputElement>) => {
         const agent = event.target.value
         if (!agent) {
-            onChange({ ...definition, agent: undefined, model: undefined, permissionMode: undefined, thinkingLevel: undefined })
+            const clearedDefinition = {
+                ...definition,
+                agent: undefined,
+                model: undefined,
+                permissionMode: undefined,
+                thinkingLevel: undefined,
+                speedMode: undefined,
+            };
+            onChange(clearedDefinition);
             return
         }
         const nextSelection = selectAgent(selection, agent, profiles, [desktopSelection])
         const projected = projectAgentSelection(nextSelection, profiles)
         actionAgentSelectionDraftService.setSelection(sourcePath, nextSelection)
-        onChange({ ...definition, agent: projected.agent, model: projected.model, thinkingLevel: projected.thinkingLevel })
+        onChange({
+            ...definition, agent: projected.agent, model: projected.model, thinkingLevel: projected.thinkingLevel,
+            speedMode: projected.agent === 'codex' ? projected.speedMode : undefined,
+        });
     }
 
     const handleModelChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -92,19 +110,24 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
         onChange({ ...definition, permissionMode })
     }
 
+    const handleSpeedModeChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const speedMode = event.target.value ? validateSpeedMode(event.target.value, 'action speedMode') : undefined;
+        const nextSelection = speedMode !== undefined ? selectSpeedMode(selection, speedMode) : {
+            ...selection,
+            settingsByAgent: {
+                ...selection.settingsByAgent,
+                [selection.activeAgent]: { ...selection.settingsByAgent[selection.activeAgent], speedMode: undefined },
+            },
+        };
+        actionAgentSelectionDraftService.setSelection(sourcePath, nextSelection);
+        onChange({ ...definition, speedMode });
+    };
+
     const selectedAvailability = definition.agent ? availability.values[definition.agent] : undefined
     const agentCapabilityError = availability.error
         ?? (definition.agent && !availability.loading && !selectedAvailability
             ? `Agent executable availability is missing for ${definition.agent}`
             : selectedAvailability?.error)
-
-    const modelValues = definition.model && !models.values.includes(definition.model)
-        ? [definition.model, ...models.values]
-        : models.values
-    const configuredThinkingLevels = thinkingLevels.values.filter((level) => level !== 'none')
-    const thinkingLevelValues = definition.thinkingLevel && !configuredThinkingLevels.includes(definition.thinkingLevel)
-        ? [definition.thinkingLevel, ...configuredThinkingLevels]
-        : configuredThinkingLevels
 
     return (
         <Stack
@@ -113,7 +136,10 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
             spacing={1.5}
             sx={{ bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}
         >
-            <ActionSectionLabel component="h4" id="action-agent-override-heading">Agent override</ActionSectionLabel>
+            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <ActionSectionLabel component="h4" id="action-agent-override-heading">Agent override</ActionSectionLabel>
+                <Button disabled={!selectedProfile || models.loading} onClick={models.refresh} size="small">Refresh models</Button>
+            </Stack>
             <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
                 <ActionEditorField
                     error={!!errors.agent || !!agentCapabilityError}
@@ -148,28 +174,27 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                     value={definition.model ?? ''}
                 >
                     <MenuItem value="">Select model</MenuItem>
-                    {modelValues.map((model) => (
-                        <MenuItem key={model} value={model}>
-                            {model === definition.model && !models.loading && !models.values.includes(model) ? `${model} — unavailable` : model}
+                    {modelOptions.map(({ available, displayName, id }) => (
+                        <MenuItem disabled={!available} key={id} value={id}>
+                            {available ? displayName : `${displayName} — unavailable`}
                         </MenuItem>
                     ))}
                 </ActionEditorField>
                 <ActionEditorField
-                    disabled={!definition.agent || !definition.model || thinkingLevels.loading || !!thinkingLevels.error}
-                    error={!!errors.thinkingLevel || !!thinkingLevels.error}
+                    disabled={!definition.agent || !definition.model || models.loading || !!models.error}
+                    error={!!errors.thinkingLevel}
                     fieldId="action-thinking-level"
                     fullWidth
-                    helperText={errors.thinkingLevel ?? thinkingLevels.error ?? (thinkingLevels.loading ? 'Loading thinking levels…' : undefined)}
+                    helperText={errors.thinkingLevel}
                     label="Thinking level"
                     onChange={handleThinkingLevelChange}
                     select
                     size="small"
                     value={definition.thinkingLevel ?? 'none'}
                 >
-                    <MenuItem value="none">none</MenuItem>
                     {thinkingLevelValues.map((level) => (
-                        <MenuItem key={level} value={level}>
-                            {level === definition.thinkingLevel && !thinkingLevels.loading && !configuredThinkingLevels.includes(level)
+                        <MenuItem disabled={!configuredThinkingLevels.includes(level)} key={level} value={level}>
+                            {level === definition.thinkingLevel && !configuredThinkingLevels.includes(level)
                                 ? `${level} — unavailable`
                                 : level}
                         </MenuItem>
@@ -197,6 +222,27 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
                     ))}
                 </ActionEditorField>
             </Stack>
+            {definition.agent === 'codex' ? (
+                <ActionEditorField
+                    error={!!errors.speedMode || (definition.speedMode === 'fast' && !fastAvailable)}
+                    fieldId="action-speed-mode"
+                    helperText={errors.speedMode ?? (definition.speedMode === 'fast' && !fastAvailable
+                        ? 'Fast is unavailable for this model or provider. Refresh models or choose another speed.'
+                        : 'Fast uses higher provider usage. Application default inherits the global preference.')}
+                    label="Speed"
+                    onChange={handleSpeedModeChange}
+                    select
+                    size="small"
+                    value={definition.speedMode ?? ''}
+                >
+                    <MenuItem value="">Application default</MenuItem>
+                    {SPEED_MODE_OPTIONS.filter(({ value }) => value !== 'fast' || fastAvailable || definition.speedMode === 'fast')
+                        .map(({ label, value }) => (
+                            <MenuItem disabled={value !== 'default' && (!speedSupported || (value === 'fast' && !fastAvailable))}
+                                key={value} value={value}>{label}</MenuItem>
+                        ))}
+                </ActionEditorField>
+            ) : null}
         </Stack>
     )
 }

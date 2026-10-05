@@ -8,7 +8,7 @@ import type {
     AgentConversationTimer,
     AgentTokenUsage,
 } from './data_types'
-import type { PermissionMode, ThinkingLevel } from './agent_profiles'
+import type { PermissionMode, ThinkingLevel, SpeedMode } from './agent_profiles'
 import type { ActionAutoFinish, ActionOutput, ActionType } from './action_types'
 
 export type ActionRunTerminalStatus = 'cancelled' | 'completed' | 'failed' | 'okButNotAfter'
@@ -29,6 +29,7 @@ export interface ActionRunInput {
     prompt?: string
     submissionId?: string
     thinkingLevel?: ThinkingLevel
+    speedMode?: SpeedMode;
     version?: string
 }
 
@@ -230,6 +231,9 @@ export type ActionRunEvent =
         reference?: string
         status: ActionRunStatus
         thinkingLevel?: ThinkingLevel
+        speedMode?: SpeedMode;
+        acknowledgedModel?: string;
+        acknowledgedServiceTier?: string | null;
         type: 'action'
     }
     | ActionRunEventBase & {
@@ -256,6 +260,9 @@ export interface ActionRunLogEntry {
     stderr: string
     stdout: string
     thinkingLevel?: ThinkingLevel
+    speedMode?: SpeedMode;
+    acknowledgedModel?: string;
+    acknowledgedServiceTier?: string | null;
 }
 
 export interface ActionRunResult {

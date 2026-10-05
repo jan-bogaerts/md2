@@ -1,3 +1,4 @@
+import { createAgentModelCatalogStub } from '../../test/agent_model_catalog_stub.mjs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -77,6 +78,7 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
     };
     const runner = new ActionRunnerService({
+        agentModelCatalogService: createAgentModelCatalogStub(),
         actionWorktreeRunService,
         agentConfigProvider: () => ({ agentProfiles: [], agentSelection }),
         agentRunnerService,
@@ -637,7 +639,7 @@ describe('ActionRunnerService', () => {
         const { agentRunnerService, runner } = createRunner(files);
 
         await expect(runner.start({actionId: 'main', context, runInput: { model: 'retired-model' }}))
-            .rejects.toThrow('Unknown model');
+            .rejects.toThrow('not advertised');
         expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 

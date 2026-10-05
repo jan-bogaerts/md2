@@ -68,6 +68,7 @@ class ActionRunnerService {
         this.actionDefinitionCache = dependencies?.actionDefinitionCache
             ?? (this.localGitService ? new ActionDefinitionCache({ localGitService: this.localGitService }) : null);
         this.agentExecutor = new ActionAgentExecutor({
+            agentModelCatalogService: dependencies?.agentModelCatalogService,
             agentConfigProvider: this.agentConfigProvider,
             agentRunnerService: this.agentRunnerService,
             localGitService: this.localGitService,

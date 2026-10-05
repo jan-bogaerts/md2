@@ -1,163 +1,85 @@
-import { Box, IconButton, InputAdornment, Popover, TextField, Tooltip } from '@mui/material'
-import type { MouseEvent } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import Magnify from 'mdi-material-ui/Magnify'
+import { Box, Popover } from '@mui/material';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    GLOBAL_SEARCH_SHORTCUT_BINDING,
     SEARCH_OPEN_REQUESTED_EVENT,
     searchOpenService,
-} from '../../../services/search/search_open_service'
-import type { SearchRegexpAgent } from '../../../services/search/search_types'
-import { formatShortcut } from '../../../services/shortcuts/keyboard_platform'
-import { NO_DRAG_REGION } from '../drag_region'
-import { SearchPanel } from './search_panel'
+} from '../../../services/search/search_open_service';
+import type { SearchRegexpAgent } from '../../../services/search/search_types';
+import { NO_DRAG_REGION } from '../drag_region';
+import { SearchPanel } from './search_panel';
+import { SearchLauncher } from './search_launcher';
+import { SEARCH_PLACEHOLDERS, type SearchPresentation } from './search_field_styles';
 
-const RESULTS_WIDTH = 460
+const RESULTS_WIDTH = 460;
 
 interface SearchControlProps {
-    isMobile?: boolean
+    isMobile?: boolean;
+    presentation?: SearchPresentation;
     /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */
-    regexpAgent?: SearchRegexpAgent
+    regexpAgent?: SearchRegexpAgent;
 }
 
-/** Lightweight search launcher that mounts data-aware search only while open. */
+/** Lightweight launcher; narrow headers open the editable search in an anchored popover. */
 export function SearchControl(props: SearchControlProps) {
-    const { isMobile = false, regexpAgent } = props
-    const [query, setQuery] = useState('')
-    const [desktopOpen, setDesktopOpen] = useState(false)
-    const [searchAnchorElement, setSearchAnchorElement] = useState<HTMLElement | null>(null)
-    const mobileButtonElement = useRef<HTMLButtonElement | null>(null)
-    const shortcutLabel = formatShortcut(GLOBAL_SEARCH_SHORTCUT_BINDING)
+    const { isMobile = false, presentation = 'full', regexpAgent } = props;
+    const [query, setQuery] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchAnchorElement, setSearchAnchorElement] = useState<HTMLElement | null>(null);
+    const controlElement = useRef<HTMLDivElement | null>(null);
+    const launcherPresentation = isMobile ? 'icon' : presentation;
+    const usesPopover = isMobile || presentation === 'icon' || presentation === 'shortcut';
 
-    const handleOpenRequested = useCallback(() => {
-        if (!isMobile) {
-            setDesktopOpen(true)
-            return
-        }
-
-        const anchorElement = mobileButtonElement.current
-        if (!anchorElement) throw new Error('Cannot open mobile search without its anchor button')
-
-        setSearchAnchorElement(anchorElement)
-    }, [isMobile])
+    const openSearch = useCallback(() => {
+        const anchorElement = controlElement.current;
+        if (!anchorElement) throw new Error('Cannot open search without its anchor');
+        setSearchAnchorElement(anchorElement);
+        setIsOpen(true);
+    }, []);
 
     useEffect(() => {
-        searchOpenService.addEventListener(SEARCH_OPEN_REQUESTED_EVENT, handleOpenRequested)
+        searchOpenService.addEventListener(SEARCH_OPEN_REQUESTED_EVENT, openSearch);
 
-        return () => searchOpenService.removeEventListener(SEARCH_OPEN_REQUESTED_EVENT, handleOpenRequested)
-    }, [handleOpenRequested])
+        return () => searchOpenService.removeEventListener(SEARCH_OPEN_REQUESTED_EVENT, openSearch);
+    }, [openSearch]);
 
-    const openDesktop = () => {
-        setDesktopOpen(true)
-    }
-
-    const closeDesktop = () => {
-        setDesktopOpen(false)
-    }
-
-    const openMobile = (event: MouseEvent<HTMLElement>) => {
-        setSearchAnchorElement(event.currentTarget)
-    }
-
-    const closeMobile = () => {
-        setSearchAnchorElement(null)
-    }
+    const closeSearch = () => {
+        setIsOpen(false);
+    };
 
     const updateQuery = (nextQuery: string) => {
-        setQuery(nextQuery)
-    }
-
-    if (!isMobile) {
-        if (desktopOpen) {
-            return (
-                <SearchPanel
-                    initialQuery={query}
-                    onClose={closeDesktop}
-                    onQueryChange={updateQuery}
-                    regexpAgent={regexpAgent}
-                />
-            )
-        }
-
-        return (
-            <TextField
-                fullWidth
-                onFocus={openDesktop}
-                placeholder="Search cards…"
-                size="small"
-                slotProps={{
-                    htmlInput: { 'aria-label': 'Search project', readOnly: true },
-                    input: {
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <Box
-                                    component="span"
-                                    sx={{
-                                        border: 1,
-                                        borderColor: 'divider',
-                                        borderRadius: 0.5,
-                                        color: 'text.disabled',
-                                        fontSize: 10.5,
-                                        lineHeight: 1.4,
-                                        px: 0.75,
-                                    }}
-                                >
-                                    {shortcutLabel}
-                                </Box>
-                            </InputAdornment>
-                        ),
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <Magnify fontSize="small" />
-                            </InputAdornment>
-                        ),
-                        sx: {
-                            bgcolor: 'background.default',
-                            borderRadius: 99,
-                            fontSize: 13,
-                            height: 32,
-                            '& fieldset': { borderColor: 'divider' },
-                        },
-                    },
-                }}
-                style={NO_DRAG_REGION}
-                value={query}
-                variant="outlined"
-            />
-        )
-    }
+        setQuery(nextQuery);
+    };
 
     return (
-        <>
-            <Tooltip title="Search">
-                <IconButton
-                    aria-label="Search"
-                    onClick={openMobile}
-                    ref={mobileButtonElement}
-                    size="small"
-                    sx={{ height: 34, width: 34 }}
-                >
-                    <Magnify />
-                </IconButton>
-            </Tooltip>
+        <Box data-search-presentation={launcherPresentation} ref={controlElement} style={NO_DRAG_REGION} sx={{ position: 'relative', width: '100%' }}>
+            <SearchLauncher
+                isOpen={isOpen && !usesPopover}
+                onOpen={openSearch}
+                presentation={launcherPresentation}
+                query={query}
+            />
+            {isOpen && !usesPopover ? (
+                <SearchPanel
+                    initialQuery={query}
+                    onClose={closeSearch}
+                    onQueryChange={updateQuery}
+                    placeholder={SEARCH_PLACEHOLDERS[presentation]}
+                    regexpAgent={regexpAgent}
+                />
+            ) : null}
             <Popover
                 anchorEl={searchAnchorElement}
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 disableAutoFocus
-                onClose={closeMobile}
-                open={!!searchAnchorElement}
+                onClose={closeSearch}
+                open={isOpen && usesPopover}
                 slotProps={{paper: { sx: { mt: 0.5, overflow: 'visible', p: 1, width: `min(${RESULTS_WIDTH}px, calc(100vw - 32px))` } }}}
                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             >
-                {searchAnchorElement ? (
-                    <SearchPanel
-                        initialQuery={query}
-                        onClose={closeMobile}
-                        onQueryChange={updateQuery}
-                        regexpAgent={regexpAgent}
-                    />
+                {isOpen && usesPopover ? (
+                    <SearchPanel initialQuery={query} onClose={closeSearch} onQueryChange={updateQuery} regexpAgent={regexpAgent} />
                 ) : null}
             </Popover>
-        </>
-    )
+        </Box>
+    );
 }

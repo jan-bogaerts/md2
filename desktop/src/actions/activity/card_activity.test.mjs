@@ -28,6 +28,29 @@ function record() {
 }
 
 describe('card activity action runs', () => {
+    it('round-trips speed preferences and provider acknowledgements without rewriting older records', () => {
+        const agentRecord = {
+            ...record(),
+            conversationIds: ['conversation-1'],
+            rootConversationId: 'conversation-1',
+            details: {
+                type: 'agent', agent: 'codex', model: 'gpt-6.1-sol', speedMode: 'fast',
+                acknowledgedModel: 'gpt-6.1-sol', acknowledgedServiceTier: 'priority',
+            },
+        };
+        const settings = selection('codex', 'gpt-6.1-sol', 'medium');
+        settings.settingsByAgent.codex.speedMode = 'standard';
+        const conversation = {
+            actionId: 'build', cardInternalId: 'card-1', cardPath: 'design/F-1.md', completedAt: null,
+            entries: [], hasExplicitTitle: true, id: 'conversation-1', providerSessions: [], startedAt: '2026-08-01T12:00:00.000Z',
+            status: 'running', title: 'Build', viewed: true,
+        };
+        const activity = {
+            actionSettings: { review: settings }, conversations: [conversation], origin,
+            records: [agentRecord, record()], version: 5,
+        };
+        expect(parseActivityValue(activity, origin)).toEqual(activity);
+    });
     it('parses conversation values without serializing them again', () => {
         const conversation = {
             actionId: 'build', cardInternalId: 'card-1', cardPath: 'design/F-1.md', completedAt: null,

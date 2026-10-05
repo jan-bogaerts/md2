@@ -1,3 +1,4 @@
+import { snapshotCatalogFixture } from '../../../../test/agent_catalog_fixture';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CUSTOM_PROMPT_ACTION_ID, type ActionDefinition } from '../../../../data/action_types'
@@ -82,7 +83,7 @@ function renderBottomRow(
     const inputStore = new ActionRunInputStore()
     const resultStore = new ActionRunResultStore()
     const scheduleStore = new ActionScheduleStore()
-    const settingsStore = new ActionRunSettingsStore(actionOverride.id, null)
+    const settingsStore = new ActionRunSettingsStore(actionOverride.id, null, 'project')
     const unrelatedRender = vi.fn()
 
     function UnrelatedContent() {
@@ -115,6 +116,7 @@ function renderBottomRow(
 
 describe('ActionPopupBottomRow', () => {
     beforeEach(() => {
+        vi.spyOn(agentCapabilitiesService, 'getCatalogSnapshot').mockImplementation(snapshotCatalogFixture);
         setMobileBreakpoint(false)
         configService.init({
             desktopConfig: {
@@ -123,11 +125,7 @@ describe('ActionPopupBottomRow', () => {
             },
         })
         window.md2Actions = { onActionRun: vi.fn(() => vi.fn()) } as unknown as typeof window.md2Actions
-        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
-            models: { error: null, loading: false, values: [] },
-            thinkingLevels: { error: null, loading: false, values: [] },
-        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { codex: { available: true, error: null } } }})
     })
 
     afterEach(() => {

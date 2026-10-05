@@ -56,6 +56,7 @@ export interface RawActionDefinition {
     permissionMode?: import('./agent_profiles.mjs').PermissionMode
     prompt?: string
     thinkingLevel?: string
+    speedMode?: import('./agent_profiles.mjs').SpeedMode;
     trackFileChanges?: boolean
     streaming?: boolean
     type: ActionType
@@ -100,6 +101,7 @@ export interface ActionDefinition {
     prompt: string | null
     sourcePath: string | null
     thinkingLevel: string | null
+    speedMode?: import('./agent_profiles.mjs').SpeedMode;
     trackFileChanges: boolean
     streaming: boolean
     type: ActionType

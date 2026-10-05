@@ -14,11 +14,15 @@ function createCommandDetails(input) {
 }
 
 function createAgentDetails(input) {
+    const acknowledgedSettings = input.result.acknowledgedSettings;
     return {
         ...(input.result.agent !== undefined ? { agent: input.result.agent } : {}),
         ...(input.result.model !== undefined ? { model: input.result.model } : {}),
         ...(input.result.permissionMode !== undefined ? { permissionMode: input.result.permissionMode } : {}),
         ...(input.result.thinkingLevel !== undefined ? { thinkingLevel: input.result.thinkingLevel } : {}),
+        ...(input.result.speedMode !== undefined ? { speedMode: input.result.speedMode } : {}),
+        ...(acknowledgedSettings?.model !== undefined ? { acknowledgedModel: acknowledgedSettings.model } : {}),
+        ...(acknowledgedSettings?.serviceTier !== undefined ? { acknowledgedServiceTier: acknowledgedSettings.serviceTier } : {}),
         type: 'agent',
     };
 }

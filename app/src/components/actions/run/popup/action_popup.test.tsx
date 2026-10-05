@@ -1,3 +1,4 @@
+import { snapshotCatalogFixture } from '../../../../test/agent_catalog_fixture';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -210,11 +211,7 @@ function rejectableDeferred<T>() {
 }
 
 function mockCodexAvailable() {
-    vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-        availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
-        models: { error: null, loading: false, values: [] },
-        thinkingLevels: { error: null, loading: false, values: [] },
-    })
+    vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { codex: { available: true, error: null } } }})
 }
 
 function setMobileBreakpoint(matches: boolean) {
@@ -274,6 +271,7 @@ function selectPromptText(textbox: HTMLTextAreaElement, start: number, end: numb
 
 describe('ActionPopup', () => {
     beforeEach(async () => {
+        vi.spyOn(agentCapabilitiesService, 'getCatalogSnapshot').mockImplementation(snapshotCatalogFixture);
         projectPersistenceService.init({ actionService, dataService, openFilesService })
         remoteConnectionService.disconnect()
         configService.init({
@@ -1084,11 +1082,7 @@ describe('ActionPopup', () => {
             editorCommand: 'code "{{file}}"',
             mergeConflictResolverCommand: '',
         })
-        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { custom: { available: true, error: null } } },
-            models: { error: null, loading: false, values: [] },
-            thinkingLevels: { error: null, loading: false, values: [] },
-        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { custom: { available: true, error: null } } }})
         renderPopup()
         const dialog = within(screen.getByRole('dialog', { name: 'Run actions' }))
 
@@ -1105,11 +1099,7 @@ describe('ActionPopup', () => {
     it.each(['Send button', 'Ctrl+Enter'])('runs custom prompt directly through %s', async (submission) => {
         const startAction = vi.fn(async () => 'custom-run')
         const saveProjectFile = vi.spyOn(dataService.cards, 'saveProjectFile')
-        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
-            models: { error: null, loading: false, values: [] },
-            thinkingLevels: { error: null, loading: false, values: [] },
-        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { codex: { available: true, error: null } } }})
         window.md2Actions = {
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
@@ -1181,11 +1171,7 @@ describe('ActionPopup', () => {
             },
             agentProfiles: [{ command: ['custom'], defaultThinkingLevel: 'none', models: ['host-model'], name: 'custom' }],
         })
-        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { custom: { available: true, error: null } } },
-            models: { error: null, loading: false, values: [] },
-            thinkingLevels: { error: null, loading: false, values: [] },
-        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { custom: { available: true, error: null } } }})
         window.md2Actions = {
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: '' })),
@@ -2917,8 +2903,6 @@ describe('ActionPopup', () => {
                     codex: { available: true, error: null },
                 },
             },
-            models: { error: null, loading: false, values: [] },
-            thinkingLevels: { error: null, loading: false, values: [] },
         })
         const restartActionRun = vi.fn(async (_runId: string, request: ActionStartRequest) => {
             const messageId = request.runInput.submissionId
@@ -3035,11 +3019,7 @@ describe('ActionPopup', () => {
             onActionRun: vi.fn(() => vi.fn()),
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
         } as unknown as typeof window.md2Actions
-        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
-            models: { error: null, loading: false, values: [] },
-            thinkingLevels: { error: null, loading: false, values: [] },
-        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { codex: { available: true, error: null } } }})
         actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
 
         renderPopup(cardContext)
@@ -3068,11 +3048,7 @@ describe('ActionPopup', () => {
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
             updateCardActionSettings,
         } as unknown as typeof window.md2Actions
-        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
-            models: { error: null, loading: false, values: [] },
-            thinkingLevels: { error: null, loading: false, values: [] },
-        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { codex: { available: true, error: null } } }})
         actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
         renderPopup(cardContext)
         await waitFor(() => expect(screen.getByLabelText('Model')).toBeEnabled())
@@ -3107,11 +3083,7 @@ describe('ActionPopup', () => {
 
     it('restores non-card settings after popup reopen and drops them after project-store clear', async () => {
         const fileContext: ActionContext = { file: 'README.md', kind: 'file' }
-        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
-            models: { error: null, loading: false, values: [] },
-            thinkingLevels: { error: null, loading: false, values: [] },
-        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { codex: { available: true, error: null } } }})
         actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
         renderPopup(fileContext)
 
@@ -3139,11 +3111,7 @@ describe('ActionPopup', () => {
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
             updateCardActionSettings,
         } as unknown as typeof window.md2Actions
-        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { codex: { available: true, error: null } } },
-            models: { error: null, loading: false, values: [] },
-            thinkingLevels: { error: null, loading: false, values: [] },
-        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { codex: { available: true, error: null } } }})
         actionService.loadFromFiles([
             file(agentDefinition('first-agent', { agent: 'codex', label: 'First agent' })),
             file(agentDefinition('second-agent', { agent: 'codex', label: 'Second agent' })),
@@ -3181,11 +3149,7 @@ describe('ActionPopup', () => {
             prepareActionPrompt: vi.fn(async () => ({ prompt: 'Plan' })),
             updateCardActionSettings,
         } as unknown as typeof window.md2Actions
-        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({
-            availability: { error: null, loading: false, values: { 'removed-agent': { available: false, error: 'Executable removed' } } },
-            models: { error: null, loading: false, values: [] },
-            thinkingLevels: { error: null, loading: false, values: [] },
-        })
+        vi.spyOn(agentCapabilitiesService, 'getSnapshot').mockReturnValue({availability: { error: null, loading: false, values: { 'removed-agent': { available: false, error: 'Executable removed' } } }})
         actionService.loadFromFiles([file(agentDefinition('review', { agent: 'codex', label: 'Review' }))])
 
         renderPopup(cardContext)

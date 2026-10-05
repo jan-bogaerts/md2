@@ -4,6 +4,10 @@ export {
     MODEL_PLACEHOLDER,
     SESSION_ID_PLACEHOLDER,
     THINKING_LEVELS,
+    SPEED_MODES,
+    SPEED_MODE_OPTIONS,
+    validateSpeedMode,
+    supportsModelDiscovery,
     PERMISSION_MODES,
     PERMISSION_MODE_OPTIONS,
     buildAgentCommand,
@@ -22,4 +26,4 @@ export {
     validateThinkingLevel,
 } from '../../../shared/agent_profiles.mjs'
 
-export type { AgentProfile, AgentSelection, PermissionMode, PermissionModeOption, ThinkingLevel } from '../../../shared/agent_profiles.mjs'
+export type { AgentProfile, AgentSelection, PermissionMode, PermissionModeOption, ThinkingLevel, SpeedMode } from '../../../shared/agent_profiles.mjs'

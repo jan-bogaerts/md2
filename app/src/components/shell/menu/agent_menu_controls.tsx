@@ -1,8 +1,10 @@
-import { MenuItem, TextField, Tooltip } from '@mui/material'
+import { IconButton, MenuItem, TextField, Tooltip } from '@mui/material'
+import Refresh from '@mui/icons-material/Refresh';
 import type { SelectChangeEvent } from '@mui/material'
-import { useEffect, type ChangeEvent } from 'react'
+import { useEffect } from 'react'
 import {
     findAgentProfile,
+    defaultModelForProfile,
     mergeAgentProfiles,
     PERMISSION_MODE_OPTIONS,
     supportsPermissionMode,
@@ -11,6 +13,8 @@ import {
     validateAgentSelection,
     validatePermissionMode,
     validateThinkingLevel,
+    SPEED_MODE_OPTIONS,
+    validateSpeedMode,
 } from '../../../data/agent_profiles'
 import {
     projectAgentSelection,
@@ -18,12 +22,18 @@ import {
     selectModel,
     selectPermissionMode,
     selectThinkingLevel,
+    selectSpeedMode,
     type AgentSelectionState,
 } from '../../../data/agent_selection'
 import { configService } from '../../../services/config/config_service'
 import { writeDesktopConfigToBridge } from '../../../services/config/config_persistence'
 import { dialogService } from '../../../services/dialog_service'
 import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
+import { useAgentModelCatalog } from '../../hooks/use_agent_model_catalog';
+import { useProjectReference } from '../../hooks/use_project_reference';
+import { findCatalogModel, modelFastTier, modelThinkingLevels } from '../../../data/agent_model_catalog';
+import { agentModelOptions } from '../../../data/agent_model_options';
+import { agentCatalogSelectionError } from '../../../data/agent_catalog_selection';
 import { NO_DRAG_REGION } from '../drag_region'
 import { MenuSelect } from './menu_select'
 import { Section } from './section'
@@ -50,14 +60,26 @@ export function AgentMenuControls() {
     const agentSelection = useConfigValue('desktop.agentSelection')
     const selectedAgent = agentSelection.activeAgent
     const selectedProfile = findAgentProfile(agentProfiles, selectedAgent)
-    const selectedModels = selectedProfile?.models ?? []
     const activeAgentSettings = agentSelection.settingsByAgent[selectedAgent]
     const selectedThinkingLevel = activeAgentSettings?.thinkingLevel ?? 'none'
     const selectedPermissionMode = agentSelection.permissionMode
     const desktopAvailable = useHasDesktopConfig()
     const selectedModel = activeAgentSettings?.model ?? ''
-    const selectionError = activeAgentSettings ? desktopSelectionError(agentSelection, agentProfiles) : null
-    const selectedModelAvailable = selectedModels.includes(selectedModel)
+    const project = useProjectReference();
+    const modelCatalog = useAgentModelCatalog(selectedProfile, project);
+    const selectedModels = agentModelOptions(modelCatalog.catalog, selectedModel);
+    const effectiveModel = selectedModel || (selectedProfile ? defaultModelForProfile(selectedProfile) : '');
+    const advertisedModel = modelCatalog.catalog ? findCatalogModel(modelCatalog.catalog, effectiveModel) : null;
+    const availableThinkingLevels = modelThinkingLevels(selectedAgent, advertisedModel);
+    const selectedSpeedMode = activeAgentSettings?.speedMode ?? 'default';
+    const fastAvailable = !!modelCatalog.catalog && !modelCatalog.stale && !modelCatalog.error
+        && !!modelFastTier(modelCatalog.catalog, advertisedModel);
+    const speedSupported = selectedAgent === 'codex' && modelCatalog.catalog?.provider === 'openai';
+    const selectionError = activeAgentSettings
+        ? desktopSelectionError(agentSelection, agentProfiles)
+            ?? modelCatalog.error
+            ?? agentCatalogSelectionError(modelCatalog.catalog, { agent: selectedAgent, ...activeAgentSettings, model: effectiveModel })
+        : null;
 
     useEffect(() => {
         if (activeAgentSettings) return
@@ -75,7 +97,6 @@ export function AgentMenuControls() {
         persistDesktopConfig()
     }
     const handleModelSelectChange = (event: SelectChangeEvent) => setModel(event.target.value)
-    const handleModelTextChange = (event: ChangeEvent<HTMLInputElement>) => setModel(event.target.value)
     const handleThinkingLevelChange = (event: SelectChangeEvent) => {
         const thinkingLevel = validateThinkingLevel(event.target.value, 'Default reasoning level')
         configService.set('desktop.agentSelection', selectThinkingLevel(agentSelection, thinkingLevel))
@@ -86,6 +107,11 @@ export function AgentMenuControls() {
         configService.set('desktop.agentSelection', selectPermissionMode(agentSelection, permissionMode))
         persistDesktopConfig()
     }
+
+    const handleSpeedModeChange = (event: SelectChangeEvent) => {
+        configService.set('desktop.agentSelection', selectSpeedMode(agentSelection, validateSpeedMode(event.target.value, 'Default speed')));
+        persistDesktopConfig();
+    };
 
     return (
         <Section label="Setup">
@@ -100,33 +126,27 @@ export function AgentMenuControls() {
                 {!selectedProfile ? <MenuItem disabled value={selectedAgent}>{selectedAgent} — unavailable</MenuItem> : null}
                 {agentProfiles.map((profile) => <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>)}
             </MenuSelect>
-            {selectedModels.length > 0 ? (
-                <MenuSelect
-                    disabled={!desktopAvailable}
-                    errorMessage={selectionError}
-                    label="Default model"
-                    minWidth={150}
-                    onChange={handleModelSelectChange}
-                    value={selectedModel}
-                >
-                    {!selectedModelAvailable ? <MenuItem disabled value={selectedModel}>{selectedModel || 'Default'} — unavailable</MenuItem> : null}
-                    {selectedModels.map((model) => <MenuItem key={model} value={model}>{model}</MenuItem>)}
-                </MenuSelect>
-            ) : (
-                <Tooltip title={selectionError ?? 'Default model'}>
-                    <TextField
-                        disabled={!desktopAvailable}
-                        error={!!selectionError}
-                        helperText={selectionError ? 'Unavailable' : undefined}
-                        onChange={handleModelTextChange}
-                        size="small"
-                        slotProps={{ htmlInput: { 'aria-label': 'Default model' } }}
-                        style={NO_DRAG_REGION}
-                        sx={{ width: 150 }}
-                        value={selectedModel}
-                    />
-                </Tooltip>
-            )}
+            <MenuSelect
+                disabled={!desktopAvailable || modelCatalog.loading}
+                errorMessage={selectionError}
+                label="Default model"
+                minWidth={150}
+                onChange={handleModelSelectChange}
+                value={selectedModel}
+            >
+                {!selectedModel ? <MenuItem value="">Profile default</MenuItem> : null}
+                {selectedModels.map(({ available, displayName, id }) => (
+                    <MenuItem disabled={!available || modelCatalog.stale} key={id} value={id}>
+                        {available ? displayName : `${displayName} — unavailable`}
+                    </MenuItem>
+                ))}
+            </MenuSelect>
+            <Tooltip title={modelCatalog.error ?? (modelCatalog.loading ? 'Loading models' : 'Refresh models')}>
+                <span style={NO_DRAG_REGION}>
+                    <IconButton aria-label="Refresh models" disabled={!desktopAvailable || modelCatalog.loading}
+                        onClick={modelCatalog.refresh} size="small"><Refresh fontSize="small" /></IconButton>
+                </span>
+            </Tooltip>
             <MenuSelect
                 disabled={!desktopAvailable}
                 errorMessage={selectionError}
@@ -136,11 +156,22 @@ export function AgentMenuControls() {
                 value={selectedThinkingLevel}
             >
                 {THINKING_LEVELS.map((level) => {
-                    const available = !!selectedProfile && supportsThinkingLevel(selectedProfile, level)
+                    const available = availableThinkingLevels.includes(level)
+                        && !!selectedProfile && supportsThinkingLevel(selectedProfile, level);
 
                     return <MenuItem disabled={!available} key={level} value={level}>{level === selectedThinkingLevel && !available ? `${level} — unavailable` : level}</MenuItem>
                 })}
             </MenuSelect>
+            {selectedAgent === 'codex' ? (
+                <MenuSelect disabled={!desktopAvailable} errorMessage={selectionError} label="Default speed"
+                    minWidth={140} onChange={handleSpeedModeChange} value={selectedSpeedMode}>
+                    {SPEED_MODE_OPTIONS.filter(({ value }) => value !== 'fast' || fastAvailable || selectedSpeedMode === 'fast')
+                        .map(({ label, value }) => (
+                            <MenuItem disabled={value !== 'default' && (!speedSupported || (value === 'fast' && !fastAvailable))}
+                                key={value} value={value}>{label}</MenuItem>
+                        ))}
+                </MenuSelect>
+            ) : null}
             {selectedProfile && supportsPermissionMode(selectedProfile) ? (
                 <MenuSelect
                     disabled={!desktopAvailable}
