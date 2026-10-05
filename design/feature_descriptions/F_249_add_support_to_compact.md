@@ -9,12 +9,17 @@ agents:
 changedFiles:
   - app/compact_review.html
   - app/compact_review.tsx
+  - app/src/components/actions/conversation/transcript/action_conversation_compact_progress.test.tsx
+  - app/src/components/actions/conversation/transcript/action_conversation_compact_progress.tsx
+  - app/src/components/actions/conversation/transcript/action_conversation_rendering.test.tsx
+  - app/src/components/actions/conversation/transcript/action_conversation_transcript.tsx
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx
   - app/src/components/actions/run/popup/action_popup_bottom_row.tsx
   - app/src/components/actions/run/popup/action_prompt_menu.grouped.test.tsx
   - app/src/components/actions/run/popup/action_prompt_menu.test.tsx
   - app/src/components/actions/run/popup/action_prompt_menu.tsx
+  - app/src/components/hooks/use_action_compact_requests.ts
   - app/src/data/action_run_types.ts
   - app/src/data/electron_action_bridge.ts
   - app/src/services/actions/action_compact_service.node.test.ts
