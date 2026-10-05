@@ -5324,7 +5324,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 158355
+        "usedTokens": 164110
       },
       "entries": [
         {
@@ -7373,6 +7373,118 @@
           "role": "assistant",
           "sequence": 149,
           "timestamp": "2026-10-05T08:10:49.640Z"
+        },
+        {
+          "content": "yes",
+          "id": "submission-f0d12e46-01c2-4384-8fcd-c65789769ef7",
+          "kind": "message",
+          "role": "user",
+          "sequence": 150,
+          "timestamp": "2026-10-05T08:11:29.677Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll save both PR #27 search issues in one new bug file, with status `new` and a note to fix them after the merge.\n\n",
+          "id": "agent-turn-7438785b-fb9b-48b2-a34e-a064120d6f95-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 151,
+          "timestamp": "2026-10-05T08:11:34.366Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/data/card_naming.ts -TotalCount 100'",
+          "content": "import { markdownParsingService } from '../services/data/markdown_parsing_service'\r\nimport type { CardDraft, CardTypeConfig, MarkdownFile } from './data_types'\r\nimport { buildCardId, type CardSeparator } from './card_identifiers'\r\n\r\nconst MARKDOWN_EXTENSION = '.md'\r\nconst DEFAULT_TITLE_SLUG = 'untitled'\r\n\r\nfunction escapeRegExp(value: string) {\r\n    return value.replace(/[.*+?^${}()|[\\]\\\\]/gu, '\\\\$&')\r\n}\r\n\r\nexport function slugifyTitle(title: string, cardSeparator: CardSeparator) {\r\n    const slug = title\r\n        .trim()\r\n        .toLowerCase()\r\n        .replace(/[^a-z0-9]+/gu, cardSeparator)\r\n        .replace(new RegExp(`^[${escapeRegExp(cardSeparator)}]|[${escapeRegExp(cardSeparator)}]$`, 'gu'), '')\r\n\r\n    return slug.length > 0 ? slug : DEFAULT_TITLE_SLUG\r\n}\r\n\r\n/** Card file names keep their id and the separator style they were created with. */\r\nconst CARD_FILE_NAME_PATTERN = /^([A-Za-z][A-Za-z0-9]*)([-_])(\\d+)\\2(.+)\\.md$/u\r\n\r\nfunction splitPath(path: string) {\r\n    const separatorIndex = path.lastIndexOf('/')\r\n\r\n    return separatorIndex === -1\r\n        ? { directory: '', fileName: path }\r\n        : { directory: path.slice(0, separatorIndex), fileName: path.slice(separatorIndex + 1) }\r\n}\r\n\r\n/** Builds a card path in its current directory from a new id and configured separator. */\r\nexport function cardPathForId(currentPath: string, id: string, title: string, cardSeparator: CardSeparator) {\r\n    const normalizedPath = currentPath.replace(/\\\\/gu, '/')\r\n    const { directory } = splitPath(normalizedPath)\r\n    const fileName = `${id}${cardSeparator}${slugifyTitle(title, cardSeparator)}${MARKDOWN_EXTENSION}`\r\n\r\n    return directory.length > 0 ? `${directory}/${fileName}` : fileName\r\n}\r\n\r\n/**\r\n * Resolves the file path a card should live at for `title`, keeping its id, folder and separator style.\r\n * Returns `currentPath` when the name cannot be parsed as a card file or the target is already taken.\r\n */\r\nexport function desiredCardPath(currentPath: string, title: string, occupiedPaths: Iterable<string>) {\r\n    const normalizedPath = currentPath.replace(/\\\\/gu, '/')\r\n    const { directory, fileName } = splitPath(normalizedPath)\r\n    const match = fileName.match(CARD_FILE_NAME_PATTERN)\r\n    if (!match) return currentPath\r\n\r\n    const [, idPrefix, separator, number] = match\r\n    const cardSeparator = separator as CardSeparator\r\n    const titleSlug = slugifyTitle(title, cardSeparator)\r\n    const nextFileName = `${idPrefix}${separator}${number}${separator}${titleSlug}${MARKDOWN_EXTENSION}`\r\n    const desiredPath = directory.length > 0 ? `${directory}/${nextFileName}` : nextFileName\r\n    if (desiredPath === normalizedPath) return currentPath\r\n\r\n    const sourcePathKey = normalizedPath.toLowerCase()\r\n    const taken = [...occupiedPaths]\r\n        .map((path) => path.replace(/\\\\/gu, '/').toLowerCase())\r\n        .some((path) => path !== sourcePathKey && path === desiredPath.toLowerCase())\r\n\r\n    return taken ? currentPath : desiredPath\r\n}\r\n\r\nfunction getCardTypeConfig(cardTypes: CardTypeConfig[], draft: CardDraft) {\r\n    const cardTypeConfig = cardTypes.find((config) => config.type === draft.type)\r\n\r\n    if (!cardTypeConfig) throw new Error(`Missing card type config: ${draft.type}`)\r\n\r\n    return cardTypeConfig\r\n}\r\n\r\nexport function getNextCardNumber(files: MarkdownFile[], idPrefix: string) {\r\n    const idPattern = new RegExp(`(?:^|/)${escapeRegExp(idPrefix)}[-_](\\\\d+)[-_].+\\\\.md$`, 'u')\r\n    const numbers = files\r\n        .map((file) => file.path.match(idPattern)?.[1])\r\n        .filter((number): number is string => !!number)\r\n        .map((number) => Number.parseInt(number, 10))\r\n\r\n    return numbers.length > 0 ? Math.max(...numbers) + 1 : 1\r\n}\r\n\r\nexport function createCardFile(\r\n    files: MarkdownFile[],\r\n    workingFolder: string,\r\n    cardSeparator: CardSeparator,\r\n    cardTypes: CardTypeConfig[],\r\n    initialState: string,\r\n    draft: CardDraft,\r\n): MarkdownFile {\r\n    const cardTypeConfig = getCardTypeConfig(cardTypes, draft)\r\n    const number = getNextCardNumber(files, cardTypeConfig.idPrefix)\r\n    const id = buildCardId(cardTypeConfig.idPrefix, number, cardSeparator)\r\n    const titleSlug = slugifyTitle(draft.title, cardSeparator)\r\n    const internalId = markdownParsingService.generateInternalId()\r\n    const content = markdownParsingService.buildCardMarkdown(\r\n        { affects: [], id, internalId, policy: {}, status: initialState, title: draft.title },\r\n        draft.body,\r\n",
+          "durationMs": 60,
+          "exitCode": 0,
+          "id": "agent-turn-7438785b-fb9b-48b2-a34e-a064120d6f95-event-152",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/data/card_naming.ts -TotalCount 100'",
+          "providerItemId": "exec-4879a3b1-82a5-4859-af5b-86af8d10e953",
+          "sequence": 152,
+          "status": "completed",
+          "timestamp": "2026-10-05T08:11:38.472Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n '\"'^id: B[-_]259'\"' design\nGet-Content design/feature_descriptions/B_258_worktree_action_filters_use_stale_number.md -TotalCount 65\"",
+          "content": "---\r\nid: B_258\r\ninternalId: de054ddb-e1e5-44b7-a7a5-e16a9481a65f\r\ntitle: Worktree action filters use a stale number after renumbering\r\nstatus: ready\r\nagents:\r\n  - design/activity/card__de054ddb-e1e5-44b7-a7a5-e16a9481a65f.json\r\nchangedFiles:\r\n  - app/src/components/actions/run/popup/action_popup.test.tsx\r\n  - app/src/components/actions/run/popup/action_popup.tsx\r\n  - app/src/components/actions/run/sequence/card_sequence_actions.node.test.ts\r\n  - app/src/components/actions/run/sequence/card_sequence_actions.ts\r\n  - app/src/components/actions/run/sequence/card_sequence_dialog.tsx\r\n  - app/src/components/actions/run/trigger/action_entry_points.grouped.test.tsx\r\n  - app/src/components/actions/run/trigger/action_entry_points.tsx\r\n  - app/src/data/action_context.node.test.ts\r\n  - app/src/data/action_context.ts\r\n  - desktop/main.js\r\n  - desktop/src/actions/action/action_scheduler_service.js\r\n  - desktop/src/actions/action/action_scheduler_service.test.mjs\r\n  - desktop/src/actions/schedule/scheduled_card_context.js\r\n  - desktop/src/actions/schedule/scheduled_card_context.test.mjs\r\n  - shared/action_worktree_context.d.mts\r\n  - shared/action_worktree_context.mjs\r\nafter: 55b36bc4-6580-4a70-ad3d-0f413c2f37f8\r\n---\r\n\r\n## Bug\r\n\r\nAfter PR [#24](https://github.com/jan-bogaerts/md2/pull/24), deleting or pruning an unrelated worktree can change an assigned card's displayed worktree number without changing its stored `worktree` field. The checkout and branch remain correctly assigned, but action filtering still uses the old number.\r\n\r\nFor example, a card assigned to worktree 2 moves to displayed position 1 after an earlier worktree is removed. An action filtered to worktree 1 does not match the card, while an action filtered to worktree 2 can match it even though the editor now labels 2 as another checkout.\r\n\r\n## Current behavior and affected paths\r\n\r\n* `app/src/data/action_context.ts` builds card and file action contexts from `card.header.worktreeValue`. `actionMatchesContext` compares `appliesTo.worktree` directly with that value.\r\n* `app/src/components/actions/editor/action_filter_editor.tsx` builds worktree filter labels and values from current list positions.\r\n* `desktop/src/actions/schedule/scheduled_card_context.js` also reads the stored card number for scheduled action contexts. PR #24 carries the expected branch for execution, but leaves this filter value unchanged.\r\n* The worktree selector and project action context derive the current display number from the assigned branch. This issue concerns card and file action filtering, including scheduled card actions.\r\n\r\n## Expected behavior\r\n\r\nActions shown and triggered for a card should agree with the worktree identified by the filter editor after list renumbering. A missing or invalid assignment should still fail safely. Resolving the filter semantics must not rewrite card metadata merely because Git reordered its list.\r\n\r\n## Regression coverage\r\n\r\n* With a card's stored number at 2 and its assigned branch now at position 1, verify which `appliesTo.worktree` value matches in the popup and in scheduled card action matching.\r\n* Verify an action filtered to the number now occupied by another checkout does not match this card.\r\n* Verify normal assignments and unavailable branches retain their existing behavior.\r\n",
+          "durationMs": 158,
+          "exitCode": 0,
+          "id": "agent-turn-7438785b-fb9b-48b2-a34e-a064120d6f95-event-153",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n '\"'^id: B[-_]259'\"' design\nGet-Content design/feature_descriptions/B_258_worktree_action_filters_use_stale_number.md -TotalCount 65\"",
+          "providerItemId": "exec-ab4c8866-550c-4720-8a81-3c1412c8ac5e",
+          "sequence": 153,
+          "status": "completed",
+          "timestamp": "2026-10-05T08:11:39.253Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-7438785b-fb9b-48b2-a34e-a064120d6f95-event-154",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bf6f108b646d330016ac35bc3dab487d2a24987ac39c34e85",
+          "sequence": 154,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-05T08:11:48.945Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '[guid]::NewGuid().ToString()'",
+          "content": "e461b100-4b8f-435e-9c0f-81426d7fdb47\r\n",
+          "durationMs": 37,
+          "exitCode": 0,
+          "id": "agent-turn-7438785b-fb9b-48b2-a34e-a064120d6f95-event-155",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '[guid]::NewGuid().ToString()'",
+          "providerItemId": "exec-9b226522-f3c7-4782-b7d6-2807c83eda20",
+          "sequence": 155,
+          "status": "completed",
+          "timestamp": "2026-10-05T08:11:50.825Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "add: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_259_responsive_search_reopens_and_loses_results.md",
+          "deletions": 0,
+          "id": "agent-turn-7438785b-fb9b-48b2-a34e-a064120d6f95-event-156",
+          "insertions": 39,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-50f1c3db-3154-49ea-81cd-32f510004103",
+          "sequence": 156,
+          "status": "completed",
+          "timestamp": "2026-10-05T08:12:20.696Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_259_responsive_search_reopens_and_loses_results.md -TotalCount 15'",
+          "content": "---\r\nid: B_259\r\ninternalId: e461b100-4b8f-435e-9c0f-81426d7fdb47\r\ntitle: Responsive search reopens after Escape and loses results on resize\r\nstatus: new\r\n---\r\n\r\nReported during review of [PR #27](https://github.com/jan-bogaerts/md2/pull/27), head `e1181650a`. Fix after the PR is merged.\r\n\r\n## Search reopens after Escape\r\n\r\n1. Use a window width where search shows the shortcut presentation.\r\n2. Open search by clicking its launcher.\r\n3. Press Escape.\r\n\r\n",
+          "durationMs": 4,
+          "exitCode": 0,
+          "id": "agent-turn-7438785b-fb9b-48b2-a34e-a064120d6f95-event-157",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_259_responsive_search_reopens_and_loses_results.md -TotalCount 15'",
+          "providerItemId": "exec-3482b7b0-782c-4458-9b36-f888e01a2dd7",
+          "sequence": 157,
+          "status": "completed",
+          "timestamp": "2026-10-05T08:12:21.449Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Created [B_259_responsive_search_reopens_and_loses_results.md](/C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_259_responsive_search_reopens_and_loses_results.md) with both PR #27 issues, status `new`, and a note to fix after merge.\n\n",
+          "id": "agent-turn-7438785b-fb9b-48b2-a34e-a064120d6f95-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 158,
+          "timestamp": "2026-10-05T08:12:26.246Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -7382,27 +7494,27 @@
           "agent": "codex",
           "conversationId": "01a107ef-f46d-7553-b0d6-4d53fdd8a7c5",
           "createdAt": "2026-10-04T17:24:19.417Z",
-          "lastUsedAt": "2026-10-04T17:32:26.711Z",
-          "synchronizedThroughMessageId": "agent-turn-b235087f-9693-45a6-84ba-ad308dee9179-turn-2-assistant-5"
+          "lastUsedAt": "2026-10-05T08:10:49.640Z",
+          "synchronizedThroughMessageId": "agent-turn-7438785b-fb9b-48b2-a34e-a064120d6f95-turn-1-assistant-3"
         }
       ],
       "startedAt": "2026-10-04T17:22:08.459Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 72481,
-          "toolMs": 142910
+          "reasoningMs": 73811,
+          "toolMs": 144807
         },
-        "elapsedMs": 578850,
-        "runningStartedAt": "2026-10-05T08:08:49.966Z"
+        "elapsedMs": 698524,
+        "runningStartedAt": "2026-10-05T08:11:29.677Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 4060032,
-        "inputTokens": 289743,
-        "outputTokens": 6519,
-        "reasoningTokens": 1576,
-        "totalTokens": 4357870
+        "cachedInputTokens": 4704384,
+        "inputTokens": 296338,
+        "outputTokens": 7413,
+        "reasoningTokens": 1605,
+        "totalTokens": 5009740
       },
       "usageSchemaVersion": 1,
       "viewed": true
