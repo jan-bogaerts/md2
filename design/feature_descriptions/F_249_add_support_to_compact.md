@@ -39,6 +39,8 @@ changedFiles:
   - desktop/src/shell/local_bridge_dispatch.test.mjs
   - desktop/src/shell/preload.js
   - desktop/src/shell/preload.test.mjs
+branch: f_249_add_support_to_compact
+worktree: 3
 ---
 chat needs to be compacted sometimes. we need a button for this.
 
