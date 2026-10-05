@@ -7526,7 +7526,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 119853
+        "usedTokens": 129232
       },
       "entries": [
         {
@@ -8837,28 +8837,148 @@
           "role": "assistant",
           "sequence": 94,
           "timestamp": "2026-10-05T08:23:08.604Z"
+        },
+        {
+          "content": "create a new bug md file for 29, save in C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions, status new. we will fix after merge\n\npr 28 issue no real issue, can't use that version anymore",
+          "id": "submission-f681611c-879b-4db0-a3b7-a845f5e33695",
+          "kind": "message",
+          "role": "user",
+          "sequence": 95,
+          "timestamp": "2026-10-05T08:33:18.491Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll create a bug document for #29 with status `new`, noting that the fix is planned after merge. I’ll drop the #28 finding based on the version constraint.\n\n",
+          "id": "agent-turn-22f32719-58d9-408e-8f0c-98073157bb8d-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 96,
+          "timestamp": "2026-10-05T08:33:23.294Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_259_responsive_search_reopens_and_loses_results.md\nGet-Content design/feature_descriptions/B_210_incorrect_layout_action_popup_for_commands.md\nrg --files design/feature_descriptions | Sort-Object | Select-Object -Last 20'",
+          "content": "---\r\nid: B_259\r\ninternalId: e461b100-4b8f-435e-9c0f-81426d7fdb47\r\ntitle: Responsive search reopens after Escape and loses results on resize\r\nstatus: new\r\n---\r\n\r\nReported during review of [PR #27](https://github.com/jan-bogaerts/md2/pull/27), head `e1181650a`. Fix after the PR is merged.\r\n\r\n## Search reopens after Escape\r\n\r\n1. Use a window width where search shows the shortcut presentation.\r\n2. Open search by clicking its launcher.\r\n3. Press Escape.\r\n\r\nThe popover closes and immediately reopens. Closing should dismiss search and leave keyboard navigation usable.\r\n\r\n`SearchControl` uses a MUI `Popover` that restores focus to the launcher on close. `SearchLauncher` opens search through its `onFocus` handler, so restored focus opens it again. A targeted regression probe reproduced the failure; disabling focus restoration in a temporary probe prevented reopening.\r\n\r\nAffected files: `app/src/components/shell/search/search_control.tsx` and `search_launcher.tsx`.\r\n\r\n## Resizing clears results and search options\r\n\r\n1. Open inline search and enter a query that returns a result, such as `Beta` in the existing test fixture.\r\n2. Resize until search changes to a popover presentation.\r\n\r\nThe query remains, but the matching results disappear. RegExp mode and the background-body/action options also reset. Resizing should preserve the active search, its options, and matching results in either direction.\r\n\r\n`SearchControl` mounts `SearchPanel` in separate inline and popover branches. Changing presentation remounts the panel. Only the query survives in `SearchControl`; `SearchPanel` initializes empty results and default options and does not apply its initial query on mount.\r\n\r\nAffected files: `app/src/components/shell/search/search_control.tsx` and `search_panel.tsx`.\r\n\r\n## Regression coverage\r\n\r\n- Open shortcut search, press Escape, and verify it stays closed without preventing later reopening.\r\n- Search for a matching card and resize between inline and popover presentations; verify the query and result remain available.\r\n- Enable RegExp mode and background-body/action options before resizing; verify their selections and search behavior survive.\r\n\r\nBoth reported failures were reproduced with temporary probes in `search_control.test.tsx`; the probes were removed after review. No fix is included in this report.\r\n---\r\nauthor: \r\nid: B_210\r\ninternalId: df7f7a94-ee33-44a3-b499-2b230d484fef\r\ntitle: incorrect layout action popup for commands\r\nstatus: ready\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__df7f7a94-ee33-44a3-b499-2b230d484fef.json\r\npolicy:\r\nafter: 421a382c-ec00-4741-a8f7-eab2a949fcfe\r\nbranch: b_210_incorrect_layout_action_popup_for_commands\r\nworktree: 2\r\nchangedFiles:\r\n  - app/src/components/actions/run/popup/action_input_layout_store.test.ts\r\n  - app/src/components/actions/run/popup/action_input_layout_store.ts\r\n  - app/src/components/actions/run/popup/action_input_splitter.tsx\r\n  - app/src/components/actions/run/popup/action_layout_surface.tsx\r\n---\r\nfor command actions, the layout is incorrect: we show a splitter above the markdown input and the run history below the input.\r\n\r\nthe splitter should be between markdown editor and run history. it should be different from the agent-actions: it's position needs to be saved with a different config name.\r\n\r\nalso: do this properly: so no splitter in the same component as the markdown editor, but the command-action  component should contains input, splitter, history and agent-action component should contain chatlog-splitter-input. both components are allowed to have more, as architecture needs it, but this should be the basis\r\n\r\n## Current state\r\n\r\n- Bug remains valid. `ActionPopupContent` selects separate `CommandAction` and `AgentAction` components, but neither owns its splitter.\r\n- Idle commands render `ActionPromptOwner`, then scheduling, status, and `ActionRunHistoryOwner`. `ActionPromptOwner` renders `ActionAgentPrompt`, which places splitter above input and owns resize state.\r\n- Commands and agents share `md2.actionPromptHeight`. Agent questions use additional `md2\n[682 characters omitted]\norder. â€œSplitterâ€ means draggable, keyboard-accessible separator that changes vertical space allocated to adjacent regions. Keep scheduling, status, and controls available without placing them between input and splitter.\r\n- `AgentAction` owns conversation, splitter, and input in that order. Refactor `ActionAgentInteraction` so commands running agent children reuse agent layout without duplicating prompt or splitter.\r\n- Shared call sites: `ActionPromptOwner` serves idle commands and `ActionAgentInteraction`; both lose embedded splitter. `ActionAgentPrompt` has only `ActionPromptOwner` as production caller. Commands receive new input/history layout; agents retain conversation/input layout and question resizing.\r\n- Keep persistent layout state in service beside popup components. Use `EventTarget` notifications and `useSyncExternalStore` subscriptions at smallest affected region; editor must not own splitter state.\r\n- Save command input height under `md2.commandActionInputHeight` through `applicationStorage`. Retain existing agent keys. New command setting starts from named default; do not copy shared agent height into it. Existing storage bridge accepts arbitrary keys; no desktop API change needed.\r\n- Bound heights against available popup space after header and controls. Scroll input and history independently; recompute limits when popup size changes. Preserve empty-input collapse, read-only history, active-run input hiding, and agent questions.\r\n- Add behavioral regression coverage for layout order, resize direction, persistence isolation, reopen, and agent-child transitions. Run affected tests and app linter; do not run full suite.\r\n\r\n## acceptance criteria\r\n\r\n- Idle command popup shows input, splitter, then run history; no splitter above command input.\r\n- Dragging command splitter downward grows input; dragging upward shrinks it. Keyboard resize works and separator exposes accessible name and current value.\r\n- Saved command height survives popup reopen and application restart. Resizing commands never changes agent heights, and resizing agents never changes command height.\r\n- Agent popup retains conversation, splitter, then input. Pending questions and command-started agent children remain usable with one prompt and one relevant splitter.\r\n- Empty input/history, long content, small popup, full-height mode, and popup resizing keep controls reachable and prevent negative region heights.\r\n- Command text, draft retention, submission shortcuts, scheduling, read-only behavior, and active-run transitions remain unchanged.\r\n- Editor component contains no splitter or splitter persistence. Action layouts own composition; layout service owns view state.\r\ndesign/feature_descriptions\\F_394_diagram_legend_items.md\r\ndesign/feature_descriptions\\F_395_diagram_workarea.md\r\ndesign/feature_descriptions\\F_396_day_week_filter_on_stats.md\r\ndesign/feature_descriptions\\F_397_fix_render_update_version_script_prompt.md\r\ndesign/feature_descriptions\\F_398_new_actions_should_default_to_streaming_agents.md\r\ndesign/feature_descriptions\\F_399_add_switch_to_hide_actions.md\r\ndesign/feature_descriptions\\F_400_improve_scheduled_tasks_for_cards.md\r\ndesign/feature_descriptions\\F_401_add_placeholder_for_actions_folder.md\r\ndesign/feature_descriptions\\F_402_add_scrollbars_to_placeholder_popup.md\r\ndesign/feature_descriptions\\F_403_allow_relabaling_conversations.md\r\ndesign/feature_descriptions\\F_404_update_action_editor_layout_an_style.md\r\ndesign/feature_descriptions\\F_405_stats_release_filter_allow_all_and_selection.md\r\ndesign/feature_descriptions\\F_406_add_copy_btn_to_codeblocks.md\r\ndesign/feature_descriptions\\F_407_diagram_continuous_add_with_ctrl.md\r\ndesign/feature_descriptions\\F_94_no_prefill_prompt_running_conv.md.bak\r\ndesign/feature_descriptions\\F-6-animations.md\r\ndesign/feature_descriptions\\J_28_finishing_action_very_slow.md\r\ndesign/feature_descriptions\\J_54_move_diagram_field_edits_into_focused_editors.md\r\ndesign/feature_descriptions\\J_57_back_btn_transparency.md\r\ndesign/feature_descriptions\\J_58_move_chatlog_item_icons_outside_of_box.md\r\n",
+          "durationMs": 66,
+          "exitCode": 0,
+          "id": "agent-turn-22f32719-58d9-408e-8f0c-98073157bb8d-event-97",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_259_responsive_search_reopens_and_loses_results.md\nGet-Content design/feature_descriptions/B_210_incorrect_layout_action_popup_for_commands.md\nrg --files design/feature_descriptions | Sort-Object | Select-Object -Last 20'",
+          "providerItemId": "exec-048bc9cc-c4e3-4449-9191-6fe8ed89826c",
+          "sequence": 97,
+          "status": "completed",
+          "timestamp": "2026-10-05T08:33:29.697Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git show origin/pr-29:app/src/components/editor/source/markdown_source_controller.ts\nrg -n 'internalId:|status: new|# Bug|## Steps' design/feature_descriptions -g 'B_*.md' | Select-Object -First 45\"",
+          "content": "import { redo, redoDepth, undo, undoDepth } from '@codemirror/commands';\nimport { EditorState } from '@codemirror/state';\nimport { EditorView, ViewPlugin } from '@codemirror/view';\nimport {\n    codeBlockEditorDescriptors$, defaultCodeBlockLanguage$, directiveDescriptors$, importMdastTreeToLexical, importVisitors$,\n    jsxComponentDescriptors$, UnrecognizedMarkdownConstructError, usedLexicalNodes$,\n    markdown$, markdownProcessingError$, markdownSourceEditorValue$, muteChange$, rootEditor$, setMarkdown$, viewMode$,\n} from '@mdxeditor/editor';\nimport type { Realm } from '@mdxeditor/gurx';\nimport { $getRoot, CLEAR_HISTORY_COMMAND, createEditor } from 'lexical';\nimport { fromMarkdown } from 'mdast-util-from-markdown';\nimport { dialogService } from '../../../services/dialog_service';\nimport type { MarkdownDocumentTarget } from '../data_sources/markdown_data_source';\nimport type { MarkdownDocumentHistoryStore } from '../history/markdown_document_history_store';\nimport type { MarkdownImagePasteHandler } from '../paste/markdown_paste_cell';\nimport { markdownSourceCanRedo$, markdownSourceCanUndo$ } from './markdown_source_cell';\nimport { MarkdownSourceEditorBridge } from './markdown_source_editor_bridge';\n\nexport interface MarkdownSourceConfig {\n    compact: boolean;\n    initialViewMode: 'rich-text' | 'source';\n    getMarkdown(): string;\n    getTarget(): MarkdownDocumentTarget | null;\n    historyStore?: MarkdownDocumentHistoryStore;\n    imagePasteHandler?: MarkdownImagePasteHandler;\n    onReady(controller: MarkdownSourceController): void;\n    onRichTextBaseline(markdown: string): void;\n}\n\n/** Adapts Source commands to CodeMirror while existing document and draft services own the text. */\nexport class MarkdownSourceController {\n    private sourceEditor: EditorView | null = null;\n    private transitionToken = 0;\n    private shiftedPaste = false;\n    private readonly realm: Realm;\n    config: MarkdownSourceConfig;\n    transitioning = false;\n\n    constructor(realm: Realm, config: MarkdownSourceConfig) {\n        this.realm = realm;\n        this.config = config;\n    }\n\n    get sourceActive() { return this.realm.getValue(viewMode$) === 'source'; }\n\n    sourceExtensions() {\n        return [ViewPlugin.define(this.createBridge), EditorView.updateListener.of(this.handleSourceUpdate),\n            EditorView.domEventHandlers({ keydown: this.handleKeyDown, paste: this.handlePaste })];\n    }\n\n    private createBridge = (editor: EditorView) => new MarkdownSourceEditorBridge(editor, this);\n\n    attachSource(editor: EditorView) {\n        this.sourceEditor = editor;\n        this.syncHistoryAvailability();\n    }\n\n    detachSource(editor: EditorView) {\n        if (this.sourceEditor === editor) this.sourceEditor = null;\n        this.syncHistoryAvailability();\n    }\n\n    private handleSourceUpdate = () => { this.syncHistoryAvailability(); };\n\n    private syncHistoryAvailability() {\n        const editor = this.sourceEditor;\n        this.realm.pubIn({\n            [markdownSourceCanUndo$]: !!editor && undoDepth(editor.state) > 0,\n            [markdownSourceCanRedo$]: !!editor && redoDepth(editor.state) > 0,\n        });\n    }\n\n    insertMarkdown(markdown: string) {\n        const editor = this.sourceEditor;\n        if (!editor) throw new Error('Markdown Source editor is not mounted');\n        if (editor.state.facet(EditorState.readOnly)) return;\n        editor.dispatch(editor.state.replaceSelection(markdown), { scrollIntoView: true, userEvent: 'input' });\n        editor.focus();\n    }\n\n    /** Preflights CommonMark constructs before MDXEditor's fragment importer can replace its document error source. */\n    validateRichInsertion(markdown: string) {\n        const editor = createEditor({ nodes: this.realm.getValue(usedLexicalNodes$), onError: (error) => { throw error; } });\n        try {\n            editor.update(() => importMdastTreeToLexical({\n                root: $getRoot(),\n                mdastRoot: fromMarkdown(markdown),\n                visitors: this.realm.getValue(importVisitors$),\n                jsxComponentDescriptors: this.realm.ge\n[3077 characters omitted]\n);\n        this.transitioning = false;\n    }\n\n    private handlePaste = (event: ClipboardEvent, editor: EditorView) => {\n        const shifted = this.shiftedPaste;\n        this.shiftedPaste = false;\n        if (editor.state.facet(EditorState.readOnly)) return false;\n        const data = event.clipboardData;\n        if (!data) return false;\n        const image = [...data.items].find(({ kind, type }) => kind === 'file' && type.startsWith('image/'))?.getAsFile();\n        if (image && this.config.imagePasteHandler) {\n            event.preventDefault();\n            void this.pasteImage(image);\n            return true;\n        }\n        const markdown = data.getData('text/markdown');\n        if (!markdown || shifted) return false;\n        event.preventDefault();\n        this.insertMarkdown(markdown);\n        return true;\n    };\n\n    private handleKeyDown = (event: KeyboardEvent) => {\n        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') {\n            this.shiftedPaste = event.shiftKey;\n            setTimeout(this.clearPasteIntent, 0);\n        }\n        return false;\n    };\n\n    private clearPasteIntent = () => { this.shiftedPaste = false; };\n\n    private async pasteImage(image: File) {\n        try {\n            await this.config.imagePasteHandler?.(image, this.insertMarkdown.bind(this));\n        } catch (error) {\n            dialogService.error(error, { fallbackMessage: 'Clipboard image could not be pasted' });\n        }\n    }\n}\ndesign/feature_descriptions\\B_158_remotecontrolconnectionerror_remote_control_connection_was_replaced.md:4:internalId: c466633a-3cec-405b-8233-a3e85037b7f5\r\ndesign/feature_descriptions\\B_158_remotecontrolconnectionerror_remote_control_connection_was_replaced.md:6:status: new\r\ndesign/feature_descriptions\\B_206_codex_account_usage.md:4:internalId: 421a382c-ec00-4741-a8f7-eab2a949fcfe\r\ndesign/feature_descriptions\\B_206_codex_account_usage.md:6:status: new\r\ndesign/feature_descriptions\\B_205_file_watcher_adds_meta_data_to_the_wrong_files.md:4:internalId: 941d6509-a5a1-4f47-a9b6-a3fdd9c9c010\r\ndesign/feature_descriptions\\B_205_file_watcher_adds_meta_data_to_the_wrong_files.md:6:status: new\r\ndesign/feature_descriptions\\B_198_remotecontrolconnectionerror_remote_control_connection_closed.md:4:internalId: de0feeef-9303-4619-9023-9d60fbe87dd8\r\ndesign/feature_descriptions\\B_198_remotecontrolconnectionerror_remote_control_connection_closed.md:6:status: new\r\ndesign/feature_descriptions\\B_253_in_transmission_prompts_still_disapear.md:4:internalId: bde0d7b3-85f0-46c0-8027-5d56939c04ee\r\ndesign/feature_descriptions\\B_228_open_new_project_gives_error.md:4:internalId: aea33400-48d0-4568-a66a-41df2c4f32f9\r\ndesign/feature_descriptions\\B_259_responsive_search_reopens_and_loses_results.md:3:internalId: e461b100-4b8f-435e-9c0f-81426d7fdb47\r\ndesign/feature_descriptions\\B_259_responsive_search_reopens_and_loses_results.md:5:status: new\r\ndesign/feature_descriptions\\B_223_save_aborted_cause_of_invalid_action_data.md:4:internalId: da891103-b0c2-488f-9454-480c73c061a0\r\ndesign/feature_descriptions\\B_258_worktree_action_filters_use_stale_number.md:3:internalId: de054ddb-e1e5-44b7-a7a5-e16a9481a65f\r\ndesign/feature_descriptions\\B_258_worktree_action_filters_use_stale_number.md:28:## Bug\r\ndesign/feature_descriptions\\B_212_images_in_cards_not_shown.md:4:internalId: fe5a5bae-110a-49e6-ae74-60ed197c5c9b\r\ndesign/feature_descriptions\\B_210_incorrect_layout_action_popup_for_commands.md:4:internalId: df7f7a94-ee33-44a3-b499-2b230d484fef\r\ndesign/feature_descriptions\\B_257_action_output_kind.md:4:internalId: 5cbb6339-2a3c-4462-94cf-a575f916ad39\r\ndesign/feature_descriptions\\B_209_delete_action_failed.md:4:internalId: ccff9568-68bb-468f-85e7-37d06bd37b59\r\ndesign/feature_descriptions\\B_256_scheduling_actions_requires_local_mode.md:4:internalId: 21b6ec8e-0455-42ef-9680-36dd39c52fd5\r\ndesign/feature_descriptions\\B_254_released_cards_chat_logs.md:4:internalId: 6a0c59e3-d151-440b-bf00-fb0f1b16c37e\r\ndesign/feature_descriptions\\B_255_scheduled_task_did_not_start.md:4:internalId: f272b881-ecee-472a-9a0b-ab4932175147\r\n",
+          "durationMs": 179,
+          "exitCode": 0,
+          "id": "agent-turn-22f32719-58d9-408e-8f0c-98073157bb8d-event-98",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"git show origin/pr-29:app/src/components/editor/source/markdown_source_controller.ts\nrg -n 'internalId:|status: new|# Bug|## Steps' design/feature_descriptions -g 'B_*.md' | Select-Object -First 45\"",
+          "providerItemId": "exec-bbddca4f-9bad-496c-9697-606ac7fc4763",
+          "sequence": 98,
+          "status": "completed",
+          "timestamp": "2026-10-05T08:33:30.547Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-22f32719-58d9-408e-8f0c-98073157bb8d-event-99",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_037b748b4e9ab367016ac360ddaf9087d2b8184edeb6ceb37b",
+          "sequence": 99,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-05T08:33:34.057Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files design/feature_descriptions -g 'B_*.md' | ForEach-Object { if (\"'$_ -match '\"'B_(\\\\d+)_') { [int]\"'$Matches[1] } } | Measure-Object -Maximum\n[guid]::NewGuid().ToString()'",
+          "content": "\r\n\r\nCount    : 16\r\nAverage  : \r\nSum      : \r\nMaximum  : 259\r\nMinimum  : \r\nProperty : \r\n\r\nef3c3a56-28a9-4ca5-9402-16972e140c01\r\n\r\n\r\n",
+          "durationMs": 151,
+          "exitCode": 0,
+          "id": "agent-turn-22f32719-58d9-408e-8f0c-98073157bb8d-event-100",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg --files design/feature_descriptions -g 'B_*.md' | ForEach-Object { if (\"'$_ -match '\"'B_(\\\\d+)_') { [int]\"'$Matches[1] } } | Measure-Object -Maximum\n[guid]::NewGuid().ToString()'",
+          "providerItemId": "exec-62eea984-a08c-4945-a746-523e1710ac33",
+          "sequence": 100,
+          "status": "completed",
+          "timestamp": "2026-10-05T08:33:38.186Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "add: C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_260_source_indentation_lost_when_returning_to_rich_text.md",
+          "deletions": 0,
+          "id": "agent-turn-22f32719-58d9-408e-8f0c-98073157bb8d-event-101",
+          "insertions": 35,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-d69659f9-3b6a-4ee1-9121-ffbd56bb3a99",
+          "sequence": 101,
+          "status": "completed",
+          "timestamp": "2026-10-05T08:34:07.070Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_260_source_indentation_lost_when_returning_to_rich_text.md'",
+          "content": "---\r\nid: B_260\r\ninternalId: ef3c3a56-28a9-4ca5-9402-16972e140c01\r\ntitle: Source indentation is lost when returning to Rich text\r\nstatus: new\r\n---\r\n\r\nReported during review of [PR #29](https://github.com/jan-bogaerts/md2/pull/29), head `146ca4bb105c90cab3739d7f6356096608d6dfd8`. Fix after the PR is merged.\r\n\r\n## Reproduction\r\n\r\n1. Open a Markdown document containing `code` as an ordinary paragraph.\r\n2. Switch to Source and add four leading spaces: `    code`.\r\n3. Switch back to Rich text.\r\n4. Add another paragraph and save.\r\n\r\nRich text still shows an ordinary paragraph instead of an indented code block. The subsequent rich edit exports `code` without its indentation, losing the Source change.\r\n\r\nExpected: returning to Rich text imports the indented code block. Later edits, saving, and reopening preserve its code-block meaning; serialization may use a fenced code block.\r\n\r\n## Cause and affected code\r\n\r\n`MarkdownSourceController.setMode()` detects the Source change using exact comparison, but publishes `viewMode$` to let MDXEditor import it. MDXEditor's `setMarkdown$` compares trimmed strings and skips importing when only outer whitespace differs. Here, the leading whitespace changes Markdown meaning, so the rich document remains stale and its next export overwrites the Source edit.\r\n\r\nAffected files: `app/src/components/editor/source/markdown_source_controller.ts` and the shared `markdown_editor.tsx` integration. MDXEditor's comparison is in `@mdxeditor/editor/dist/plugins/core/index.js`.\r\n\r\nThe fix must import meaningful Source whitespace changes while preserving untouched source, clean-state behavior, and the existing undo baseline rules. Do not treat whitespace-only differences as equivalent without considering Markdown meaning.\r\n\r\n## Regression coverage\r\n\r\n- Change a paragraph into an indented code block in Source, return to Rich text, and verify code-block rendering.\r\n- Make an unrelated rich edit, save, and reopen; verify the code-block meaning survives.\r\n- Verify viewing Source without editing preserves the original text and rich undo history.\r\n\r\nThe indentation loss was reproduced with a temporary regression probe against the installed MDXEditor in `markdown_editor_reliability.real.test.tsx`. The probe was removed after review. No fix is included in this report.\r\n",
+          "durationMs": 2,
+          "exitCode": 0,
+          "id": "agent-turn-22f32719-58d9-408e-8f0c-98073157bb8d-event-102",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_260_source_indentation_lost_when_returning_to_rich_text.md'",
+          "providerItemId": "exec-0c21ed2d-2cd8-4ed1-ac1e-a7e868fbb4dd",
+          "sequence": 102,
+          "status": "completed",
+          "timestamp": "2026-10-05T08:34:07.678Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Created [B_260](C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/B_260_source_indentation_lost_when_returning_to_rich_text.md) with status `new`, reproduction steps, and a note to fix after #29 merges.\n\nDropped the #28 finding given the supported version constraint.\n\n",
+          "id": "agent-turn-22f32719-58d9-408e-8f0c-98073157bb8d-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 103,
+          "timestamp": "2026-10-05T08:34:12.077Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-a2e1ac71-5680-428f-8d15-d01b072ec647",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a10b20-459a-7772-bca3-97afcea8fc37",
+          "createdAt": "2026-10-05T08:23:08.604Z",
+          "lastUsedAt": "2026-10-05T08:23:08.604Z",
+          "synchronizedThroughMessageId": "agent-turn-22f32719-58d9-408e-8f0c-98073157bb8d-turn-1-assistant-6"
+        }
+      ],
       "startedAt": "2026-10-05T08:13:46.555Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 111956,
-          "toolMs": 147161
+          "reasoningMs": 112600,
+          "toolMs": 148254
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-05T08:13:46.555Z"
+        "elapsedMs": 562049,
+        "runningStartedAt": "2026-10-05T08:33:18.491Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 2012416,
-        "inputTokens": 123892,
-        "outputTokens": 6108,
-        "reasoningTokens": 2851,
-        "totalTokens": 2145267
+        "cachedInputTokens": 2509056,
+        "inputTokens": 134226,
+        "outputTokens": 7126,
+        "reasoningTokens": 2861,
+        "totalTokens": 2653269
       },
       "usageSchemaVersion": 1,
       "viewed": true
