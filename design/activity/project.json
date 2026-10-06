@@ -13650,6 +13650,103 @@
       },
       "usageSchemaVersion": 1,
       "viewed": false
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": null,
+      "cardPath": null,
+      "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 258400,
+        "usedTokens": 23309
+      },
+      "entries": [
+        {
+          "content": "we have 2 issues in the instruction set for agents at the moment:\n\n* there is a lot of over engineering going on, checks on silly details that should not be done, to restrictive code\n* internal checks and small details causing catastrophic failures in the app.\n\nanalyze your instructions. report why you are making these decisions.\n\npropose simplification/changes in instructions to fix it. no changes yet. keep it simple and to the point",
+          "id": "submission-304e02ff-1f2f-42aa-a4b9-b0e2f4be5755",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-06T13:06:04.071Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll review the project instructions and identify which rules push me toward extra checks, restrictive code, and failures. I won’t change any files.\n\n",
+          "id": "agent-turn-82177f0f-eff2-43a9-939b-da5ce07272f1-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 2,
+          "timestamp": "2026-10-06T13:06:10.160Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content -Raw AGENTS.md'",
+          "content": "# Agent Instructions\n\nYou should always only do what is instructed, never just do something because you think this is part of the task. if you believe something is missing in the task, say so, don't just do it.\r\nex: instruction is to split up feature descriptions, nothing is mentioned about changing feature status, then don't change it.\n\n## folder structure\n\n* app: react-front end\n* desktop: electron desktop-host / backend app\n\n## domain identity\n\n* Use `Card.header.internalId` / `cardInternalId` as canonical card identity and `AgentConversation.id` as canonical conversation identity.\n* Paths identify persistence locations. Use them for loading, saving, selection references, and continuation inputs, never as domain identity.\n\n## system info\n\n* we are running on windows\n* the shell is Windows PowerShell 5.x, not PowerShell 7 (`pwsh`)\n* do not use bash-style or PowerShell 7 command chaining such as `&&` or `||`\n* coreutils like ls cat,... are available\n* when multiple commands are needed, run them as separate shell/tool calls\n* if a single PowerShell command must include multiple statements, use native PowerShell syntax and prefer separate lines or `;` only when necessary\n* for git workflows, prefer one command per tool call, for example `git add ...`, then `git commit ...`, then `git status`\n\n## operation principles for work on design documents\n\nBefore writing or modifying a design document, **analyze the codebase first**. Review relevant modules, data flow, interfaces, configuration, and dependencies. Do not rely on assumptions or partial understanding.\n\nYou must identify:\n\n* current implementation and architecture\n* all components affected by the change\n* required code modifications\n* edge cases and failure modes\n* compatibility and side effects\n* testing implications\n\nDo **not** start writing implementation details until the system behavior is understood.\n\nKeep analysis and documentation **short, precise, and to the point**. Avoid verbosity, repetition, or speculation.\n\n## Impact analysis before edits\n\n* Before changing a shared helper, utility, or service method, list all call sites and state whether each should keep old behavior or receive the new behavior.\n* Do not add compatibility flags, fallback branches, or mode parameters unless at least two verified call sites need different behavior.\n* Prefer direct, single-purpose changes when the inspected call graph shows only one behavior is required.\n\n## Architecture decision docs\n\n* follow the architectural decisions described in `design\\architecture\\architectural_decisions.md`\n* Do not edit `design/architecture/architectural_decisions.md` unless the user explicitly asks to update architectural decisions.\n* When adding a new architecture note, create or update the specific architecture markdown file only, and link it from related feature docs.\n* If a change seems to belong in `architectural_decisions.md`, ask first.\n\n## code style guide\n\n* stick to the Single Responsibility Principle (SRP)\n* keep it simple. don't over engineer.\n* Put every **component or class** in it's **own file**.\n* Add a short **JSDoc** to new functions when useful.\n* **avoid functions nested** inside other functions when writing new functions.\n* no abbreviations for variable names (common abreviations like i or idx are ok).\n* no inline code for react event handlers, use a constant instead\n* Never throw errors while a React component is rendering. Report real errors through `dialogService` in an effect and render a safe loading or fallback state.\n* Use async/await for all asynchronous operations; avoid .then().\n* stick to the given task, don't change code that is not related to the task.\n* Prefer const; only use let when reassignment is required.\n* Prefer `!!x` over `Boolean(x)` for boolean coercion.\n* Prefer array helpers like `find`, `some`, `map`, and `filter` for simple single-purpose collection queries or transforms. Use `for...of` loops when control flow is more complex, needs early continue guards, or spans multiple steps.\n* Destructure objects from loop variables (const { catego\n[5319 characters omitted]\n*Follow all linting rules** defined in each subproject's `eslint.config.js`.\n2. **Do not override or ignore** linting rules unless explicitly instructed.\n3. **Run the linter** locally before submitting or committing code:\n\n```powershell\nnpm run lint\n```\n\n1. Fix all linting errors and warnings before submitting a pull request.\n2. Use auto-fix\n\n```powershell\nnpm run lint-fix\n```\n\n## Testing\n\n### Agent Responsibilities\n\nyou must:\n\n1. **Do not break existing tests.** If a test fails after your change, either:\n   * Fix the code if the test remains correct, or\n   * Update the test and explain why if behavior intentionally changed.\n2. **Add tests** for:\n   * New public functions or utilities.\n   * New React components or significant UI states.\n   * Bug fixes (a regression test that would fail before the fix).\n3. **Run tests in proportion to the change**:\n   * During implementation, run test files directly with `npm run test -- <test paths>`. In `app/`, `npm run test:related -- <source paths>` can find ESM dependents when the affected set is useful.\n   * you do not need to run full tests. you should not decide upon yourself to run the full test suite. you should only do so when instructed to.\n   * A selectively run test file must pass independently. Treat order-dependent failures, leaked asynchronous work, and shared-state contamination as test defects.\n4. **Keep only tests for stable behavior**\r\n   Temporary tests must be removed before finishing when they:\n   * Assert visual values or configuration constants.\n   * Duplicate existing coverage.\n   * Run Git, agents, servers, shells, or external programs.\n\nMock external boundaries. Tests must stay fast and in-process.\n\n### Test Conventions\n\n* **Location / Naming**\n  * Place tests close to the code they test\n* **Structure**\n  * Use `describe` blocks to group related tests by component or function.\n  * Use clear, descriptive `it` / `test` names that describe behavior, not implementation.\n* **Style**\n  * Follow the same **code style guide** as production code (no unnecessary nesting, use `const`, clear variable names, etc.).\n  * Use **async/await** in tests for async behavior; avoid `.then()`.\n\n### Test / Code Conflicts\n\n* When a test fails after your changes, assume your changes caused it and may also have broken related app behavior. Fix the code first.\n* Fix pre-existing failures.\n* Treat tests as signals, not automatic source of truth.\n* If an existing test conflicts with current implementation, naming, comments, docs, or the user request, do **not** immediately change code to satisfy the test.\n  * First determine whether the test may be stale or whether the code may be wrong.\n* If the correct behavior is not clearly established from the current task or nearby code, ask the user a single concise clarifying question before changing either the code or the test.\n* Do not broaden a task by \"fixing\" unrelated behavior only because an older test expects it.\n* When a test failure reveals behavior outside the requested change, prefer pausing for confirmation over making compatibility changes.\n* When updating a test to match intended behavior, briefly state why the test was considered stale.\n* Never change the requirements cause the test is failing: fix the test or make a note, but stick to the requirements. Example: `The failing test exposed that MUIâ€™s chip delete icon is not accessible by label in this version. Iâ€™m replacing it with an explicit Remove â€¦ button so removal is user-centric and testable.` this is not allowed. fix the test instead.\n\n### React Testing Guidelines\n\n* Prefer **user-centric tests** using React Testing Library:\n  * Use queries like `getByRole`, `getByText`, `getByLabelText`, etc.\n  * Avoid testing implementation details such as internal state or private functions.\n* Use `@testing-library/jest-dom` matchers, for example:\n  * `expect(element).toBeInTheDocument()`\n  * `expect(button).toBeDisabled()`\n  * `expect(message).toHaveTextContent('...')`\n* For user interactions, use `userEvent` (if configured) instead of calling event handlers directly.\r\n",
+          "durationMs": 17,
+          "exitCode": 0,
+          "id": "agent-turn-82177f0f-eff2-43a9-939b-da5ce07272f1-event-3",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content -Raw AGENTS.md'",
+          "providerItemId": "exec-ead16ef8-3412-4330-816a-7c9f366c76a8",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:06:12.472Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-82177f0f-eff2-43a9-939b-da5ce07272f1-event-4",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0319e01e157699d5016ac4f246999087d2828d6db469b6d72a",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T13:06:19.624Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The main problem is that broad goals like “keep it simple” compete with many specific, absolute rules. I give those concrete rules too much weight and turn them into implementation requirements, even when the task does not need them. That is also a judgment failure on my part.\n\nThe strongest drivers are:\n\n- **“Missing required fields … must fail fast.”** This encourages runtime assertions throughout internal code. A minor inconsistency can then interrupt a whole workflow. The instruction does not distinguish invalid external input, programmer errors, and temporarily unavailable data.\n- **Restrictions on defaults and error handling.** These discourage recovery alongside fail-fast requirements. “Never throw during rendering” only protects rendering; errors in services and asynchronous operations can still escape.\n- **Absolute structural rules.** No nested functions, named constants for every number, named payload objects, and rigid component ownership can turn small changes into extra helpers, files, and services.\n- **Performance rules without a demonstrated problem.** Mandatory granular events and narrowly placed subscriptions encourage complexity before there is evidence it helps.\n- **Conflicting scope rules.** “Fix pre-existing failures” conflicts with “only do what is instructed.” The instance/static/module-function rules also point in different directions.\n\nI cannot attribute a specific app failure to these rules without tracing it, but they clearly encourage the decisions you describe.\n\nI propose these changes:\n\n1. **Make simplicity the deciding rule:** “Implement the smallest change that satisfies the task. Add abstractions or checks only for a demonstrated need.”\n2. **Replace blanket fail-fast:** “Validate external input at boundaries. Trust established internal contracts; avoid repeated defensive checks. Reject invalid operations with clear errors contained at the operation boundary.”\n3. **Define failure scope:** “A recoverable failure should stop the affected operation, not the application. Preserve valid state and report the error.”\n4. **Make mechanical style rules preferences:** Allow ordinary callbacks, simple literals, and inline objects when clearer. Keep lint-enforced formatting.\n5. **Keep architecture, remove automatic optimization:** Preserve service ownership and canonical identity; require extra event/subscription complexity only when needed.\n6. **Resolve scope conflicts:** Report unrelated failures; fix them only when authorized. Consolidate the overlapping helper-placement rules.\n\nNo files changed.\n\n",
+          "id": "agent-turn-82177f0f-eff2-43a9-939b-da5ce07272f1-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 5,
+          "timestamp": "2026-10-06T13:06:35.556Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-a0fb14f9-df2e-4bf0-b51c-75038fc70ac4",
+      "providerSessions": [
+        {
+          "agent": "codex",
+          "conversationId": "01a11152-3b68-78e3-b9e4-aa819599b674",
+          "createdAt": "2026-10-06T13:06:35.556Z",
+          "lastUsedAt": "2026-10-06T13:06:35.556Z",
+          "synchronizedThroughMessageId": "agent-turn-82177f0f-eff2-43a9-939b-da5ce07272f1-turn-1-assistant-2"
+        }
+      ],
+      "startedAt": "2026-10-06T13:06:04.071Z",
+      "status": "running",
+      "timer": {
+        "breakdown": {
+          "reasoningMs": 4915,
+          "toolMs": 27
+        },
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-06T13:06:04.071Z"
+      },
+      "title": "+",
+      "usage": {
+        "cachedInputTokens": 32896,
+        "inputTokens": 9420,
+        "outputTokens": 530,
+        "reasoningTokens": 117,
+        "totalTokens": 42963
+      },
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
