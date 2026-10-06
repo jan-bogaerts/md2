@@ -3,12 +3,19 @@ author:
 id: F_410
 internalId: 7df9f053-e015-45b7-ba7a-9f4f0945ef60
 title: finish release broken
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__7df9f053-e015-45b7-ba7a-9f4f0945ef60.json
 policy:
+changedFiles:
+  - app/src/services/agents/agent_integration.test.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/release_operations.service.test.ts
+  - app/src/services/release_operations.ts
+  - desktop/src/actions/activity/activity_files.js
+  - desktop/src/actions/activity/activity_files.test.mjs
 ---
 after running 'finish release' we get a lot of these errors:
 
