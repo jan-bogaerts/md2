@@ -5993,14 +5993,14 @@
         }
       ],
       "startedAt": "2026-10-06T12:34:58.481Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 5287,
           "toolMs": 1046
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-06T12:34:58.481Z"
+        "elapsedMs": 81163,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
