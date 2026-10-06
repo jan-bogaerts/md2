@@ -1524,13 +1524,13 @@
         "agent-84a4e658-9390-4103-964f-a8cd751ad134"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6.1-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6.1-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-ce6580bd-a3de-46b3-9db1-72fdc8e699ad",
       "origin": {
@@ -1539,9 +1539,28 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-84a4e658-9390-4103-964f-a8cd751ad134",
       "startedAt": "2026-10-06T15:12:12.996Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-84a4e658-9390-4103-964f-a8cd751ad134"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-10-06T15:28:41.961Z",
+      "conversationIds": [],
+      "details": {
+        "command": "",
+        "output": "Missing agent prompt",
+        "type": "command"
+      },
+      "runId": "action-581d2b2b-f3be-4ba3-84fd-f11192529923",
+      "origin": {
+        "cardInternalId": "83f607ac-68ff-475d-add8-ebed6883551e",
+        "kind": "card"
+      },
+      "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "rootActionLabel": "implement",
+      "startedAt": "2026-10-06T15:28:41.096Z",
+      "status": "failed"
     }
   ],
   "version": 5
