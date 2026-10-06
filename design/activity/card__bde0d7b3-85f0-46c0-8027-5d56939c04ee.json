@@ -3845,6 +3845,14 @@
           "role": "assistant",
           "sequence": 27,
           "timestamp": "2026-10-06T08:59:36.947Z"
+        },
+        {
+          "content": "ah, yes, the history and current is for speed optimization. we need to keep this.\n\nstill does not explain the gap",
+          "id": "submission-9ec44e32-6988-4599-9960-e6771c6f2eaf",
+          "kind": "message",
+          "role": "user",
+          "sequence": 28,
+          "timestamp": "2026-10-06T09:00:24.515Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3859,14 +3867,14 @@
         }
       ],
       "startedAt": "2026-10-06T08:51:13.232Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 5534,
           "toolMs": 1125
         },
         "elapsedMs": 82064,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-06T09:00:24.515Z"
       },
       "title": "+",
       "usage": {
