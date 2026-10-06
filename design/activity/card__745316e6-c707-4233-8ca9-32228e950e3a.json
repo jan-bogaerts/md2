@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 76886
+        "usedTokens": 83986
       },
       "entries": [
         {
@@ -847,6 +847,174 @@
           "role": "user",
           "sequence": 60,
           "timestamp": "2026-10-06T13:16:22.132Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll check which service performs the refresh and what data it reloads.\n\n",
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 61,
+          "timestamp": "2026-10-06T13:16:25.445Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"refreshWorktrees|async refresh|refresh\\\\(\\\" desktop/src -g '*worktree*'\"",
+          "content": "desktop/src\\git\\worktree_service.js:795:    async refreshLocal() {\ndesktop/src\\git\\worktree_service.js:829:    async refreshAfterMutation() {\n",
+          "durationMs": 76,
+          "exitCode": 0,
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-event-62",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"refreshWorktrees|async refresh|refresh\\\\(\\\" desktop/src -g '*worktree*'\"",
+          "providerItemId": "exec-d7ef4d7e-2866-4c28-a1b2-c1697236284e",
+          "sequence": 62,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:16:28.988Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"interface WorktreeState|interface WorktreeRecord|interface WorktreeStatus|type WorktreeState\" app/src/data shared'",
+          "content": "app/src/data\\data_types.ts:158:export interface WorktreeRecord {\napp/src/data\\data_types.ts:176:export interface WorktreeState {\napp/src/data\\data_types.ts:183:export interface WorktreeStatus {\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-event-63",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"interface WorktreeState|interface WorktreeRecord|interface WorktreeStatus|type WorktreeState\" app/src/data shared'",
+          "providerItemId": "exec-82379ea6-1ae2-457b-9c88-a169b8a5f005",
+          "sequence": 63,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:16:28.995Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/services/project/worktree_service.ts | Select-Object -Skip 255 -First 22'",
+          "content": "            this.requireAssignmentWriter()(path, worktree, branchName)\r\n        } finally {\r\n            this.pendingAssignments.delete(selectedBranch);\r\n            this.pendingAssignments.delete(branchName);\r\n            this.finishCardOperation(path)\r\n        }\r\n    }\r\n\r\n    async refresh() {\r\n        const storage = this.requireStorage()\r\n        const project = this.requireProject()\r\n        if (!storage.refreshWorktrees) throw new Error('Refreshing worktrees requires Electron local mode')\r\n        await storage.refreshWorktrees(project)\r\n    }\r\n\r\n    getCardCommitMessage(path: string) {\r\n        const card = this.requireCard(path)\r\n\r\n        return `${card.header.id}: ${card.header.title}`\r\n    }\r\n\r\n    async commitCardWorktree(path: string, message: string) {\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-event-64",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/services/project/worktree_service.ts | Select-Object -Skip 255 -First 22'",
+          "providerItemId": "exec-9c985254-29a0-41dc-bb37-807fbbe99d9a",
+          "sequence": 64,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:16:29.174Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/git/worktree_service.js | Select-Object -Skip 740 -First 105'",
+          "content": "            return withGitIndexMutations(mutationRoots, operation);\r\n        };\r\n        const result = this.mutationQueue.then(execute, execute);\r\n        this.mutationQueue = result.catch(() => {});\r\n\r\n        return result;\r\n    }\r\n\r\n    async requireClean(record, projectBranch) {\r\n        const refreshedRecord = await this.revalidateRecord(record, projectBranch);\r\n        if (!refreshedRecord.status.dirty) return refreshedRecord;\r\n\r\n        throw new Error(`Linked worktree has uncommitted changes: ${record.path}`);\r\n    }\r\n\r\n    async deleteBranchNow(project, branchName) {\r\n        if (typeof branchName !== 'string' || branchName.length === 0) throw new Error('Missing local branch name');\r\n        await this.runGit(project.rootPath, ['check-ref-format', '--branch', branchName]);\r\n        if (branchName === project.branch) throw new Error(`Project branch cannot be deleted: ${branchName}`);\r\n        if (branchName.startsWith(PARKING_BRANCH_PREFIX)) throw new Error(`Parking branch cannot be deleted: ${branchName}`);\r\n\r\n        const worktrees = parseWorktreeList(await this.runGit(project.rootPath, ['worktree', 'list', '--porcelain']));\r\n        const checkedOut = worktrees.find((worktree) => worktree.branch === branchName);\r\n        if (checkedOut) throw new Error(`Branch is checked out by a worktree: ${branchName} (${checkedOut.path})`);\r\n\r\n        await this.runGit(project.rootPath, ['branch', '-D', branchName]);\r\n    }\r\n\r\n    async commitPrimaryChanges(project) {\r\n        const branch = (await this.runGit(project.rootPath, ['branch', '--show-current'])).trim();\r\n        if (branch !== project.branch) throw new Error(`Primary worktree is on ${branch || 'a detached HEAD'}, expected ${project.branch}`);\r\n        const status = await this.primaryRepositoryStatus(project);\r\n        if (!status.dirty) return;\r\n\r\n        await this.runGit(project.rootPath, ['add', '-A']);\r\n        await this.runGit(project.rootPath, ['commit', '-m', PRIMARY_CHECKPOINT_MESSAGE]);\r\n    }\r\n\r\n    async revalidateRecord(record, projectBranch) {\r\n        const branch = (await this.runGit(record.path, ['branch', '--show-current'])).trim();\r\n        if (branch.length === 0) throw new Error(`Linked worktree has detached HEAD: ${record.path}`);\r\n        if (branch !== record.branch) throw new Error(`Assigned worktree branch changed to ${branch}, expected ${record.branch}: ${record.path}`);\r\n        const status = await this.status(record.path, branch, projectBranch);\r\n        const refreshedRecord = { ...record, branch, status };\r\n        this.records = this.records.map((candidate) => pathKey(candidate.path) === pathKey(record.path) ? refreshedRecord : candidate);\r\n        this.publish(null);\r\n\r\n        return refreshedRecord;\r\n    }\r\n\r\n    async synchronizeRecord(project, record) {\r\n        await this.runGit(record.path, ['reset', '--hard', project.branch]);\r\n    }\r\n\r\n    async refreshLocal() {\r\n        if (this.refreshPromise) return this.refreshPromise;\r\n        if (!this.project) return;\r\n\r\n        const generation = this.projectGeneration;\r\n        const project = this.project;\r\n        this.stopTimer();\r\n        const refreshPromise = this.performRefresh(project, generation);\r\n        this.refreshPromise = refreshPromise;\r\n        try {\r\n            await refreshPromise;\r\n        } finally {\r\n            if (this.refreshPromise === refreshPromise) this.refreshPromise = null;\r\n            const shouldSchedule = this.project && this.projectGeneration === generation;\r\n            if (shouldSchedule) this.scheduleRefresh();\r\n        }\r\n    }\r\n\r\n    async performRefresh(project, generation) {\r\n        try {\r\n            const primaryStatus = await this.primaryRepositoryStatus(project);\r\n            const records = await this.readWorktreeRecords(project);\r\n            if (!this.project || this.projectGeneration !== generation) return;\r\n            this.primaryStatus = primaryStatus;\r\n            this.records = records;\r\n            this.publish(null);\r\n        } catch (error) {\r\n            if (!this.project || this.projectGeneration !== generation) return;\r\n            const message = error instanceof Error ? error.message : String(error);\r\n            if (this.state.error !== message) this.errorReporter(error);\r\n            this.publish(message);\r\n        }\r\n    }\r\n\r\n    async refreshAfterMutation() {\r\n        const project = this.project;\r\n        if (!project) throw new Error('No active worktree project');\r\n        const generation = this.projectGeneration;\r\n        this.stopTimer();\r\n        let primaryStatus;\r\n        let records;\r\n        try {\r\n            primaryStatus = await this.primaryRepositoryStatus(project);\r\n            records = await this.readWorktreeRecords(project);\r\n        } catch (error) {\r\n            if (!this.project || this.projectGeneration !== generation) return;\r\n            const message = error instanceof Error ? error.message : String(error);\r\n            if (this.state.error !== message) this.errorReporter(error);\r\n            this.publish(message);\r\n            this.scheduleRefresh();\r\n            throw error;\r\n",
+          "durationMs": 77,
+          "exitCode": 0,
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-event-65",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/git/worktree_service.js | Select-Object -Skip 740 -First 105'",
+          "providerItemId": "exec-6937dd4b-705c-40dd-bca2-23bcc2fd37e4",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:16:34.660Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"refreshWorktrees|refreshLocal|read.*Status|primaryStatus|records:\\\" desktop/src/git/worktree_service.js desktop/src -g '*.js'\"",
+          "content": "desktop/src/git/worktree_service.js:109:        this.primaryStatus = null;\ndesktop/src/git/worktree_service.js:116:        this.state = { error: null, primaryStatus: null, project: null, records: [] };\ndesktop/src/git/worktree_service.js:128:        this.primaryStatus = null;\ndesktop/src/git/worktree_service.js:131:        await this.refreshLocal();\ndesktop/src/git/worktree_service.js:138:        this.primaryStatus = null;\ndesktop/src/git/worktree_service.js:289:            if (this.primaryStatus?.hasUpstream) await this.runGit(activeProject.rootPath, ['fetch']);\ndesktop/src/git/worktree_service.js:795:    async refreshLocal() {\ndesktop/src/git/worktree_service.js:815:            const primaryStatus = await this.primaryRepositoryStatus(project);\ndesktop/src/git/worktree_service.js:818:            this.primaryStatus = primaryStatus;\ndesktop/src/git/worktree_service.js:834:        let primaryStatus;\ndesktop/src/git/worktree_service.js:837:            primaryStatus = await this.primaryRepositoryStatus(project);\ndesktop/src/git/worktree_service.js:848:        this.primaryStatus = primaryStatus;\ndesktop/src/git/worktree_service.js:858:            void this.refreshLocal();\ndesktop/src/git/worktree_service.js:869:        const state = { error, primaryStatus: this.primaryStatus, project: this.project, records: this.records };\ndesktop/src\\git\\worktree_service.js:109:        this.primaryStatus = null;\ndesktop/src\\git\\worktree_service.js:116:        this.state = { error: null, primaryStatus: null, project: null, records: [] };\ndesktop/src\\git\\worktree_service.js:128:        this.primaryStatus = null;\ndesktop/src\\git\\worktree_service.js:131:        await this.refreshLocal();\ndesktop/src\\git\\worktree_service.js:138:        this.primaryStatus = null;\ndesktop/src\\git\\worktree_service.js:289:            if (this.primaryStatus?.hasUpstream) await this.runGit(activeProject.rootPath, ['fetch']);\ndesktop/src\\git\\worktree_service.js:795:    async refreshLocal() {\ndesktop/src\\git\\worktree_service.js:815:            const primaryStatus = await this.primaryRepositoryStatus(project);\ndesktop/src\\git\\worktree_service.js:818:            this.primaryStatus = primaryStatus;\ndesktop/src\\git\\worktree_service.js:834:        let primaryStatus;\ndesktop/src\\git\\worktree_service.js:837:            primaryStatus = await this.primaryRepositoryStatus(project);\ndesktop/src\\git\\worktree_service.js:848:        this.primaryStatus = primaryStatus;\ndesktop/src\\git\\worktree_service.js:858:            void this.refreshLocal();\ndesktop/src\\git\\worktree_service.js:869:        const state = { error, primaryStatus: this.primaryStatus, project: this.project, records: this.records };\ndesktop/src\\shell\\preload.js:74:    'refreshWorktrees',\ndesktop/src\\shell\\local_bridge_dispatch.js:353:            await worktreeService.refreshLocal();\ndesktop/src\\shell\\local_bridge_dispatch.js:366:        refreshWorktrees: (project) => worktreeService.refreshRemote(project),\ndesktop/src\\actions\\activity\\activity_files.js:201:        records: [...activity.records, record],\ndesktop/src\\actions\\activity\\activity_files.js:208:        records: [...activity.records, record],\ndesktop/src\\actions\\activity\\activity_files.js:215:        records: [...activity.records, record],\n",
+          "durationMs": 22,
+          "exitCode": 0,
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-event-66",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"refreshWorktrees|refreshLocal|read.*Status|primaryStatus|records:\\\" desktop/src/git/worktree_service.js desktop/src -g '*.js'\"",
+          "providerItemId": "exec-b68ce78e-eaad-4ef3-8cb9-d865e0716e39",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:16:34.703Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/data/data_types.ts | Select-Object -Skip 150 -First 60'",
+          "content": "    repository?: string\r\n    rootPath?: string\r\n}\r\n\r\n/** The disposition of the checkout folder when a linked worktree is removed from Git. */\r\nexport type WorktreeRemovalMode = 'files' | 'folder' | 'unregister'\r\n\r\nexport interface WorktreeRecord {\r\n    branch: string | null\r\n    error: string | null\r\n    /** Null on an invalid record: no Git command is run inside a worktree Git already reports as broken. */\r\n    parkingBranch: string | null\r\n    path: string\r\n    status: WorktreeStatus\r\n    valid: boolean\r\n}\r\n\r\n/** Persisted numbers mark assignment; the branch selects the checkout. */\r\nexport interface WorktreeAssignment {\r\n    branch?: string | null;\r\n    worktree?: number | null;\r\n    worktreeError?: string | null;\r\n    worktreeValue?: string | null;\r\n}\r\n\r\nexport interface WorktreeState {\r\n    error: string | null\r\n    primaryStatus: WorktreeStatus | null\r\n    project: ProjectReference | null\r\n    records: WorktreeRecord[]\r\n}\r\n\r\nexport interface WorktreeStatus {\r\n    /** Commits on the worktree branch that the configured upstream lacks; 0 when there is no upstream. */\r\n    ahead: number\r\n    /** Commits on the worktree branch that the project branch lacks. */\r\n    baseAhead: number\r\n    /** Commits on the project branch that the worktree branch lacks; cleared by rebasing. */\r\n    baseBehind: number\r\n    /** Commits on the configured upstream that the worktree branch lacks; 0 when there is no upstream. */\r\n    behind: number\r\n    dirty: boolean\r\n    hasUpstream: boolean\r\n}\r\n\r\nexport interface PrepareWorktreeRequest {\r\n    branchName?: string\r\n    project: ProjectReference\r\n    worktree: number\r\n    /** Branch currently expected in the selected checkout before preparation. */\r\n    worktreeBranch: string;\r\n}\r\n\r\nexport interface WorktreeOperationRequest {\r\n    project: ProjectReference\r\n    worktree: number\r\n    /** Assignment locator; the numeric worktree value is a display hint. */\r\n    worktreeBranch: string;\r\n}\r\n\r\n",
+          "durationMs": 34,
+          "exitCode": 0,
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-event-67",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/data/data_types.ts | Select-Object -Skip 150 -First 60'",
+          "providerItemId": "exec-49daee3d-d7e0-4bbd-889c-b554b76e79f1",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:16:34.745Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"refreshRemote|readWorktreeRecords|async status|primaryRepositoryStatus\" desktop/src/git/worktree_service.js'",
+          "content": "177:        const records = await this.readWorktreeRecords(activeProject);\n284:    refreshRemote(project) {\n300:            const status = await this.primaryRepositoryStatus(activeProject);\n732:            const records = await this.readWorktreeRecords(activeProject);\n772:        const status = await this.primaryRepositoryStatus(project);\n815:            const primaryStatus = await this.primaryRepositoryStatus(project);\n816:            const records = await this.readWorktreeRecords(project);\n837:            primaryStatus = await this.primaryRepositoryStatus(project);\n838:            records = await this.readWorktreeRecords(project);\n892:    async readWorktreeRecords(project) {\n919:    primaryRepositoryStatus(project) {\n956:    async status(folderPath, branch, projectBranch) {\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-event-68",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"refreshRemote|readWorktreeRecords|async status|primaryRepositoryStatus\" desktop/src/git/worktree_service.js'",
+          "providerItemId": "exec-2ac781e7-087f-4d9b-a122-f41879e705dc",
+          "sequence": 68,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:16:39.257Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/git/worktree_service.js | Select-Object -Skip 145 -First 115'",
+          "content": "        this.listeners.add(listener);\r\n        this.notifyListener(listener, this.state);\r\n\r\n        return () => this.listeners.delete(listener);\r\n    }\r\n\r\n    getRecords(project) {\r\n        this.requireActiveProject(project);\r\n\r\n        return this.records;\r\n    }\r\n\r\n    /** Read Git metadata needed to compare one linked worktree with its project-branch merge base. */\r\n    async readDiffContext(project, branchName) {\r\n        const activeProject = this.requireActiveProject(project);\r\n        const { record } = await this.resolveBranch(activeProject, branchName);\r\n        const baseCommit = await this.runGit(record.path, ['merge-base', activeProject.branch, 'HEAD']);\r\n        if (baseCommit.length === 0) throw new Error(`Cannot find merge base for linked worktree: ${record.path}`);\r\n\r\n        const changes = await this.runGit(record.path, ['diff', '--name-status', '-z', '--find-renames', baseCommit, '--']);\r\n        const untracked = await this.runGit(record.path, ['ls-files', '--others', '--exclude-standard', '-z']);\r\n\r\n        return { baseCommit, changes, path: record.path, untracked };\r\n    }\r\n\r\n    /** Resolve against live Git metadata; display numbers never select a checkout. */\r\n    async resolveBranch(project, branchName) {\r\n        const activeProject = this.requireActiveProject(project);\r\n        if (typeof branchName !== 'string' || branchName.length === 0) {\r\n            throw new Error('Assigned worktree has no stored branch. Select a worktree again.');\r\n        }\r\n        const records = await this.readWorktreeRecords(activeProject);\r\n        if (this.project !== activeProject) throw new Error('Opened project changed during worktree resolution');\r\n        this.records = records;\r\n        this.publish(null);\r\n        const resolution = resolveWorktreeAssignment(records, branchName);\r\n        if (resolution.error) throw new Error(resolution.error);\r\n        await this.requireRepositoryMatch(activeProject, resolution.record);\r\n        const record = await this.revalidateRecord(resolution.record, activeProject.branch);\r\n        if (record.branch !== branchName) throw new Error(`Assigned worktree branch changed to ${record.branch}, expected ${branchName}: ${record.path}`);\r\n\r\n        return { index: resolution.index, record };\r\n    }\r\n\r\n    /** A registered folder may have been replaced by a checkout of another repository. */\r\n    async requireRepositoryMatch(project, record) {\r\n        const primaryDirectory = await this.runGit(project.rootPath, ['rev-parse', '--git-common-dir']);\r\n        const linkedDirectory = await this.runGit(record.path, ['rev-parse', '--git-common-dir']);\r\n        const primaryRoot = await canonicalPath(path.resolve(project.rootPath, primaryDirectory));\r\n        const linkedRoot = await canonicalPath(path.resolve(record.path, linkedDirectory));\r\n        if (pathKey(primaryRoot) !== pathKey(linkedRoot)) throw new Error(`Assigned worktree belongs to another repository: ${record.path}`);\r\n    }\r\n\r\n    async resolvePath(project, folderPath) {\r\n        const activeProject = this.requireActiveProject(project);\r\n        const canonicalFolder = await canonicalPath(folderPath);\r\n        if (pathKey(activeProject.rootPath) === pathKey(canonicalFolder)) {\r\n            return { branch: project.branch, error: null, path: activeProject.rootPath, valid: true };\r\n        }\r\n\r\n        const record = this.records.find((candidate) => pathKey(candidate.path) === pathKey(canonicalFolder));\r\n        if (!record) throw new Error('Run repository root is not a linked worktree');\r\n        if (!record.valid) throw new Error(`Run repository root is invalid: ${record.error}`);\r\n\r\n        return record;\r\n    }\r\n\r\n    add(project, folderPath) {\r\n        return this.enqueueMutation(async () => {\r\n            const activeProject = this.requireActiveProject(project);\r\n            if (typeof folderPath !== 'string' || folderPath.length === 0) throw new Error('Missing linked worktree folder');\r\n            if (pathKey(path.resolve(folderPath)) === pathKey(activeProject.rootPath)) throw new Error('Primary worktree cannot be added as a linked worktree');\r\n\r\n            const resolvedFolder = path.resolve(folderPath);\r\n            await requireEmptyWorktreeFolder(resolvedFolder);\r\n            await this.runGit(activeProject.rootPath, ['worktree', 'add', resolvedFolder]);\r\n            await this.parkPath(activeProject, resolvedFolder);\r\n            await this.refreshAfterMutation();\r\n        });\r\n    }\r\n\r\n    /**\r\n     * Removal mode is the disposition of the checkout folder: `folder` deletes it, `files` empties it but keeps it,\r\n     * `unregister` leaves folder and files untouched. All three unregister the worktree from Git and keep the branch.\r\n     */\r\n    remove(project, folderPath, mode = 'folder') {\r\n        return this.enqueueMutation(async () => {\r\n            const activeProject = this.requireActiveProject(project);\r\n            if (typeof folderPath !== 'string' || folderPath.length === 0) throw new Error('Missing linked worktree folder');\r\n            if (!REMOVAL_MODES.has(mode)) throw new Error(`Unknown worktree removal mode: ${String(mode)}`);\r\n            const resolvedFolder = path.resolve(folderPath);\r\n            if (pathKey(resolvedFolder) === pathKey(activeProject.rootPath)) throw new Error('Primary worktree cannot be removed');\r\n            if (!this.records.some((worktree) => pathKey(worktree.path) === pathKey(resolvedFolder))) throw new Error('Folder is not a linked worktree');\r\n\r\n            await this.removeWorktreeCheckout(activeProject, resolvedFolder, mode);\r\n            await this.refreshAfterMutation();\r\n        });\r\n    }\r\n\r\n    /** A registration whose folder is gone has nothing left to preserve, so every mode collapses to a prune. */\r\n    async removeWorktreeCheckout(project, resolvedFolder, mode) {\r\n        const worktrees = parseWorktreeList(await this.runGit(project.rootPath, ['worktree', 'list', '--porcelain']));\r\n        const entry = worktrees.find((worktree) => pathKey(path.resolve(worktree.path)) === pathKey(resolvedFolder));\r\n        if (entry?.prunable || !await folderExists(resolvedFolder)) {\r\n            await this.runGit(project.rootPath, ['worktree', 'prune']);\r\n\r\n            return;\r\n        }\r\n        if (mode === 'unregister') {\r\n            await this.unregisterWorktree(project, resolvedFolder);\r\n\r\n            return;\r\n        }\r\n        // The doubled --force is what Git needs for a locked worktree; a single one only covers modified and untracked files.\r\n        await this.runGit(project.rootPath, ['worktree', 'remove', '--force', '--force', resolvedFolder]);\r\n",
+          "durationMs": 50,
+          "exitCode": 0,
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-event-69",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/git/worktree_service.js | Select-Object -Skip 145 -First 115'",
+          "providerItemId": "exec-0d175148-2491-4af6-a22a-88461bc3520a",
+          "sequence": 69,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:16:39.902Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/git/worktree_service.js | Select-Object -Skip 280 -First 17'",
+          "content": "        });\r\n    }\r\n\r\n    refreshRemote(project) {\r\n        return this.enqueueMutation(async () => {\r\n            const activeProject = this.requireActiveProject(project);\r\n            await this.refreshAfterMutation();\r\n            this.stopTimer();\r\n            if (this.primaryStatus?.hasUpstream) await this.runGit(activeProject.rootPath, ['fetch']);\r\n            for (const { path: folderPath, status } of this.records) {\r\n                if (status.hasUpstream) await this.runGit(folderPath, ['fetch']);\r\n            }\r\n            await this.refreshAfterMutation();\r\n        });\r\n    }\r\n\r\n    pullPrimary(project) {\r\n",
+          "durationMs": 26,
+          "exitCode": 0,
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-event-70",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/git/worktree_service.js | Select-Object -Skip 280 -First 17'",
+          "providerItemId": "exec-fa09766c-28c8-488c-9028-38fc03a2b6b9",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:16:43.945Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/git/worktree_service.js | Select-Object -Skip 890 -First 104'",
+          "content": "\r\n    async readWorktreeRecords(project) {\r\n        const primaryRoot = project.rootPath;\r\n        const worktrees = parseWorktreeList(await this.runGit(primaryRoot, ['worktree', 'list', '--porcelain']));\r\n        const linkedWorktrees = worktrees.filter((worktree) => pathKey(path.resolve(worktree.path)) !== pathKey(primaryRoot));\r\n\r\n        return Promise.all(linkedWorktrees.map((worktree) => this.readWorktreeRecord(project, worktree)));\r\n    }\r\n\r\n    /**\r\n     * A worktree Git already reports as locked, prunable or detached gets no Git command run inside it, and any\r\n     * per-record failure becomes an invalid record, so one broken worktree cannot discard the records of the others.\r\n     */\r\n    async readWorktreeRecord(project, worktree) {\r\n        const resolvedPath = path.resolve(worktree.path);\r\n        const error = worktreeError(worktree);\r\n        if (error !== null) return invalidRecord(worktree.branch, error, resolvedPath);\r\n\r\n        try {\r\n            const parkingBranch = await this.parkingBranch(resolvedPath);\r\n            const status = await this.status(resolvedPath, worktree.branch, requireProjectBranch(project));\r\n\r\n            return { branch: worktree.branch, error: null, parkingBranch, path: resolvedPath, status, valid: true };\r\n        } catch (failure) {\r\n            return invalidRecord(worktree.branch, failure instanceof Error ? failure.message : String(failure), resolvedPath);\r\n        }\r\n    }\r\n\r\n    primaryRepositoryStatus(project) {\r\n        const projectBranch = requireProjectBranch(project);\r\n\r\n        return this.status(project.rootPath, projectBranch, projectBranch);\r\n    }\r\n\r\n    async branchExists(rootPath, branchName) {\r\n        try {\r\n            await this.runGit(rootPath, ['show-ref', '--verify', '--quiet', `refs/heads/${branchName}`]);\r\n\r\n            return true;\r\n        } catch (error) {\r\n            if (error && typeof error === 'object' && error.code === 1) return false;\r\n            throw error;\r\n        }\r\n    }\r\n\r\n    async parkingBranch(folderPath) {\r\n        const gitDirectory = await this.runGit(folderPath, ['rev-parse', '--git-dir']);\r\n        const worktreeId = path.basename(path.normalize(gitDirectory)).toLowerCase().replace(/[^a-z0-9._-]+/gu, '-');\r\n        if (worktreeId.length === 0) throw new Error(`Cannot determine parking branch for worktree: ${folderPath}`);\r\n\r\n        return `${PARKING_BRANCH_PREFIX}${worktreeId}`;\r\n    }\r\n\r\n    async parkPath(project, folderPath) {\r\n        const projectBranch = requireProjectBranch(project);\r\n        const parkingBranch = await this.parkingBranch(folderPath);\r\n        await this.runGit(project.rootPath, ['check-ref-format', '--branch', parkingBranch]);\r\n        await this.runGit(folderPath, ['switch', '-C', parkingBranch, projectBranch]);\r\n    }\r\n\r\n    /**\r\n     * Distances are tracked twice: `baseAhead`/`baseBehind` against the project branch (fixed by rebasing) and\r\n     * `ahead`/`behind` against the configured upstream (fixed by pushing or pulling). A worktree branch that was\r\n     * never pushed still has to report how far it trails the project branch.\r\n     */\r\n    async status(folderPath, branch, projectBranch) {\r\n        const dirty = (await this.runGit(folderPath, ['status', '--porcelain'])).length > 0;\r\n        const base = parseRevisionCounts(await this.runGit(folderPath, ['rev-list', '--left-right', '--count', `HEAD...${projectBranch}`]));\r\n        const upstream = await this.upstream(folderPath, branch);\r\n        if (upstream.length === 0) {\r\n            return { ahead: 0, baseAhead: base.ahead, baseBehind: base.behind, behind: 0, dirty, hasUpstream: false };\r\n        }\r\n        const counts = parseRevisionCounts(await this.runGit(folderPath, ['rev-list', '--left-right', '--count', `HEAD...${upstream}`]));\r\n\r\n        return { ...counts, baseAhead: base.ahead, baseBehind: base.behind, dirty, hasUpstream: true };\r\n    }\r\n\r\n    upstream(folderPath, branch) {\r\n        return this.runGit(folderPath, ['for-each-ref', '--format=%(upstream:short)', `refs/heads/${branch}`]);\r\n    }\r\n\r\n    static async requirePrimaryRoot(project) {\r\n        if (!project || typeof project.rootPath !== 'string' || project.rootPath.length === 0) throw new Error('Missing primary project rootPath');\r\n\r\n        return canonicalPath(project.rootPath);\r\n    }\r\n}\r\n\r\nmodule.exports = { WorktreeService, parseWorktreeList };\r\n",
+          "durationMs": 44,
+          "exitCode": 0,
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-event-71",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/git/worktree_service.js | Select-Object -Skip 890 -First 104'",
+          "providerItemId": "exec-97b7227a-c4b1-4d62-8f1b-1578eaf6edc7",
+          "sequence": 71,
+          "status": "completed",
+          "timestamp": "2026-10-06T13:16:44.552Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "It refreshes **Git metadata for the whole project’s worktrees**.\n\n- Trigger: `AgentIntegration.refreshWorktreesAfterLastConversation()` when last running conversation stops on a card assigned to a worktree.\n- Renderer: `worktreeService.refresh()` calls Electron’s `refreshWorktrees`.\n- Backend: [WorktreeService.refreshRemote()](/C:/Users/janbo/Documents/dev/md2/desktop/src/git/worktree_service.js:284) rereads primary checkout and **all linked worktrees**, fetches those with upstreams, then rereads everything again.\n\nData refreshed: worktree paths, branches, validity/errors, parking branches, dirty state, commit counts ahead/behind upstream and project branch.\n\nRenderer replaces changed worktree records and emits `changed`. That triggers the context replacement described earlier.\n\nSo my “status refresh” wording understated it: **project-wide Git refresh, including fetch**, triggered by stopping one card’s last agent.\n\n",
+          "id": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 72,
+          "timestamp": "2026-10-06T13:16:53.607Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -856,8 +1024,8 @@
           "agent": "codex",
           "conversationId": "01a11156-9680-74e3-b760-30e57de53893",
           "createdAt": "2026-10-06T13:12:38.697Z",
-          "lastUsedAt": "2026-10-06T13:15:15.559Z",
-          "synchronizedThroughMessageId": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-turn-2-assistant-1"
+          "lastUsedAt": "2026-10-06T13:16:53.607Z",
+          "synchronizedThroughMessageId": "agent-turn-b7b5daea-b31c-4826-bfdb-24191da60e6b-turn-3-assistant-2"
         }
       ],
       "startedAt": "2026-10-06T13:10:49.286Z",
@@ -865,18 +1033,18 @@
       "timer": {
         "breakdown": {
           "reasoningMs": 6238,
-          "toolMs": 1620
+          "toolMs": 2451
         },
         "elapsedMs": 118330,
         "runningStartedAt": "2026-10-06T13:16:22.132Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 708608,
-        "inputTokens": 74256,
-        "outputTokens": 1950,
+        "cachedInputTokens": 1101568,
+        "inputTokens": 82141,
+        "outputTokens": 2568,
         "reasoningTokens": 188,
-        "totalTokens": 785002
+        "totalTokens": 1186465
       },
       "usageSchemaVersion": 1,
       "viewed": true
