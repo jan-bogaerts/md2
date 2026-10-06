@@ -3,11 +3,12 @@ author:
 id: B_261
 internalId: 53a49b65-2678-4970-a708-27195fc179bc
 title: broken toolcalls
-status: ready for implementation
+status: design
 owner: 
 affects:
 agents:
 policy:
+after: 45e13c03-d74d-4082-9065-aa387f6553f5
 ---
 
 since recently, I see tool calls that remain in the 'running' state while there is 'output' available.
