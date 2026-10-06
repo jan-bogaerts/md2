@@ -971,14 +971,14 @@
         }
       ],
       "startedAt": "2026-10-06T15:36:18.513Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 3497,
           "toolMs": 722
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-06T15:36:18.513Z"
+        "elapsedMs": 64019,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
