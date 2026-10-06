@@ -14325,13 +14325,13 @@
         "agent-a0fb14f9-df2e-4bf0-b51c-75038fc70ac4"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6.1-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6.1-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-71c3505e-bf13-4899-adad-b0cc55076eec",
       "origin": {
@@ -14339,8 +14339,26 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-a0fb14f9-df2e-4bf0-b51c-75038fc70ac4",
       "startedAt": "2026-10-06T13:06:03.446Z",
+      "status": "completed",
+      "rootConversationId": "agent-a0fb14f9-df2e-4bf0-b51c-75038fc70ac4"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-10-06T14:52:50.376Z",
+      "conversationIds": [],
+      "details": {
+        "command": "npm run build:windows",
+        "output": "",
+        "type": "command"
+      },
+      "runId": "action-2b1c1ec4-9c8a-4aea-b544-dadfeb7e7e94",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "edcbc3cf-20de-415c-97fe-b36ca9953fdc",
+      "rootActionLabel": "build",
+      "startedAt": "2026-10-06T14:50:37.148Z",
       "status": "completed"
     }
   ],
