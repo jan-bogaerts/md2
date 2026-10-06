@@ -3834,6 +3834,44 @@
       "startedAt": "2026-10-06T13:53:35.916Z",
       "status": "completed",
       "rootConversationId": "agent-0ce42330-4941-4316-9aea-cc024033fc77"
+    },
+    {
+      "commits": [
+        {
+          "commit": "543e13fc73448c627b95086099750b4f0851f4dd",
+          "committedAt": "2026-10-06T17:00:25+02:00",
+          "deletions": 151,
+          "filePaths": [
+            "app/src/components/actions/conversation/state/action_conversation_store.node.test.ts",
+            "app/src/components/actions/conversation/state/action_conversation_store.ts",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup.tsx",
+            "app/src/components/actions/run/popup/action_popup_content.tsx",
+            "app/src/components/actions/run/popup/action_popup_runtime.ts",
+            "app/src/components/actions/run/popup/action_popup_session.tsx",
+            "app/src/components/actions/run/popup/action_usage_values_service.ts",
+            "app/src/components/actions/run/state/action_history_store.node.test.ts",
+            "app/src/components/actions/run/state/action_history_store.ts",
+            "app/src/components/hooks/use_action_assignment_context.test.tsx",
+            "app/src/components/hooks/use_action_assignment_context.ts",
+            "app/src/services/agents/agent_integration.test.ts",
+            "app/src/services/agents/agent_integration.ts",
+            "app/src/services/data/data_service.ts",
+            "app/src/services/project/worktree_service.node.test.ts",
+            "app/src/services/project/worktree_service.ts"
+          ],
+          "filesChanged": 17,
+          "insertions": 583,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-06T17:00:25+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "745316e6-c707-4233-8ca9-32228e950e3a",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
