@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "53a49b65-2678-4970-a708-27195fc179bc",
+      "cardPath": "design/feature_descriptions/B_261_broken_toolcalls.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_261_broken_toolcalls.md. check what you can find, report, no changes. be short and to the point",
+          "id": "submission-b03efa3f-6786-4ab4-9bf3-abea50d4ca02",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-06T12:04:12.607Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-ca9fe979-d535-408c-82cd-59bccd282030",
+      "providerSessions": [],
+      "startedAt": "2026-10-06T12:04:12.607Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-06T12:04:12.607Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "53a49b65-2678-4970-a708-27195fc179bc",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
