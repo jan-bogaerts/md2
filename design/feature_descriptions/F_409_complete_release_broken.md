@@ -3,12 +3,17 @@ author:
 id: F_409
 internalId: 83f607ac-68ff-475d-add8-ebed6883551e
 title: complete release broken
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__83f607ac-68ff-475d-add8-ebed6883551e.json
 policy:
+changedFiles:
+  - app/src/data/release_archiving.node.test.ts
+  - app/src/data/release_archiving.ts
+  - app/src/services/release_operations.service.test.ts
+  - app/src/services/release_operations.ts
 ---
 
 we are trying to run the 'complete release' command, but this got broken:&#x20;
