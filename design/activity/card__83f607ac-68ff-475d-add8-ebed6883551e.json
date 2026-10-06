@@ -511,6 +511,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
+      "cardInternalId": "83f607ac-68ff-475d-add8-ebed6883551e",
+      "cardPath": "design/feature_descriptions/F_409_complete_release_broken.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_409_complete_release_broken.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_409_complete_release_broken.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
+          "id": "submission-96797367-3b51-41af-b7c2-b6230361f7cf",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-06T15:12:13.306Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-84a4e658-9390-4103-964f-a8cd751ad134",
+      "providerSessions": [],
+      "startedAt": "2026-10-06T15:12:13.306Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-06T15:12:13.306Z"
+      },
+      "title": "implement",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -551,13 +579,13 @@
         "agent-d7648957-4c94-4dda-93a5-729fee675bc9"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6.1-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6.1-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-576cd2d9-b96f-4ce4-aaa4-f22c5d1cd738",
       "origin": {
@@ -566,9 +594,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-d7648957-4c94-4dda-93a5-729fee675bc9",
       "startedAt": "2026-10-06T15:09:34.048Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-d7648957-4c94-4dda-93a5-729fee675bc9"
     }
   ],
   "version": 5
