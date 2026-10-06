@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__745316e6-c707-4233-8ca9-32228e950e3a.json
 policy:
+branch: b_263_stop_conversation_broken
+worktree: 1
 ---
 
 Stopping a conversation must keep that conversation selected instead of switching to "New conversation".
