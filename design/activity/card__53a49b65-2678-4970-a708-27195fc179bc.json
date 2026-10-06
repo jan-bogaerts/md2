@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "53a49b65-2678-4970-a708-27195fc179bc",
       "cardPath": "design/feature_descriptions/B_261_broken_toolcalls.md",
-      "completedAt": null,
+      "completedAt": "2026-10-06T12:47:54.918Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 84154
@@ -700,7 +700,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 52,
-          "timestamp": "2026-10-06T12:47:53.013Z"
+          "timestamp": "2026-10-06T12:47:54.918Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -710,19 +710,19 @@
           "agent": "codex",
           "conversationId": "01a11119-9b06-72b2-b7ae-981c7245ad34",
           "createdAt": "2026-10-06T12:05:17.044Z",
-          "lastUsedAt": "2026-10-06T12:47:53.013Z",
+          "lastUsedAt": "2026-10-06T12:47:54.918Z",
           "synchronizedThroughMessageId": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-10-06T12:04:12.607Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 14377,
           "toolMs": 13298
         },
-        "elapsedMs": 190102,
-        "runningStartedAt": "2026-10-06T12:47:47.523Z"
+        "elapsedMs": 195592,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
