@@ -3476,6 +3476,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "bde0d7b3-85f0-46c0-8027-5d56939c04ee",
+      "cardPath": "design/feature_descriptions/B_253_in_transmission_prompts_still_disapear.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_253_in_transmission_prompts_still_disapear.md. it was supposed to be fixed, but there is clearly still a render between removing a temporary prompt and replacing it with the 'sent' version. There should be 0 reason for this to occur.  Why is this still happening? what is causing the render between removing the temp prompt and replacing it with a full prompt.\n\nIn fact, the operation shouldn't even be a replace of objects. it should just be a flag that gets updated on the object that backs the component displaying the prompt that the user sent.\n\nreport your findings, be short and to the point, use regular language matching the project",
+          "id": "submission-316e1cb1-ad5e-44d4-bc6d-7b9c9606dd2f",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-06T08:51:13.232Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-e93cb86b-34b7-4b8a-959c-340435828470",
+      "providerSessions": [],
+      "startedAt": "2026-10-06T08:51:13.232Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-06T08:51:13.232Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
