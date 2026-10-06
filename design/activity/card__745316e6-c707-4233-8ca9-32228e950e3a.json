@@ -839,6 +839,14 @@
           "role": "assistant",
           "sequence": 59,
           "timestamp": "2026-10-06T13:15:15.559Z"
+        },
+        {
+          "content": "> , service refreshes worktree status.\n\nwhat do you mean by this? how much is refreshed? which service, which data?&#x20;",
+          "id": "submission-65510080-45ab-4e28-920f-d7cd5afcc7ea",
+          "kind": "message",
+          "role": "user",
+          "sequence": 60,
+          "timestamp": "2026-10-06T13:16:22.132Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -853,14 +861,14 @@
         }
       ],
       "startedAt": "2026-10-06T13:10:49.286Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 6238,
           "toolMs": 1620
         },
         "elapsedMs": 118330,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-06T13:16:22.132Z"
       },
       "title": "+",
       "usage": {
