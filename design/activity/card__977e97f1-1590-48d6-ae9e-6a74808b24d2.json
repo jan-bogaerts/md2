@@ -21,6 +21,10 @@
       "cardInternalId": "977e97f1-1590-48d6-ae9e-6a74808b24d2",
       "cardPath": "design/feature_descriptions/J_59_improve_layout_action_details_on_action_editor.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 59046
+      },
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/J_59_improve_layout_action_details_on_action_editor.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except `agents` files. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -29,6 +33,247 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-06T11:37:16.518Z"
+        },
+        {
+          "content": "{\"skill\":\"caveman\"}",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-2",
+          "kind": "event",
+          "label": "Skill",
+          "output": "Launching skill: caveman",
+          "providerItemId": "toolu_01WT1Z91VgFijkiDZ7PkWhXQ",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:19.760Z",
+          "type": "tool.Skill"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\J_59_improve_layout_action_details_on_action_editor.md\"}",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-3",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: J_59\n4\tinternalId: 977e97f1-1590-48d6-ae9e-6a74808b24d2\n5\ttitle: improve layout action details on action editor\n6\tstatus: design\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__977e97f1-1590-48d6-ae9e-6a74808b24d2.json\n11\tpolicy:\n12\t---\n13\t\n14\tWhen in list view, we have the action editor. The first group is labeled 'action details'.\n15\t\n16\tWe need to improve the layout of the components:\n17\t\n18\t* first row: label, description\n19\t* second row: type, output kind, icon\n20\t* last row: ask-user-for, version question",
+          "providerItemId": "toolu_017stEV1jsXYSyTxfM8YyEpN",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:20.717Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cfkv6xKPaFiMmp479m1FN:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T11:37:22.311Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"(?i)action details\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-5",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\components\\actions\\editor\\action_definition_fields.grouped.test.tsx:116:            'Action details', 'Run settings', 'Availability', 'Action sequence',\napp\\src\\components\\actions\\editor\\action_definition_fields.grouped.test.tsx:118:        const details = within(screen.getByRole('region', { name: 'Action details' }))\napp\\src\\components\\actions\\editor\\action_definition_fields.tsx:202:                    title=\"Action details\"",
+          "providerItemId": "toolu_01G4fGy32nhccaJeqQxKGLPM",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:22.763Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\actions\\\\editor\\\\action_definition_fields.tsx\"}",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-6",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport {\n2\t    FormControlLabel, FormHelperText, MenuItem, Stack, Switch, Grid, Box,\n3\t} from '@mui/material'\n4\timport type { ChangeEvent, MouseEvent } from 'react'\n5\timport { memo, useEffect, useState } from 'react'\n6\timport type { ActionDefinition, RawActionDefinition } from '../../../data/action_types'\n7\timport type { WorktreeRecord } from '../../../data/data_types'\n8\timport {\n9\t    ACTION_DRAFT_CHANGED_EVENT,\n10\t    actionService,\n11\t    type ActionDraftChangedDetail,\n12\t} from '../../../services/actions/action_service'\n13\timport { useProjectState } from '../../hooks/use_project_state'\n14\timport { ActionAgentCapabilityFields } from '../agent/action_agent_capability_fields'\n15\timport { ActionEditorField } from './action_editor_field'\n16\timport { ActionFilterEditor } from './action_filter_editor'\n17\timport { ActionLinkListEditor } from './action_link_list_editor'\n18\timport { ActionOnRulesEditor } from './action_on_rules_editor'\n19\timport { ActionSectionLabel } from '../shared/action_section_label'\n20\timport { ActionEditorTextField } from './action_editor_text_field'\n21\timport { ActionDefinitionGroup } from './action_definition_group'\n22\t\n23\tconst ICON_FILE_PATTERN = /\\.(svg|png|jpe?g|gif|webp)$/iu\n24\tconst EMPTY_REPOSITORY_FILES: string[] = []\n25\t\n26\tinterface ActionDefinitionFieldsProps {\n27\t    actionId: string\n28\t    actions: ActionDefinition[]\n29\t    cardTypes: string[]\n30\t    sourcePath: string\n31\t    specialContextTypes: string[]\n32\t    states: string[]\n33\t    worktrees: WorktreeRecord[]\n34\t}\n35\t\n36\texport const ActionDefinitionFields = memo(function ActionDefinitionFields(props: ActionDefinitionFieldsProps) {\n37\t    const {\n38\t        actionId, actions, cardTypes, sourcePath,\n39\t        specialContextTypes, states, worktrees,\n40\t    } = props\n41\t    const { snapshot } = useProjectState()\n42\t    const repositoryFiles = snapshot?.repositoryFiles ?? EMPTY_REPOSITORY_FILES\n43\t    const [, setDraftRevision] = useState(0)\n44\t    useEffect(() => {\n45\t        let previousDraft = actionService.draftStore.getDraft(actionId)\n46\t        const handleChanged = (event: Event) => {\n47\t            const { actionId: changedActionId } = (event as CustomEvent<ActionDraftChangedDetail>).detail\n48\t            if (changedActionId !== actionId) return\n49\t\n50\t            const nextDraft = actionService.draftStore.getDraft(actionId)\n51\t            if (nextDraft === previousDraft) return\n52\t\n53\t            previousDraft = nextDraft\n54\t            setDraftRevision((current) => current + 1)\n55\t        }\n56\t        actionService.addEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)\n57\t\n58\t        return () => actionService.removeEventListener(ACTION_DRAFT_CHANGED_EVENT, handleChanged)\n59\t    }, [actionId])\n60\t    const { definition, validation } = actionService.draftStore.getDraft(actionId)\n61\t    const errors = validation.error && validation.field ? { [validation.field]: validation.error } : {}\n62\t    const errorIndex = validation.index\n63\t    const selectableActions = actions.filter(({ id }) => id !== definition.id)\n64\t    // `stageDraft` deliberately fires no events, so controls that render straight from the\n65\t    // draft (selects, switches, list editors) need a local revision bump to show the new value.\n66\t    const handleDefinitionChange = (nextDefinition: RawActionDefinition) => {\n67\t        actionService.draftStore.stageDraft(actionId, nextDefinition)\n68\t        setDraftRevision((current) => current + 1)\n69\t    }\n70\t    /** Staging without a re-render, for fields that keep their own keystroke state. */\n71\t    const stageDefinition = (nextDefinition: RawActionDefinition) => {\n72\t        actionService.draftStore.stageDraft(actionId, nextDefinition)\n73\t    }\n74\t    const handleDefinitionCommit = () => actionService.draftStore.commitDraft(actionId)\n75\t    const iconPaths = repositoryFiles.filter((path) => ICON_FILE_PATTERN.test(path))\n76\t    if (definition.icon && !iconPaths.includes(definition.icon)) iconPaths.unshift(definition.icon)\n77\t    const missingState = definition.onState && !states.includes(definition.on\n[16959 characters omitted]\ntate\"\n368\t                            onChange={handleAutoFinishStateChange}\n369\t                            select\n370\t                            size=\"small\"\n371\t                            value={definition.autoFinish.state}\n372\t                        >\n373\t                            {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}\n374\t                        </ActionEditorField>\n375\t                    ) : null}\n376\t                    {definition.type === 'agent' ? (\n377\t                        <ActionAgentCapabilityFields\n378\t                            definition={definition}\n379\t                            errors={errors}\n380\t                            onChange={handleDefinitionChange}\n381\t                            sourcePath={sourcePath}\n382\t                        />\n383\t                    ) : (\n384\t                        <ActionEditorTextField\n385\t                            error={!!errors.command}\n386\t                            fieldId=\"action-command\"\n387\t                            fullWidth\n388\t                            helperText={errors.command}\n389\t                            label=\"Command\"\n390\t                            minRows={2}\n391\t                            multiline\n392\t                            name=\"command\"\n393\t                            onChange={handleRequiredTextChange}\n394\t                            source={definition}\n395\t                            value={definition.command ?? ''}\n396\t                        />\n397\t                    )}\n398\t                </ActionDefinitionGroup>\n399\t                <ActionDefinitionGroup\n400\t                    description=\"Limit the card or project contexts where this action is available.\"\n401\t                    id=\"action-availability\"\n402\t                    title=\"Availability\"\n403\t                >\n404\t                    <ActionFilterEditor\n405\t                        cardTypes={cardTypes}\n406\t                        error={errors.appliesTo}\n407\t                        onChange={handleFiltersChange}\n408\t                        repositoryFiles={repositoryFiles}\n409\t                        specialContextTypes={specialContextTypes}\n410\t                        states={states}\n411\t                        value={definition.appliesTo}\n412\t                        worktrees={worktrees}\n413\t                    />\n414\t                </ActionDefinitionGroup>\n415\t                <ActionDefinitionGroup\n416\t                    description=\"Run linked actions before this action, when its output matches a regular expression, or after it finishes.\"\n417\t                    id=\"action-sequence\"\n418\t                    title=\"Action sequence\"\n419\t                >\n420\t                    <ActionLinkListEditor\n421\t                        actions={selectableActions}\n422\t                        emptyText=\"No actions run before this one.\"\n423\t                        error={errors.onBefore}\n424\t                        errorIndex={errorIndex}\n425\t                        label=\"Before\"\n426\t                        onChange={handleOnBeforeChange}\n427\t                        value={definition.onBefore}\n428\t                    />\n429\t                    <ActionOnRulesEditor\n430\t                        actions={selectableActions}\n431\t                        error={errors.on}\n432\t                        errorIndex={errorIndex}\n433\t                        onChange={handleOnChange}\n434\t                        value={definition.on}\n435\t                    />\n436\t                    <ActionLinkListEditor\n437\t                        actions={selectableActions}\n438\t                        emptyText=\"No actions run after this one.\"\n439\t                        error={errors.onAfter}\n440\t                        errorIndex={errorIndex}\n441\t                        label=\"After\"\n442\t                        onChange={handleOnAfterChange}\n443\t                        value={definition.onAfter}\n444\t                    />\n445\t                </ActionDefinitionGroup>\n446\t            </Stack>\n447\t        </Box>\n448\t    )\n449\t})\n450\t",
+          "providerItemId": "toolu_01BLUbvZuzEVzRoFE3b4N5dp",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:24.196Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\actions\\\\editor\\\\action_definition_fields.grouped.test.tsx\"}",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-7",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { cleanup, fireEvent, render, screen, within } from '@testing-library/react'\n2\timport userEvent from '@testing-library/user-event';\n3\timport { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'\n4\timport type { ActionDefinition, RawActionDefinition } from '../../../data/action_types'\n5\timport { actionService } from '../../../services/actions/action_service'\n6\timport { configService } from '../../../services/config/config_service'\n7\timport { AppThemeProvider } from '../../../theme/theme_provider'\n8\timport { ActionDefinitionFields } from './action_definition_fields'\n9\t\n10\tconst sharedFields = {\n11\t    appliesTo: { kind: 'card' },\n12\t    description: 'Run checks',\n13\t    id: 'check-action',\n14\t    label: 'Check',\n15\t    needsWorkTree: true,\n16\t    onAfter: ['after'],\n17\t    onBefore: ['before'],\n18\t    onState: 'ready',\n19\t}\n20\t\n21\tconst SOURCE_PATH = 'actions/check.json'\n22\t\n23\tfunction renderFields(definition: RawActionDefinition) {\n24\t    const persistedDefinition = definition.type === 'command' && !definition.command\n25\t        ? { ...definition, command: 'run' }\n26\t        : definition\n27\t    actionService.loadFromFiles([\n28\t        { content: JSON.stringify(persistedDefinition), path: SOURCE_PATH },\n29\t        { content: JSON.stringify({ command: 'before', description: 'Before', id: 'before', label: 'Before', type: 'command' }), path: 'actions/before.json' },\n30\t        { content: JSON.stringify({ command: 'after', description: 'After', id: 'after', label: 'After', type: 'command' }), path: 'actions/after.json' },\n31\t    ])\n32\t    actionService.draftStore.getDraft(definition.id)\n33\t    actionService.draftStore.stageDraft(definition.id, definition)\n34\t    render(\n35\t        <AppThemeProvider>\n36\t            <ActionDefinitionFields\n37\t                actionId={definition.id}\n38\t                actions={[\n39\t                    { id: 'before', label: 'Before' },\n40\t                    { id: 'after', label: 'After' },\n41\t                ] as ActionDefinition[]}\n42\t                cardTypes={['feature']}\n43\t                sourcePath={SOURCE_PATH}\n44\t                specialContextTypes={['actions']}\n45\t                states={['ready']}\n46\t                worktrees={[]}\n47\t            />\n48\t        </AppThemeProvider>,\n49\t    )\n50\t\n51\t    return () => actionService.draftStore.getDraft(definition.id).definition\n52\t}\n53\t\n54\tfunction selectType(label: string) {\n55\t    fireEvent.mouseDown(screen.getByLabelText('Type'))\n56\t    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: label }))\n57\t}\n58\t\n59\tdescribe('ActionDefinitionFields', () => {\n60\t    beforeEach(() => configService.init())\n61\t\n62\t    afterEach(() => {\n63\t        cleanup()\n64\t        actionService.clear()\n65\t        configService.clear()\n66\t        vi.restoreAllMocks()\n67\t    })\n68\t\n69\t    it('shows Regular and default labels when optional definition fields are absent', () => {\n70\t        const definition = {\n71\t            command: 'run',\n72\t            description: 'Run checks',\n73\t            id: 'check-action',\n74\t            label: 'Check',\n75\t            type: 'command',\n76\t        } satisfies RawActionDefinition;\n77\t        const getDefinition = renderFields(definition);\n78\t\n79\t        expect(screen.getByLabelText('Output kind')).toHaveTextContent('Regular');\n80\t        expect(screen.getByLabelText('Icon')).toHaveTextContent('No icon');\n81\t        expect(screen.getByLabelText('Ask user for')).toHaveTextContent('None');\n82\t        expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('No state trigger');\n83\t        expect(getDefinition().output).toBeUndefined();\n84\t    });\n85\t\n86\t    it('shows Regular and clears output when Diagram changes to Regular', async () => {\n87\t        const user = userEvent.setup();\n88\t        const definition = {\n89\t            ...sharedFields,\n90\t            command: 'run',\n91\t            output: { kind: 'diagram' },\n92\t            type: 'command',\n93\t        } satisfies RawActionDefinition;\n94\t        const getDefinition = renderFields(definition\n[9740 characters omitted]\n\t        expect(screen.getByLabelText('Auto finish card state')).toHaveTextContent('ready')\n274\t        fireEvent.click(screen.getByRole('switch', { name: 'Streaming' }))\n275\t        expect(getDefinition()).toEqual({ ...definition, autoFinish: undefined, streaming: undefined })\n276\t    })\n277\t\n278\t    it('edits diagram output independently and offers diagram-created auto finish', () => {\n279\t        const definition = {\n280\t            ...sharedFields,\n281\t            appliesTo: { kind: 'diagram', type: 'root' },\n282\t            output: { kind: 'diagram' },\n283\t            prompt: 'Create diagram',\n284\t            streaming: true,\n285\t            type: 'agent',\n286\t        } satisfies RawActionDefinition\n287\t        const getDefinition = renderFields(definition)\n288\t\n289\t        expect(screen.getByLabelText('Output kind')).toHaveTextContent('Diagram')\n290\t        fireEvent.click(screen.getByRole('switch', { name: 'Auto finish' }))\n291\t\n292\t        expect(getDefinition()).toEqual({ ...definition, autoFinish: { when: 'diagram-created' } })\n293\t        expect(screen.getByLabelText('Auto finish trigger')).toHaveTextContent('When diagram is created')\n294\t        expect(screen.queryByLabelText('Auto finish card state')).not.toBeInTheDocument()\n295\t        expect(getDefinition().appliesTo).toEqual({ kind: 'diagram', type: 'root' })\n296\t    })\n297\t\n298\t    it('shows and persists agent file-change tracking with its limitations', () => {\n299\t        const definition = {\n300\t            ...sharedFields,\n301\t            prompt: 'Edit one file',\n302\t            type: 'agent',\n303\t        } satisfies RawActionDefinition\n304\t        const getDefinition = renderFields(definition)\n305\t        const trackingSwitch = screen.getByRole('switch', { name: 'Auto commit' })\n306\t\n307\t        expect(trackingSwitch).not.toBeChecked()\n308\t        expect(screen.getByText(/auto commit files agent reported as modified/u)).toBeInTheDocument()\n309\t        fireEvent.click(trackingSwitch)\n310\t\n311\t        expect(getDefinition()).toEqual({ ...definition, trackFileChanges: true })\n312\t    })\n313\t\n314\t    it('shows label, type, and icon before description without exposing internal identity fields', () => {\n315\t        renderFields({ ...sharedFields, command: 'run', icon: 'icon.svg', type: 'command' })\n316\t\n317\t        const label = screen.getByLabelText('Label')\n318\t        const type = screen.getByLabelText('Type')\n319\t        const icon = screen.getByLabelText('Icon')\n320\t        const description = screen.getByLabelText('Description')\n321\t\n322\t        expect(screen.queryByLabelText('ID')).not.toBeInTheDocument()\n323\t        expect(screen.queryByLabelText('Name')).not.toBeInTheDocument()\n324\t        expect(label.compareDocumentPosition(type) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()\n325\t        expect(type.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()\n326\t        expect(icon.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()\n327\t    })\n328\t\n329\t    it('renders section headings and empty-state hints for empty collections', () => {\n330\t        renderFields({\n331\t            command: 'run',\n332\t            description: 'Run checks',\n333\t            id: 'check-action',\n334\t            label: 'Check',\n335\t            type: 'command',\n336\t        })\n337\t\n338\t        expect(screen.getByRole('heading', { name: 'Action definition' })).toBeInTheDocument()\n339\t        expect(screen.getByRole('heading', { name: 'Applicability filters' })).toBeInTheDocument()\n340\t        expect(screen.getByRole('heading', { name: 'Output rules' })).toBeInTheDocument()\n341\t        expect(screen.getByText('No filters. The action is available in every context.')).toBeInTheDocument()\n342\t        expect(screen.getByText('No actions run before this one.')).toBeInTheDocument()\n343\t        expect(screen.getByText('No actions run after this one.')).toBeInTheDocument()\n344\t        expect(screen.getByText('No output rules. Output does not trigger follow-up actions.')).toBeInTheDocument()\n345\t    })\n346\t})\n347\t",
+          "providerItemId": "toolu_01P4jY5RHfz1aQ17iCwD53uU",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:24.686Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cfkv7FQZRn9boUcgvZ7Xx:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T11:37:27.340Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"ActionDefinitionFields\\\\b\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"files_with_matches\"}",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-9",
+          "kind": "event",
+          "label": "Grep",
+          "output": "Found 3 files\napp\\src\\components\\actions\\editor\\action_definition_fields.grouped.test.tsx\napp\\src\\components\\actions\\editor\\action_definition_fields.tsx\napp\\src\\components\\actions\\editor\\action_editor_content.tsx",
+          "providerItemId": "toolu_013fA5pwArtibY29FiCtKKUQ",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:27.983Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\actions\\\\editor\\\\action_definition_group.tsx\"}",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-10",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Card, CardContent, Stack, Typography } from '@mui/material'\n2\timport type { ReactNode } from 'react'\n3\t\n4\tinterface ActionDefinitionGroupProps {\n5\t    children: ReactNode\n6\t    description: string\n7\t    id: string\n8\t    title: string\n9\t}\n10\t\n11\t/** Outlined group of related action definition controls. */\n12\texport function ActionDefinitionGroup(props: ActionDefinitionGroupProps) {\n13\t    const { children, description, id, title } = props\n14\t    const headingId = `${id}-heading`\n15\t\n16\t    return (\n17\t        <Card aria-labelledby={headingId} component=\"section\" id={id} variant=\"outlined\">\n18\t            <CardContent>\n19\t                <Stack spacing={1}>\n20\t                    <Typography component=\"h3\" id={headingId} variant=\"subtitle1\">{title}</Typography>\n21\t                    <Typography color=\"text.secondary\" variant=\"body2\">{description}</Typography>\n22\t                    <Stack spacing={2} sx={{ minWidth: 0, pt: 1 }}>\n23\t                        {children}\n24\t                    </Stack>\n25\t                </Stack>\n26\t            </CardContent>\n27\t        </Card>\n28\t    )\n29\t}\n30\t",
+          "providerItemId": "toolu_01Gmw7KTMtRdw5zKHBGeJE6s",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:28.499Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"design/feature_descriptions/J_5*.md\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\"}",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-11",
+          "kind": "event",
+          "label": "Glob",
+          "output": "design\\feature_descriptions\\J_54_move_diagram_field_edits_into_focused_editors.md\ndesign\\feature_descriptions\\J_57_back_btn_transparency.md\ndesign\\feature_descriptions\\J_58_move_chatlog_item_icons_outside_of_box.md\ndesign\\feature_descriptions\\J_59_improve_layout_action_details_on_action_editor.md",
+          "providerItemId": "toolu_01YUVbywamduVpf8E8rSZztx",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:29.761Z",
+          "type": "tool.Glob"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-12",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cfkv7d3Z5Nd4nL3n93AQR:thinking:0",
+          "sequence": 12,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T11:37:31.306Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\J_58_move_chatlog_item_icons_outside_of_box.md\"}",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-13",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: J_58\n4\tinternalId: 86f8b326-7ca2-40c8-bcbf-3b596f3efa1e\n5\ttitle: move chatlog item icons outside of box\n6\tstatus: ready\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__86f8b326-7ca2-40c8-bcbf-3b596f3efa1e.json\n11\tpolicy:\n12\tafter: 11011a61-0393-4aa1-9b89-f52be576aa72\n13\tchangedFiles:\n14\t  - app/src/components/actions/conversation/messages/action_conversation_message.test.tsx\n15\t---\n16\tOn the action-popup, in the chatlog, we show the chatlog items. The text boxes have 3 icons at the bottom.&#x20;\n17\t\n18\tFor visual representation, we should move those 3 icons outside of the chatbox, so below the box. So we also no longer need to reserve so much room at the bottom of the boxes.\n19\t## Current state\n20\t\n21\t- `ActionConversationMessage` renders each user/assistant message as one colored bubble: Markdown followed by `ActionConversationMessageCommands` (Copy, Split, Save). Bubble means colored, rounded text container.\n22\t- Command row occupies 28px inside bubble even when invisible. It appears on message hover or keyboard focus within message; devices without hover show it continuously. User messages align right; assistant messages align left; message width is capped at 88%.\n23\t- `ActionConversationGroupList` is sole production caller of message component; command component is used there and directly in command tests. Event rows have separate Copy-only controls.\n24\t\n25\t## Implementation details\n26\t\n27\t- In `app/src/components/actions/conversation/messages/action_conversation_message.tsx`, make transparent vertical wrapper contain two siblings: colored Markdown bubble and existing command component below it. Keep `.conversation-message` on wrapper so hover/focus covers both siblings and moving pointer from text to buttons keeps controls visible.\n28\t- Wrapper retains role-based alignment, 88% maximum width, `minWidth: 0`, and non-shrinking layout. Inner bubble retains background, radius, text padding, Markdown styles, link context, and code-block wrapping. Command row stays inside wrapper's width; user controls align right, assistant controls left. Use theme spacing for small gap between bubble and row.\n29\t- Keep row in normal document flow and hide through opacity, preserving its height outside bubble. This prevents hover from shifting later messages. Remove command-height reservation from colored bubble; retain ordinary text padding and configured Markdown margins.\n30\t- Keep `ActionConversationMessageCommands` behavior and status subscription unchanged. Both production components and direct command tests retain existing Copy/Split/Save behavior; no shared helper, service, persistence, identity, event-row, or group-header changes required.\n31\t- Add message-level regression coverage confirming controls sit outside Markdown bubble and still act on selected message. Reuse existing command tests for disabled states and Save options. During implementation, run affected message/command and transcript rendering tests, app typecheck, and app lint; manually verify layout and hover/focus behavior.\n32\t\n33\t## Acceptance criteria\n34\t\n35\t- Every user/assistant message shows Copy, Split, Save below colored bubble, outside its background. Bubble encloses text with ordinary padding and no command-height space.\n36\t- User bubble and controls align right; assistant bubble and controls align left. Hovering either bubble or controls, or focusing any message control, reveals row. Devices without hover show controls continuously. Revealing controls causes no layout shift.\n37\t- Short messages, long Markdown, code blocks, streaming output, and narrow popup widths keep text and controls readable without overlap or horizontal clipping, in light and dark themes.\n38\t- Copy still copies exact source Markdown. Split and Save retain current running, read-only, pending, and first-prompt rules; tooltips, accessible labels, menus, dialogs, and error reporting remain intact.\n39\t- Event Copy controls and collapsed group headers remain unchanged. Focused regression tests, app typecheck, and app lint pass before implementation is submitted.\n40\t",
+          "providerItemId": "toolu_01AaNG4xXkNA8iHKJy7bZUyF",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:31.906Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"ActionDefinitionFields|list view|listView\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\actions\\\\editor\\\\action_editor_content.tsx\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-14",
+          "kind": "event",
+          "label": "Grep",
+          "output": "12:import { ActionDefinitionFields } from './action_definition_fields'\n104:                <ActionDefinitionFields",
+          "providerItemId": "toolu_01YCtDWkJk4LWjbXS5hZ75Lk",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:32.631Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-15",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cfkv7qW9os4QKoZJtqnD5:thinking:0",
+          "sequence": 15,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T11:37:36.833Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Code read; writing doc sections now.",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 16,
+          "timestamp": "2026-10-06T11:37:36.837Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\J_59_improve_layout_action_details_on_action_editor.md",
+          "deletions": 1,
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-17",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\J_59_improve_layout_action_details_on_action_editor.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01SBMZLGxKDw8StPgKZXCtHb",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:37.686Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\J_59_improve_layout_action_details_on_action_editor.md",
+          "deletions": 1,
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-18",
+          "insertions": 32,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\J_59_improve_layout_action_details_on_action_editor.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01EsfnviFtSpGX4WY297x3u2",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-10-06T11:37:49.439Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-event-19",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cfkv952Gg6MGcGvoEm4e8:thinking:0",
+          "sequence": 19,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T11:37:55.462Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI added `Current state`, `Implementation details` and `Acceptance criteria` to `design/feature_descriptions/J_59_improve_layout_action_details_on_action_editor.md` and set `status` to `ready for implementation`. Nothing staged or committed.\n\n**What the code shows:**\n- Only one file needs to change: `app/src/components/actions/editor/action_definition_fields.tsx`. `ActionEditorContent` is the only place that uses it.\n- Current layout:\n  - One row with Label, Type, Output kind and Icon.\n  - Description, Ask user for and Version question each on their own full-width line below it.\n- One existing test will need updating: `shows label, type, and icon before description` in `action_definition_fields.grouped.test.tsx`. It checks that Description comes after Icon, which the new layout changes. The doc covers this update.\n\n**Decisions I made that the card didn't state — please confirm or correct:**\n1. **Column widths:** fields in a row split the width equally. So Label and Description are each half width.\n2. **Last row when Version question is hidden:** Ask user for keeps half width. Otherwise it would jump between full and half width whenever Version is selected or cleared. This uses two fixed equal grid columns.\n3. **Narrow screens:** below the `md` breakpoint (MUI's medium screen width), all fields stack in one column in the new order. Same behavior as the current row.\n4. **Alignment:** fields in a row line up at the top, so an error message under one field doesn't push the others out of line.\n\nI didn't read the `agents` activity file, as you said.",
+          "id": "agent-turn-3a6003bf-96fd-46c4-9690-ba3e3c0f7f4c-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 20,
+          "timestamp": "2026-10-06T11:37:55.551Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -37,10 +282,22 @@
       "startedAt": "2026-10-06T11:37:16.518Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 10099,
+          "toolMs": 19394
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-06T11:37:16.518Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 336089,
+        "inputTokens": 14,
+        "outputTokens": 3517,
+        "reasoningTokens": 0,
+        "totalTokens": 339620,
+        "costUsd": 0.4817888
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
