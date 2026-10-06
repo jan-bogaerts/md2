@@ -311,19 +311,26 @@ describe('ActionDefinitionFields', () => {
         expect(getDefinition()).toEqual({ ...definition, trackFileChanges: true })
     })
 
-    it('shows label, type, and icon before description without exposing internal identity fields', () => {
+    it('orders action details as label, description, type, output kind, icon, ask user for without exposing internal identity fields', () => {
         renderFields({ ...sharedFields, command: 'run', icon: 'icon.svg', type: 'command' })
 
-        const label = screen.getByLabelText('Label')
-        const type = screen.getByLabelText('Type')
-        const icon = screen.getByLabelText('Icon')
-        const description = screen.getByLabelText('Description')
+        const orderedFields = ['Label', 'Description', 'Type', 'Output kind', 'Icon', 'Ask user for'].map((fieldLabel) => screen.getByLabelText(fieldLabel))
 
         expect(screen.queryByLabelText('ID')).not.toBeInTheDocument()
         expect(screen.queryByLabelText('Name')).not.toBeInTheDocument()
-        expect(label.compareDocumentPosition(type) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(type.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(icon.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        orderedFields.slice(1).forEach((field, index) => {
+            expect(orderedFields[index].compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        })
+    })
+
+    it('shows version question after ask user for when version input is selected', () => {
+        renderFields({ ...sharedFields, command: 'run', type: 'command', userInput: { prompt: 'Which build?', type: 'version' } })
+
+        const askUserFor = screen.getByLabelText('Ask user for')
+        const versionQuestion = screen.getByLabelText('Version question (optional)')
+
+        expect(versionQuestion).toHaveValue('Which build?')
+        expect(askUserFor.compareDocumentPosition(versionQuestion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it('renders section headings and empty-state hints for empty collections', () => {

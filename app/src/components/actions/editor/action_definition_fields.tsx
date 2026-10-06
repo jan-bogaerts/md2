@@ -201,8 +201,11 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
                     id="action-details"
                     title="Action details"
                 >
-                    <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { md: '1fr 2fr', xs: '1fr' }, columnGap: 1, alignItems: 'start' }}>
                         <ActionEditorTextField error={!!errors.label} fieldId="action-label" fullWidth helperText={errors.label} label="Label" name="label" onChange={handleRequiredTextChange} size="small" source={definition} value={definition.label} />
+                        <ActionEditorTextField error={!!errors.description} fieldId="action-description" fullWidth helperText={errors.description} label="Description" name="description" onChange={handleRequiredTextChange} size="small" source={definition} value={definition.description} />
+                    </Box>
+                    <Stack direction={{ md: 'row', xs: 'column' }} spacing={1} sx={{ alignItems: 'flex-start' }}>
                         <ActionEditorField
                             error={!!errors.type}
                             fieldId="action-type"
@@ -236,14 +239,15 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
                             {iconPaths.map((path) => <MenuItem key={path} value={path}>{path}</MenuItem>)}
                         </ActionEditorField>
                     </Stack>
-                    <ActionEditorTextField error={!!errors.description} fieldId="action-description" fullWidth helperText={errors.description} label="Description" name="description" onChange={handleRequiredTextChange} size="small" source={definition} value={definition.description} />
-                    <ActionEditorField error={!!errors.userInput} fieldId="action-user-input" fullWidth helperText={errors.userInput} label="Ask user for" onChange={handleUserInputChange} select size="small" value={definition.userInput?.type ?? ''}>
-                        <MenuItem value="">None</MenuItem>
-                        <MenuItem value="version">Version</MenuItem>
-                    </ActionEditorField>
-                    {definition.userInput?.type === 'version' ? (
-                        <ActionEditorField error={!!errors.userInput} fieldId="action-user-input-prompt" fullWidth helperText={errors.userInput} label="Version question (optional)" onChange={handleUserInputPromptChange} size="small" value={definition.userInput.prompt ?? ''} />
-                    ) : null}
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { md: 'repeat(2, 1fr)', xs: '1fr' }, columnGap: 1, alignItems: 'start' }}>
+                        <ActionEditorField error={!!errors.userInput} fieldId="action-user-input" fullWidth helperText={errors.userInput} label="Ask user for" onChange={handleUserInputChange} select size="small" value={definition.userInput?.type ?? ''}>
+                            <MenuItem value="">None</MenuItem>
+                            <MenuItem value="version">Version</MenuItem>
+                        </ActionEditorField>
+                        {definition.userInput?.type === 'version' ? (
+                            <ActionEditorField error={!!errors.userInput} fieldId="action-user-input-prompt" fullWidth helperText={errors.userInput} label="Version question (optional)" onChange={handleUserInputPromptChange} size="small" value={definition.userInput.prompt ?? ''} />
+                        ) : null}
+                    </Box>
                 </ActionDefinitionGroup>
                 <ActionDefinitionGroup
                     description="Choose when this action starts and how its agent or command runs."
