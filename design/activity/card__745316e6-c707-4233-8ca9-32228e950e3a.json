@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "745316e6-c707-4233-8ca9-32228e950e3a",
       "cardPath": "design/feature_descriptions/B_263_stop_conversation_broken.md",
-      "completedAt": null,
+      "completedAt": "2026-10-06T13:52:57.022Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 131759
@@ -1800,7 +1800,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 131,
-          "timestamp": "2026-10-06T13:40:06.097Z"
+          "timestamp": "2026-10-06T13:52:57.022Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1810,19 +1810,19 @@
           "agent": "codex",
           "conversationId": "01a11156-9680-74e3-b760-30e57de53893",
           "createdAt": "2026-10-06T13:12:38.697Z",
-          "lastUsedAt": "2026-10-06T13:40:06.097Z",
+          "lastUsedAt": "2026-10-06T13:52:57.022Z",
           "synchronizedThroughMessageId": "agent-turn-2b88c647-9134-4d4f-b942-6963ce8e2630-turn-4-assistant-2"
         }
       ],
       "startedAt": "2026-10-06T13:10:49.286Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 65282,
           "toolMs": 5023
         },
-        "elapsedMs": 295261,
-        "runningStartedAt": "2026-10-06T13:39:13.291Z"
+        "elapsedMs": 348067,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
