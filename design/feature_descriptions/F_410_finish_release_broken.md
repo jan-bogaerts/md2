@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__7df9f053-e015-45b7-ba7a-9f4f0945ef60.json
 policy:
 ---
 after running 'finish release' we get a lot of these errors:
