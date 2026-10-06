@@ -3481,10 +3481,10 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "bde0d7b3-85f0-46c0-8027-5d56939c04ee",
       "cardPath": "design/feature_descriptions/B_253_in_transmission_prompts_still_disapear.md",
-      "completedAt": null,
+      "completedAt": "2026-10-06T09:00:41.967Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 61261
+        "usedTokens": 61482
       },
       "entries": [
         {
@@ -3853,6 +3853,58 @@
           "role": "user",
           "sequence": 28,
           "timestamp": "2026-10-06T09:00:24.515Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll trace where the prompt can disappear from all three lists. I’ll keep the history/current-turn split separate from that investigation.\n\n\n",
+          "id": "agent-turn-1ca268e2-c1b0-45b3-b600-ea912adbf9cd-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 29,
+          "timestamp": "2026-10-06T09:00:41.967Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/conversation/transcript/action_conversation_reservation.ts; Get-Content app/src/components/actions/conversation/transcript/action_conversation_reserved_blocks.tsx'",
+          "content": "import type { PopupRunStatus } from '../../run/popup/action_popup_defaults'\r\n\r\nconst MIN_RESERVED_BLOCK_COUNT = 1\r\n\r\nexport interface ReservationGroupState {\r\n    key: string\r\n    running: boolean\r\n}\r\n\r\nexport interface ActionConversationReservationState {\r\n    active: boolean\r\n    conversationPath: string | null\r\n    inputGroups: ReservationGroupState[]\r\n    reservationSession: object | null\r\n    transitionedGroupKeys: string[]\r\n    permanentKeys: Set<string>\r\n    runningKeys: Set<string>\r\n    slotCount: number\r\n}\r\n\r\nfunction runIsActive(status: PopupRunStatus) {\r\n    return status === 'queued' || status === 'running' || status === 'waitingForInput'\r\n}\r\n\r\n/** Creates empty presentation state for chat-bottom reservation tracking. */\r\nexport function createActionConversationReservationState(): ActionConversationReservationState {\r\n    return {\r\n        active: false,\r\n        conversationPath: null,\r\n        inputGroups: [],\r\n        permanentKeys: new Set(),\r\n        reservationSession: null,\r\n        runningKeys: new Set(),\r\n        transitionedGroupKeys: [],\r\n        slotCount: 0,\r\n    }\r\n}\r\n\r\n/** Advances reserved-slot state from visible render-group lifecycle changes. */\r\nexport function updateActionConversationReservation(\r\n    previous: ActionConversationReservationState,\r\n    conversationPath: string | null,\r\n    groups: ReservationGroupState[],\r\n    reservationSession: object,\r\n    transitionedGroupKeys: string[],\r\n    status: PopupRunStatus,\r\n) {\r\n    const active = runIsActive(status)\r\n    if (!active && !previous.active) return previous\r\n    if (\r\n        active === previous.active\r\n        && conversationPath === previous.conversationPath\r\n        && groups === previous.inputGroups\r\n        && reservationSession === previous.reservationSession\r\n        && transitionedGroupKeys === previous.transitionedGroupKeys\r\n    ) return previous\r\n    if (!active) return createActionConversationReservationState()\r\n\r\n    const sessionChanged = !previous.active\r\n        || previous.conversationPath !== conversationPath\r\n        || previous.reservationSession !== reservationSession\r\n    const retainedPermanentKeys = sessionChanged ? [] : previous.permanentKeys\r\n    const runningKeys = new Set(groups.filter(({ running }) => running).map(({ key }) => key))\r\n    const permanentKeys = new Set([\r\n        ...retainedPermanentKeys,\r\n        ...groups.filter(({ running }) => !running).map(({ key }) => key),\r\n        ...transitionedGroupKeys,\r\n    ])\r\n    if (sessionChanged) {\r\n        return {\r\n            active,\r\n            conversationPath,\r\n            inputGroups: groups,\r\n            permanentKeys,\r\n            reservationSession,\r\n            runningKeys,\r\n            transitionedGroupKeys,\r\n            slotCount: Math.max(MIN_RESERVED_BLOCK_COUNT, runningKeys.size),\r\n        }\r\n    }\r\n\r\n    const newPermanentCount = [...permanentKeys].filter((key) => !previous.permanentKeys.has(key)).length\r\n    const retainedRunningCount = [...runningKeys].filter((key) => previous.runningKeys.has(key)).length\r\n    const newRunningCount = runningKeys.size - retainedRunningCount\r\n    const reducedSlotCount = Math.max(MIN_RESERVED_BLOCK_COUNT, previous.slotCount - newPermanentCount)\r\n    const availableSlotCount = Math.max(0, reducedSlotCount - retainedRunningCount)\r\n    const slotCount = reducedSlotCount + Math.max(0, newRunningCount - availableSlotCount)\r\n\r\n    return {\r\n        active,\r\n        conversationPath,\r\n        inputGroups: groups,\r\n        permanentKeys,\r\n        reservationSession,\r\n        runningKeys,\r\n        transitionedGroupKeys,\r\n        slotCount,\r\n    }\r\n}\r\n\r\n/** Returns currently unused slots rendered as bottom placeholders. */\r\nexport function reservedActionConversationBlockCount(state: ActionConversationReservationState) {\r\n    return Math.max(0, state.slotCount - state.runningKeys.size)\r\n}\r\nimport { useSyncExternalStore } from 'react'\r\nimport type { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'\r\nimport { ActionConversationReservedBlock } from './action_conversation_reserved_block'\r\n\r\ninterface ActionConversationReservedBlocksProps {\r\n    tracker: ActionConversationChatlogTracker\r\n}\r\n\r\n/** Renders placeholders reserved for changing conversation groups. */\r\nexport function ActionConversationReservedBlocks({ tracker }: ActionConversationReservedBlocksProps) {\r\n    const count = useSyncExternalStore(\r\n        tracker.subscribeReservedBlockCount,\r\n        tracker.getReservedBlockCount,\r\n        tracker.getReservedBlockCount,\r\n    )\r\n\r\n    return Array.from({ length: count }, (_, index) => (\r\n        <ActionConversationReservedBlock key={`reserved-block-${index}`} />\r\n    ))\r\n}\r\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-1ca268e2-c1b0-45b3-b600-ea912adbf9cd-event-30",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/conversation/transcript/action_conversation_reservation.ts; Get-Content app/src/components/actions/conversation/transcript/action_conversation_reserved_blocks.tsx'",
+          "providerItemId": "exec-a132d829-8d85-4c39-9319-8b5b12fa02f1",
+          "sequence": 30,
+          "status": "completed",
+          "timestamp": "2026-10-06T09:00:31.682Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/services/actions/action_run_registry.ts | Select-Object -Skip 520 -First 100; Get-Content app/src/components/actions/conversation/state/action_conversation_store.node.test.ts | Select-Object -Skip 60 -First 155; Get-Content desktop/src/actions/agent/agent_runner_service.js | Select-Object -Skip 75 -First 115'",
+          "content": "    }\r\n\r\n    getContextActiveSnapshot(context: ActionContext) {\r\n        return this.getContextActiveSnapshotByKey(contextKey(context))\r\n    }\r\n\r\n    getContextActiveSnapshotByKey(contextIdentity: string) {\r\n        return this.contextActiveSnapshots.get(contextIdentity) ?? EMPTY_ACTIVE_RUNS\r\n    }\r\n\r\n    getGlobalActiveSnapshot = () => this.globalActiveSnapshot\r\n\r\n    subscribeActionRun(actionId: string, context: ActionContext, listener: StoreListener) {\r\n        return this.subscribeActionRunByKey(actionId, contextKey(context), listener)\r\n    }\r\n\r\n    subscribeActionRunByKey(actionId: string, contextIdentity: string, listener: StoreListener) {\r\n        const key = `${actionId}\\u0000${contextIdentity}`\r\n        return this.subscribeMap(this.actionContextListeners, key, listener)\r\n    }\r\n\r\n    subscribeRun(runId: string, listener: StoreListener) {\r\n        let unsubscribeStore = this.runs.get(runId)?.subscribe(listener) ?? null\r\n        const handleStoreChanged = () => {\r\n            unsubscribeStore?.()\r\n            unsubscribeStore = this.runs.get(runId)?.subscribe(listener) ?? null\r\n            listener()\r\n        }\r\n        const eventType = runEventType(runId)\r\n        this.addEventListener(eventType, handleStoreChanged)\r\n        this.start()\r\n\r\n        return () => {\r\n            this.removeEventListener(eventType, handleStoreChanged)\r\n            unsubscribeStore?.()\r\n        }\r\n    }\r\n\r\n    subscribeContextActive(context: ActionContext, listener: StoreListener) {\r\n        return this.subscribeContextActiveByKey(contextKey(context), listener)\r\n    }\r\n\r\n    subscribeContextActiveByKey(contextIdentity: string, listener: StoreListener) {\r\n        return this.subscribeMap(this.contextActiveListeners, contextIdentity, listener)\r\n    }\r\n\r\n    subscribeContextEvents(context: ActionContext, listener: EventListener) {\r\n        return this.subscribeMap(this.contextEventListeners, contextKey(context), listener)\r\n    }\r\n\r\n    subscribeActiveRunEvents(listener: EventListener) {\r\n        this.activeRunEventListeners.add(listener)\r\n        this.start()\r\n\r\n        return () => this.activeRunEventListeners.delete(listener)\r\n    }\r\n\r\n    readonly subscribeGlobalActive = (listener: StoreListener) => {\r\n        this.globalActiveListeners.add(listener)\r\n        this.start()\r\n\r\n        return () => this.globalActiveListeners.delete(listener)\r\n    }\r\n\r\n    async startRun(\r\n        action: ActionDefinition,\r\n        context: ActionContext,\r\n        runInput: ActionRunInput = {},\r\n        onStarted?: (runId: string) => void,\r\n        interactive = true,\r\n        conversationReservation?: AgentConversationReservation,\r\n    ) {\r\n        projectAccessService.requireWritable()\r\n        const bridge = getElectronActionBridge()\r\n        if (!bridge) throw new Error('Action run requires Electron')\r\n        this.start()\r\n        const start = interactive ? bridge.startAction.bind(bridge) : bridge.startUnattendedAction?.bind(bridge)\r\n        if (!start) throw new Error('Unattended action run requires Electron')\r\n        this.startsInProgress += 1\r\n        let runId: string\r\n        try {\r\n            runId = await start({ actionId: action.id, ...(conversationReservation ? { conversationReservation } : {}), context, runInput })\r\n        } finally {\r\n            this.startsInProgress -= 1\r\n        }\r\n        onStarted?.(runId)\r\n        if (!this.terminalResults.has(runId)) this.runContexts.set(runId, context)\r\n\r\n        return this.waitForRun(runId)\r\n    }\r\n\r\n    async restartRun(\r\n        previousRunId: string,\r\n        action: ActionDefinition,\r\n        context: ActionContext,\r\n        runInput: ActionRunInput,\r\n        onStarted?: (runId: string) => void,\r\n    ) {\r\n        projectAccessService.requireWritable()\r\n        const bridge = getElectronActionBridge()\r\n        actionRunRegistry.stop()\r\n        actionPromptDraftService.clearAll()\r\n        setActionBridgeOverride(null)\r\n        vi.restoreAllMocks()\r\n    })\r\n\r\n    it('reconciles identical rapid submissions by their local IDs', () => {\r\n        let runEvent: ((event: ActionRunE\n[10036 characters omitted]\n          ...requestValue,\r\n        };\r\n        const rootPath = requireRootPath(project);\r\n        await assertGitRoot(rootPath);\r\n        const command = requireCommand(request?.command);\r\n        readOptionalString(request?.actionId, 'actionId');\r\n        const cardPath = readOptionalString(request?.cardPath, 'cardPath');\r\n        const compactOnly = request.compactOnly === true;\r\n        if (compactOnly && (!request.conversation || !request.providerConversationId || !request.streaming)) {\r\n            throw new Error('Compact-only startup requires an existing streaming provider session');\r\n        }\r\n        const prompt = compactOnly ? null : requireString(request?.prompt, 'prompt');\r\n        console.log('[agent prompt]', prompt);\r\n        const agent = requireString(request?.agent ?? 'generic', 'agent');\r\n        const streaming = request.streaming === true;\r\n        requireProjectFolder(request?.projectFolder);\r\n        if (cardPath) ensureInsideRoot(rootPath, path.join(rootPath, cardPath));\r\n\r\n        const id = `agent-turn-${crypto.randomUUID()}`;\r\n        const startedAt = new Date().toISOString();\r\n        const conversationId = request.conversation?.id ?? request.conversationId ?? `agent-${crypto.randomUUID()}`;\r\n        const reference = request.reference ?? conversationReference(request, conversationId);\r\n        const conversation = createConversation(request, conversationId, startedAt, reference);\r\n        let nextSequence = nextConversationSequence(conversation);\r\n        if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);\r\n        const lastMessage = lastMessageEntry(conversation);\r\n        const conversationBeforePrompt = request.reuseLastUserMessage ? null : snapshotConversation(conversation);\r\n        if (compactOnly) {\r\n            // The existing transcript remains intact; initialization is not a user message.\r\n        } else if (request.reuseLastUserMessage) {\r\n            if (lastMessage?.role !== 'user' || lastMessage.content !== prompt) throw new Error('Missing failed-turn user message for agent retry');\r\n        } else {\r\n            conversation.entries.push(createMessageEntry(request.submissionId ?? `${id}-user`, 'user', prompt, startedAt, undefined, nextSequence));\r\n            nextSequence += 1;\r\n        }\r\n        const initialConversation = snapshotConversation(conversation);\r\n        await this.persistConversationCheckpoint({ conversation: initialConversation, request });\r\n        onConversationSaved?.();\r\n        const [configuredExecutable, ...configuredArguments] = command;\r\n        const environment = createAgentEnvironment(process.env, agent);\r\n        const executable = await this.executableResolver.find(configuredExecutable, { cwd: rootPath, env: environment });\r\n        if (!executable) throw new Error(`Executable not found for ${agent}: ${configuredExecutable}`);\r\n        const argumentsList = streaming ? configuredArguments : [...configuredArguments, prompt];\r\n        this.requestUsagePoll({ agent, environment, executable, rootPath });\r\n        const child = this.spawn(executable, argumentsList, {\r\n            cwd: rootPath,\r\n            detached: process.platform !== 'win32',\r\n            env: environment,\r\n            stdio: ['pipe', 'pipe', 'pipe'],\r\n            // windowsHide: true,\r\n        });\r\n        logAgentEvent('[agent:start]', {\r\n            arguments: configuredArguments,\r\n            cwd: rootPath,\r\n            actionRunId: request.actionRunId ?? null,\r\n            executable,\r\n            pid: child.pid,\r\n            runId: id,\r\n            startedAt,\r\n        });\r\n        const run = createRun({\r\n            agent,\r\n            child,\r\n            conversation,\r\n            environment,\r\n            executable,\r\n            id,\r\n            nextSequence,\r\n            onComplete,\r\n            onCompletionError,\r\n            onEvent,\r\n            reference,\r\n            request,\r\n            rootPath,\r\n            startedAt,\r\n            streaming,\r\n        });\r\n",
+          "durationMs": 52,
+          "exitCode": 0,
+          "id": "agent-turn-1ca268e2-c1b0-45b3-b600-ea912adbf9cd-event-31",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/services/actions/action_run_registry.ts | Select-Object -Skip 520 -First 100; Get-Content app/src/components/actions/conversation/state/action_conversation_store.node.test.ts | Select-Object -Skip 60 -First 155; Get-Content desktop/src/actions/agent/agent_runner_service.js | Select-Object -Skip 75 -First 115'",
+          "providerItemId": "exec-400d8e1d-bd19-42eb-8237-cf73ec6ce18d",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-10-06T09:00:32.305Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-1ca268e2-c1b0-45b3-b600-ea912adbf9cd-event-32",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e1663b9d99cf177016ac4b8b132e887d28d6bc65b1f5fbf96",
+          "sequence": 32,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T09:00:38.753Z",
+          "type": "reasoning"
         }
       ],
       "hasExplicitTitle": true,
@@ -3867,14 +3919,14 @@
         }
       ],
       "startedAt": "2026-10-06T08:51:13.232Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
-          "reasoningMs": 5534,
-          "toolMs": 1125
+          "reasoningMs": 10324,
+          "toolMs": 1196
         },
-        "elapsedMs": 82064,
-        "runningStartedAt": "2026-10-06T09:00:24.515Z"
+        "elapsedMs": 99316,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
