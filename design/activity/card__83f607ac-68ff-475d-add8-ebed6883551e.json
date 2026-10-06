@@ -5,10 +5,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "83f607ac-68ff-475d-add8-ebed6883551e",
       "cardPath": "design/feature_descriptions/F_409_complete_release_broken.md",
-      "completedAt": "2026-10-06T15:09:12.795Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 75911
+        "usedTokens": 76105
       },
       "entries": [
         {
@@ -349,6 +349,36 @@
           "role": "assistant",
           "sequence": 26,
           "timestamp": "2026-10-06T15:09:12.795Z"
+        },
+        {
+          "content": "> Release loads referenced images before commit.\n\nwhy? this seems over engineered, it is a release, it should not be loading anything",
+          "id": "submission-53a00650-1d03-483d-829a-41c01a784749",
+          "kind": "message",
+          "role": "user",
+          "sequence": 27,
+          "timestamp": "2026-10-06T15:09:34.997Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-1a69547b-f64b-462c-a712-8b84e04af25c-event-28",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0b95390ba5051add016ac50f33a8a487d29b7838009def2c01",
+          "sequence": 28,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T15:09:42.013Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Current release uses content-based moves: each move carries file contents. Release therefore reads images first; storage writes those bytes at archive destination. See [release_operations.ts](app/src/services/release_operations.ts:193) and [project_files.js](desktop/src/project/project_files.js:293).\n\nFor local release, this is redundant: filesystem move can relocate existing image without loading bytes into React. Missing image then needs no move.\n\nYour concern is valid. Proposed design preserves existing mechanism, so it treats symptom rather than simplifying release. No files changed.\n\n",
+          "id": "agent-turn-1a69547b-f64b-462c-a712-8b84e04af25c-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 29,
+          "timestamp": "2026-10-06T15:09:46.222Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -358,27 +388,27 @@
           "agent": "codex",
           "conversationId": "01a111c1-0bcf-7e33-ae7d-13a11c57ebac",
           "createdAt": "2026-10-06T15:09:12.476Z",
-          "lastUsedAt": "2026-10-06T15:09:12.795Z",
-          "synchronizedThroughMessageId": "agent-turn-55b99240-aa32-43ab-b6b4-3c60b4772ee6-turn-1-assistant-4"
+          "lastUsedAt": "2026-10-06T15:09:46.222Z",
+          "synchronizedThroughMessageId": "agent-turn-1a69547b-f64b-462c-a712-8b84e04af25c-turn-1-assistant-1"
         }
       ],
       "startedAt": "2026-10-06T15:07:06.174Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 12241,
+          "reasoningMs": 14814,
           "toolMs": 27423
         },
         "elapsedMs": 126621,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-06T15:09:34.997Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 645760,
-        "inputTokens": 72014,
-        "outputTokens": 2275,
-        "reasoningTokens": 336,
-        "totalTokens": 720385
+        "cachedInputTokens": 721408,
+        "inputTokens": 72309,
+        "outputTokens": 2390,
+        "reasoningTokens": 383,
+        "totalTokens": 796490
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -396,13 +426,13 @@
         "agent-d7648957-4c94-4dda-93a5-729fee675bc9"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6.1-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6.1-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-ae6a1b99-830c-4d2b-afd1-48e3cb9fcc11",
       "origin": {
@@ -411,9 +441,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-d7648957-4c94-4dda-93a5-729fee675bc9",
       "startedAt": "2026-10-06T15:07:05.244Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-d7648957-4c94-4dda-93a5-729fee675bc9"
     }
   ],
   "version": 5
