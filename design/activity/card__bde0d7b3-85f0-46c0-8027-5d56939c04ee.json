@@ -3481,10 +3481,10 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "bde0d7b3-85f0-46c0-8027-5d56939c04ee",
       "cardPath": "design/feature_descriptions/B_253_in_transmission_prompts_still_disapear.md",
-      "completedAt": "2026-10-06T09:00:41.967Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 61482
+        "usedTokens": 69450
       },
       "entries": [
         {
@@ -3905,6 +3905,23 @@
           "summary": [],
           "timestamp": "2026-10-06T09:00:38.753Z",
           "type": "reasoning"
+        },
+        {
+          "content": "hold on, I was wrong.\n\n> History and current-turn messages: keep streaming updates from rerendering older messages.\n\nthis was done for speed reasons and is ok\n\n> Queued and transmitting prompts\n\nthey have no reason being in a different list. they are part of the current-turn",
+          "id": "submission-a63cdf94-a8a1-48e4-990b-5736321c5ecd",
+          "kind": "message",
+          "role": "user",
+          "sequence": 33,
+          "timestamp": "2026-10-06T09:01:38.356Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Agreed. Keep the history/current-turn split for performance. Transmitting, queued, and sent prompts should belong to the current-turn list, with one prompt object and one component whose delivery state changes.\n\nThe separate prompt lists are unnecessary. That explains the component replacement, but I still haven’t identified the exact cause of the second-long gap. My earlier explanation was incomplete.\n\n",
+          "id": "agent-turn-c49b18b8-b476-4c21-b128-589624512644-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 34,
+          "timestamp": "2026-10-06T09:01:47.243Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3919,22 +3936,22 @@
         }
       ],
       "startedAt": "2026-10-06T08:51:13.232Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 10324,
           "toolMs": 1196
         },
         "elapsedMs": 99316,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-06T09:01:38.356Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 334976,
-        "inputTokens": 48779,
-        "outputTokens": 1795,
+        "cachedInputTokens": 402176,
+        "inputTokens": 50951,
+        "outputTokens": 1873,
         "reasoningTokens": 156,
-        "totalTokens": 385706
+        "totalTokens": 455156
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -4000,11 +4017,11 @@
         "agent-e93cb86b-34b7-4b8a-959c-340435828470"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-5d95a3e6-4e13-4b9c-b738-c11a69fdf9e1",
       "origin": {
@@ -4013,9 +4030,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-e93cb86b-34b7-4b8a-959c-340435828470",
       "startedAt": "2026-10-06T08:51:13.227Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-e93cb86b-34b7-4b8a-959c-340435828470"
     }
   ],
   "version": 5
