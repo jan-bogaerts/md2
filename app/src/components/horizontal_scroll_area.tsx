@@ -143,7 +143,7 @@ export function HorizontalScrollArea(props: HorizontalScrollAreaProps) {
     const { canScrollEnd, canScrollStart } = scrollState;
 
     return (
-        <Box sx={rootSx}>
+        <Box sx={rootSx} aria-label="Horizontal scroll area" >
             {canScrollStart ? (
                 <Box sx={startButtonContainerSx}>
                     <IconButton aria-label="Scroll left" onClick={scrollToStart} size="small" sx={scrollButtonSx}>

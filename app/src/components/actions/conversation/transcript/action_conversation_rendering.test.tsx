@@ -1,8 +1,11 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useLayoutEffect, useState, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, AgentConversationEntry } from '../../../../data/data_types'
+import type { ActionRunEvent } from '../../../../data/action_run_types';
+import { generateUuid } from '../../../../data/uuid';
+import { actionCompactService } from '../../../../services/actions/action_compact_service';
 import type { ActionConversationChange, ActionRun, ActionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { projectAccessService } from '../../../../services/project/project_access_service'
@@ -195,6 +198,29 @@ function ActionConversationChat(
 }
 
 describe('ActionConversationChat rendering', () => {
+    it('shows compact progress inside the chat without repainting transcript messages', () => {
+        const displayed = { ...conversation([{ content: 'Keep transcript', id: 'message-1', kind: 'message', role: 'assistant', timestamp: 'now' }]), id: generateUuid() };
+        render(<AppThemeProvider><ActionConversationChat conversation={displayed} status="running" /></AppThemeProvider>);
+        const event: ActionRunEvent = {
+            actionId: 'review', context: { kind: 'project' }, phase: 'main', rootActionId: 'review', runId: 'compact-run',
+            status: 'running', type: 'update', update: {
+                kind: 'agentCompact', request: {
+                    actionId: 'review', context: { kind: 'project' }, conversationId: displayed.id, provider: 'codex',
+                    reference: displayed.path, requestId: generateUuid(), state: 'running',
+                },
+            },
+        };
+        if (event.update.kind !== 'agentCompact') throw new Error('Expected compact fixture');
+        renderProbes.markdown.mockClear();
+        act(() => actionCompactService.handleEvent(event));
+        expect(within(screen.getByLabelText('Conversation chat')).getByRole('progressbar', { name: 'Compacting conversation' })).toBeInTheDocument();
+        expect(screen.getByText('Keep transcript')).toBeInTheDocument();
+        expect(renderProbes.markdown).not.toHaveBeenCalled();
+        const completed: ActionRunEvent = { ...event, update: { kind: 'agentCompact', request: { ...event.update.request, state: 'completed' } } };
+        act(() => actionCompactService.handleEvent(completed));
+        expect(screen.queryByRole('progressbar', { name: 'Compacting conversation' })).not.toBeInTheDocument();
+    });
+
     afterEach(() => {
         cleanup()
         projectAccessService.setReadOnly(false)

@@ -744,7 +744,6 @@ class ActionRun {
             }
         };
         const onEvent = (agentEvent) => {
-            if (agentEvent.type === 'error') this.failCompactRequests(agentEvent.content);
             if (agentEvent.type === 'compactSettled') {
                 this.settleCompact(agentEvent);
                 return;

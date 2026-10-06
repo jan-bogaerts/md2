@@ -1,8 +1,8 @@
 import AttachFileOutlined from '@mui/icons-material/AttachFileOutlined';
 import CompressOutlined from '@mui/icons-material/CompressOutlined';
 import MoreVertOutlined from '@mui/icons-material/MoreVertOutlined';
-import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type MouseEvent } from 'react';
+import { Badge, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
+import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type MouseEvent } from 'react';
 import type { ActionContext } from '../../../../data/action_context';
 import { generateUuid } from '../../../../data/uuid';
 import { actionCompactService } from '../../../../services/actions/action_compact_service';
@@ -10,6 +10,7 @@ import type { ActionPromptDraft } from '../../../../services/actions/action_prom
 import { attachFilesToCardMarkdown, attachFilesToOriginalMarkdown } from '../../../../services/attachments/attachment_workflow';
 import { dialogService } from '../../../../services/dialog_service';
 import { useBoundRunId, useRunSelector } from '../../../hooks/use_action_runs';
+import { useActionCompactRequests } from '../../../hooks/use_action_compact_requests';
 import { resolveDisplayedConversation, type ActionConversationStore } from '../../conversation/state/action_conversation_store';
 import type { ActionRunBindingStore } from '../state/action_run_binding_store';
 
@@ -33,15 +34,9 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
     const editor = useSyncExternalStore(promptDraft.subscribeEditor, promptDraft.getEditorSnapshot, promptDraft.getEditorSnapshot);
     const displayed = resolveDisplayedConversation(liveConversation, conversations.selectedConversation);
     const conversationId = displayed?.id ?? null;
-    const subscribe = useCallback((listener: () => void) => {
-        const eventType = `compact:${conversationId}`;
-        actionCompactService.addEventListener(eventType, listener);
-        return () => actionCompactService.removeEventListener(eventType, listener);
-    }, [conversationId]);
-    const getSnapshot = useCallback(() => actionCompactService.getSnapshot(conversationId), [conversationId]);
-    const requests = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-    const latestRequest = requests.at(-1);
-    const compactStatus = latestRequest ? `Compact ${latestRequest.state}${latestRequest.message ? `: ${latestRequest.message}` : ''}` : null;
+    const requests = useActionCompactRequests(conversationId);
+    const queuedCount = requests.filter(({ state }) => state === 'queued').length;
+    const compactRunning = requests.some(({ state }) => state === 'running');
     const openMenu = (event: MouseEvent<HTMLButtonElement>) => setAnchor(event.currentTarget);
     const closeMenu = () => setAnchor(null);
     const openFiles = () => {
@@ -83,24 +78,26 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
 
     useEffect(() => {
         mounted.current = true;
-        actionCompactService.connect();
         return () => { mounted.current = false; };
     }, []);
 
     return (
         <>
-            <Tooltip title={compactStatus ?? 'Prompt menu'}>
+            <Tooltip title="Prompt menu">
                 <IconButton
                     aria-expanded={!!anchor} aria-haspopup="menu" aria-label="Prompt menu"
                     onClick={openMenu} size="small" sx={{ flexShrink: 0 }}
                 >
-                    <MoreVertOutlined sx={{ fontSize: 18 }} />
+                    <Badge aria-label={queuedCount > 0 ? `${queuedCount} compact request${queuedCount === 1 ? '' : 's'} queued` : undefined}
+                        badgeContent={queuedCount} color="primary">
+                        <MoreVertOutlined sx={{ fontSize: 18 }} />
+                    </Badge>
                 </IconButton>
             </Tooltip>
             <Menu anchorEl={anchor} onClose={closeMenu} open={!!anchor}>
-                <MenuItem onClick={compact}>
+                <MenuItem disabled={compactRunning} onClick={compact}>
                     <ListItemIcon><CompressOutlined fontSize="small" /></ListItemIcon>
-                    <ListItemText primary="Compact" secondary={compactStatus} />
+                    <ListItemText primary="Compact" />
                 </MenuItem>
                 <MenuItem disabled={editor.preparationStatus !== 'ready'} onClick={openFiles}>
                     <ListItemIcon><AttachFileOutlined fontSize="small" /></ListItemIcon>
@@ -108,11 +105,6 @@ export function ActionPromptMenu({ actionId, bindingStore, context, conversation
                 </MenuItem>
             </Menu>
             <input aria-label="Add files" hidden multiple onChange={handleFiles} ref={fileInput} type="file" />
-            {compactStatus ? (
-                <span aria-live="polite" role="status" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}>
-                    {compactStatus}
-                </span>
-            ) : null}
         </>
     );
 }

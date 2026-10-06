@@ -20,7 +20,7 @@ export function ProjectAgentUsageDetails(props: ProjectAgentUsageDetailsProps) {
                 <Typography id="project-agent-usage-title" component="h2" sx={{ color: 'text.primary', fontWeight: 700 }} variant="subtitle2">
                     Project agent usage
                 </Typography>
-                <Box sx={{ alignItems: 'baseline', display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'space-between'  }}>
+                <Box sx={{ alignItems: 'baseline', display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'space-between' }}>
                     <AgentUsageDisplay usage={projectUsage} />
                     <Typography component="span" sx={{ color: 'text.secondary' }} variant="caption">
                         {projectUsage.costUsd === undefined

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentConversation } from '../../../../data/data_types';
 import type { ActionContext } from '../../../../data/action_context';
 import type { ActionCompactRequest, ActionCompactState, ActionRunEvent } from '../../../../data/action_run_types';
+import { generateUuid } from '../../../../data/uuid';
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge';
 import { ActionPromptDraft } from '../../../../services/actions/action_prompt_draft_service';
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry';
@@ -71,6 +72,63 @@ afterEach(() => {
 });
 
 describe('ActionPromptMenu', () => {
+    it.each(['completed', 'failed'] as const)('disables Compact while running, then enables it after %s without a subline', async (state) => {
+        const conversationId = generateUuid();
+        const { conversationStore } = renderMenu(true, undefined, conversationId);
+        const event: ActionRunEvent = {
+            actionId: 'review', context, phase: 'main', rootActionId: 'review', runId: 'compact-menu-run',
+            status: 'running', type: 'update', update: {
+                kind: 'agentCompact', request: {
+                    actionId: 'review', context, conversationId, provider: 'codex', reference: conversation(conversationId).path,
+                    requestId: generateUuid(), state: 'running',
+                },
+            },
+        };
+        if (event.update.kind !== 'agentCompact') throw new Error('Expected compact fixture');
+        act(() => actionCompactService.handleEvent(event));
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'Prompt menu' }));
+        const compactItem = screen.getByRole('menuitem', { name: 'Compact' });
+        expect(compactItem).toHaveAttribute('aria-disabled', 'true');
+        expect(compactItem).toHaveTextContent(/^Compact$/u);
+        expect(screen.getByRole('menuitem', { name: 'Add file' })).not.toHaveAttribute('aria-disabled', 'true');
+        act(() => conversationStore.addAndSelectConversation(conversation(generateUuid())));
+        expect(compactItem).not.toHaveAttribute('aria-disabled', 'true');
+        act(() => conversationStore.addAndSelectConversation(conversation(conversationId)));
+        expect(compactItem).toHaveAttribute('aria-disabled', 'true');
+        const settled: ActionRunEvent = {...event, update: { kind: 'agentCompact', request: { ...event.update.request, state, message: 'Context compacted' } }};
+        act(() => actionCompactService.handleEvent(settled));
+        expect(compactItem).not.toHaveAttribute('aria-disabled', 'true');
+        expect(compactItem).toHaveTextContent(/^Compact$/u);
+        expect(screen.queryByText(/Context compacted/u)).not.toBeInTheDocument();
+    });
+
+    it('shows only queued requests for the displayed conversation on the closed menu button', () => {
+        const conversationId = generateUuid();
+        const { conversationStore } = renderMenu(true, undefined, conversationId);
+        const event: ActionRunEvent = {
+            actionId: 'review', context, phase: 'main', rootActionId: 'review', runId: 'queue-run',
+            status: 'running', type: 'update', update: {
+                kind: 'agentCompact', request: {
+                    actionId: 'review', context, conversationId, provider: 'codex', reference: conversation(conversationId).path,
+                    requestId: `${conversationId}-1`, state: 'queued',
+                },
+            },
+        };
+        if (event.update.kind !== 'agentCompact') throw new Error('Expected compact fixture');
+        const request = event.update.request;
+        act(() => {
+            actionCompactService.handleEvent(event);
+            actionCompactService.handleEvent({ ...event, update: { kind: 'agentCompact', request: { ...request, requestId: `${conversationId}-2` } } });
+        });
+        expect(screen.getByLabelText('2 compact requests queued')).toHaveTextContent('2');
+        act(() => actionCompactService.handleEvent({ ...event, update: { kind: 'agentCompact', request: { ...request, state: 'running' } } }));
+        expect(screen.getByLabelText('1 compact request queued')).toHaveTextContent('1');
+        act(() => conversationStore.addAndSelectConversation(conversation('other-badge-conversation')));
+        expect(screen.queryByLabelText(/compact requests queued/u)).not.toBeInTheDocument();
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+
     it('binds resumed saved conversation for later input without clearing its draft', async () => {
         let emit!: (event: ActionRunEvent) => void;
         const compact = vi.fn(async (request: ActionCompactRequest): Promise<ActionCompactState> => {

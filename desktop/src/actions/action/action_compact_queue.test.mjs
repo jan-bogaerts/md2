@@ -51,6 +51,40 @@ function runnerHarness() {
 }
 
 describe('compact scheduling', () => {
+    it.each(['startup', 'running'])('keeps compact pending through recoverable stderr during %s', async (phase) => {
+        const { events, run, service } = queueHarness();
+        run.compactOnly = true;
+        run.compactTarget = request;
+        run.activeAgentRunId = null;
+        const warning = '2026-10-05T12:09:20.286253Z ERROR codex_app_server: Codex is ignoring 2 unrecognized configuration settings.';
+        run.agentExecutor = {
+            execute: vi.fn(async (input) => {
+                if (phase === 'startup') input.onEvent({ content: warning, status: 'running', type: 'error' });
+                input.onActiveRunChange('agent-1');
+                await run.dispatchStreamingPrompt();
+                if (phase === 'running') input.onEvent({ content: warning, status: 'running', type: 'error' });
+                expect(compactStates(events)).toEqual(['queued', 'running']);
+                input.onEvent({ requestId: request.requestId, type: 'compactSettled' });
+                input.onActiveRunChange(null);
+                return { exitCode: 0, reference: request.reference, stdout: '', stderr: warning };
+            }),
+        };
+        run.actionWorktreeRunService = { resolve: vi.fn(async () => ({ runProject: project })) };
+        await run.run();
+        expect(service.compact).toHaveBeenCalledTimes(1);
+        expect(compactStates(events)).toEqual(['queued', 'running', 'completed']);
+        expect(events.some((event) => event.update?.kind === 'error' && event.update.content === warning)).toBe(true);
+    });
+
+    it('fails compact on a provider-confirmed failure', async () => {
+        const { events, run } = queueHarness();
+        await run.enqueueCompact(request);
+        await run.dispatchStreamingPrompt();
+        run.settleCompact({ error: 'Provider rejected compaction', requestId: request.requestId });
+        expect(compactStates(events)).toEqual(['queued', 'running', 'failed']);
+        expect(events.at(-1).update.request.message).toBe('Provider rejected compaction');
+    });
+
     it('holds later prompts behind compact during an active turn and releases them only after completion', async () => {
         const { events, run, service } = queueHarness();
         service.canCompact.mockReturnValue(false);
