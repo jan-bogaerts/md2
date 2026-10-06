@@ -3,7 +3,7 @@ author:
 id: B_263
 internalId: 745316e6-c707-4233-8ca9-32228e950e3a
 title: stop conversation broken
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,10 @@ agents:
 policy:
 branch: b_263_stop_conversation_broken
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/state/action_history_store.node.test.ts
+  - app/src/components/hooks/use_action_assignment_context.test.tsx
+  - app/src/components/hooks/use_action_assignment_context.ts
 ---
 
 Stopping a conversation must keep that conversation selected instead of switching to "New conversation".
