@@ -9,6 +9,11 @@ import {
 } from '../../data/data_types'
 import { dialogService } from '../../services/dialog_service'
 import { workspaceViewService } from '../../services/project/workspace_view_service'
+import { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'
+import {
+    NEXT_LIST_TAB_SHORTCUT_BINDING,
+    PREVIOUS_LIST_TAB_SHORTCUT_BINDING,
+} from '../../services/shortcuts/list_tab_shortcuts'
 import { useWorkingFolder } from '../hooks/use_working_folder'
 import { TextEditorPane } from './text_editor_pane'
 
@@ -81,6 +86,16 @@ export function TextView(props: TextViewProps) {
         workspaceViewService.addEventListener('changed', updateVisibility)
 
         return () => workspaceViewService.removeEventListener('changed', updateVisibility)
+    }, [])
+
+    useEffect(() => {
+        const unregisterNext = keyboardShortcutService.register(NEXT_LIST_TAB_SHORTCUT_BINDING)
+        const unregisterPrevious = keyboardShortcutService.register(PREVIOUS_LIST_TAB_SHORTCUT_BINDING)
+
+        return () => {
+            unregisterNext()
+            unregisterPrevious()
+        }
     }, [])
 
     return (

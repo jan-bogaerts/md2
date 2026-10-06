@@ -69,6 +69,14 @@ class ActionRun {
         this.promptQueueClosed = false;
         this.promptQueueOperations = Promise.resolve();
         this.pendingInput = null;
+        this.compactOnly = snapshot.compactOnly === true;
+        this.compactQueue = [];
+        this.activeCompact = null;
+        this.nextWorkOrder = 1;
+        this.compactTarget = snapshot.compactTarget ?? null;
+        this.activeConversationId = this.compactTarget?.conversationId
+            ?? snapshot.runInput.conversationId ?? snapshot.conversationReservation?.conversationId ?? null;
+        this.activeAgentProvider = null;
     }
 
     start(finalize) {
@@ -108,6 +116,7 @@ class ActionRun {
         if (this.agentInteractionPending()) {
             throw new Error('Answer pending agent question or approval before sending queued prompt');
         }
+        if (this.activeCompact || this.compactQueue.length > 0) return this.enqueueAgentPrompt(content);
         const prompt = this.resolveActiveAgentPrompt(content);
 
         return this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt);
@@ -124,13 +133,14 @@ class ActionRun {
                 dispatchState: 'queued',
                 id: submissionId ?? `prompt-${crypto.randomUUID()}`,
                 revision: 0,
+                order: this.nextWorkOrder++,
             };
             this.promptQueue.push(entry);
             this.publishPromptQueueUpdate('agentPromptQueued', { entry: { ...entry } });
 
             return { ...entry };
         });
-        void operation.then(() => this.dispatchStreamingPrompt()).catch(() => undefined);
+        void this.dispatchAcceptedWork(operation);
 
         return operation;
     }
@@ -231,34 +241,91 @@ class ActionRun {
         for (const entry of entries) {
             this.publishPromptQueueUpdate('agentPromptDiscarded', { promptId: entry.id, revision: entry.revision });
         }
+        this.failCompactRequests('Compaction cancelled');
+    }
+
+    async dispatchAcceptedWork(operation) {
+        try {
+            await operation;
+            await this.dispatchStreamingPrompt();
+        } catch {
+            // Submission errors are returned to their caller; dispatch failures publish scoped state.
+        }
+    }
+
+    enqueueCompact(request) {
+        const operation = this.queuePromptOperation(() => {
+            this.requirePromptQueueOpen();
+            const entry = { ...request, state: 'queued', order: this.nextWorkOrder++ };
+            this.compactQueue.push(entry);
+            this.publishCompact(entry);
+            return entry;
+        });
+        void this.dispatchAcceptedWork(operation);
+        return operation;
+    }
+
+    publishCompact(request) {
+        const snapshot = Object.fromEntries(Object.entries(request).filter(([field]) => field !== 'order'));
+        snapshot.runId = this.runId;
+        this.publishPromptQueueUpdate('agentCompact', { request: snapshot });
+    }
+
+    failCompactRequests(message) {
+        const requests = [...(this.activeCompact ? [this.activeCompact] : []), ...this.compactQueue];
+        this.activeCompact = null;
+        this.compactQueue = [];
+        for (const request of requests) this.publishCompact({ ...request, state: 'failed', message });
+    }
+
+    settleCompact(agentEvent) {
+        const request = this.activeCompact;
+        if (!request || request.requestId !== agentEvent.requestId) return;
+        this.activeCompact = null;
+        this.publishCompact({
+            ...request,
+            state: agentEvent.error ? 'failed' : 'completed',
+            message: agentEvent.error ?? agentEvent.explanation ?? 'Context compacted',
+        });
+        void this.dispatchStreamingPrompt().catch(() => undefined);
     }
 
     dispatchStreamingPrompt() {
-        const operation = this.queuePromptOperation(async () => {
+        return this.queuePromptOperation(async () => {
             if (
                 !this.activeAgentRunId
                 || !this.activeAction?.streaming
                 || this.agentInteractionPending()
+                || this.activeCompact
+                || this.controller.signal.aborted
+                || this.promptQueueClosed
             ) return false;
-            const entry = this.promptQueue.find(({ dispatchState }) => dispatchState === 'queued');
-            if (!entry) return false;
-
-            entry.dispatchState = 'dispatching';
-            this.promptQueue = this.promptQueue.filter(({ id }) => id !== entry.id);
-            this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });
-            const prompt = this.resolveActiveAgentPrompt(entry.content);
-            await this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt, entry.id);
-
-            return !!this.activeAgentRunId
-                && !!this.activeAction?.streaming
-                && !this.agentInteractionPending()
-                && this.promptQueue.some(({ dispatchState }) => dispatchState === 'queued');
+            const workLimit = this.promptQueue.length + this.compactQueue.length;
+            for (let index = 0; index < workLimit; index += 1) {
+                if (!this.activeAgentRunId || this.agentInteractionPending() || this.controller.signal.aborted) return false;
+                const entry = this.promptQueue.find(({ dispatchState }) => dispatchState === 'queued');
+                const compact = this.compactQueue[0];
+                if (compact && (!entry || compact.order < entry.order)) {
+                    if (!this.agentRunnerService.canCompact(this.activeAgentRunId)) return false;
+                    this.compactQueue.shift();
+                    this.activeCompact = compact;
+                    this.publishCompact({ ...compact, state: 'running' });
+                    try {
+                        await this.agentRunnerService.compact(this.activeAgentRunId, compact);
+                    } catch (error) {
+                        this.failCompactRequests(errorMessage(error, 'Compaction failed'));
+                    }
+                    return false;
+                }
+                if (!entry) return false;
+                entry.dispatchState = 'dispatching';
+                this.promptQueue = this.promptQueue.filter(({ id }) => id !== entry.id);
+                this.publishPromptQueueUpdate('agentPromptDispatched', { promptId: entry.id, revision: entry.revision });
+                const prompt = this.resolveActiveAgentPrompt(entry.content);
+                await this.agentRunnerService.sendMessage(this.activeAgentRunId, prompt, entry.id);
+            }
+            return false;
         });
-        void operation.then((dispatchNext) => {
-            if (dispatchNext) void this.dispatchStreamingPrompt().catch(() => undefined);
-        }).catch(() => undefined);
-
-        return operation;
     }
 
     claimNextQueuedPromptOrCloseQueue() {
@@ -279,6 +346,7 @@ class ActionRun {
     }
 
     handleCardStateChange(cardInternalId, state) {
+        if (this.compactOnly) return;
         if (this.context.cardInternalId !== cardInternalId) return;
         if (
             this.activeAction?.type !== 'agent'
@@ -303,6 +371,7 @@ class ActionRun {
     }
 
     async runWithContext() {
+        if (this.compactOnly) return this.runCompactOnly();
         this.publish(this.rootAction, 'main', 'running', { type: 'run' });
         let result;
         try {
@@ -329,6 +398,28 @@ class ActionRun {
             type: 'run',
         });
 
+        return result;
+    }
+
+    /** Keeps the resumed provider alive for further input, without executing an action chain. */
+    async runCompactOnly() {
+        this.activeAction = this.rootAction;
+        this.activeActionPhase = 'main';
+        this.publish(this.rootAction, 'main', 'running', { type: 'run' });
+        let failure = null;
+        try {
+            const resolution = await this.actionWorktreeRunService.resolve(this.project, this.rootAction, this.context);
+            this.throwIfCancelled();
+            await this.enqueueCompact(this.compactTarget);
+            const result = await this.executeAgentAction(this.rootAction, 'main', true, resolution.runProject);
+            if (result.exitCode !== 0) failure = new Error(result.stderr || 'Compact session failed');
+        } catch (error) {
+            failure = error;
+        }
+        this.discardQueuedPrompts();
+        const status = this.controller.signal.aborted ? 'cancelled' : failure ? 'failed' : 'completed';
+        const result = { changedPaths: [], failure: failure ? errorMessage(failure, 'Compact session failed') : null, runId: this.runId, status };
+        this.publish(this.rootAction, 'main', status, { message: result.failure, type: 'run' });
         return result;
     }
 
@@ -653,9 +744,19 @@ class ActionRun {
             }
         };
         const onEvent = (agentEvent) => {
+            if (agentEvent.type === 'compactSettled') {
+                this.settleCompact(agentEvent);
+                return;
+            }
+            if (agentEvent.type === 'sessionReady') {
+                void this.dispatchStreamingPrompt().catch(() => undefined);
+                return;
+            }
             if (agentEvent.type === 'started') {
                 const { continued, conversation } = agentEvent;
-                const update = { continued, conversation, kind: 'agentStarted' };
+                this.activeConversationId = conversation.id;
+                this.activeAgentProvider = agentEvent.provider;
+                const update = { continued, conversation, kind: 'agentStarted', provider: agentEvent.provider };
                 this.publish(action, phase, agentEvent.status, { type: 'update', update });
                 return;
             }
@@ -669,6 +770,7 @@ class ActionRun {
                 return;
             }
             if (agentEvent.type === 'state') {
+                if (agentEvent.status === 'failed') this.failCompactRequests('Agent failed before compaction completed');
                 this.publish(action, phase, agentEvent.status, {
                     interactionReady: true,
                     ...(agentEvent.timer ? { timer: agentEvent.timer } : {}),
@@ -774,6 +876,7 @@ class ActionRun {
             : null;
 
         const input = {
+            compactOnly: this.compactOnly,
             action,
             activeCardsFolder: this.activeCardsFolder,
             activityOrigin: this.activityOrigin,
@@ -793,7 +896,7 @@ class ActionRun {
             signal: this.controller.signal,
             version: this.version,
         };
-        const watcher = action.autoFinish?.when === 'diagram-created'
+        const watcher = !this.compactOnly && action.autoFinish?.when === 'diagram-created'
             ? this.diagramOutputWatcherFactory({
                 diagramFile,
                 handleError: (error) => this.handleDiagramWatcherFailure(error),

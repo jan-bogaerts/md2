@@ -13,6 +13,7 @@ describe('action definition writer helpers', () => {
             description: 'Custom prompt action: Review Feature',
             id: expect.any(String),
             label: 'Review Feature',
+            streaming: true,
             phrases: [],
             prompt: 'review {{card-file}}',
             type: 'agent',
@@ -20,7 +21,7 @@ describe('action definition writer helpers', () => {
     })
 
     it('preserves selected agent settings in a reusable action definition', () => {
-        const definition = createActionDefinition({ agent: 'codex', context, label: 'Fix tests', model: 'gpt-5', prompt: 'fix tests' })
+        const definition = createActionDefinition({ agent: 'codex', context, label: 'Fix tests', model: 'gpt-5', permissionMode: 'ask-for-approval', prompt: 'fix tests' })
 
         expect(definition).toEqual({
             agent: 'codex',
@@ -29,6 +30,8 @@ describe('action definition writer helpers', () => {
             id: expect.any(String),
             label: 'Fix tests',
             model: 'gpt-5',
+            permissionMode: 'ask-for-approval',
+            streaming: true,
             phrases: [],
             prompt: 'fix tests',
             type: 'agent',

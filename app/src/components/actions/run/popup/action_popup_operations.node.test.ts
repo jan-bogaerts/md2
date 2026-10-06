@@ -65,13 +65,7 @@ function operationInput(
         action,
         bindingStore: new ActionRunBindingStore(runId),
         context,
-        conversationStore: {
-            acceptSubmission: vi.fn(),
-            beginSubmission: vi.fn(() => 'submission-1'),
-            bindSubmission: vi.fn(),
-            failSubmission: vi.fn(),
-            ...conversationStore,
-        },
+        conversationStore,
         historyStore: { load: vi.fn(async () => undefined) },
         inputStore,
         resultStore: {
@@ -134,7 +128,7 @@ describe('runPopupAction waiting follow-up', () => {
         let listener: ((event: ActionRunEvent) => void) | null = null
         bridge = {
             cancelActionRun: vi.fn(async () => undefined),
-            enqueueActionPrompt: vi.fn(async (_runId, content) => ({content, dispatchState: 'queued', id: 'prompt-1', revision: 0})),
+            enqueueActionPrompt: vi.fn(async (_runId, content, id) => ({content, dispatchState: 'queued', id, revision: 0})),
             finishActionRun: vi.fn(async () => undefined),
             onActionRun: vi.fn((nextListener) => {
                 listener = nextListener
@@ -161,17 +155,17 @@ describe('runPopupAction waiting follow-up', () => {
 
         await runPopupAction(operationInput(inputStore))
 
-        expect(bridge.enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Next request', 'submission-1')
+        expect(bridge.enqueueActionPrompt).toHaveBeenCalledWith('run-1', 'Next request', expect.stringMatching(/^submission-/u))
         expect(actionRunRegistry.getActionRunStore(action.id, context)?.getSnapshot()?.context.worktree).toBe('3')
         expect(restartAction).not.toHaveBeenCalled()
     })
 
     it('clears the editor when the prompt is sent', async () => {
         const acceptance = deferred<void>()
-        bridge.enqueueActionPrompt = vi.fn(async (_runId: string, content: string) => {
+        bridge.enqueueActionPrompt = vi.fn(async (_runId: string, content: string, id: string) => {
             await acceptance.promise
 
-            return { content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0 }
+            return { content, dispatchState: 'queued' as const, id, revision: 0 }
         })
         const draft = actionPromptDraftService.getDraft(action.id, context, 'conversation-1', { prepare: false })
         draft.edit('Next request')
@@ -186,10 +180,10 @@ describe('runPopupAction waiting follow-up', () => {
 
     it('keeps text edited while the bridge acknowledgement is pending', async () => {
         const acceptance = deferred<void>()
-        bridge.enqueueActionPrompt = vi.fn(async (_runId: string, content: string) => {
+        bridge.enqueueActionPrompt = vi.fn(async (_runId: string, content: string, id: string) => {
             await acceptance.promise
 
-            return { content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 0 }
+            return { content, dispatchState: 'queued' as const, id, revision: 0 }
         })
         const draft = actionPromptDraftService.getDraft(action.id, context, 'conversation-1', { prepare: false })
         draft.edit('Accepted text')
@@ -220,8 +214,13 @@ describe('runPopupAction waiting follow-up', () => {
         draft.edit('Submitted text')
         const send = runPopupAction(operation)
         const runInput = runAction.mock.calls[0]?.[2]
-        expect(runInput).toMatchObject({ conversationId: expect.stringMatching(/^agent-/u), submissionId: 'submission-1' })
-        expect(operation.conversationStore.beginSubmission).toHaveBeenCalledWith('Submitted text', null, runInput.conversationId)
+        expect(runInput).toMatchObject({
+            conversationId: expect.stringMatching(/^agent-/u),
+            submissionId: expect.stringMatching(/^submission-/u),
+        });
+        expect(actionRunRegistry.getSubmissions(action.id, context)).toMatchObject([
+            { content: 'Submitted text', id: runInput.submissionId },
+        ]);
         draft.edit('Newer editor text')
         if (!started) throw new Error('Missing run start callback')
         const start = started as (runId: string) => void

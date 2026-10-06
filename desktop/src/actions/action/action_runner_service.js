@@ -40,15 +40,6 @@ function requireConfiguredStates(states) {
     });
 }
 
-function hasStreamingAction(action, visited = new Set()) {
-    if (visited.has(action.id)) return false;
-    visited.add(action.id);
-    if (action.type === 'agent' && action.streaming) return true;
-
-    return [...action.onBefore, ...action.onAfter, ...action.on.map(({ action: linkedAction }) => linkedAction)]
-        .some((linkedAction) => hasStreamingAction(linkedAction, visited));
-}
-
 function userInputRequest(action, visited = new Set()) {
     if (visited.has(action.id)) return null;
     visited.add(action.id);
@@ -99,6 +90,12 @@ class ActionRunnerService {
         this.projectFolder = null;
         this.releasesFolder = null;
         this.restartingRuns = new Set();
+        this.compactRequests = new Map();
+        this.compactOperations = Promise.resolve();
+        this.compactGeneration = 0;
+        this.compactTargetCancellations = new Map();
+        this.pendingCompactAcceptances = new Map();
+        this.compactConversationCancellations = new Map();
     }
 
     // Paths arrive already resolved and validated from resolveProjectPaths, and states from the same
@@ -130,6 +127,7 @@ class ActionRunnerService {
     }
 
     async stop() {
+        this.compactGeneration += 1;
         const completions = [...this.runs.values()].map((run) => {
             run.cancel();
 
@@ -140,6 +138,7 @@ class ActionRunnerService {
     }
 
     async suspend() {
+        this.compactGeneration += 1;
         const completions = [...this.runs.values()].map((run) => {
             run.suspend();
 
@@ -175,20 +174,25 @@ class ActionRunnerService {
         const origin = activityOrigin(startRequest.context);
         const project = { ...this.project };
         const actionsFolder = this.actionsFolder;
-        const rootAction = await this.loadRootAction(startRequest.actionId);
-        const requestedInput = userInputRequest(rootAction);
+        const definition = await this.loadRootAction(startRequest.actionId);
+        if (options.compactTarget) {
+            if (!options.compactGuard) throw new Error('Missing compact acceptance guard');
+            this.assertCompactAcceptance(options.compactTarget, options.compactGuard);
+            if (definition.type !== 'agent') throw new Error('Compact requires an agent action');
+        }
+        const rootAction = options.compactTarget ? { ...definition, streaming: true } : definition;
+        const requestedInput = options.compactTarget ? null : userInputRequest(rootAction);
         if (options.interactive === false && requestedInput && startRequest.runInput[requestedInput.type] === undefined) {
             throw new Error(`Unattended action requires a supplied ${requestedInput.type}: ${rootAction.label}`);
         }
-        const diagramPath = this.resolveStartDiagramPath(startRequest, rootAction);
-        if (options.interactive === false && hasStreamingAction(rootAction)) {
-            throw new Error(`Streaming action requires an interactive manual run: ${rootAction.label}`);
-        }
+        const diagramPath = options.compactTarget ? null : this.resolveStartDiagramPath(startRequest, rootAction);
         const conversationReservation = this.consumeConversationReservation(startRequest, rootAction);
         const runId = options.runId ?? createRunId();
         if (typeof runId !== 'string' || runId.length === 0) throw new Error('Invalid reserved action run ID');
         if (this.runs.has(runId) || this.completedRunResults.has(runId)) throw new Error(`Action run already exists: ${runId}`);
         const run = new ActionRun({
+            compactOnly: !!options.compactTarget,
+            compactTarget: options.compactTarget,
             activeCardsFolder: this.activeCardsFolder,
             actionsFolder,
             activityOrigin: origin,
@@ -309,6 +313,7 @@ class ActionRunnerService {
         const run = this.requireRun(runId);
         this.restartingRuns.add(runId);
         try {
+            this.invalidateCompactAcceptance(run);
             run.finishAgent();
             const result = await run.completion;
             if (result.status !== 'completed') {
@@ -340,19 +345,159 @@ class ActionRunnerService {
     }
 
     cancel(runId) {
-        this.requireRun(runId).cancel();
+        const run = this.requireRun(runId);
+        this.invalidateCompactAcceptance(run);
+        run.cancel();
     }
 
     answerInput(runId, response) {
         return this.requireRun(runId).answerInput(response);
     }
 
-    sendAgentMessage(runId, content) {
-        return this.requireRun(runId).sendAgentMessage(content);
+    async sendAgentMessage(runId, content) {
+        const run = this.requireRun(runId);
+        await this.waitForCompactAcceptance(run);
+        return run.sendAgentMessage(content);
     }
 
-    enqueueAgentPrompt(runId, content, submissionId) {
-        return this.requireRun(runId).enqueueAgentPrompt(content, submissionId);
+    async enqueueAgentPrompt(runId, content, submissionId) {
+        const run = this.requireRun(runId);
+        await this.waitForCompactAcceptance(run);
+        return run.enqueueAgentPrompt(content, submissionId);
+    }
+
+    async waitForCompactAcceptance(run) {
+        const conversationId = run.activeConversationId;
+        const pending = this.pendingCompactAcceptances.get(conversationId);
+        if (pending?.length > 0) await Promise.all([...pending]);
+    }
+
+    invalidateCompactAcceptance(run) {
+        const conversationId = run.activeConversationId;
+        if (conversationId) {
+            const version = this.compactConversationCancellations.get(conversationId) ?? 0;
+            this.compactConversationCancellations.set(conversationId, version + 1);
+        }
+    }
+
+    async cancelCompactsForConversation(conversationId) {
+        if (typeof conversationId !== 'string' || conversationId.length === 0) throw new Error('Missing compact cancellation conversation ID');
+        const version = this.compactConversationCancellations.get(conversationId) ?? 0;
+        this.compactConversationCancellations.set(conversationId, version + 1);
+        const completions = [];
+        for (const run of this.runs.values()) {
+            if (run.activeConversationId !== conversationId) continue;
+            if (!run.compactOnly && !run.activeCompact && run.compactQueue.length === 0) continue;
+            run.cancel();
+            completions.push(run.completion);
+        }
+        await Promise.all(completions);
+    }
+
+    /** Serializes acceptance so concurrent clicks cannot create two processes for one saved session. */
+    async compactConversation(request) {
+        const generation = this.compactGeneration;
+        const targetVersion = this.compactTargetVersion(request);
+        const previousOperation = this.compactOperations;
+        const completion = Promise.withResolvers();
+        const acceptance = Promise.withResolvers();
+        const conversationId = request?.conversationId;
+        const cancellationVersion = this.compactConversationCancellations.get(conversationId) ?? 0;
+        const guard = { generation, targetVersion, cancellationVersion };
+        const pending = this.pendingCompactAcceptances.get(conversationId) ?? [];
+        this.pendingCompactAcceptances.set(conversationId, [...pending, acceptance.promise]);
+        this.compactOperations = completion.promise;
+        try {
+            await previousOperation;
+            if (generation !== this.compactGeneration) throw new Error('Compaction cancelled during project shutdown');
+            return await this.acceptCompact(request, guard);
+        } finally {
+            const remaining = this.pendingCompactAcceptances.get(conversationId).filter((promise) => promise !== acceptance.promise);
+            if (remaining.length > 0) this.pendingCompactAcceptances.set(conversationId, remaining);
+            else this.pendingCompactAcceptances.delete(conversationId);
+            acceptance.resolve();
+            completion.resolve();
+        }
+    }
+
+    async acceptCompact(request, guard) {
+        this.requireReady();
+        for (const field of ['requestId', 'conversationId', 'reference', 'provider', 'actionId']) {
+            if (typeof request?.[field] !== 'string' || request[field].length === 0) throw new Error(`Missing compact ${field}`);
+        }
+        if (!['claude', 'codex'].includes(request.provider)) throw new Error('Unsupported compact provider');
+        const startRequest = validateStartRequest({ actionId: request.actionId, context: request.context, runInput: {} });
+        const existingRequest = this.compactRequests.get(request.requestId);
+        if (existingRequest) {
+            if (existingRequest.conversationId !== request.conversationId || existingRequest.reference !== request.reference
+                || existingRequest.provider !== request.provider || existingRequest.actionId !== request.actionId
+                || (existingRequest.context.cardInternalId ?? null) !== (startRequest.context.cardInternalId ?? null)) {
+                throw new Error('Compact request ID already belongs to another target');
+            }
+            return existingRequest;
+        }
+        const conversation = await this.localGitService.loadAgentConversation(this.project, request.reference);
+        const expectedCardInternalId = startRequest.context.cardInternalId ?? null;
+        if (conversation.id !== request.conversationId || (conversation.cardInternalId ?? null) !== expectedCardInternalId
+            || conversation.actionId !== request.actionId) throw new Error('Compact conversation identity or ownership does not match');
+        if (!conversation.entries.some(({ kind }) => kind === 'message')) throw new Error('There is nothing to compact');
+        this.assertCompactAcceptance(request, guard);
+        const liveRun = [...this.runs.values()].find((run) => (
+            run.activeConversationId === request.conversationId
+        ));
+        const provider = liveRun?.activeAgentProvider ?? request.provider;
+        if (provider !== request.provider) throw new Error('Displayed conversation provider does not match its active session');
+        if (!liveRun && !conversation.providerSessions.some(({ agent, conversationId }) => agent === provider && !!conversationId)) {
+            throw new Error('Missing provider session for compact');
+        }
+        const captured = { ...request, context: startRequest.context, state: 'queued' };
+        if (liveRun) await liveRun.enqueueCompact(captured);
+        else {
+            const startupRequest = {
+                actionId: request.actionId, context: startRequest.context,
+                runInput: { agent: provider, conversationId: conversation.id, continueFrom: request.reference },
+            };
+            await this.start(startupRequest, { compactTarget: captured, compactGuard: guard });
+        }
+        return this.compactRequests.get(request.requestId) ?? captured;
+    }
+
+    assertCompactAcceptance(request, guard) {
+        if (guard.generation !== this.compactGeneration) throw new Error('Compaction cancelled during project shutdown');
+        if (guard.targetVersion !== this.compactTargetVersion(request)) throw new Error('Compaction cancelled because its target was deleted');
+        if (guard.cancellationVersion !== (this.compactConversationCancellations.get(request.conversationId) ?? 0)) {
+            throw new Error('Compaction cancelled because its conversation was stopped or finished');
+        }
+    }
+
+    compactTargetVersion(request) {
+        const targets = [request?.reference?.split('#')[0], request?.context?.file].filter((value) => typeof value === 'string');
+        let version = 0;
+        for (const [targetPath, count] of this.compactTargetCancellations) {
+            if (targets.some((target) => target === targetPath || target.startsWith(`${targetPath}/`))) version += count;
+        }
+        return version;
+    }
+
+    /** Cancel before deletion so a provider checkpoint cannot recreate deleted activity. */
+    async cancelCompactsForPath(targetPath) {
+        if (typeof targetPath !== 'string' || targetPath.length === 0) throw new Error('Missing compact cancellation target path');
+        const previousVersion = this.compactTargetCancellations.get(targetPath) ?? 0;
+        this.compactTargetCancellations.set(targetPath, previousVersion + 1);
+        const completions = [];
+        for (const run of this.runs.values()) {
+            const requests = [...(run.activeCompact ? [run.activeCompact] : []), ...run.compactQueue];
+            if (run.compactTarget) requests.push(run.compactTarget);
+            const matches = requests.some((request) => {
+                const targets = [request.reference.split('#')[0], request.context.file].filter((value) => typeof value === 'string');
+                return targets.some((target) => target === targetPath || target.startsWith(`${targetPath}/`));
+            });
+            if (!matches) continue;
+            run.failCompactRequests('Compaction cancelled because its target was deleted');
+            run.cancel();
+            completions.push(run.completion);
+        }
+        await Promise.all(completions);
     }
 
     editQueuedAgentPrompt(runId, promptId, revision, content) {
@@ -376,7 +521,9 @@ class ActionRunnerService {
     }
 
     finishAgentRun(runId) {
-        this.requireRun(runId).finishAgent();
+        const run = this.requireRun(runId);
+        this.invalidateCompactAcceptance(run);
+        run.finishAgent();
     }
 
     handleCardStateChange(cardInternalId, state) {
@@ -429,6 +576,7 @@ class ActionRunnerService {
 
     async finalizeRun(run, runCompletion) {
         const result = await runCompletion;
+        this.invalidateCompactAcceptance(run);
         this.runs.delete(run.runId);
         this.runEvents.delete(run.runId);
         this.completedRunResults.set(run.runId, result);
@@ -440,6 +588,9 @@ class ActionRunnerService {
     }
 
     publish(event) {
+        if (event.type === 'update' && event.update.kind === 'agentCompact') {
+            this.compactRequests.set(event.update.request.requestId, event.update.request);
+        }
         const events = this.runEvents.get(event.runId);
         if (events) events.push(event);
         for (const listener of this.listeners) {

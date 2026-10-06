@@ -3,7 +3,8 @@ import type { AgentConversation, AgentConversationEntry, AgentConversationEventE
 import type { ActionRun, ActionRunRegistry } from '../../../../services/actions/action_run_registry'
 import type { ActionRunBindingStore } from '../../run/state/action_run_binding_store'
 import { ActionConversationChatlogTracker } from './action_conversation_chatlog_tracker'
-import type { ActionConversationStore, PendingActionSubmission } from '../state/action_conversation_store'
+import type { ActionConversationStore } from '../state/action_conversation_store'
+import type { PendingActionSubmission } from '../../../../services/actions/action_run_registry';
 
 function message(id: string, role: 'assistant' | 'user', content = id) {
     return { agent: 'codex', content, id, kind: 'message' as const, role, timestamp: 'now' }
@@ -78,21 +79,9 @@ class FakeBindingStore extends EventTarget {
 
 class FakeConversationStore extends EventTarget {
     private selectedConversation: AgentConversation | null = null
-    private submissions: PendingActionSubmission[] = []
-    private submissionConversationId: string | null = null
-    private submissionRunId: string | null = null
-    private readonly submissionEvents = new EventTarget()
-
-    readonly getSnapshot = () => ({ conversations: [], loading: false, selectedConversation: this.selectedConversation })
-    readonly getSubmissions = () => this.submissions
-    readonly getVisibleSubmissions = (conversationId: string | null, runId: string | null) => (
-        conversationId ? conversationId === this.submissionConversationId : runId === this.submissionRunId
-    ) ? this.submissions : []
-    readonly subscribeSubmissions = (listener: () => void) => {
-        this.submissionEvents.addEventListener('changed', listener)
-
-        return () => this.submissionEvents.removeEventListener('changed', listener)
-    }
+    readonly actionId = 'review';
+    readonly context = { cardInternalId: 'card-1', kind: 'card' as const };
+    readonly getSnapshot = () => ({ conversations: [], loading: false, selectedConversation: this.selectedConversation });
 
     readonly subscribe = (listener: () => void) => {
         this.addEventListener('changed', listener)
@@ -105,15 +94,33 @@ class FakeConversationStore extends EventTarget {
         this.dispatchEvent(new Event('changed'))
     }
 
+
+}
+
+class FakeRunRegistry {
+    private submissions: PendingActionSubmission[] = []
+    private submissionConversationId: string | null = null
+    private submissionRunId: string | null = null
+    private readonly submissionEvents = new EventTarget()
+
+    readonly getSubmissions = () => this.submissions
+    readonly getVisibleSubmissions = (_actionId: string, _context: unknown, conversationId: string | null, runId: string | null) => (
+        conversationId ? conversationId === this.submissionConversationId : runId === this.submissionRunId
+    ) ? this.submissions : []
+    readonly subscribeSubmissions = (_actionId: string, _context: unknown, listener: () => void) => {
+        this.submissionEvents.addEventListener('changed', listener)
+
+        return () => this.submissionEvents.removeEventListener('changed', listener)
+    }
+
+
     setSubmissions(submissions: PendingActionSubmission[], conversationId: string | null, runId: string | null) {
         this.submissions = submissions
         this.submissionConversationId = conversationId
         this.submissionRunId = runId
         this.submissionEvents.dispatchEvent(new Event('changed'))
     }
-}
 
-class FakeRunRegistry {
     readonly subscriptions = new Map<string, Set<() => void>>()
     private readonly runs = new Map<string, ActionRun>()
 
@@ -152,6 +159,44 @@ function setup(initialRun: ActionRun) {
 }
 
 describe('ActionConversationChatlogTracker', () => {
+    it('keeps one current-turn message object through queue and sent acknowledgements', () => {
+        const value = conversation('conversation-1', []);
+        const { registry, tracker } = setup(run('run-1', value));
+        tracker.load();
+        const submission: PendingActionSubmission = { content: 'Send this', id: 'submission-1', prompt: null, state: 'transmitting' };
+        registry.setSubmissions([submission], value.id, 'run-1');
+        const initialGroup = tracker.getEvolvingGroups()[0];
+        const prompt = tracker.getPrompt(submission.id);
+        expect(initialGroup.kind).toBe('entry');
+        expect(prompt?.getSnapshot().state).toBe('transmitting');
+        const queuedPrompt = { content: submission.content, dispatchState: 'queued' as const, id: submission.id, revision: 0 };
+        registry.setRun({ ...run('run-1', value), queuedPrompts: [queuedPrompt] });
+        registry.setSubmissions([{ ...submission, prompt: queuedPrompt, state: 'queued' }], value.id, 'run-1');
+        expect(tracker.getEvolvingGroups()).toEqual([initialGroup]);
+        expect(prompt?.getSnapshot().state).toBe('queued');
+        const dispatchingPrompt = { ...queuedPrompt, dispatchState: 'dispatching' as const };
+        registry.setRun({ ...run('run-1', value), queuedPrompts: [dispatchingPrompt] });
+        expect(tracker.getEvolvingGroups()[0]).toBe(initialGroup);
+        expect(prompt?.getSnapshot().state).toBe('sending');
+        const sendingNotification = vi.fn();
+        const unsubscribeSending = prompt?.subscribe(sendingNotification);
+        registry.setRun({ ...run('run-1', value), conversationChange: null, queuedPrompts: [dispatchingPrompt] });
+        expect(sendingNotification).not.toHaveBeenCalled();
+        unsubscribeSending?.();
+        const sentMessage = message(submission.id, 'user', submission.content);
+        registry.setRun(run('run-1', { ...value, entries: [sentMessage] }));
+        registry.setSubmissions([], value.id, 'run-1');
+        expect(tracker.getEvolvingGroups()[0]).toBe(initialGroup);
+        expect(prompt?.entry).not.toBe(sentMessage);
+        expect(prompt?.entry).toEqual(sentMessage);
+        expect(prompt?.getSnapshot().state).toBe('sent');
+        const notification = vi.fn();
+        prompt?.subscribe(notification);
+        registry.setRun({ ...run('run-1', { ...value, entries: [sentMessage] }), conversationChange: null });
+        expect(notification).not.toHaveBeenCalled();
+        tracker.unload();
+    });
+
     it('publishes displayed conversation status without replacing unchanged groups', () => {
         const entries = [message('user-1', 'user')]
         const running = conversation('conversation-1', entries)
@@ -175,21 +220,21 @@ describe('ActionConversationChatlogTracker', () => {
     it('shows an unbound new submission and hides live pending rows for history', () => {
         const live = conversation('conversation-1', [])
         const historical = conversation('conversation-2', [], 'completed')
-        const { bindingStore, conversationStore, tracker } = setup(run('run-1', live))
+        const { bindingStore, conversationStore, registry, tracker } = setup(run('run-1', live))
         bindingStore.setRunId(null)
         tracker.load()
-        conversationStore.setSubmissions([
+        registry.setSubmissions([
             { content: 'Start now', id: 'submission-1', prompt: null, state: 'transmitting' },
         ], null, null)
-        expect(tracker.getSubmissions().map(({ content }) => content)).toEqual(['Start now'])
+        expect(tracker.getEvolvingGroups().map(({ key }) => key)).toEqual(['submission-1']);
 
         bindingStore.setRunId('run-1')
-        conversationStore.setSubmissions([
+        registry.setSubmissions([
             { content: 'Continue', id: 'submission-2', prompt: null, state: 'transmitting' },
         ], live.id, 'run-1')
-        expect(tracker.getSubmissions().map(({ content }) => content)).toEqual(['Continue'])
+        expect(tracker.getEvolvingGroups().map(({ key }) => key)).toEqual(['submission-2']);
         conversationStore.select(historical)
-        expect(tracker.getSubmissions()).toEqual([])
+        expect(tracker.getEvolvingGroups()).toEqual([]);
     })
     it('registers every source listener on load and removes them on unload', () => {
         const value = conversation('conversation-1', [message('user-1', 'user')])

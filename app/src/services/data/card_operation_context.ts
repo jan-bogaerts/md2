@@ -30,6 +30,7 @@ export interface CardOperationsDeps {
     project(): ProjectReference | null
     recordCurrentContent(files: MarkdownFile[]): void
     reconcileDeletedActionFile(path: string): void
+    removeUnpersistedAction(actionId: string): void
     refreshSnapshot(workingFolder: string): void
     reloadCurrentProjectSnapshot(): Promise<ProjectSnapshot | null>
     removeFolder(path: string, workingFolder: string): void

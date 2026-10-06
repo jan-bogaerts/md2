@@ -52,6 +52,14 @@ md² starts the CLIs already installed and authenticated on your machine. It doe
 
 Full docs: [https://jan-bogaerts.github.io/md2/](https://jan-bogaerts.github.io/md2/)
 
+## Tutorials
+
+* [Getting started](https://jan-bogaerts.github.io/md2/tutorials/getting-started/) — install, first run, open a project, special folders.
+* [Working with cards](https://jan-bogaerts.github.io/md2/tutorials/working-with-cards/) — take a feature from idea to release with agents.
+* [Git worktrees](https://jan-bogaerts.github.io/md2/tutorials/git-worktrees/) — run agents in parallel, merge back, resolve conflicts.
+* [Sequencing and scheduling cards](https://jan-bogaerts.github.io/md2/tutorials/sequencing-and-scheduling/) — order cards and let md² start the work.
+* [Working with diagrams](https://jan-bogaerts.github.io/md2/tutorials/working-with-diagrams/) — render diagrams from code, edit them, implement the changes.
+
 ## Why md²
 
 ### One dashboard for agents and worktrees
@@ -166,7 +174,7 @@ Open the temporary `https://*.trycloudflare.com` URL printed by the command on y
 ## Getting started
 
 1. [Download and install the latest Windows release](https://github.com/jan-bogaerts/md2/releases/latest), or follow the [source setup](https://jan-bogaerts.github.io/md2/contributing/development-setup/) on macOS or Linux.
-2. Click the GitHub icon, upper left corner, follow link to get a GitHub access token, copy-paste token in.
+2. Click the GitHub icon, upper right corner, follow link to get a GitHub access token, copy-paste token in.
 3. Open project, select a folder that contains a git repository.
 
 ## Development setup

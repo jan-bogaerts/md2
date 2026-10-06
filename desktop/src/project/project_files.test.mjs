@@ -10,6 +10,7 @@ const {
     commitNow,
     isWatchedProjectPath,
     listRepositoryFiles,
+    loadImageFile,
     loadProject,
     loadProjectRoot,
     loadTextFile,
@@ -179,6 +180,28 @@ describe('project-files', () => {
             } finally {
                 await rm(rootPath, { force: true, recursive: true });
             }
+        });
+    });
+
+    describe('loadImageFile', () => {
+        it('returns base64 content and content type for an absolute image path', async () => {
+            const folderPath = await mkdtemp(join(tmpdir(), 'md2-image-file-'));
+
+            try {
+                const imagePath = join(folderPath, 'Photo.PNG');
+                await writeFile(imagePath, Buffer.from('image-bytes'));
+
+                const asset = await loadImageFile(imagePath);
+
+                expect(asset).toMatchObject({ content: Buffer.from('image-bytes').toString('base64'), contentType: 'image/png', encoding: 'base64' });
+            } finally {
+                await rm(folderPath, { force: true, recursive: true });
+            }
+        });
+
+        it('rejects relative paths and unsupported extensions', async () => {
+            await expect(loadImageFile('images/photo.png')).rejects.toThrow('Image file path must be absolute');
+            await expect(loadImageFile(join(tmpdir(), 'notes.txt'))).rejects.toThrow('Unsupported image file type: .txt');
         });
     });
 });

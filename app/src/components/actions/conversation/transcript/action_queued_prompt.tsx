@@ -1,7 +1,7 @@
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlined from '@mui/icons-material/EditOutlined'
 import { Box, Button, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material'
-import { useState } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import type { ActionQueuedPrompt } from '../../../../data/action_run_types'
 import {
     deleteActionQueuedPrompt,
@@ -19,11 +19,13 @@ export function ActionQueuedPromptRow({ entry, runId }: ActionQueuedPromptProps)
     const [editing, setEditing] = useState(false)
     const [editValue, setEditValue] = useState(entry.content)
     const [saving, setSaving] = useState(false)
+    const dispatched = entry.dispatchState === 'dispatching'
 
     const handleEdit = () => {
         setEditValue(entry.content)
         setEditing(true)
     }
+    const handleEditValueChange = (event: ChangeEvent<HTMLInputElement>) => setEditValue(event.target.value);
     const handleCancelEdit = () => {
         setEditValue(entry.content)
         setEditing(false)
@@ -54,37 +56,38 @@ export function ActionQueuedPromptRow({ entry, runId }: ActionQueuedPromptProps)
 
     return (
         <Box
-            aria-label="Queued prompt"
             sx={{
-                alignSelf: 'flex-end', bgcolor: 'background.paper', border: 1, borderColor: 'divider',
-                borderRadius: 1, flexShrink: 0, maxWidth: '88%', minWidth: 0, overflowWrap: 'anywhere',
+                bgcolor: 'background.paper', border: 1, borderColor: 'divider',
+                borderRadius: 1, flexShrink: 0, minWidth: 0, overflowWrap: 'anywhere',
                 px: 1.25, py: 1,
             }}
         >
             <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                <Typography color="text.secondary" sx={{ flex: 1 }} variant="caption">Queued</Typography>
-                {!editing ? (
+                <Typography color="text.secondary" sx={{ flex: 1 }} variant="caption">
+                    {dispatched ? 'Sending' : 'Queued'}
+                </Typography>
+                {!editing || dispatched ? (
                     <>
                         <Tooltip title="Edit queued prompt">
-                            <IconButton aria-label="Edit queued prompt" onClick={handleEdit} size="small">
+                            <IconButton aria-label="Edit queued prompt" disabled={dispatched} onClick={handleEdit} size="small">
                                 <EditOutlined sx={{ fontSize: 16 }} />
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Delete queued prompt">
-                            <IconButton aria-label="Delete queued prompt" onClick={handleDelete} size="small">
+                            <IconButton aria-label="Delete queued prompt" disabled={dispatched} onClick={handleDelete} size="small">
                                 <DeleteOutlineOutlined sx={{ fontSize: 16 }} />
                             </IconButton>
                         </Tooltip>
                     </>
                 ) : null}
             </Stack>
-            {editing ? (
+            {editing && !dispatched ? (
                 <Stack spacing={1}>
                     <TextField
                         autoFocus
                         disabled={saving}
                         multiline
-                        onChange={(event) => setEditValue(event.target.value)}
+                        onChange={handleEditValueChange}
                         size="small"
                         slotProps={{ htmlInput: { 'aria-label': 'Queued prompt content' } }}
                         value={editValue}

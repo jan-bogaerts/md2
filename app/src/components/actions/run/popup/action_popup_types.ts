@@ -1,5 +1,6 @@
 import type { ActionContext } from '../../../../data/action_context'
 import type { ActionDefinition } from '../../../../data/action_types'
+import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
 import type { ActionRunSettingsStore } from '../../../../services/actions/action_run_settings_service'
 import type { ActionConversationStore } from '../../conversation/state/action_conversation_store'
 import type { ActionConversationSearchService } from '../../conversation/search/action_conversation_search_service'
@@ -9,6 +10,7 @@ import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionUsageValuesService } from './action_usage_values_service'
+import type { ActionInputLayoutStore } from './action_input_layout_store';
 
 export interface ActionPopupContentProps {
     action: ActionDefinition
@@ -18,6 +20,7 @@ export interface ActionPopupContentProps {
     baseContext: ActionContext
     draggable?: boolean
     fullHeight: boolean
+    historicalEntries?: ActionRunHistoryEntry[] | null
     initialConversationPath?: string
     initialRunId?: string
     onActivate?: () => void
@@ -36,6 +39,8 @@ export interface ActionPopupContentProps {
 }
 
 export interface ActionPopupRuntime {
+    commandLayoutStore: ActionInputLayoutStore;
+    agentLayoutStore: ActionInputLayoutStore;
     bindingStore: ActionRunBindingStore
     conversationSearchService: ActionConversationSearchService
     conversationStore: ActionConversationStore

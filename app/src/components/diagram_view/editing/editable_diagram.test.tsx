@@ -164,6 +164,29 @@ describe('editable diagram', () => {
         expect(details.getTargetSnapshot()).toEqual({ objectId: 'orders', objectKind: 'node' })
     })
 
+    it('wraps the inline editor within role inset and switches to one line without changing geometry', () => {
+        const { geometry, selection, session } = createHarness()
+        render(<EditableDiagram geometry={geometry} selection={selection} session={session} />)
+        const label = screen.getByRole('textbox', { name: 'Edit Orders label' })
+        const field = label.closest('.MuiFormControl-root') as HTMLElement
+        const node = screen.getByRole('button', { name: 'Orders' })
+        const width = getComputedStyle(node).width
+
+        expect(label.tagName).toBe('TEXTAREA')
+        expect(getComputedStyle(field).left).toBe('4px')
+        expect(getComputedStyle(field).right).toBe('4px')
+        fireEvent.change(label, { target: { value: 'A longer wrapped order label' } })
+        fireEvent.blur(label)
+        expect(session.getNodeFieldSnapshot('orders', 'label')).toBe('A longer wrapped order label')
+
+        act(() => { session.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 24 } }) })
+
+        const singleLine = screen.getByRole('textbox', { name: 'Edit A longer wrapped order label label' })
+        expect(singleLine.tagName).toBe('INPUT')
+        expect(getComputedStyle(singleLine.closest('.MuiFormControl-root') as HTMLElement).left).toBe('24px')
+        expect(getComputedStyle(node).width).toBe(width)
+    })
+
     it('keeps double-click on an inline node label opening details', () => {
         const { geometry, selection, session } = createHarness()
         const details = new DiagramObjectDetailsService()

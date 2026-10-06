@@ -80,8 +80,8 @@ describe('parseDiagramData', () => {
             nodeRoles: {
                 focal: {
                     box: {
-                        borderColor: '#112233', borderStyle: 'dotted', borderThickness: 2,
-                        contentPosition: 'bottom-right', cornerRadius: 8, fillColor: '#FFFFFF',
+                        autoWrap: false, borderColor: '#112233', borderStyle: 'dotted', borderThickness: 2,
+                        contentInset: 0, contentPosition: 'bottom-right', cornerRadius: 8, fillColor: '#FFFFFF',
                     },
                     font: { bold: false, color: '#445566', family: 'Arial', italic: false, size: 14, underline: false },
                 },
@@ -93,6 +93,14 @@ describe('parseDiagramData', () => {
         expect(parseDiagramData(serializeDiagramData(diagram))).toEqual(diagram)
     })
 
+    it('accepts maximum content inset and leaves missing wrap settings absent', () => {
+        const formatting = { nodeRoles: { focal: { box: { contentInset: 40 } }, store: { box: {} } } }
+        const parsed = parseDiagramData(JSON.stringify({ ...validDiagram(), formatting }))
+
+        expect(parsed.formatting?.nodeRoles?.focal?.box?.contentInset).toBe(40)
+        expect(parsed.formatting?.nodeRoles?.store?.box).toEqual({})
+    })
+
     it.each([
         [{ fontScalePercent: 49 }, 'formatting.fontScalePercent has number outside the 50..200 range'],
         [{ boxScalePercent: Number.POSITIVE_INFINITY }, 'formatting.boxScalePercent has number outside the 50..200 range'],
@@ -101,6 +109,10 @@ describe('parseDiagramData', () => {
         [{ connectionKinds: { unknown: {} } }, 'formatting.connectionKinds.unknown has unknown category'],
         [{ nodeRoles: { focal: { box: { fillColor: 'red' } } } }, 'formatting.nodeRoles.focal.box.fillColor has color outside #RRGGBB format'],
         [{ nodeRoles: { focal: { box: { contentPosition: 'middle' } } } }, 'formatting.nodeRoles.focal.box.contentPosition has unsupported value middle'],
+        [{ nodeRoles: { focal: { box: { autoWrap: 'yes' } } } }, 'formatting.nodeRoles.focal.box.autoWrap has invalid boolean'],
+        [{ nodeRoles: { focal: { box: { contentInset: -1 } } } }, 'formatting.nodeRoles.focal.box.contentInset has number outside the 0..40 range'],
+        [{ nodeRoles: { focal: { box: { contentInset: 41 } } } }, 'formatting.nodeRoles.focal.box.contentInset has number outside the 0..40 range'],
+        [{ nodeRoles: { focal: { box: { unknown: true } } } }, 'formatting.nodeRoles.focal.box.unknown has unknown field'],
         [{ connectionKinds: { data: { endMarker: 'arrow' } } }, 'formatting.connectionKinds.data.endMarker has unsupported value arrow'],
     ])('rejects invalid formatting %#', (formatting, message) => {
         expect(() => parseDiagramData(JSON.stringify({ ...validDiagram(), formatting })))
@@ -170,6 +182,18 @@ describe('parseDiagramData', () => {
         expect(parseDiagramData(serializeDiagramData(parsed)).meta.legend).toEqual(legend)
     })
 
+    it('round-trips node-kind entries alongside existing role and connection entries', () => {
+        const diagram = validDiagram()
+        const legend = [
+            { label: 'Custom component', nodeKind: 'component' },
+            { label: 'Service', role: 'focal' },
+            { kind: 'connection', label: 'Calls' },
+        ]
+        diagram.meta = { ...diagram.meta, legend } as typeof diagram.meta
+
+        expect(parseDiagramData(serializeDiagramData(parseDiagramData(JSON.stringify(diagram)))).meta.legend).toEqual(legend)
+    })
+
     it('omits the legend key for diagrams without explicit entries', () => {
         const parsed = parseDiagramData(JSON.stringify(validDiagram()))
 
@@ -189,9 +213,13 @@ describe('parseDiagramData', () => {
             .toThrow('meta.legend[1] has duplicate entry for role:focal')
         expect(withLegend([{ kind: 'connection', label: 'One' }, { kind: 'connection', label: 'Two' }]))
             .toThrow('meta.legend[1] has duplicate entry for kind:connection')
+        expect(withLegend([{ label: 'One', nodeKind: 'component' }, { label: 'Two', nodeKind: 'component' }]))
+            .toThrow('meta.legend[1] has duplicate entry for nodeKind:component')
+        expect(withLegend([{ label: 'Both', nodeKind: 'component', role: 'focal' }]))
+            .toThrow('meta.legend[0] has exactly one of role, nodeKind or kind')
         expect(withLegend([{ kind: 'connection', label: 'Both', role: 'focal' }]))
-            .toThrow('meta.legend[0] has exactly one of role or kind')
-        expect(withLegend([{ label: 'Neither' }])).toThrow('meta.legend[0] has exactly one of role or kind')
+            .toThrow('meta.legend[0] has exactly one of role, nodeKind or kind')
+        expect(withLegend([{ label: 'Neither' }])).toThrow('meta.legend[0] has exactly one of role, nodeKind or kind')
         expect(withLegend([{ label: '   ', role: 'focal' }])).toThrow('meta.legend[0].label has invalid string')
         expect(withLegend([{ label: 'Unknown', role: 'nope' }])).toThrow('meta.legend[0].role has unsupported value nope')
         expect(withLegend('nope')).toThrow('meta.legend has invalid array')
@@ -203,6 +231,14 @@ describe('parseDiagramData', () => {
 
         expect(() => parseDiagramData(JSON.stringify(diagram)))
             .toThrow('meta.legend[0].kind has unsupported value call for architecture')
+    })
+
+    it('rejects a node-kind legend entry unsupported by its diagram type', () => {
+        const diagram = validDiagram()
+        diagram.meta = { ...diagram.meta, legend: [{ label: 'Start', nodeKind: 'start' }] } as typeof diagram.meta
+
+        expect(() => parseDiagramData(JSON.stringify(diagram)))
+            .toThrow('meta.legend[0].nodeKind has unsupported value start for architecture')
     })
 
     it('requires flow preset and accepts entity fields and cardinality', () => {

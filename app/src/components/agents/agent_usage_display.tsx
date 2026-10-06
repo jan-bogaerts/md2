@@ -22,7 +22,7 @@ export function AgentUsageDisplay(props: AgentUsageDisplayProps) {
         `cached input: ${tokenCount(usage.cachedInputTokens)}`,
         `output: ${tokenCount(usage.outputTokens)}`,
         `reasoning: ${tokenCount(usage.reasoningTokens)}`,
-        ...(usage.costUsd === undefined ? [] : [`reported cost: $${COST_NUMBER_FORMAT.format(usage.costUsd)}`]),
+        ...(usage.costUsd === undefined ? [] : [`cost: $${COST_NUMBER_FORMAT.format(usage.costUsd)}`]),
     ].join(', ')
 
     return (

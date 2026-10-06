@@ -8,6 +8,7 @@ import { actionRunRegistry } from '../../../../services/actions/action_run_regis
 import { actionService } from '../../../../services/actions/action_service'
 import { agentAcknowledgementService } from '../../../../services/agents/agent_acknowledgement_service'
 import { cardPopupService } from '../../../../services/card_popup_service'
+import { activeScheduleService } from '../../../../services/actions/active_schedule_service'
 import { dataService } from '../../../../services/data/data_service'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { CardActionPopupHost } from '../popup/card_action_popup_host'
@@ -109,6 +110,13 @@ function renderCardRunButton(Card: Card = card) {
 }
 
 describe('CardRunButton', () => {
+    it('shows timer when target card has pending action', () => {
+        vi.spyOn(activeScheduleService, 'hasPendingActionForCard').mockReturnValue(true)
+        renderCardRunButton()
+
+        expect(screen.getByLabelText('Action scheduled')).toBeInTheDocument()
+    })
+
     beforeEach(() => {
         agentAcknowledgementService.reset()
         conversationsByCardInternalId.clear()

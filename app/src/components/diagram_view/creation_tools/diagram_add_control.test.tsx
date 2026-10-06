@@ -92,6 +92,8 @@ describe('DiagramAddControl', () => {
         await user.click(within(menu).getByRole('menuitem', { name: 'Component' }));
         expect(session.getLastSelectedCreationToolSnapshot()).toBe('node:component');
         expect(screen.getByRole('button', { name: 'Add Component' })).toBeEnabled();
+        await user.hover(screen.getByRole('button', { name: 'Add Component' }));
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Add Component (hold Ctrl to add multiple)');
 
         await user.click(screen.getByRole('button', { name: 'Add Component' }));
         expect(placement.activate).toHaveBeenCalledTimes(2);
@@ -121,6 +123,11 @@ describe('DiagramAddControl', () => {
 
         expect(openCreate).toHaveBeenCalledOnce();
         expect(session.getLastSelectedCreationToolSnapshot()).toBe('fragment');
+        expect(session.getActiveToolSnapshot()).toBe('select');
+        const addFragment = screen.getByRole('button', { name: 'Add Fragment' });
+        expect(addFragment).toHaveAttribute('aria-pressed', 'false');
+        await user.hover(addFragment);
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(/^Add Fragment$/);
     });
 
     it('closes popper with Escape and returns focus to dropdown', async () => {

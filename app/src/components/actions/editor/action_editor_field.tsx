@@ -14,7 +14,7 @@ export function ActionEditorField(props: ActionEditorFieldProps) {
     const describedBy = helperText === undefined || helperText === null ? undefined : helperTextId
     const accessibilityProps = { 'aria-describedby': describedBy, 'aria-labelledby': labelId }
     const inputSlotProps = textFieldProps.select
-        ? { select: { inputProps: { 'aria-describedby': describedBy }, labelId } }
+        ? { select: { displayEmpty: true, inputProps: { 'aria-describedby': describedBy }, labelId } }
         : { htmlInput: accessibilityProps }
 
     return (

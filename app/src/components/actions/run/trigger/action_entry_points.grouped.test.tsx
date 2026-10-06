@@ -7,7 +7,8 @@ import { actionService } from '../../../../services/actions/action_service'
 import { dataService } from '../../../../services/data/data_service'
 import type { ActionFile } from '../../../../data/action_types'
 import { cardContext, folderContext } from '../../../../data/action_context'
-import { DEFAULT_CARD_TYPES, type Card } from '../../../../data/data_types'
+import { DEFAULT_CARD_TYPES, type Card, type WorktreeRecord } from '../../../../data/data_types'
+import { worktreeService } from '../../../../services/project/worktree_service';
 import type { ActionRunEvent } from '../../../../data/action_run_types'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
@@ -59,6 +60,30 @@ describe('ActionEntryPoints filtering', () => {
             file(commandDefinition('fix', { appliesTo: { type: 'bug' }, label: 'Fix' })),
         ])
     })
+
+    it.each(['card', 'file'] as const)('refreshes %s action buttons when checkout numbers change', async (kind) => {
+        const assignedWorktree: WorktreeRecord = {
+            branch: 'feature', error: null, parkingBranch: null, path: 'C:/feature', valid: true,
+            status: { ahead: 0, baseAhead: 0, baseBehind: 0, behind: 0, dirty: false, hasUpstream: false },
+        };
+        const otherWorktree = { ...assignedWorktree, branch: 'other', path: 'C:/other' };
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([otherWorktree, assignedWorktree]);
+        actionService.loadFromFiles([
+            file(commandDefinition('one', { appliesTo: { worktree: '1' }, label: 'Worktree one' })),
+            file(commandDefinition('two', { appliesTo: { worktree: '2' }, label: 'Worktree two' })),
+        ]);
+        render(<ActionEntryPoints context={{ kind, worktree: '2', worktreeBranch: 'feature' }} variant="icons" />);
+        expect(screen.getByRole('button', { name: 'Worktree two' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Worktree one' })).not.toBeInTheDocument();
+
+        act(() => {
+            records.mockReturnValue([assignedWorktree, otherWorktree]);
+            worktreeService.dispatchEvent(new CustomEvent('changed'));
+        });
+
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Worktree one' })).toBeInTheDocument());
+        expect(screen.queryByRole('button', { name: 'Worktree two' })).not.toBeInTheDocument();
+    });
 
     it('disables matching action entry points for read-only projects', () => {
         projectAccessService.setReadOnly(true)

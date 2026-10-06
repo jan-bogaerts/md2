@@ -11,6 +11,7 @@ import { ActionSelector } from './action_selector'
 const actionStates = vi.hoisted(() => ({
     live: {} as Record<string, ActionRunStatus | null>,
     persisted: {} as Record<string, CardAgentState>,
+    scheduled: {} as Record<string, boolean>,
 }))
 
 vi.mock('../../../hooks/use_action_runs', () => ({
@@ -19,6 +20,7 @@ vi.mock('../../../hooks/use_action_runs', () => ({
     )),
 }))
 vi.mock('../../../hooks/use_context_action_agent_state', () => ({ useContextActionAgentState: (actionId: string) => actionStates.persisted[actionId] ?? 'idle' }))
+vi.mock('../../../hooks/use_pending_action_schedule', () => ({usePendingActionScheduleForCardAndAction: (_cardInternalId: string, actionId: string) => !!actionStates.scheduled[actionId]}))
 
 const SCROLLER_WIDTH = 300
 const OVERFLOWING_CONTENT_WIDTH = 800
@@ -64,6 +66,7 @@ describe('ActionSelector', () => {
     afterEach(() => {
         actionStates.live = {}
         actionStates.persisted = {}
+        actionStates.scheduled = {}
         vi.restoreAllMocks()
         cleanup()
     })
@@ -121,6 +124,21 @@ describe('ActionSelector', () => {
         expect(unselectedButton).toHaveStyle({ borderColor: theme.palette.warning.main })
         expect(within(selectedButton).getByTestId('HelpCircleOutlineIcon')).toBeInTheDocument()
         expect(within(selectedButton).queryByTestId('PlayIcon')).not.toBeInTheDocument()
+    })
+
+    it('shows scheduled timer and warning color only for matching action', () => {
+        actionStates.scheduled = { selected: true }
+        const theme = createAppTheme('light')
+        render(
+            <ThemeProvider theme={theme}>
+                <ActionSelector actions={actions} context={context} onSelect={vi.fn()} selectedAction={actions[0]} />
+            </ThemeProvider>,
+        )
+
+        const selectedButton = screen.getByRole('button', { name: /Selected action.*Action scheduled/u })
+        expect(selectedButton).toHaveStyle({ color: theme.palette.warning.main })
+        expect(within(selectedButton).getByTestId('TimerOutlinedIcon')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Unselected action' })).not.toHaveStyle({ color: theme.palette.warning.main })
     })
 
     it('renders custom prompt as one accessible plus action with an explanatory tooltip', async () => {

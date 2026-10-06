@@ -61,6 +61,7 @@ interface DiagramZoomViewportProps {
 
 const NewDiagram = memo(EditableDiagram)
 const KEYBOARD_RESIZE_STEP = 4
+const MINIMUM_SCROLL_RANGE = 64
 
 interface DiagramResizeTarget {
     direction: DiagramResizeDirection
@@ -209,6 +210,45 @@ export function DiagramZoomViewport({
     }, [pinch])
     usePreserveDiagramZoomCenter(scrollerRef, scale, pinch.anchorRef)
 
+    const updateViewportMinimum = useCallback(() => {
+        const scroller = scrollerRef.current
+        const zoomSurface = zoomSurfaceRef.current
+        if (!scroller || !zoomSurface) return
+        if (scroller.clientWidth === 0 || scroller.clientHeight === 0) {
+            geometry.setViewportMinimum(0, 0)
+
+            return
+        }
+        const drawingSurface = zoomSurface.querySelector<HTMLElement>('[aria-label="New diagram"]')
+        const editor = zoomSurface.querySelector<HTMLElement>('[aria-label="New diagram editor"]')
+        if (!drawingSurface || !editor) throw new Error('Diagram editor surface is unavailable')
+        const scrollerStyle = window.getComputedStyle(scroller)
+        const editorStyle = window.getComputedStyle(editor)
+        const horizontalPadding = Number.parseFloat(scrollerStyle.paddingLeft) + Number.parseFloat(scrollerStyle.paddingRight)
+        const verticalPadding = Number.parseFloat(scrollerStyle.paddingTop) + Number.parseFloat(scrollerStyle.paddingBottom)
+        const drawingOffset = drawingSurface.getBoundingClientRect().top - zoomSurface.getBoundingClientRect().top
+        const editorBottomPadding = Number.parseFloat(editorStyle.paddingBottom) * scale
+        const width = Math.max(0, Math.ceil((scroller.clientWidth - horizontalPadding + MINIMUM_SCROLL_RANGE) / scale))
+        const height = Math.max(0, Math.ceil((
+            scroller.clientHeight - verticalPadding - drawingOffset - editorBottomPadding + MINIMUM_SCROLL_RANGE
+        ) / scale))
+        geometry.setViewportMinimum(width, height)
+    }, [geometry, scale])
+
+    useLayoutEffect(() => {
+        const scroller = scrollerRef.current
+        const header = zoomSurfaceRef.current?.querySelector<HTMLElement>('[aria-label="New diagram editor header"]')
+        if (!scroller || !header) return
+        const observer = new ResizeObserver(updateViewportMinimum)
+        observer.observe(scroller)
+        observer.observe(header)
+        updateViewportMinimum()
+
+        return () => observer.disconnect()
+    }, [updateViewportMinimum])
+
+    useEffect(() => () => geometry.setViewportMinimum(0, 0), [geometry])
+
     const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (!event.currentTarget.contains(event.target as Node)) return
         if (activePointerIdRef.current !== null || event.button !== 0 || event.isPrimary === false) return
@@ -225,7 +265,7 @@ export function DiagramZoomViewport({
             event.preventDefault()
             suppressClickRef.current = true
             const nodeId = diagramConnectionNodeIdFromTarget(event.target)
-            if (drawing.hasSource()) drawing.completeTarget(nodeId, point)
+            if (drawing.hasSource()) drawing.completeTarget(nodeId, point, event.ctrlKey)
             else if (nodeId) drawing.beginSource(nodeId, point)
 
             return
@@ -320,10 +360,10 @@ export function DiagramZoomViewport({
         completingGestureRef.current = true
         if (activePointerGestureRef.current === 'placement') {
             suppressClickRef.current = true
-            placement.place(pointerDiagramPoint(event.clientX, event.clientY))
+            placement.place(pointerDiagramPoint(event.clientX, event.clientY), event.ctrlKey)
         } else if (activePointerGestureRef.current === 'group') {
             suppressClickRef.current = true
-            groupDrawing.finishDrawing(pointerDiagramPoint(event.clientX, event.clientY))
+            groupDrawing.finishDrawing(pointerDiagramPoint(event.clientX, event.clientY), event.ctrlKey)
         } else if (activePointerGestureRef.current === 'resize') resize.completeResize()
         else movement.completeMove()
         completingGestureRef.current = false
@@ -392,31 +432,11 @@ export function DiagramZoomViewport({
     const handleWindowKeyDown = useCallback((event: KeyboardEvent) => {
         if (event.defaultPrevented || event.key !== 'Escape') return
         if (event.target instanceof Element && event.target.closest('input, textarea, [contenteditable="true"], [role="dialog"]')) return
-        if (drawing.isDrawingActive()) {
+        if (drawing.isDrawingActive() && drawing.hasSource()) {
             event.preventDefault()
             suppressClickRef.current = false
             drawing.cancelDrawing()
             session.setActiveTool('select')
-
-            return
-        }
-        if (placement.isPlacementActive()) {
-            event.preventDefault()
-            suppressClickRef.current = false
-            placement.cancelPlacement()
-            session.setActiveTool('select')
-            activePointerGestureRef.current = null
-            releaseActivePointer()
-
-            return
-        }
-        if (groupDrawing.isDrawingActive()) {
-            event.preventDefault()
-            suppressClickRef.current = false
-            groupDrawing.cancelDrawing()
-            session.setActiveTool('select')
-            activePointerGestureRef.current = null
-            releaseActivePointer()
 
             return
         }
@@ -434,6 +454,7 @@ export function DiagramZoomViewport({
 
             return
         }
+        if (activePointerGestureRef.current === 'placement' || activePointerGestureRef.current === 'group') return
 
         event.preventDefault()
         suppressClickRef.current = false
@@ -441,7 +462,7 @@ export function DiagramZoomViewport({
         else movement.cancelMove()
         activePointerGestureRef.current = null
         releaseActivePointer()
-    }, [drawing, emphasis, endPanGesture, groupDrawing, movement, pan, placement, releaseActivePointer, resize, session])
+    }, [drawing, emphasis, endPanGesture, movement, pan, releaseActivePointer, resize, session])
 
     const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
         if (!event.currentTarget.contains(event.target as Node)) return
@@ -509,7 +530,7 @@ export function DiagramZoomViewport({
             onPointerUp={handlePointerUp}
             onScroll={handleScroll}
             ref={scrollerRef}
-            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', px: 2, pb: 2, pt: 7, touchAction: panToolActive ? 'none' : 'pan-x pan-y' }}
+            sx={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'scroll', overflowY: 'scroll', px: 2, pb: 2, pt: 7, touchAction: panToolActive ? 'none' : 'pan-x pan-y' }}
         >
             <Box data-testid="new-diagram-zoom-surface" ref={zoomSurfaceRef} sx={{ transformOrigin: 'top left', zoom: scale }}>
                 <NewDiagram

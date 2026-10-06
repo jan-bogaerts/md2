@@ -8,6 +8,7 @@ import { agentAcknowledgementService } from '../../services/agents/agent_acknowl
 import { configService } from '../../services/config/config_service'
 import { cardPopupService } from '../../services/card_popup_service'
 import { dataService } from '../../services/data/data_service'
+import { dialogService } from '../../services/dialog_service'
 import { AppThemeProvider } from '../../theme/theme_provider'
 import { CardActionPopupHost } from '../actions/run/popup/card_action_popup_host'
 import { AgentChatFab } from './agent_chat_fab'
@@ -92,6 +93,18 @@ describe('AgentChatFab', () => {
 
         expect(closeAction).toHaveBeenCalledWith({ kind: 'project' })
         expect(cardPopupService.getSnapshot()).toEqual([])
+    })
+
+    it('mounts while project conversation loading is not prepared without loading conversations or reporting an error', () => {
+        const listAgentConversations = vi.spyOn(dataService, 'listAgentConversations')
+            .mockRejectedValue(new Error('Agent conversation loading has not started for the current project'))
+        const reportError = vi.spyOn(dialogService, 'error')
+
+        render(<AgentChatFab />, { wrapper: AppThemeProvider })
+
+        expect(screen.getByRole('button', { name: 'Project agent' })).toBeInTheDocument()
+        expect(listAgentConversations).not.toHaveBeenCalled()
+        expect(reportError).not.toHaveBeenCalled()
     })
 
     it('moves without opening popup when pointer gesture crosses drag threshold', () => {

@@ -5,7 +5,6 @@ import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined'
 import type { MouseEvent } from 'react'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { actionsForContext, diagramContext } from '../../data/action_context'
-import { dataService } from '../../services/data/data_service'
 import { dialogService } from '../../services/dialog_service'
 import {
     diagramEditSessionService, type DiagramEditSessionService,
@@ -95,9 +94,6 @@ export function DiagramView({
         emphasis.start()
         void service.open().catch((error: unknown) => {
             dialogService.error(error, { fallbackMessage: 'Diagram view could not be opened' })
-        })
-        void dataService.listAgentConversations(ROOT_DIAGRAM_CONTEXT).catch((error: unknown) => {
-            dialogService.error(error, { fallbackMessage: 'Could not load diagram agent conversations' })
         })
     }, [emphasis, service, viewMode])
 

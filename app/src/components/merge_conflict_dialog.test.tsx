@@ -70,6 +70,7 @@ function action(id: string, kind: 'merge-conflict' | 'project', type: 'agent' | 
 
 function session(paths: string[], externalResolverConfigured = true): MergeConflictSession {
     return {
+        branch: 'main',
         conflictedPaths: paths,
         externalResolverConfigured,
         id: 'session-1',

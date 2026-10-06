@@ -55,6 +55,7 @@ const DATA_METHODS = [
     'loadAgentConversation',
     'loadActivityConversations',
     'loadFile',
+    'loadImageFile',
     'loadProject',
     'loadProjectAsset',
     'loadProjectConfig',
@@ -82,6 +83,7 @@ const DATA_METHODS = [
     'stopAgent',
 ];
 const ACTION_METHODS = [
+    'compactActionConversation',
     'acquireReleaseCardLocks',
     'answerActionApproval',
     'answerActionQuestion',

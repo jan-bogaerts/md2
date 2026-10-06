@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 /** Width of each floating scroll button. */
 export const SCROLL_BUTTON_WIDTH = 32;
+/** Width of the fade outside each floating scroll button. */
+const SCROLL_FADE_WIDTH = 8;
 /** Distance scrolled by one scroll button click. */
 export const SCROLL_STEP = 200;
 /** Sub-pixel tolerance used when deciding whether the scroll end has been reached. */
@@ -35,15 +37,16 @@ function isSameScrollState(left: ScrollState, right: ScrollState) {
 }
 
 function startFade(theme: Theme) {
-    return `linear-gradient(to right, ${theme.palette.background.paper} 60%, transparent)`;
+    return `linear-gradient(to right, ${theme.palette.background.paper} 0%, transparent)`;
 }
 
 function endFade(theme: Theme) {
-    return `linear-gradient(to left, ${theme.palette.background.paper} 60%, transparent)`;
+    return `linear-gradient(to left, ${theme.palette.background.paper} 0%, transparent)`;
 }
 
 const buttonContainerSx = {
     alignItems: 'center',
+    backgroundColor: 'background.paper',
     bottom: 0,
     display: 'flex',
     justifyContent: 'center',
@@ -52,8 +55,25 @@ const buttonContainerSx = {
     width: SCROLL_BUTTON_WIDTH,
     zIndex: 1,
 } as const;
-const startButtonContainerSx = { ...buttonContainerSx, background: startFade, left: 0 };
-const endButtonContainerSx = { ...buttonContainerSx, background: endFade, right: 0 };
+const fadeSx = {
+    bottom: 0,
+    content: '""',
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: 0,
+    width: SCROLL_FADE_WIDTH,
+} as const;
+const startButtonContainerSx = {
+    ...buttonContainerSx,
+    left: 0,
+    '&::after': { ...fadeSx, background: startFade, left: '100%' },
+};
+const endButtonContainerSx = {
+    ...buttonContainerSx,
+    right: 0,
+    '&::after': { ...fadeSx, background: endFade, right: '100%' },
+};
+const scrollButtonSx = { color: 'custom.text3', '&:hover': { backgroundColor: 'custom.track', color: 'primary.main' } };
 const scrollerSx = {
     display: 'flex',
     gap: 'inherit',
@@ -123,10 +143,10 @@ export function HorizontalScrollArea(props: HorizontalScrollAreaProps) {
     const { canScrollEnd, canScrollStart } = scrollState;
 
     return (
-        <Box sx={rootSx}>
+        <Box sx={rootSx} aria-label="Horizontal scroll area" >
             {canScrollStart ? (
                 <Box sx={startButtonContainerSx}>
-                    <IconButton aria-label="Scroll left" onClick={scrollToStart} size="small">
+                    <IconButton aria-label="Scroll left" onClick={scrollToStart} size="small" sx={scrollButtonSx}>
                         <ChevronLeft fontSize="small" />
                     </IconButton>
                 </Box>
@@ -138,7 +158,7 @@ export function HorizontalScrollArea(props: HorizontalScrollAreaProps) {
             </Box>
             {canScrollEnd ? (
                 <Box sx={endButtonContainerSx}>
-                    <IconButton aria-label="Scroll right" onClick={scrollToEnd} size="small">
+                    <IconButton aria-label="Scroll right" onClick={scrollToEnd} size="small" sx={scrollButtonSx}>
                         <ChevronRight fontSize="small" />
                     </IconButton>
                 </Box>

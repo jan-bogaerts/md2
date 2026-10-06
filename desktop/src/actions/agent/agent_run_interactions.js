@@ -2,7 +2,7 @@ const { createEventEntry, createMessageEntry, transitionConversationStatus } = r
 const { emitRunEvent, hasPendingInteraction } = require('./agent_run_state');
 const { lastMessageEntry, nextRunSequence } = require('./agent_run_transcript');
 const { requireString } = require('./agent_run_validation');
-const { secretAnswerValues } = require('./agent_secret_redaction');
+const { redactSecrets, secretAnswerValues } = require('./agent_secret_redaction');
 
 /** Serializes writes to the agent's stdin so a message and an answer can never interleave on the wire. */
 function queueInteractionWrite(run, operation) {
@@ -18,7 +18,7 @@ async function sendStreamingMessage(service, run, content, submissionId) {
     try {
         await run.streamingAdapter.sendMessage(message);
     } catch (error) {
-        service.failStreamingRun(run, error);
+        console.error('[agent:interaction]', run.id, redactSecrets(String(error), run.secretValues));
         throw error;
     }
     const timestamp = new Date().toISOString();
@@ -65,9 +65,16 @@ function answerQuestion(service, run, requestId, answers) {
         run.secretValues ??= new Set();
         secretAnswerValues(pendingQuestions, answers).forEach((answer) => run.secretValues.add(answer));
         try {
-            await run.streamingAdapter.answerQuestion(requestId, answers);
+            if (run.restoredQuestions) {
+                const providerContent = Object.entries(answers)
+                    .map(([questionId, answer]) => `${questionId}: ${Array.isArray(answer) ? answer.join(', ') : answer}`)
+                    .join('\n');
+                await run.streamingAdapter.sendMessage(providerContent);
+                run.turnActive = true;
+                run.restoredQuestions = false;
+            } else await run.streamingAdapter.answerQuestion(requestId, answers);
         } catch (error) {
-            service.failStreamingRun(run, error);
+            console.error('[agent:interaction]', run.id, redactSecrets(String(error), run.secretValues));
             throw error;
         }
         const timestamp = new Date().toISOString();
@@ -97,7 +104,8 @@ function answerQuestion(service, run, requestId, answers) {
 function dismissQuestions(service, run, requestId) {
     return queueInteractionWrite(run, async () => {
         requirePendingQuestion(run, requestId);
-        await run.streamingAdapter.dismissQuestion(requestId);
+        if (run.restoredQuestions) run.restoredQuestions = false;
+        else await run.streamingAdapter.dismissQuestion(requestId);
         const timestamp = new Date().toISOString();
         const event = {
             ...createEventEntry(

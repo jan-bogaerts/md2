@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const path = require('node:path');
 const crossSpawn = require('cross-spawn');
+const { cancelUnfinishedTools } = require('./cancel_unfinished_tools');
 
 const {
     accumulateUsage,
@@ -118,8 +119,11 @@ class AgentRunnerService {
         const command = requireCommand(request?.command);
         readOptionalString(request?.actionId, 'actionId');
         const cardPath = readOptionalString(request?.cardPath, 'cardPath');
-        const prompt = requireString(request?.prompt, 'prompt');
-        console.log('[agent prompt]', prompt);
+        const compactOnly = request.compactOnly === true;
+        if (compactOnly && (!request.conversation || !request.providerConversationId || !request.streaming)) {
+            throw new Error('Compact-only startup requires an existing streaming provider session');
+        }
+        const prompt = compactOnly ? null : requireString(request?.prompt, 'prompt');
         const agent = requireString(request?.agent ?? 'generic', 'agent');
         const streaming = request.streaming === true;
         requireProjectFolder(request?.projectFolder);
@@ -133,7 +137,10 @@ class AgentRunnerService {
         let nextSequence = nextConversationSequence(conversation);
         if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);
         const lastMessage = lastMessageEntry(conversation);
-        if (request.reuseLastUserMessage) {
+        const conversationBeforePrompt = request.reuseLastUserMessage ? null : snapshotConversation(conversation);
+        if (compactOnly) {
+            // The existing transcript remains intact; initialization is not a user message.
+        } else if (request.reuseLastUserMessage) {
             if (lastMessage?.role !== 'user' || lastMessage.content !== prompt) throw new Error('Missing failed-turn user message for agent retry');
         } else {
             conversation.entries.push(createMessageEntry(request.submissionId ?? `${id}-user`, 'user', prompt, startedAt, undefined, nextSequence));
@@ -205,23 +212,33 @@ class AgentRunnerService {
                 ? `${request.contextInput}\n\n[User]\n\n${prompt}`
                 : prompt;
             try {
-                await run.streamingAdapter.start(initialPrompt);
+                if (compactOnly) await run.streamingAdapter.startSession();
+                else await run.streamingAdapter.start(initialPrompt);
             } catch (error) {
-                this.failStreamingRun(run, error);
+                console.error('[agent:start-session]', run.id, redactSecrets(String(error), run.secretValues));
             }
         } else {
             if (typeof request.contextInput === 'string' && request.contextInput.length > 0) child.stdin.write(request.contextInput);
             child.stdin.end();
         }
         const userMessage = lastMessageEntry(conversation);
-        if (!userMessage || userMessage.role !== 'user') throw new Error('Missing current agent user message');
+        if (!compactOnly && (!userMessage || userMessage.role !== 'user')) throw new Error('Missing current agent user message');
         emitRunEvent(run, {
             continued: !!request.conversation,
-            conversation: initialConversation,
+            conversation: conversationBeforePrompt ?? initialConversation,
+            provider: run.agent,
             type: 'started',
         });
+        if (!compactOnly && conversationBeforePrompt) emitRunEvent(run, { type: 'userMessage', userMessage });
 
         return { conversation: initialConversation, reference, runId: id };
+    }
+
+    /** Historical tools can only be running while this host owns their conversation process. */
+    resolveHistoricalConversation(conversation) {
+        if (this.runningConversationIds.has(conversation.id)) return conversation;
+
+        return cancelUnfinishedTools(conversation);
     }
 
     stop(runId) {
@@ -252,8 +269,42 @@ class AgentRunnerService {
     }
 
     sendMessage(runId, content, submissionId) {
-        console.log('[agent prompt]', content);
         return agentInteractions.sendMessage(this, this.requireStreamingRun(runId), content, submissionId);
+    }
+
+    /** A parked status alone does not prove that provider writes are safe. */
+    canCompact(runId) {
+        const run = this.processes.get(runId);
+        return !!run && run.sessionReady && !run.turnActive && !run.activeCompact
+            && !hasPendingInteraction(run) && !run.finishing && !run.cancelled && !run.streamingFailure;
+    }
+
+    async compact(runId, request) {
+        const run = this.requireStreamingRun(runId);
+        await agentInteractions.queueInteractionWrite(run, async () => {
+            if (request.conversationId !== run.conversation.id || request.provider !== run.agent) {
+                throw new Error('Compact target does not match the initialized provider conversation');
+            }
+            if (!this.canCompact(runId)) throw new Error('Agent session is not at a safe compact dispatch point');
+            run.activeCompact = request;
+            run.turnActive = true;
+            try {
+                await run.streamingAdapter.compact();
+            } catch (error) {
+                run.turnActive = false;
+                this.settleCompact(run, error.message);
+                console.error('[agent:compact]', run.id, redactSecrets(String(error), run.secretValues));
+                throw error;
+            }
+        });
+    }
+
+    settleCompact(run, error, explanation) {
+        if (this.processes.get(run.id) !== run) return;
+        const request = run.activeCompact;
+        if (!request) return;
+        run.activeCompact = null;
+        emitRunEvent(run, { error, explanation, requestId: request.requestId, type: 'compactSettled' });
     }
 
     sendStreamingMessage(run, content) {
@@ -534,11 +585,18 @@ class AgentRunnerService {
             this.handleMalformedOutput(runId, line);
             return;
         }
-        run.protocolHandling = run.protocolHandling
-            .then(() => run.streamingAdapter.handleMessage(message))
-            .catch((error) => {
-                this.failStreamingRun(run, error);
-            });
+        run.protocolHandling = this.processStreamingMessage(run.id, message);
+    }
+
+    /** Keep later provider messages flowing after an internal handler failure. */
+    async processStreamingMessage(runId, message) {
+        const run = this.requireRun(runId);
+        await run.protocolHandling;
+        try {
+            await run.streamingAdapter.handleMessage(message);
+        } catch (error) {
+            console.error('[agent:streaming-message]', run.id, redactSecrets(String(error), run.secretValues));
+        }
     }
 
     recordOutput(runId, channel, content) {
@@ -654,7 +712,7 @@ class AgentRunnerService {
             ));
             return;
         }
-        this.failStreamingRun(run, new Error(`Malformed ${run.agent} JSONL event`));
+        console.error('[agent:malformed-output]', run.id, `Malformed ${run.agent} JSONL event`);
     }
 
     handleError(runId, error) {
@@ -685,6 +743,7 @@ class AgentRunnerService {
         const message = redactSecrets(error.message, run.secretValues);
         const timestamp = new Date().toISOString();
         run.streamingFailure = new Error(message);
+        this.settleCompact(run, message);
         transitionConversationStatus(run.conversation, 'failed', timestamp, run.phases);
         run.waitingForQuestion = false;
         run.pendingQuestionRequestId = null;
@@ -727,6 +786,7 @@ class AgentRunnerService {
                 const separator = run.stderr.length > 0 && !run.stderr.endsWith('\n') ? '\n' : '';
                 run.stderr += `${separator}${run.streamingFailure.message}`;
             }
+            this.settleCompact(run, run.streamingFailure?.message ?? 'Compaction cancelled before provider confirmation');
             const succeeded = (exitCode === 0 || (run.finishing && run.finishForced))
                 && !run.missingSession
                 && !run.cancelled
@@ -745,6 +805,7 @@ class AgentRunnerService {
                 ? 'waitingForInput'
                 : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
             transitionConversationStatus(run.conversation, status, completedAt, run.phases);
+            run.conversation = cancelUnfinishedTools(run.conversation);
             logAgentEvent('[agent:complete]', {
                 completedAt,
                 durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),

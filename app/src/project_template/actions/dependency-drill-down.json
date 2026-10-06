@@ -1,0 +1,20 @@
+{
+  "id": "8637047c-0c10-4315-8146-3c79f0440de3",
+  "label": "dependency drill down",
+  "description": "Describe this action.",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Inspect the implemented codebase and extract detailed dependency data for the selected item: \"{{parent-node}}\".\n\nLocate the code corresponding to selected label.\n\nIf selected item represents a module, package, or subsystem, extract its internal dependencies, direct consumers, shared dependencies, and verified cycles.\n\nIf selected item represents a dependency relationship, trace how that dependency is established through imports, construction, injection, configuration, or runtime integration.\n\nKeep scope centered on selected item. Use consistent abstraction level. Include only dependencies verified in implementation.\n\nSet data type to dependency. Assign stable semantic identifiers to nodes and edges. Mark items as non-drillable only when further inspection would not be useful.\n\nReturn only semantic JSON data required by appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let application calculate positions, sizes, and connector routes.",
+  "appliesTo": {
+    "kind": "diagram",
+    "type": "child"
+  },
+  "autoFinish": {
+    "when": "diagram-created"
+  },
+  "output": {
+    "kind": "diagram"
+  },
+  "trackFileChanges": true,
+  "streaming": true
+}

@@ -1,7 +1,7 @@
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { agentCapabilitiesService } from '../../services/agents/agent_capabilities_service';
 import { snapshotCatalogFixture } from '../../test/agent_catalog_fixture';
-import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import type { ConfigEntry } from '../../services/config/config_service'
 import { dialogService } from '../../services/dialog_service'
 import { ConfigValueEditor } from './config_value_editor'
@@ -17,9 +17,36 @@ const desktopSelectionEntry: ConfigEntry = {
     type: 'json',
 }
 
+const durationSliderEntry: ConfigEntry = {
+    defaultValue: 30000,
+    description: 'Delay before editor changes are committed after typing stops.',
+    editable: true,
+    input: 'slider',
+    key: 'project.autoCommitDelayMs',
+    label: 'Auto commit delay',
+    max: 120000,
+    min: 1000,
+    section: 'project',
+    source: 'project',
+    step: 1000,
+    type: 'number',
+    valueFormat: 'duration',
+}
+
+function labelRow(label: string) {
+    const labelElement = screen.getByText(label)
+    if (!labelElement.parentElement) throw new Error(`Label ${label} has no row`)
+
+    return within(labelElement.parentElement)
+}
+
 describe('ConfigValueEditor', () => {
     beforeEach(() => { vi.spyOn(agentCapabilitiesService, 'getCatalogSnapshot').mockImplementation(snapshotCatalogFixture); });
-    afterEach(() => { vi.restoreAllMocks(); });
+    afterEach(() => {
+        cleanup();
+        vi.restoreAllMocks();
+    });
+
     it('reports invalid slider config without crashing the config page', () => {
         const entry: ConfigEntry = {
             defaultValue: 30000,
@@ -109,6 +136,31 @@ describe('ConfigValueEditor', () => {
         expect(slider).toHaveAttribute('aria-valuemax', '120000')
         expect(slider).toHaveAttribute('aria-valuemin', '1000')
         expect(handleChange).toHaveBeenCalledWith('project.autoCommitDelayMs', 5000)
+    })
+
+    it('shows duration slider values formatted beside the label without interaction', () => {
+        render(<ConfigValueEditor entry={durationSliderEntry} onChange={vi.fn()} value={30000} />)
+
+        expect(labelRow('Auto commit delay').getByText('0:30')).toBeInTheDocument()
+        expect(screen.getByRole('slider', { name: 'Auto commit delay' })).toHaveAttribute('aria-valuetext', '0:30')
+    })
+
+    it('updates the formatted duration text when the slider value changes', () => {
+        const handleChange = vi.fn()
+        const { rerender } = render(<ConfigValueEditor entry={durationSliderEntry} onChange={handleChange} value={30000} />)
+        fireEvent.change(screen.getByRole('slider', { name: 'Auto commit delay' }), { target: { value: '90000' } })
+        rerender(<ConfigValueEditor entry={durationSliderEntry} onChange={handleChange} value={90000} />)
+
+        expect(handleChange).toHaveBeenCalledWith('project.autoCommitDelayMs', 90000)
+        expect(labelRow('Auto commit delay').getByText('1:30')).toBeInTheDocument()
+    })
+
+    it('shows the raw value beside the label for sliders without a value format', () => {
+        const entry: ConfigEntry = { ...durationSliderEntry, valueFormat: undefined }
+
+        render(<ConfigValueEditor entry={entry} onChange={vi.fn()} value={30000} />)
+
+        expect(labelRow('Auto commit delay').getByText('30000')).toBeInTheDocument()
     })
 
     it('renders placeholder tokens as code in helper text', () => {

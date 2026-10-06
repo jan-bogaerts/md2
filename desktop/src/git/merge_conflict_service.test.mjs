@@ -48,6 +48,7 @@ describe('MergeConflictService', () => {
         const session = await service.create(sessionInput());
 
         expect(session).toMatchObject({
+            branch: 'main',
             conflictedPaths: ['src/one.js', 'src/two.js'],
             externalResolverConfigured: false,
             operation: 'integrate',
@@ -60,6 +61,26 @@ describe('MergeConflictService', () => {
         const restored = new MergeConflictService({ configProvider: () => ({ mergeConflictResolverCommand: '' }), runGit, store });
         expect(restored.getSnapshot()).toEqual(session);
         expect(restored.getSnapshot()).toBe(restored.getSnapshot());
+    });
+
+    it('exposes the captured branch for a rebase and switches to the primary branch after it finishes', async () => {
+        const runGit = vi.fn()
+            .mockResolvedValueOnce('src/one.js\0')
+            .mockResolvedValueOnce('true')
+            .mockResolvedValueOnce('')
+            .mockResolvedValueOnce('rebase-merge')
+            .mockResolvedValueOnce('rebase-apply');
+        const service = new MergeConflictService({
+            configProvider: () => ({ mergeConflictResolverCommand: '' }),
+            pathExists: () => false,
+            runGit,
+            store: createStore(),
+        });
+
+        const session = await service.create({ ...sessionInput(), phase: 'rebase', repositoryRoot: 'C:/worktrees/2' });
+
+        expect(session).toMatchObject({ branch: 'feature/conflict', repositoryRoot: 'C:/worktrees/2' });
+        await expect(service.verify()).resolves.toMatchObject({ branch: 'main', phase: 'squash', repositoryRoot: 'C:/repo' });
     });
 
     it('returns null and stores nothing when failed Git command has no unmerged entries', async () => {

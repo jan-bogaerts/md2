@@ -17,6 +17,8 @@ export const DIAGRAM_CONTENT_POSITIONS = [
 export const DIAGRAM_CONNECTION_MARKERS = ['none', 'filled-arrow', 'open-arrow', 'circle', 'diamond'];
 export const DIAGRAM_FORMATTING_SCALE_MINIMUM = 50;
 export const DIAGRAM_FORMATTING_SCALE_MAXIMUM = 200;
+export const DIAGRAM_CONTENT_INSET_DEFAULT = 4;
+export const DIAGRAM_CONTENT_INSET_MAXIMUM = 40;
 function malformed(field, reason = 'invalid value') {
     throw new Error(`Malformed diagram data: ${field} has ${reason}`);
 }
@@ -98,12 +100,15 @@ function parseLegend(value) {
     return requireArray(value, 'meta.legend').map((entry, index) => {
         const field = `meta.legend[${index}]`;
         const item = requireObject(entry, field);
-        if ((item.role === undefined) === (item.kind === undefined))
-            malformed(field, 'exactly one of role or kind');
-        const semantic = item.role === undefined
-            ? { kind: requireDiagramEnum(item.kind, DIAGRAM_EDGE_KINDS, `${field}.kind`) }
-            : { role: requireDiagramEnum(item.role, DIAGRAM_ROLES, `${field}.role`) };
-        const semanticKey = item.role === undefined ? `kind:${semantic.kind}` : `role:${semantic.role}`;
+        if ([item.role, item.nodeKind, item.kind].filter((value) => value !== undefined).length !== 1)
+            malformed(field, 'exactly one of role, nodeKind or kind');
+        const semantic = item.role !== undefined
+            ? { role: requireDiagramEnum(item.role, DIAGRAM_ROLES, `${field}.role`) }
+            : item.nodeKind !== undefined
+                ? { nodeKind: requireDiagramEnum(item.nodeKind, DIAGRAM_NODE_KINDS, `${field}.nodeKind`) }
+                : { kind: requireDiagramEnum(item.kind, DIAGRAM_EDGE_KINDS, `${field}.kind`) };
+        const semanticKey = item.role !== undefined ? `role:${semantic.role}`
+            : item.nodeKind !== undefined ? `nodeKind:${semantic.nodeKind}` : `kind:${semantic.kind}`;
         if (seenSemantics.has(semanticKey))
             malformed(field, `duplicate entry for ${semanticKey}`);
         seenSemantics.add(semanticKey);
@@ -155,18 +160,22 @@ function parseBoxFormatting(value, field) {
         return undefined;
     const box = requireObject(value, field);
     rejectUnknownKeys(box, [
-        'borderColor', 'borderStyle', 'borderThickness', 'contentPosition', 'cornerRadius', 'fillColor',
+        'autoWrap', 'borderColor', 'borderStyle', 'borderThickness', 'contentInset', 'contentPosition', 'cornerRadius', 'fillColor',
     ], field);
+    const autoWrap = optionalDiagramBoolean(box.autoWrap, `${field}.autoWrap`);
     const borderColor = optionalColor(box.borderColor, `${field}.borderColor`);
     const borderStyle = optionalDiagramEnum(box.borderStyle, DIAGRAM_BORDER_STYLES, `${field}.borderStyle`);
     const borderThickness = optionalBoundedNumber(box.borderThickness, `${field}.borderThickness`, 0, 20);
+    const contentInset = optionalBoundedNumber(box.contentInset, `${field}.contentInset`, 0, DIAGRAM_CONTENT_INSET_MAXIMUM);
     const contentPosition = optionalDiagramEnum(box.contentPosition, DIAGRAM_CONTENT_POSITIONS, `${field}.contentPosition`);
     const cornerRadius = optionalBoundedNumber(box.cornerRadius, `${field}.cornerRadius`, 0, 100);
     const fillColor = optionalColor(box.fillColor, `${field}.fillColor`);
     return {
+        ...(autoWrap === undefined ? {} : { autoWrap }),
         ...(borderColor ? { borderColor } : {}),
         ...(borderStyle ? { borderStyle } : {}),
         ...(borderThickness === undefined ? {} : { borderThickness }),
+        ...(contentInset === undefined ? {} : { contentInset }),
         ...(contentPosition ? { contentPosition } : {}),
         ...(cornerRadius === undefined ? {} : { cornerRadius }),
         ...(fillColor ? { fillColor } : {}),
@@ -501,6 +510,8 @@ function validateTypeSpecificData(data) {
     (data.meta.legend ?? []).forEach((entry, index) => {
         if (entry.kind !== undefined)
             requireDiagramEdgeKind(entry.kind, data.meta.type, `meta.legend[${index}].kind`);
+        if (entry.nodeKind !== undefined)
+            requireDiagramNodeKind(entry.nodeKind, data.meta.type, data.meta.preset, `meta.legend[${index}].nodeKind`);
     });
     validateSequenceFragments(data);
 }

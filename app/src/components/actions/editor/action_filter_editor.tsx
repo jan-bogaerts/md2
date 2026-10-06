@@ -159,7 +159,7 @@ export function ActionFilterEditor(props: ActionFilterEditorProps) {
 
     return (
         <Stack spacing={1}>
-            <ActionSectionLabel>Applicability filters</ActionSectionLabel>
+            <ActionSectionLabel component="h4">Applicability filters</ActionSectionLabel>
             {entries.length === 0 ? (
                 <Typography color="custom.text4" variant="caption">
                     No filters. The action is available in every context.

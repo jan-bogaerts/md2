@@ -34,10 +34,28 @@ The worktree menu on a card offers:
 | Command | What it does |
 | --- | --- |
 | **Commit** | Commits the worktree's changes with a message you supply. |
-| **Update worktree** | Brings changes from the project branch into the worktree. Enabled when the worktree is behind. |
-| **Integrate into project** | Brings the worktree's commits into the project branch. Enabled when the worktree is ahead. |
+| **Update worktree** | Rebases the worktree's branch onto the project branch. Enabled when the worktree is behind. |
+| **Integrate into project** | Rebases the worktree onto the project branch when needed, then squash-merges its changes into the project branch as one commit. Enabled when the worktree is ahead. **Delete branch** removes the card's branch afterwards. |
+
+When the worktree has uncommitted changes, **Update worktree** and **Integrate into project** ask for a commit message first.
 
 Status is tracked as ahead/behind against the upstream, ahead/behind against the project branch, and whether the tree is dirty; the buttons enable themselves accordingly. Status refreshes after an agent run on that card finishes.
+
+## Merge conflicts
+
+When the rebase or squash merge hits a conflict, Git is paused and the **Resolve merge conflicts** dialog opens with one entry per conflicted file:
+
+| Control | What it does |
+| --- | --- |
+| **External resolver** | Opens the file with `desktop.mergeConflictResolverCommand`. Disabled until that command is configured. |
+| Agent action buttons | One per agent action with `appliesTo.kind` `merge-conflict`. Runs it for this file. |
+| **Mark resolved** | Stages the file. |
+
+Below the files, the same agent actions can run once for **all remaining files**. Conflicts are rescanned when an agent run ends.
+
+**Continue** finishes the paused rebase or merge once every file is staged. **Cancel** aborts the Git operation.
+
+A merge-conflict action receives {% raw %}`{{conflict-file}}`{% endraw %} (per-file run) and {% raw %}`{{conflict-files}}`{% endraw %}; see [Placeholders](../actions/placeholders.md).
 
 ## Actions that require a worktree
 

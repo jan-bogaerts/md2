@@ -132,6 +132,7 @@ describe('LocalGitStorageService binary write path', () => {
 
     it('forwards merge conflict lifecycle and subscription to the bridge', async () => {
         const session = {
+            branch: 'topic',
             conflictedPaths: ['src/file.ts'], externalResolverConfigured: true, id: 'session-1',
             operation: 'rebase' as const, phase: 'rebase' as const, repositoryRoot: 'C:/repo', worktree: 1,
         }
@@ -357,5 +358,18 @@ describe('LocalGitStorageService binary write path', () => {
 
         expect(loadProjectAsset).toHaveBeenCalledWith(project, 'actions/icon.png')
         expect(asset).toEqual({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })
+    })
+
+    it('forwards absolute image file reads to the bridge', async () => {
+        const imageAsset = { content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'C:/images/photo.png' }
+        const loadImageFile = vi.fn().mockResolvedValue(imageAsset)
+        const bridge = createBridge({ loadImageFile })
+        const service = new LocalGitStorageService()
+        service.init({ bridge })
+
+        const asset = await service.loadImageFile('C:/images/photo.png')
+
+        expect(loadImageFile).toHaveBeenCalledWith('C:/images/photo.png')
+        expect(asset).toEqual(imageAsset)
     })
 })

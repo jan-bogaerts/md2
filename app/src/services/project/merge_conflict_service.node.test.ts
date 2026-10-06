@@ -4,6 +4,7 @@ import { MergeConflictService } from './merge_conflict_service'
 
 function session(paths = ['src/one.ts', 'src/two.ts']): MergeConflictSession {
     return {
+        branch: 'main',
         conflictedPaths: paths,
         externalResolverConfigured: true,
         id: 'session-1',

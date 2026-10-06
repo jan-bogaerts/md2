@@ -225,7 +225,8 @@ export class DiagramEdgeDrawingService extends EventTarget {
         return true
     }
 
-    completeTarget(nodeId: string | null, point: DiagramEdgeDrawingPoint) {
+    /** Creates the edge to `nodeId`; leaves Add for Select unless `continueAdding` (Ctrl held). */
+    completeTarget(nodeId: string | null, point: DiagramEdgeDrawingPoint, continueAdding: boolean) {
         requireFinitePoint(point)
         const defaults = this.requireActiveDefaults()
         this.requirePreview()
@@ -262,6 +263,7 @@ export class DiagramEdgeDrawingService extends EventTarget {
         this.sequenceRowIndex = null
         this.setPreview(null)
         this.session.completeTransientGesture()
+        if (!continueAdding) this.session.setActiveTool('select')
 
         return edgeId
     }

@@ -1,0 +1,15 @@
+{
+  "id": "update-project-version",
+  "label": "update project version",
+  "description": "Update the app and desktop package.json versions.",
+  "type": "command",
+  "phrases": [],
+  "command": "powershell -NoProfile -File scripts/update_version.ps1 -Version \"{{version}}\"",
+  "userInput": {
+    "type": "version",
+    "prompt": "Version for app and desktop (SemVer)"
+  },
+  "appliesTo": {
+    "kind": "project"
+  }
+}

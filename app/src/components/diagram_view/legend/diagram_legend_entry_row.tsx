@@ -1,6 +1,6 @@
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined'
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
-import { Box, ButtonBase, IconButton, TextField, Tooltip, Typography } from '@mui/material'
+import { Box, ButtonBase, IconButton, Menu, MenuItem, TextField, Tooltip, Typography } from '@mui/material'
 import { useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react'
 import type { DiagramEditSessionService } from '../../../services/diagrams/diagram_edit_session_service'
 import type {
@@ -32,10 +32,14 @@ export function DiagramLegendEntryRow({ entry, session, store }: {
     entry: DiagramLegendEntry, session?: DiagramEditSessionService, store: DiagramFormattingMutationStore,
 }) {
     const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null)
+    const [activeRole, setActiveRole] = useState<DiagramRole | null>(null)
     const [draftState, setDraftState] = useState({ base: entry.label, value: entry.label })
     const draftLabel = draftState.base === entry.label ? draftState.value : entry.label
     const [labelError, setLabelError] = useState<string | null>(null)
-    const entryKey = entry.entryType === 'node' ? `node:${entry.role}` : `connection:${entry.kind}`
+    const entryKey = entry.entryType === 'node' ? `node:${entry.role}`
+        : entry.entryType === 'nodeKind' ? `nodeKind:${entry.nodeKind}` : `connection:${entry.kind}`
+    const sampleRole = entry.entryType === 'node' ? entry.role
+        : entry.entryType === 'nodeKind' ? entry.roles[0] : undefined
     const selectedKey = useSyncExternalStore(
         session?.subscribeLegendSelection ?? noSelectionSubscription,
         session?.getSelectedLegendEntryKeySnapshot ?? noSelection,
@@ -70,11 +74,19 @@ export function DiagramLegendEntryRow({ entry, session, store }: {
         session?.materializeDerivedLegend()
         session?.removeLegendEntry(entryKey)
     }
-    const nodeFormatting = useDiagramNodeRoleFormatting(entry.entryType === 'node' ? entry.role : 'focal', store)
-    const handleOpen = (event: MouseEvent<HTMLButtonElement>) => setAnchorElement(event.currentTarget)
-    const handleClose = () => setAnchorElement(null)
+    const nodeFormatting = useDiagramNodeRoleFormatting(sampleRole ?? 'focal', store)
+    const handleOpen = (event: MouseEvent<HTMLButtonElement>) => {
+        setAnchorElement(event.currentTarget)
+        setActiveRole(entry.entryType === 'node' ? entry.role
+            : entry.entryType === 'nodeKind' && entry.roles.length === 1 ? entry.roles[0] : null)
+    }
+    const handleClose = () => {
+        setAnchorElement(null)
+        setActiveRole(null)
+    }
+    const handleRoleChoice = (event: MouseEvent<HTMLLIElement>) => setActiveRole(event.currentTarget.dataset.role as DiagramRole)
     const handleNodeApply = (value: DiagramNodeRoleFormatting) => {
-        if (entry.entryType === 'node') store.setNodeRoleFormatting(entry.role, value)
+        if (activeRole) store.setNodeRoleFormatting(activeRole, value)
     }
     const handleConnectionApply = (value: DiagramConnectionKindFormatting) => {
         if (entry.entryType === 'connection') store.setConnectionKindFormatting(entry.kind, value)
@@ -92,12 +104,12 @@ export function DiagramLegendEntryRow({ entry, session, store }: {
         >
             {session ? (
                 <ButtonBase aria-label={`Select ${entry.label}`} aria-pressed={selectedKey === entryKey} onClick={handleSelect} sx={{ borderRadius: 0.5, p: 0.5 }}>
-                    {entry.entryType === 'node' ? (
-                        <Box data-role={entry.role} sx={{ border: '1px solid', borderRadius: 0.5, height: 12, width: 20, ...diagramRoleStyle(entry.role, nodeFormatting) }} />
+                    {entry.entryType !== 'connection' ? (
+                        <Box data-role={sampleRole} sx={{ border: '1px solid', borderRadius: 0.5, height: 12, width: 20, ...(sampleRole ? diagramRoleStyle(sampleRole, nodeFormatting) : {}) }} />
                     ) : <DiagramLegendConnectionSample kind={entry.kind} store={store} />}
                 </ButtonBase>
-            ) : entry.entryType === 'node' ? (
-                <Box data-role={entry.role} sx={{ border: '1px solid', borderRadius: 0.5, flexShrink: 0, height: 12, width: 20, ...diagramRoleStyle(entry.role, nodeFormatting) }} />
+            ) : entry.entryType !== 'connection' ? (
+                <Box data-role={sampleRole} sx={{ border: '1px solid', borderRadius: 0.5, flexShrink: 0, height: 12, width: 20, ...(sampleRole ? diagramRoleStyle(sampleRole, nodeFormatting) : {}) }} />
             ) : <DiagramLegendConnectionSample kind={entry.kind} store={store} />}
             {session ? (
                 <TextField
@@ -124,19 +136,27 @@ export function DiagramLegendEntryRow({ entry, session, store }: {
                 <IconButton
                     aria-label={`Format ${entry.label}`}
                     className="diagram-formatting-action"
+                    disabled={entry.entryType === 'nodeKind' && entry.roles.length === 0}
                     onClick={handleOpen}
                     size="small"
                 >
                     <SettingsOutlined fontSize="small" />
                 </IconButton>
             </Tooltip>
-            {anchorElement && entry.entryType === 'node' ? (
+            {anchorElement && entry.entryType === 'nodeKind' && entry.roles.length > 1 && !activeRole ? (
+                <Menu anchorEl={anchorElement} onClose={handleClose} open>
+                    {entry.roles.map((role) => (
+                        <MenuItem data-role={role} key={role} onClick={handleRoleChoice}>{role}</MenuItem>
+                    ))}
+                </Menu>
+            ) : null}
+            {anchorElement && activeRole ? (
                 <NodeFormattingPopover
                     anchorElement={anchorElement}
-                    label={entry.label}
+                    label={entry.entryType === 'nodeKind' ? `${entry.label} (${activeRole})` : entry.label}
                     onApply={handleNodeApply}
                     onClose={handleClose}
-                    value={store.getNodeRoleFormattingSnapshot(entry.role)}
+                    value={store.getNodeRoleFormattingSnapshot(activeRole)}
                 />
             ) : null}
             {anchorElement && entry.entryType === 'connection' ? (

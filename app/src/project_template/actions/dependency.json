@@ -1,0 +1,20 @@
+{
+  "id": "a7e1e1cd-c2d5-4b5e-8ea8-bb34cc058ad9",
+  "label": "dependency",
+  "description": "Renders a dependency diagram. used as the starting point (root) diagram.",
+  "type": "agent",
+  "phrases": [],
+  "prompt": "Inspect the implemented codebase and extract its dependency structure as structured data.\n\nIdentify the modules, packages, libraries, or subsystems that form meaningful dependency units. Derive relationships from actual imports, dependency injection, construction, configuration, package declarations, and runtime integration.\n\nFor every dependency, identify the consumer and the dependency it uses. Distinguish normal dependencies from verified cycles. Preserve important shared dependencies and fan-in relationships. Keep all nodes at a consistent abstraction level and avoid mixing individual files with large subsystems unless the implementation makes that distinction meaningful.\n\nSet the data type to dependency. Assign stable semantic identifiers to every node and edge. Include only relationships verified in the repository.\n\nReturn only the semantic JSON data required by the appended diagram-data contract. Do not generate SVG, HTML, Mermaid, styling, or visual layout. Let the application calculate positions, sizes, and connector routes.",
+  "autoFinish": {
+    "when": "diagram-created"
+  },
+  "streaming": true,
+  "output": {
+    "kind": "diagram"
+  },
+  "appliesTo": {
+    "kind": "diagram",
+    "type": "root"
+  },
+  "trackFileChanges": true
+}

@@ -249,6 +249,7 @@ class ClaudeStreamingAdapter {
         this.messageUsages = new Map();
         this.claudeUsageTracker = claudeUsageTracker ?? new ClaudeUsageTracker(providerConversationId);
         this.turnStarted = false;
+        this.compaction = null;
     }
 
     streamState(streamKey) {
@@ -272,6 +273,18 @@ class ClaudeStreamingAdapter {
 
     async start(prompt) {
         await this.sendMessage(prompt);
+    }
+
+    /** Initialize streaming input without submitting a prompt to the resumed session. */
+    async startSession() {
+        if (!this.providerConversationId) throw new Error('Missing Claude provider session for compact');
+        await this.writeLine({ request: { subtype: 'initialize' }, request_id: 'compact-initialize', type: 'control_request' });
+    }
+
+    async compact() {
+        if (this.turnStarted || this.compaction) throw new Error('Claude session is not ready to compact');
+        this.compaction = { confirmed: false };
+        await this.writeLine(claudeUserMessage('/compact'));
     }
 
     async sendMessage(content) {
@@ -390,6 +403,19 @@ class ClaudeStreamingAdapter {
             await this.onEvent({ conversationId: event.session_id, type: 'sessionStarted' });
         }
         if (event.type === 'system') {
+            if (event.subtype === 'init') await this.onEvent({ type: 'sessionReady' });
+            if (event.subtype === 'compact_boundary') {
+                if (this.compaction) this.compaction.confirmed = true;
+                await this.onEvent({
+                    event: {
+                        content: 'Context compacted', label: 'Context compacted',
+                        providerItemId: `compact:${event.session_id}:${this.contextUsageRequestSequence}`,
+                        status: 'completed', type: 'contextCompaction',
+                    },
+                    type: 'event',
+                });
+                return;
+            }
             if (event.subtype !== 'init') ClaudeStreamingAdapter.ignoreProtocolNoise();
             return;
         }
@@ -658,7 +684,12 @@ class ClaudeStreamingAdapter {
         this.turnStarted = false;
         const usage = this.claudeUsageTracker.read(event, accumulatedClaudeUsage(this.messageUsages));
         this.messageUsages.clear();
-        const turnCompletedEvent = { error, missingSession, type: 'turnCompleted', usage };
+        const compaction = this.compaction;
+        this.compaction = null;
+        const turnCompletedEvent = {
+            ...(compaction ? { compaction: { ...compaction, explanation: event.result } } : {}),
+            error, missingSession, type: 'turnCompleted', usage,
+        };
         if (error) {
             await this.onEvent(turnCompletedEvent);
             return;
@@ -707,6 +738,12 @@ class ClaudeStreamingAdapter {
     }
 
     async handleContextUsageResponse(event) {
+        if (event.response?.request_id === 'compact-initialize') {
+            if (event.response.subtype !== 'success') throw new Error('Claude session initialization failed');
+            await this.onEvent({ conversationId: this.providerConversationId, type: 'sessionStarted' });
+            await this.onEvent({ type: 'sessionReady' });
+            return;
+        }
         const requestId = event.response?.request_id;
         if (requestId === this.pendingContextUsage?.requestId) {
             await this.completeContextUsageRequest(requestId, claudeContextWindowUsage(event));

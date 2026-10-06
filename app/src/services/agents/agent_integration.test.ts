@@ -18,6 +18,51 @@ import { conversation, createDataService, createDeferred, createStorage, waitFor
 vi.mock('../actions/electron_action_runner', () => ({ runElectronAction: vi.fn(async () => ({ changedPaths: [], logs: [], status: 'completed' })) }))
 
 describe('AgentIntegration', () => {
+    it.each(['success', 'failure'])('rejects superseded card load %s after reset within same project', async (outcome) => {
+        configService.init();
+        const activityPath = 'activity/card__root-card.json';
+        const cardFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${activityPath}\n---\n# Root`,
+            path: 'design/F-1.md',
+        };
+        const oldLoad = createDeferred<AgentConversation[]>();
+        const newConversation = conversation('history/v1/card__root-card.json#conversation=agent-1');
+        const storage = createStorage({
+            loadActivityConversations: vi.fn().mockImplementationOnce(async () => oldLoad.promise)
+                .mockResolvedValue([newConversation]),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        });
+        const service = createDataService();
+        service.init({ storage });
+        const prepare = vi.spyOn(service.agents, 'prepareProjectConversationLoad');
+        const warning = vi.spyOn(dialogService, 'warning');
+        const loggedError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' });
+            await vi.waitFor(() => expect(storage.loadActivityConversations).toHaveBeenCalledOnce());
+            const oldRequest = service.agents.ensureAgentConversationsForCard('root-card');
+            const projectToken = prepare.mock.calls.at(-1)![0];
+            service.agents.resetLoadedConversations();
+            service.agents.prepareProjectConversationLoad(projectToken);
+            await expect(service.agents.ensureAgentConversationsForCard('root-card')).resolves.toEqual([newConversation]);
+
+            if (outcome === 'success') oldLoad.resolve([conversation(`${activityPath}#conversation=agent-1`)]);
+            else oldLoad.reject(new Error(`Missing referenced activity file: ${activityPath}`));
+            await oldRequest;
+            await waitForWorkerTurn();
+
+            expect(service.agents.getAgentConversations('root-card')).toEqual([newConversation]);
+            expect(service.getState().snapshot?.activeCards[0].agentConversationErrors).toEqual([]);
+            expect(warning).not.toHaveBeenCalled();
+        } finally {
+            oldLoad.resolve([]);
+            prepare.mockRestore();
+            warning.mockRestore();
+            loggedError.mockRestore();
+        }
+    });
+
     afterEach(() => {
         actionRunRegistry.stop()
         vi.useRealTimers()
@@ -670,7 +715,7 @@ describe('AgentIntegration', () => {
         expect(storage.loadActivityConversations).toHaveBeenCalledOnce()
     })
 
-    it('refreshes an assigned worktree only after the last live conversation finishes', async () => {
+    it('does not refresh an assigned worktree when live conversations finish', async () => {
         configService.init()
         const activityPath = 'design/activity/card__root-card.json'
         const firstReference = `${activityPath}#conversation=agent-1`
@@ -699,8 +744,47 @@ describe('AgentIntegration', () => {
         expect(refreshWorktrees).not.toHaveBeenCalled()
 
         service.agents.updateAgentConversation({ ...secondRunning, completedAt: '2026-01-01T00:03:00.000Z', status: 'completed' })
-        expect(refreshWorktrees).toHaveBeenCalledOnce()
+        expect(refreshWorktrees).not.toHaveBeenCalled()
     })
+
+    it.each(['cancelled', 'completed'] as const)('does not refresh Git when last assigned agent becomes %s', async (status) => {
+        configService.init();
+        let listener: ((event: ActionRunEvent) => void) | null = null;
+        window.md2Actions = {
+            onActionRun: (callback: (event: ActionRunEvent) => void) => {
+                listener = callback;
+                return vi.fn();
+            },
+        } as unknown as typeof window.md2Actions;
+        const reference = 'design/activity/card__root-card.json#conversation=agent-1';
+        const running = { ...conversation(reference), completedAt: null, status: 'running' as const };
+        const cardFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nworktree: 1\nagents:\n  - ${reference}\n---\n\n# Root`,
+            path: 'design/F-1-root.md',
+        };
+        const storage = createStorage({
+            loadActivityConversations: vi.fn(async () => [running]),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        });
+        const refreshWorktrees = vi.spyOn(worktreeService, 'refresh').mockResolvedValue(undefined);
+        const service = createDataService();
+        service.init({ storage });
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' });
+        const context = { cardInternalId: 'root-card', file: cardFile.path, kind: 'card' as const };
+        await service.listAgentConversations(context);
+        if (!listener) throw new Error('Action run callback not registered');
+        const emit = listener as (event: ActionRunEvent) => void;
+        const eventBase = { actionId: 'implement', context, phase: 'main' as const, rootActionId: 'implement', runId: 'run-1' };
+        emit({ ...eventBase, status: 'running', type: 'run' });
+        emit({ ...eventBase, status: 'running', type: 'update', update: { conversation: running, kind: 'agentStarted' } });
+        refreshWorktrees.mockClear();
+
+        emit({ ...eventBase, status, type: 'run' });
+
+        expect(service.agents.getAgentConversations('root-card')[0].status).toBe(status);
+        expect(refreshWorktrees).not.toHaveBeenCalled();
+    });
 
     it('does not refresh worktrees when the last live conversation finishes on primary', async () => {
         configService.init()
@@ -840,7 +924,7 @@ describe('AgentIntegration', () => {
         expect(service.getState().snapshot?.backgroundCards.every(({ agentConversations }) => agentConversations.length === 0)).toBe(true)
     })
 
-    it('loads project conversations on request and shares an in-flight popup request', async () => {
+    it('shares background project conversation loading with in-flight popup requests', async () => {
         configService.init()
         const projectConversationLoad = createDeferred<AgentConversation>()
         const projectReference = 'design/activity/project.json#conversation=project-agent'
@@ -851,8 +935,7 @@ describe('AgentIntegration', () => {
         service.init({ storage })
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
-        expect(listAgentConversationReferences).not.toHaveBeenCalled()
-        expect(loadAgentConversation).not.toHaveBeenCalled()
+        expect(listAgentConversationReferences).toHaveBeenCalledOnce()
         const context = { kind: 'project' as const }
         const firstRequest = service.listAgentConversations(context)
         const secondRequest = service.listAgentConversations(context)
@@ -1393,6 +1476,7 @@ describe('AgentIntegration', () => {
         emitActionRun({ ...runEvent, status: 'cancelled', type: 'run' })
         expect(actionRunRegistry.hasLiveConversation('project-agent')).toBe(false)
 
+        await service.projectLoading.reloadCurrentProjectSnapshot();
         await expect(service.listAgentConversations(context)).resolves.toEqual([corrected])
     })
 

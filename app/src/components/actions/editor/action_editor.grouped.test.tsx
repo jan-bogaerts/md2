@@ -103,6 +103,18 @@ describe('ActionEditor', () => {
         actionMarkdownDataSource.init(actionService)
     })
 
+    it('opens a reloaded invalid action with its saved field value', () => {
+        actionService.loadFromFiles([file({ label: '' })])
+        const action = actionService.getEditableActionByPath('actions/review.json')
+        if (!action) throw new Error('Missing editable invalid action')
+
+        renderEditor(action)
+
+        expect(labelInput()).toHaveValue('')
+        expect(screen.getByText(/Missing action field label/u)).toBeInTheDocument()
+        expect(actionService.getActionById(definition.id)).toBeNull()
+    })
+
     it('waits for an active action document instead of crashing during loading', () => {
         const action = loadAction()
         render(
@@ -326,7 +338,7 @@ describe('ActionEditor', () => {
         expect(screen.queryByText(/This trigger cannot run until cleared or replaced/u)).not.toBeInTheDocument()
     })
 
-    it('shows the actual validation error and does not save invalid state', async () => {
+    it('shows the validation error while an invalid edit is staged', async () => {
         vi.useFakeTimers()
         const saveDefinition = vi.spyOn(actionService, 'saveDefinition')
         renderEditor()
@@ -361,7 +373,7 @@ describe('ActionEditor', () => {
 
         fireEvent.change(labelInput(), { target: { value: '   ' } })
         fireEvent.blur(labelInput())
-        expect(screen.getByText('Fix validation errors to save.')).toBeInTheDocument()
+        expect(screen.getByText('Saved action cannot run until validation errors are fixed.')).toBeInTheDocument()
 
         fireEvent.change(labelInput(), { target: { value: 'Review repaired' } })
         fireEvent.blur(labelInput())
@@ -473,7 +485,7 @@ describe('ActionEditor', () => {
         const validationError = 'Missing action field prompt in actions/review.json'
         expect(promptTab).toHaveStyle({ color: 'rgb(211, 47, 47)' })
         expect(screen.queryByText(validationError)).not.toBeInTheDocument()
-        expect(screen.queryByText('Fix validation errors to save.')).not.toBeInTheDocument()
+        expect(screen.queryByText('Saved action cannot run until validation errors are fixed.')).not.toBeInTheDocument()
         expect(reportError).toHaveBeenCalledWith(validationError, { title: 'Invalid action' })
 
         fireEvent.mouseOver(within(promptTab).getByText('Prompt'))

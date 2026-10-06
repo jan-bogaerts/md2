@@ -162,17 +162,20 @@ describe('DiagramEditSessionService', () => {
         service.start()
         const sourceBefore = structuredClone(sourceService.getSourceSnapshot()?.diagram)
         const focalChanged = vi.fn()
+        const storeChanged = vi.fn()
         const connectionChanged = vi.fn()
         const fontScaleChanged = vi.fn()
         service.subscribeNodeRoleFormatting('focal', focalChanged)
+        service.subscribeNodeRoleFormatting('store', storeChanged)
         service.subscribeConnectionKindFormatting('connection', connectionChanged)
         service.subscribeFormattingScale('fontScalePercent', fontScaleChanged)
 
-        service.setNodeRoleFormatting('focal', { font: { bold: true, color: '#112233' } })
+        service.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 0 }, font: { bold: true, color: '#112233' } })
         service.setConnectionKindFormatting('connection', { endMarker: 'open-arrow', line: { thickness: 3 } })
         service.setFormattingScale('fontScalePercent', 110)
 
-        expect(service.getNodeRoleFormattingSnapshot('focal')).toEqual({ font: { bold: true, color: '#112233' } })
+        expect(service.getNodeRoleFormattingSnapshot('focal')).toEqual({ box: { autoWrap: false, contentInset: 0 }, font: { bold: true, color: '#112233' } })
+        expect(service.getNodeRoleFormattingSnapshot('store')).toBeUndefined()
         expect(service.getConnectionKindFormattingSnapshot('connection')).toEqual({ endMarker: 'open-arrow', line: { thickness: 3 } })
         expect(service.getFormattingScaleSnapshot('fontScalePercent')).toBe(110)
         expect(service.getDirtySnapshot()).toBe(true)
@@ -182,6 +185,7 @@ describe('DiagramEditSessionService', () => {
             'diagram:formatting:scale:fontScalePercent',
         ])
         expect(focalChanged).toHaveBeenCalledOnce()
+        expect(storeChanged).not.toHaveBeenCalled()
         expect(connectionChanged).toHaveBeenCalledOnce()
         expect(fontScaleChanged).toHaveBeenCalledOnce()
         expect(sourceService.getSourceSnapshot()?.diagram).toEqual(sourceBefore)
@@ -1830,14 +1834,43 @@ describe('DiagramEditSessionService', () => {
 
         expect(service.addLegendEntry({ kind: 'data', label: 'Transfers' })).toBe('connection:data')
         const expectedLegend = [
-            { label: 'focal', role: 'focal' },
-            { label: 'store', role: 'store' },
-            { kind: 'connection', label: 'connection' },
+            { label: 'Component', nodeKind: 'component' },
+            { kind: 'connection', label: 'Connection' },
             { kind: 'data', label: 'Transfers' },
         ]
         expect(service.getEditableDiagram()?.meta.legend).toEqual(expectedLegend)
         const serialized = serializeDiagramData(service.getEditableDiagram() as DiagramData)
         expect(parseDiagramData(serialized).meta.legend).toEqual(expectedLegend)
+    })
+
+    it('saves separate custom labels for node kinds sharing one role and reloads them', () => {
+        const source: DiagramData = {
+            ...flowchartDiagram,
+            edges: [],
+            nodes: [
+                { id: 'start', kind: 'start', label: 'Begin', role: 'focal' },
+                { id: 'step', kind: 'step', label: 'Work', role: 'focal' },
+                { id: 'decision', kind: 'decision', label: 'Check', role: 'focal' },
+                { id: 'end', kind: 'end', label: 'Finish', role: 'focal' },
+            ],
+        }
+        const { service } = createHarness({ source })
+        service.start()
+
+        expect(service.selectLegendEntry('nodeKind:step')).toBe(true)
+        expect(service.materializeDerivedLegend()).toBe(true)
+        expect(service.getSelectedLegendEntryKeySnapshot()).toBe('nodeKind:step')
+        expect(service.setLegendEntryLabel('nodeKind:step', 'Process')).toBe(true)
+        expect(service.setLegendEntryLabel('nodeKind:decision', 'Branch')).toBe(true)
+        const saved = parseDiagramData(serializeDiagramData(service.getEditableDiagram() as DiagramData))
+        const { service: reloaded } = createHarness({ source: saved })
+        reloaded.start()
+
+        expect(reloaded.getLegendEntryKeysSnapshot()).toEqual([
+            'nodeKind:start', 'nodeKind:step', 'nodeKind:decision', 'nodeKind:end',
+        ])
+        expect(reloaded.getLegendEntryFieldSnapshot('nodeKind:step', 'label')).toBe('Process')
+        expect(reloaded.getLegendEntryFieldSnapshot('nodeKind:decision', 'label')).toBe('Branch')
     })
 
     it('rejects a derived duplicate and an incompatible connection kind before changing the legend', () => {

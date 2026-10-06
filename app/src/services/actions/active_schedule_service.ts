@@ -66,6 +66,8 @@ export class ActiveScheduleService extends EventTarget {
     private projectKey: string | null = null
     private refreshRevision = 0
     private schedules: readonly AnySchedule[] = []
+    private pendingCardIds = new Set<string>()
+    private pendingCardActions = new Set<string>()
     private snapshot = INITIAL_SNAPSHOT
     private started = false
 
@@ -81,6 +83,25 @@ export class ActiveScheduleService extends EventTarget {
         this.addEventListener('changed', onStoreChange)
 
         return () => this.removeEventListener('changed', onStoreChange)
+    }
+
+    hasPendingActionForCard = (cardInternalId: string) => this.pendingCardIds.has(cardInternalId)
+
+    hasPendingActionForCardAndAction = (cardInternalId: string, actionId: string) =>
+        this.pendingCardActions.has(JSON.stringify([cardInternalId, actionId]))
+
+    subscribeCard = (cardInternalId: string, onStoreChange: () => void) => {
+        const eventName = `pending-card:${cardInternalId}`
+        this.addEventListener(eventName, onStoreChange)
+
+        return () => this.removeEventListener(eventName, onStoreChange)
+    }
+
+    subscribeCardAction = (cardInternalId: string, actionId: string, onStoreChange: () => void) => {
+        const eventName = `pending-card-action:${JSON.stringify([cardInternalId, actionId])}`
+        this.addEventListener(eventName, onStoreChange)
+
+        return () => this.removeEventListener(eventName, onStoreChange)
     }
 
     start() {
@@ -106,20 +127,20 @@ export class ActiveScheduleService extends EventTarget {
         this.dependencies.codexRateLimitService.removeEventListener('changed', this.handleProjectionSourceChanged)
         this.projectKey = null
         this.refreshRevision += 1
-        this.schedules = []
+        this.setSchedules([])
         this.publish(INITIAL_SNAPSHOT)
     }
 
     async refresh() {
         const project = this.dependencies.getProject()
         if (!project) {
-            this.schedules = []
+            this.setSchedules([])
             this.publish(INITIAL_SNAPSHOT)
             return
         }
         const bridge = this.dependencies.getBridge()
         if (!bridge?.listActiveSchedules) {
-            this.schedules = []
+            this.setSchedules([])
             this.publish({ ...this.snapshot, error: 'Active schedules require Electron local mode', items: EMPTY_ITEMS, loading: false })
             return
         }
@@ -131,7 +152,7 @@ export class ActiveScheduleService extends EventTarget {
             const schedules = await bridge.listActiveSchedules()
             if (revision !== this.refreshRevision || expectedProjectKey !== this.projectKey) return
 
-            this.schedules = schedules
+            this.setSchedules(schedules)
             this.publishProjection({ error: null, loading: false })
         } catch (error) {
             if (revision !== this.refreshRevision || expectedProjectKey !== this.projectKey) return
@@ -189,7 +210,7 @@ export class ActiveScheduleService extends EventTarget {
 
         this.projectKey = nextProjectKey
         this.refreshRevision += 1
-        this.schedules = []
+        this.setSchedules([])
         this.publish(INITIAL_SNAPSHOT)
         if (nextProjectKey) void this.refresh()
     }
@@ -201,6 +222,36 @@ export class ActiveScheduleService extends EventTarget {
     }
 
     private readonly handleProjectionSourceChanged = () => this.publishProjection()
+
+    private setSchedules(schedules: readonly AnySchedule[]) {
+        const pendingCardIds = new Set<string>()
+        const pendingCardActions = new Set<string>()
+        for (const schedule of schedules) {
+            if (schedule.kind !== 'action' || schedule.status !== 'pending' || !schedule.context.cardInternalId) continue
+            const { actionId } = schedule
+            const cardInternalId = schedule.context.cardInternalId
+            pendingCardIds.add(cardInternalId)
+            pendingCardActions.add(JSON.stringify([cardInternalId, actionId]))
+        }
+
+        const previousCardIds = this.pendingCardIds
+        const previousCardActions = this.pendingCardActions
+        const changedCardIds = new Set([...previousCardIds, ...pendingCardIds])
+        const changedCardActions = new Set([...previousCardActions, ...pendingCardActions])
+        this.schedules = schedules
+        this.pendingCardIds = pendingCardIds
+        this.pendingCardActions = pendingCardActions
+        for (const cardInternalId of changedCardIds) {
+            if (previousCardIds.has(cardInternalId) !== pendingCardIds.has(cardInternalId)) {
+                this.dispatchEvent(new Event(`pending-card:${cardInternalId}`))
+            }
+        }
+        for (const key of changedCardActions) {
+            if (previousCardActions.has(key) !== pendingCardActions.has(key)) {
+                this.dispatchEvent(new Event(`pending-card-action:${key}`))
+            }
+        }
+    }
 
     private publishProjection(overrides: Partial<Pick<ActiveScheduleSnapshot, 'error' | 'loading'>> = {}) {
         const { snapshot } = this.dependencies.dataService.getState()

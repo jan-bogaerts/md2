@@ -218,8 +218,14 @@ function createLocalBridgeDispatch(dependencies) {
 
             return currentLocalProject;
         },
-        deleteFile: (request) => localGitService.deleteFile(request, currentLocalProject),
-        deleteFolder: (request) => localGitService.deleteFolder(request, currentLocalProject),
+        deleteFile: async (request) => {
+            if (actionRunnerService) await actionRunnerService.cancelCompactsForPath(request.path);
+            return localGitService.deleteFile(request, currentLocalProject);
+        },
+        deleteFolder: async (request) => {
+            if (actionRunnerService) await actionRunnerService.cancelCompactsForPath(request.path);
+            return localGitService.deleteFolder(request, currentLocalProject);
+        },
         getActiveProject: () => currentLocalProject,
         hasPendingPush: (project) => localGitService.hasPendingPush(project),
         listBranches: (project) => localGitService.listBranches(project),
@@ -231,10 +237,14 @@ function createLocalBridgeDispatch(dependencies) {
         loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),
         loadActionSchedules: (project, actionsFolder) => localGitService.loadActionSchedules(project, actionsFolder),
         loadAgentConversation: async (reference) => {
-            return localGitService.loadAgentConversation(currentLocalProject, reference);
+            const conversation = await localGitService.loadAgentConversation(currentLocalProject, reference);
+
+            return agentRunnerService.resolveHistoricalConversation(conversation);
         },
         loadActivityConversations: async (activityPath) => {
-            return localGitService.loadActivityConversations(currentLocalProject, activityPath);
+            const conversations = await localGitService.loadActivityConversations(currentLocalProject, activityPath);
+
+            return conversations.map((conversation) => agentRunnerService.resolveHistoricalConversation(conversation));
         },
         loadAgentAvailability: () => {
             const { agentProfiles } = readDesktopConfig(desktopConfigStore);
@@ -246,6 +256,7 @@ function createLocalBridgeDispatch(dependencies) {
         loadFile: (project, path) => localGitService.loadFile(project, path),
         loadTextFile: (project, path) => localGitService.loadTextFile(project, path),
         loadProjectAsset: (project, path) => localGitService.loadProjectAsset(project, path),
+        loadImageFile: (filePath) => localGitService.loadImageFile(filePath),
         loadProject: async (project, workingFolder, excludedRootFolder) => {
             await activateProject(project);
             if (excludedRootFolder === undefined) return localGitService.loadProject(project, workingFolder);
@@ -549,9 +560,13 @@ function createLocalBridgeDispatch(dependencies) {
 
             return actionRunnerService.answerInput(runId, response);
         },
-        closeWaitingActionConversation: (reference, status) => (
-            localGitService.closeWaitingActivityConversation(currentLocalProject, reference, status)
-        ),
+        closeWaitingActionConversation: async (reference, status) => {
+            if (actionRunnerService) {
+                const conversation = await localGitService.loadAgentConversation(currentLocalProject, reference);
+                await actionRunnerService.cancelCompactsForConversation(conversation.id);
+            }
+            return localGitService.closeWaitingActivityConversation(currentLocalProject, reference, status);
+        },
         dismissWaitingActionConversationQuestions: (reference) => (
             localGitService.dismissWaitingActivityConversationQuestions(currentLocalProject, reference)
         ),
@@ -653,6 +668,10 @@ function createLocalBridgeDispatch(dependencies) {
             if (!actionRunnerService) throw new Error('Action runner is not available');
 
             return actionRunnerService.sendAgentMessage(runId, content);
+        },
+        compactActionConversation: (request) => {
+            if (!actionRunnerService) throw new Error('Action runner is not available');
+            return actionRunnerService.compactConversation(request);
         },
         splitActionConversation: (reference, messageId) => (
             localGitService.splitActivityConversation(currentLocalProject, reference, messageId)

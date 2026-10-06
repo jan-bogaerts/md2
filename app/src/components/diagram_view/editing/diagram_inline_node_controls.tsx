@@ -5,7 +5,9 @@ import type { DiagramEditSessionService } from '../../../services/diagrams/diagr
 import type { PositionedDiagramNode } from '../../../services/diagrams/diagram_layout'
 
 /** Inline label and details action above one editable node. */
-export function DiagramInlineNodeControls({ node, onOpenDetails, session }: {
+export function DiagramInlineNodeControls({ autoWrap, contentInset, node, onOpenDetails, session }: {
+    autoWrap: boolean
+    contentInset: number
     node: PositionedDiagramNode
     onOpenDetails: () => void
     session: DiagramEditSessionService
@@ -66,16 +68,17 @@ export function DiagramInlineNodeControls({ node, onOpenDetails, session }: {
             <TextField
                 error={!!error}
                 helperText={error}
+                multiline={autoWrap}
                 onBlur={commit}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 size="small"
                 slotProps={{ htmlInput: { 'aria-label': `Edit ${node.label} label` } }}
                 sx={{
-                    left: '50%', maxWidth: 'calc(100% - 48px)', pointerEvents: 'auto', position: 'absolute',
-                    top: '50%', transform: 'translate(-50%, -50%)',
+                    left: contentInset, pointerEvents: 'auto', position: 'absolute', right: contentInset,
+                    top: '50%', transform: 'translateY(-50%)',
                     '& .MuiInputBase-root': { bgcolor: 'transparent' },
-                    '& .MuiInputBase-input': { textAlign: 'center' },
+                    '& .MuiInputBase-input': { overflowWrap: autoWrap ? 'anywhere' : 'normal', textAlign: 'center', whiteSpace: autoWrap ? 'pre-wrap' : 'nowrap' },
                 }}
                 value={draft}
                 variant="standard"

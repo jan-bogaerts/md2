@@ -417,13 +417,70 @@ describe('ProjectLoading', () => {
 
         await service.projectLoading.openProject({ branch: 'main', id: 'project' })
         expect(loadedTextPaths(storage.loadTextFile)).toEqual(['agent_token_usage.json'])
-        expect(storage.listAgentConversationReferences).not.toHaveBeenCalled()
-        expect(storage.loadAgentConversation).not.toHaveBeenCalled()
         await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([projectConversation])
 
         expect(storage.listAgentConversationReferences).toHaveBeenCalledTimes(1)
         expect(storage.loadAgentConversation).toHaveBeenCalledTimes(1)
         expect(storage.commit).not.toHaveBeenCalled()
+    })
+
+    it('preloads project conversations only after conversation loading is prepared for the opened project', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        const calls: string[] = []
+        const prepareProjectConversationLoad = service.agents.prepareProjectConversationLoad.bind(service.agents)
+        vi.spyOn(service.agents, 'prepareProjectConversationLoad').mockImplementation((projectLoadToken) => {
+            calls.push('prepare')
+            prepareProjectConversationLoad(projectLoadToken)
+        })
+        vi.spyOn(service.agents, 'listProjectAgentConversations').mockImplementation(async () => {
+            calls.push('preload')
+
+            return []
+        })
+
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+        expect(calls).toEqual(['prepare', 'preload'])
+    })
+
+    it('reports a failed project conversation preload through the dialog service', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        const failure = new Error('project conversations unavailable')
+        vi.spyOn(service.agents, 'listProjectAgentConversations').mockRejectedValue(failure)
+        const reportError = vi.spyOn(dialogService, 'error')
+
+        try {
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+
+            await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(
+                failure,
+                { fallbackMessage: 'Could not load project agent conversations' },
+            ))
+            expect(reportError).toHaveBeenCalledOnce()
+        } finally {
+            reportError.mockRestore()
+        }
+    })
+
+    it('opens a project without conversation loading errors', async () => {
+        configService.init()
+        const service = createDataService()
+        service.init({ storage: createStorage() })
+        const errors = recordDialogMessages('error')
+
+        try {
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' })
+            await flushPromises()
+
+            expect(errors.messages).toEqual([])
+            await expect(service.listAgentConversations({ kind: 'project' })).resolves.toEqual([])
+        } finally {
+            errors.stop()
+        }
     })
 
     it('does not parse or repair malformed history when reopening a project', async () => {
@@ -543,7 +600,7 @@ describe('ProjectLoading', () => {
         }
     })
 
-    it('blocks project navigation while an invalid action draft remains unsaved', async () => {
+    it('saves an invalid action draft before project navigation', async () => {
         configService.init()
         const storage = createStorage()
         const service = createDataService()
@@ -555,11 +612,12 @@ describe('ProjectLoading', () => {
         }])
         actionService.draftStore.updateDraft('action-run', { ...actionDefinition('run'), label: '' })
 
-        await expect(service.projectLoading.openProject({ branch: 'main', id: 'second' }))
-            .rejects.toThrow(/invalid unsaved changes/u)
+        await service.projectLoading.openProject({ branch: 'main', id: 'second' })
 
-        expect(service.getState().project?.id).toBe('first')
-        expect(actionService.draftStore.getDraft('action-run').definition.label).toBe('')
+        const requests = vi.mocked(storage.commit).mock.calls.map(([request]) => request)
+        const savedAction = requests.flatMap(({ files }) => files).find(({ path }) => path === 'actions/run.json')
+        expect(savedAction?.content).toContain('"label": ""')
+        expect(service.getState().project?.id).toBe('second')
     })
 
     it('blocks project switching until a deleted dirty action is recovered or discarded', async () => {
@@ -737,7 +795,7 @@ describe('ProjectLoading', () => {
         const warnings = recordDialogMessages('warning')
         const storage = createStorage({
             loadActionFiles: vi.fn(async () => [
-                { content: JSON.stringify({ ...actionDefinition('do'), name: 'Old name' }), path: 'actions/do.json' },
+                { content: JSON.stringify(actionDefinition('do')), path: 'actions/do.json' },
                 { content: '{ invalid', path: 'actions/bad.json' },
                 { content: JSON.stringify({ command: 'npm test' }), path: 'actions/defaulted.json' },
             ]),
@@ -748,9 +806,10 @@ describe('ProjectLoading', () => {
         const snapshot = await service.projectLoading.openProject({ branch: 'main', id: 'project' })
 
         expect(snapshot).not.toBeNull()
-        expect(actionService.getActions().map(({ id }) => id)).toEqual(expect.arrayContaining(['action-do', 'action-actions-defaulted']))
+        expect(actionService.getActions().map(({ id }) => id)).toContain('action-do')
+        expect(actionService.getActions().map(({ id }) => id)).not.toContain('action-actions-defaulted')
         expect(warnings.messages.join('\n')).toContain('actions/bad.json')
-        expect(warnings.messages.join('\n')).toContain('Missing id')
+        expect(warnings.messages.join('\n')).toContain('Missing action id')
         warnings.stop()
     })
 
@@ -843,7 +902,7 @@ describe('ProjectLoading', () => {
             expect(service.getState().snapshot?.backgroundCards.map((card) => card.path)).toEqual(['projects/demo/notes/project-note.md'])
         })
         expect(service.getConfig()?.actionsFolder).toBe('projects/demo/actions')
-        expect(storage.listAgentConversationReferences).not.toHaveBeenCalled()
+        expect(storage.listAgentConversationReferences).toHaveBeenCalledWith({ branch: 'main', id: 'project' }, 'projects/demo')
     })
 
     it('dispatches the root snapshot before loading background subfolder and history cards', async () => {

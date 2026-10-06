@@ -1,5 +1,8 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import type { ComponentProps } from 'react'
+import { useMemo, type ComponentProps } from 'react'
+import { ActionInputLayoutStore } from '../run/popup/action_input_layout_store';
+import { ActionInputSplitter } from '../run/popup/action_input_splitter';
+import { ActionLayoutSurface } from '../run/popup/action_layout_surface';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ActionAgentPrompt as ActionAgentPromptImplementation } from './action_agent_prompt'
 import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
@@ -10,15 +13,26 @@ import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 import type { RestoredAgentQuestions } from './action_agent_question_owner'
 
 type ActionAgentPromptProps = ComponentProps<typeof ActionAgentPromptImplementation>
-type TestPromptProps = Omit<ActionAgentPromptProps, 'bindingStore' | 'questionsEnabled'>
-    & Partial<Pick<ActionAgentPromptProps, 'bindingStore' | 'questionsEnabled'>>
+type TestPromptProps = Omit<ActionAgentPromptProps, 'bindingStore' | 'questionsEnabled' | 'layoutStore'>
+    & Partial<Pick<ActionAgentPromptProps, 'bindingStore' | 'questionsEnabled' | 'layoutStore'>>
 
 const questionFreeBindingStore = new ActionRunBindingStore(null)
 
 function ActionAgentPrompt(props: TestPromptProps) {
     const { bindingStore = questionFreeBindingStore, questionsEnabled = false } = props
 
-    return <ActionAgentPromptImplementation {...props} bindingStore={bindingStore} questionsEnabled={questionsEnabled} />
+    const layoutStore = useMemo(() => new ActionInputLayoutStore('agent'), []);
+    return (
+        <ActionLayoutSurface store={layoutStore}>
+            <ActionInputSplitter store={layoutStore} />
+            <ActionAgentPromptImplementation
+                {...props}
+                bindingStore={bindingStore}
+                layoutStore={layoutStore}
+                questionsEnabled={questionsEnabled}
+            />
+        </ActionLayoutSurface>
+    );
 }
 
 function restoredAgentQuestions(questions: AgentQuestion[]): RestoredAgentQuestions {
@@ -102,7 +116,8 @@ vi.mock('../../editor/markdown_editor', async () => {
 
 function mockAvailablePromptHeight(height: number) {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function measureElement(this: HTMLElement) {
-        const measuredHeight = this.dataset.testid === 'action-questions-region' ? 96 : height
+        const measuredHeight = this.getAttribute('role') === 'separator' ? 0
+            : this.dataset.testid === 'action-questions-region' ? 96 : height
 
         return {
             bottom: measuredHeight,
@@ -126,6 +141,24 @@ afterEach(() => {
 })
 
 describe('ActionAgentPrompt', () => {
+    it('renders editor without a separator or writing layout preferences', () => {
+        const promptDraft = new ActionPromptDraft('Plan', false);
+        const layoutStore = new ActionInputLayoutStore('agent');
+        render(
+            <ActionAgentPromptImplementation
+                bindingStore={questionFreeBindingStore}
+                convertMessage={null}
+                layoutStore={layoutStore}
+                promptDraft={promptDraft}
+                questionsEnabled={false}
+            />,
+        );
+        expect(screen.getByRole('textbox', { name: 'Markdown prompt' })).toHaveValue('Plan');
+        expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBeNull();
+        expect(window.localStorage.getItem('md2.commandActionInputHeight')).toBeNull();
+    });
+
     it('stays read-only during prompt preparation and becomes editable when ready', async () => {
         const promptDraft = new ActionPromptDraft('', true)
         render(<ActionAgentPrompt convertMessage={null} promptDraft={promptDraft} />)
@@ -334,7 +367,7 @@ describe('ActionAgentPrompt', () => {
         fireEvent.change(screen.getByLabelText('Markdown prompt'), { target: { value: 'Plan' } })
 
         expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: '154px' })
-        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('154')
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('220')
     })
 
     it('persists non-empty pointer and keyboard resize without overwriting it after clearing', () => {
@@ -383,7 +416,7 @@ describe('ActionAgentPrompt with a pending question', () => {
         renderPendingQuestion()
 
         expect(screen.getByText('Why?')).toBeInTheDocument()
-        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: 'auto', minHeight: '72px' })
+        expect(screen.getByLabelText('Prompt')).toHaveStyle({ height: 'auto' })
         expect(screen.getByTestId('action-questions-region')).toHaveStyle({
             maxHeight: '160px',
             overflowY: 'auto',
@@ -391,12 +424,12 @@ describe('ActionAgentPrompt with a pending question', () => {
         expect(screen.getByTestId('action-prompt-block')).toHaveStyle({ height: 'auto' })
     })
 
-    it('keeps the questions box at its 96px floor for a short agent column', () => {
+    it('bounds questions to the available space in a short agent column', () => {
         mockAvailablePromptHeight(120)
 
         renderPendingQuestion()
 
-        expect(screen.getByTestId('action-questions-region')).toHaveStyle({ maxHeight: '96px' })
+        expect(screen.getByTestId('action-questions-region')).toHaveStyle({ maxHeight: '48px' })
     })
 
     it('starts with the question region primary when a stored block height exists', () => {

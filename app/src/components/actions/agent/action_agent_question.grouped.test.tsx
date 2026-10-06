@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { dialogService } from '../../../services/dialog_service'
 import { ActionPromptDraft } from '../../../services/actions/action_prompt_draft_service'
 import { ActionAgentPrompt } from './action_agent_prompt'
+import { ActionInputLayoutStore } from '../run/popup/action_input_layout_store';
+import { ActionLayoutSurface } from '../run/popup/action_layout_surface';
 import { ActionAgentQuestion } from './action_agent_question'
 import { ActionRunBindingStore } from '../run/state/action_run_binding_store'
 
@@ -454,31 +456,38 @@ describe('ActionAgentQuestion', () => {
     })
 
     it('scrolls a long question inside the capped bottom-block region instead of growing it', () => {
-        vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
-            bottom: 500,
-            height: 500,
-            left: 0,
-            right: 400,
-            top: 0,
-            width: 400,
-            x: 0,
-            y: 0,
-            toJSON: () => ({}),
+        vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function measureRegion(this: HTMLElement) {
+            const height = this.dataset.testid === 'action-layout-regions' ? 500 : 0;
+            return {
+                bottom: height,
+                height,
+                left: 0,
+                right: 400,
+                top: 0,
+                width: 400,
+                x: 0,
+                y: 0,
+                toJSON: () => ({}),
+            };
         })
         const options = Array.from({ length: 20 }, (_, index) => ({ label: `Option ${index}` }))
         const promptDraft = new ActionPromptDraft('', false)
+        const layoutStore = new ActionInputLayoutStore('agent');
         render(
-            <ActionAgentPrompt
-                bindingStore={new ActionRunBindingStore(null)}
-                convertMessage={null}
-                promptDraft={promptDraft}
-                questionsEnabled
-                restoredQuestions={{
-                    onAnswer: vi.fn(async () => undefined),
-                    onDismiss: vi.fn(async () => undefined),
-                    questions: [{ header: 'Approach', id: 'approach', options, question: 'Which approach?' }],
-                }}
-            />,
+            <ActionLayoutSurface store={layoutStore}>
+                <ActionAgentPrompt
+                    layoutStore={layoutStore}
+                    bindingStore={new ActionRunBindingStore(null)}
+                    convertMessage={null}
+                    promptDraft={promptDraft}
+                    questionsEnabled
+                    restoredQuestions={{
+                        onAnswer: vi.fn(async () => undefined),
+                        onDismiss: vi.fn(async () => undefined),
+                        questions: [{ header: 'Approach', id: 'approach', options, question: 'Which approach?' }],
+                    }}
+                />
+            </ActionLayoutSurface>,
         )
 
         expect(screen.getByRole('button', { name: 'Option 19' })).toBeInTheDocument()

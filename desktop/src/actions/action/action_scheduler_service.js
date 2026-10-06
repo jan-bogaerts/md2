@@ -95,6 +95,7 @@ class ActionSchedulerService {
         this.errorReporter = dependencies?.errorReporter ?? (() => undefined);
         this.clearTimeout = dependencies?.clearTimeout ?? clearTimeout;
         this.localGitService = dependencies?.localGitService;
+        this.worktreeService = dependencies?.worktreeService;
         this.now = dependencies?.now ?? Date.now;
         this.setTimeout = dependencies?.setTimeout ?? setTimeout;
         this.project = null;
@@ -542,7 +543,9 @@ class ActionSchedulerService {
         if (!activeCardsFolder) throw new Error('Action scheduler has no activeCardsFolder');
         const { files } = await this.localGitService.loadProject(project, activeCardsFolder);
 
-        return resolveScheduledCardContext(files, cardTypes, cardInternalId);
+        const worktrees = this.worktreeService.getRecords(project);
+
+        return resolveScheduledCardContext(files, cardTypes, cardInternalId, worktrees);
     }
 
     async saveSequence(sequence, executionContext = null) {

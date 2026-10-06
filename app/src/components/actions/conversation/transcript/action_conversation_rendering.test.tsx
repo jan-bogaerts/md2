@@ -1,9 +1,15 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useLayoutEffect, useState, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, AgentConversationEntry } from '../../../../data/data_types'
-import type { ActionConversationChange, ActionRun, ActionRunRegistry } from '../../../../services/actions/action_run_registry'
+import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge';
+import type { PendingActionSubmission } from '../../../../services/actions/action_run_registry';
+import type { ActionQueuedPrompt } from '../../../../data/action_run_types';
+import type { ActionRunEvent } from '../../../../data/action_run_types';
+import { generateUuid } from '../../../../data/uuid';
+import { actionCompactService } from '../../../../services/actions/action_compact_service';
+import { actionRunRegistry, type ActionConversationChange, type ActionRun, type ActionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { projectAccessService } from '../../../../services/project/project_access_service'
 import type { ActionRunBindingStore } from '../../run/state/action_run_binding_store'
@@ -66,16 +72,8 @@ function conversation(entries: AgentConversationEntry[]): AgentConversation {
 
 class TranscriptTestConversationStore extends EventTarget {
     private snapshot = { conversations: [] as AgentConversation[], loading: false, selectedConversation: null as AgentConversation | null }
-    private readonly submissions: [] = []
-    private readonly submissionEvents = new EventTarget()
-    readonly getSubmissions = () => this.submissions
-    readonly getVisibleSubmissions = () => this.submissions
-    readonly subscribeSubmissions = (listener: () => void) => {
-        this.submissionEvents.addEventListener('changed', listener)
-
-        return () => this.submissionEvents.removeEventListener('changed', listener)
-    }
-
+    readonly actionId = 'review';
+    readonly context = { kind: 'project' as const };
     readonly getSnapshot = () => this.snapshot
 
     readonly subscribe = (listener: () => void) => {
@@ -107,6 +105,23 @@ class TranscriptTestBindingStore {
 }
 
 class TranscriptTestRunRegistry {
+    private submissions: PendingActionSubmission[] = [];
+    private readonly submissionEvents = new EventTarget()
+    readonly getSubmissions = () => this.submissions
+    readonly getVisibleSubmissions = () => this.submissions
+    readonly subscribeSubmissions = (_actionId: string, _context: unknown, listener: () => void) => {
+        this.submissionEvents.addEventListener('changed', listener)
+
+        return () => this.submissionEvents.removeEventListener('changed', listener)
+    }
+
+
+    setSubmissions(submissions: PendingActionSubmission[]) {
+        this.submissions = submissions;
+        this.submissionEvents.dispatchEvent(new Event('changed'));
+    }
+
+
     private readonly listeners = new Set<() => void>()
     private snapshot: ActionRun
 
@@ -129,7 +144,11 @@ class TranscriptTestRunRegistry {
         for (const listener of this.listeners) listener()
     }
 
-    updateConversation(conversationValue: TranscriptTestConversation | null, status: PopupRunStatus) {
+    updateConversation(
+        conversationValue: TranscriptTestConversation | null,
+        status: PopupRunStatus,
+        queuedPrompts: ActionQueuedPrompt[],
+    ) {
         const previousConversation = this.snapshot.conversation
         const changedEntryIndex = conversationValue?.entries.findIndex(
             (entry, index) => entry !== previousConversation?.entries[index],
@@ -138,7 +157,7 @@ class TranscriptTestRunRegistry {
             ?? (previousConversation?.id === conversationValue?.id && changedEntryIndex >= 0
                 ? { entryIndex: changedEntryIndex, kind: 'entry' as const }
                 : previousConversation === conversationValue ? null : { kind: 'replace' as const })
-        this.update({ ...transcriptTestRun(conversationValue, status), conversationChange })
+        this.update({ ...transcriptTestRun(conversationValue, status), conversationChange, queuedPrompts });
     }
 }
 
@@ -148,6 +167,8 @@ interface TranscriptTestProps {
     commands?: ActionConversationCommandOperations
     conversation: TranscriptTestConversation | null
     selectedConversation?: AgentConversation | null
+    submissions?: PendingActionSubmission[];
+    queuedPrompts?: ActionQueuedPrompt[];
     status: PopupRunStatus
 }
 
@@ -161,8 +182,14 @@ function transcriptTestRun(conversationValue: TranscriptTestConversation | null,
     } as unknown as ActionRun
 }
 
+const EMPTY_SUBMISSIONS: PendingActionSubmission[] = [];
+const EMPTY_QUEUED_PROMPTS: ActionQueuedPrompt[] = [];
+
 function ActionConversationChat(
-    { commands: chatCommands = commands, conversation: value, selectedConversation = null, status }: TranscriptTestProps,
+    {
+        commands: chatCommands = commands, conversation: value, selectedConversation = null,
+        submissions = EMPTY_SUBMISSIONS, queuedPrompts = EMPTY_QUEUED_PROMPTS, status,
+    }: TranscriptTestProps,
 ) {
     const [runtime] = useState(() => {
         const registry = new TranscriptTestRunRegistry(transcriptTestRun(value, status))
@@ -179,8 +206,9 @@ function ActionConversationChat(
         return { bindingStore, registry, searchService: new ActionConversationSearchService(), store, trackerFactory }
     })
     useLayoutEffect(() => {
-        runtime.registry.updateConversation(value, status)
-    }, [runtime, status, value])
+        runtime.registry.updateConversation(value, status, queuedPrompts);
+    }, [queuedPrompts, runtime, status, value]);
+    useLayoutEffect(() => runtime.registry.setSubmissions(submissions), [runtime, submissions]);
     useLayoutEffect(() => {
         runtime.store.select(selectedConversation)
     }, [runtime, selectedConversation])
@@ -195,10 +223,133 @@ function ActionConversationChat(
 }
 
 describe('ActionConversationChat rendering', () => {
+    it('keeps the same prompt row mounted before startup and through queued, sending, and sent states', () => {
+        const submission: PendingActionSubmission = { content: 'Send this', id: 'submission-1', prompt: null, state: 'transmitting' };
+        const { rerender } = render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={null} status="running" submissions={[submission]} />
+            </AppThemeProvider>,
+        );
+        const row = screen.getByLabelText('Pending prompt');
+        expect(row).toHaveTextContent('In transmission');
+        const value = conversation([]);
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={value} status="running" submissions={[submission]} />
+            </AppThemeProvider>,
+        );
+        expect(screen.getByLabelText('Pending prompt')).toBe(row);
+        const queuedPrompt: ActionQueuedPrompt = { content: 'Send this', dispatchState: 'queued', id: submission.id, revision: 0 };
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={value} status="running" queuedPrompts={[queuedPrompt]}
+                    submissions={[{ ...submission, prompt: queuedPrompt, state: 'queued' }]} />
+            </AppThemeProvider>,
+        );
+        expect(screen.getByLabelText('Queued prompt')).toBe(row);
+        expect(row).toHaveTextContent('Queued');
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={value} status="running"
+                    queuedPrompts={[{ ...queuedPrompt, dispatchState: 'dispatching' }]}
+                    submissions={[{ ...submission, prompt: queuedPrompt, state: 'queued' }]} />
+            </AppThemeProvider>,
+        );
+        expect(screen.getByLabelText('Queued prompt')).toBe(row);
+        expect(row).toHaveTextContent('Sending');
+        expect(screen.getByRole('button', { name: 'Edit queued prompt' })).toBeDisabled();
+        const sentMessage = { content: 'Send this', id: submission.id, kind: 'message' as const, role: 'user' as const, timestamp: 'now' };
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={{ ...value, entries: [sentMessage] }} status="running" />
+            </AppThemeProvider>,
+        );
+        expect(row).toBeInTheDocument();
+        expect(screen.getByText('Send this').closest('.conversation-message')).toBe(row);
+        expect(screen.queryByLabelText('Pending prompt')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Queued prompt')).not.toBeInTheDocument();
+        expect(screen.getAllByText('Send this')).toHaveLength(1);
+    });
+
+    it('keeps queued prompt editing and deletion on the current-turn row', async () => {
+        const user = userEvent.setup();
+        const queuedPrompt: ActionQueuedPrompt = { content: 'Original', dispatchState: 'queued', id: 'queued-1', revision: 0 };
+        const editPrompt = vi.fn(async () => queuedPrompt);
+        const deletePrompt = vi.fn(async () => undefined);
+        const bridge = { editActionQueuedPrompt: editPrompt, deleteActionQueuedPrompt: deletePrompt, onActionRun: vi.fn(() => vi.fn()) };
+        setActionBridgeOverride(bridge as unknown as ElectronActionBridge);
+        const value = conversation([]);
+        const { rerender } = render(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={value} status="running" queuedPrompts={[queuedPrompt]} />
+            </AppThemeProvider>,
+        );
+        const row = screen.getByLabelText('Queued prompt');
+        await user.click(screen.getByRole('button', { name: 'Edit queued prompt' }));
+        await user.clear(screen.getByRole('textbox', { name: 'Queued prompt content' }));
+        await user.type(screen.getByRole('textbox', { name: 'Queued prompt content' }), 'Updated');
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+        expect(editPrompt).toHaveBeenCalledWith('transcript-test-run', queuedPrompt.id, 0, 'Updated');
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={value} status="running"
+                    queuedPrompts={[{ ...queuedPrompt, content: 'Updated', revision: 1 }]} />
+            </AppThemeProvider>,
+        );
+        expect(screen.getByLabelText('Queued prompt')).toBe(row);
+        expect(row).toHaveTextContent('Updated');
+        await user.click(screen.getByRole('button', { name: 'Delete queued prompt' }));
+        expect(deletePrompt).toHaveBeenCalledWith('transcript-test-run', queuedPrompt.id, 1);
+        rerender(<AppThemeProvider><ActionConversationChat conversation={value} status="running" /></AppThemeProvider>);
+        expect(row).not.toBeInTheDocument();
+    });
+
+    it('keeps a failed submission on the same row and displays its error', () => {
+        const submission: PendingActionSubmission = { content: 'Send this', id: 'submission-1', prompt: null, state: 'transmitting' };
+        const { rerender } = render(
+            <AppThemeProvider><ActionConversationChat conversation={null} status="running" submissions={[submission]} /></AppThemeProvider>,
+        );
+        const row = screen.getByLabelText('Pending prompt');
+        rerender(
+            <AppThemeProvider>
+                <ActionConversationChat conversation={null} status="running"
+                    submissions={[{ ...submission, error: 'Backend rejected the prompt', state: 'failed' }]} />
+            </AppThemeProvider>,
+        );
+        expect(screen.getByLabelText('Pending prompt')).toBe(row);
+        expect(row).toHaveTextContent('Failed to send');
+        expect(row).toHaveTextContent('Backend rejected the prompt');
+    });
+
+    it('shows compact progress inside the chat without repainting transcript messages', () => {
+        const displayed = { ...conversation([{ content: 'Keep transcript', id: 'message-1', kind: 'message', role: 'assistant', timestamp: 'now' }]), id: generateUuid() };
+        render(<AppThemeProvider><ActionConversationChat conversation={displayed} status="running" /></AppThemeProvider>);
+        const event: ActionRunEvent = {
+            actionId: 'review', context: { kind: 'project' }, phase: 'main', rootActionId: 'review', runId: 'compact-run',
+            status: 'running', type: 'update', update: {
+                kind: 'agentCompact', request: {
+                    actionId: 'review', context: { kind: 'project' }, conversationId: displayed.id, provider: 'codex',
+                    reference: displayed.path, requestId: generateUuid(), state: 'running',
+                },
+            },
+        };
+        if (event.update.kind !== 'agentCompact') throw new Error('Expected compact fixture');
+        renderProbes.markdown.mockClear();
+        act(() => actionCompactService.handleEvent(event));
+        expect(within(screen.getByLabelText('Conversation chat')).getByRole('progressbar', { name: 'Compacting conversation' })).toBeInTheDocument();
+        expect(screen.getByText('Keep transcript')).toBeInTheDocument();
+        expect(renderProbes.markdown).not.toHaveBeenCalled();
+        const completed: ActionRunEvent = { ...event, update: { kind: 'agentCompact', request: { ...event.update.request, state: 'completed' } } };
+        act(() => actionCompactService.handleEvent(completed));
+        expect(screen.queryByRole('progressbar', { name: 'Compacting conversation' })).not.toBeInTheDocument();
+    });
+
     afterEach(() => {
         cleanup()
         projectAccessService.setReadOnly(false)
         vi.clearAllMocks()
+        actionRunRegistry.stop();
+        setActionBridgeOverride(null);
     })
 
     it('enables every mounted Split control when a previously split source starts waiting', async () => {

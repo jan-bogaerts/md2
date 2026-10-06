@@ -16,7 +16,7 @@ function createKeyboardEvent(key: string, modifiers: Partial<Pick<KeyboardEvent,
 }
 
 function createBinding(run = vi.fn()): KeyboardShortcutBinding {
-    return { alt: false, id: 'global-search', key: 'f', mod: true, run, shift: true }
+    return { alt: false, ctrl: false, id: 'global-search', key: 'f', mod: true, run, shift: true }
 }
 
 describe('KeyboardShortcutService', () => {
@@ -69,6 +69,35 @@ describe('KeyboardShortcutService', () => {
 
         expect(metaEvent.defaultPrevented).toBe(true)
         expect(run).toHaveBeenCalledOnce()
+    })
+
+    it('matches a ctrl binding with the Control key on Windows and macOS but not with Meta on macOS', () => {
+        const run = vi.fn()
+        const binding: KeyboardShortcutBinding = { alt: false, ctrl: true, id: 'next-tab', key: 'Tab', mod: false, run, shift: false }
+
+        setPlatform('Windows')
+        const windowsTarget = new EventTarget()
+        vi.stubGlobal('window', windowsTarget)
+        const windowsService = new KeyboardShortcutService()
+        const unregisterWindows = windowsService.register(binding)
+        const windowsEvent = createKeyboardEvent('Tab', { ctrlKey: true })
+        windowsTarget.dispatchEvent(windowsEvent)
+        unregisterWindows()
+
+        setPlatform('macOS')
+        const appleTarget = new EventTarget()
+        vi.stubGlobal('window', appleTarget)
+        const appleService = new KeyboardShortcutService()
+        appleService.register(binding)
+        const metaEvent = createKeyboardEvent('Tab', { metaKey: true })
+        appleTarget.dispatchEvent(metaEvent)
+        const appleEvent = createKeyboardEvent('Tab', { ctrlKey: true })
+        appleTarget.dispatchEvent(appleEvent)
+
+        expect(windowsEvent.defaultPrevented).toBe(true)
+        expect(metaEvent.defaultPrevented).toBe(false)
+        expect(appleEvent.defaultPrevented).toBe(true)
+        expect(run).toHaveBeenCalledTimes(2)
     })
 
     it('requires the exact modifier set', () => {

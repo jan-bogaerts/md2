@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { adjustAgentConversationTimer } from '../../../../shared/agent_conversations.mjs';
 
 const require = createRequire(import.meta.url);
 const { transitionConversationStatus } = require('./agent_conversation');
@@ -31,6 +32,41 @@ function reasoningEvent(providerItemId, status) {
 }
 
 describe('agent conversation phases', () => {
+    it('preserves valid totals and running timers whose open period is not in the total yet', () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+            const settledTimer = { breakdown: { reasoningMs: 200, toolMs: 300 }, elapsedMs: 1_000, runningStartedAt: null };
+            const runningTimer = { breakdown: { reasoningMs: 200, toolMs: 300 }, elapsedMs: 0, runningStartedAt: START };
+
+            expect(adjustAgentConversationTimer(settledTimer)).toBe(settledTimer);
+            expect(adjustAgentConversationTimer(runningTimer)).toBe(runningTimer);
+            expect(consoleError).not.toHaveBeenCalled();
+        } finally {
+            consoleError.mockRestore();
+        }
+    });
+
+    it('corrects a settled total after overlapping spans were already folded live', () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+            const phases = createPhaseTracker();
+            const conversation = runningConversation();
+            recordPhaseEvent(phases, reasoningEvent('reasoning', 'inProgress'), at(0));
+            recordPhaseEvent(phases, toolEvent('tool', 'inProgress'), at(0));
+            recordPhaseEvent(phases, reasoningEvent('reasoning', 'completed'), at(5));
+            conversation.timer = addTimerBreakdown(conversation.timer, foldPhases(phases, Date.parse(START), Date.parse(at(5))));
+            recordPhaseEvent(phases, toolEvent('tool', 'completed'), at(10));
+
+            transitionConversationStatus(conversation, 'waitingForInput', at(10), phases);
+
+            const expectedTimer = { breakdown: { reasoningMs: 5_000, toolMs: 10_000 }, elapsedMs: 15_000, runningStartedAt: null };
+            expect(conversation.timer).toEqual(expectedTimer);
+            expect(consoleError).toHaveBeenCalledOnce();
+        } finally {
+            consoleError.mockRestore();
+        }
+    });
+
     it('charges two parallel tools their union, never their sum', () => {
         const phases = createPhaseTracker();
         const conversation = runningConversation();

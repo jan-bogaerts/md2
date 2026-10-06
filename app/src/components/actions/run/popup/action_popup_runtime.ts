@@ -10,17 +10,20 @@ import { ActionRunBindingStore } from '../state/action_run_binding_store'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionUsageScopeStore } from './action_usage_scope_store'
+import { ActionInputLayoutStore } from './action_input_layout_store';
 import { ActionUsageValuesService } from './action_usage_values_service'
 import type { ActionPopupRuntime } from './action_popup_types'
+import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
 
 type ActionPopupBindings = Omit<ActionPopupRuntime, 'runValidationError' | 'settingsStore'>
 
-/** Creates the stores whose lifecycle follows one selected popup action and assignment context. */
+/** Creates the stores whose lifecycle follows one selected action and canonical context identity. */
 export function createActionPopupBindings(
     action: ActionDefinition,
     context: ActionContext,
     requestedRunId?: string,
     requestedConversationPath?: string,
+    historicalEntries?: ActionRunHistoryEntry[] | null,
 ): ActionPopupBindings {
     const initialRunId = requestedConversationPath
         ? null
@@ -32,7 +35,7 @@ export function createActionPopupBindings(
     bindingStore.trackInitialRun(action.id, context)
     const conversationStore = new ActionConversationStore(action.id, context, bindingStore)
     if (requestedConversationPath) conversationStore.configureInitialSelection(requestedConversationPath)
-    const historyStore = new ActionHistoryStore(action, context)
+    const historyStore = new ActionHistoryStore(action, context, historicalEntries)
     const usageScopeStore = new ActionUsageScopeStore()
     const usageValuesService = new ActionUsageValuesService({
         action,
@@ -45,6 +48,8 @@ export function createActionPopupBindings(
 
     return {
         bindingStore,
+        commandLayoutStore: new ActionInputLayoutStore('command'),
+        agentLayoutStore: new ActionInputLayoutStore('agent'),
         conversationSearchService: new ActionConversationSearchService(),
         conversationStore,
         historyStore,

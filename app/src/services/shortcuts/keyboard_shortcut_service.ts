@@ -24,7 +24,7 @@ export class KeyboardShortcutService {
 
     private static matches(event: KeyboardEvent, binding: KeyboardShortcut) {
         const applePlatform = isApplePlatform()
-        const expectedCtrl = binding.mod && !applePlatform
+        const expectedCtrl = binding.ctrl || (binding.mod && !applePlatform)
         const expectedMeta = binding.mod && applePlatform
 
         return event.key.toLowerCase() === binding.key.toLowerCase()

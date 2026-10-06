@@ -168,12 +168,14 @@ describe('editable diagram leaves', () => {
         const { counts, session } = renderTree()
         const beforeRole = new Map(counts)
 
-        act(() => { session.setNodeRoleFormatting('focal', { font: { color: '#112233' } }) })
+        act(() => { session.setNodeRoleFormatting('focal', { box: { autoWrap: false, contentInset: 12 } }) })
 
         expect(counts.get('orders')).toBeGreaterThan(beforeRole.get('orders') ?? 0)
         expect(counts.get('store')).toBe(beforeRole.get('store'))
         expect(counts.get('edge')).toBe(beforeRole.get('edge'))
         expect(counts.get('group')).toBe(beforeRole.get('group'))
+        expect(getComputedStyle(screen.getByRole('textbox', { name: 'Edit Orders label' }).closest('.MuiFormControl-root') as HTMLElement).left).toBe('12px')
+        expect(getComputedStyle(screen.getByRole('textbox', { name: 'Edit Store label' }).closest('.MuiFormControl-root') as HTMLElement).left).toBe('4px')
         const beforeConnection = new Map(counts)
 
         act(() => { session.setConnectionKindFormatting('connection', { line: { thickness: 4 } }) })

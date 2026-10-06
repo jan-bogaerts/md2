@@ -364,6 +364,7 @@ function describeConnectionPointChange(change: DiagramChange, context: DiagramDe
 }
 
 function legendSemantic(entryKey: string) {
+    if (entryKey.startsWith('nodeKind:')) return `node kind ${quote(entryKey.slice('nodeKind:'.length))}`;
     if (entryKey.startsWith('node:')) return `node role ${quote(entryKey.slice('node:'.length))}`;
     if (entryKey.startsWith('connection:')) return `connection kind ${quote(entryKey.slice('connection:'.length))}`;
 

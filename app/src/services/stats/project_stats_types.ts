@@ -5,7 +5,6 @@ import type { AgentProfile } from '../../data/agent_profiles';
 
 export type StatsDataset = 'activityOverTime' | 'agentPerformance' | 'usageComparison' | 'totals';
 export type StatsGranularity = 'day' | 'week' | 'month';
-export type StatsShortGranularity = Exclude<StatsGranularity, 'month'>;
 export type StatsActivityMetric = 'cards' | 'actions' | 'tokens';
 export type StatsPerformanceMetric = 'duration' | 'tokens' | 'toolCalls';
 export type StatsPerformanceAggregation = 'average' | 'averageWithDeviation' | 'median' | 'sum';
@@ -13,6 +12,7 @@ export type StatsPerformanceGrouping = 'agent' | 'model';
 export type StatsTotalsGrouping = 'card' | 'action';
 export type StatsTotalsMetric = 'cost' | 'duration' | 'tokens';
 export type StatsStatus = 'idle' | 'loading' | 'ready' | 'error';
+export type StatsReleaseSelection = { mode: 'all' } | { mode: 'selected'; identities: string[] };
 export type StatsChartRole =
     | 'primary'
     | 'activity'
@@ -44,23 +44,21 @@ export type StatsExclusionReason =
     | 'notTerminal';
 
 export interface StatsControls {
-    activityGranularity: StatsGranularity;
     activityMetric: StatsActivityMetric;
     dataset: StatsDataset;
     endUtc: string | null;
+    granularity: StatsGranularity;
     performanceActionIds: string[];
     performanceAggregation: StatsPerformanceAggregation;
     performanceAgentIds: string[];
-    performanceGranularity: StatsShortGranularity;
     performanceGrouping: StatsPerformanceGrouping;
     performanceMetric: StatsPerformanceMetric;
     performanceModelIds: string[];
-    releaseIdentity: string;
+    releaseSelection: StatsReleaseSelection;
     shortTokenCounts: boolean;
     startUtc: string | null;
     totalsGrouping: StatsTotalsGrouping;
     totalsMetric: StatsTotalsMetric;
-    usageGranularity: StatsShortGranularity;
 }
 
 export type StatsViewMode = 'tables' | 'charts';
@@ -173,23 +171,21 @@ export const TERMINAL_CONVERSATION_STATUSES = new Set(['cancelled', 'completed',
 export const CURRENT_RELEASE_IDENTITY = 'current-release';
 export const EMPTY_OPTIONS: StatsOptions = {accountSeries: [], actions: [], agents: [], models: [], releases: []};
 export const INITIAL_CONTROLS: StatsControls = {
-    activityGranularity: 'day',
     activityMetric: 'actions',
     dataset: 'activityOverTime',
     endUtc: null,
+    granularity: 'day',
     performanceActionIds: [],
     performanceAggregation: 'average',
     performanceAgentIds: [],
-    performanceGranularity: 'day',
     performanceGrouping: 'agent',
     performanceMetric: 'duration',
     performanceModelIds: [],
-    releaseIdentity: CURRENT_RELEASE_IDENTITY,
+    releaseSelection: { mode: 'selected', identities: [CURRENT_RELEASE_IDENTITY] },
     shortTokenCounts: true,
     startUtc: null,
     totalsGrouping: 'card',
     totalsMetric: 'duration',
-    usageGranularity: 'day',
 };
 export const INITIAL_SNAPSHOT: ProjectStatsSnapshot = {
     controls: INITIAL_CONTROLS,

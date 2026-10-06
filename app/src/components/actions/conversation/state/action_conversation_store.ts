@@ -1,11 +1,8 @@
 import type { ActionContext } from '../../../../data/action_context'
 import type { AgentConversation } from '../../../../data/data_types'
-import type { ActionQueuedPrompt, ActionRunEvent } from '../../../../data/action_run_types'
-import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { dialogService } from '../../../../services/dialog_service'
 import { dataService } from '../../../../services/data/data_service'
-import { generateUuid } from '../../../../data/uuid'
 import type { ConversationPickerConversation } from '../picker/action_conversation_picker_data'
 import { defaultLoadConversation, defaultLoadConversations } from '../../run/popup/action_popup_defaults'
 import type { ActionRunBindingStore } from '../../run/state/action_run_binding_store'
@@ -26,21 +23,6 @@ interface ConversationIdentity {
 }
 
 type Listener = () => void
-
-export interface PendingActionSubmission {
-    content: string
-    error?: string
-    id: string
-    prompt: ActionQueuedPrompt | null
-    state: 'transmitting' | 'queued' | 'removed' | 'failed'
-}
-
-interface SubmissionOwner {
-    conversationId: string | null
-    runId: string | null
-}
-
-const SUBMISSIONS_CHANGED_EVENT = 'submissionsChanged'
 
 /** A context without a card identity owns the project-origin conversations, whatever its kind. */
 function belongsToContext(conversation: ConversationPickerConversation, context: ActionContext) {
@@ -100,18 +82,13 @@ function latestWaitingConversation(conversations: AgentConversation[], actionId:
 
 /** Owns history loading and selection for one popup action/context binding. */
 export class ActionConversationStore {
-    private readonly actionId: string
+    readonly actionId: string
     readonly bindingStore: ActionRunBindingStore
-    private readonly context: ActionContext
+    context: ActionContext
     private initialSelectionConfigured = false
     private initialSelectionPath: string | null = null
     private loadRequest = 0
     private readonly listeners = new Set<Listener>()
-    private readonly submissionEvents = new EventTarget()
-    private submissions: PendingActionSubmission[] = []
-    private readonly submissionOwners = new Map<string, SubmissionOwner>()
-    private bufferedRunEvents: ActionRunEvent[] = []
-    private unsubscribeRunEvents: (() => void) | null = null
     private snapshot = initialConversationSnapshot()
 
     constructor(actionId: string, context: ActionContext, bindingStore: ActionRunBindingStore) {
@@ -120,161 +97,12 @@ export class ActionConversationStore {
         this.context = context
     }
 
+    /** Update execution inputs while retaining conversation selection. */
+    setContext(context: ActionContext) {
+        this.context = context;
+    }
+
     readonly getSnapshot = () => this.snapshot
-
-    readonly getSubmissions = () => this.submissions
-
-    readonly subscribeSubmissions = (listener: Listener) => {
-        this.submissionEvents.addEventListener(SUBMISSIONS_CHANGED_EVENT, listener)
-
-        return () => this.submissionEvents.removeEventListener(SUBMISSIONS_CHANGED_EVENT, listener)
-    }
-
-    /** Captures submitted text before backend work starts. */
-    beginSubmission(content: string, runId: string | null, conversationId?: string) {
-        if (!this.unsubscribeRunEvents) {
-            this.unsubscribeRunEvents = actionRunRegistry.subscribeContextEvents(this.context, this.handleRunEvent)
-        }
-        const id = `submission-${generateUuid()}`
-        const boundRunId = this.bindingStore.getSnapshot()
-        const liveConversation = boundRunId ? actionRunRegistry.getRunStore(boundRunId)?.getSnapshot().conversation : null
-        const ownerConversationId = conversationId ?? this.snapshot.selectedConversation?.id ?? liveConversation?.id
-        if (!ownerConversationId && !runId) throw new Error('Starting a conversation requires its ID')
-        const submission: PendingActionSubmission = { content, id, prompt: null, state: 'transmitting' }
-        this.submissionOwners.set(id, { conversationId: ownerConversationId ?? null, runId })
-        this.publishSubmissions([...this.submissions, submission])
-
-        return id
-    }
-
-    bindSubmission(id: string, runId: string) {
-        const owner = this.submissionOwners.get(id)
-        if (!owner) throw new Error(`Unknown submission: ${id}`)
-        this.submissionOwners.set(id, { ...owner, runId })
-        this.submissionEvents.dispatchEvent(new Event(SUBMISSIONS_CHANGED_EVENT))
-        const buffered = this.bufferedRunEvents.filter((event) => event.runId === runId)
-        this.bufferedRunEvents = this.bufferedRunEvents.filter((event) => event.runId !== runId)
-        for (const event of buffered) this.handleRunEvent(event)
-    }
-
-    acceptSubmission(id: string, prompt: ActionQueuedPrompt) {
-        const current = this.submissions.find((submission) => submission.id === id)
-        if (!current || current.state === 'failed') return
-        if (prompt.id !== id) throw new Error(`Queued prompt ID does not match submitted message ID: ${id}`)
-        this.changeSubmission(id, (submission) => ({
-            ...submission,
-            prompt,
-            state: submission.state === 'removed' ? 'removed' : 'queued',
-        }))
-    }
-
-    failSubmission(id: string, error: string) {
-        const submission = this.submissions.find((current) => current.id === id)
-        if (!submission || submission.state === 'failed') return
-        this.changeSubmission(id, (current) => ({ ...current, error, state: 'failed' }))
-    }
-
-    removeSubmission(id: string) {
-        this.submissionOwners.delete(id)
-        this.publishSubmissions(this.submissions.filter((submission) => submission.id !== id))
-    }
-
-    dispose() {
-        this.unsubscribeRunEvents?.()
-        this.unsubscribeRunEvents = null
-        this.bufferedRunEvents = []
-        this.submissionOwners.clear()
-        this.publishSubmissions([])
-    }
-
-    private readonly handleRunEvent = (event: ActionRunEvent) => {
-        if (event.actionId !== this.actionId) return
-        const submissions = this.submissions.filter((submission) => (
-            this.submissionOwners.get(submission.id)?.runId === event.runId && submission.state !== 'failed'
-        ))
-        if (submissions.length === 0) {
-            const isRelevantUpdate = event.type === 'update' && (
-                event.update.kind === 'agentStarted'
-                || event.update.kind === 'agentUserMessage'
-                || event.update.kind === 'agentPromptQueued'
-                || event.update.kind === 'agentPromptDeleted'
-                || event.update.kind === 'agentPromptDiscarded'
-                || event.update.kind === 'agentPromptDispatched'
-            )
-            if (this.submissions.some((submission) => this.submissionOwners.get(submission.id)?.runId === null)
-                && (isRelevantUpdate || event.type === 'run')) {
-                this.bufferedRunEvents.push(event)
-            }
-            return
-        }
-        if (event.type === 'run' && event.status !== 'queued' && event.status !== 'running'
-            && event.status !== 'waitingForInput') {
-            for (const submission of submissions) {
-                this.failSubmission(submission.id, 'Run ended before the prompt was sent')
-            }
-            return
-        }
-        if (event.type !== 'update') return
-        if (event.update.kind === 'agentStarted') {
-            const { continued, conversation } = event.update
-            const messageId = conversation.entries.findLast((entry) => entry.kind === 'message' && entry.role === 'user')?.id
-            for (const submission of submissions) {
-                const owner = this.submissionOwners.get(submission.id)
-                if (owner && !owner.conversationId) {
-                    this.submissionOwners.set(submission.id, { ...owner, conversationId: conversation.id })
-                }
-            }
-            this.submissionEvents.dispatchEvent(new Event(SUBMISSIONS_CHANGED_EVENT))
-            const submission = submissions.find((current) => current.id === messageId)
-            if (!continued && submission) {
-                actionPromptDraftService.attachNewConversation(this.actionId, this.context, conversation.id)
-            }
-            if (submission) this.removeSubmission(submission.id)
-        }
-        if (event.update.kind === 'agentPromptQueued') {
-            const { entry } = event.update
-            const submission = submissions.find((current) => current.id === entry.id)
-            if (submission) this.acceptSubmission(submission.id, entry)
-        }
-        if (event.update.kind === 'agentPromptDeleted' || event.update.kind === 'agentPromptDiscarded') {
-            const { promptId } = event.update
-            const submission = submissions.find((current) => current.id === promptId)
-            if (submission) this.removeSubmission(submission.id)
-        }
-        if (event.update.kind === 'agentPromptDispatched') {
-            const { promptId } = event.update
-            const submission = submissions.find((current) => current.id === promptId)
-            if (submission) this.changeSubmission(submission.id, (current) => ({ ...current, state: 'removed' }))
-        }
-        if (event.update.kind === 'agentUserMessage') {
-            const { userMessage } = event.update
-            const submission = submissions.find((current) => current.id === userMessage.id)
-            if (submission) this.removeSubmission(submission.id)
-        }
-    }
-
-    private changeSubmission(id: string, change: (submission: PendingActionSubmission) => PendingActionSubmission) {
-        const submission = this.submissions.find((current) => current.id === id)
-        if (!submission) return
-        this.publishSubmissions(this.submissions.map((current) => current.id === id ? change(current) : current))
-    }
-
-    private publishSubmissions(submissions: PendingActionSubmission[]) {
-        this.submissions = submissions
-        this.submissionEvents.dispatchEvent(new Event(SUBMISSIONS_CHANGED_EVENT))
-        if (submissions.every((submission) => submission.state === 'failed')) {
-            this.unsubscribeRunEvents?.()
-            this.unsubscribeRunEvents = null
-            this.bufferedRunEvents = []
-        }
-    }
-
-    getVisibleSubmissions(conversationId: string | null, runId: string | null) {
-        return this.submissions.filter((submission) => {
-            const owner = this.submissionOwners.get(submission.id)
-            return !!owner && (conversationId ? owner.conversationId === conversationId : owner.runId === runId)
-        })
-    }
 
     readonly subscribe = (listener: Listener) => {
         this.listeners.add(listener)

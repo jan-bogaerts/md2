@@ -149,7 +149,7 @@ describe('ActionPopupBottomRow', () => {
         expect(bottomRow).toHaveStyle({containerType: 'inline-size'})
         expect(layout).toHaveAttribute('data-footer-layout')
         expect(layout).toHaveStyle({display: 'flex', minWidth: '0', width: '100%'})
-        expect(within(layout).getByRole('button', { name: 'Attach files' })
+        expect(within(layout).getByRole('button', { name: 'Prompt menu' })
             .compareDocumentPosition(selectors) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
         expect(selectors).toHaveAttribute('data-footer-selectors')
         expect(selectors).toHaveStyle({ flexShrink: '1', minWidth: '158px', overflow: 'hidden' })
@@ -162,28 +162,28 @@ describe('ActionPopupBottomRow', () => {
         expect(within(controls as HTMLElement).getByRole('button', { name: 'Send' })).toBeInTheDocument()
     })
 
-    it('renders attachment control first for card and project agent prompts above the mobile breakpoint', () => {
+    it('renders prompt menu before selectors for card and project agent prompts', () => {
         renderBottomRow(action, undefined, false, cardContext)
         const layout = screen.getByTestId('action-popup-bottom-row').firstElementChild as HTMLElement
-        const attachment = within(layout).getByRole('button', { name: 'Attach files' })
+        const attachment = within(layout).getByRole('button', { name: 'Prompt menu' })
         const selectors = layout.querySelector('[data-footer-selectors]') as HTMLElement
 
         expect(attachment.compareDocumentPosition(selectors) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
 
         cleanup()
         renderBottomRow()
-        expect(screen.getByRole('button', { name: 'Attach files' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Prompt menu' })).toBeInTheDocument()
     })
 
     it.each([
         { contextOverride: cardContext, embedded: true, scope: 'card embedded' },
         { contextOverride: context, embedded: false, scope: 'project non-embedded' },
-    ])('hides attachment control while keeping agent controls on mobile $scope rows', ({ contextOverride, embedded }) => {
+    ])('shows prompt menu alongside agent controls on mobile $scope rows', ({ contextOverride, embedded }) => {
         setMobileBreakpoint(true)
         renderBottomRow(action, undefined, embedded, contextOverride)
         const bottomRow = screen.getByTestId('action-popup-bottom-row')
 
-        expect(within(bottomRow).queryByRole('button', { name: 'Attach files' })).not.toBeInTheDocument()
+        expect(within(bottomRow).getByRole('button', { name: 'Prompt menu' })).toBeInTheDocument()
         expect(within(bottomRow).getByRole('group', { name: 'Agent settings' })).toBeInTheDocument()
         expect(within(bottomRow).getByRole('button', { name: 'Schedule' })).toBeInTheDocument()
         expect(within(bottomRow).getByRole('button', { name: 'Send' })).toBeInTheDocument()
@@ -235,7 +235,7 @@ describe('ActionPopupBottomRow', () => {
         vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([source])
         const conversationStore = createConversationStore(action.id, context)
         await conversationStore.load()
-        const promptDraft = actionPromptDraftService.getDraft(action.id, context, null, { prepare: false })
+        const promptDraft = actionPromptDraftService.getDraft(action.id, context, source.id, { prepare: false })
         const { unrelatedRender } = renderBottomRow(action, conversationStore)
 
         expect(screen.getByRole('button', { name: 'Finish' })).toBeInTheDocument()
@@ -276,6 +276,7 @@ describe('ActionPopupBottomRow', () => {
         const historicalConversation = { ...waitingConversation(action.id), path: 'history.json', status: 'completed' as const }
         vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(historicalConversation)
         const conversationStore = createConversationStore(action.id, context)
+        conversationStore.updateConversation(historicalConversation)
         await conversationStore.select(historicalConversation.id)
 
         renderBottomRow(action, conversationStore)

@@ -5,6 +5,8 @@ import type { AgentConversation, AgentRunEvent } from './data_types'
 import type { AgentAvailability } from './electron_data_bridge'
 import type { PermissionMode, ThinkingLevel } from './agent_profiles'
 import type {
+    ActionCompactRequest,
+    ActionCompactState,
     ActionRunEvent,
     ActionUserInputResponse,
     ActionRunTerminalStatus,
@@ -171,6 +173,7 @@ export interface ActionConversationViewedEvent {
 }
 
 export interface ElectronActionBridge {
+    compactActionConversation?(request: ActionCompactRequest): Promise<ActionCompactState>;
     answerActionInput?(runId: string, response: ActionUserInputResponse): Promise<void>
     acquireReleaseCardLocks?(cardInternalIds: string[]): Promise<string>
     answerActionApproval?(runId: string, requestId: AgentApprovalRequestId, decision: AgentApprovalDecision): Promise<void>

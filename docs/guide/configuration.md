@@ -34,7 +34,7 @@ Where values live:
 | `project.cardBodyTemplate` | Goal / Current status / Details / Tasks | Markdown inserted into new cards. |
 | `project.cardSeparator` | `_` | Separator in generated card file names (`_` or `-`). Existing files keep theirs. |
 | `project.cardTypes` | feature / job / bug | Card types: `type`, `label`, `idPrefix`, `color`. |
-| `project.states` | new … ready | Board columns in display order: `state`, `alwaysVisible`, `color`. |
+| `project.states` | new … ready | Board columns in display order: `state`, `alwaysVisible`, `color`, optional `defaultActionId`. The default action is preselected when the action popup opens for a card in that column. |
 
 Linked worktrees are managed from this section too — see [Worktrees](worktrees.md).
 
@@ -46,6 +46,7 @@ Linked worktrees are managed from this section too — see [Worktrees](worktrees
 | `desktop.model` | *(empty)* | Default model; empty uses the profile default. |
 | `desktop.thinkingLevel` | `none` | Default reasoning level. |
 | `desktop.codexSearchEnabled` | `true` | Allow Codex runs to use web search. |
+| `desktop.mergeConflictResolverCommand` | *(empty)* | Command that opens a conflicted file in an external merge tool. Requires {% raw %}`{{file}}`{% endraw %}; {% raw %}`{{repository-folder}}`{% endraw %} is optional. Empty disables the **External resolver** button. See [Worktrees](worktrees.md#merge-conflicts). |
 | `desktop.agentProfiles` | built-ins | Agent profile definitions, including optional monthly subscription cost for Stats estimates. See [Agent setup](../actions/agent-setup.md). |
 
 Agent, model, and reasoning level can also be set straight from the **Run** tab of the menu.

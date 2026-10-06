@@ -58,6 +58,9 @@ function createRun({
     streaming,
 }) {
     const { promise: closed, resolve: resolveClosed } = Promise.withResolvers();
+    const lastEntry = request.conversation?.entries.at(-1);
+    const restoredQuestions = request.compactOnly && request.conversation.status === 'waitingForInput'
+        && lastEntry?.kind === 'event' && lastEntry.type === 'agentQuestion' ? lastEntry.questions : null;
 
     return {
         providerEventEntryIndexes: createProviderEventEntryIndexes(conversation.entries),
@@ -85,8 +88,9 @@ function createRun({
         onEvent,
         interactionWrites: Promise.resolve(),
         liveTurnUsage: null,
-        pendingQuestionRequestId: null,
-        pendingQuestions: [],
+        pendingQuestionRequestId: restoredQuestions?.length > 0 ? `restored:${conversation.id}` : null,
+        pendingQuestions: restoredQuestions ?? [],
+        restoredQuestions: restoredQuestions?.length > 0,
         pendingApprovals: new Map(),
         persistence: Promise.resolve(),
         phases: createPhaseTracker(),
@@ -109,11 +113,13 @@ function createRun({
         streamingFailure: null,
         turnStarted: false,
         turnIndex: 1,
-        turnActive: streaming,
+        turnActive: streaming && !request.compactOnly,
+        sessionReady: false,
+        activeCompact: null,
         termination: null,
         suspended: false,
         turnUsage: null,
-        waitingForQuestion: false,
+        waitingForQuestion: restoredQuestions?.length > 0,
     };
 }
 

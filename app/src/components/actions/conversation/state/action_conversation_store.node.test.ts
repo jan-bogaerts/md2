@@ -64,169 +64,23 @@ describe('ActionConversationStore', () => {
         vi.restoreAllMocks()
     })
 
-    it('reconciles identical rapid submissions by their local IDs', () => {
-        let runEvent: ((event: ActionRunEvent) => void) | null = null
-        vi.spyOn(actionRunRegistry, 'subscribeContextEvents').mockImplementation((_context, listener) => {
-            runEvent = listener
+    it('updates context without losing selected conversation or its continuation', async () => {
+        const persisted = conversation('conversation-1.json');
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([persisted]);
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(persisted);
+        const { store, bindingStore } = createConversationStore();
+        await store.load();
+        await store.select(persisted.id);
+        const selected = store.getSnapshot().selectedConversation;
+        const updatedContext = { ...context, worktree: '2', worktreeBranch: 'new-branch' };
 
-            return () => undefined
-        })
-        const { store } = createConversationStore()
-        const first = store.beginSubmission('Repeat', 'run-1', 'conversation-1')
-        const second = store.beginSubmission('Repeat', 'run-1', 'conversation-1')
-        expect(store.getSubmissions().map(({ id }) => id)).toEqual([first, second])
-        expect(store.getSnapshot().conversations).toEqual([])
-        if (!runEvent) throw new Error('Missing run event listener')
-        const emit = runEvent as (event: ActionRunEvent) => void
-        const eventBase = {
-            actionId: 'implement', actionType: 'agent' as const, autoFinish: null, context,
-            interactionReady: true, phase: 'main' as const, rootActionId: 'implement', runId: 'run-1', streaming: true,
-        }
-        const firstPrompt = { content: 'Repeat', dispatchState: 'queued' as const, id: first, revision: 0 }
-        const secondPrompt = { content: 'Repeat', dispatchState: 'queued' as const, id: second, revision: 0 }
-        emit({ ...eventBase, status: 'running', type: 'update', update: { entry: secondPrompt, kind: 'agentPromptQueued' } })
-        emit({ ...eventBase, status: 'running', type: 'update', update: { entry: firstPrompt, kind: 'agentPromptQueued' } })
-        store.acceptSubmission(second, secondPrompt)
-        store.acceptSubmission(first, firstPrompt)
-        expect(store.getSubmissions().map(({ id, prompt }) => [id, prompt?.id])).toEqual([
-            [first, first], [second, second],
-        ])
-        emit({...eventBase, status: 'running', type: 'update', update: {kind: 'agentPromptDispatched', promptId: firstPrompt.id, revision: 0}})
-        expect(store.getSubmissions()[0]?.state).toBe('removed')
-        emit({
-            ...eventBase, status: 'running', type: 'update', update: {
-                kind: 'agentUserMessage',
-                userMessage: { content: 'Repeat', id: first, kind: 'message', role: 'user', timestamp: 'now' },
-            },
-        })
-        expect(store.getSubmissions().map(({ id }) => id)).toEqual([second])
-        store.acceptSubmission(first, firstPrompt)
-        expect(store.getSubmissions().map(({ id }) => id)).toEqual([second])
-        emit({ ...eventBase, status: 'running', type: 'update', update: { kind: 'agentPromptDeleted', promptId: second, revision: 0 } })
-        expect(store.getSubmissions()).toEqual([])
-        store.dispose()
-    })
+        store.setContext(updatedContext);
 
-    it('keeps a new submission until its run is known, then consumes an early user message', () => {
-        let runEvent: ((event: ActionRunEvent) => void) | null = null
-        vi.spyOn(actionRunRegistry, 'subscribeContextEvents').mockImplementation((_context, listener) => {
-            runEvent = listener
-
-            return () => undefined
-        })
-        const { store } = createConversationStore()
-        const id = store.beginSubmission('Start now', null, 'conversation-new')
-        if (!runEvent) throw new Error('Missing run event listener')
-        const emit = runEvent as (event: ActionRunEvent) => void
-        emit({
-            actionId: 'implement', actionType: 'agent', autoFinish: null, context, interactionReady: true,
-            phase: 'main', rootActionId: 'implement', runId: 'run-2', status: 'running', streaming: true,
-            type: 'update', update: {
-                kind: 'agentUserMessage',
-                userMessage: { content: 'Start now', id, kind: 'message', role: 'user', timestamp: 'now' },
-            },
-        })
-        expect(store.getSubmissions()).toHaveLength(1)
-        store.bindSubmission(id, 'run-2')
-        expect(store.getSubmissions()).toHaveLength(0)
-        expect(store.getSnapshot().conversations).toEqual([])
-    })
-
-    it('replaces a new-run submission when startup conversation already contains its user message', () => {
-        let runEvent: ((event: ActionRunEvent) => void) | null = null
-        vi.spyOn(actionRunRegistry, 'subscribeContextEvents').mockImplementation((_context, listener) => {
-            runEvent = listener
-
-            return () => undefined
-        })
-        const { store } = createConversationStore()
-        const id = store.beginSubmission('Start now', null, 'conversation-new')
-        if (!runEvent) throw new Error('Missing run event listener')
-        const emit = runEvent as (event: ActionRunEvent) => void
-        const startedConversation = {
-            ...conversation('conversation-new.json'),
-            entries: [{ content: 'Start now', id, kind: 'message' as const, role: 'user' as const, timestamp: 'now' }],
-        }
-        emit({
-            actionId: 'implement', actionType: 'agent', autoFinish: null, context, interactionReady: true,
-            phase: 'main', rootActionId: 'implement', runId: 'run-2', status: 'running', streaming: true,
-            type: 'update', update: { continued: false, conversation: startedConversation, kind: 'agentStarted' },
-        })
-        expect(store.getSubmissions()).toHaveLength(1)
-        store.bindSubmission(id, 'run-2')
-        expect(store.getSubmissions()).toEqual([])
-        expect(store.getSnapshot().conversations).toEqual([])
-    })
-
-    it('matches a restarted submission to the new user entry in continued conversation', () => {
-        let runEvent: ((event: ActionRunEvent) => void) | null = null
-        vi.spyOn(actionRunRegistry, 'subscribeContextEvents').mockImplementation((_context, listener) => {
-            runEvent = listener
-
-            return () => undefined
-        })
-        const { store } = createConversationStore()
-        const earlierMessage = {
-            content: 'Earlier', id: 'user-old', kind: 'message' as const,
-            role: 'user' as const, timestamp: 'before',
-        }
-        const previous = { ...conversation('conversation-1.json'), entries: [earlierMessage] }
-        store.addAndSelectConversation(previous)
-        const id = store.beginSubmission('Continue', null)
-        if (!runEvent) throw new Error('Missing run event listener')
-        const emit = runEvent as (event: ActionRunEvent) => void
-        emit({
-            actionId: 'implement', actionType: 'agent', autoFinish: null, context, interactionReady: true,
-            phase: 'main', rootActionId: 'implement', runId: 'run-2', status: 'running', streaming: true,
-            type: 'update', update: {
-                continued: true,
-                conversation: {
-                    ...previous,
-                    entries: [earlierMessage, {content: 'Continue', id, kind: 'message', role: 'user', timestamp: 'now'}],
-                },
-                kind: 'agentStarted',
-            },
-        })
-        store.bindSubmission(id, 'run-2')
-        expect(store.getSubmissions()).toEqual([])
-        expect(store.getSnapshot().selectedConversation?.id).toBe(previous.id)
-        expect(store.getSnapshot().selectedConversation?.id).toBe(previous.id)
-    })
-
-    it('keeps a continued submission in its selected conversation after the new run starts', () => {
-        const { store } = createConversationStore()
-        const selected = conversation('conversation-1.json')
-        store.addAndSelectConversation(selected)
-        const id = store.beginSubmission('Continue', null)
-
-        store.bindSubmission(id, 'run-2')
-
-        expect(store.getSnapshot().selectedConversation?.id).toBe(selected.id)
-        expect(store.getVisibleSubmissions(selected.id, 'run-2').map((submission) => submission.id)).toEqual([id])
-        expect(store.getVisibleSubmissions('other-conversation', null)).toEqual([])
-    })
-
-    it('keeps failed submissions visible when the backend rejects them or the run ends', () => {
-        let runEvent: ((event: ActionRunEvent) => void) | null = null
-        vi.spyOn(actionRunRegistry, 'subscribeContextEvents').mockImplementation((_context, listener) => {
-            runEvent = listener
-
-            return () => undefined
-        })
-        const { store } = createConversationStore()
-        const first = store.beginSubmission('First', 'run-1', 'conversation-1')
-        const second = store.beginSubmission('Second', 'run-1', 'conversation-1')
-        store.failSubmission(first, 'Queue unavailable')
-        store.acceptSubmission(first, { content: 'First', dispatchState: 'queued', id: 'late-prompt', revision: 0 })
-        expect(store.getSubmissions().find(({ id }) => id === first)).toMatchObject({ error: 'Queue unavailable', state: 'failed' })
-        if (!runEvent) throw new Error('Missing run event listener')
-        const emit = runEvent as (event: ActionRunEvent) => void
-        emit({
-            actionId: 'implement', actionType: 'agent', autoFinish: null, context, interactionReady: true,
-            phase: 'main', rootActionId: 'implement', runId: 'run-1', status: 'failed', streaming: true, type: 'run',
-        })
-        expect(store.getSubmissions().find(({ id }) => id === second)?.state).toBe('failed')
-    })
+        expect(store.context).toBe(updatedContext);
+        expect(store.getSnapshot().selectedConversation).toBe(selected);
+        expect(store.continuationPath(null)).toBe(persisted.path);
+        expect(bindingStore.getSnapshot()).toBeNull();
+    });
 
     it('resolves explicit history while retaining matching live snapshots', () => {
         const liveConversation = conversation('conversation-live.json')

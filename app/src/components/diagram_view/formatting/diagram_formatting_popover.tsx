@@ -4,6 +4,8 @@ import {
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import {
     DIAGRAM_BORDER_STYLES,
+    DIAGRAM_CONTENT_INSET_DEFAULT,
+    DIAGRAM_CONTENT_INSET_MAXIMUM,
     DIAGRAM_CONTENT_POSITIONS,
     type DiagramBorderStyle,
     type DiagramContentPosition,
@@ -67,6 +69,8 @@ export function NodeFormattingPopover({ anchorElement, label, onApply, onClose, 
     const [borderThickness, setBorderThickness] = useState(value?.box?.borderThickness);
     const [cornerRadius, setCornerRadius] = useState(value?.box?.cornerRadius);
     const [contentPosition, setContentPosition] = useState(value?.box?.contentPosition ?? 'center');
+    const [autoWrap, setAutoWrap] = useState(value?.box?.autoWrap ?? true);
+    const [contentInset, setContentInset] = useState<number | undefined>(value?.box?.contentInset ?? DIAGRAM_CONTENT_INSET_DEFAULT);
     const handleBorderStyle = (event: ChangeEvent<HTMLInputElement>) => setBorderStyle(event.target.value as DiagramBorderStyle);
     const handleContentPosition = (event: ChangeEvent<HTMLInputElement>) => {
         setContentPosition(event.target.value as DiagramContentPosition);
@@ -74,13 +78,16 @@ export function NodeFormattingPopover({ anchorElement, label, onApply, onClose, 
     const handleBold = (event: ChangeEvent<HTMLInputElement>) => setBold(event.target.checked);
     const handleItalic = (event: ChangeEvent<HTMLInputElement>) => setItalic(event.target.checked);
     const handleUnderline = (event: ChangeEvent<HTMLInputElement>) => setUnderline(event.target.checked);
+    const handleAutoWrap = (event: ChangeEvent<HTMLInputElement>) => setAutoWrap(event.target.checked);
     const handleSubmit = (event: FormEvent) => {
         event.preventDefault();
         const formatting: DiagramNodeRoleFormatting = {
             box: {
+                autoWrap,
                 borderColor,
                 borderStyle,
                 borderThickness,
+                contentInset,
                 contentPosition,
                 cornerRadius,
                 fillColor,
@@ -114,6 +121,8 @@ export function NodeFormattingPopover({ anchorElement, label, onApply, onClose, 
                             <ColorPickerButton label="Font color" onChange={setFontColor} value={fontColor} />
                         </FormattingGroup>
                         <FormattingGroup id="diagram-node-box" label="Box">
+                            <FormControlLabel control={<Switch checked={autoWrap} onChange={handleAutoWrap} />} label="Auto wrap" />
+                            <OptionalSliderField initialCustomValue={DIAGRAM_CONTENT_INSET_DEFAULT} label="Content inset" maximum={DIAGRAM_CONTENT_INSET_MAXIMUM} minimum={0} onChange={setContentInset} unit="px" value={contentInset} />
                             <Stack direction="row" spacing={1}>
                                 <Box sx={HALF_WIDTH_SX}><ColorPickerButton label="Fill color" onChange={setFillColor} value={fillColor} /></Box>
                                 <Box sx={HALF_WIDTH_SX}><ColorPickerButton label="Border color" onChange={setBorderColor} value={borderColor} /></Box>

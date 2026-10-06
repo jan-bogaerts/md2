@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RemoteControlStorageService } from './remote_control_storage_service'
 import { MissingWorkingFolderError } from '../../data/data_types'
+import type { ActionScheduleRegistrationRequest } from '../../data/electron_action_bridge'
 
 class MockWebSocket extends EventTarget {
     static instances: MockWebSocket[] = []
@@ -98,6 +99,23 @@ async function flushPromises() {
 }
 
 describe('RemoteControlStorageService', () => {
+    it('transports compact request identity and receives queued acknowledgement', async () => {
+        installWebSocket();
+        const service = createService();
+        const request = {
+            actionId: 'review', context: { kind: 'project' as const }, conversationId: 'conversation-1',
+            provider: 'claude', reference: 'activity.json#conversation=conversation-1', requestId: 'compact-1',
+        };
+        const compact = service.compactActionConversation(request);
+        const socket = lastSocket();
+        socket.open();
+        await flushPromises();
+        const sent = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] };
+        expect(sent).toMatchObject({ method: 'compactActionConversation', params: [request] });
+        socket.receive({ id: sent.id, result: { ...request, state: 'queued' } });
+        await expect(compact).resolves.toMatchObject({ ...request, state: 'queued' });
+    });
+
     afterEach(() => {
         vi.unstubAllGlobals()
     })
@@ -328,6 +346,39 @@ describe('RemoteControlStorageService', () => {
         await expect(load).resolves.toEqual({ content: '{"version":2}', path })
     })
 
+    it('sends project and path when loading a project asset through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' }
+        const asset = { content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'design/image.png' }
+        const load = service.loadProjectAsset(project, 'design/image.png')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'loadProjectAsset', params: [project, 'design/image.png'] })
+        socket.receive({ id: request.id, result: asset })
+
+        await expect(load).resolves.toEqual(asset)
+    })
+
+    it('sends the absolute path when loading an image file through remote control', async () => {
+        installWebSocket()
+        const service = createService()
+        const asset = { content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'C:/images/photo.png' }
+        const load = service.loadImageFile('C:/images/photo.png')
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(request).toMatchObject({ method: 'loadImageFile', params: ['C:/images/photo.png'] })
+        socket.receive({ id: request.id, result: asset })
+
+        await expect(load).resolves.toEqual(asset)
+    })
+
     it('loads current worktree diff through remote control', async () => {
         installWebSocket()
         const service = createService()
@@ -463,6 +514,7 @@ describe('RemoteControlStorageService', () => {
         installWebSocket()
         const service = createService()
         const session = {
+            branch: 'topic',
             conflictedPaths: ['src/file.ts'], externalResolverConfigured: true, id: 'session-1',
             operation: 'rebase' as const, phase: 'rebase' as const, repositoryRoot: 'C:/repo', worktree: 1,
         }
@@ -684,6 +736,101 @@ describe('RemoteControlStorageService', () => {
         socket.receive({ id: sentRequest.id, result: { prompt: 'Prepared prompt' } })
 
         await expect(preparation).resolves.toEqual({ prompt: 'Prepared prompt' })
+    })
+
+    it.each([
+        { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
+        { agent: 'codex', expectedResetAt: '2099-07-07T10:30:00.000Z', limitId: 'primary', type: 'account-reset', windowId: 'five-hour' },
+        { cardInternalId: 'trigger-card', registrationState: 'todo', targetState: 'done', type: 'card-state' },
+    ] as ActionScheduleRegistrationRequest['trigger'][])(
+        'forwards $type action schedule payload and waits for desktop confirmation',
+        async (trigger) => {
+            installWebSocket()
+            const service = createService()
+            const request = {
+                actionId: 'implement',
+                context: { cardInternalId: 'target-card', file: 'design/F-1.md', kind: 'card' as const },
+                trigger,
+            }
+            const registration = service.registerActionSchedule(request)
+            const socket = lastSocket()
+
+            socket.open()
+            await flushPromises()
+            const sentRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+            expect(sentRequest).toMatchObject({ method: 'registerActionSchedule', params: [request] })
+            socket.receive({ id: sentRequest.id, result: { id: 'schedule-1' } })
+
+            await expect(registration).resolves.toBeUndefined()
+        },
+    )
+
+    it('lists and deletes schedules through desktop, returning confirmed results', async () => {
+        installWebSocket()
+        const service = createService()
+        const listing = service.listActiveSchedules()
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const listRequest = JSON.parse(socket.sent[0]) as { id: string, method: string, params: unknown[] }
+        expect(listRequest).toMatchObject({ method: 'listActiveSchedules', params: [] })
+        const schedule = {
+            actionId: 'implement', context: { cardInternalId: 'target-card', kind: 'card' },
+            createdAt: '2099-07-07T10:00:00.000Z', id: 'schedule-1', kind: 'action', status: 'pending',
+            trigger: { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
+        }
+        socket.receive({ id: listRequest.id, result: [schedule] })
+        await expect(listing).resolves.toEqual([schedule])
+
+        const deletion = service.deleteSchedule('schedule-1')
+        await flushPromises()
+        const deleteRequest = JSON.parse(socket.sent[1]) as { id: string, method: string, params: unknown[] }
+        expect(deleteRequest).toMatchObject({ method: 'deleteSchedule', params: ['schedule-1'] })
+        socket.receive({ id: deleteRequest.id, result: [] })
+        await expect(deletion).resolves.toEqual([])
+    })
+
+    it('reports desktop schedule registration and deletion failures', async () => {
+        installWebSocket()
+        const service = createService()
+        const request = {
+            actionId: 'implement', context: { cardInternalId: 'target-card', kind: 'card' as const },
+            trigger: { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' as const },
+        }
+        const registration = service.registerActionSchedule(request)
+        const socket = lastSocket()
+
+        socket.open()
+        await flushPromises()
+        const registrationRequest = JSON.parse(socket.sent[0]) as { id: string }
+        socket.receive({ error: { message: 'Schedule time must be in the future' }, id: registrationRequest.id })
+        await expect(registration).rejects.toThrow('Remote method registerActionSchedule failed: Schedule time must be in the future')
+
+        const deletion = service.deleteSchedule('missing')
+        await flushPromises()
+        const deletionRequest = JSON.parse(socket.sent[1]) as { id: string }
+        socket.receive({ error: { message: 'Schedule not found: missing' }, id: deletionRequest.id })
+        await expect(deletion).rejects.toThrow('Remote method deleteSchedule failed: Schedule not found: missing')
+
+        const listing = service.listActiveSchedules()
+        await flushPromises()
+        const listRequest = JSON.parse(socket.sent[2]) as { id: string }
+        socket.receive({ error: { message: 'Scheduler unavailable' }, id: listRequest.id })
+        await expect(listing).rejects.toThrow('Remote method listActiveSchedules failed: Scheduler unavailable')
+    })
+
+    it('rejects schedule operations when remote connection was replaced', async () => {
+        installWebSocket()
+        const service = createService()
+        service.retire()
+
+        await expect(service.registerActionSchedule({
+            actionId: 'implement', context: { cardInternalId: 'target-card', kind: 'card' },
+            trigger: { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
+        })).rejects.toThrow('Remote-control connection was replaced')
+        await expect(service.deleteSchedule('schedule-1')).rejects.toThrow('Remote-control connection was replaced')
+        expect(MockWebSocket.instances).toEqual([])
     })
 
     it('proxies card activity and historical file requests', async () => {

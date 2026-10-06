@@ -79,7 +79,7 @@ describe('DiagramLegendDetailsEditor', () => {
     it('explains that adding to a derived legend keeps its entries', () => {
         renderEditor(diagram)
 
-        expect(screen.getByText(/derived from the node roles/)).toBeInTheDocument()
+        expect(screen.getByText(/derived from the node kinds/)).toBeInTheDocument()
         expect(screen.getByText(/Adding an entry keeps those derived entries/)).toBeInTheDocument()
         expect(entryLabelInputs()).toHaveLength(0)
     })
@@ -188,7 +188,7 @@ describe('DiagramLegendDetailsEditor', () => {
 
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-        expect(screen.getByText('Choose the node role or connection kind to add.')).toBeInTheDocument()
+        expect(screen.getByText('Choose the node kind, node role, or connection kind to add.')).toBeInTheDocument()
         expect(session.getLegendEntryKeysSnapshot()).toEqual(['node:focal', 'connection:connection'])
     })
 
@@ -197,18 +197,17 @@ describe('DiagramLegendDetailsEditor', () => {
 
         await userEvent.click(screen.getByRole('checkbox', { name: 'Include used types' }))
         await userEvent.click(screen.getByLabelText('Add entry for'))
-        await userEvent.click(screen.getByRole('option', { name: 'focal node' }))
+        await userEvent.click(screen.getByRole('option', { name: 'Component node kind' }))
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
-        expect(screen.getByText('That node role or connection kind already has a legend entry.')).toBeInTheDocument()
+        expect(screen.getByText('That node kind, node role, or connection kind already has a legend entry.')).toBeInTheDocument()
         expect(session.getHasExplicitLegendSnapshot()).toBe(false)
 
         await userEvent.click(screen.getByLabelText('Add entry for'))
         await userEvent.click(screen.getByRole('option', { name: 'backend node' }))
         await userEvent.click(screen.getByRole('button', { name: 'Add' }))
         expect(session.getEditableDiagram()?.meta.legend).toEqual([
-            { label: 'focal', role: 'focal' },
-            { label: 'store', role: 'store' },
-            { kind: 'connection', label: 'connection' },
+            { label: 'Component', nodeKind: 'component' },
+            { kind: 'connection', label: 'Connection' },
             { label: 'backend', role: 'backend' },
         ])
     })

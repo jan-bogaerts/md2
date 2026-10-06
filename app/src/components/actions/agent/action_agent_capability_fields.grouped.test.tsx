@@ -49,6 +49,18 @@ describe('ActionAgentCapabilityFields', () => {
         configService.clear()
     })
 
+    it('shows default labels when agent overrides are absent', async () => {
+        const service = new AgentCapabilitiesService(provider());
+        const value = { ...definition, agent: undefined, model: undefined, thinkingLevel: undefined };
+        renderFields(service, value);
+
+        await waitFor(() => expect(screen.queryByText('Checking agent availability…')).not.toBeInTheDocument());
+
+        expect(screen.getByLabelText('Agent')).toHaveTextContent('Application default');
+        expect(screen.getByLabelText('Model')).toHaveTextContent('Select model');
+        expect(screen.getByLabelText('Permission mode')).toHaveTextContent('Application default');
+    });
+
     it('disables unavailable agents and explains the selected-agent error', async () => {
         const service = new AgentCapabilitiesService(provider({
             getAgentAvailability: vi.fn(async () => ({

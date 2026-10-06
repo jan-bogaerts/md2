@@ -42,13 +42,17 @@ export class ActionDraftStore {
         return [...this.drafts.keys()]
     }
 
+    removeAction(actionId: string) {
+        this.drafts.delete(actionId)
+    }
+
     getDraft(actionId: string): ActionDraftState {
         const existingDraft = this.drafts.get(actionId)
         if (existingDraft) return existingDraft
 
-        const action = this.host.getActionById(actionId)
+        const action = this.host.getEditableActionById(actionId)
         if (!action?.sourcePath) throw new Error(`Cannot create draft for unknown action: ${actionId}`)
-        const definition = editableActionDefinition(action)
+        const definition = this.host.getDefinitionByPath(action.sourcePath) ?? editableActionDefinition(action)
         const sourcePath = action.sourcePath
         const draft: ManagedActionDraft = {
             action,
@@ -97,7 +101,7 @@ export class ActionDraftStore {
         this.updateOpenDocument(actionId, definition)
         this.host.dispatchDraftChanged(actionId)
         this.host.dispatchPersistenceChanged()
-        if (draft.validation.valid && !draft.deleted) this.queueDraftSave(actionId, definition, revision, targetPath)
+        if (!draft.deleted) this.queueDraftSave(actionId, definition, revision, targetPath)
 
         return draft
     }
@@ -131,7 +135,7 @@ export class ActionDraftStore {
         this.drafts.set(actionId, draft)
         this.host.dispatchDraftChanged(actionId)
         this.host.dispatchPersistenceChanged()
-        if (draft.validation.valid && !draft.conflict && !draft.deleted) {
+        if (!draft.conflict && !draft.deleted) {
             this.queueDraftSave(actionId, draft.definition, draft.revision, targetPath)
         }
 
@@ -141,7 +145,6 @@ export class ActionDraftStore {
     retryDraft(actionId: string) {
         const draft = this.requireDraft(actionId)
         if (draft.deleted) throw new Error(`Cannot retry deleted action draft: ${actionId}`)
-        if (!draft.validation.valid) throw new Error(`Cannot retry invalid action draft: ${actionId}`)
         this.queueDraftSave(actionId, draft.definition, draft.revision, draft.targetPath)
     }
 
@@ -151,7 +154,7 @@ export class ActionDraftStore {
         this.drafts.set(actionId, { ...draft, conflict: null })
         this.host.dispatchDraftChanged(actionId)
         this.host.dispatchPersistenceChanged()
-        if (draft.validation.valid && draft.revision !== draft.savedRevision) {
+        if (draft.revision !== draft.savedRevision) {
             this.queueDraftSave(actionId, draft.definition, draft.revision, draft.targetPath)
         }
     }
@@ -212,11 +215,6 @@ export class ActionDraftStore {
         for (const actionId of this.drafts.keys()) this.commitDraft(actionId)
         const deletedDraft = [...this.drafts.entries()].find(([, draft]) => draft.deleted)
         if (deletedDraft) throw new Error(`Action ${deletedDraft[0]} was deleted and requires explicit recovery or discard`)
-        const invalidDraft = [...this.drafts.entries()].find(([, draft]) => (
-            draft.revision !== draft.savedRevision && !draft.validation.valid
-        ))
-        if (invalidDraft) throw new Error(`Action ${invalidDraft[0]} has invalid unsaved changes`)
-
         await Promise.all([...this.drafts.values()].map(({ chain }) => chain))
         const failedDraft = [...this.drafts.values()].find(({ error }) => !!error)
         if (failedDraft) throw new Error(failedDraft.error as string)
@@ -253,7 +251,7 @@ export class ActionDraftStore {
                 })
                 continue
             }
-            const externalAction = this.host.getActionById(actionId)
+            const externalAction = this.host.getEditableActionById(actionId)
             if (!externalAction) throw new Error(`Missing external action after reload: ${actionId}`)
             if (draft.deleted) {
                 this.drafts.set(actionId, { ...draft, action: externalAction, conflict: externalEntry.definition, deleted: false })
@@ -413,7 +411,7 @@ export class ActionDraftStore {
     }
 
     private findOpenDocument(actionId: string): ActionOpenDocument | null {
-        const action = this.drafts.get(actionId)?.action ?? this.host.getActionById(actionId)
+        const action = this.drafts.get(actionId)?.action ?? this.host.getEditableActionById(actionId)
         if (!action) return null
 
         const document = openFilesService.findDocument(action)

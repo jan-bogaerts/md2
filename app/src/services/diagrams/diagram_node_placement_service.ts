@@ -175,7 +175,8 @@ export class DiagramNodePlacementService extends EventTarget {
         return true
     }
 
-    place(point: DiagramNodePlacementPoint) {
+    /** Creates the previewed node; leaves Add for Select unless `continueAdding` (Ctrl held). */
+    place(point: DiagramNodePlacementPoint, continueAdding: boolean) {
         this.updatePreview(point)
         const definition = this.requireActiveDefinition()
         const preview = this.preview
@@ -196,6 +197,8 @@ export class DiagramNodePlacementService extends EventTarget {
         this.session.completeTransientGesture()
         if (definition.kind === 'root') {
             this.activate(MINDMAP_TOPIC_PLACEMENT)
+        } else if (!continueAdding) {
+            this.session.setActiveTool('select')
         }
 
         return nodeId

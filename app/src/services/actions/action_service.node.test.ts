@@ -177,7 +177,7 @@ describe('ActionService', () => {
         const service = new ActionService()
         const usable = { ...VALID, id: 'action-usable', label: 'Usable' }
 
-        expect(() => service.loadFromFiles([file({ ...VALID, type: 'bad' }), file(usable)])).not.toThrow()
+        expect(() => service.loadFromFiles([file({ ...VALID, type: 'bad' }), fileAt('actions/usable.json', usable)])).not.toThrow()
         expect(service.getActions().map((action) => action.id)).toContain('action-usable')
         expect(service.getState().error).toContain('Invalid action type')
     })
@@ -188,7 +188,7 @@ describe('ActionService', () => {
         const replacement = { ...VALID, id: 'action-replacement', label: 'Replacement' }
 
         service.reloadFromFiles(
-            [file({ ...VALID, type: 'bad' }), file(replacement)],
+            [file({ ...VALID, type: 'bad' }), fileAt('actions/replacement.json', replacement)],
             [{ origin: 'external', path: 'actions/action.json' }],
         )
 
@@ -223,7 +223,7 @@ describe('ActionService', () => {
         expect(first.path).toBe('design/actions/new-action.json')
         expect(first.definition).toMatchObject({
             description: expect.any(String), id: expect.any(String), label: 'New action',
-            prompt: expect.any(String), type: 'agent',
+            prompt: expect.any(String), streaming: true, type: 'agent',
         })
         expect(service.validateDefinition(first.path, first.definition))
             .toEqual({ code: null, error: null, field: null, fieldPath: null, index: null, valid: true })
@@ -324,15 +324,20 @@ describe('ActionService', () => {
         stringify.mockRestore()
     })
 
-    it('rejects unknown in-memory fields before save serialization', async () => {
+    it('saves unknown fields unchanged without publishing an invalid action', async () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
-        const definition = { ...VALID, needsWorktree: undefined } as RawActionDefinition
+        const definition = { ...VALID, needsWorktree: true } as RawActionDefinition
 
         expect(service.validateDefinition('actions/action.json', definition)).toMatchObject({code: 'unknownField', field: null, fieldPath: 'needsWorktree', valid: false})
-        await expect(service.saveDefinition('actions/action.json', definition)).rejects.toThrow(/Unknown action field needsWorktree/u)
-        expect(persistActionFile).not.toHaveBeenCalled()
+        await service.saveDefinition('actions/action.json', definition)
+        expect(persistActionFile).toHaveBeenCalledWith(
+            { content: serializeActionDefinition(definition), path: 'actions/action.json' },
+            VALID.id, 'actions/action.json', expect.any(Function), undefined, undefined,
+        )
+        expect(service.getActionById(VALID.id)).toBeNull()
+        expect(service.getEditableActionById(VALID.id)).not.toBeNull()
     })
 
     it('does not route incidental field words in ids to a control', () => {
@@ -345,7 +350,7 @@ describe('ActionService', () => {
         expect(result).toMatchObject({ code: 'unknown-action', field: 'onBefore', valid: false })
     })
 
-    it('loads retired capability values but blocks saving them with structured errors', async () => {
+    it('keeps retired capability values editable without publishing them', async () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
         const retiredModel = {
@@ -354,18 +359,20 @@ describe('ActionService', () => {
         } satisfies RawActionDefinition
         service.loadFromFiles([file(retiredModel)])
 
-        expect(service.getActionByPath('actions/action.json')).toMatchObject({ model: 'retired-model' })
+        expect(service.getActionByPath('actions/action.json')).toBeNull()
+        expect(service.getDefinitionByPath('actions/action.json')).toMatchObject({ model: 'retired-model' })
         expect(service.validateDefinition('actions/action.json', retiredModel))
             .toMatchObject({ code: 'unknown-model', field: 'model', valid: false })
-        await expect(service.saveDefinition('actions/action.json', retiredModel)).rejects.toThrow(/Unknown model/u)
-        expect(persistActionFile).not.toHaveBeenCalled()
+        await service.saveDefinition('actions/action.json', retiredModel)
+        expect(persistActionFile).toHaveBeenCalledOnce()
+        expect(service.getActionById(retiredModel.id)).toBeNull()
 
         const invalidThinkingLevel = { ...retiredModel, model: 'gpt-5.5', thinkingLevel: 'extreme' }
         expect(service.validateDefinition('actions/action.json', invalidThinkingLevel))
             .toMatchObject({ code: 'invalid-thinking-level', field: 'thinkingLevel', valid: false })
     })
 
-    it('persists and publishes only valid definitions', async () => {
+    it('persists invalid definitions without publishing them', async () => {
         const persistedFiles: ActionFile[] = []
         const persistActionFile = vi.fn(async (actionFile: ActionFile) => {
             persistedFiles.push(actionFile)
@@ -403,9 +410,10 @@ describe('ActionService', () => {
 
         const invalid = { ...definition, label: ' \t\u2003' }
         expect(service.validateDefinition('actions/action.json', invalid)).toMatchObject({ field: 'label', valid: false })
-        await expect(service.saveDefinition('actions/action.json', invalid)).rejects.toThrow(/field label/u)
-        expect(persistActionFile).toHaveBeenCalledTimes(1)
-        expect(service.getActionByPath('actions/action.json')?.label).toBe('Updated')
+        await service.saveDefinition('actions/action.json', invalid)
+        expect(persistActionFile).toHaveBeenCalledTimes(2)
+        expect(service.getActionByPath('actions/action.json')).toBeNull()
+        expect(service.getDefinitionByPath('actions/action.json')).toEqual(invalid)
     })
 
     it('queues a label-derived path and re-keys the action after the move commits', async () => {
@@ -577,7 +585,7 @@ describe('ActionService', () => {
         })
     })
 
-    it('revalidates then serializes exactly once at the persistence boundary', async () => {
+    it('serializes exactly once at the persistence boundary', async () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
@@ -588,14 +596,14 @@ describe('ActionService', () => {
 
         await service.saveDefinition('actions/action.json', definition)
 
-        expect(parse).not.toHaveBeenCalled()
+        expect(parse).toHaveBeenCalledTimes(1)
         expect(stringify).toHaveBeenCalledTimes(1)
         expect(persistActionFile).toHaveBeenCalledTimes(1)
         parse.mockRestore()
         stringify.mockRestore()
     })
 
-    it('blocks a draft that becomes invalid after earlier validation', async () => {
+    it('persists a draft that becomes invalid after earlier validation', async () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
@@ -604,10 +612,11 @@ describe('ActionService', () => {
         definition.label = ''
         const stringify = vi.spyOn(JSON, 'stringify')
 
-        await expect(service.saveDefinition('actions/action.json', definition)).rejects.toThrow(/field label/u)
+        await service.saveDefinition('actions/action.json', definition)
 
-        expect(stringify).not.toHaveBeenCalled()
-        expect(persistActionFile).not.toHaveBeenCalled()
+        expect(stringify).toHaveBeenCalledTimes(1)
+        expect(persistActionFile).toHaveBeenCalledOnce()
+        expect(service.getActionById(VALID.id)).toBeNull()
         stringify.mockRestore()
     })
 
@@ -627,7 +636,22 @@ describe('ActionService', () => {
         stringify.mockRestore()
     })
 
-    it('retains invalid dirty drafts until repaired and flushed', async () => {
+    it('keeps an invalid draft dirty when serialization fails', async () => {
+        const persistActionFile = vi.fn(async () => undefined)
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        const invalid = { ...VALID, label: '' } as RawActionDefinition & { extra?: unknown }
+        invalid.extra = invalid
+
+        service.draftStore.updateDraft(VALID.id, invalid)
+        await expect(service.draftStore.flushDrafts()).rejects.toThrow(/circular structure/u)
+
+        expect(service.draftStore.getDraft(VALID.id).error).toMatch(/circular structure/u)
+        expect(service.draftStore.hasPendingDrafts()).toBe(true)
+        expect(persistActionFile).not.toHaveBeenCalled()
+    })
+
+    it('clears invalid dirty drafts only after physical persistence and keeps validation visible', async () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
@@ -636,8 +660,14 @@ describe('ActionService', () => {
 
         expect(service.draftStore.hasPendingDrafts()).toBe(true)
         expect(service.draftStore.getDraft(VALID.id).validation.valid).toBe(false)
-        await expect(service.draftStore.flushDrafts()).rejects.toThrow(/invalid unsaved changes/u)
-        expect(persistActionFile).not.toHaveBeenCalled()
+        await service.draftStore.flushDrafts()
+        expect(persistActionFile).toHaveBeenCalledOnce()
+        expect(service.draftStore.getDraft(VALID.id).validation.valid).toBe(false)
+        expect(service.getActionById(VALID.id)).toBeNull()
+        const invalidPersistenceCall = persistActionFile.mock.calls.at(-1) as unknown as unknown[]
+        const acknowledgeInvalid = invalidPersistenceCall[5] as (() => void)
+        acknowledgeInvalid()
+        expect(service.draftStore.hasPendingDrafts()).toBe(false)
 
         service.draftStore.updateDraft(VALID.id, { ...VALID, label: 'Repaired' })
         await service.draftStore.flushDrafts()
@@ -653,6 +683,36 @@ describe('ActionService', () => {
         const acknowledge = persistenceCall[5] as (() => void)
         acknowledge()
         expect(service.draftStore.hasPendingDrafts()).toBe(false)
+    })
+
+    it('reopens exact invalid JSON for repair and publishes action after repair', async () => {
+        const persistedFiles: ActionFile[] = []
+        const persistActionFile = vi.fn(async (actionFile: ActionFile) => { persistedFiles.push(actionFile) })
+        const service = new ActionService(() => ({ persistActionFile }))
+        service.loadFromFiles([file(VALID)])
+        const invalid = { ...VALID, description: undefined, extra: { keep: 'value' } } as unknown as RawActionDefinition
+
+        service.draftStore.updateDraft(VALID.id, invalid)
+        await service.draftStore.flushDrafts()
+        const savedFile = persistedFiles[0]
+        if (!savedFile) throw new Error('Missing invalid action file')
+        const savedDefinition = JSON.parse(savedFile.content) as RawActionDefinition
+
+        const reopened = new ActionService(() => ({ persistActionFile }))
+        reopened.loadFromFiles([savedFile])
+        expect(reopened.getActionById(VALID.id)).toBeNull()
+        expect(reopened.getEditableActionByPath(savedFile.path)?.id).toBe(VALID.id)
+        expect(reopened.getEditableActions().map(({ id }) => id)).toContain(VALID.id)
+        expect(reopened.draftStore.getDraft(VALID.id).definition).toEqual(savedDefinition)
+        expect(reopened.draftStore.getDraft(VALID.id).validation.valid).toBe(false)
+
+        const repaired = { ...savedDefinition, description: 'Repaired' }
+        delete (repaired as RawActionDefinition & { extra?: unknown }).extra
+        reopened.draftStore.updateDraft(VALID.id, repaired)
+        await reopened.draftStore.flushDrafts()
+
+        expect(reopened.getActionById(VALID.id)).toMatchObject({ command: VALID.command, description: 'Repaired' })
+        expect(reopened.getDefinitionByPath(savedFile.path)).toEqual(repaired)
     })
 
     it('stages editor changes without validation, events, or persistence', () => {
@@ -749,9 +809,10 @@ describe('ActionService', () => {
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
 
-        service.draftStore.updateDraft(VALID.id, { ...VALID, label: 'Retry me' })
+        service.draftStore.updateDraft(VALID.id, { ...VALID, label: '' })
         await expect(service.draftStore.flushDrafts()).rejects.toThrow('disk unavailable')
         expect(service.draftStore.getDraft(VALID.id).error).toBe('disk unavailable')
+        expect(service.draftStore.getDraft(VALID.id).validation.valid).toBe(false)
         expect(service.draftStore.hasPendingDrafts()).toBe(true)
 
         service.draftStore.retryDraft(VALID.id)
@@ -762,6 +823,7 @@ describe('ActionService', () => {
         const acknowledge = persistenceCall[5] as (() => void)
         acknowledge()
         expect(service.draftStore.hasPendingDrafts()).toBe(false)
+        expect(service.getActionById(VALID.id)).toBeNull()
     })
 
     it('captures the open-document revision when a draft save is queued', async () => {
@@ -779,7 +841,7 @@ describe('ActionService', () => {
         try {
             service.draftStore.updateDraft(VALID.id, { ...VALID, description: 'Queued valid edit' })
             service.draftStore.updateDraft(VALID.id, { ...VALID, description: 'Newer invalid edit', label: '' })
-            await vi.waitFor(() => expect(persistActionFile).toHaveBeenCalledOnce())
+            await vi.waitFor(() => expect(persistActionFile).toHaveBeenCalledTimes(2))
             const persistenceCall = persistActionFile.mock.calls[0] as unknown as unknown[]
             const saveReference = persistenceCall[4] as { acknowledge(): void }
 
@@ -791,7 +853,7 @@ describe('ActionService', () => {
         }
     })
 
-    it('keeps graph validation at the persistence boundary', async () => {
+    it('persists a definition with invalid graph links without publishing it', async () => {
         const persistActionFile = vi.fn(async () => undefined)
         const service = new ActionService(() => ({ persistActionFile }))
         service.loadFromFiles([file(VALID)])
@@ -800,9 +862,10 @@ describe('ActionService', () => {
         service.draftStore.updateDraft(VALID.id, { ...VALID, onBefore: ['missing'] })
 
         expect(service.draftStore.getDraft(VALID.id).validation.valid).toBe(true)
-        await expect(service.draftStore.flushDrafts()).rejects.toThrow(/Unknown action id missing/u)
-        expect(stringify).not.toHaveBeenCalled()
-        expect(persistActionFile).not.toHaveBeenCalled()
+        await service.draftStore.flushDrafts()
+        expect(stringify).toHaveBeenCalledTimes(1)
+        expect(persistActionFile).toHaveBeenCalledOnce()
+        expect(service.getActionById(VALID.id)).toBeNull()
         stringify.mockRestore()
     })
 
@@ -895,6 +958,22 @@ describe('ActionService', () => {
 
         expect(service.getActionByPath('actions/action.json')).toBeNull()
         expect(service.getFiles()).toEqual([])
+    })
+
+    it('does not republish a cancelled action when an in-flight editor save finishes', async () => {
+        let finishPersistence: () => void = () => undefined
+        const persistence = new Promise<void>((resolve) => { finishPersistence = resolve })
+        const service = new ActionService(() => ({ persistActionFile: vi.fn(() => persistence) }))
+        service.loadFromFiles([file(VALID)])
+        service.draftStore.getDraft(VALID.id)
+        const save = service.saveDefinition('actions/action.json', { ...VALID, label: 'Edited' })
+
+        service.removeUnpersistedAction(VALID.id)
+        finishPersistence()
+
+        await expect(save).rejects.toThrow('Action save cancelled after external deletion')
+        expect(service.getActionById(VALID.id)).toBeNull()
+        expect(service.draftStore.actionIds()).not.toContain(VALID.id)
     })
 
     it('preserves a dirty deleted draft until explicit discard', async () => {

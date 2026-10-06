@@ -189,7 +189,7 @@ function createScheduler(localGitService, timerDependencies = {}) {
         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
     };
     const configuredAgentRunnerService = timerDependencies.agentRunnerService ?? { run: vi.fn() };
-    const agentRunnerService = {
+    const agentRunnerService = configuredAgentRunnerService.start ? configuredAgentRunnerService : {
         start: vi.fn(async (runProject, request, onEvent, onComplete) => {
             void configuredAgentRunnerService.run(runProject, request, onEvent).then((result) => onComplete(result.exitCode, {conversation: { id: 'agent-1' }, reference: 'design/activity/project.json#conversation=agent-1', stderr: result.stderr, stdout: result.stdout}));
 
@@ -208,6 +208,7 @@ function createScheduler(localGitService, timerDependencies = {}) {
     });
 
     return new ActionSchedulerService({
+        worktreeService: { getRecords: vi.fn(() => []) },
         agentCommandProvider: () => 'agent-command',
         clearTimeout: vi.fn(),
         localGitService,
@@ -316,6 +317,37 @@ describe('ActionSchedulerService', () => {
 
         expect(localGitService.runCommand).toHaveBeenCalledWith(project, 'echo done');
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
+    });
+
+    it('starts a scheduled streaming agent and completes after the session is finished', async () => {
+        const schedule = createSchedule('schedule-1', 'implement', { timestamp: '2026-07-06T10:01:00.000Z', type: 'at' });
+        const localGitService = createLocalGitService([schedule], [createAgentAction('implement', { streaming: true })]);
+        let completeAgentRun;
+        const agentRunnerService = {
+            finish: vi.fn(() => completeAgentRun()),
+            start: vi.fn(async (_project, request, _onEvent, onComplete, _onError, onConversationSaved) => {
+                onConversationSaved();
+                completeAgentRun = () => onComplete(0, {
+                    changedPaths: [], conversation: { id: 'agent-1' }, missingSession: false,
+                    reference: 'conversation.json', stderr: '', stdout: '', turnStarted: true,
+                });
+
+                return { runId: 'agent-1' };
+            }),
+            stop: vi.fn(),
+        };
+        const scheduler = createScheduler(localGitService, { agentRunnerService });
+        await startProject(scheduler, localGitService);
+
+        const firing = scheduler.fireSchedule(schedule.id);
+        await vi.waitFor(() => expect(agentRunnerService.start).toHaveBeenCalledOnce());
+        expect(agentRunnerService.start.mock.calls[0][1].streaming).toBe(true);
+        expect(localGitService.schedules()[0].status).toBe('running');
+
+        const runId = agentRunnerService.start.mock.calls[0][1].actionRunId;
+        scheduler.actionRunnerService.finishAgentRun(runId);
+        await firing;
+        expect(localGitService.schedules()[0].status).toBe('completed');
     });
 
     it('cancels a pending timer and marks the schedule cancelled', async () => {
@@ -857,7 +889,7 @@ describe('ActionSchedulerService', () => {
         const localGitService = createLocalGitService([schedule]);
         localGitService.loadProject.mockResolvedValue({
             files: [{
-                content: '---\nid: F_022\ninternalId: card-022\nstatus: in progress\ntitle: Renamed card\nworktree: 7\n---\n',
+                content: '---\nid: F_022\ninternalId: card-022\nstatus: in progress\ntitle: Renamed card\nworktree: 2\nbranch: feature\n---\n',
                 path: 'design/renamed/F-022-renamed.md',
             }],
         });
@@ -867,7 +899,13 @@ describe('ActionSchedulerService', () => {
             startProject: vi.fn(),
             wait: vi.fn(async (runId) => ({ failure: null, runId, status: 'completed' })),
         };
-        const scheduler = createScheduler(localGitService, { actionRunnerService });
+        const worktreeService = {
+            getRecords: vi.fn(() => [
+                { branch: 'feature', error: null, path: 'C:/feature', valid: true },
+                { branch: 'other', error: null, path: 'C:/other', valid: true },
+            ]),
+        };
+        const scheduler = createScheduler(localGitService, { actionRunnerService, worktreeService });
         await startProject(scheduler, localGitService);
 
         await scheduler.fireSchedule(schedule.id);
@@ -881,7 +919,8 @@ describe('ActionSchedulerService', () => {
                 state: 'in progress',
                 title: 'Renamed card',
                 type: 'feature',
-                worktree: '7',
+                worktree: '1',
+                worktreeBranch: 'feature',
             },
             runInput: {},
         }, { interactive: false, runId: expect.stringMatching(/^action-/u) });

@@ -122,16 +122,38 @@ describe('DiagramNodePlacementService', () => {
         placement.activate(componentDefinition)
 
         placement.updatePreview({ x: 32, y: 40 })
-        expect(placement.place({ x: 32, y: 40 })).toBe('placed-node')
+        expect(placement.place({ x: 32, y: 40 }, true)).toBe('placed-node')
         placement.updatePreview({ x: 80, y: 88 })
-        expect(placement.place({ x: 80, y: 88 })).toBe('second-node')
+        expect(placement.place({ x: 80, y: 88 }, true)).toBe('second-node')
 
         expect(session.getNodeIdsSnapshot()).toContain('second-node')
         expect(session.getActiveToolSnapshot()).toBe('node:component')
         expect(placement.getPreviewSnapshot()).toBeNull()
     })
 
-    it('switches to Topic after placing the only allowed mindmap root', () => {
+    it('returns to Select and keeps the node selected when placed without continuous add', () => {
+        const { placement, selection, session } = createHarness()
+        placement.activate(componentDefinition)
+
+        expect(placement.place({ x: 32, y: 40 }, false)).toBe('placed-node')
+
+        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getLastSelectedCreationToolSnapshot()).toBe('node:component')
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'placed-node', objectKind: 'node' }])
+        expect(placement.isPlacementActive()).toBe(false)
+    })
+
+    it('keeps the node tool active when a create is rejected', () => {
+        const { placement, session } = createHarness()
+        placement.activate(componentDefinition)
+        vi.spyOn(session, 'createNode').mockReturnValue(null)
+
+        expect(placement.place({ x: 32, y: 40 }, false)).toBeNull()
+
+        expect(session.getActiveToolSnapshot()).toBe('node:component')
+    })
+
+    it('switches to Topic after placing the only allowed mindmap root, even without continuous add', () => {
         const source = diagram('mindmap')
         source.nodes = []
         source.edges = []
@@ -140,12 +162,13 @@ describe('DiagramNodePlacementService', () => {
         placement.activate({ defaults: { height: 128, label: 'Root', role: 'focal', width: 128 }, kind: 'root' })
         placement.updatePreview({ x: 40, y: 40 })
 
-        expect(placement.place({ x: 40, y: 40 })).toBe('root-one')
+        expect(placement.place({ x: 40, y: 40 }, false)).toBe('root-one')
         expect(session.getActiveToolSnapshot()).toBe('node:topic')
         expect(placement.isNodeKindAvailable('root')).toBe(false)
-        expect(placement.place({ x: 100, y: 100 })).toBe('topic-one')
-        expect(placement.place({ x: 200, y: 200 })).toBe('topic-two')
+        expect(placement.place({ x: 100, y: 100 }, true)).toBe('topic-one')
         expect(session.getActiveToolSnapshot()).toBe('node:topic')
+        expect(placement.place({ x: 200, y: 200 }, false)).toBe('topic-two')
+        expect(session.getActiveToolSnapshot()).toBe('select')
     })
 
     it.each(['architecture', 'dependency'] as const)(
@@ -169,7 +192,7 @@ describe('DiagramNodePlacementService', () => {
             expect(membershipChanged).not.toHaveBeenCalled()
             expect(session.getTransientGestureSnapshot()).toBe('placement')
 
-            expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
+            expect(placement.place({ x: 13, y: 18 }, true)).toBe('placed-node')
 
             expect(createId).toHaveBeenCalledTimes(3)
             expect(session.getNodeSnapshot('existing')).toBe(originalNode)
@@ -203,7 +226,7 @@ describe('DiagramNodePlacementService', () => {
         const existingFragment = session.getFragmentSnapshot('existing-fragment')
 
         expect(placement.activate(participantDefinition)).toBe(true)
-        expect(placement.place({ x: 503, y: 43 })).toBe('placed-node')
+        expect(placement.place({ x: 503, y: 43 }, true)).toBe('placed-node')
 
         expect(session.getNodeSnapshot('placed-node')).toEqual({
             height: 72,
@@ -232,7 +255,7 @@ describe('DiagramNodePlacementService', () => {
         expect(placement.activate(entityDefinition)).toBe(true)
         expect(placement.updatePreview({ x: 31, y: 42 })).toBe(true)
         expect(placement.getPreviewSnapshot()?.node).toMatchObject({fields: [], height: 48, kind: 'entity', width: 160, x: 32, y: 44})
-        expect(placement.place({ x: 31, y: 42 })).toBe('placed-node')
+        expect(placement.place({ x: 31, y: 42 }, true)).toBe('placed-node')
 
         expect(session.getNodeSnapshot('placed-node')).toEqual({
             fields: [],
@@ -258,7 +281,7 @@ describe('DiagramNodePlacementService', () => {
 
         expect(placement.activate(stepDefinition)).toBe(true)
 
-        expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
+        expect(placement.place({ x: 13, y: 18 }, true)).toBe('placed-node')
 
         expect(session.getNodeSnapshot('existing')).toBe(originalNode)
         expect(session.getNodeIdsSnapshot()).toEqual(['existing', 'other', 'placed-node'])
@@ -279,7 +302,7 @@ describe('DiagramNodePlacementService', () => {
         session.subscribeCollectionMembership('node', membershipChanged)
 
         expect(placement.activate(decisionDefinition)).toBe(true)
-        expect(placement.place({ x: 41, y: 58 })).toBe('placed-node')
+        expect(placement.place({ x: 41, y: 58 }, true)).toBe('placed-node')
 
         expect(session.getNodeSnapshot('placed-node')).toEqual({
             height: 96,
@@ -309,7 +332,7 @@ describe('DiagramNodePlacementService', () => {
         session.subscribeCollectionMembership('node', membershipChanged)
 
         expect(placement.activate(stateDefinition)).toBe(true)
-        expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
+        expect(placement.place({ x: 13, y: 18 }, true)).toBe('placed-node')
 
         expect(createId).toHaveBeenCalledTimes(3)
         expect(session.getNodeSnapshot('placed-node')).toEqual({
@@ -344,7 +367,7 @@ describe('DiagramNodePlacementService', () => {
 
         expect(placement.activate(definition)).toBe(true)
 
-        expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
+        expect(placement.place({ x: 13, y: 18 }, true)).toBe('placed-node')
 
         expect(session.getNodeSnapshot('placed-node')).toEqual({
             height: size.height,
@@ -377,7 +400,7 @@ describe('DiagramNodePlacementService', () => {
 
         expect(placement.activate(definition)).toBe(true)
 
-        expect(placement.place({ x: 13, y: 18 })).toBe('placed-node')
+        expect(placement.place({ x: 13, y: 18 }, true)).toBe('placed-node')
 
         expect(session.getNodeSnapshot('placed-node')).toEqual({
             height: size.height,
@@ -463,7 +486,7 @@ describe('DiagramNodePlacementService', () => {
 
         placement.updatePreview({ x: 32, y: 40 })
         expect(placement.getPreviewSnapshot()?.node).toMatchObject({ kind: 'component', role: 'backend', width: 160 })
-        placement.place({ x: 32, y: 40 })
+        placement.place({ x: 32, y: 40 }, true)
 
         expect(session.getNodeSnapshot('placed-node')).toMatchObject({ kind: 'component', role: 'backend', width: 160 })
         expect(session.getActiveToolSnapshot()).toBe('node:component')
@@ -477,7 +500,7 @@ describe('DiagramNodePlacementService', () => {
 
         placement.updatePreview({ x: 32, y: 40 })
         expect(placement.getPreviewSnapshot()?.node.role).toBe('focal')
-        placement.place({ x: 32, y: 40 })
+        placement.place({ x: 32, y: 40 }, true)
         expect(session.getNodeSnapshot('placed-node')?.role).toBe('focal')
     })
 })

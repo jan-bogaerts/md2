@@ -1,5 +1,7 @@
 import type { ActionFile } from '../../data/action_types'
 import type {
+    ActionCompactRequest,
+    ActionCompactState,
     ActionQueuedPrompt,
     ActionRunEvent,
     ActionPromptRequest,
@@ -13,6 +15,7 @@ import type { AnySchedule } from '../../data/action_schedule_types'
 import type {
     ActionRunHistoryEntry,
     ActionRunHistoryRequest,
+    ActionScheduleRegistrationRequest,
     ActionRunRecoverySnapshot,
     ActiveActionRun,
     ActionConversationViewedEvent,
@@ -386,8 +389,12 @@ export class RemoteControlStorageService implements
         return this.request<string[]>('listAgentConversationReferences', [project, projectFolder])
     }
 
-    async loadProjectAsset(_project: ProjectReference, path: string): Promise<ProjectAsset> {
-        return this.request<ProjectAsset>('loadProjectAsset', [path])
+    async loadProjectAsset(project: ProjectReference, path: string): Promise<ProjectAsset> {
+        return this.request<ProjectAsset>('loadProjectAsset', [project, path])
+    }
+
+    async loadImageFile(filePath: string): Promise<ProjectAsset> {
+        return this.request<ProjectAsset>('loadImageFile', [filePath])
     }
 
     async loadTextFile(project: ProjectReference, path: string): Promise<MarkdownFile> {
@@ -634,6 +641,10 @@ export class RemoteControlStorageService implements
         await this.request('sendActionMessage', [runId, content])
     }
 
+    async compactActionConversation(request: ActionCompactRequest): Promise<ActionCompactState> {
+        return this.request('compactActionConversation', [request]);
+    }
+
     async splitActionConversation(reference: string, messageId: string): Promise<AgentConversation> {
         return this.request<AgentConversation>('splitActionConversation', [reference, messageId])
     }
@@ -829,6 +840,18 @@ export class RemoteControlStorageService implements
 
     async runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string> {
         return this.requestWithAgentEvents<string>('runSearchRegexpAgent', [input], callback)
+    }
+
+    async registerActionSchedule(request: ActionScheduleRegistrationRequest): Promise<void> {
+        await this.request('registerActionSchedule', [request])
+    }
+
+    async listActiveSchedules(): Promise<AnySchedule[]> {
+        return this.request<AnySchedule[]>('listActiveSchedules', [])
+    }
+
+    async deleteSchedule(scheduleId: string): Promise<AnySchedule[]> {
+        return this.request<AnySchedule[]>('deleteSchedule', [scheduleId])
     }
 
     async startAction(request: ActionStartRequest): Promise<string> {

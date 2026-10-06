@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCallback } from 'react'
 import type { ElectronDataBridge } from '../../data/electron_data_bridge'
@@ -475,6 +476,33 @@ describe('TextView', () => {
         expect(trackEvent).toHaveBeenCalledWith('navigation')
 
         trackEvent.mockRestore()
+    })
+
+    it('switches list tabs with Ctrl+Tab and Ctrl+Shift+Tab in list view', async () => {
+        vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
+        const user = userEvent.setup()
+        renderTextView()
+        clickTreeFile('F-1 Alpha')
+        clickTreeFile('F-2 Beta')
+
+        await user.keyboard('{Control>}{Tab}{/Control}')
+        expect(screen.getByRole('tab', { name: /Alpha/ })).toHaveAttribute('aria-selected', 'true')
+
+        await user.keyboard('{Control>}{Shift>}{Tab}{/Shift}{/Control}')
+        expect(screen.getByRole('tab', { name: /Beta/ })).toHaveAttribute('aria-selected', 'true')
+    })
+
+    it('leaves the active list tab unchanged when Ctrl+Tab is pressed in cards view', async () => {
+        vi.spyOn(telemetryService, 'trackEvent').mockImplementation(() => undefined)
+        const user = userEvent.setup()
+        renderTextView()
+        clickTreeFile('F-1 Alpha')
+        clickTreeFile('F-2 Beta')
+        act(() => workspaceViewService.setViewMode('cards'))
+
+        await user.keyboard('{Control>}{Tab}{/Control}')
+
+        expect(openFilesService.getSnapshot().activeDocument?.path).toBe('design/active/F-2-b.md')
     })
 
     it('shows the file type icon in action, card, and Markdown tabs', () => {

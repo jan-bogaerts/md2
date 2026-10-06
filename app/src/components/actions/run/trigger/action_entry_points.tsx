@@ -1,7 +1,8 @@
 import { IconButton, ListItemIcon, MenuItem, Stack, Tooltip } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
-import { displayActionsForContext, type ActionContext } from '../../../../data/action_context'
+import { contextWithCurrentWorktree, displayActionsForContext, type ActionContext } from '../../../../data/action_context'
+import { useWorktrees } from '../../../hooks/use_worktrees';
 import type { ActionDefinition } from '../../../../data/action_types'
 import { dialogService } from '../../../../services/dialog_service'
 import { useActions } from '../../../hooks/use_actions'
@@ -38,7 +39,9 @@ interface ActionPopupState {
  * related action with the same context.
  */
 export function ActionEntryPoints(props: ActionEntryPointsProps) {
-    const { context, onActionSelected, onMenuItemSelected, popupAnchorElement, variant, visibility = 'all-matching' } = props
+    const { context: suppliedContext, onActionSelected, onMenuItemSelected, popupAnchorElement, variant, visibility = 'all-matching' } = props
+    const worktrees = useWorktrees();
+    const context = useMemo(() => contextWithCurrentWorktree(suppliedContext, worktrees), [suppliedContext, worktrees]);
     const { actions: loadedActions } = useActions()
     const runningRun = useRunningActionForContext(context)
     const readOnly = useProjectReadOnly()

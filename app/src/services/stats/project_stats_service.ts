@@ -4,6 +4,7 @@ import type { AgentProfile } from '../../data/agent_profiles';
 import { register } from '../service_injector';
 import { ProjectStatsLoader, type StatsCalculator } from './project_stats_loader';
 import {
+    INITIAL_CONTROLS,
     INITIAL_SNAPSHOT,
     type LoadedStatsSource,
     type ProjectStatsSnapshot,
@@ -75,6 +76,14 @@ export class ProjectStatsService extends EventTarget {
         this.close();
         this.binding = null;
         this.projectKey = null;
+        this.publish({
+            ...this.snapshot,
+            controls: {
+                ...this.snapshot.controls,
+                granularity: INITIAL_CONTROLS.granularity,
+                releaseSelection: INITIAL_CONTROLS.releaseSelection,
+            },
+        });
         if (this.viewModeChoice !== null) {
             this.viewModeChoice = null;
             this.dispatchEvent(new Event('viewModeChanged'));

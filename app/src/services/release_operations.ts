@@ -6,6 +6,7 @@ import {
     validateReleaseName,
 } from '../data/release_archiving'
 import { statusOf } from '../data/card_ordering'
+import { isSupportedAssetFileName } from '../data/asset_paths';
 import { projectAccessService } from './project/project_access_service'
 import type { MarkdownFile, MoveFile, ProjectAsset, ProjectReference, ProjectSnapshot, ReleaseBranchCandidate } from '../data/data_types'
 import { type RequiredDataServiceDependencies } from './data/data_service_context'
@@ -38,6 +39,7 @@ export interface ReleaseOperationsDeps {
     applyMoves(moves: MoveFile[], workingFolder: string): void
     dispatchChanged(): void
     resetAgentConversations(): void
+    updateFiles(files: MarkdownFile[], workingFolder: string): void
     files(): MarkdownFile[]
     project(): ProjectReference | null
     requireDependencies(): RequiredDataServiceDependencies
@@ -191,7 +193,7 @@ export class ReleaseOperations {
             const repositoryFiles = this.dependencies.snapshot()?.repositoryFiles ?? []
             const files = this.dependencies.files()
             const assetPaths = findArchiveAssetPaths(files, releaseCards)
-            const assetFiles = await this.loadReleaseAssets(assetPaths)
+            const { assetFiles, missingImagePaths } = await this.loadReleaseAssets(assetPaths);
             const activityPaths = findReleaseActivityPaths(releaseCards, config.projectFolder, repositoryFiles)
             const activityFiles = await this.loadReleaseActivityFiles(activityPaths)
             const calculatedStats = await calculateActivityStatsOutsideMainThread(
@@ -217,6 +219,7 @@ export class ReleaseOperations {
                 safeReleaseName,
                 repositoryFiles,
                 activityFiles,
+                missingImagePaths,
             )
             if (!storage.loadTextFile) throw new Error('Repository text file loading is not available')
             const summaryPath = agentTokenUsageFilePath(config.projectFolder)
@@ -259,8 +262,10 @@ export class ReleaseOperations {
                 message: `Complete release ${safeReleaseName}`,
                 moves,
             })
-            await projectAgentTokenUsageService.refresh()
-            if (archivedProjectActivity) this.dependencies.resetAgentConversations()
+            this.dependencies.applyMoves(moves, config.workingFolder);
+            if (activityFiles.length > 0 || archivedProjectActivity) this.dependencies.resetAgentConversations();
+            this.dependencies.dispatchChanged();
+            await projectAgentTokenUsageService.refresh();
 
             if (config.pushMode === 'auto') await storage.push(currentProject)
 
@@ -279,7 +284,6 @@ export class ReleaseOperations {
                 }
             }
 
-            let clearedFiles: MarkdownFile[] = []
             if (deletedCandidates.length > 0) {
                 try {
                     const preparedClearedFiles = deletedCandidates.map((candidate) => {
@@ -293,7 +297,9 @@ export class ReleaseOperations {
                         files: preparedClearedFiles,
                         message: 'Clear deleted release branches',
                     })
-                    clearedFiles = committedFiles.length > 0 ? committedFiles : preparedClearedFiles
+                    const clearedFiles = committedFiles.length > 0 ? committedFiles : preparedClearedFiles;
+                    this.dependencies.updateFiles(clearedFiles, config.workingFolder);
+                    this.dependencies.dispatchChanged();
                     if (config.pushMode === 'auto') await storage.push(currentProject)
                 } catch (error) {
                     const message = error instanceof Error ? error.message : String(error)
@@ -301,13 +307,6 @@ export class ReleaseOperations {
                 }
             }
 
-            const clearedFilesByPath = new Map(clearedFiles.map((file) => [file.path, file]))
-            const appliedMoves = moves.map((move) => {
-                const clearedFile = clearedFilesByPath.get(move.toPath)
-                return clearedFile ? { ...move, content: clearedFile.content, sha: clearedFile.sha } : move
-            })
-            this.dependencies.applyMoves(appliedMoves, config.workingFolder)
-            this.dependencies.dispatchChanged()
             telemetryService.trackEvent('complete_release')
 
             if (cleanupFailures.length > 0) {
@@ -321,7 +320,7 @@ export class ReleaseOperations {
     }
 
     private async loadReleaseAssets(assetPaths: string[]) {
-        if (assetPaths.length === 0) return []
+        if (assetPaths.length === 0) return { assetFiles: [], missingImagePaths: [] };
 
         const { storage } = this.dependencies.requireDependencies()
         const currentProject = this.dependencies.project()
@@ -329,15 +328,25 @@ export class ReleaseOperations {
         if (!storage.loadProjectAsset) throw new Error('Project asset loading is not available')
 
         const assets: ProjectAsset[] = []
+        const missingImagePaths: string[] = [];
         for (const assetPath of assetPaths) {
-            assets.push(await storage.loadProjectAsset(currentProject, assetPath))
+            try {
+                assets.push(await storage.loadProjectAsset(currentProject, assetPath));
+            } catch (error) {
+                const isMissingFile = !!error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT';
+                if (!isMissingFile || !isSupportedAssetFileName(assetPath)) throw error;
+
+                missingImagePaths.push(normalizePath(assetPath));
+                console.warn(`Skipping missing release image: ${assetPath}`, error);
+            }
         }
 
-        return assets.map((asset): MarkdownFile => ({
+        const assetFiles = assets.map((asset): MarkdownFile => ({
             content: asset.content,
             encoding: asset.encoding,
             path: asset.path,
-        }))
+        }));
+        return { assetFiles, missingImagePaths };
     }
 
     /**

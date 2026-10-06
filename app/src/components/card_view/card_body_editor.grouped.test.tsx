@@ -6,11 +6,21 @@ import { DEFAULT_CARD_TYPES } from '../../data/data_types'
 import { cardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 import { MarkdownDocumentHistoryStore } from '../editor/history/markdown_document_history_store'
 import type { MarkdownDocumentTarget } from '../editor/data_sources/markdown_data_source'
+import { dataService } from '../../services/data/data_service'
 import { CardBodyEditor } from './card_body_editor'
 
 type CapturedPopperProps = ComponentProps<(typeof import('@mui/material'))['Popper']>
+type CapturedImagePluginOptions = { imagePreviewHandler?: (src: string) => Promise<string> }
+type ActiveCard = ReturnType<typeof cardMarkdownDataSource.getActiveCard>
 
 const popperPropsSpy = vi.hoisted(() => vi.fn<(props: CapturedPopperProps) => void>())
+const imagePluginSpy = vi.hoisted(() => vi.fn<(options?: CapturedImagePluginOptions) => object>(() => ({})))
+
+vi.mock('@mdxeditor/editor', async () => {
+    const stub = await import('../../test/mdx_editor_stub')
+
+    return { ...stub, imagePlugin: imagePluginSpy }
+})
 
 vi.mock('@mui/material', async (importOriginal) => {
     const material = await importOriginal<typeof import('@mui/material')>()
@@ -45,6 +55,13 @@ function editorProps(overrides: Partial<Parameters<typeof CardBodyEditor>[0]> = 
     }
 }
 
+function capturedImagePreviewHandler() {
+    const options = imagePluginSpy.mock.calls[imagePluginSpy.mock.calls.length - 1]?.[0]
+    if (!options?.imagePreviewHandler) throw new Error('Expected image preview handler')
+
+    return options.imagePreviewHandler
+}
+
 function capturedSearchPopperProps() {
     const calls = popperPropsSpy.mock.calls.filter(([props]) => props.role === 'dialog')
     const call = calls[calls.length - 1]
@@ -68,6 +85,24 @@ describe('CardBodyEditor', () => {
         cleanup()
         cardMarkdownDataSource.setActiveTarget('board-card', null)
         vi.restoreAllMocks()
+    })
+
+    it('resolves a relative image source beside the active card to a data URI', async () => {
+        const loadProjectAsset = vi.spyOn(dataService.projectLoading, 'loadProjectAsset').mockResolvedValue({
+            content: 'aW1hZ2U=',
+            contentType: 'image/png',
+            encoding: 'base64',
+            path: 'design/active/pasted-image-1.png',
+        })
+        renderCardBodyEditor(editorProps())
+        const activeCard = { path: 'design/active/card.md' } as ActiveCard
+        vi.mocked(cardMarkdownDataSource.getActiveCard).mockReturnValue(activeCard)
+
+        const source = await capturedImagePreviewHandler()('pasted-image-1.png')
+
+        expect(source).toBe('data:image/png;base64,aW1hZ2U=')
+        expect(loadProjectAsset).toHaveBeenCalledWith('design/active/pasted-image-1.png')
+        expect(screen.getByRole('textbox')).toHaveValue('# Alpha\n\nOriginal body')
     })
 
     it('loads body through board-card data source binding', () => {

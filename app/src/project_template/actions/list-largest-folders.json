@@ -1,0 +1,12 @@
+{
+  "id": "6e7e8536-bb2f-416f-b17a-3fc4dc224ab4",
+  "label": "list largest folders",
+  "description": "Custom prompt action: list largest folders",
+  "type": "agent",
+  "streaming": true,
+  "phrases": [],
+  "prompt": "list the 5 folders containing the most files.",
+  "appliesTo": {
+    "kind": "project"
+  }
+}

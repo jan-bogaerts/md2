@@ -19,7 +19,6 @@ import { DiagramView } from './diagram_view'
 import { DiagramEmphasisService } from '../../services/diagrams/diagram_emphasis_service'
 import { DiagramSelectionService } from '../../services/diagrams/diagram_selection_service'
 import { dataService } from '../../services/data/data_service'
-import { dialogService } from '../../services/dialog_service'
 
 vi.mock('../hooks/use_workspace_view', () => ({ useWorkspaceView: () => ({ selectedPath: null, viewMode: 'diagrams' }) }))
 
@@ -786,7 +785,7 @@ describe('DiagramView', () => {
                 />,
             )
 
-            expect(screen.getByLabelText('New diagram scroller')).toBeInTheDocument()
+            expect(screen.getByLabelText('New diagram scroller')).toHaveStyle({ overflowX: 'scroll', overflowY: 'scroll' })
             expect(screen.getByRole('slider', { name: 'New diagram zoom' })).toBeInTheDocument()
             expect(screen.queryByLabelText('Current diagram scroller')).not.toBeInTheDocument()
             expect(screen.queryByLabelText('Selected diagram comparison')).not.toBeInTheDocument()
@@ -954,16 +953,13 @@ describe('DiagramView', () => {
         expect(service.openRootPopup).not.toHaveBeenCalled()
     })
 
-    it('reports diagram conversation load failure without blocking diagram opening', async () => {
-        const failure = new Error('conversation load failed')
-        vi.mocked(dataService.listAgentConversations).mockRejectedValueOnce(failure)
-        const reportError = vi.spyOn(dialogService, 'error')
+    it('opens the diagram view without loading agent conversations itself', () => {
         const service = createService()
 
         render(<DiagramView service={service} />)
 
-        await vi.waitFor(() => expect(reportError).toHaveBeenCalledWith(failure, {fallbackMessage: 'Could not load diagram agent conversations'}))
         expect(service.open).toHaveBeenCalledOnce()
+        expect(dataService.listAgentConversations).not.toHaveBeenCalled()
         expect(screen.getByRole('button', { name: 'Diagram action' })).toBeInTheDocument()
     })
 })

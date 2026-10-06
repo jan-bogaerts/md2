@@ -7,17 +7,17 @@ An md² project is a folder inside your Git repository. Everything md² knows li
 ```text
 <repo>/
   design/                 <- project folder
-    feature_descriptions/ <- working folder: the active cards
+    active/               <- working folder: the active cards
     actions/              <- action definitions (*.json)
     diagrams/             <- saved diagram JSON and index
-    releases/             <- one subfolder per completed release
+    history/              <- releases folder: one subfolder per completed release
     archived/             <- individually archived cards
     activity/             <- conversation and run logs
     architecture/         <- your own notes; any folder works
   md2.config.json         <- project configuration
 ```
 
-Every folder name is configurable. The names above are the defaults from [`md2.config.json`](../guide/configuration.md); the built-in fallbacks are `design`, `active`, `actions`, `diagrams`, `history`, `archived`.
+Every folder name except `activity` is configurable in [`md2.config.json`](../guide/configuration.md). The names above are the defaults.
 
 | Setting | Folder | What it holds |
 | --- | --- | --- |

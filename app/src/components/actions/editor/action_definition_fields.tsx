@@ -1,5 +1,5 @@
 import {
-    Divider, FormControlLabel, FormHelperText, MenuItem, Paper, Stack, Switch, Grid,
+    FormControlLabel, FormHelperText, MenuItem, Stack, Switch, Grid, Box,
 } from '@mui/material'
 import type { ChangeEvent, MouseEvent } from 'react'
 import { memo, useEffect, useState } from 'react'
@@ -18,6 +18,7 @@ import { ActionLinkListEditor } from './action_link_list_editor'
 import { ActionOnRulesEditor } from './action_on_rules_editor'
 import { ActionSectionLabel } from '../shared/action_section_label'
 import { ActionEditorTextField } from './action_editor_text_field'
+import { ActionDefinitionGroup } from './action_definition_group'
 
 const ICON_FILE_PATTERN = /\.(svg|png|jpe?g|gif|webp)$/iu
 const EMPTY_REPOSITORY_FILES: string[] = []
@@ -192,239 +193,261 @@ export const ActionDefinitionFields = memo(function ActionDefinitionFields(props
     }
 
     return (
-        <Paper onBlur={handleDefinitionCommit} onClick={handleClick} variant="outlined" sx={{ maxWidth: 720, mb: 2, p: 2.5 }}>
-            <Stack spacing={2}>
+        <Box onBlur={handleDefinitionCommit} onClick={handleClick} sx={{ maxWidth: 720, mb: 2 }}>
+            <Stack spacing={3}>
                 <ActionSectionLabel component="h2">Action definition</ActionSectionLabel>
-                <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>
-                    <ActionEditorTextField error={!!errors.label} fieldId="action-label" fullWidth helperText={errors.label} label="Label" name="label" onChange={handleRequiredTextChange} size="small" source={definition} value={definition.label} />
-                    <ActionEditorField
-                        error={!!errors.type}
-                        fieldId="action-type"
-                        fullWidth
-                        helperText={errors.type}
-                        label="Type"
-                        onChange={handleTypeChange}
-                        select
-                        size="small"
-                        value={definition.type}
-                    >
-                        <MenuItem value="agent">Agent</MenuItem>
-                        <MenuItem value="command">Command</MenuItem>
-                    </ActionEditorField>
-                    <ActionEditorField
-                        error={!!errors.output}
-                        fieldId="action-output-kind"
-                        fullWidth
-                        helperText={errors.output}
-                        label="Output kind"
-                        onChange={handleOutputChange}
-                        select
-                        size="small"
-                        value={definition.output?.kind ?? ''}
-                    >
-                        <MenuItem value="">Regular</MenuItem>
-                        <MenuItem value="diagram">Diagram</MenuItem>
-                    </ActionEditorField>
-                    <ActionEditorField error={!!errors.icon} fieldId="action-icon" fullWidth helperText={errors.icon} label="Icon" name="icon" onChange={handleOptionalTextChange} select size="small" value={definition.icon ?? ''}>
-                        <MenuItem value="">No icon</MenuItem>
-                        {iconPaths.map((path) => <MenuItem key={path} value={path}>{path}</MenuItem>)}
-                    </ActionEditorField>
-                </Stack>
-                <ActionEditorTextField error={!!errors.description} fieldId="action-description" fullWidth helperText={errors.description} label="Description" name="description" onChange={handleRequiredTextChange} size="small" source={definition} value={definition.description} />
-                <ActionEditorField error={!!errors.userInput} fieldId="action-user-input" fullWidth helperText={errors.userInput} label="Ask user for" onChange={handleUserInputChange} select size="small" value={definition.userInput?.type ?? ''}>
-                    <MenuItem value="">None</MenuItem>
-                    <MenuItem value="version">Version</MenuItem>
-                </ActionEditorField>
-                {definition.userInput?.type === 'version' ? (
-                    <ActionEditorField error={!!errors.userInput} fieldId="action-user-input-prompt" fullWidth helperText={errors.userInput} label="Version question (optional)" onChange={handleUserInputPromptChange} size="small" value={definition.userInput.prompt ?? ''} />
-                ) : null}
-                <Divider />
-                <Grid
-                    sx={{
-                        display: 'grid',
-                        gridTemplateColumns: { md: 'repeat(3, 1fr)', xs: '1fr' },
-                        columnGap: 2,
-                        alignItems: 'start',
-                        mt: { md: 2.75 },
-                    }}
+                <ActionDefinitionGroup
+                    description="Name and describe this action, its output, and any input requested before it runs."
+                    id="action-details"
+                    title="Action details"
                 >
-                    <ActionEditorField
-                        error={!!errors.onState}
-                        fieldId="action-on-state"
-                        fullWidth
-                        helperText={onStateHelperText}
-                        label="Run when card enters state"
-                        name="onState"
-                        onChange={handleOptionalTextChange}
-                        select
-                        size="small"
-                        value={definition.onState ?? ''}
-                    >
-                        <MenuItem value="">No state trigger</MenuItem>
-                        {missingState ? <MenuItem value={missingState}>{missingState} — unavailable</MenuItem> : null}
-                        {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
-                    </ActionEditorField>
-
-                    <Stack>
-                        <FormControlLabel
-                            control={<Switch checked={!!definition.needsWorkTree} onChange={handleNeedsWorkTreeChange} size="small" />}
-                            label="Needs worktree"
-                            sx={{ whiteSpace: 'nowrap' }}
-                        />
-                        <FormHelperText>card needs to be assigned to a worktree</FormHelperText>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { md: '1fr 2fr', xs: '1fr' }, columnGap: 1, alignItems: 'start' }}>
+                        <ActionEditorTextField error={!!errors.label} fieldId="action-label" fullWidth helperText={errors.label} label="Label" name="label" onChange={handleRequiredTextChange} size="small" source={definition} value={definition.label} />
+                        <ActionEditorTextField error={!!errors.description} fieldId="action-description" fullWidth helperText={errors.description} label="Description" name="description" onChange={handleRequiredTextChange} size="small" source={definition} value={definition.description} />
+                    </Box>
+                    <Stack direction={{ md: 'row', xs: 'column' }} spacing={1} sx={{ alignItems: 'flex-start' }}>
+                        <ActionEditorField
+                            error={!!errors.type}
+                            fieldId="action-type"
+                            fullWidth
+                            helperText={errors.type}
+                            label="Type"
+                            onChange={handleTypeChange}
+                            select
+                            size="small"
+                            value={definition.type}
+                        >
+                            <MenuItem value="agent">Agent</MenuItem>
+                            <MenuItem value="command">Command</MenuItem>
+                        </ActionEditorField>
+                        <ActionEditorField
+                            error={!!errors.output}
+                            fieldId="action-output-kind"
+                            fullWidth
+                            helperText={errors.output}
+                            label="Output kind"
+                            onChange={handleOutputChange}
+                            select
+                            size="small"
+                            value={definition.output?.kind ?? ''}
+                        >
+                            <MenuItem value="">Regular</MenuItem>
+                            <MenuItem value="diagram">Diagram</MenuItem>
+                        </ActionEditorField>
+                        <ActionEditorField error={!!errors.icon} fieldId="action-icon" fullWidth helperText={errors.icon} label="Icon" name="icon" onChange={handleOptionalTextChange} select size="small" value={definition.icon ?? ''}>
+                            <MenuItem value="">No icon</MenuItem>
+                            {iconPaths.map((path) => <MenuItem key={path} value={path}>{path}</MenuItem>)}
+                        </ActionEditorField>
                     </Stack>
-                    {definition.type === 'agent' ? (
-                        <>
-                            <Stack>
-                                <FormControlLabel
-                                    control={<Switch checked={!!definition.trackFileChanges} onChange={handleTrackFileChangesChange} size="small" />}
-                                    label="Auto commit"
-                                    sx={{ whiteSpace: 'nowrap' }}
-                                />
-                                <FormHelperText error={!!errors.trackFileChanges}>
-                                    {errors.trackFileChanges ?? 'auto commit files agent reported as modified'}
-                                </FormHelperText>
-                            </Stack>
-                            <Stack>
-                                <FormControlLabel
-                                    control={<Switch checked={!!definition.streaming} onChange={handleStreamingChange} size="small" />}
-                                    label="Streaming"
-                                    sx={{ whiteSpace: 'nowrap' }}
-                                />
-                                <FormHelperText error={!!errors.streaming}>
-                                    {errors.streaming ?? 'keep agent session open for more turns'}
-                                </FormHelperText>
-                            </Stack>
-                            {definition.streaming ? (
-                                <Stack>
-                                    <FormControlLabel
-                                        control={(
-                                            <Switch
-                                                checked={!!definition.autoFinish}
-                                                disabled={states.length === 0 && definition.output?.kind !== 'diagram'}
-                                                onChange={handleAutoFinishChange}
-                                                size="small"
-                                            />
-                                        )}
-                                        label="Auto finish"
-                                        sx={{ whiteSpace: 'nowrap' }}
-                                    />
-                                    <FormHelperText error={!!errors.autoFinish}>
-                                        {errors.autoFinish ?? 'finish when configured output condition occurs'}
-                                    </FormHelperText>
-                                </Stack>
-                            ) : null}
-                        </>
-                    ) : (
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { md: 'repeat(2, 1fr)', xs: '1fr' }, columnGap: 1, alignItems: 'start' }}>
+                        <ActionEditorField error={!!errors.userInput} fieldId="action-user-input" fullWidth helperText={errors.userInput} label="Ask user for" onChange={handleUserInputChange} select size="small" value={definition.userInput?.type ?? ''}>
+                            <MenuItem value="">None</MenuItem>
+                            <MenuItem value="version">Version</MenuItem>
+                        </ActionEditorField>
+                        {definition.userInput?.type === 'version' ? (
+                            <ActionEditorField error={!!errors.userInput} fieldId="action-user-input-prompt" fullWidth helperText={errors.userInput} label="Version question (optional)" onChange={handleUserInputPromptChange} size="small" value={definition.userInput.prompt ?? ''} />
+                        ) : null}
+                    </Box>
+                </ActionDefinitionGroup>
+                <ActionDefinitionGroup
+                    description="Choose when this action starts and how its agent or command runs."
+                    id="action-run-settings"
+                    title="Run settings"
+                >
+                    <Grid
+                        sx={{
+                            display: 'grid',
+                            gridTemplateColumns: { md: 'repeat(3, 1fr)', xs: '1fr' },
+                            columnGap: 2,
+                            alignItems: 'start',
+                        }}
+                    >
+                        <ActionEditorField
+                            error={!!errors.onState}
+                            fieldId="action-on-state"
+                            fullWidth
+                            helperText={onStateHelperText}
+                            label="Run when card enters state"
+                            name="onState"
+                            onChange={handleOptionalTextChange}
+                            select
+                            size="small"
+                            value={definition.onState ?? ''}
+                        >
+                            <MenuItem value="">No state trigger</MenuItem>
+                            {missingState ? <MenuItem value={missingState}>{missingState} — unavailable</MenuItem> : null}
+                            {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
+                        </ActionEditorField>
+
                         <Stack>
                             <FormControlLabel
-                                control={(
-                                    <Switch
-                                        checked={!!definition.showCommandWindow}
-                                        onChange={handleShowCommandWindowChange}
-                                        size="small"
-                                    />
-                                )}
-                                label="Show command window"
+                                control={<Switch checked={!!definition.needsWorkTree} onChange={handleNeedsWorkTreeChange} size="small" />}
+                                label="Needs worktree"
                                 sx={{ whiteSpace: 'nowrap' }}
                             />
-                            <FormHelperText>open a console window for command interaction</FormHelperText>
+                            <FormHelperText>card needs to be assigned to a worktree</FormHelperText>
                         </Stack>
+                        {definition.type === 'agent' ? (
+                            <>
+                                <Stack>
+                                    <FormControlLabel
+                                        control={<Switch checked={!!definition.trackFileChanges} onChange={handleTrackFileChangesChange} size="small" />}
+                                        label="Auto commit"
+                                        sx={{ whiteSpace: 'nowrap' }}
+                                    />
+                                    <FormHelperText error={!!errors.trackFileChanges}>
+                                        {errors.trackFileChanges ?? 'auto commit files agent reported as modified'}
+                                    </FormHelperText>
+                                </Stack>
+                                <Stack>
+                                    <FormControlLabel
+                                        control={<Switch checked={!!definition.streaming} onChange={handleStreamingChange} size="small" />}
+                                        label="Streaming"
+                                        sx={{ whiteSpace: 'nowrap' }}
+                                    />
+                                    <FormHelperText error={!!errors.streaming}>
+                                        {errors.streaming ?? 'keep agent session open for more turns'}
+                                    </FormHelperText>
+                                </Stack>
+                                {definition.streaming ? (
+                                    <Stack>
+                                        <FormControlLabel
+                                            control={(
+                                                <Switch
+                                                    checked={!!definition.autoFinish}
+                                                    disabled={states.length === 0 && definition.output?.kind !== 'diagram'}
+                                                    onChange={handleAutoFinishChange}
+                                                    size="small"
+                                                />
+                                            )}
+                                            label="Auto finish"
+                                            sx={{ whiteSpace: 'nowrap' }}
+                                        />
+                                        <FormHelperText error={!!errors.autoFinish}>
+                                            {errors.autoFinish ?? 'finish when configured output condition occurs'}
+                                        </FormHelperText>
+                                    </Stack>
+                                ) : null}
+                            </>
+                        ) : (
+                            <Stack>
+                                <FormControlLabel
+                                    control={(
+                                        <Switch
+                                            checked={!!definition.showCommandWindow}
+                                            onChange={handleShowCommandWindowChange}
+                                            size="small"
+                                        />
+                                    )}
+                                    label="Show command window"
+                                    sx={{ whiteSpace: 'nowrap' }}
+                                />
+                                <FormHelperText>open a console window for command interaction</FormHelperText>
+                            </Stack>
+                        )}
+                    </Grid>
+                    {definition.type === 'agent' && definition.streaming && definition.autoFinish ? (
+                        <ActionEditorField
+                            error={!!errors.autoFinish}
+                            fieldId="action-auto-finish-trigger"
+                            fullWidth
+                            helperText={errors.autoFinish}
+                            label="Auto finish trigger"
+                            onChange={handleAutoFinishTriggerChange}
+                            select
+                            size="small"
+                            value={definition.autoFinish.when}
+                        >
+                            {states.length > 0 ? <MenuItem value="card-state">When card enters state</MenuItem> : null}
+                            {definition.output?.kind === 'diagram' ? <MenuItem value="diagram-created">When diagram is created</MenuItem> : null}
+                        </ActionEditorField>
+                    ) : null}
+                    {definition.type === 'agent' && definition.streaming && definition.autoFinish?.when === 'card-state' ? (
+                        <ActionEditorField
+                            error={!!errors.autoFinish}
+                            fieldId="action-auto-finish-state"
+                            fullWidth
+                            helperText={errors.autoFinish}
+                            label="Auto finish card state"
+                            onChange={handleAutoFinishStateChange}
+                            select
+                            size="small"
+                            value={definition.autoFinish.state}
+                        >
+                            {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
+                        </ActionEditorField>
+                    ) : null}
+                    {definition.type === 'agent' ? (
+                        <ActionAgentCapabilityFields
+                            definition={definition}
+                            errors={errors}
+                            onChange={handleDefinitionChange}
+                            sourcePath={sourcePath}
+                        />
+                    ) : (
+                        <ActionEditorTextField
+                            error={!!errors.command}
+                            fieldId="action-command"
+                            fullWidth
+                            helperText={errors.command}
+                            label="Command"
+                            minRows={2}
+                            multiline
+                            name="command"
+                            onChange={handleRequiredTextChange}
+                            source={definition}
+                            value={definition.command ?? ''}
+                        />
                     )}
-                </Grid>
-                {definition.type === 'agent' && definition.streaming && definition.autoFinish ? (
-                    <ActionEditorField
-                        error={!!errors.autoFinish}
-                        fieldId="action-auto-finish-trigger"
-                        fullWidth
-                        helperText={errors.autoFinish}
-                        label="Auto finish trigger"
-                        onChange={handleAutoFinishTriggerChange}
-                        select
-                        size="small"
-                        value={definition.autoFinish.when}
-                    >
-                        {states.length > 0 ? <MenuItem value="card-state">When card enters state</MenuItem> : null}
-                        {definition.output?.kind === 'diagram' ? <MenuItem value="diagram-created">When diagram is created</MenuItem> : null}
-                    </ActionEditorField>
-                ) : null}
-                {definition.type === 'agent' && definition.streaming && definition.autoFinish?.when === 'card-state' ? (
-                    <ActionEditorField
-                        error={!!errors.autoFinish}
-                        fieldId="action-auto-finish-state"
-                        fullWidth
-                        helperText={errors.autoFinish}
-                        label="Auto finish card state"
-                        onChange={handleAutoFinishStateChange}
-                        select
-                        size="small"
-                        value={definition.autoFinish.state}
-                    >
-                        {states.map((state) => <MenuItem key={state} value={state}>{state}</MenuItem>)}
-                    </ActionEditorField>
-                ) : null}
-                {definition.type === 'agent' ? (
-                    <ActionAgentCapabilityFields
-                        definition={definition}
-                        errors={errors}
-                        onChange={handleDefinitionChange}
-                        sourcePath={sourcePath}
+                </ActionDefinitionGroup>
+                <ActionDefinitionGroup
+                    description="Limit the card or project contexts where this action is available."
+                    id="action-availability"
+                    title="Availability"
+                >
+                    <ActionFilterEditor
+                        cardTypes={cardTypes}
+                        error={errors.appliesTo}
+                        onChange={handleFiltersChange}
+                        repositoryFiles={repositoryFiles}
+                        specialContextTypes={specialContextTypes}
+                        states={states}
+                        value={definition.appliesTo}
+                        worktrees={worktrees}
                     />
-                ) : (
-                    <ActionEditorTextField
-                        error={!!errors.command}
-                        fieldId="action-command"
-                        fullWidth
-                        helperText={errors.command}
-                        label="Command"
-                        minRows={2}
-                        multiline
-                        name="command"
-                        onChange={handleRequiredTextChange}
-                        source={definition}
-                        value={definition.command ?? ''}
+                </ActionDefinitionGroup>
+                <ActionDefinitionGroup
+                    description="Run linked actions before this action, when its output matches a regular expression, or after it finishes."
+                    id="action-sequence"
+                    title="Action sequence"
+                >
+                    <ActionLinkListEditor
+                        actions={selectableActions}
+                        emptyText="No actions run before this one."
+                        error={errors.onBefore}
+                        errorIndex={errorIndex}
+                        label="Before"
+                        onChange={handleOnBeforeChange}
+                        value={definition.onBefore}
                     />
-                )}
-                <Divider />
-                <ActionFilterEditor
-                    cardTypes={cardTypes}
-                    error={errors.appliesTo}
-                    onChange={handleFiltersChange}
-                    repositoryFiles={repositoryFiles}
-                    specialContextTypes={specialContextTypes}
-                    states={states}
-                    value={definition.appliesTo}
-                    worktrees={worktrees}
-                />
-                <Divider />
-                <ActionLinkListEditor
-                    actions={selectableActions}
-                    emptyText="No actions run before this one."
-                    error={errors.onBefore}
-                    errorIndex={errorIndex}
-                    label="Before"
-                    onChange={handleOnBeforeChange}
-                    value={definition.onBefore}
-                />
-                <Divider />
-                <ActionOnRulesEditor
-                    actions={selectableActions}
-                    error={errors.on}
-                    errorIndex={errorIndex}
-                    onChange={handleOnChange}
-                    value={definition.on}
-                />
-                <Divider />
-                <ActionLinkListEditor
-                    actions={selectableActions}
-                    emptyText="No actions run after this one."
-                    error={errors.onAfter}
-                    errorIndex={errorIndex}
-                    label="After"
-                    onChange={handleOnAfterChange}
-                    value={definition.onAfter}
-                />
+                    <ActionOnRulesEditor
+                        actions={selectableActions}
+                        error={errors.on}
+                        errorIndex={errorIndex}
+                        onChange={handleOnChange}
+                        value={definition.on}
+                    />
+                    <ActionLinkListEditor
+                        actions={selectableActions}
+                        emptyText="No actions run after this one."
+                        error={errors.onAfter}
+                        errorIndex={errorIndex}
+                        label="After"
+                        onChange={handleOnAfterChange}
+                        value={definition.onAfter}
+                    />
+                </ActionDefinitionGroup>
             </Stack>
-        </Paper>
+        </Box>
     )
 })

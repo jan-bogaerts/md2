@@ -22,20 +22,22 @@ export async function runElectronAction(
     onStarted?: (runId: string) => void,
     interactive = true,
 ): Promise<ActionRunResult> {
-    projectAccessService.requireWritable()
-    const handleStarted = (startedRunId: string) => {
-        onStarted?.(startedRunId)
+    try {
+        projectAccessService.requireWritable();
+        const requiresReservation = shouldReserveConversation(action, context, input)
+        const bridge = getElectronActionBridge()
+        const conversationReservation: AgentConversationReservation | undefined = requiresReservation
+            ? await bridge?.reserveActionConversation?.({ actionId: action.id, context, runInput: input })
+            : undefined
+        if (requiresReservation && !conversationReservation) {
+            throw new Error('Starting a card agent requires conversation reservation support')
+        }
+        if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
+        return await actionRunRegistry.startRun(action, context, input, onStarted, interactive, conversationReservation)
+    } catch (error) {
+        if (input.submissionId) actionRunRegistry.failSubmission(input.submissionId, error instanceof Error ? error.message : 'Action run failed');
+        throw error;
     }
-    const requiresReservation = shouldReserveConversation(action, context, input)
-    const bridge = getElectronActionBridge()
-    const conversationReservation: AgentConversationReservation | undefined = requiresReservation
-        ? await bridge?.reserveActionConversation?.({ actionId: action.id, context, runInput: input })
-        : undefined
-    if (requiresReservation && !conversationReservation) {
-        throw new Error('Starting a card agent requires conversation reservation support')
-    }
-    if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
-    return actionRunRegistry.startRun(action, context, input, handleStarted, interactive, conversationReservation)
 }
 
 /** Finish one idle streaming run, persist it, then continue through a new process. */
@@ -46,10 +48,14 @@ export async function restartElectronAction(
     input: ActionRunInput,
     onStarted?: (runId: string) => void,
 ): Promise<ActionRunResult> {
-    projectAccessService.requireWritable()
-    if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()
-
-    return actionRunRegistry.restartRun(previousRunId, action, context, input, onStarted)
+    try {
+        projectAccessService.requireWritable();
+        if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges();
+        return await actionRunRegistry.restartRun(previousRunId, action, context, input, onStarted);
+    } catch (error) {
+        if (input.submissionId) actionRunRegistry.failSubmission(input.submissionId, error instanceof Error ? error.message : 'Action run failed');
+        throw error;
+    }
 }
 
 export async function cancelElectronAction(runId: string) {

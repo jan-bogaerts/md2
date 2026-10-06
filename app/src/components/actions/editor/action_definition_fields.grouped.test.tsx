@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ActionDefinition, RawActionDefinition } from '../../../data/action_types'
 import { actionService } from '../../../services/actions/action_service'
@@ -63,6 +64,102 @@ describe('ActionDefinitionFields', () => {
         actionService.clear()
         configService.clear()
         vi.restoreAllMocks()
+    })
+
+    it('shows Regular and default labels when optional definition fields are absent', () => {
+        const definition = {
+            command: 'run',
+            description: 'Run checks',
+            id: 'check-action',
+            label: 'Check',
+            type: 'command',
+        } satisfies RawActionDefinition;
+        const getDefinition = renderFields(definition);
+
+        expect(screen.getByLabelText('Output kind')).toHaveTextContent('Regular');
+        expect(screen.getByLabelText('Icon')).toHaveTextContent('No icon');
+        expect(screen.getByLabelText('Ask user for')).toHaveTextContent('None');
+        expect(screen.getByLabelText('Run when card enters state')).toHaveTextContent('No state trigger');
+        expect(getDefinition().output).toBeUndefined();
+    });
+
+    it('shows Regular and clears output when Diagram changes to Regular', async () => {
+        const user = userEvent.setup();
+        const definition = {
+            ...sharedFields,
+            command: 'run',
+            output: { kind: 'diagram' },
+            type: 'command',
+        } satisfies RawActionDefinition;
+        const getDefinition = renderFields(definition);
+
+        expect(screen.getByLabelText('Output kind')).toHaveTextContent('Diagram');
+        await user.click(screen.getByLabelText('Output kind'));
+        await user.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Regular' }));
+
+        expect(screen.getByLabelText('Output kind')).toHaveTextContent('Regular');
+        expect(getDefinition().output).toBeUndefined();
+    });
+
+    it('groups agent controls under four ordered definition headings', () => {
+        renderFields({
+            ...sharedFields,
+            autoFinish: { state: 'ready', when: 'card-state' },
+            prompt: 'Plan first',
+            streaming: true,
+            type: 'agent',
+            userInput: { prompt: 'Which build?', type: 'version' },
+        })
+
+        expect(screen.getByRole('heading', { level: 2, name: 'Action definition' })).toBeInTheDocument()
+        expect(screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
+            'Action details', 'Run settings', 'Availability', 'Action sequence',
+        ])
+        const details = within(screen.getByRole('region', { name: 'Action details' }))
+        const runSettings = within(screen.getByRole('region', { name: 'Run settings' }))
+        const availability = within(screen.getByRole('region', { name: 'Availability' }))
+        const sequence = within(screen.getByRole('region', { name: 'Action sequence' }))
+
+        expect(details.getByText('Name and describe this action, its output, and any input requested before it runs.')).toBeInTheDocument()
+        expect(details.getByLabelText('Label')).toBeInTheDocument()
+        expect(details.getByLabelText('Type')).toBeInTheDocument()
+        expect(details.getByLabelText('Output kind')).toBeInTheDocument()
+        expect(details.getByLabelText('Icon')).toBeInTheDocument()
+        expect(details.getByLabelText('Description')).toBeInTheDocument()
+        expect(details.getByLabelText('Ask user for')).toBeInTheDocument()
+        expect(details.getByLabelText('Version question (optional)')).toBeInTheDocument()
+
+        expect(runSettings.getByText('Choose when this action starts and how its agent or command runs.')).toBeInTheDocument()
+        expect(runSettings.getByLabelText('Run when card enters state')).toBeInTheDocument()
+        expect(runSettings.getByRole('switch', { name: 'Needs worktree' })).toBeInTheDocument()
+        expect(runSettings.getByRole('switch', { name: 'Auto commit' })).toBeInTheDocument()
+        expect(runSettings.getByRole('switch', { name: 'Streaming' })).toBeInTheDocument()
+        expect(runSettings.getByRole('switch', { name: 'Auto finish' })).toBeInTheDocument()
+        expect(runSettings.getByLabelText('Auto finish trigger')).toBeInTheDocument()
+        expect(runSettings.getByLabelText('Auto finish card state')).toBeInTheDocument()
+        expect(runSettings.getByRole('heading', { level: 4, name: 'Agent override' })).toBeInTheDocument()
+        expect(runSettings.queryByLabelText('Command')).not.toBeInTheDocument()
+
+        expect(availability.getByText('Limit the card or project contexts where this action is available.')).toBeInTheDocument()
+        expect(availability.getByRole('heading', { level: 4, name: 'Applicability filters' })).toBeInTheDocument()
+        expect(sequence.getByText('Run linked actions before this action, when its output matches a regular expression, or after it finishes.')).toBeInTheDocument()
+        expect(sequence.getAllByRole('heading', { level: 4 }).map((heading) => heading.textContent)).toEqual(['Before', 'Output rules', 'After'])
+    })
+
+    it('keeps command controls in their groups and excludes agent controls', () => {
+        renderFields({ ...sharedFields, command: 'npm run test', type: 'command' })
+
+        const runSettings = within(screen.getByRole('region', { name: 'Run settings' }))
+        const sequence = within(screen.getByRole('region', { name: 'Action sequence' }))
+
+        expect(runSettings.getByRole('switch', { name: 'Show command window' })).toBeInTheDocument()
+        expect(runSettings.getByLabelText('Command')).toHaveValue('npm run test')
+        expect(runSettings.queryByRole('heading', { name: 'Agent override' })).not.toBeInTheDocument()
+        expect(runSettings.queryByRole('switch', { name: 'Auto commit' })).not.toBeInTheDocument()
+        expect(runSettings.queryByRole('switch', { name: 'Streaming' })).not.toBeInTheDocument()
+        expect(runSettings.queryByRole('switch', { name: 'Auto finish' })).not.toBeInTheDocument()
+        expect(sequence.getByRole('group', { name: 'Before action 1' })).toBeInTheDocument()
+        expect(sequence.getByRole('group', { name: 'After action 1' })).toBeInTheDocument()
     })
 
     it('selects version input and keeps its custom question in the draft', () => {
@@ -214,19 +311,26 @@ describe('ActionDefinitionFields', () => {
         expect(getDefinition()).toEqual({ ...definition, trackFileChanges: true })
     })
 
-    it('shows label, type, and icon before description without exposing internal identity fields', () => {
+    it('orders action details as label, description, type, output kind, icon, ask user for without exposing internal identity fields', () => {
         renderFields({ ...sharedFields, command: 'run', icon: 'icon.svg', type: 'command' })
 
-        const label = screen.getByLabelText('Label')
-        const type = screen.getByLabelText('Type')
-        const icon = screen.getByLabelText('Icon')
-        const description = screen.getByLabelText('Description')
+        const orderedFields = ['Label', 'Description', 'Type', 'Output kind', 'Icon', 'Ask user for'].map((fieldLabel) => screen.getByLabelText(fieldLabel))
 
         expect(screen.queryByLabelText('ID')).not.toBeInTheDocument()
         expect(screen.queryByLabelText('Name')).not.toBeInTheDocument()
-        expect(label.compareDocumentPosition(type) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(type.compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(icon.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        orderedFields.slice(1).forEach((field, index) => {
+            expect(orderedFields[index].compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        })
+    })
+
+    it('shows version question after ask user for when version input is selected', () => {
+        renderFields({ ...sharedFields, command: 'run', type: 'command', userInput: { prompt: 'Which build?', type: 'version' } })
+
+        const askUserFor = screen.getByLabelText('Ask user for')
+        const versionQuestion = screen.getByLabelText('Version question (optional)')
+
+        expect(versionQuestion).toHaveValue('Which build?')
+        expect(askUserFor.compareDocumentPosition(versionQuestion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it('renders section headings and empty-state hints for empty collections', () => {

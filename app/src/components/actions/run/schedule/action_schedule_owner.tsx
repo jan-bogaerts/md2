@@ -61,7 +61,7 @@ export function ActionScheduleOwner({ action, context, store }: ActionScheduleOw
         try {
             const trigger = createScheduleTrigger(store.getSnapshot(), sources)
             await defaultScheduleAction(action, context, trigger)
-            store.setMessage('Schedule registered')
+            store.close()
         } catch (error) {
             dialogService.error(error, { fallbackMessage: 'Could not register schedule' })
         }

@@ -8,6 +8,9 @@ const { createLocalBridgeDispatch } = require('./local_bridge_dispatch');
 function createDispatch(options = {}) {
     const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }));
     const actionRunnerService = {
+        compactConversation: vi.fn(async (request) => ({ ...request, state: 'queued' })),
+        cancelCompactsForPath: vi.fn(async () => undefined),
+        cancelCompactsForConversation: vi.fn(async () => undefined),
         answerInput: vi.fn(),
         answerAgentApproval: vi.fn(),
         answerAgentQuestion: vi.fn(),
@@ -41,6 +44,7 @@ function createDispatch(options = {}) {
         subscribeRunEvents: vi.fn(() => vi.fn()),
     };
     const agentRunnerService = {
+        resolveHistoricalConversation: vi.fn((conversation) => conversation),
         requestProjectUsageRefresh: vi.fn(),
         run: vi.fn(async () => ({ runId: 'run-1' })),
         start: vi.fn(async () => ({ runId: 'run-2' })),
@@ -57,6 +61,7 @@ function createDispatch(options = {}) {
     };
     const updateCodexCli = vi.fn(async () => undefined);
     const localGitService = {
+        loadAgentConversation: vi.fn(async (_project, reference) => ({ id: 'conversation-1', path: reference })),
         appendAndCommitSystemActivity: vi.fn(async () => undefined),
         assertGitRoot: vi.fn(),
         checkoutBranch: vi.fn(async (project, branch) => ({ ...project, branch })),
@@ -87,6 +92,7 @@ function createDispatch(options = {}) {
         loadActionRunHistory: vi.fn(async () => []),
         loadCardActivity: vi.fn(async () => ({ actionSettings: {}, conversations: [], origin: { cardInternalId: 'card-1', kind: 'card' }, records: [], version: 4 })),
         loadProjectAsset: vi.fn(async () => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: 'actions/icon.png' })),
+        loadImageFile: vi.fn(async (filePath) => ({ content: 'aWNvbg==', contentType: 'image/png', encoding: 'base64', path: filePath })),
         loadProjectConfig: vi.fn(async () => ({ projectFolder: 'design', states: [{ state: 'ready' }] })),
         loadProject: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
         loadProjectRoot: vi.fn(async () => ({ files: [], workingFolder: 'design' })),
@@ -260,6 +266,15 @@ describe('createLocalBridgeDispatch', () => {
             .rejects.toThrow('refresh');
         expect(agentModelCatalogService.load).not.toHaveBeenCalled();
     });
+
+    it('routes captured compact requests separately from agent prompts', async () => {
+        const { dispatch, actionRunnerService } = createDispatch();
+        const request = { conversationId: 'conversation-1', provider: 'codex', reference: 'activity.json', requestId: 'compact-1' };
+        await expect(dispatch.actionBridge.compactActionConversation(request)).resolves.toMatchObject({ ...request, state: 'queued' });
+        expect(actionRunnerService.compactConversation).toHaveBeenCalledWith(request);
+        expect(actionRunnerService.enqueueAgentPrompt).not.toHaveBeenCalled();
+    });
+
     it('forwards project watcher failures to the bridge subscriber', () => {
         const { dispatch, localGitService } = createDispatch();
         const callback = vi.fn();
@@ -1102,6 +1117,20 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadActivityConversations).toHaveBeenCalledWith(null, path);
     });
 
+    it('resolves tool liveness for both single and activity history loads', async () => {
+        const { dispatch, localGitService, agentRunnerService } = createDispatch();
+        const stored = { id: 'conversation-1', entries: [{ status: 'running' }] };
+        const resolved = { ...stored, entries: [{ status: 'cancelled' }] };
+        localGitService.loadAgentConversation.mockResolvedValue(stored);
+        localGitService.loadActivityConversations.mockResolvedValue([stored]);
+        agentRunnerService.resolveHistoricalConversation.mockReturnValue(resolved);
+
+        await expect(dispatch.dataBridge.loadAgentConversation('activity.json#conversation=conversation-1')).resolves.toEqual(resolved);
+        await expect(dispatch.dataBridge.loadActivityConversations('activity.json')).resolves.toEqual([resolved]);
+        expect(agentRunnerService.resolveHistoricalConversation).toHaveBeenCalledTimes(2);
+        expect(agentRunnerService.resolveHistoricalConversation).toHaveBeenCalledWith(stored);
+    });
+
     it('forwards project asset reads through the data bridge', async () => {
         const { dispatch, localGitService } = createDispatch();
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
@@ -1109,6 +1138,14 @@ describe('createLocalBridgeDispatch', () => {
         await dispatch.dataBridge.loadProjectAsset(project, 'actions/icon.png');
 
         expect(localGitService.loadProjectAsset).toHaveBeenCalledWith(project, 'actions/icon.png');
+    });
+
+    it('forwards absolute image file reads through the data bridge', async () => {
+        const { dispatch, localGitService } = createDispatch();
+
+        await dispatch.dataBridge.loadImageFile('C:/images/photo.png');
+
+        expect(localGitService.loadImageFile).toHaveBeenCalledWith('C:/images/photo.png');
     });
 
     it('exposes shared action run subscriptions through the action bridge', () => {
@@ -1137,11 +1174,17 @@ describe('createLocalBridgeDispatch', () => {
 
         await expect(dispatch.actionBridge.listActiveSchedules()).resolves.toEqual([]);
         await expect(dispatch.actionBridge.deleteSchedule('schedule-1')).resolves.toEqual([]);
+        const actionRequest = {
+            actionId: 'implement', context: { cardInternalId: 'card-1', kind: 'card' },
+            trigger: { timestamp: '2099-07-07T10:30:00.000Z', type: 'at' },
+        };
+        await expect(dispatch.actionBridge.registerActionSchedule(actionRequest)).resolves.toEqual({ id: 'schedule-1' });
         const request = { actionId: 'implement', cardInternalIds: ['card-1'], readyState: 'ready', trigger: { type: 'now' } };
         await expect(dispatch.actionBridge.registerSequenceSchedule(request)).resolves.toEqual({ id: 'sequence-1' });
 
         expect(actionSchedulerService.listActiveSchedules).toHaveBeenCalledOnce();
         expect(actionSchedulerService.deleteSchedule).toHaveBeenCalledWith('schedule-1');
+        expect(actionSchedulerService.registerActionSchedule).toHaveBeenCalledWith(actionRequest);
         expect(actionSchedulerService.registerSequenceSchedule).toHaveBeenCalledWith(request);
     });
 

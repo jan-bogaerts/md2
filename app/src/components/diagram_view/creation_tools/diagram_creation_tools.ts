@@ -7,6 +7,7 @@ import type {
 import type { DiagramCreationTool } from '../../../services/diagrams/diagram_edit_types';
 import { MINDMAP_TOPIC_PLACEMENT, type DiagramNodePlacementDefinition } from '../../../services/diagrams/diagram_node_placement_service';
 import { MINDMAP_ROOT_DIAMETER } from '../../../services/diagrams/diagram_layout';
+import { diagramEdgeKindLabel, diagramNodeKindLabel } from '../../../services/diagrams/diagram_creation_tool_labels';
 
 export type DiagramCreationToolDefinition =
     | { category: 'edge', edgeKind: DiagramEdgeKind, label: string, tool: DiagramCreationTool }
@@ -54,12 +55,12 @@ function terminalDefinition(kind: 'end' | 'start', preset: DiagramFlowPreset): D
     return { defaults: { height, label, role: 'focal', width }, kind };
 }
 
-function nodeTool(label: string, definition: DiagramNodePlacementDefinition): DiagramCreationToolDefinition {
-    return { category: 'node', definition, label, role: definition.defaults.role, tool: `node:${definition.kind}` };
+function nodeTool(definition: DiagramNodePlacementDefinition): DiagramCreationToolDefinition {
+    return { category: 'node', definition, label: diagramNodeKindLabel(definition.kind), role: definition.defaults.role, tool: `node:${definition.kind}` };
 }
 
-function edgeTool(label: string, edgeKind: DiagramEdgeKind): DiagramCreationToolDefinition {
-    return { category: 'edge', edgeKind, label, tool: `edge:${edgeKind}` };
+function edgeTool(edgeKind: DiagramEdgeKind): DiagramCreationToolDefinition {
+    return { category: 'edge', edgeKind, label: diagramEdgeKindLabel(edgeKind), tool: `edge:${edgeKind}` };
 }
 
 /** Returns creation tools permitted by active diagram schema, in menu order. */
@@ -71,55 +72,55 @@ export function diagramCreationTools(
     const common: DiagramCreationToolDefinition[] = [{ category: 'group', label: 'Group', tool: 'group' }];
     if (type === 'architecture') {
         return [
-            nodeTool('Component', COMPONENT_DEFINITION),
-            edgeTool('Connection', 'connection'),
-            edgeTool('Data', 'data'),
-            edgeTool('Async', 'async'),
+            nodeTool(COMPONENT_DEFINITION),
+            edgeTool('connection'),
+            edgeTool('data'),
+            edgeTool('async'),
             ...common,
         ];
     }
     if (type === 'dependency') {
         return [
-            nodeTool('Component', COMPONENT_DEFINITION),
-            edgeTool('Dependency', 'dependency'),
-            edgeTool('Cycle', 'cycle'),
+            nodeTool(COMPONENT_DEFINITION),
+            edgeTool('dependency'),
+            edgeTool('cycle'),
             ...common,
         ];
     }
     if (type === 'entity') {
-        return [nodeTool('Entity', ENTITY_DEFINITION), edgeTool('Relationship', 'relationship'), ...common];
+        return [nodeTool(ENTITY_DEFINITION), edgeTool('relationship'), ...common];
     }
     if (type === 'sequence') {
         return [
-            nodeTool('Participant', PARTICIPANT_DEFINITION),
-            edgeTool('Call', 'call'),
-            edgeTool('Return', 'return'),
-            edgeTool('Async', 'async'),
-            edgeTool('Success', 'success'),
+            nodeTool(PARTICIPANT_DEFINITION),
+            edgeTool('call'),
+            edgeTool('return'),
+            edgeTool('async'),
+            edgeTool('success'),
             ...common,
             { category: 'fragment', label: 'Fragment', tool: 'fragment' },
         ];
     }
     if (type === 'mindmap') {
         return hasMindmapRoot
-            ? [nodeTool('Topic', MINDMAP_TOPIC_PLACEMENT), edgeTool('Connection', 'connection'), ...common]
-            : [nodeTool('Root', MINDMAP_ROOT_DEFINITION), ...common];
+            ? [nodeTool(MINDMAP_TOPIC_PLACEMENT), edgeTool('connection'), ...common]
+            : [nodeTool(MINDMAP_ROOT_DEFINITION), ...common];
     }
     if (!preset) throw new Error('Flow diagram creation tools require a preset');
 
     const terminalTools = [
-        nodeTool('Start', terminalDefinition('start', preset)),
-        nodeTool('End', terminalDefinition('end', preset)),
+        nodeTool(terminalDefinition('start', preset)),
+        nodeTool(terminalDefinition('end', preset)),
     ];
     if (preset === 'state') {
-        return [...terminalTools, nodeTool('State', STATE_DEFINITION), edgeTool('Transition', 'transition'), ...common];
+        return [...terminalTools, nodeTool(STATE_DEFINITION), edgeTool('transition'), ...common];
     }
 
     return [
         ...terminalTools,
-        nodeTool('Step', STEP_DEFINITION),
-        nodeTool('Decision', DECISION_DEFINITION),
-        edgeTool('Flow', 'flow'),
+        nodeTool(STEP_DEFINITION),
+        nodeTool(DECISION_DEFINITION),
+        edgeTool('flow'),
         ...common,
     ];
 }

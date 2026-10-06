@@ -3,6 +3,8 @@ import { MarkdownPlaceholderOption } from './markdown_placeholder_option'
 import { MarkdownPlaceholderOptionItem } from './markdown_placeholder_option_item'
 import { useMarkdownTypeaheadStackPosition } from '../typeahead/markdown_typeahead_layer_context'
 
+const PLACEHOLDER_MENU_MAX_HEIGHT = 320
+
 interface MarkdownPlaceholderMenuProps {
     onHighlight: (index: number) => void
     onSelect: (option: MarkdownPlaceholderOption) => void
@@ -22,13 +24,16 @@ export function MarkdownPlaceholderMenu(props: MarkdownPlaceholderMenuProps) {
                 borderColor: 'divider',
                 borderRadius: '14px',
                 boxShadow: 8,
+                display: 'flex',
+                flexDirection: 'column',
+                maxHeight: PLACEHOLDER_MENU_MAX_HEIGHT,
                 minWidth: 280,
                 overflow: 'hidden',
                 position: 'relative',
                 zIndex: theme.zIndex.modal + stackPosition + 1,
             })}
         >
-            <List aria-label="Available placeholders" dense disablePadding role="listbox">
+            <List aria-label="Available placeholders" dense disablePadding role="listbox" sx={{ minHeight: 0, overflowY: 'auto' }}>
                 {options.map((option, index) => (
                     <MarkdownPlaceholderOptionItem
                         index={index}

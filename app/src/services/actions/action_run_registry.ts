@@ -23,6 +23,7 @@ import type {
     ActionRunRecoveryTerminalResult,
     ElectronActionBridge,
 } from '../../data/electron_action_bridge'
+import { generateUuid } from '../../data/uuid';
 import { actionService } from './action_service'
 import { actionPromptDraftService } from './action_prompt_draft_service'
 import { dialogService } from '../dialog_service'
@@ -38,7 +39,29 @@ const EMPTY_ACTIVE_RUNS: ActiveActionRun[] = []
 const EMPTY_ACTION_RUN_STORES: ActionRunStore[] = []
 const LOST_DURING_RECONNECTION_FAILURE = 'Action run state was lost during reconnection'
 
+export interface PendingActionSubmission {
+    content: string;
+    error?: string;
+    id: string;
+    prompt: ActionQueuedPrompt | null;
+    state: 'transmitting' | 'queued' | 'failed';
+}
+
+interface SubmissionOwner {
+    actionId: string;
+    context: ActionContext;
+    conversationId: string | null;
+    runId: string | null;
+}
+
+const EMPTY_SUBMISSIONS: PendingActionSubmission[] = [];
+
+function submissionsEventType(actionId: string, context: ActionContext) {
+    return `submissions:${actionContextKey(actionId, context)}`;
+}
+
 export interface ActionRun {
+    agentProvider?: string;
     activeActionAutoFinish: ActionDefinition['autoFinish']
     activeActionId: string | null
     activeActionStreaming: boolean
@@ -443,6 +466,8 @@ export class ActionRunRegistry extends EventTarget {
     private startsInProgress = 0
     private readonly terminalResults = new Map<string, ActionRunResult>()
     private unsubscribeBridge: (() => void) | null = null
+    private readonly submissions = new Map<string, PendingActionSubmission[]>();
+    private readonly submissionOwners = new Map<string, SubmissionOwner>();
     private readonly waiters = new Map<string, Set<(result: ActionRunResult) => void>>()
 
     constructor() {
@@ -473,6 +498,9 @@ export class ActionRunRegistry extends EventTarget {
 
     stop() {
         const runIds = [...this.runs.keys()]
+        const submissionScopes = [...this.submissionOwners.values()];
+        this.submissionOwners.clear();
+        this.submissions.clear();
         actionVersionRequestService.clear()
         this.unsubscribeBridge?.()
         this.subscribedBridge = null
@@ -487,6 +515,141 @@ export class ActionRunRegistry extends EventTarget {
         publishListeners(this.actionContextListeners)
         publishListeners(this.contextActiveListeners)
         for (const runId of runIds) this.dispatchEvent(new Event(runEventType(runId)))
+        const submissionEventTypes = new Set(submissionScopes.map(({ actionId, context }) => submissionsEventType(actionId, context)));
+        for (const eventType of submissionEventTypes) this.dispatchEvent(new Event(eventType));
+    }
+
+    /** Captures submitted text independently of the popup that initiated sending. */
+    beginSubmission(actionId: string, context: ActionContext, content: string, runId: string | null, conversationId: string | null) {
+        if (!conversationId && !runId) throw new Error('Starting a conversation requires its ID');
+        this.start();
+        const id = `submission-${generateUuid()}`;
+        const submission: PendingActionSubmission = { content, id, prompt: null, state: 'transmitting' };
+        this.submissionOwners.set(id, { actionId, context, conversationId, runId });
+        this.publishSubmissions(actionId, context, [...this.getSubmissions(actionId, context), submission]);
+        return id;
+    }
+
+    getSubmissions(actionId: string, context: ActionContext) {
+        return this.submissions.get(actionContextKey(actionId, context)) ?? EMPTY_SUBMISSIONS;
+    }
+
+    getVisibleSubmissions(actionId: string, context: ActionContext, conversationId: string | null, runId: string | null) {
+        return this.getSubmissions(actionId, context).filter(({ id }) => {
+            const owner = this.submissionOwners.get(id);
+            return !!owner && (conversationId ? owner.conversationId === conversationId : owner.runId === runId || owner.runId === null);
+        });
+    }
+
+    subscribeSubmissions(actionId: string, context: ActionContext, listener: StoreListener) {
+        const eventType = submissionsEventType(actionId, context);
+        this.addEventListener(eventType, listener);
+        return () => this.removeEventListener(eventType, listener);
+    }
+
+    /** Sends one already captured submission and records its acceptance or failure. */
+    async enqueueSubmission(id: string) {
+        const owner = this.submissionOwners.get(id);
+        if (!owner?.runId) throw new Error(`Submission has no active run: ${id}`);
+        const submission = this.getSubmissions(owner.actionId, owner.context).find((current) => current.id === id);
+        if (!submission) throw new Error(`Unknown submission: ${id}`);
+        try {
+            const bridge = getElectronActionBridge();
+            if (!bridge?.enqueueActionPrompt) throw new Error('Agent prompt queue requires Electron');
+            const prompt = await bridge.enqueueActionPrompt(owner.runId, submission.content, id);
+            this.acceptSubmission(id, prompt);
+        } catch (error) {
+            this.failSubmission(id, error instanceof Error ? error.message : 'Could not send agent message');
+        }
+    }
+
+    failSubmission(id: string, error: string) {
+        const owner = this.submissionOwners.get(id);
+        if (!owner) return;
+        const submissions = this.getSubmissions(owner.actionId, owner.context);
+        const current = submissions.find((submission) => submission.id === id);
+        if (!current || current.state === 'failed') return;
+        this.publishSubmissions(owner.actionId, owner.context, submissions.map((submission) => (
+            submission.id === id ? { ...submission, error, state: 'failed' } : submission
+        )));
+    }
+
+    private acceptSubmission(id: string, prompt: ActionQueuedPrompt) {
+        const owner = this.submissionOwners.get(id);
+        // The user-message event can acknowledge sending before the queue request returns.
+        if (!owner) return;
+        const submissions = this.getSubmissions(owner.actionId, owner.context);
+        const current = submissions.find((submission) => submission.id === id);
+        if (!current || current.state === 'failed') return;
+        if (prompt.id !== id) throw new Error(`Queued prompt ID does not match submitted message ID: ${id}`);
+        this.publishSubmissions(owner.actionId, owner.context, submissions.map((submission) => (
+            submission.id === id ? { ...submission, prompt, state: 'queued' } : submission
+        )));
+    }
+
+    private bindSubmission(id: string, runId: string) {
+        const owner = this.submissionOwners.get(id);
+        // An early acknowledgement has already replaced and removed the local submission.
+        if (!owner) return;
+        this.submissionOwners.set(id, { ...owner, runId });
+        const run = this.runs.get(runId)?.getSnapshot();
+        if (this.terminalResults.has(runId) || (run && TERMINAL_STATUSES.has(run.status as ActionRunTerminalStatus))) {
+            this.failSubmission(id, 'Run ended before the prompt was sent');
+        } else {
+            this.dispatchEvent(new Event(submissionsEventType(owner.actionId, owner.context)));
+        }
+    }
+
+    private removeSubmission(id: string) {
+        const owner = this.submissionOwners.get(id);
+        if (!owner) return;
+        this.submissionOwners.delete(id);
+        const submissions = this.getSubmissions(owner.actionId, owner.context).filter((submission) => submission.id !== id);
+        this.publishSubmissions(owner.actionId, owner.context, submissions);
+    }
+
+    private publishSubmissions(actionId: string, context: ActionContext, submissions: PendingActionSubmission[]) {
+        const key = actionContextKey(actionId, context);
+        if (submissions.length > 0) this.submissions.set(key, submissions);
+        else this.submissions.delete(key);
+        this.dispatchEvent(new Event(submissionsEventType(actionId, context)));
+    }
+
+    private reconcileSubmissions(event: ActionRunEvent) {
+        if (event.type === 'update' && event.update.kind === 'agentStarted') {
+            const { conversation, continued } = event.update;
+            let matched = false;
+            for (const [id, owner] of [...this.submissionOwners]) {
+                if (owner.actionId !== event.actionId || contextKey(owner.context) !== contextKey(event.context)) continue;
+                if (owner.runId !== event.runId && !(owner.runId === null && owner.conversationId === conversation.id)) continue;
+                this.submissionOwners.set(id, { ...owner, conversationId: conversation.id, runId: event.runId });
+                matched = true;
+            }
+            if (matched && !continued) actionPromptDraftService.attachNewConversation(event.actionId, event.context, conversation.id);
+            if (matched) this.dispatchEvent(new Event(submissionsEventType(event.actionId, event.context)));
+        }
+        if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
+            for (const [id, owner] of [...this.submissionOwners]) {
+                if (owner.runId === event.runId) this.failSubmission(id, 'Run ended before the prompt was sent');
+            }
+        }
+        if (event.type !== 'update') return;
+        const update = event.update;
+        const id = update.kind === 'agentUserMessage' ? update.userMessage.id
+            : update.kind === 'agentPromptQueued' ? update.entry.id
+                : update.kind === 'agentPromptDeleted' || update.kind === 'agentPromptDiscarded' ? update.promptId : null;
+        if (!id) return;
+        const owner = this.submissionOwners.get(id);
+        if (!owner || owner.actionId !== event.actionId || contextKey(owner.context) !== contextKey(event.context)) return;
+        if (owner.runId !== null && owner.runId !== event.runId) return;
+        const submission = this.getSubmissions(owner.actionId, owner.context).find((current) => current.id === id);
+        if (!submission || submission.state === 'failed') return;
+        if (update.kind === 'agentPromptQueued') {
+            this.submissionOwners.set(id, { ...owner, runId: event.runId });
+            this.acceptSubmission(id, update.entry);
+        } else {
+            this.removeSubmission(id);
+        }
     }
 
     getRunStore(runId: string) {
@@ -599,9 +762,15 @@ export class ActionRunRegistry extends EventTarget {
         let runId: string
         try {
             runId = await start({ actionId: action.id, ...(conversationReservation ? { conversationReservation } : {}), context, runInput })
+        } catch (error) {
+            if (runInput.submissionId) {
+                this.failSubmission(runInput.submissionId, error instanceof Error ? error.message : 'Action run failed');
+            }
+            throw error;
         } finally {
             this.startsInProgress -= 1
         }
+        if (runInput.submissionId) this.bindSubmission(runInput.submissionId, runId);
         onStarted?.(runId)
         if (!this.terminalResults.has(runId)) this.runContexts.set(runId, context)
 
@@ -623,10 +792,16 @@ export class ActionRunRegistry extends EventTarget {
         let runId: string
         try {
             runId = await bridge.restartActionRun(previousRunId, { actionId: action.id, context, runInput })
+        } catch (error) {
+            if (runInput.submissionId) {
+                this.failSubmission(runInput.submissionId, error instanceof Error ? error.message : 'Action run failed');
+            }
+            throw error;
         } finally {
             this.startsInProgress -= 1
             this.terminalResults.delete(previousRunId)
         }
+        if (runInput.submissionId) this.bindSubmission(runInput.submissionId, runId);
         onStarted?.(runId)
         if (!this.terminalResults.has(runId)) this.runContexts.set(runId, context)
 
@@ -768,6 +943,9 @@ export class ActionRunRegistry extends EventTarget {
             this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         }
 
+        for (const [id, owner] of [...this.submissionOwners]) {
+            if (owner.runId === result.runId) this.failSubmission(id, result.failure ?? 'Run ended before the prompt was sent');
+        }
         const waiters = this.waiters.get(result.runId)
         this.waiters.delete(result.runId)
         const actionResult = {
@@ -791,6 +969,10 @@ export class ActionRunRegistry extends EventTarget {
     }
 
     private handleEvent(event: ActionRunEvent) {
+        if (event.type === 'update' && event.update.kind === 'agentCompact') {
+            this.dispatchEvent(new CustomEvent('compactRequest', { detail: event }));
+            return;
+        }
         const currentStatus = this.runs.get(event.runId)?.getSnapshot().status
         if (
             currentStatus
@@ -879,6 +1061,7 @@ export class ActionRunRegistry extends EventTarget {
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             next = {
                 ...next,
+                agentProvider: event.update.provider,
                 conversation: event.update.conversation,
                 conversationChange: { kind: 'replace' },
                 conversationPersisted: null,
@@ -933,10 +1116,18 @@ export class ActionRunRegistry extends EventTarget {
                     : entry),
             }
         }
+        if (event.type === 'update' && event.update.kind === 'agentPromptDispatched') {
+            const { promptId } = event.update
+            next = {
+                ...next,
+                queuedPrompts: next.queuedPrompts.map((entry) => entry.id === promptId
+                    ? { ...entry, dispatchState: 'dispatching' }
+                    : entry),
+            }
+        }
         if (event.type === 'update' && (
             event.update.kind === 'agentPromptDeleted'
             || event.update.kind === 'agentPromptDiscarded'
-            || event.update.kind === 'agentPromptDispatched'
         )) {
             const { promptId } = event.update
             next = {
@@ -992,11 +1183,13 @@ export class ActionRunRegistry extends EventTarget {
             && event.update.kind === 'agentUserMessage'
             && next.conversation
         ) {
+            const { userMessage } = event.update
             next = {
                 ...next,
+                queuedPrompts: next.queuedPrompts.filter(({ id }) => id !== userMessage.id),
                 conversation: {
                     ...next.conversation,
-                    entries: [...next.conversation.entries, event.update.userMessage],
+                    entries: [...next.conversation.entries, userMessage],
                 },
                 conversationChange: { entryIndex: next.conversation.entries.length, kind: 'entry' },
             }
@@ -1053,6 +1246,7 @@ export class ActionRunRegistry extends EventTarget {
             }
         }
 
+        this.reconcileSubmissions(event);
         this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         this.publishScopedEvents(event)
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {

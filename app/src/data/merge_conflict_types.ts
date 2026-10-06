@@ -3,6 +3,7 @@ export type MergeConflictPhase = 'finalize' | 'rebase' | 'squash'
 
 /** Renderer-safe view of one paused Git operation owned by desktop. */
 export interface MergeConflictSession {
+    branch: string
     conflictedPaths: string[]
     externalResolverConfigured: boolean
     id: string

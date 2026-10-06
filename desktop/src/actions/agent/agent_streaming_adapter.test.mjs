@@ -2271,13 +2271,27 @@ describe('CodexStreamingAdapter', () => {
         expect(events).toContainEqual({ content: 'initialize failed', type: 'fatal' });
     });
 
-    it('reports server and turn request errors as fatal', async () => {
+    it('keeps an initialized session available when a turn start request is rejected', async () => {
+        const { adapter, events, writes } = harness('codex');
+        await adapter.start('plan');
+        await adapter.handleMessage({ id: 1, result: {} });
+        await adapter.handleMessage({ id: 3, result: { thread: { id: 'thread-1' } } });
+        const turnRequest = writes.find(({ method }) => method === 'turn/start');
+        await adapter.handleMessage({ id: turnRequest.id, error: { message: 'Turn rejected' } });
+        await adapter.sendMessage('try again');
+
+        expect(events).toContainEqual({ content: 'Turn rejected', type: 'error' });
+        expect(events.some(({ type }) => type === 'fatal')).toBe(false);
+        expect(writes.filter(({ method }) => method === 'turn/start')).toHaveLength(2);
+    });
+
+    it('reports server and turn request errors without declaring the session fatal', async () => {
         const serverError = harness('codex');
         await serverError.adapter.handleMessage({ method: 'error', params: { error: { message: 'server failed' } } });
         const requestError = harness('codex');
         await requestError.adapter.handleMessage({ error: { message: 'turn failed' }, id: 99 });
 
-        expect(serverError.events).toContainEqual({ content: 'server failed', type: 'fatal' });
-        expect(requestError.events).toContainEqual({ content: 'turn failed', type: 'fatal' });
+        expect(serverError.events).toContainEqual({ content: 'server failed', type: 'error' });
+        expect(requestError.events).toContainEqual({ content: 'turn failed', type: 'error' });
     });
 });

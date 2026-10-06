@@ -15,6 +15,18 @@ Know what AI-assisted work costs by agent, action, feature, and release. Stats c
 | [Open your first project](getting-started/first-project.md) | Local folder, GitHub repository, or a remote desktop app |
 | [Your first card](getting-started/your-first-card.md) | Create a card, add an action, run an agent on it |
 
+## Tutorials
+
+Step-by-step walkthroughs of one workflow each. They link to the reference pages for details.
+
+| Tutorial | What it covers |
+| --- | --- |
+| [Getting started](tutorials/getting-started.md) | Install, first run, GitHub token, open a project, special folders, `md2.config.json` |
+| [Working with cards](tutorials/working-with-cards.md) | The standard process from idea to release, editor features, actions, conversations, reviewing results |
+| [Git worktrees](tutorials/git-worktrees.md) | Set up worktrees, assign them to cards, commit, merge back, resolve merge conflicts with an agent |
+| [Sequencing and scheduling cards](tutorials/sequencing-and-scheduling.md) | Card order, state triggers, chains, schedules, card sequences |
+| [Working with diagrams](tutorials/working-with-diagrams.md) | Render diagrams from code, drill down, create, edit and review, implement diagram changes |
+
 ## Concepts
 
 | Page | What it covers |
@@ -35,7 +47,7 @@ Know what AI-assisted work costs by agent, action, feature, and release. Stats c
 | [Stats](guide/stats.md) | Compare activity, agents, models, tokens, account usage, and estimated cost |
 | [Search](guide/search.md) | Text and RegExp search, scopes, results |
 | [Git and commits](guide/git-and-commits.md) | Auto-save, commit, push, pull, per-card commit diffs |
-| [Worktrees](guide/worktrees.md) | Register worktrees, assign to cards, commit and integrate |
+| [Worktrees](guide/worktrees.md) | Register worktrees, assign to cards, commit, integrate, resolve merge conflicts |
 | [Remote control](guide/remote-control.md) | Drive the desktop app from a phone, and its security limits |
 | [Configuration](guide/configuration.md) | Every setting, and where it is stored |
 
@@ -44,8 +56,8 @@ Know what AI-assisted work costs by agent, action, feature, and release. Stats c
 | Page | What it covers |
 | --- | --- |
 | [Action definition](actions/action-definition.md) | Every field, `appliesTo` filters, validation rules |
-| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`{% endraw %} |
-| [Running actions](actions/running-actions.md) | Entry points, popup, conversations, chains, state triggers, scheduling |
+| [Placeholders](actions/placeholders.md) | {% raw %}`{{card-file}}`, `{{card-prompt}}`, `{{card-title}}`, `{{worktree-folder}}`, `{{repository-folder}}`, `{{project-folder}}`, `{{releases-folder}}`, diagram and conflict placeholders{% endraw %} |
+| [Running actions](actions/running-actions.md) | Entry points, popup, conversations, chains, state triggers, scheduling, card sequences |
 | [Agent setup](actions/agent-setup.md) | Profiles, models, reasoning levels, conversation logs |
 | [Cookbook](actions/cookbook.md) | Copy-paste action definitions |
 

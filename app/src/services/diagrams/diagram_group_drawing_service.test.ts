@@ -47,7 +47,7 @@ describe('DiagramGroupDrawingService', () => {
         expect(drawing.updateDrawing({ x: 31, y: 22 })).toBe(true)
         expect(drawing.getPreviewSnapshot()).toEqual({ height: 76, width: 72, x: 32, y: 24 })
         expect(session.getTransientGestureSnapshot()).toBe('group')
-        expect(drawing.finishDrawing({ x: 31, y: 22 })).toBe(true)
+        expect(drawing.finishDrawing({ x: 31, y: 22 }, true)).toBe(true)
         expect(session.getGroupIdsSnapshot()).toEqual([])
         expect(drawing.getPendingLabelBoxSnapshot()).toEqual({ height: 76, width: 72, x: 32, y: 24 })
 
@@ -61,11 +61,40 @@ describe('DiagramGroupDrawingService', () => {
         expect(drawing.getPreviewSnapshot()).toBeNull()
     })
 
+    it('returns to Select and keeps the group selected when drawn without continuous add', () => {
+        const { drawing, selection, session } = createHarness()
+        drawing.activate()
+        drawing.beginDrawing({ x: 20, y: 20 })
+        drawing.finishDrawing({ x: 100, y: 100 }, false)
+
+        expect(session.getActiveToolSnapshot()).toBe('group')
+        expect(drawing.completeGroup('Platform')).toBe('group-1')
+
+        expect(session.getActiveToolSnapshot()).toBe('select')
+        expect(session.getLastSelectedCreationToolSnapshot()).toBe('group')
+        expect(selection.getSelectionSnapshot()).toEqual([{ objectId: 'group-1', objectKind: 'group' }])
+    })
+
+    it('keeps the group tool active when a create is rejected or the label is cancelled', () => {
+        const { drawing, session } = createHarness()
+        drawing.activate()
+        drawing.beginDrawing({ x: 20, y: 20 })
+        drawing.finishDrawing({ x: 100, y: 100 }, false)
+        const createGroup = vi.spyOn(session, 'createGroup').mockReturnValue(null)
+
+        expect(drawing.completeGroup('Platform')).toBeNull()
+        expect(session.getActiveToolSnapshot()).toBe('group')
+
+        createGroup.mockRestore()
+        expect(drawing.cancelDrawing()).toBe(true)
+        expect(session.getActiveToolSnapshot()).toBe('group')
+    })
+
     it('uses group minima for a click-sized rectangle and requires a non-empty label', () => {
         const { drawing, session } = createHarness()
         drawing.activate()
         drawing.beginDrawing({ x: 10, y: 10 })
-        drawing.finishDrawing({ x: 10, y: 10 })
+        drawing.finishDrawing({ x: 10, y: 10 }, true)
 
         expect(drawing.getPendingLabelBoxSnapshot()).toEqual({ height: 56, width: 48, x: 12, y: 12 })
         expect(() => drawing.completeGroup('  ')).toThrow('Diagram group label is required')
@@ -83,7 +112,7 @@ describe('DiagramGroupDrawingService', () => {
 
         drawing.activate()
         drawing.beginDrawing({ x: 20, y: 20 })
-        drawing.finishDrawing({ x: 100, y: 100 })
+        drawing.finishDrawing({ x: 100, y: 100 }, true)
         expect(drawing.cancelDrawing()).toBe(true)
         expect(session.getGroupIdsSnapshot()).toEqual([])
         expect(drawing.getPendingLabelBoxSnapshot()).toBeNull()

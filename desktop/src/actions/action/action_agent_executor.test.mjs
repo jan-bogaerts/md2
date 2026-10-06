@@ -74,6 +74,33 @@ function executionInput(overrides = {}) {
 }
 
 describe('ActionAgentExecutor', () => {
+    it.each(['codex', 'claude'])('resumes %s solely to compact without prompt, transcript replay, or card references', async (provider) => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        localGitService.loadAgentConversation.mockResolvedValue(conversation({
+            actionId: action.id,
+            providerSessions: [{ agent: provider, conversationId: 'provider-session', synchronizedThroughMessageId: 'm1' }],
+        }));
+        const input = executionInput({
+            compactOnly: true,
+            runInput: { agent: provider, conversationId: 'conversation-1', continueFrom: 'activity.json#conversation=conversation-1' },
+        });
+        await executor.execute(input);
+        const started = agentRunnerService.start.mock.calls[0][1];
+        expect(started).toMatchObject({ compactOnly: true, providerConversationId: 'provider-session', streaming: true });
+        expect(started).not.toHaveProperty('prompt');
+        expect(started).not.toHaveProperty('contextInput');
+        expect(started.conversation.id).toBe('conversation-1');
+        expect(localGitService.loadFile).not.toHaveBeenCalled();
+        if (provider === 'claude') expect(started.command).toContain('provider-session');
+    });
+
+    it('fails compact startup for missing session instead of replaying transcript into a new session', async () => {
+        const { agentRunnerService, executor, localGitService } = createExecutor();
+        localGitService.loadAgentConversation.mockResolvedValue(conversation({ actionId: action.id }));
+        await expect(executor.execute(executionInput({compactOnly: true, runInput: { agent: 'codex', conversationId: 'conversation-1', continueFrom: 'activity.json' }}))).rejects.toThrow('Missing provider session for compact');
+        expect(agentRunnerService.start).not.toHaveBeenCalled();
+    });
+
     it('resolves version in definition and edited popup prompts', async () => {
         const { agentRunnerService, executor } = createExecutor();
         await executor.execute(executionInput({ action: { ...action, prompt: 'Ship {{version}} twice {{version}}' }, version: 'candidate 2' }));

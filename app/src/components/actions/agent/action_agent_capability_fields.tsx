@@ -137,7 +137,7 @@ export function ActionAgentCapabilityFields(props: ActionAgentCapabilityFieldsPr
             sx={{ bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}
         >
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <ActionSectionLabel component="h3" id="action-agent-override-heading">Agent override</ActionSectionLabel>
+                <ActionSectionLabel component="h4" id="action-agent-override-heading">Agent override</ActionSectionLabel>
                 <Button disabled={!selectedProfile || models.loading} onClick={models.refresh} size="small">Refresh models</Button>
             </Stack>
             <Stack direction={{ md: 'row', xs: 'column' }} spacing={1}>

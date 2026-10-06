@@ -476,4 +476,20 @@ describe('CommitBatcher', () => {
         expect(commit).not.toHaveBeenCalled()
         vi.useRealTimers()
     })
+
+    it('discards one queued action by ID and keeps unrelated changes queued', async () => {
+        const commit = vi.fn<CommitCallback>(async () => undefined)
+        const batcher = createBatcher(commit)
+        batcher.schedule('main', [
+            { actionId: 'deleted', content: 'new', kind: 'action', path: 'actions/new.json', sourcePath: 'actions/new.json' },
+            { content: 'other', kind: 'file', path: 'other.md' },
+        ], 'Save files')
+
+        batcher.discardPendingAction('deleted')
+
+        expect(batcher.hasPendingAction('deleted')).toBe(false)
+        expect(batcher.hasPendingFile('other.md')).toBe(true)
+        await batcher.flush()
+        expect(commit.mock.calls[0][0].files).toEqual([{ content: 'other', path: 'other.md' }])
+    })
 })

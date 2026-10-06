@@ -1,72 +1,12 @@
-import { useEffect, useMemo } from 'react'
-import { actionContextIdentity } from '../../../../data/action_context'
-import {
-    actionRunSettingsService,
-} from '../../../../services/actions/action_run_settings_service'
-import { AgentAction } from './agent_action'
-import { ActionPopupFrame } from './action_popup_frame'
-import { CommandAction } from './command_action'
-import { createActionPopupBindings, worktreeValidationMessage } from './action_popup_runtime'
-import type { ActionPopupContentProps, ActionPopupRuntime } from './action_popup_types'
+import { actionContextIdentity } from '../../../../data/action_context';
+import { ActionPopupSession } from './action_popup_session';
+import type { ActionPopupContentProps } from './action_popup_types';
 
-export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_frame'
+export { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_frame';
 
-/** Selects the action-specific popup content while preserving its runtime for the selected action. */
+/** Keep popup stores alive across assignment changes for the same action and canonical context. */
 export function ActionPopupContent(props: ActionPopupContentProps) {
-    const { action, assignmentContext, initialConversationPath, initialRunId } = props
-    const settingsContextIdentity = actionContextIdentity(assignmentContext)
-    const settingsStore = useMemo(
-        () => assignmentContext.cardInternalId
-            ? actionRunSettingsService.getCardStore(assignmentContext.cardInternalId, action.id)
-            : actionRunSettingsService.getSessionStore(action.id, settingsContextIdentity, assignmentContext.kind),
-        [action.id, assignmentContext.cardInternalId, assignmentContext.kind, settingsContextIdentity],
-    )
-    const bindings = useMemo(
-        () => createActionPopupBindings(action, assignmentContext, initialRunId, initialConversationPath),
-        [action, assignmentContext, initialConversationPath, initialRunId],
-    )
-    useEffect(() => {
-        bindings.usageValuesService.start()
+    const identity = `${props.action.id}\u0000${actionContextIdentity(props.assignmentContext)}`;
 
-        return () => {
-            bindings.usageValuesService.stop()
-            bindings.bindingStore.dispose()
-            bindings.conversationStore.dispose()
-        }
-    }, [bindings])
-    const runtime: ActionPopupRuntime = {
-        ...bindings,
-        runValidationError: worktreeValidationMessage(action, assignmentContext),
-        settingsStore,
-    }
-
-    return (
-        <ActionPopupFrame
-            bindingStore={bindings.bindingStore}
-            contentProps={props}
-            conversationSearchService={bindings.conversationSearchService}
-            conversationStore={bindings.conversationStore}
-        >
-            {action.type === 'agent'
-                ? (
-                    <AgentAction
-                        action={action}
-                        assignmentContext={assignmentContext}
-                        baseContext={props.baseContext}
-                        popupEntryId={props.popupEntryId}
-                        popupVisible={props.popupVisible}
-                        readOnlyMessage={props.readOnlyMessage}
-                        runtime={runtime}
-                    />
-                ) : (
-                    <CommandAction
-                        action={action}
-                        assignmentContext={assignmentContext}
-                        baseContext={props.baseContext}
-                        readOnlyMessage={props.readOnlyMessage}
-                        runtime={runtime}
-                    />
-                )}
-        </ActionPopupFrame>
-    )
+    return <ActionPopupSession key={identity} {...props} />;
 }

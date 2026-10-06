@@ -73,7 +73,7 @@ export function ActionOrderedCollection<Item>(props: ActionOrderedCollectionProp
 
     return (
         <Stack spacing={1}>
-            <ActionSectionLabel>{label}</ActionSectionLabel>
+            <ActionSectionLabel component="h4">{label}</ActionSectionLabel>
             {showSectionError ? <FormHelperText error>{error}</FormHelperText> : null}
             {items.length === 0 && emptyText ? <Typography color="custom.text4" variant="caption">{emptyText}</Typography> : null}
             {items.map((item, index) => {

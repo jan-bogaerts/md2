@@ -320,7 +320,7 @@ function bucketRows(
     bucketSamples: EligibleSample[],
 ): StatsChartRow[] {
     if (bucketSamples.length === 0) {
-        return [emptyTimeRow(context, controls.performanceGranularity, 'primary', controls.performanceMetric, unit)];
+        return [emptyTimeRow(context, controls.granularity, 'primary', controls.performanceMetric, unit)];
     }
     const groups = new Map<string, EligibleSample[]>();
     for (const sample of bucketSamples) {
@@ -338,10 +338,10 @@ function bucketRows(
 /** Aggregated agent or model performance per UTC bucket, grouped from one bucket index. */
 export function performanceRows(controls: StatsControls, samples: EligibleSample[]): StatsChartRow[] {
     const entityFiltered = samples.filter((sample) => matchesEntityFilters(sample, controls));
-    const buckets = bucketDomain(entityFiltered.map(({ completedAt }) => completedAt), controls.performanceGranularity, controls);
-    const contexts = bucketContexts(buckets, controls.performanceGranularity);
+    const buckets = bucketDomain(entityFiltered.map(({ completedAt }) => completedAt), controls.granularity, controls);
+    const contexts = bucketContexts(buckets, controls.granularity);
     const unit = performanceUnit(controls.performanceMetric);
-    const samplesByBucket = indexByBucket(entityFiltered, controls.performanceGranularity, ({ completedAt }) => completedAt);
+    const samplesByBucket = indexByBucket(entityFiltered, controls.granularity, ({ completedAt }) => completedAt);
 
     return contexts.flatMap((context) => bucketRows(context, controls, unit, samplesByBucket.get(context.start) ?? []));
 }

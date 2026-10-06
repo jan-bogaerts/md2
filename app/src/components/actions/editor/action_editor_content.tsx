@@ -37,10 +37,10 @@ export function ActionEditorContent(props: ActionEditorContentProps) {
     }, [action.id])
     const draft = actionService.draftStore.getDraft(action.id)
     const { conflict, definition, deleted, error: saveError, saving, validation } = draft
-    const activeTab = (actionService.getActionById(action.id) ?? action).editorState?.selectedTab ?? ACTION_DEFINITION_TAB
+    const activeTab = (actionService.getEditableActionById(action.id) ?? action).editorState?.selectedTab ?? ACTION_DEFINITION_TAB
     const openDocument = openFilesService.findDocument(action)
-    const canRetry = !!saveError && validation.valid && !!openDocument?.dirty && !conflict && !saving
-    const status = saveError ? 'Save failed. Retry to save changes.' : validation.valid ? null : 'Fix validation errors to save.'
+    const canRetry = !!saveError && !!openDocument?.dirty && !conflict && !saving
+    const status = saveError ? 'Save failed. Retry to save changes.' : validation.valid ? null : 'Saved action cannot run until validation errors are fixed.'
     const showActionContent = definition.type !== 'agent' || activeTab === ACTION_DEFINITION_TAB || !!saveError || deleted || !!conflict
     const worktrees = useWorktrees()
 

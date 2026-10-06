@@ -209,6 +209,28 @@ export class CommitBatcher extends EventTarget {
         this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
     }
 
+    hasPendingAction(actionId: string) {
+        return this.pendingChanges.has(`action:${actionId}`)
+    }
+
+    discardPendingAction(actionId: string) {
+        if (!this.pendingChanges.delete(`action:${actionId}`)) return
+        if (this.pendingChanges.size === 0) {
+            this.pendingBranch = null
+            this.clearScheduledDelay()
+        }
+        this.dispatchEvent(new Event(COMMIT_BATCHER_PENDING_CHANGED_EVENT))
+    }
+
+    /** Waits for an in-flight write; deletion then checks whether it persisted or returned to pending. */
+    async settleActiveFlush() {
+        try {
+            if (this.activeFlush) await this.activeFlush
+        } catch {
+            // Failed writes return to pending; a failed push leaves the write persisted.
+        }
+    }
+
     async flush() {
         const currentFlush = this.activeFlush
         if (currentFlush) await currentFlush

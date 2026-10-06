@@ -5,6 +5,7 @@ import {
     type StatsDatasetSource,
     type StatsOptions,
     type StatsReleaseOption,
+    type StatsReleaseSelection,
 } from './project_stats_types';
 import { accountSeriesIdentity, modelIdentity } from './stats_identities';
 
@@ -27,7 +28,7 @@ export function buildReleaseOptions(source: LoadedStatsSource): StatsReleaseOpti
     return [{ identity: CURRENT_RELEASE_IDENTITY, label: 'Current release', releaseName: null }, ...completedReleases];
 }
 
-/** Derives entity and account-series catalogs from selected release plus release choices. */
+/** Derives entity and account-series catalogs from selected releases plus release choices. */
 export function buildOptions(source: StatsDatasetSource, releases: StatsReleaseOption[]): StatsOptions {
     const attributed = source.stats.conversations.filter(({ agent, isRootConversation, model }) => isRootConversation && agent && model);
     const actions = optionList([
@@ -53,12 +54,17 @@ function retainValidSelections(selected: string[], available: Set<string>) {
     return selected.filter((identity) => available.has(identity));
 }
 
+export function reconcileReleaseSelection(selection: StatsReleaseSelection, releases: StatsReleaseOption[]): StatsReleaseSelection {
+    if (selection.mode === 'all') return selection;
+    const identities = retainValidSelections(selection.identities, new Set(releases.map(({ identity }) => identity)));
+    return {
+        mode: 'selected',
+        identities: selection.identities.length > 0 && identities.length === 0 ? [CURRENT_RELEASE_IDENTITY] : identities,
+    };
+}
+
 /** Drops entity selections that the freshly loaded source no longer offers. */
 export function reconcileControls(controls: StatsControls, options: StatsOptions): StatsControls {
-    const releaseIdentity = options.releases.some(({ identity }) => identity === controls.releaseIdentity)
-        ? controls.releaseIdentity
-        : CURRENT_RELEASE_IDENTITY;
-
     return {
         ...controls,
         performanceActionIds: retainValidSelections(
@@ -67,6 +73,6 @@ export function reconcileControls(controls: StatsControls, options: StatsOptions
         ),
         performanceAgentIds: retainValidSelections(controls.performanceAgentIds, new Set(options.agents.map(({ identity }) => identity))),
         performanceModelIds: retainValidSelections(controls.performanceModelIds, new Set(options.models.map(({ identity }) => identity))),
-        releaseIdentity,
+        releaseSelection: reconcileReleaseSelection(controls.releaseSelection, options.releases),
     };
 }

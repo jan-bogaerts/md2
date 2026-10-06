@@ -41,7 +41,7 @@ export interface OpenFilesSnapshot {
 }
 
 interface OpenFilesDependencies {
-    actionService: EventTarget & Pick<import('./actions/action_service').ActionService, 'getActions' | 'draftStore'>
+    actionService: EventTarget & Pick<import('./actions/action_service').ActionService, 'getEditableActions' | 'draftStore'>
     agentInstructionsService?: EventTarget & Pick<import('./agent_instructions/agent_instructions_service').AgentInstructionsService, 'getSnapshot'>
     dataService: EventTarget & Pick<import('./data/data_service').DataService, 'getState'>
 }
@@ -198,6 +198,21 @@ export class OpenFilesService extends EventTarget {
         this.update({ ...this.snapshot, activeDocument: document })
     }
 
+    /** Activates the neighbouring list tab, wrapping around at both ends. */
+    activateAdjacentDocument(offset: 1 | -1) {
+        const { activeDocument, documents } = this.snapshot
+        const { length } = documents
+        if (length === 0) return
+
+        if (activeDocument === null) {
+            this.activateDocument(offset === 1 ? documents[0] : documents[length - 1])
+            return
+        }
+
+        const index = documents.indexOf(activeDocument)
+        this.activateDocument(documents[(index + offset + length) % length])
+    }
+
     closeDocument(document: OpenDocument) {
         const index = this.snapshot.documents.indexOf(document)
         if (index === -1) return
@@ -277,7 +292,7 @@ export class OpenFilesService extends EventTarget {
     private currentObjects() {
         if (!this.actionService || !this.dataService) throw new Error('Open files service is not initialized')
         const { snapshot } = this.dataService.getState()
-        const actions = [...this.actionService.getActions(), ...this.actionService.draftStore.getDeletedDraftActions()]
+        const actions = [...this.actionService.getEditableActions(), ...this.actionService.draftStore.getDeletedDraftActions()]
 
         const instructions = this.agentInstructionsService?.getSnapshot().files ?? []
 

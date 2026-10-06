@@ -9,6 +9,7 @@ import type { MarkdownToolbarContext } from '../editor/toolbar/markdown_toolbar_
 import { ListEditorToolbarControls } from './list_editor_toolbar_controls'
 import { useProjectReadOnly } from '../hooks/use_project_read_only'
 import { attachFilesToCardMarkdown } from '../../services/attachments/attachment_workflow'
+import { resolveCardImageSource } from '../../services/attachments/card_image_source'
 
 interface CardEditorProps {
     cardTypes: CardTypeConfig[]
@@ -29,6 +30,12 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
         if (!card) throw new Error('Cannot attach files without an active list card')
 
         return attachFilesToCardMarkdown(card.path, files, insertMarkdown)
+    }, [])
+    const handleImagePreview = useCallback(async (src: string) => {
+        const card = cardMarkdownDataSource.getActiveCard('list-card')
+        if (!card) return src
+
+        return resolveCardImageSource(card.path, src)
     }, [])
 
     useEffect(() => {
@@ -64,6 +71,7 @@ export const CardEditor = memo(function CardEditor(props: CardEditorProps) {
                     dataSource={cardMarkdownDataSource}
                     historyStore={historyStore}
                     imagePasteHandler={handleImagePaste}
+                    imagePreviewHandler={handleImagePreview}
                     readOnly={readOnly}
                     toolbarContents={toolbarContents}
                 />

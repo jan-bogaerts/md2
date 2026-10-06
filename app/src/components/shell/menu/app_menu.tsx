@@ -210,6 +210,7 @@ export function AppMenu(props: AppMenuProps) {
     useEffect(() => {
         return keyboardShortcutService.register({
             alt: false,
+            ctrl: false,
             id: 'commit',
             key: 's',
             mod: true,

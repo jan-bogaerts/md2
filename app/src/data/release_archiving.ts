@@ -160,6 +160,7 @@ export function buildReleaseMoves(
     safeReleaseName: string,
     repositoryFiles: string[] = [],
     activityFiles: MarkdownFile[] = [],
+    missingImagePaths: string[] = [],
 ): MoveFile[] {
     const normalizedProjectFolder = normalizePath(projectFolder).replace(/\/+$/u, '')
     const normalizedReleasesFolder = normalizePath(releasesFolder).replace(/\/+$/u, '')
@@ -181,7 +182,7 @@ export function buildReleaseMoves(
 
     if (hasExistingReleaseFolder) throw new Error(`Release already exists: ${safeReleaseName}`)
 
-    const moves = buildCardArchiveMoves(files, activeCards, targetFolder, repositoryFiles)
+    const moves = buildCardArchiveMoves(files, activeCards, targetFolder, repositoryFiles, missingImagePaths);
     const repositoryPaths = new Set(repositoryFiles.map(normalizePath))
     const activityFilesByPath = new Map(activityFiles.map((file) => [normalizePath(file.path), file]))
     const targetPaths = new Set(moves.map((move) => normalizePath(move.toPath)))
@@ -229,13 +230,15 @@ export function buildCardArchiveMoves(
     archivedCards: Card[],
     targetFolder: string,
     repositoryFiles: string[] = [],
+    omittedAssetPaths: string[] = [],
 ): MoveFile[] {
     const existingPaths = new Set([
         ...files.map((file) => normalizePath(file.path)),
         ...repositoryFiles.map(normalizePath),
     ])
     const filesByPath = new Map(files.map((file) => [normalizePath(file.path), file]))
-    const archiveAssetPaths = new Set(findArchiveAssetPaths(files, archivedCards))
+    const omittedPaths = new Set(omittedAssetPaths.map(normalizePath));
+    const archiveAssetPaths = new Set(findArchiveAssetPaths(files, archivedCards).filter((path) => !omittedPaths.has(path)));
     const archivedAssetTargets = new Map<string, string>()
     const moveTargetPaths = new Set<string>()
     const moves: MoveFile[] = []

@@ -55,7 +55,7 @@ function resolveActivityPath(rootPath, projectFolder, origin) {
 async function readStoredActivity(filePath) {
     const unwritten = unwrittenActivityValues.get(filePath);
     if (unwritten) return { value: unwritten };
-    if (!await pathExists(filePath)) return { value: null };
+    if (!await pathExists(filePath)) return { missing: true, value: null };
     const value = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
 
     return { value };
@@ -77,7 +77,14 @@ async function loadActivityValue(filePath, origin) {
 }
 
 async function readActivityFile(filePath, origin) {
-    return activityValue(await readStoredActivity(filePath, origin), origin);
+    const stored = await readStoredActivity(filePath);
+    if (stored.missing) {
+        if (origin === undefined) throw new Error(`Missing referenced activity file: ${filePath}`);
+
+        return createActivityFile(origin);
+    }
+
+    return parseActivityValueForMigration(stored.value, origin);
 }
 
 function delay(milliseconds) {

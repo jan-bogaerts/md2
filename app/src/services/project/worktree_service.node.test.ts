@@ -266,6 +266,49 @@ describe('WorktreeService', () => {
         await expect(service.selectDraftAddition()).rejects.toThrow('Folder is already pending addition')
     })
 
+    it('keeps assignment snapshot stable during Git status polling without assignment notifications', () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        initService(service, storage);
+        emit(project, [first]);
+        const assignment = service.getAssignmentSnapshot();
+        const assignmentChanged = vi.fn();
+        const statusChanged = vi.fn();
+        service.addEventListener('assignmentChanged', assignmentChanged);
+        service.addEventListener('changed', statusChanged);
+
+        emit(project, [{ ...first, status: { ...first.status, dirty: true, baseAhead: 2 } }]);
+
+        expect(service.getAssignmentSnapshot()).toBe(assignment);
+        expect(assignmentChanged).not.toHaveBeenCalled();
+        expect(statusChanged).toHaveBeenCalledOnce();
+        expect(service.getRecords()[0].status).toMatchObject({ dirty: true, baseAhead: 2 });
+    });
+
+    it('announces actual assignment changes before a later configuration operation fails', async () => {
+        const { emit, storage } = createStorage();
+        const service = new WorktreeService();
+        initService(service, storage);
+        emit(project, [first, second]);
+        service.startDraft();
+        service.stageDraftRemoval(first.path);
+        service.stageDraftRemoval(second.path);
+        const assignments: string[] = [];
+        const initialAssignment = service.getAssignmentSnapshot();
+        service.addEventListener('assignmentChanged', () => assignments.push(service.getAssignmentSnapshot()));
+        storage.removeWorktree = vi.fn(async (_project, path) => {
+            if (path === second.path) throw new Error('second removal failed');
+            emit(project, [second]);
+        });
+
+        await expect(service.applyDraft()).rejects.toThrow('second removal failed');
+
+        expect(assignments.length).toBeGreaterThan(0);
+        expect(assignments[0]).not.toBe(initialAssignment);
+        expect(service.getAssignmentState({ branch: second.branch, worktree: 2 }).index).toBe(1);
+        expect(service.getAssignmentState({ branch: first.branch, worktree: 1 }).error).not.toBeNull();
+    });
+
     it('applies removals before additions and clears completed draft items', async () => {
         const { emit, storage } = createStorage()
         const service = new WorktreeService()
@@ -459,6 +502,7 @@ describe('WorktreeService', () => {
         const { emit, storage } = createStorage()
         storage.integrateWorktree = vi.fn(async () => ({
             session: {
+                branch: 'feature',
                 conflictedPaths: ['src/file.ts'], externalResolverConfigured: false, id: 'session-1',
                 operation: 'integrate' as const, phase: 'rebase' as const, repositoryRoot: 'C:/feature', worktree: 1,
             },
