@@ -1,7 +1,6 @@
 import type { ActionContext } from '../../../../data/action_context'
 import type { AgentQuestion } from '../../../../data/data_types'
 import type { ActionDefinition } from '../../../../data/action_types'
-import { getElectronActionBridge } from '../../../../data/electron_action_bridge'
 import { generateUuid } from '../../../../data/uuid'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
@@ -30,13 +29,6 @@ import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 
 const DEFAULT_CONVERT_LABEL_LENGTH = 40
-
-async function enqueueActionPrompt(runId: string, content: string, submissionId: string) {
-    const bridge = getElectronActionBridge()
-    if (!bridge?.enqueueActionPrompt) throw new Error('Agent prompt queue requires Electron')
-
-    return bridge.enqueueActionPrompt(runId, content, submissionId)
-}
 
 export interface ActionPopupOperationInput {
     action: ActionDefinition
@@ -130,7 +122,6 @@ async function runWithPrompt(
                 currentActionPromptDraft(action, context, bindingStore, conversationStore, false)
                     .replace(action.command ?? '')
             }
-            if (submissionId) conversationStore.bindSubmission(submissionId, runId)
             const selectionUnchanged = bindingStore.getSnapshot() === selectedRunId
                 && (conversationStore.getSnapshot().selectedConversation?.id ?? null) === selectedConversationId
             if (selectionUnchanged) {
@@ -149,11 +140,11 @@ async function runWithPrompt(
         }
         if (submissionId && result.status === 'failed') {
             const failureMessage = result.logs.find((log) => log.status === 'failed')?.message ?? 'Action run failed'
-            conversationStore.failSubmission(submissionId, failureMessage)
+            actionRunRegistry.failSubmission(submissionId, failureMessage)
         }
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Action run failed'
-        if (submissionId && !started) conversationStore.failSubmission(submissionId, message)
+        if (submissionId && !started) actionRunRegistry.failSubmission(submissionId, message)
         resultStore.setResult({
             changedPaths: [],
             logs: [{
@@ -191,7 +182,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
         ) {
             const conversationId = run.conversation?.id ?? conversationStore.getSnapshot().selectedConversation?.id
             if (!conversationId) throw new Error('Restart requires a conversation ID')
-            const submissionId = conversationStore.beginSubmission(prompt, null, conversationId)
+            const submissionId = actionRunRegistry.beginSubmission(action.id, context, prompt, null, conversationId)
             const diagramPath = promptDraft.getDiagramPath()
             promptDraft.clearForSend()
             await runWithPrompt(input, prompt, run.runId, submissionId, diagramPath, conversationId)
@@ -202,15 +193,9 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
             if (!run.activeActionId) throw new Error('Action run has no active agent')
             if (prompt.trim().length === 0) throw new Error('Queued agent prompt is empty')
 
-            submissionId = conversationStore.beginSubmission(prompt, run.runId)
+            submissionId = actionRunRegistry.beginSubmission(action.id, context, prompt, run.runId, run.conversation?.id ?? null)
             promptDraft.clearForSend()
-            try {
-                const queuedPrompt = await enqueueActionPrompt(run.runId, prompt, submissionId)
-                conversationStore.acceptSubmission(submissionId, queuedPrompt)
-            } catch (error) {
-                conversationStore.failSubmission(submissionId, error instanceof Error ? error.message : 'Could not send agent message')
-                throw error
-            }
+            await actionRunRegistry.enqueueSubmission(submissionId)
         } catch (error) {
             if (!submissionId) dialogService.error(error, { fallbackMessage: 'Could not send agent message' })
         }
@@ -221,7 +206,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
         ? conversationStore.getSnapshot().selectedConversation?.id ?? run?.conversation?.id ?? `agent-${generateUuid()}`
         : null
     const submissionId = action.type === 'agent' && prompt.trim().length > 0 && conversationId
-        ? conversationStore.beginSubmission(prompt, null, conversationId)
+        ? actionRunRegistry.beginSubmission(action.id, context, prompt, null, conversationId)
         : null
     const diagramPath = promptDraft.getDiagramPath()
     if (submissionId) promptDraft.clearForSend()

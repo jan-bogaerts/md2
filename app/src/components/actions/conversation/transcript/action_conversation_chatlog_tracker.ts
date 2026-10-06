@@ -5,13 +5,13 @@ import {
     type ActionConversationChange,
     type ActionRun,
     type ActionRunRegistry,
+    type PendingActionSubmission,
 } from '../../../../services/actions/action_run_registry'
 import type { PopupRunStatus } from '../../run/popup/action_popup_defaults'
 import type { ActionRunBindingStore } from '../../run/state/action_run_binding_store'
 import {
     resolveDisplayedConversation,
     type ActionConversationStore,
-    type PendingActionSubmission,
 } from '../state/action_conversation_store'
 import { buildActionConversationRenderGroups, type ActionConversationRenderGroup } from './action_conversation_render_groups'
 import {
@@ -34,6 +34,8 @@ const EMPTY_QUEUED_PROMPTS: ActionQueuedPrompt[] = []
 interface RunRegistryBoundary {
     getRunStore(runId: string): ReturnType<ActionRunRegistry['getRunStore']>
     subscribeRun(runId: string, listener: () => void): () => void
+    subscribeSubmissions: ActionRunRegistry['subscribeSubmissions'];
+    getVisibleSubmissions: ActionRunRegistry['getVisibleSubmissions'];
 }
 
 function runIsActive(status: PopupRunStatus) {
@@ -236,7 +238,9 @@ export class ActionConversationChatlogTracker extends EventTarget {
         try {
             this.unsubscribeBinding = this.bindingStore.subscribe(this.handleBindingChange)
             this.unsubscribeConversation = this.conversationStore.subscribe(this.handleConversationStoreChange)
-            this.unsubscribeSubmissions = this.conversationStore.subscribeSubmissions(this.handleSubmissionChange)
+            this.unsubscribeSubmissions = this.runRegistry.subscribeSubmissions(
+                this.conversationStore.actionId, this.conversationStore.context, this.handleSubmissionChange,
+            )
             this.bindRun()
             this.updateFromSources()
         } catch (error) {
@@ -345,7 +349,9 @@ export class ActionConversationChatlogTracker extends EventTarget {
         const runId = displayingLiveConversation ? run?.runId ?? null : null
         const change = displayingLiveConversation ? run?.conversationChange ?? null : null
 
-        const submissions = this.conversationStore.getVisibleSubmissions(conversation?.id ?? null, boundRunId)
+        const submissions = this.runRegistry.getVisibleSubmissions(
+            this.conversationStore.actionId, this.conversationStore.context, conversation?.id ?? null, boundRunId,
+        )
         const acceptedPrompts = submissions
             .filter((submission) => submission.state === 'queued'
                 && !!submission.prompt

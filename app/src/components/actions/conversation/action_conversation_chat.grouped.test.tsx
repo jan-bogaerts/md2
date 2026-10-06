@@ -140,15 +140,8 @@ function conversation(
 
 class TranscriptTestConversationStore extends EventTarget {
     private readonly snapshot = { conversations: [], loading: false, selectedConversation: null }
-    private readonly submissions: [] = []
-    private readonly submissionEvents = new EventTarget()
-    readonly getVisibleSubmissions = () => this.submissions;
-    readonly subscribeSubmissions = (listener: () => void) => {
-        this.submissionEvents.addEventListener('changed', listener)
-
-        return () => this.submissionEvents.removeEventListener('changed', listener)
-    }
-
+    readonly actionId = 'review';
+    readonly context = { kind: 'project' as const };
     readonly getSnapshot = () => this.snapshot
 
     readonly subscribe = (listener: () => void) => {
@@ -175,6 +168,16 @@ class TranscriptTestBindingStore {
 }
 
 class TranscriptTestRunRegistry {
+    private readonly submissions: [] = []
+    private readonly submissionEvents = new EventTarget()
+    readonly getVisibleSubmissions = () => this.submissions;
+    readonly subscribeSubmissions = (_actionId: string, _context: unknown, listener: () => void) => {
+        this.submissionEvents.addEventListener('changed', listener)
+
+        return () => this.submissionEvents.removeEventListener('changed', listener)
+    }
+
+
     private readonly listeners = new Set<() => void>()
     private snapshot: ActionRun
 

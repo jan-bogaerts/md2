@@ -4,7 +4,7 @@ import { useLayoutEffect, useState, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentConversation, AgentConversationEntry } from '../../../../data/data_types'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../../data/electron_action_bridge';
-import type { PendingActionSubmission } from '../state/action_conversation_store';
+import type { PendingActionSubmission } from '../../../../services/actions/action_run_registry';
 import type { ActionQueuedPrompt } from '../../../../data/action_run_types';
 import type { ActionRunEvent } from '../../../../data/action_run_types';
 import { generateUuid } from '../../../../data/uuid';
@@ -72,27 +72,14 @@ function conversation(entries: AgentConversationEntry[]): AgentConversation {
 
 class TranscriptTestConversationStore extends EventTarget {
     private snapshot = { conversations: [] as AgentConversation[], loading: false, selectedConversation: null as AgentConversation | null }
-    private submissions: PendingActionSubmission[] = [];
-    private readonly submissionEvents = new EventTarget()
-    readonly getSubmissions = () => this.submissions
-    readonly getVisibleSubmissions = () => this.submissions
-    readonly subscribeSubmissions = (listener: () => void) => {
-        this.submissionEvents.addEventListener('changed', listener)
-
-        return () => this.submissionEvents.removeEventListener('changed', listener)
-    }
-
+    readonly actionId = 'review';
+    readonly context = { kind: 'project' as const };
     readonly getSnapshot = () => this.snapshot
 
     readonly subscribe = (listener: () => void) => {
         this.addEventListener('changed', listener)
 
         return () => this.removeEventListener('changed', listener)
-    }
-
-    setSubmissions(submissions: PendingActionSubmission[]) {
-        this.submissions = submissions;
-        this.submissionEvents.dispatchEvent(new Event('changed'));
     }
 
     select(selectedConversation: AgentConversation | null) {
@@ -118,6 +105,23 @@ class TranscriptTestBindingStore {
 }
 
 class TranscriptTestRunRegistry {
+    private submissions: PendingActionSubmission[] = [];
+    private readonly submissionEvents = new EventTarget()
+    readonly getSubmissions = () => this.submissions
+    readonly getVisibleSubmissions = () => this.submissions
+    readonly subscribeSubmissions = (_actionId: string, _context: unknown, listener: () => void) => {
+        this.submissionEvents.addEventListener('changed', listener)
+
+        return () => this.submissionEvents.removeEventListener('changed', listener)
+    }
+
+
+    setSubmissions(submissions: PendingActionSubmission[]) {
+        this.submissions = submissions;
+        this.submissionEvents.dispatchEvent(new Event('changed'));
+    }
+
+
     private readonly listeners = new Set<() => void>()
     private snapshot: ActionRun
 
@@ -204,7 +208,7 @@ function ActionConversationChat(
     useLayoutEffect(() => {
         runtime.registry.updateConversation(value, status, queuedPrompts);
     }, [queuedPrompts, runtime, status, value]);
-    useLayoutEffect(() => runtime.store.setSubmissions(submissions), [runtime, submissions]);
+    useLayoutEffect(() => runtime.registry.setSubmissions(submissions), [runtime, submissions]);
     useLayoutEffect(() => {
         runtime.store.select(selectedConversation)
     }, [runtime, selectedConversation])
