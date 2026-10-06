@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 59203
+        "usedTokens": 81502
       },
       "entries": [
         {
@@ -341,6 +341,349 @@
           "role": "assistant",
           "sequence": 24,
           "timestamp": "2026-10-06T12:10:32.501Z"
+        },
+        {
+          "content": "> prioritizes payload item.status over completion notification. In-memory check confirmed: inProgress survives even with completion lifecycle and exit code 0. Actual reported payload unavailable, so incident cause remains unconfirmed.\n\ndon't understand your explanation. why is this done, why are we normalizing at all? seems just over engineered.\n\nsecond issue needs to be fixed. it is not just the 'stop'. if the app is terminated and started again, same issue",
+          "id": "submission-12f03941-f110-4b30-a9d2-86d5d8230025",
+          "kind": "message",
+          "role": "user",
+          "sequence": 25,
+          "timestamp": "2026-10-06T12:37:22.731Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Normalization converts provider items into chat-log events. The status rule trusts the item’s status even when the notification says “completed”; I found no reason for that precedence. The conversion has a purpose, but this rule is questionable.\n\nI’ll fix stale Running tool statuses for both stopped runs and history loaded after restart, including abrupt termination.\n\n",
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 26,
+          "timestamp": "2026-10-06T12:37:30.371Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/architecture/architectural_decisions.md'",
+          "content": "---\r\ninternalId: 583d9c88-b71c-4560-92ad-3e23d33bf1d0\r\n---\r\n\r\n# Architectural decisions\r\n\r\nProject-wide decisions for MDÂ². The app is a Vite React web app in `app/`; `desktop/` is a separate Electron host that can load the website and expose local capabilities through preload bridges.\r\n\r\n## File naming\r\n\r\n| Decision | Rule | Rationale |\r\n| --- | --- | --- |\r\n| Code files use lowercase snake_case names. | All code files in `app/src/` and `desktop/` use lowercase words separated by underscores, for example `github_auth_service.ts`, `project_workspace.tsx`, and `local_git_service.js`. Test files keep the same base name with `.test` before the extension, for example `github_auth_service.test.ts`. Exported symbols keep normal TypeScript/JavaScript casing such as `GithubAuthService`, `ProjectWorkspace`, and `useGithubAuth`. | A single file naming convention avoids mixed PascalCase, camelCase, and hyphenated filenames, and keeps imports predictable across Windows and case-sensitive environments. |\r\n\r\n## Services and state\r\n\r\n| Decision | Rule | Rationale |\r\n| --- | --- | --- |\r\n| Global singleton services own domain state and logic. | Each domain is a class in `src/services/**`, instantiated once at module level and exported, for example `export const indexesService = new IndexesService()`. React components do not own domain state. | Keeps business logic out of components, testable without a DOM, and shared across windows/views without Redux, Zustand, or Context stores. |\r\n| Service location follows usage scope. | If a service is specific to one UI element and used only there, place it beside that component. Generic or shared services, such as logging, database access, config, storage, or cross-screen domain logic, belong in `src/services/`. | Keeps component-owned behavior local while preserving `src/services/` for reusable application services. |\r\n| Consumers use direct imports or the service injector. | Direct import when no import cycle exists; use `src/services/service_injector.js` when a cycle would occur. Every global singleton service registers itself in its constructor with `inj.register('myService', this)`. | The service graph is dense; the injector is a bare global registry that defers resolution to call time. |\r\n| Services have a two-phase lifecycle. | Constructors only register and set unloaded state such as `null`. Config-dependent or service-dependent work runs in `init()`, `start()`, app bootstrap (`App.jsx`), or a `loaded` lifecycle event. `configService.config` is private; callers use `get`, `set`, and `clear`. | Module evaluation order is not guaranteed, so `configService` is not usable at import time. Reading config in a constructor is a bug. |\r\n\r\n## Card state\r\n\r\n| Decision | Rule | Rationale |\r\n| --- | --- | --- |\r\n| The application has one `Card` domain type. | Do not create separate canonical, project, snapshot, or editor card types. The card-owning service holds the loaded cards and exposes focused operations that change only the requested field. React snapshots and editor drafts are read values; they must never replace or merge a complete card. Parser bookkeeping may remain private persistence metadata, but it is not another card model. | One card concept gives state a clear owner and prevents stale copies from overwriting newer worktree, activity, ordering, policy, or body values. |\r\n| Card UI subscribes at field level. | A component subscribes only to the primitive or stable reference it renders, using granular `EventTarget` events and `useSyncExternalStore`. Do not clone or stringify a complete card to detect a field change. Group fields only in a deliberately small, stable projection when they are always rendered together. | A one-field change allocates and rerenders only what consumes that field, keeping memory use bounded and the UI responsive. |\r\n| Cards are serialized only at persistence boundaries. | Mutate the owned `Card` through a focused operation, then serialize its current state when the persistence batch flushes. Editor changes update only the edited field. Activity linking updates only activity references. External file changes are parsed and applied deliberately without replacing dirty local state. | Persistence remains deterministic while concurrent saves and external updates cannot discard unrelated newer values. |\r\n\r\n\r\n## Events and React integration\r\n\r\n| Decision | Rule | Rationale |\r\n| --- | --- | --- |\r\n| Services notify observers through their own `EventTarget`. | Services expose an `EventTarget` and dispatch named `CustomEvent` domain events such as `activeIndex`, `added`, `deleted`, or `changedBox`. Observers subscribe with `addEventListener` and unsubscribe with `removeEventListener` on the owning service. | Decouples producers from consumers without depending on Node `EventEmitter`, which is not available in the browser-first React app. |\r\n| Custom hooks bridge service events to functional components. | Hooks in `src/components/hooks/`, such as `useActiveIndex` and `useProjectConfig`, seed `useState` from a service property, subscribe in `useEffect`, unsubscribe in cleanup, and return the value. Prefer hook + service over prop chains. | Components stay declarative and avoid direct event plumbing. |\r\n| Components subscribe at the smallest rendering boundary. | Root and layout components compose UI regions and pass structural inputs. Components that render changing application data subscribe through hooks themselves. Do not hoist changing data into ancestors only to pass it downward. | Limits rerenders to affected UI, protects transient state such as open popups, and avoids broad prop chains. |\r\n| Components use the app theme service path. | `App` owns theme mode through `useThemeMode()`, builds the MUI theme with `createAppTheme(mode)`, and provides it through `ThemeProvider`. Components read theme values with MUI APIs such as `useTheme`, `useMediaQuery`, and `sx`; only controls that change the palette mode receive `mode` and `onToggleTheme`. | Theme state, persistence, and palette construction stay centralized while components remain presentation-focused. |\r\n",
+          "durationMs": 57,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-27",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/architecture/architectural_decisions.md'",
+          "providerItemId": "exec-29a044f8-7bfe-4a65-813a-459fc6dc9dee",
+          "sequence": 27,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:37:35.567Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/actions/activity/activity_files.js | Select-Object -Skip 330 -First 65; rg -n \"loadAgentConversation|loadActivityConversations\" desktop/src --glob \"*.js\"; Get-Content desktop/src/actions/agent/agent_runner_service.js | Select-Object -Skip 750 -First 95'",
+          "content": "\r\nasync function updateCardActionSettings(project, projectFolder, cardInternalId, actionId, settings) {\r\n    if (typeof cardInternalId !== 'string' || cardInternalId.length === 0) throw new Error('Missing card action settings cardInternalId');\r\n    if (typeof actionId !== 'string' || actionId.length === 0) throw new Error('Missing card action settings actionId');\r\n    const origin = { cardInternalId, kind: 'card' };\r\n    const validationActivity = createActivityFile(origin);\r\n    validationActivity.actionSettings[actionId] = settings;\r\n    const validatedSettings = parseActivityValue(validationActivity, origin).actionSettings[actionId];\r\n\r\n    return updateActivity(project, projectFolder, origin, (activity) => ({\r\n        ...activity,\r\n        actionSettings: { ...activity.actionSettings, [actionId]: validatedSettings },\r\n    }));\r\n}\r\n\r\nasync function loadActivityConversation(project, reference) {\r\n    const rootPath = requireRootPath(project);\r\n    await assertGitRoot(rootPath);\r\n    const { activityPath, conversationId } = parseConversationActivityReference(reference);\r\n    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));\r\n    const activity = await readActivityFile(absolutePath);\r\n    const conversation = findActivityConversation(activity, conversationId);\r\n\r\n    return { ...conversation, path: reference };\r\n}\r\n\r\nasync function loadActivityConversations(project, activityPath) {\r\n    if (typeof activityPath !== 'string' || activityPath.length === 0) throw new Error('Missing activity path');\r\n    const rootPath = requireRootPath(project);\r\n    await assertGitRoot(rootPath);\r\n    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));\r\n    const activity = await readActivityFile(absolutePath);\r\n\r\n    return activity.conversations.map((conversation) => ({\r\n        ...conversation,\r\n        path: conversationActivityReference(activityPath, conversation.id),\r\n    }));\r\n}\r\n\r\nasync function closeWaitingActivityConversation(project, reference, status) {\r\n    if (typeof reference !== 'string' || reference.length === 0) throw new Error('Missing agent conversation reference');\r\n    if (status !== 'completed' && status !== 'cancelled') throw new Error(`Invalid waiting conversation terminal status: ${status}`);\r\n\r\n    const rootPath = requireRootPath(project);\r\n    await assertGitRoot(rootPath);\r\n    const { activityPath, conversationId } = parseConversationActivityReference(reference);\r\n    const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));\r\n\r\n    return queueActivityUpdate(absolutePath, async () => {\r\n        const stored = await readStoredActivity(absolutePath);\r\n        const activity = activityValue(stored);\r\n        const conversation = findActivityConversation(activity, conversationId);\r\n        if (conversation.status !== 'waitingForInput') {\r\n            throw new Error(`Agent conversation is no longer waiting for input: ${reference}`);\r\n        }\r\n\r\n        const completedAt = new Date().toISOString();\r\n        const updatedActivity = {\r\n            ...activity,\r\n            conversations: activity.conversations.map((storedConversation) => (\r\n                storedConversation.id === conversationId\r\n                    ? { ...storedConversation, completedAt, status, viewed: conversation.viewed }\r\n                    : storedConversation\r\n            )),\r\n        };\r\ndesktop/src\\actions\\activity\\activity_files.js:357:async function loadActivityConversations(project, activityPath) {\ndesktop/src\\actions\\activity\\activity_files.js:531:    loadActivityConversations,\ndesktop/src\\actions\\action\\action_files.js:146:async function loadAgentConversation(project, referencePath) {\ndesktop/src\\actions\\action\\action_files.js:158:    loadAgentConversation,\ndesktop/src\\actions\\action\\action_agent_executor.js:52:            ? await this.localGitService.loadAgentConversation(\ndesktop/src\\actions\\action\\action_agent_executor.js:164:        const conversation = await this.localGitService.loadAgentConversation(input.primaryProject, inp\n[1676 characters omitted]\neaming agent process exited before Finish');\r\n                const separator = run.stderr.length > 0 && !run.stderr.endsWith('\\n') ? '\\n' : '';\r\n                run.stderr += `${separator}${run.streamingFailure.message}`;\r\n            }\r\n            this.settleCompact(run, run.streamingFailure?.message ?? 'Compaction cancelled before provider confirmation');\r\n            const succeeded = (exitCode === 0 || (run.finishing && run.finishForced))\r\n                && !run.missingSession\r\n                && !run.cancelled\r\n                && !run.streamingFailure\r\n                && (!run.streaming || run.finishing);\r\n            completeAssistantOutput(run, completedAt);\r\n            if (succeeded) {\r\n                const synchronizedMessage = lastMessageEntry(run.conversation);\r\n                updateProviderSession(run, synchronizedMessage.id, completedAt);\r\n                if (run.turnUsage) run.conversation.usage = accumulateUsage(run.conversation.usage, run.turnUsage);\r\n                if (!run.streaming && run.turnUsage) await this.recordTokenUsage(run, run.turnUsage, completedAt);\r\n            }\r\n            const preserveWaitingState = run.suspended && run.conversation.status === 'waitingForInput';\r\n            run.conversation.completedAt = preserveWaitingState ? null : completedAt;\r\n            const status = preserveWaitingState\r\n                ? 'waitingForInput'\r\n                : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';\r\n            transitionConversationStatus(run.conversation, status, completedAt, run.phases);\r\n            logAgentEvent('[agent:complete]', {\r\n                completedAt,\r\n                durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),\r\n                actionRunId: run.request.actionRunId ?? null,\r\n                exitCode,\r\n                pid: run.child.pid,\r\n                runId,\r\n            });\r\n            await run.persistence;\r\n            // Every close writes the terminal conversation, continued turns that never started included:\r\n            // the renderer already shows the terminal status, so a skipped write leaves `running` on disk.\r\n            const persistenceError = await this.persistTerminalConversation(run);\r\n            this.processes.delete(runId);\r\n            this.runningConversationIds.delete(run.conversation.id);\r\n            emitRunEvent(run, {\r\n                conversation: run.conversation,\r\n                persisted: !persistenceError,\r\n                type: 'closed',\r\n            });\r\n            this.requestUsagePoll(run);\r\n            if (persistenceError) {\r\n                if (run.onCompletionError) run.onCompletionError(persistenceError);\r\n                return;\r\n            }\r\n            if (run.onComplete) run.onComplete(succeeded ? 0 : exitCode || 1, run);\r\n        } catch (error) {\r\n            if (run.onCompletionError) run.onCompletionError(error);\r\n        } finally {\r\n            this.processes.delete(runId);\r\n            this.runningConversationIds.delete(run.conversation.id);\r\n        }\r\n    }\r\n\r\n    /**\r\n     * Writes the terminal conversation, retrying a bounded number of times. Returns the last error when\r\n     * every attempt failed so the caller can report it; the failure is never swallowed.\r\n     */\r\n    async persistTerminalConversation(run) {\r\n        for (let attempt = 1; attempt <= TERMINAL_PERSIST_ATTEMPTS; attempt += 1) {\r\n            try {\r\n                await this.persistConversation(run);\r\n                logAgentEvent('[agent:terminalPersist]', {\r\n                    attempt,\r\n                    conversationId: run.conversation.id,\r\n                    runId: run.id,\r\n                    status: run.conversation.status,\r\n                    persisted: true,\r\n                });\r\n\r\n                return null;\r\n            } catch (error) {\r\n                logAgentEvent('[agent:terminalPersist]', {\r\n                    attempt,\r\n                    conversationId: run.conversation.id,\r\n                    error: error instanceof Error ? error.message : String(error),\r\n",
+          "durationMs": 125,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-28",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/actions/activity/activity_files.js | Select-Object -Skip 330 -First 65; rg -n \"loadAgentConversation|loadActivityConversations\" desktop/src --glob \"*.js\"; Get-Content desktop/src/actions/agent/agent_runner_service.js | Select-Object -Skip 750 -First 95'",
+          "providerItemId": "exec-8d4ec072-bb17-4c7d-adf4-5463be04cc89",
+          "sequence": 28,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:37:36.289Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg --files -g AGENTS.md; Get-Content desktop/src/actions/agent/agent_conversation_phases.js | Select-Object -First 80; rg -n \"isTerminalProviderEventStatus|inProgress|started\" shared/agent*'",
+          "content": "const {\r\n    isTerminalProviderEventStatus,\r\n    providerEventCategory,\r\n} = require('../../../../shared/agent_event_categories.mjs');\r\n\r\nconst EMPTY_DELTA = { reasoningMs: 0, toolMs: 0 };\r\n\r\n/**\r\n * Run-scoped tracker of how the measured wall clock was spent. `open` holds one span per in-flight\r\n * `providerItemId`, `closed` the spans that finished inside the running period being measured, and\r\n * `applied` how much of that period has already been folded into the conversation timer, so a live\r\n * fold and the fold at a status transition can never charge the same millisecond twice.\r\n */\r\nfunction createPhaseTracker() {\r\n    return { applied: { reasoningMs: 0, toolMs: 0 }, closed: [], open: new Map() };\r\n}\r\n\r\n/**\r\n * Drives the tracker from one provider event. Returns true when this event closed a span, which is\r\n * the moment the caller may refresh the live breakdown.\r\n */\r\nfunction recordPhaseEvent(tracker, providerEvent, timestamp) {\r\n    if (!tracker) return false;\r\n    const category = providerEventCategory(providerEvent.type);\r\n    if (!category) return false;\r\n    const providerItemId = providerEvent.providerItemId;\r\n    if (typeof providerItemId !== 'string' || providerItemId.length === 0) return false;\r\n    const atMs = Date.parse(timestamp);\r\n    if (Number.isNaN(atMs)) return false;\r\n    const openSpan = tracker.open.get(providerItemId);\r\n\r\n    if (isTerminalProviderEventStatus(providerEvent.status)) {\r\n        // A first event that is already terminal never ran inside a measurable span, so it is agent time.\r\n        if (!openSpan) return false;\r\n        tracker.open.delete(providerItemId);\r\n        if (openSpan.startMs === null) return false;\r\n        tracker.closed.push({ category: openSpan.category, endMs: Math.max(atMs, openSpan.startMs), startMs: openSpan.startMs });\r\n\r\n        return true;\r\n    }\r\n    if (!openSpan) tracker.open.set(providerItemId, { category, startMs: atMs });\r\n\r\n    return false;\r\n}\r\n\r\nfunction mergedIntervals(intervals) {\r\n    const sorted = [...intervals].sort((left, right) => left.startMs - right.startMs);\r\n    const merged = [];\r\n    for (const interval of sorted) {\r\n        if (interval.endMs <= interval.startMs) continue;\r\n        const previous = merged.at(-1);\r\n        if (previous && interval.startMs <= previous.endMs) {\r\n            previous.endMs = Math.max(previous.endMs, interval.endMs);\r\n            continue;\r\n        }\r\n        merged.push({ endMs: interval.endMs, startMs: interval.startMs });\r\n    }\r\n\r\n    return merged;\r\n}\r\n\r\nfunction totalLength(intervals) {\r\n    return intervals.reduce((total, { endMs, startMs }) => total + (endMs - startMs), 0);\r\n}\r\n\r\n/** Length of `intervals` that no interval in `subtrahend` covers; both must already be merged. */\r\nfunction lengthOutside(intervals, subtrahend) {\r\n    let total = 0;\r\n    for (const interval of intervals) {\r\n        let cursor = interval.startMs;\r\n        for (const blocker of subtrahend) {\r\n            if (blocker.endMs <= cursor) continue;\r\n            if (blocker.startMs >= interval.endMs) break;\r\n            if (blocker.startMs > cursor) total += blocker.startMs - cursor;\r\n            cursor = Math.max(cursor, blocker.endMs);\r\n            if (cursor >= interval.endMs) break;\r\n        }\r\n        if (cursor < interval.endMs) total += interval.endMs - cursor;\r\n    }\r\n\r\nrg: shared/agent*: IO error for operation on shared/agent*: The filename, directory name, or volume label syntax is incorrect. (os error 123)\n",
+          "durationMs": 136,
+          "exitCode": 1,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-29",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg --files -g AGENTS.md; Get-Content desktop/src/actions/agent/agent_conversation_phases.js | Select-Object -First 80; rg -n \"isTerminalProviderEventStatus|inProgress|started\" shared/agent*'",
+          "providerItemId": "exec-e4383181-5992-446f-87b3-e8c2e239a119",
+          "sequence": 29,
+          "status": "failed",
+          "timestamp": "2026-10-06T12:37:37.081Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-30",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e0c9c6fc86ed0a7016ac4eb92ef2087d2ab8acee99f571a3a",
+          "sequence": 30,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T12:37:40.294Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/conversation/state/action_conversation_store.ts | Select-Object -First 240; Get-Content desktop/src/actions/action/action_files.js | Select-Object -Skip 130 -First 30; rg -n \"loadActivityConversation|loadActivityConversations|runningConversationIds\" desktop/src/git/local_git_service.js desktop/src/actions/agent/agent_runner_service.js desktop/src/shell/local_bridge_dispatch.js; Get-Content shared/agent_event_categories.mjs'",
+          "content": "import type { ActionContext } from '../../../../data/action_context'\r\nimport type { AgentConversation } from '../../../../data/data_types'\r\nimport type { ActionQueuedPrompt, ActionRunEvent } from '../../../../data/action_run_types'\r\nimport { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'\r\nimport { actionRunRegistry } from '../../../../services/actions/action_run_registry'\r\nimport { dialogService } from '../../../../services/dialog_service'\r\nimport { dataService } from '../../../../services/data/data_service'\r\nimport { generateUuid } from '../../../../data/uuid'\r\nimport type { ConversationPickerConversation } from '../picker/action_conversation_picker_data'\r\nimport { defaultLoadConversation, defaultLoadConversations } from '../../run/popup/action_popup_defaults'\r\nimport type { ActionRunBindingStore } from '../../run/state/action_run_binding_store'\r\n\r\ninterface ActionConversationSnapshot {\r\n    conversations: AgentConversation[]\r\n    loading: boolean\r\n    pinningConversationId: string | null\r\n    selectedConversation: AgentConversation | null\r\n}\r\n\r\nfunction initialConversationSnapshot(): ActionConversationSnapshot {\r\n    return { conversations: [], loading: true, pinningConversationId: null, selectedConversation: null }\r\n}\r\n\r\ninterface ConversationIdentity {\r\n    id: string\r\n}\r\n\r\ntype Listener = () => void\r\n\r\nexport interface PendingActionSubmission {\r\n    content: string\r\n    error?: string\r\n    id: string\r\n    prompt: ActionQueuedPrompt | null\r\n    state: 'transmitting' | 'queued' | 'failed'\r\n}\r\n\r\ninterface SubmissionOwner {\r\n    conversationId: string | null\r\n    runId: string | null\r\n}\r\n\r\nconst SUBMISSIONS_CHANGED_EVENT = 'submissionsChanged'\r\n\r\n/** A context without a card identity owns the project-origin conversations, whatever its kind. */\r\nfunction belongsToContext(conversation: ConversationPickerConversation, context: ActionContext) {\r\n    return conversation.cardInternalId === (context.cardInternalId ?? null)\r\n}\r\n\r\nfunction conversationTimestamp(conversation: ConversationPickerConversation) {\r\n    const timestamp = Date.parse(conversation.startedAt)\r\n\r\n    return Number.isNaN(timestamp) ? 0 : timestamp\r\n}\r\n\r\n/** Resolves explicit history selection without replacing matching live data with persisted data. */\r\nexport function resolveDisplayedConversation<T extends ConversationIdentity>(liveConversation: T | null, selectedConversation: T | null) {\r\n    if (!selectedConversation || selectedConversation.id === liveConversation?.id) return liveConversation ?? selectedConversation\r\n\r\n    return selectedConversation\r\n}\r\n\r\n/** Identifies history display that must not route controls to an active run. */\r\nexport function isBrowsingHistoricalConversation(\r\n    liveConversation: ConversationIdentity | null,\r\n    selectedConversation: ConversationIdentity | null,\r\n    sessionActive: boolean,\r\n) {\r\n    return sessionActive && !!selectedConversation && selectedConversation.id !== liveConversation?.id\r\n}\r\n\r\nexport function conversationOptions<T extends ConversationPickerConversation>(\r\n    conversations: T[],\r\n    actionId: string,\r\n    context: ActionContext,\r\n    liveConversations: T[],\r\n) {\r\n    const byId = new Map<string, T>()\r\n    for (const conversation of conversations) {\r\n        if (belongsToContext(conversation, context) && conversation.actionId === actionId) {\r\n            byId.set(conversation.id, conversation)\r\n        }\r\n    }\r\n    for (const liveConversation of liveConversations) {\r\n        if (belongsToContext(liveConversation, context) && liveConversation.actionId === actionId) {\r\n            byId.set(liveConversation.id, liveConversation)\r\n        }\r\n    }\r\n\r\n    return [...byId.values()].sort((left, right) => conversationTimestamp(right) - conversationTimestamp(left))\r\n}\r\n\r\nfunction latestWaitingConversation(conversations: AgentConversation[], actionId: string, context: ActionContext) {\r\n    return conversations\r\n        .filter((conversation) => belongsToContext(conversation, context)\r\n            && conversation.actionId === actionId\r\n            && co\n[6781 characters omitted]\nission(submission.id, entry)\r\n        }\r\n        if (event.update.kind === 'agentPromptDeleted' || event.update.kind === 'agentPromptDiscarded') {\r\n            const { promptId } = event.update\r\n            const submission = submissions.find((current) => current.id === promptId)\r\n            if (submission) this.removeSubmission(submission.id)\r\n        }\r\n    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });\r\n    await fs.promises.writeFile(filePath, `${JSON.stringify(file, null, 2)}\\n`);\r\n\r\n    return file.schedules;\r\n}\r\n\r\nasync function cancelActionSchedule(project, actionsFolder, scheduleId) {\r\n    if (typeof scheduleId !== 'string' || scheduleId.length === 0) throw new Error('Missing action schedule id');\r\n\r\n    const schedules = await loadActionSchedules(project, actionsFolder);\r\n    const nextSchedules = cancelPendingActionSchedule(schedules, scheduleId);\r\n\r\n    return saveActionSchedules(project, actionsFolder, nextSchedules);\r\n}\r\n\r\nasync function loadAgentConversation(project, referencePath) {\r\n    if (typeof referencePath !== 'string' || referencePath.length === 0) throw new Error('Missing agent conversation reference');\r\n\r\n    return loadActivityConversation(project, referencePath);\r\n}\r\n\r\nmodule.exports = {\r\n    cancelActionSchedule,\r\n    loadActionFile,\r\n    loadActionFiles,\r\n    loadActionRunHistory,\r\n    loadActionSchedules,\r\n    loadAgentConversation,\r\n    saveActionSchedules,\r\n};\r\ndesktop/src/shell/local_bridge_dispatch.js:242:        loadActivityConversations: async (activityPath) => {\ndesktop/src/shell/local_bridge_dispatch.js:243:            return localGitService.loadActivityConversations(currentLocalProject, activityPath);\ndesktop/src/actions/agent/agent_runner_service.js:88:        this.runningConversationIds = new Set();\ndesktop/src/actions/agent/agent_runner_service.js:137:        if (this.runningConversationIds.has(conversation.id)) throw new Error(`Agent conversation already has a running turn: ${conversation.id}`);\ndesktop/src/actions/agent/agent_runner_service.js:200:        this.runningConversationIds.add(conversation.id);\ndesktop/src/actions/agent/agent_runner_service.js:804:            this.runningConversationIds.delete(run.conversation.id);\ndesktop/src/actions/agent/agent_runner_service.js:820:            this.runningConversationIds.delete(run.conversation.id);\n/**\r\n * One classifier for provider event types, shared by the tool-call count in `project_stats.mjs`\r\n * and the tool-time measurement in `agent_conversation_phases.js`. Keeping both on this module is\r\n * what stops \"how many tool calls\" and \"how much tool time\" from disagreeing about what a tool is.\r\n */\r\n\r\nconst CODEX_TOOL_EVENT_TYPES = new Set([\r\n    'collabAgentToolCall',\r\n    'commandExecution',\r\n    'dynamicToolCall',\r\n    'fileChange',\r\n    'imageView',\r\n    'mcpToolCall',\r\n    'webSearch',\r\n])\r\n\r\n/** Provider item lifecycle states after which an item does no more work. */\r\nconst TERMINAL_PROVIDER_EVENT_STATUSES = new Set(['aborted', 'cancelled', 'completed', 'declined', 'failed'])\r\n\r\n/** True for the event types that represent a tool call, for both Claude (`tool.*`) and Codex. */\r\nexport function isToolCallEventType(type) {\r\n    if (typeof type !== 'string') return false\r\n    if (type.startsWith('tool.')) return type !== 'tool.result'\r\n\r\n    return CODEX_TOOL_EVENT_TYPES.has(type)\r\n}\r\n\r\n/** True for a transcript entry that represents a tool call. */\r\nexport function isToolCallEvent(entry) {\r\n    if (entry.kind !== 'event') return false\r\n\r\n    return isToolCallEventType(entry.type)\r\n}\r\n\r\n/**\r\n * The duration component an event type belongs to, or null when it opens no span and therefore\r\n * lands in agent time (assistant text, diagnostics, system, `agentQuestion`, `contextCompaction`).\r\n */\r\nexport function providerEventCategory(type) {\r\n    if (type === 'reasoning') return 'reasoning'\r\n\r\n    return isToolCallEventType(type) ? 'tool' : null\r\n}\r\n\r\nexport function isTerminalProviderEventStatus(status) {\r\n    return typeof status === 'string' && TERMINAL_PROVIDER_EVENT_STATUSES.has(status)\r\n}\r\n",
+          "durationMs": 67,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-31",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/conversation/state/action_conversation_store.ts | Select-Object -First 240; Get-Content desktop/src/actions/action/action_files.js | Select-Object -Skip 130 -First 30; rg -n \"loadActivityConversation|loadActivityConversations|runningConversationIds\" desktop/src/git/local_git_service.js desktop/src/actions/agent/agent_runner_service.js desktop/src/shell/local_bridge_dispatch.js; Get-Content shared/agent_event_categories.mjs'",
+          "providerItemId": "exec-08aeb7c9-e32b-43c8-99a5-198036022c8d",
+          "sequence": 31,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:37:45.164Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"loadActivityConversations|loadAgentConversation|activeRun|runId\" app/src/components/actions/conversation/state/action_conversation_store.ts; Get-Content desktop/src/shell/local_bridge_dispatch.js | Select-Object -Skip 210 -First 42; Get-Content desktop/src/actions/agent/agent_conversation.test.mjs | Select-Object -First 55'",
+          "content": "40:    runId: string | null\n134:    beginSubmission(content: string, runId: string | null, conversationId?: string) {\n142:        if (!ownerConversationId && !runId) throw new Error('Starting a conversation requires its ID')\n144:        this.submissionOwners.set(id, { conversationId: ownerConversationId ?? null, runId })\n150:    bindSubmission(id: string, runId: string) {\n153:        this.submissionOwners.set(id, { ...owner, runId })\n155:        const buffered = this.bufferedRunEvents.filter((event) => event.runId === runId)\n156:        this.bufferedRunEvents = this.bufferedRunEvents.filter((event) => event.runId !== runId)\n193:            this.submissionOwners.get(submission.id)?.runId === event.runId && submission.state !== 'failed'\n204:            if (this.submissions.some((submission) => this.submissionOwners.get(submission.id)?.runId === null)\n264:    getVisibleSubmissions(conversationId: string | null, runId: string | null) {\n267:            return !!owner && (conversationId ? owner.conversationId === conversationId : owner.runId === runId || owner.runId === null)\n340:            this.bindingStore.setRunId(liveRun.getSnapshot().runId)\n            await localGitService.commit(request, currentLocalProject);\r\n\r\n            return [];\r\n        },\r\n        createProject: async (project, folders) => {\r\n            const createdProject = await localGitService.createProject(project, folders);\r\n            await activateProject(createdProject);\r\n\r\n            return currentLocalProject;\r\n        },\r\n        deleteFile: async (request) => {\r\n            if (actionRunnerService) await actionRunnerService.cancelCompactsForPath(request.path);\r\n            return localGitService.deleteFile(request, currentLocalProject);\r\n        },\r\n        deleteFolder: async (request) => {\r\n            if (actionRunnerService) await actionRunnerService.cancelCompactsForPath(request.path);\r\n            return localGitService.deleteFolder(request, currentLocalProject);\r\n        },\r\n        getActiveProject: () => currentLocalProject,\r\n        hasPendingPush: (project) => localGitService.hasPendingPush(project),\r\n        listBranches: (project) => localGitService.listBranches(project),\r\n        listAgentConversationReferences: (project, projectFolder) => (\r\n            localGitService.listAgentConversationReferences(project, projectFolder)\r\n        ),\r\n        listRepositoryFiles: (project) => localGitService.listRepositoryFiles(project),\r\n        listTopLevelFolders: (project) => localGitService.listTopLevelFolders(project),\r\n        loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),\r\n        loadActionSchedules: (project, actionsFolder) => localGitService.loadActionSchedules(project, actionsFolder),\r\n        loadAgentConversation: async (reference) => {\r\n            return localGitService.loadAgentConversation(currentLocalProject, reference);\r\n        },\r\n        loadActivityConversations: async (activityPath) => {\r\n            return localGitService.loadActivityConversations(currentLocalProject, activityPath);\r\n        },\r\n        loadAgentAvailability: () => {\r\n            const { agentProfiles } = readDesktopConfig(desktopConfigStore);\r\n\r\n            return agentExecutableAvailability(agentProfiles);\r\n        },\r\n        loadDesktopConfig: () => readDesktopConfig(desktopConfigStore),\r\n        loadAgentModelCatalog: (request) => loadAgentModelCatalog(dependencies, currentLocalProject, request),\r\n        loadFile: (project, path) => localGitService.loadFile(project, path),\r\nimport { createRequire } from 'node:module';\r\nimport { describe, expect, it } from 'vitest';\r\nimport { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';\r\n\r\nconst require = createRequire(import.meta.url);\r\nconst {\r\n    accumulateUsage,\r\n    createProviderEventEntry,\r\n    createConversation,\r\n    createEventEntry,\r\n    createMessageEntry,\r\n    snapshotConversation,\r\n    transitionConversationStatus,\r\n    updateProviderSession,\r\n} = require('./agent_conversation');\r\n\r\ndescribe('agent conversation', () => {\r\n    it('accumulates token buckets and optional reported cost', () => {\r\n        const current = { cachedInputTokens: 2, costUsd: 0.1, inputTokens: 10, outputTokens: 3, reasoningTokens: 1, totalTokens: 16 };\r\n        const turn = { cachedInputTokens: 4, inputTokens: 20, outputTokens: 6, reasoningTokens: 2, totalTokens: 32 };\r\n\r\n        expect(accumulateUsage(current, turn)).toEqual({\r\n            cachedInputTokens: 6,\r\n            costUsd: 0.1,\r\n            inputTokens: 30,\r\n            outputTokens: 9,\r\n            reasoningTokens: 3,\r\n            totalTokens: 48,\r\n        });\r\n    });\r\n\r\n    it('creates messages and events in persisted shapes', () => {\r\n        expect(createMessageEntry('message-1', 'assistant', 'done', 'now', 'codex')).toEqual({agent: 'codex', content: 'done', id: 'message-1', kind: 'message', role: 'assistant', timestamp: 'now'});\r\n        expect(createEventEntry('event-1', 'output', 'done', 'now')).toEqual({content: 'done', id: 'event-1', kind: 'event', timestamp: 'now', type: 'output'});\r\n    });\r\n\r\n    it('persists the spawning Agent call on a sub-agent provider event', () => {\r\n        const entry = createProviderEventEntry(\r\n            {\r\n                content: 'sub output',\r\n                label: 'Explore',\r\n                parentItemId: 'agent-1',\r\n                providerItemId: 'agent-1:message-sub:text:0',\r\n                status: 'completed',\r\n                type: 'agentMessage',\r\n            },\r\n            'event-1',\r\n            '2026-01-01T00:00:00.000Z',\r\n            2,\r\n        );\r\n\r\n        expect(entry.parentItemId).toBe('agent-1');\r\n    });\r\n\r\n    it('omits unavailable numeric event detail', () => {\r\n",
+          "durationMs": 64,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-32",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg -n \"loadActivityConversations|loadAgentConversation|activeRun|runId\" app/src/components/actions/conversation/state/action_conversation_store.ts; Get-Content desktop/src/shell/local_bridge_dispatch.js | Select-Object -Skip 210 -First 42; Get-Content desktop/src/actions/agent/agent_conversation.test.mjs | Select-Object -First 55'",
+          "providerItemId": "exec-79c2ac0c-db08-43a7-89e4-18395040c965",
+          "sequence": 32,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:37:45.823Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-33",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e0c9c6fc86ed0a7016ac4eb9c6e8c87d2aa71c1875e26d148",
+          "sequence": 33,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T12:37:54.750Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/actions/agent/agent_runner_service.test.mjs | Select-Object -First 120; Get-Content desktop/src/shell/local_bridge_dispatch.test.mjs | Select-Object -First 65; Get-Content desktop/src/actions/agent/agent_runner_service.js | Select-Object -First 110; rg -n \"loadAgentConversation|loadActivityConversations|agentRunnerService:\" desktop/src/shell/local_bridge_dispatch.test.mjs'",
+          "content": "Get-Content : Cannot find path \r\n'C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_service.test.mjs' because it does not exist.\r\nAt line:2 char:1\r\n+ Get-Content desktop/src/actions/agent/agent_runner_service.test.mjs | ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (C:\\Users\\janbo\\...ervice.test.mjs:String) [Get-Content], ItemNotFoundEx \r\n   ception\r\n    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand\r\n \r\nimport { createAgentModelCatalogStub } from '../test/agent_model_catalog_stub.mjs';\r\nimport { describe, expect, it, vi } from 'vitest';\r\nimport { createRequire } from 'node:module';\r\n\r\nconst require = createRequire(import.meta.url);\r\nconst { createLocalBridgeDispatch } = require('./local_bridge_dispatch');\r\n\r\nfunction createDispatch(options = {}) {\r\n    const agentExecutableAvailability = vi.fn(async () => ({ codex: { available: true, error: null } }));\r\n    const actionRunnerService = {\r\n        compactConversation: vi.fn(async (request) => ({ ...request, state: 'queued' })),\r\n        cancelCompactsForPath: vi.fn(async () => undefined),\r\n        cancelCompactsForConversation: vi.fn(async () => undefined),\r\n        answerInput: vi.fn(),\r\n        answerAgentApproval: vi.fn(),\r\n        answerAgentQuestion: vi.fn(),\r\n        cancel: vi.fn(),\r\n        deleteQueuedAgentPrompt: vi.fn(async () => ({ deleted: true })),\r\n        editQueuedAgentPrompt: vi.fn(async (_runId, _promptId, _revision, content) => ({ content })),\r\n        enqueueAgentPrompt: vi.fn(async (_runId, content) => ({ content })),\r\n        dismissAgentQuestions: vi.fn(),\r\n        finishAgentRun: vi.fn(),\r\n        handleCardStateChange: vi.fn(),\r\n        loadRunRecoverySnapshot: vi.fn((rendererRunIds) => ({\r\n            activeRunEvents: [{ runId: 'run-1', sequence: 1 }],\r\n            terminalResults: rendererRunIds.map((runId) => ({ failure: null, runId, status: 'completed' })),\r\n        })),\r\n        prepareActionPrompt: vi.fn(async () => ({ prompt: 'Prepared prompt' })),\r\n        requireActionsFolder: vi.fn(() => 'actions'),\r\n        requireProjectFolder: vi.fn(() => 'design'),\r\n        restart: vi.fn(async () => 'action-2'),\r\n        start: vi.fn(async () => 'action-1'),\r\n        subscribe: vi.fn(() => vi.fn()),\r\n        sendAgentMessage: vi.fn(),\r\n        startProject: vi.fn(),\r\n    };\r\n    const actionSchedulerService = {\r\n        deleteSchedule: vi.fn(async () => []),\r\n        handleCardStateChange: vi.fn(),\r\n        listActiveSchedules: vi.fn(async () => []),\r\n        registerActionSchedule: vi.fn(async () => ({ id: 'schedule-1' })),\r\n        registerSequenceSchedule: vi.fn(async () => ({ id: 'sequence-1' })),\r\n        startProject: vi.fn(),\r\n        subscribeRunEvents: vi.fn(() => vi.fn()),\r\n    };\r\n    const agentRunnerService = {\r\n        requestProjectUsageRefresh: vi.fn(),\r\n        run: vi.fn(async () => ({ runId: 'run-1' })),\r\n        start: vi.fn(async () => ({ runId: 'run-2' })),\r\n        stop: vi.fn(),\r\n    };\r\n    const codexRuntimeService = {\r\n        getSnapshot: vi.fn(() => ({ available: true, buckets: [], observedAt: 10, rateLimitResetCredits: null })),\r\n        subscribe: vi.fn(() => vi.fn()),\r\n        subscribeUpdateRequired: vi.fn(() => vi.fn()),\r\n    };\r\n    const claudeRuntimeService = {\r\n        getSnapshot: vi.fn(() => ({ available: true, observedAt: 11, windows: [] })),\r\n        subscribe: vi.fn(() => vi.fn()),\r\n    };\r\n    const updateCodexCli = vi.fn(async () => undefined);\r\n    const localGitService = {\r\n        loadAgentConversation: vi.fn(async (_project, reference) => ({ id: 'conversation-1', path: reference })),\r\n        appendAndCommitSystemActivity: vi.fn(async () => undefined),\r\n        assertGitRoot: vi.fn(),\r\nconst crypto = require('node:crypto');\r\nconst path = require('node:path');\r\nconst crossSpawn = require('cross-spawn');\r\n\r\nconst {\r\n    accumulateUsage,\r\n    createConversation,\r\n    createEventEntry,\r\n    createMessageEntry,\r\n    snapshotConversation,\r\n    transitionConv\n[1065 characters omitted]\n    nextConversationSequence,\r\n    nextRunSequence,\r\n} = require('./agent_run_transcript');\r\nconst {\r\n    readOptionalString,\r\n    requireCommand,\r\n    requireProjectFolder,\r\n    requireString,\r\n} = require('./agent_run_validation');\r\nconst { redactSecrets } = require('./agent_secret_redaction');\r\nconst { filterCompleteStderrLines, isHiddenStderrLine, stripAnsi } = require('./agent_stderr_filter');\r\nconst { STREAMING_EVENT_HANDLERS } = require('./agent_streaming_event_handlers');\r\nconst { terminateProcessTree } = require('../process_tree');\r\nconst { assertGitRoot, ensureInsideRoot, requireRootPath } = require('../../git/git_commands');\r\n\r\nconst AGENT_FINISH_GRACE_MS = 5_000;\r\nconst AGENT_USAGE_POLL_TICK_MS = 120_000;\r\nconst TERMINAL_PERSIST_ATTEMPTS = 3;\r\n\r\nclass AgentRunnerService {\r\n    constructor(dependencies = {}) {\r\n        this.claudeRuntimeService = dependencies.claudeRuntimeService ?? null;\r\n        this.codexRuntimeService = dependencies.codexRuntimeService ?? null;\r\n        this.usageMetricsService = dependencies.usageMetricsService ?? null;\r\n        this.persistConversation = dependencies.persistConversation\r\n            ?? dependencies.persistTerminalConversation\r\n            ?? persistConversation;\r\n        this.persistConversationCheckpoint = dependencies.persistConversationCheckpoint\r\n            ?? persistConversationCheckpoint;\r\n        this.persistSuccessfulConversationTurn = dependencies.persistSuccessfulConversationTurn\r\n            ?? dependencies.persistConversation\r\n            ?? dependencies.persistConversationCheckpoint\r\n            ?? persistConversation;\r\n        this.spawn = dependencies.spawn ?? crossSpawn;\r\n        this.executableResolver = dependencies.executableResolver ?? new AgentExecutableResolver();\r\n        this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;\r\n        this.setTimeout = dependencies.setTimeout ?? setTimeout;\r\n        this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;\r\n        this.claudeUsagePoller = dependencies.claudeUsagePoller\r\n            ?? new ClaudeUsagePoller({onRuntimeEvent: (event) => this.handleClaudeRuntimeEvent(event)});\r\n        this.codexUsagePoller = dependencies.codexUsagePoller\r\n            ?? new CodexUsagePoller({\r\n                onRuntimeEvent: (event) => this.handleAccountCodexRuntimeEvent(event),\r\n                terminateProcessTree: this.terminateProcessTree,\r\n            });\r\n        this.diagnoseCodexCacheError = dependencies.diagnoseCodexCacheError ?? diagnoseCodexCacheError;\r\n        this.now = dependencies.now ?? Date.now;\r\n        this.handleFinishTimeout = this.handleFinishTimeout.bind(this);\r\n        this.handleAccountClaudeRuntimeEvent = this.handleAccountClaudeRuntimeEvent.bind(this);\r\n        this.processes = new Map();\r\n        this.runningConversationIds = new Set();\r\n        this.usageRefreshStopped = false;\r\n        this.usageRefreshGeneration = 0;\r\n        this.claudeUsagePollContext = null;\r\n        this.usagePollTimer = null;\r\n    }\r\n\r\n    async run(project, request, onEvent) {\r\n        let resolveCompletion;\r\n        let rejectCompletion;\r\n        const completion = new Promise((resolve, reject) => {\r\n            resolveCompletion = resolve;\r\n            rejectCompletion = reject;\r\n        });\r\n        const onComplete = (exitCode, run) => resolveCompletion(createRunResult(request, exitCode, run));\r\n        const onCompletionError = (error) => rejectCompletion(error);\r\n\r\n        await this.start(project, request, onEvent, onComplete, onCompletionError);\r\n\r\n        return completion;\r\n    }\r\n\r\n    async start(project, requestValue, onEvent, onComplete, onCompletionError, onConversationSaved) {\r\n63:        loadAgentConversation: vi.fn(async (_project, reference) => ({ id: 'conversation-1', path: reference })),\n79:        loadActivityConversations: vi.fn(async () => []),\n1115:        await expect(dispatch.dataBridge.loadActivityConversations(path)).resolves.toEqual([]);\n1116:        expect(localGitService.loadActivityConversations).toHaveBeenCalledWith(null, path);\n",
+          "durationMs": 93,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-34",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/actions/agent/agent_runner_service.test.mjs | Select-Object -First 120; Get-Content desktop/src/shell/local_bridge_dispatch.test.mjs | Select-Object -First 65; Get-Content desktop/src/actions/agent/agent_runner_service.js | Select-Object -First 110; rg -n \"loadAgentConversation|loadActivityConversations|agentRunnerService:\" desktop/src/shell/local_bridge_dispatch.test.mjs'",
+          "providerItemId": "exec-2a07c686-fe60-423a-b7d2-4d775ab6af11",
+          "sequence": 34,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:37:57.819Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-35",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e0c9c6fc86ed0a7016ac4ebaa331c87d2a5418e170ff95880",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T12:38:04.281Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "History loading must check whether this app instance owns a live run. After restart, it owns none, so unfinished tools will show Cancelled. Process closure will also cancel unfinished tools before saving. Completed/failed tools and genuinely live runs keep their status.\n\nAffected paths: single-history load, activity-history load, and process close. I’ll leave the first issue’s status precedence unchanged.\n\n",
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-10-06T12:38:07.579Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg --files desktop/src/actions/agent | rg \"runner.*test|service.*test\"; Get-Content desktop/src/shell/local_bridge_dispatch.js | Select-Object -First 38; Get-Content desktop/src/actions/agent/agent_conversation.js | Select-Object -Last 20; Get-Content desktop/src/shell/local_bridge_dispatch.test.mjs | Select-Object -Skip 1090 -First 32'",
+          "content": "desktop/src/actions/agent\\usage_metrics_service.test.mjs\r\ndesktop/src/actions/agent\\codex_runtime_service.test.mjs\r\ndesktop/src/actions/agent\\claude_runtime_service.test.mjs\r\ndesktop/src/actions/agent\\agent_runner_state.test.mjs\r\ndesktop/src/actions/agent\\agent_model_catalog_service.test.mjs\r\nconst { findAgentProfile } = require('../actions/agent/agent_profiles.mjs');\r\nconst { CardStateTracker } = require('../actions/card/card_state_tracker');\r\nconst { ConversationViewEvents } = require('../actions/activity/conversation_view_events');\r\nconst { resolveProjectPaths } = require('../project/project_paths');\r\n\r\nconst INTEGRATION_ACTIVITY_LABEL = 'Integrate into project';\r\nconst WORKTREE_REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);\r\nconst SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\\n\\n';\r\n\r\nfunction watchErrorMessage(error) {\r\n    return error instanceof Error ? error.message : String(error);\r\n}\r\n\r\nfunction cardIntegrationTracking(request) {\r\n    const hasCardInternalId = Object.hasOwn(request, 'cardInternalId');\r\n    const hasProjectFolder = Object.hasOwn(request, 'projectFolder');\r\n    if (!hasCardInternalId && !hasProjectFolder) return null;\r\n    if (typeof request.cardInternalId !== 'string' || request.cardInternalId.length === 0) {\r\n        throw new Error('Missing worktree integration cardInternalId');\r\n    }\r\n    if (typeof request.projectFolder !== 'string') throw new Error('Missing worktree integration projectFolder');\r\n\r\n    return { cardInternalId: request.cardInternalId, projectFolder: request.projectFolder };\r\n}\r\n\r\nfunction worktreeIntegrationMetadata(request) {\r\n    const tracking = cardIntegrationTracking(request);\r\n    const deleteBranch = request.deleteBranch === true;\r\n    if (request.deleteBranch !== undefined && typeof request.deleteBranch !== 'boolean') {\r\n        throw new Error('Invalid worktree integration deleteBranch value');\r\n    }\r\n    if (deleteBranch && (typeof request.branchName !== 'string' || request.branchName.length === 0)) {\r\n        throw new Error('Missing worktree integration branchName');\r\n    }\r\n\r\n    return { ...(tracking ?? {}), branchName: request.branchName ?? null, deleteBranch };\r\n}\r\n\r\n        createdAt: current?.createdAt ?? completedAt,\r\n        lastUsedAt: completedAt,\r\n        synchronizedThroughMessageId,\r\n        ...(usageBaseline ? { usageBaseline } : {}),\r\n    };\r\n    run.conversation.providerSessions = current\r\n        ? sessions.map((session) => (session.agent === run.agent ? nextSession : session))\r\n        : [...sessions, nextSession];\r\n}\r\n\r\nmodule.exports = {\r\n    accumulateUsage,\r\n    createProviderEventEntry,\r\n    createConversation,\r\n    createEventEntry,\r\n    createMessageEntry,\r\n    snapshotConversation,\r\n    transitionConversationStatus,\r\n    updateProviderSession,\r\n};\r\n        await dispatch.dataBridge.cancelActivityStatsCalculation('stats-1');\r\n\r\n        expect(projectStatsWorkerService.calculate).toHaveBeenCalledWith(\r\n            project.rootPath,\r\n            ['design/activity/project.json'],\r\n            'stats-1',\r\n        );\r\n        expect(projectStatsWorkerService.cancel).toHaveBeenCalledWith('stats-1');\r\n    });\r\n\r\n    it('forwards agent conversation reference listing through the data bridge', async () => {\r\n        const { dispatch, localGitService } = createDispatch();\r\n        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };\r\n\r\n        await expect(dispatch.dataBridge.listAgentConversationReferences(project, 'design')).resolves.toEqual([\r\n            'design/activity/project.json#conversation=conversation-1',\r\n        ]);\r\n        expect(localGitService.listAgentConversationReferences).toHaveBeenCalledWith(project, 'design');\r\n    });\r\n\r\n    it('forwards activity-file conversation loading through the data bridge', async () => {\r\n        const { dispatch, localGitService } = createDispatch();\r\n        const path = 'design/activity/card__card-1.json';\r\n\r\n        await expect(dispatch.dataBridge.loadActivityConversations(path)).resolves.toEqual([]);\r\n        expect(localGitService.loadActivityConversations).toHaveBeenCalledWith(null, path);\r\n    });\r\n\r\n    it('forwards project asset reads through the data bridge', async () => {\r\n        const { dispatch, localGitService } = createDispatch();\r\n        const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };\r\n\r\n",
+          "durationMs": 82,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-37",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'rg --files desktop/src/actions/agent | rg \"runner.*test|service.*test\"; Get-Content desktop/src/shell/local_bridge_dispatch.js | Select-Object -First 38; Get-Content desktop/src/actions/agent/agent_conversation.js | Select-Object -Last 20; Get-Content desktop/src/shell/local_bridge_dispatch.test.mjs | Select-Object -Skip 1090 -First 32'",
+          "providerItemId": "exec-1bcf1c67-40fa-4efd-adb0-8f81525f2717",
+          "sequence": 37,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:38:10.972Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/actions/agent/agent_runner_state.test.mjs | Select-Object -First 95; rg -n \"cancelled|handleClose|persistConversation\" desktop/src/actions/agent/agent_runner_state.test.mjs'",
+          "content": "import { createRequire } from 'node:module';\r\nimport { EventEmitter } from 'node:events';\r\nimport { resolve } from 'node:path';\r\nimport { PassThrough } from 'node:stream';\r\nimport { describe, expect, it, vi } from 'vitest';\r\nimport { AGENT_RESULT_MAX_LENGTH } from '../../../../shared/agent_conversations.mjs';\r\n\r\nconst require = createRequire(import.meta.url);\r\nconst { AGENT_FINISH_GRACE_MS, AgentRunnerService } = require('./agent_runner_service');\r\nconst { CodexRuntimeService } = require('./codex_runtime_service');\r\nconst { createRun } = require('./agent_run_state');\r\nconst { ClaudeUsageTracker } = require('./claude_usage_tracker');\r\nconst { createAgentProviderProtocolParser } = require('./agent_provider_protocol');\r\n\r\nfunction diagnosticStreamingEvent(content, providerItemId) {\r\n    return {\r\n        event: { content, label: 'Codex protocol diagnostic', providerItemId, status: 'completed', type: 'diagnostic' },\r\n        type: 'event',\r\n    };\r\n}\r\n\r\n/** A streaming run with the full field set, registered in a service whose checkpoints are no-ops. */\r\nfunction streamingRunService() {\r\n    const onEvent = vi.fn();\r\n    const service = new AgentRunnerService({\r\n        persistConversation: vi.fn(async () => undefined),\r\n        persistConversationCheckpoint: vi.fn(async () => undefined),\r\n    });\r\n    const run = createRun({\r\n        agent: 'codex',\r\n        child: null,\r\n        conversation: { entries: [], providerSessions: [], status: 'running' },\r\n        environment: {},\r\n        executable: '/tools/codex',\r\n        id: 'run-1',\r\n        nextSequence: 1,\r\n        onComplete: null,\r\n        onCompletionError: null,\r\n        onEvent,\r\n        reference: 'run.json',\r\n        request: { agent: 'codex', command: ['codex'], prompt: 'run' },\r\n        rootPath: 'C:/repo',\r\n        startedAt: '2026-07-20T10:00:00.000Z',\r\n        streaming: true,\r\n    });\r\n    service.processes.set(run.id, run);\r\n\r\n    return { onEvent, run, service };\r\n}\r\n\r\nfunction toolEvent(providerItemId) {\r\n    return {\r\n        event: {content: '', label: 'Command', providerItemId, status: 'inProgress', type: 'commandExecution'},\r\n        type: 'event',\r\n    };\r\n}\r\n\r\nfunction emittedStatuses(onEvent, type) {\r\n    return onEvent.mock.calls.filter(([event]) => event.type === type).map(([event]) => event.status);\r\n}\r\n\r\ndescribe('AgentRunnerService published run status', () => {\r\n    it.each([true, false])('saves the Claude baseline together with accounted usage (streaming: %s)', async (streaming) => {\r\n        const { run, service } = streamingRunService();\r\n        service.claudeUsagePoller = { requestPoll: vi.fn() };\r\n        run.agent = 'claude';\r\n        run.child = { pid: 10 };\r\n        run.streaming = streaming;\r\n        run.providerConversationId = 'session-1';\r\n        run.conversation.id = 'conversation-1';\r\n        run.conversation.entries = [{ content: 'Done', id: 'assistant-1', kind: 'message', role: 'assistant', timestamp: 'now' }];\r\n        run.claudeUsageTracker = new ClaudeUsageTracker();\r\n        const usage = run.claudeUsageTracker.read({\r\n            modelUsage: { main: { cacheCreationInputTokens: 0, cacheReadInputTokens: 0, inputTokens: 300, outputTokens: 50 } },\r\n            session_id: 'session-1', total_cost_usd: 0.10, type: 'result', uuid: 'result-1',\r\n        });\r\n        if (streaming) {\r\n            await service.handleStreamingEvent(run.id, { error: null, type: 'turnCompleted', usage });\r\n        } else {\r\n            run.turnUsage = usage;\r\n            await service.handleClose(run.id, 0);\r\n        }\r\n        const saved = service.persistConversation.mock.calls[0][0].conversation;\r\n\r\n        expect(saved.usage).toMatchObject({ costUsd: 0.10, totalTokens: 350 });\r\n        expect(saved.providerSessions[0].usageBaseline).toEqual({\r\n            costUsd: 0.10,\r\n            resultId: 'result-1',\r\n            tokens: { cachedInputTokens: 0, inputTokens: 300, outputTokens: 50, reasoningTokens: 0, totalTokens: 350 },\r\n        });\r\n    });\r\n\r\n    it('keeps waitingForInput on tool, usage and output events while a question is pen\n[2909 characters omitted]\n expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({\n891:        const persistConversation = vi.fn(async () => {\n894:        const service = new AgentRunnerService({ persistConversation });\n897:            cancelled: true,\n931:        await service.handleClose('run-1', 1);\n934:            conversation: expect.objectContaining({ completedAt: expect.any(String), status: 'cancelled' }),\n938:        expect(persistConversation).toHaveBeenCalledTimes(3);\n945:        const persistConversation = vi.fn()\n948:        const service = new AgentRunnerService({ persistConversation });\n951:            cancelled: false,\n985:        await service.handleClose('run-1', 0);\n987:        expect(persistConversation).toHaveBeenCalledTimes(2);\n999:        const persistConversation = vi.fn(async () => undefined);\n1001:        const service = new AgentRunnerService({ claudeUsagePoller, persistConversation, usageMetricsService });\n1011:            cancelled: false,\n1047:        await service.handleClose('run-1', 0);\n1058:        const persistConversation = vi.fn(async () => undefined);\n1059:        const service = new AgentRunnerService({ persistConversation });\n1068:            cancelled: false,\n1102:        await service.handleClose('run-1', 1);\n1104:        expect(persistConversation).toHaveBeenCalledWith(\n1116:        const persistConversation = vi.fn(async () => undefined);\n1117:        const service = new AgentRunnerService({ persistConversation });\n1126:            cancelled: false,\n1161:        await service.handleClose('run-1', 1);\n1163:        expect(persistConversation).toHaveBeenCalledWith(expect.objectContaining({\n1242:            persistConversation: vi.fn(async () => undefined),\n1243:            persistConversationCheckpoint: vi.fn(async () => undefined),\n1275:        const persistConversationCheckpoint = vi.fn(async () => undefined);\n1276:        const service = new AgentRunnerService({ persistConversationCheckpoint });\n1304:        expect(persistConversationCheckpoint).toHaveBeenCalledWith(expect.objectContaining({\n1313:        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });\n1337:        const persistConversationCheckpoint = vi.fn(async () => undefined);\n1339:        const service = new AgentRunnerService({ persistConversationCheckpoint });\n1370:        expect(persistConversationCheckpoint).toHaveBeenCalledOnce();\n1374:        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });\n1403:        const persistConversationCheckpoint = vi.fn(async () => { throw persistenceError; });\n1404:        const service = new AgentRunnerService({ persistConversationCheckpoint });\n1440:        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });\n1471:        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });\n1504:        const service = new AgentRunnerService({ persistConversationCheckpoint: vi.fn(async () => undefined) });\n1743:            persistConversation: vi.fn(async () => undefined),\n1744:            persistConversationCheckpoint: vi.fn(async () => undefined),\n1772:        const persistConversation = vi.fn();\n1780:        const service = new AgentRunnerService({ codexRuntimeService, persistConversation, usageMetricsService });\n1789:        expect(persistConversation).not.toHaveBeenCalled();\n2017:            persistConversation: vi.fn(async () => undefined),\n2018:            persistConversationCheckpoint: vi.fn(async () => undefined),\n2095:            persistConversation: vi.fn(async () => undefined),\n2096:            persistConversationCheckpoint: vi.fn(async () => undefined),\n2110:        const persistConversationCheckpoint = vi.fn(async () => undefined);\n2112:        const service = new AgentRunnerService({ persistConversationCheckpoint });\n2144:        expect(persistConversationCheckpoint).toHaveBeenCalledTimes(2);\n2147:        expect(persistConversationCheckpoint.mock.invocationCallOrder[0])\n",
+          "durationMs": 60,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-38",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/actions/agent/agent_runner_state.test.mjs | Select-Object -First 95; rg -n \"cancelled|handleClose|persistConversation\" desktop/src/actions/agent/agent_runner_state.test.mjs'",
+          "providerItemId": "exec-71762a60-ad1b-4a24-a705-56e912acf97d",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:38:18.433Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-39",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e0c9c6fc86ed0a7016ac4ebbd27e487d288524e1343076049",
+          "sequence": 39,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T12:38:22.856Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_service.js\nadd: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\cancel_unfinished_tools.js\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\shell\\local_bridge_dispatch.js",
+          "deletions": 2,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-40",
+          "insertions": 31,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-d12fbb45-2b65-4599-b426-cb6466c4c170",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:38:35.299Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-41",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e0c9c6fc86ed0a7016ac4ebcd668887d2b678183eb0ed3fdb",
+          "sequence": 41,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T12:38:39.173Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_runner_state.test.mjs\nadd: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\cancel_unfinished_tools.test.mjs\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\shell\\local_bridge_dispatch.test.mjs",
+          "deletions": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-42",
+          "insertions": 68,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-40f53255-96d5-42ae-b646-575019e259a9",
+          "sequence": 42,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:39:06.148Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/agent/cancel_unfinished_tools.test.mjs src/actions/agent/agent_runner_state.test.mjs src/shell/local_bridge_dispatch.test.mjs'",
+          "content": "\n> desktop@0.7.2 test\n> vitest run src/actions/agent/cancel_unfinished_tools.test.mjs src/actions/agent/agent_runner_state.test.mjs src/shell/local_bridge_dispatch.test.mjs\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2/desktop\n\n\n Test Files  3 passed (3)\n      Tests  144 passed (144)\n   Start at  14:39:07\n   Duration  1000ms (transform 191ms, setup 0ms, import 364ms, tests 810ms, environment 0ms)\n\n",
+          "durationMs": 1594,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-43",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run test -- src/actions/agent/cancel_unfinished_tools.test.mjs src/actions/agent/agent_runner_state.test.mjs src/shell/local_bridge_dispatch.test.mjs'",
+          "providerItemId": "exec-bf9bd865-9ec5-4ff8-8910-a6056b96f286",
+          "sequence": 43,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:39:08.304Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "content": "\n> desktop@0.7.2 lint\n> eslint .\n\n",
+          "durationMs": 6708,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-44",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
+          "providerItemId": "exec-1bd879ba-8a5c-4470-9082-859454b8acb8",
+          "sequence": 44,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:39:15.195Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-45",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e0c9c6fc86ed0a7016ac4ebf5b4b487d2b21330e280a06ba8",
+          "sequence": 45,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T12:39:18.695Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Fix passes 144 targeted tests and desktop lint. Restarted history now shows unfinished tools as Cancelled; live conversations retain Running. Process closure saves cancelled tool statuses and preserves output.\n\n",
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 46,
+          "timestamp": "2026-10-06T12:39:20.018Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff --stat'",
+          "content": " app/package.json                                    |  2 +-\n .../card__53a49b65-2678-4970-a708-27195fc179bc.json | 20 ++++++++++++++------\n design/usage_metrics.csv                            | 14 ++++++++++++++\n desktop/package.json                                |  2 +-\n desktop/src/actions/agent/agent_runner_service.js   |  9 +++++++++\n .../src/actions/agent/agent_runner_state.test.mjs   | 21 +++++++++++++++++++++\n desktop/src/shell/local_bridge_dispatch.js          |  8 ++++++--\n desktop/src/shell/local_bridge_dispatch.test.mjs    | 15 +++++++++++++++\n 8 files changed, 81 insertions(+), 10 deletions(-)\n",
+          "durationMs": 13,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-47",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff --stat'",
+          "providerItemId": "exec-704b3a3d-b955-4398-b00d-3de8df7ba605",
+          "sequence": 47,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:39:21.937Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- desktop/src/actions/agent/agent_runner_service.js desktop/src/shell/local_bridge_dispatch.js'",
+          "content": "diff --git a/desktop/src/actions/agent/agent_runner_service.js b/desktop/src/actions/agent/agent_runner_service.js\nindex 7cf49ee00..f07fdf50c 100644\n--- a/desktop/src/actions/agent/agent_runner_service.js\n+++ b/desktop/src/actions/agent/agent_runner_service.js\n@@ -1,6 +1,7 @@\n const crypto = require('node:crypto');\n const path = require('node:path');\n const crossSpawn = require('cross-spawn');\n+const { cancelUnfinishedTools } = require('./cancel_unfinished_tools');\n \n const {\n     accumulateUsage,\n@@ -233,6 +234,13 @@ class AgentRunnerService {\n         return { conversation: initialConversation, reference, runId: id };\n     }\n \n+    /** Historical tools can only be running while this host owns their conversation process. */\n+    resolveHistoricalConversation(conversation) {\n+        if (this.runningConversationIds.has(conversation.id)) return conversation;\n+\n+        return cancelUnfinishedTools(conversation);\n+    }\n+\n     stop(runId) {\n         const run = this.requireRun(runId);\n         run.cancelled = true;\n@@ -788,6 +796,7 @@ class AgentRunnerService {\n                 ? 'waitingForInput'\n                 : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';\n             transitionConversationStatus(run.conversation, status, completedAt, run.phases);\n+            run.conversation = cancelUnfinishedTools(run.conversation);\n             logAgentEvent('[agent:complete]', {\n                 completedAt,\n                 durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),\ndiff --git a/desktop/src/shell/local_bridge_dispatch.js b/desktop/src/shell/local_bridge_dispatch.js\nindex e6b7f378a..1188af94d 100644\n--- a/desktop/src/shell/local_bridge_dispatch.js\n+++ b/desktop/src/shell/local_bridge_dispatch.js\n@@ -237,10 +237,14 @@ function createLocalBridgeDispatch(dependencies) {\n         loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),\n         loadActionSchedules: (project, actionsFolder) => localGitService.loadActionSchedules(project, actionsFolder),\n         loadAgentConversation: async (reference) => {\n-            return localGitService.loadAgentConversation(currentLocalProject, reference);\n+            const conversation = await localGitService.loadAgentConversation(currentLocalProject, reference);\n+\n+            return agentRunnerService.resolveHistoricalConversation(conversation);\n         },\n         loadActivityConversations: async (activityPath) => {\n-            return localGitService.loadActivityConversations(currentLocalProject, activityPath);\n+            const conversations = await localGitService.loadActivityConversations(currentLocalProject, activityPath);\n+\n+            return conversations.map((conversation) => agentRunnerService.resolveHistoricalConversation(conversation));\n         },\n         loadAgentAvailability: () => {\n             const { agentProfiles } = readDesktopConfig(desktopConfigStore);\n",
+          "durationMs": 75,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-48",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git diff -- desktop/src/actions/agent/agent_runner_service.js desktop/src/shell/local_bridge_dispatch.js'",
+          "providerItemId": "exec-314c1790-3947-4cf8-b40e-299c1307dbdc",
+          "sequence": 48,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:39:22.566Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short'",
+          "content": "warning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n M app/package.json\n M design/activity/card__53a49b65-2678-4970-a708-27195fc179bc.json\n M design/usage_metrics.csv\n M desktop/package.json\n M desktop/src/actions/agent/agent_runner_service.js\n M desktop/src/actions/agent/agent_runner_state.test.mjs\n M desktop/src/shell/local_bridge_dispatch.js\n M desktop/src/shell/local_bridge_dispatch.test.mjs\n?? .claude/\n?? desktop/src/actions/agent/cancel_unfinished_tools.js\n?? desktop/src/actions/agent/cancel_unfinished_tools.test.mjs\n",
+          "durationMs": 0,
+          "exitCode": 0,
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-event-49",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short'",
+          "providerItemId": "exec-3b85f445-2109-4c08-9a62-ce6616bbab29",
+          "sequence": 49,
+          "status": "completed",
+          "timestamp": "2026-10-06T12:39:23.141Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Normalization translates provider-specific payloads into common chat-log events. That conversion is useful. Trusting `item.status` over a completion notification has no justification I found.\n\nSecond issue fixed:\n\n- After restart—including abrupt termination—history shows orphaned Running tools as **Cancelled**.\n- Process closure cancels unfinished tools before saving.\n- Live tools and existing output remain intact.\n\n144 targeted tests passed; desktop lint passed.\n\n",
+          "id": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 50,
+          "timestamp": "2026-10-06T12:39:28.396Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -350,27 +693,27 @@
           "agent": "codex",
           "conversationId": "01a11119-9b06-72b2-b7ae-981c7245ad34",
           "createdAt": "2026-10-06T12:05:17.044Z",
-          "lastUsedAt": "2026-10-06T12:05:17.044Z",
-          "synchronizedThroughMessageId": "agent-turn-f2cf5f4f-8b24-4133-962a-e40417d3f56f-turn-1-assistant-3"
+          "lastUsedAt": "2026-10-06T12:39:28.396Z",
+          "synchronizedThroughMessageId": "agent-turn-429468dd-383d-422a-8ce1-b709461ba6f1-turn-1-assistant-4"
         }
       ],
       "startedAt": "2026-10-06T12:04:12.607Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 1438,
-          "toolMs": 785
+          "reasoningMs": 14377,
+          "toolMs": 13298
         },
         "elapsedMs": 64437,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-06T12:37:22.731Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 229888,
-        "inputTokens": 46727,
-        "outputTokens": 1312,
-        "reasoningTokens": 44,
-        "totalTokens": 277971
+        "cachedInputTokens": 871552,
+        "inputTokens": 70617,
+        "outputTokens": 4322,
+        "reasoningTokens": 382,
+        "totalTokens": 946873
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -388,11 +731,11 @@
         "agent-ca9fe979-d535-408c-82cd-59bccd282030"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-3ac58ba9-946f-4938-8039-98bcc7ad520c",
       "origin": {
@@ -401,9 +744,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-ca9fe979-d535-408c-82cd-59bccd282030",
       "startedAt": "2026-10-06T12:04:12.604Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-ca9fe979-d535-408c-82cd-59bccd282030"
     }
   ],
   "version": 5
