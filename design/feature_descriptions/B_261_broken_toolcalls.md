@@ -3,13 +3,13 @@ author:
 id: B_261
 internalId: 53a49b65-2678-4970-a708-27195fc179bc
 title: broken toolcalls
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__53a49b65-2678-4970-a708-27195fc179bc.json
 policy:
-after: 45e13c03-d74d-4082-9065-aa387f6553f5
+after: 25184e4d-b340-439f-bf0a-dd54afd466b2
 changedFiles:
   - desktop/src/actions/agent/agent_runner_service.js
   - desktop/src/actions/agent/agent_runner_state.test.mjs
