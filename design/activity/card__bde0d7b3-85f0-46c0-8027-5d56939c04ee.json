@@ -3484,7 +3484,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 60862
+        "usedTokens": 61261
       },
       "entries": [
         {
@@ -3823,6 +3823,28 @@
           "role": "user",
           "sequence": 25,
           "timestamp": "2026-10-06T08:59:23.250Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-1ca268e2-c1b0-45b3-b600-ea912adbf9cd-event-26",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0e1663b9d99cf177016ac4b86cfb2487d29adbc86e3d7e3e6c",
+          "sequence": 26,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T08:59:28.725Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The lists were split for two purposes:\n\n- **History and current-turn messages:** keep streaming updates from rerendering older messages.\n- **Queued and transmitting prompts:** show prompts before they exist in `AgentConversation.entries`. Queued prompts also have edit/delete controls.\n\nThat explains how this structure arose. It does **not** justify moving the same user prompt between different components as its delivery state changes. The implementation followed F_383’s “temporary row, then replace it” approach, and B_253 kept that structure while fixing event ordering.\n\nWe need the different delivery states and controls. We do **not** need separate rendered lists for transmitting, queued, and sent prompts. One service-owned prompt object and one component can represent all three states. The separation between history and streaming content has a performance purpose; the separation by prompt delivery state is unnecessary.\n\nAnd yes—the disappearance you observe is established. My runtime-verification comment was misplaced. What remains uncertain is **which code path causes the second-long absence**. The component handover is confirmed, but it alone does not explain that duration.\n\n",
+          "id": "agent-turn-1ca268e2-c1b0-45b3-b600-ea912adbf9cd-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 27,
+          "timestamp": "2026-10-06T08:59:36.947Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3840,7 +3862,7 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 2558,
+          "reasoningMs": 5534,
           "toolMs": 1125
         },
         "elapsedMs": 68367,
@@ -3848,11 +3870,11 @@
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 274560,
-        "inputTokens": 48248,
-        "outputTokens": 1570,
-        "reasoningTokens": 67,
-        "totalTokens": 324445
+        "cachedInputTokens": 334976,
+        "inputTokens": 48779,
+        "outputTokens": 1795,
+        "reasoningTokens": 156,
+        "totalTokens": 385706
       },
       "usageSchemaVersion": 1,
       "viewed": true
