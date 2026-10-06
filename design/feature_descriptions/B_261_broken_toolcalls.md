@@ -10,12 +10,11 @@ agents:
 policy:
 after: 45e13c03-d74d-4082-9065-aa387f6553f5
 ---
-
 since recently, I see tool calls that remain in the 'running' state while there is 'output' available.
 
 ex:
 
-> "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -Command 'npm test -- --watch=…
+> "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -Command 'npm test -- --watch\=…
 
 **Status:** Running
 
@@ -144,3 +143,7 @@ Ran all test suites matching /src\\services\\analysis\\triggers\\pipes\\connecti
 
 
 ```
+
+similar: the app was stopped and restarted, but in the chatlog history, it still says that these tools are  running, which is not possible.
+
+These are probably 2 different issues.
