@@ -5517,7 +5517,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 66748
+        "usedTokens": 70043
       },
       "entries": [
         {
@@ -5987,6 +5987,28 @@
           "role": "user",
           "sequence": 34,
           "timestamp": "2026-10-06T12:41:38.805Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-549920b0-274f-43fa-accd-7138926fad35-event-35",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0cb08d7982ba17cd016ac4ec8882e087d2bfddbd0b42d2b5b6",
+          "sequence": 35,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-06T12:41:46.728Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes. **The submission logic lives in a service class, but the component controls that service’s lifetime.** That makes an application operation depend on whether React preserves a particular popup runtime.\n\n`ActionPopupContent` creates a collection of stores through `createActionPopupBindings(...)`. Those include **`ActionConversationStore`**, which holds the submitted text, transmission status, and the mapping from submission ID to run/conversation.\n\nThe component then disposes that store in its effect cleanup. This arrangement makes sense for disposable view resources, but pending submissions are application state: they must survive until sending succeeds or fails, regardless of popup rendering.\n\n**By “the old store”, I mean that exact `ActionConversationStore` instance.**\n\nThe startup operation captures it in a callback:\n\n```typescript\nconst { conversationStore } = input;\n\nconst handleStarted = (runId: string) => {\n    started = true;\n    if (submissionId) {\n        conversationStore.bindSubmission(submissionId, runId);\n    }\n};\n```\n\nWhile startup awaits the backend, React can dispose that instance and create a replacement. Disposal clears its submission map; it does not destroy the JavaScript object or cancel the outstanding callback. The callback still references the original object, so it eventually calls `bindSubmission` on an empty map.\n\n**Replacement is possible because the component uses object references as dependencies:**\n\n```typescript\nconst bindings = useMemo(\n    () => createActionPopupBindings(...),\n    [action, assignmentContext, historicalEntries,\n        initialConversationPath, initialRunId],\n);\n```\n\nReact compares those dependencies using `Object.is`. Two objects can describe the same domain identity while being different references:\n\n```typescript\nconst previousContext = { cardInternalId: 'card-1', kind: 'card' };\nconst refreshedContext = { cardInternalId: 'card-1', kind: 'card' };\n\n// Same card, different objects.\nObject.is(previousContext, refreshedContext); // false\n```\n\nIf the parent supplies `refreshedContext`, React creates new bindings and runs cleanup for the previous bindings. This requires neither a different card nor a closed popup. Action-definition replacement can do the same.\n\nAn ordinary rerender with unchanged dependency references preserves the bindings. **The problem is tying their lifetime to reference changes instead of the lifetime of the operation they own.**\n\nSo `ActionPopupContent` is doing this because the current implementation treats the entire runtime as belonging to the mounted popup/action/context binding. That ownership is too broad: it includes pending submission state that should belong to a service with a lifetime independent of the popup.\n\nMy earlier diagnosis identified this concrete failure path from the code; I have not yet reproduced which dependency change triggered your reported occurrence.\n\n",
+          "id": "agent-turn-549920b0-274f-43fa-accd-7138926fad35-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 36,
+          "timestamp": "2026-10-06T12:42:05.856Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -5996,15 +6018,15 @@
           "agent": "codex",
           "conversationId": "01a11135-c5f1-7793-98f3-6413b2877471",
           "createdAt": "2026-10-06T12:36:19.644Z",
-          "lastUsedAt": "2026-10-06T12:36:19.644Z",
-          "synchronizedThroughMessageId": "agent-turn-549920b0-274f-43fa-accd-7138926fad35-turn-1-assistant-3"
+          "lastUsedAt": "2026-10-06T12:42:05.856Z",
+          "synchronizedThroughMessageId": "agent-turn-549920b0-274f-43fa-accd-7138926fad35-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-10-06T12:34:58.481Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 5287,
+          "reasoningMs": 7325,
           "toolMs": 1046
         },
         "elapsedMs": 81163,
@@ -6012,11 +6034,11 @@
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 268416,
-        "inputTokens": 79515,
-        "outputTokens": 1502,
-        "reasoningTokens": 150,
-        "totalTokens": 349583
+        "cachedInputTokens": 334336,
+        "inputTokens": 83018,
+        "outputTokens": 2060,
+        "reasoningTokens": 212,
+        "totalTokens": 419626
       },
       "usageSchemaVersion": 1,
       "viewed": true
