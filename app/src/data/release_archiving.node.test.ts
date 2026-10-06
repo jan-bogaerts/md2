@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MarkdownFile, Card } from './data_types'
-import { buildReleaseMoves, splitProjectActivity } from './release_archiving'
+import { buildCardArchiveMoves, buildReleaseMoves, splitProjectActivity } from './release_archiving';
 import { parseActivityFileForMigration } from '../../../shared/card_activity.mjs'
 
 function card(path: string, agentLogReferences: string[] = [], references: string[] = []): Card {
@@ -29,6 +29,56 @@ function card(path: string, agentLogReferences: string[] = [], references: strin
 }
 
 describe('buildReleaseMoves', () => {
+    it('omits only confirmed missing images before checking targets and preserves their references', () => {
+        const content = '---\nreferences:\n  - design/missing/note.png\n  - design/available/note.png\n---\n![missing](absent.svg)';
+        const source = card('design/F-1-card.md', [], ['design/missing/note.png', 'design/available/note.png']);
+        const secondSource = card('design/F-2-card.md', [], ['design/missing/note.png', 'design/available/note.png']);
+        const files: MarkdownFile[] = [
+            { content, path: source.path },
+            { content, path: secondSource.path },
+            { content: 'aW1hZ2U=', encoding: 'base64', path: 'design/available/note.png' },
+        ];
+
+        const moves = buildReleaseMoves(
+            files, [source, secondSource], 'design', 'design/releases', 'v1',
+            ['design/missing/note.png', 'design/absent.svg'], [], ['design\\missing\\note.png', 'design/absent.svg'],
+        );
+
+        expect(moves.map(({ fromPath }) => fromPath)).toEqual([
+            source.path, 'design/available/note.png', secondSource.path,
+        ]);
+        expect(moves.filter(({ fromPath }) => fromPath.endsWith('.md')).map(({ content: movedContent }) => movedContent))
+            .toEqual([content.replace('design/available/note.png', 'design/releases/v1/note.png'),
+                content.replace('design/available/note.png', 'design/releases/v1/note.png')]);
+        expect(moves[1]).toEqual({
+            content: 'aW1hZ2U=', encoding: 'base64', fromPath: 'design/available/note.png',
+            sha: undefined, toPath: 'design/releases/v1/note.png',
+        });
+    });
+
+    it('still rejects collisions between available assets when another image is omitted', () => {
+        const source = card('design/F-1-card.md', [], ['design/first/note.png', 'design/second/note.png']);
+        const files: MarkdownFile[] = [
+            { content: '![missing](absent.png)', path: source.path },
+            { content: 'first', encoding: 'base64', path: 'design/first/note.png' },
+            { content: 'second', encoding: 'base64', path: 'design/second/note.png' },
+        ];
+
+        expect(() => buildReleaseMoves(
+            files, [source], 'design', 'design/releases', 'v1', [], [], ['design/absent.png'],
+        )).toThrow('Archive target already exists: design/releases/v1/note.png');
+    });
+
+    it('rejects unloaded images unless explicitly omitted, including individual card archiving', () => {
+        const source = card('design/F-1-card.md');
+        const files: MarkdownFile[] = [{ content: '![missing](absent.png)', path: source.path }];
+
+        expect(() => buildReleaseMoves(files, [source], 'design', 'design/releases', 'v1'))
+            .toThrow('Cannot archive unloaded card asset: design/absent.png');
+        expect(() => buildCardArchiveMoves(files, [source], 'design/archived'))
+            .toThrow('Cannot archive unloaded card asset: design/absent.png');
+    });
+
     const activityPath = 'design/activity/card__card-1.json'
     const createActivityContent = (conversationIds: string[] = [], cardInternalId = 'card-1') => JSON.stringify({
         actionSettings: {},

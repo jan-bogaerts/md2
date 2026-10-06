@@ -50,6 +50,59 @@ function waitingConversation() {
 describe('project activity conversations', () => {
     afterEach(() => vi.useRealTimers());
 
+    it('reports missing referenced paths while optional reads remain empty', async () => {
+        const filePath = join(tmpdir(), 'md2-missing-referenced-activity.json');
+        const read = vi.spyOn(fs.promises, 'access').mockRejectedValue(Object.assign(new Error('absent'), { code: 'ENOENT' }));
+        try {
+            await expect(readActivityFile(filePath)).rejects.toThrow(`Missing referenced activity file: ${filePath}`);
+            await expect(readActivityFile(filePath, { kind: 'project' })).resolves.toEqual({actionSettings: {}, conversations: [], origin: { kind: 'project' }, records: [], version: 5});
+        } finally {
+            read.mockRestore();
+        }
+    });
+
+    it('keeps origin validation for existing malformed activity', async () => {
+        const access = vi.spyOn(fs.promises, 'access').mockResolvedValue(undefined);
+        const read = vi.spyOn(fs.promises, 'readFile').mockResolvedValue(JSON.stringify({actionSettings: {}, conversations: [], records: [], version: 5}));
+        try {
+            await expect(readActivityFile(join(tmpdir(), 'md2-malformed-origin.json')))
+                .rejects.toThrow('Malformed activity file: missing origin');
+        } finally {
+            read.mockRestore();
+            access.mockRestore();
+        }
+    });
+
+    it.each([undefined, { kind: 'project' }])('validates stored null instead of treating it as absent with origin %s', async (origin) => {
+        const access = vi.spyOn(fs.promises, 'access').mockResolvedValue(undefined);
+        const read = vi.spyOn(fs.promises, 'readFile').mockResolvedValue('null');
+        try {
+            await expect(readActivityFile(join(tmpdir(), 'md2-null-activity.json'), origin)).rejects.toThrow('Malformed activity file');
+        } finally {
+            read.mockRestore();
+            access.mockRestore();
+        }
+    });
+
+    it('includes absent paths in both referenced conversation loaders', async () => {
+        const rootPath = join(tmpdir(), 'md2-referenced-load');
+        const activityPath = 'design/activity/card__card-1.json';
+        const absolutePath = join(rootPath, activityPath);
+        const project = { branch: 'main', id: 'local', rootPath };
+        const access = vi.spyOn(fs.promises, 'access').mockImplementation(async (filePath) => {
+            if (String(filePath).endsWith('.git')) return;
+            throw Object.assign(new Error('absent'), { code: 'ENOENT' });
+        });
+        try {
+            await expect(loadActivityConversations(project, activityPath))
+                .rejects.toThrow(`Missing referenced activity file: ${absolutePath}`);
+            await expect(loadActivityConversation(project, `${activityPath}#conversation=conversation-1`))
+                .rejects.toThrow(`Missing referenced activity file: ${absolutePath}`);
+        } finally {
+            access.mockRestore();
+        }
+    });
+
     it('creates an empty card activity file without replacing an existing file', async () => {
         const rootPath = await mkdtemp(join(tmpdir(), 'md2-activity-reservation-'));
         const project = { branch: 'main', id: 'local', rootPath };

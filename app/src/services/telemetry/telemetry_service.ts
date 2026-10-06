@@ -108,7 +108,10 @@ export class TelemetryService {
     }
 
     captureError(error: unknown) {
-        if (!this.sentryEnabled) return
+        if (!this.sentryEnabled) {
+            console.error(error)
+            return
+        }
 
         try {
             Sentry.captureException(error)

@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MarkdownFile, StorageService } from '../data/data_types'
 import { configService } from './config/config_service'
-import { createDataService, createStorage, files, storageFiles } from './test_support/data_service_test_support'
+import { conversation, createDataService, createStorage, files, storageFiles } from './test_support/data_service_test_support'
+import { dialogService } from './dialog_service';
+import { projectAgentTokenUsageService } from './agents/project_agent_token_usage_service';
 import { createAgentTokenUsageSummary, legacySummaryUsage, serializeAgentTokenUsageSummary } from '../../../shared/agent_token_usage_summary.mjs'
 import { createActivityFile } from '../../../shared/card_activity.mjs'
 import { parseProjectStatsFile } from '../../../shared/project_stats.mjs'
@@ -11,8 +13,348 @@ const RELEASE_STATES = [
     { alwaysVisible: true, state: 'done' },
 ]
 
+/** Models committed file moves so reads from removed source paths fail. */
+function createReleaseActivityStorage(archiveProjectActivity: boolean) {
+    const cardFiles = ['root-card', 'retained-card'].map((cardInternalId, index) => ({
+        content: `---\nid: F-${index + 1}\ninternalId: ${cardInternalId}\ntitle: Card\nstatus: ${index === 0 ? 'done' : 'active'}\nbranch: feature-${index}\nagents:\n  - activity/card__${cardInternalId}.json\n---\n# Card`,
+        path: `design/F-${index + 1}-card.md`,
+    }));
+    const repository = new Map<string, MarkdownFile>(cardFiles.map((file) => [file.path, file]));
+    for (const { path, content } of cardFiles) {
+        const cardInternalId = content.includes('root-card') ? 'root-card' : 'retained-card';
+        const activityPath = `activity/card__${cardInternalId}.json`;
+        const activity = createActivityFile({ cardInternalId, kind: 'card' });
+        activity.conversations.push({ ...conversation(), cardInternalId, cardPath: path, id: cardInternalId });
+        repository.set(activityPath, { content: JSON.stringify(activity), path: activityPath });
+    }
+    const projectActivity = createActivityFile({ kind: 'project' });
+    projectActivity.conversations.push({...conversation(), cardInternalId: null, cardPath: null, id: 'project-kept', completedAt: null, status: 'waitingForInput'});
+    if (archiveProjectActivity) {
+        projectActivity.conversations.push({ ...conversation(), cardInternalId: null, cardPath: null, id: 'project-done' });
+    }
+    repository.set('activity/project.json', { content: JSON.stringify(projectActivity), path: 'activity/project.json' });
+    repository.set('agent_token_usage.json', {content: serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()), path: 'agent_token_usage.json'});
+    const storage = createStorage({
+        commit: vi.fn(async ({ files: committedFiles, moves = [] }) => {
+            for (const { fromPath, toPath, content } of moves) {
+                repository.delete(fromPath);
+                repository.set(toPath, { content, path: toPath });
+            }
+            for (const file of committedFiles) repository.set(file.path, file);
+            return committedFiles;
+        }),
+        deleteLocalBranch: vi.fn(async () => undefined),
+        listBranches: vi.fn(async () => [{ name: 'main' }, { name: 'feature-0' }]),
+        listRepositoryFiles: vi.fn(async () => [...repository.keys()]),
+        listAgentConversationReferences: vi.fn(async () => (
+            JSON.parse(repository.get('activity/project.json')!.content).conversations
+                .map(({ id }: { id: string }) => `activity/project.json#conversation=${id}`)
+        )),
+        loadActivityConversations: vi.fn(async (_project, path) => {
+            const file = repository.get(path);
+            if (!file) throw new Error(`Missing referenced activity file: ${path}`);
+            return JSON.parse(file.content).conversations.map((stored: ReturnType<typeof conversation>) => ({...stored, path: `${path}#conversation=${stored.id}`}));
+        }),
+        loadAgentConversation: vi.fn(async (_project, reference) => {
+            const [path, id] = reference.split('#conversation=');
+            const stored = JSON.parse(repository.get(path)!.content).conversations
+                .find((current: { id: string }) => current.id === id);
+            return { ...stored, path: reference };
+        }),
+        loadProjectConfig: vi.fn(async () => ({
+            pinnedConversations: [{ cardInternalId: 'root-card', contextKind: 'card' as const, conversationId: 'root-card' }],
+            projectFolder: '', pushMode: 'auto' as const, releasesFolder: 'history', states: RELEASE_STATES, workingFolder: 'design',
+        })),
+        loadProjectRoot: vi.fn(async () => ({files: [...repository.values()].filter(({ path }) => /^design\/[^/]+\.md$/u.test(path)), workingFolder: 'design'})),
+        loadProject: vi.fn(async () => ({files: [...repository.values()].filter(({ path }) => path.endsWith('.md')), workingFolder: 'design'})),
+        loadTextFile: vi.fn(async (_project, path) => {
+            const file = repository.get(path);
+            if (!file) throw new Error(`Missing text file: ${path}`);
+            return file;
+        }),
+    });
+    return { repository, storage };
+}
+
 describe('ReleaseOperations', () => {
+    it.each([false, true])('reloads committed paths with project activity archive=%s and survives another release and reopen', async (archiveProjectActivity) => {
+        configService.init();
+        const warning = vi.spyOn(dialogService, 'warning');
+        const { repository, storage } = createReleaseActivityStorage(archiveProjectActivity);
+        const service = createDataService();
+        service.init({ storage });
+        const project = { branch: 'main', id: 'project' };
+        await service.projectLoading.openProject(project);
+        await vi.waitFor(() => expect(service.isFullProjectLoaded()).toBe(true));
+        await service.agents.hydrateActiveCardConversations();
+        await service.agents.ensurePinnedConversationsLoaded();
+        const storedConversation = service.agents.getAgentConversations('root-card')[0];
+        const reset = vi.spyOn(service.agents, 'resetLoadedConversations');
+        const refresh = vi.spyOn(projectAgentTokenUsageService, 'refresh').mockImplementation(async () => {
+            const snapshot = service.getState().snapshot!;
+            expect(snapshot.repositoryFiles).toContain('history/v1/card__root-card.json');
+            expect(snapshot.repositoryFiles).not.toContain('activity/card__root-card.json');
+            expect(snapshot.backgroundCards.find(({ header }) => header.internalId === 'root-card')?.header.agentLogReferences)
+                .toEqual(['history/v1/card__root-card.json']);
+            expect(reset).toHaveBeenCalledOnce();
+        });
+
+        await service.releases.completeRelease('v1', []);
+        refresh.mockRestore();
+        await service.agents.hydrateActiveCardConversations();
+        await service.agents.ensurePinnedConversationsLoaded();
+        const context = { cardInternalId: 'root-card', file: 'history/v1/F-1-card.md', kind: 'card' as const };
+        const archived = await service.listAgentConversations(context);
+        expect(archived).toEqual([{ ...storedConversation, path: 'history/v1/card__root-card.json#conversation=root-card' }]);
+        expect(service.agents.getPinnedConversationsSnapshot()).toEqual(archived);
+        expect(service.agents.getAgentConversations('retained-card')[0].path)
+            .toBe('activity/card__retained-card.json#conversation=retained-card');
+        expect((await service.listAgentConversations({ kind: 'project' })).map(({ id }) => id))
+            .toEqual(['project-kept']);
+
+        const retainedFile = repository.get('design/F-2-card.md')!;
+        repository.set(retainedFile.path, { ...retainedFile, content: retainedFile.content.replace('status: active', 'status: done') });
+        await service.projectLoading.openProject(project);
+        await vi.waitFor(() => expect(service.isFullProjectLoaded()).toBe(true));
+        await service.releases.completeRelease('v2', []);
+        await service.projectLoading.openProject(project);
+        await vi.waitFor(() => expect(service.isFullProjectLoaded()).toBe(true));
+        expect(await service.listAgentConversations(context)).toEqual(archived);
+        expect((await service.listAgentConversations({ cardInternalId: 'retained-card', kind: 'card', file: 'history/v2/F-2-card.md' }))[0])
+            .toMatchObject({ id: 'retained-card', path: 'history/v2/card__retained-card.json#conversation=retained-card' });
+        expect(warning).not.toHaveBeenCalled();
+    });
+
+    it.each(['commit', 'usage refresh', 'push', 'cleanup', 'metadata commit', 'metadata push'])('preserves appropriate state after %s failure', async (stage) => {
+        configService.init();
+        const { storage } = createReleaseActivityStorage(true);
+        const service = createDataService();
+        service.init({ storage });
+        await service.projectLoading.openProject({ branch: 'main', id: 'project' });
+        await vi.waitFor(() => expect(service.isFullProjectLoaded()).toBe(true));
+        await service.agents.hydrateActiveCardConversations();
+        const reset = vi.spyOn(service.agents, 'resetLoadedConversations');
+        const failure = new Error(`${stage} failed`);
+        if (stage === 'commit') vi.mocked(storage.commit).mockRejectedValueOnce(failure);
+        if (stage === 'usage refresh') vi.spyOn(projectAgentTokenUsageService, 'refresh').mockRejectedValueOnce(failure);
+        if (stage === 'push') vi.mocked(storage.push).mockRejectedValueOnce(failure);
+        if (stage === 'cleanup') vi.mocked(storage.deleteLocalBranch!).mockRejectedValueOnce(failure);
+        if (stage === 'metadata commit') {
+            const commit = vi.mocked(storage.commit);
+            commit.mockImplementationOnce(commit.getMockImplementation()!).mockRejectedValueOnce(failure);
+        }
+        if (stage === 'metadata push') vi.mocked(storage.push).mockResolvedValueOnce(undefined).mockRejectedValueOnce(failure);
+
+        await expect(service.releases.completeRelease('v1', ['feature-0'])).rejects.toThrow(`${stage} failed`);
+        const snapshot = service.getState().snapshot!;
+        if (stage === 'commit') {
+            expect(snapshot.activeCards[0].path).toBe('design/F-1-card.md');
+            expect(service.agents.getAgentConversations('root-card')[0].path)
+                .toBe('activity/card__root-card.json#conversation=root-card');
+            expect(reset).not.toHaveBeenCalled();
+        } else {
+            expect(snapshot.backgroundCards.find(({ header }) => header.internalId === 'root-card'))
+                .toMatchObject({ path: 'history/v1/F-1-card.md', header: { agentLogReferences: ['history/v1/card__root-card.json'] } });
+            expect(reset).toHaveBeenCalledOnce();
+            if (stage === 'metadata push') {
+                expect(snapshot.backgroundCards.find(({ header }) => header.internalId === 'root-card')?.header.branch).toBeNull();
+            }
+        }
+        if (['commit', 'usage refresh', 'push'].includes(stage)) expect(storage.deleteLocalBranch).not.toHaveBeenCalled();
+    });
+
+    it.each(['auto', 'manual'] as const)('completes release after missing images with %s push mode', async (pushMode) => {
+        configService.init();
+        const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const missingImageError = Object.assign(new Error('Image absent'), { code: 'ENOENT' });
+        const releaseFiles: MarkdownFile[] = [
+            {
+                content: '---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nbranch: f-1\nreferences:\n  - design/missing/note.png\n  - design/available/note.png\n---\n![missing](absent.svg)\n![available](available.jpg)\n![shared](shared.webp)',
+                path: 'design/F-1-one.md',
+            },
+            {
+                content: '---\nid: F-2\ninternalId: two\ntitle: Two\nstatus: done\nreferences:\n  - design/missing/note.png\n---\n![missing](absent.svg)\n![available](available.jpg)',
+                path: 'design/F-2-two.md',
+            },
+            {
+                content: '---\nid: F-3\ninternalId: three\ntitle: Three\nstatus: active\n---\n![shared](shared.webp)',
+                path: 'design/F-3-three.md',
+            },
+        ];
+        const activityPath = 'activity/card__one.json';
+        const activity = createActivityFile({ cardInternalId: 'one', kind: 'card' });
+        activity.conversations.push({
+            actionId: 'review', cardInternalId: 'one', cardPath: releaseFiles[0].path,
+            completedAt: '2026-08-17T10:01:00.000Z', entries: [], hasExplicitTitle: true,
+            id: 'conversation-1', providerSessions: [], startedAt: '2026-08-17T10:00:00.000Z',
+            status: 'completed', title: 'Review',
+            usage: { cachedInputTokens: 2, inputTokens: 3, outputTokens: 4, reasoningTokens: 1, totalTokens: 10 },
+            usageSchemaVersion: 1, viewed: true,
+        });
+        const missingPaths = ['design/absent.svg', 'design/missing/note.png'];
+        const project = { branch: 'main', id: 'project', rootPath: 'C:/repo' };
+        const releaseReleaseCardLocks = vi.fn(async () => undefined);
+        window.md2Actions = {
+            acquireReleaseCardLocks: vi.fn(async () => 'release-lease'),
+            onActionRun: vi.fn(() => vi.fn()),
+            releaseReleaseCardLocks,
+        } as never;
+        const storage = createStorage({
+            commit: vi.fn<StorageService['commit']>(async (request) => request.files),
+            deleteLocalBranch: vi.fn(async () => undefined),
+            listBranches: vi.fn(async () => [{ name: 'main' }, { name: 'f-1' }]),
+            listRepositoryFiles: vi.fn(async () => ['agent_token_usage.json', ...releaseFiles.map(({ path }) => path), ...missingPaths, activityPath]),
+            loadProject: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
+            loadProjectAsset: vi.fn(async (_project, path) => {
+                if (missingPaths.includes(path)) throw missingImageError;
+                return { content: 'aW1hZ2U=', contentType: 'image/png', encoding: 'base64' as const, path };
+            }),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', pushMode, states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: releaseFiles, workingFolder: 'design' })),
+            loadTextFile: vi.fn(async (_project, path) => ({
+                content: path === activityPath
+                    ? JSON.stringify(activity)
+                    : serializeAgentTokenUsageSummary(createAgentTokenUsageSummary(legacySummaryUsage(50))),
+                path,
+            })),
+        });
+        const service = createDataService();
+        service.init({ storage });
+        await service.projectLoading.openProject(project);
+        await vi.waitFor(() => expect(service.isFullProjectLoaded()).toBe(true));
+
+        const snapshot = await service.releases.completeRelease('v1', ['f-1']);
+
+        const releaseCommit = vi.mocked(storage.commit).mock.calls[0][0];
+        expect(releaseCommit.moves?.map(({ fromPath }) => fromPath)).toEqual([
+            'design/F-1-one.md', activityPath, 'design/available.jpg', 'design/available/note.png', 'design/F-2-two.md',
+        ]);
+        expect(releaseCommit.moves?.filter(({ encoding }) => encoding === 'base64')).toEqual([
+            expect.objectContaining({ content: 'aW1hZ2U=', fromPath: 'design/available.jpg', toPath: 'history/v1/available.jpg' }),
+            expect.objectContaining({ content: 'aW1hZ2U=', fromPath: 'design/available/note.png', toPath: 'history/v1/note.png' }),
+        ]);
+        expect(releaseCommit.moves?.[0].content).toBe(
+            releaseFiles[0].content.replace('design/available/note.png', 'history/v1/note.png'),
+        );
+        expect(releaseCommit.moves?.at(-1)?.content).toBe(releaseFiles[1].content);
+        expect(releaseCommit.files.map(({ path }) => path)).toEqual(['agent_token_usage.json', 'project_stats.json']);
+        expect(JSON.parse(releaseCommit.files[0].content)).toMatchObject({
+            projectUsage: { totalTokens: 50 },
+            releases: { v1: { totalTokens: 10 } },
+        });
+        expect(parseProjectStatsFile(releaseCommit.files[1].content, 'project_stats.json').releases.v1.conversations)
+            .toEqual([expect.objectContaining({ identity: 'card:one:conversation-1', totalTokens: 10 })]);
+        expect(storage.loadProjectAsset).toHaveBeenCalledTimes(4);
+        expect(storage.loadProjectAsset).not.toHaveBeenCalledWith(project, 'design/shared.webp');
+        expect(warning).toHaveBeenCalledTimes(2);
+        for (const path of missingPaths) {
+            expect(warning).toHaveBeenCalledWith(`Skipping missing release image: ${path}`, missingImageError);
+        }
+        expect(storage.deleteLocalBranch).toHaveBeenCalledWith(project, 'f-1');
+        expect(storage.commit).toHaveBeenLastCalledWith(expect.objectContaining({
+            message: 'Clear deleted release branches',
+            files: [expect.objectContaining({ content: expect.not.stringContaining('branch: f-1'), path: 'history/v1/F-1-one.md' })],
+        }));
+        expect(storage.push).toHaveBeenCalledTimes(pushMode === 'auto' ? 2 : 0);
+        if (pushMode === 'auto') {
+            expect(vi.mocked(storage.push).mock.invocationCallOrder[0])
+                .toBeLessThan(vi.mocked(storage.deleteLocalBranch!).mock.invocationCallOrder[0]);
+        }
+        expect(snapshot?.activeCards.map(({ header }) => header.internalId)).toEqual(['three']);
+        expect(snapshot?.backgroundCards.map(({ header }) => header.internalId)).toEqual(expect.arrayContaining(['one', 'two']));
+        expect(releaseReleaseCardLocks).toHaveBeenCalledWith('release-lease');
+        warning.mockRestore();
+    });
+
+    it.each([
+        { code: 'EACCES', path: 'design/image.png' },
+        { code: 'UNSUPPORTED_ASSET', path: 'design/image.svg' },
+        { code: undefined, path: 'design/image.png' },
+        { code: 'ENOENT', path: 'design/manual.pdf' },
+    ])('rejects asset failure $code for $path and releases locks', async ({ code, path }) => {
+        configService.init();
+        const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const failure = Object.assign(new Error('ENOENT: asset load failed'), { code });
+        const cardFile = {
+            content: `---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nreferences:\n  - ${path}\n---\n# One`,
+            path: 'design/F-1.md',
+        };
+        const releaseReleaseCardLocks = vi.fn(async () => undefined);
+        window.md2Actions = {
+            acquireReleaseCardLocks: vi.fn(async () => 'release-lease'),
+            onActionRun: vi.fn(() => vi.fn()), releaseReleaseCardLocks,
+        } as never;
+        const storage = createStorage({
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectAsset: vi.fn(async () => { throw failure; }),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        });
+        const service = createDataService();
+        service.init({ storage });
+        await service.projectLoading.openProject({ branch: 'main', id: 'project', rootPath: 'C:/repo' });
+        await vi.waitFor(() => expect(service.isFullProjectLoaded()).toBe(true));
+
+        await expect(service.releases.completeRelease('v1', [])).rejects.toBe(failure);
+
+        expect(storage.commit).not.toHaveBeenCalled();
+        expect(storage.push).not.toHaveBeenCalled();
+        expect(warning).not.toHaveBeenCalled();
+        expect(releaseReleaseCardLocks).toHaveBeenCalledWith('release-lease');
+        warning.mockRestore();
+    });
+
+    it.each(['activity discovery', 'activity load', 'commit'])('still fails at %s after skipping missing image', async (stage) => {
+        configService.init();
+        const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const activityPath = 'activity/card__one.json';
+        const failure = Object.assign(new Error('Required file absent'), { code: 'ENOENT' });
+        const cardFile = {
+            content: `---\nid: F-1\ninternalId: one\ntitle: One\nstatus: done\nagents:\n  - ${activityPath}\n---\n![missing](absent.png)`,
+            path: 'design/F-1.md',
+        };
+        const releaseReleaseCardLocks = vi.fn(async () => undefined);
+        window.md2Actions = {
+            acquireReleaseCardLocks: vi.fn(async () => 'release-lease'),
+            onActionRun: vi.fn(() => vi.fn()), releaseReleaseCardLocks,
+        } as never;
+        const storage = createStorage({
+            commit: vi.fn(async () => { throw failure; }),
+            listRepositoryFiles: vi.fn(async () => [
+                'agent_token_usage.json', cardFile.path, ...(stage === 'activity discovery' ? [] : [activityPath]),
+            ]),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProjectAsset: vi.fn(async () => { throw failure; }),
+            loadProjectConfig: vi.fn(async () => ({ projectFolder: '', states: RELEASE_STATES, workingFolder: 'design' })),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadTextFile: vi.fn(async (_project, path) => {
+                if (stage === 'activity load' && path === activityPath) throw failure;
+                return {
+                    content: path === activityPath
+                        ? JSON.stringify(createActivityFile({ cardInternalId: 'one', kind: 'card' }))
+                        : serializeAgentTokenUsageSummary(createAgentTokenUsageSummary()),
+                    path,
+                };
+            }),
+        });
+        const service = createDataService();
+        service.init({ storage });
+        await service.projectLoading.openProject({ branch: 'main', id: 'project', rootPath: 'C:/repo' });
+        await vi.waitFor(() => expect(service.isFullProjectLoaded()).toBe(true));
+
+        await expect(service.releases.completeRelease('v1', [])).rejects.toThrow(
+            stage === 'activity discovery' ? `Missing referenced activity log: ${activityPath}` : failure.message,
+        );
+
+        expect(storage.commit).toHaveBeenCalledTimes(stage === 'commit' ? 1 : 0);
+        expect(storage.push).not.toHaveBeenCalled();
+        expect(warning).toHaveBeenCalledWith('Skipping missing release image: design/absent.png', failure);
+        expect(releaseReleaseCardLocks).toHaveBeenCalledWith('release-lease');
+        warning.mockRestore();
+    });
+
     afterEach(() => {
+        vi.restoreAllMocks();
         vi.useRealTimers()
         delete window.md2Actions
         configService.clear()

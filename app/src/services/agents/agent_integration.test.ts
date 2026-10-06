@@ -18,6 +18,51 @@ import { conversation, createDataService, createDeferred, createStorage, waitFor
 vi.mock('../actions/electron_action_runner', () => ({ runElectronAction: vi.fn(async () => ({ changedPaths: [], logs: [], status: 'completed' })) }))
 
 describe('AgentIntegration', () => {
+    it.each(['success', 'failure'])('rejects superseded card load %s after reset within same project', async (outcome) => {
+        configService.init();
+        const activityPath = 'activity/card__root-card.json';
+        const cardFile = {
+            content: `---\nid: F-1\ninternalId: root-card\ntitle: Root\nstatus: active\nagents:\n  - ${activityPath}\n---\n# Root`,
+            path: 'design/F-1.md',
+        };
+        const oldLoad = createDeferred<AgentConversation[]>();
+        const newConversation = conversation('history/v1/card__root-card.json#conversation=agent-1');
+        const storage = createStorage({
+            loadActivityConversations: vi.fn().mockImplementationOnce(async () => oldLoad.promise)
+                .mockResolvedValue([newConversation]),
+            loadProjectRoot: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+            loadProject: vi.fn(async () => ({ files: [cardFile], workingFolder: 'design' })),
+        });
+        const service = createDataService();
+        service.init({ storage });
+        const prepare = vi.spyOn(service.agents, 'prepareProjectConversationLoad');
+        const warning = vi.spyOn(dialogService, 'warning');
+        const loggedError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+            await service.projectLoading.openProject({ branch: 'main', id: 'project' });
+            await vi.waitFor(() => expect(storage.loadActivityConversations).toHaveBeenCalledOnce());
+            const oldRequest = service.agents.ensureAgentConversationsForCard('root-card');
+            const projectToken = prepare.mock.calls.at(-1)![0];
+            service.agents.resetLoadedConversations();
+            service.agents.prepareProjectConversationLoad(projectToken);
+            await expect(service.agents.ensureAgentConversationsForCard('root-card')).resolves.toEqual([newConversation]);
+
+            if (outcome === 'success') oldLoad.resolve([conversation(`${activityPath}#conversation=agent-1`)]);
+            else oldLoad.reject(new Error(`Missing referenced activity file: ${activityPath}`));
+            await oldRequest;
+            await waitForWorkerTurn();
+
+            expect(service.agents.getAgentConversations('root-card')).toEqual([newConversation]);
+            expect(service.getState().snapshot?.activeCards[0].agentConversationErrors).toEqual([]);
+            expect(warning).not.toHaveBeenCalled();
+        } finally {
+            oldLoad.resolve([]);
+            prepare.mockRestore();
+            warning.mockRestore();
+            loggedError.mockRestore();
+        }
+    });
+
     afterEach(() => {
         actionRunRegistry.stop()
         vi.useRealTimers()
