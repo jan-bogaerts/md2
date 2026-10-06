@@ -177,12 +177,14 @@ function updateProviderSession(run, synchronizedThroughMessageId, completedAt) {
 
     const sessions = run.conversation.providerSessions;
     const current = sessions.find(({ agent }) => agent === run.agent);
+    const usageBaseline = run.claudeUsageTracker?.conversationId === conversationId ? run.claudeUsageTracker.usageBaseline : null;
     const nextSession = {
         agent: run.agent,
         conversationId,
         createdAt: current?.createdAt ?? completedAt,
         lastUsedAt: completedAt,
         synchronizedThroughMessageId,
+        ...(usageBaseline ? { usageBaseline } : {}),
     };
     run.conversation.providerSessions = current
         ? sessions.map((session) => (session.agent === run.agent ? nextSession : session))

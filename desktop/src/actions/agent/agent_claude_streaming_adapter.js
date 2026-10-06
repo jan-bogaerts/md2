@@ -3,10 +3,10 @@ const { boundedAgentResult } = require('../../../../shared/agent_conversations.m
 const {
     ClaudeFileResultDecoder,
     accumulatedClaudeUsage,
-    claudeUsage,
     recordClaudeAssistantUsage,
 } = require('./agent_claude_events');
 const { isMissingSession } = require('./agent_provider_protocol');
+const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 
 const CLAUDE_APPROVAL_DECISIONS = ['accept', 'acceptForSession', 'decline', 'cancel'];
 const CLAUDE_CONTEXT_USAGE_TIMEOUT_MS = 1_000;
@@ -227,7 +227,7 @@ function createStreamState() {
 }
 
 class ClaudeStreamingAdapter {
-    constructor(writeLine, onEvent, rootPath, providerConversationId) {
+    constructor(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker) {
         this.writeLine = writeLine;
         this.onEvent = onEvent;
         this.pendingApprovals = new Map();
@@ -247,6 +247,7 @@ class ClaudeStreamingAdapter {
         this.pendingLiveContextUsage = null;
         this.fileResultDecoder = new ClaudeFileResultDecoder(rootPath);
         this.messageUsages = new Map();
+        this.claudeUsageTracker = claudeUsageTracker ?? new ClaudeUsageTracker(providerConversationId);
         this.turnStarted = false;
     }
 
@@ -377,7 +378,15 @@ class ClaudeStreamingAdapter {
             await this.emitProtocolError('invalid Claude question request');
             return;
         }
-        if (event.type === 'system' && typeof event.session_id === 'string') {
+        if (this.claudeUsageTracker.isDuplicateResult(event)) return;
+        this.claudeUsageTracker.observe(event);
+        if (event.type === 'conversation_reset') {
+            if (event.parent_tool_use_id) return;
+            this.messageUsages.clear();
+            await this.onEvent({ conversationId: event.new_conversation_id, type: 'sessionStarted' });
+            return;
+        }
+        if (event.type === 'system' && !event.parent_tool_use_id && typeof event.session_id === 'string') {
             await this.onEvent({ conversationId: event.session_id, type: 'sessionStarted' });
         }
         if (event.type === 'system') {
@@ -647,7 +656,7 @@ class ClaudeStreamingAdapter {
         this.pendingQuestions.clear();
         this.clearLiveContextUsageRequest();
         this.turnStarted = false;
-        const usage = claudeUsage(event, accumulatedClaudeUsage(this.messageUsages));
+        const usage = this.claudeUsageTracker.read(event, accumulatedClaudeUsage(this.messageUsages));
         this.messageUsages.clear();
         const turnCompletedEvent = { error, missingSession, type: 'turnCompleted', usage };
         if (error) {
