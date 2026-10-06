@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__ecdd9654-d1ba-4f4f-9fcc-27997480e062.json
 policy:
+after: 22e1a692-a35c-4fe0-a4ea-70545e3e6009
 ---
 
 When edting diagrams, the ´add tool´ currently always uses a ´continuous add´ method until user presses escape or selects different tool.

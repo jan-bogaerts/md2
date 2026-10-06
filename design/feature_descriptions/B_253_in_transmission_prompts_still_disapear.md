@@ -3,7 +3,7 @@ author:
 id: B_253
 internalId: bde0d7b3-85f0-46c0-8027-5d56939c04ee
 title: in-transmission prompts still disapear
-status: to fix
+status: ready
 owner: 
 affects:
 agents:
@@ -13,6 +13,7 @@ changedFiles:
   - app/src/components/actions/conversation/state/action_conversation_store.node.test.ts
   - app/src/components/actions/conversation/state/action_conversation_store.ts
   - app/src/components/actions/conversation/transcript/action_conversation_chatlog_tracker.ts
+  - app/src/components/actions/conversation/transcript/action_conversation_prompt.node.test.ts
   - app/src/components/actions/conversation/transcript/action_conversation_prompt.ts
   - app/src/components/actions/conversation/transcript/action_queued_prompt.tsx
   - app/src/components/actions/run/popup/action_popup.test.tsx

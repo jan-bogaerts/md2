@@ -24,6 +24,7 @@ changedFiles:
   - app/src/services/open_files_service.node.test.ts
   - app/src/services/open_files_service.ts
   - app/src/services/project/project_loading.test.ts
+after: df7f7a94-ee33-44a3-b499-2b230d484fef
 ---
 action x has invalid unsaved data. we should not prevent the saving of an action because of this (most likely type diagram)
 
