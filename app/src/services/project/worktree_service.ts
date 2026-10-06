@@ -77,6 +77,14 @@ export class WorktreeService extends EventTarget {
         register('worktreeService', this)
     }
 
+    /** Assignment values derive from live model data; status changes do not announce this event. */
+    getAssignmentSnapshot() {
+        return JSON.stringify([
+            this.projectActionWorktree, this.projectActionWorktreeBranch,
+            this.getRecords().map(({ branch, valid, error }) => [branch, valid, error]),
+        ]);
+    }
+
     getRecords() {
         return this.records
     }
@@ -181,6 +189,7 @@ export class WorktreeService extends EventTarget {
         this.error = null
         this.records = []
         this.dispatchChanged()
+        this.dispatchEvent(new Event('assignmentChanged'));
     }
 
     startDraft() {
@@ -205,6 +214,7 @@ export class WorktreeService extends EventTarget {
         this.projectActionWorktree = resolution?.index ?? null;
         this.projectActionWorktreeBranch = branch;
         this.dispatchChanged()
+        this.dispatchEvent(new Event('assignmentChanged'));
     }
 
     async setCardWorktree(path: string, selectedBranch: string | null) {
@@ -452,6 +462,7 @@ export class WorktreeService extends EventTarget {
         try {
             for (const removal of draft.removals) {
                 await storage.removeWorktree(project, removal.path, removal.mode)
+                this.dispatchEvent(new Event('assignmentChanged'));
                 const currentDraft = this.draft
                 if (currentDraft) {
                     this.replaceDraft({
@@ -462,6 +473,7 @@ export class WorktreeService extends EventTarget {
             }
             for (const folderPath of draft.additions) {
                 await storage.addWorktree(project, folderPath)
+                this.dispatchEvent(new Event('assignmentChanged'));
                 const currentDraft = this.draft
                 if (currentDraft) {
                     this.replaceDraft({
@@ -476,6 +488,7 @@ export class WorktreeService extends EventTarget {
         } finally {
             const currentDraft = this.draft
             if (currentDraft) this.replaceDraft({ ...currentDraft, applying: false })
+            this.dispatchEvent(new Event('assignmentChanged'));
         }
     }
 

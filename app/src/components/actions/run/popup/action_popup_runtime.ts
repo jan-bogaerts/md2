@@ -17,7 +17,7 @@ import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bri
 
 type ActionPopupBindings = Omit<ActionPopupRuntime, 'runValidationError' | 'settingsStore'>
 
-/** Creates the stores whose lifecycle follows one selected popup action and assignment context. */
+/** Creates the stores whose lifecycle follows one selected action and canonical context identity. */
 export function createActionPopupBindings(
     action: ActionDefinition,
     context: ActionContext,

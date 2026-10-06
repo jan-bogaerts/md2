@@ -64,6 +64,24 @@ describe('ActionConversationStore', () => {
         vi.restoreAllMocks()
     })
 
+    it('updates context without losing selected conversation or its continuation', async () => {
+        const persisted = conversation('conversation-1.json');
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([persisted]);
+        vi.spyOn(dataService, 'loadAgentConversation').mockResolvedValue(persisted);
+        const { store, bindingStore } = createConversationStore();
+        await store.load();
+        await store.select(persisted.id);
+        const selected = store.getSnapshot().selectedConversation;
+        const updatedContext = { ...context, worktree: '2', worktreeBranch: 'new-branch' };
+
+        store.setContext(updatedContext);
+
+        expect(store.context).toBe(updatedContext);
+        expect(store.getSnapshot().selectedConversation).toBe(selected);
+        expect(store.continuationPath(null)).toBe(persisted.path);
+        expect(bindingStore.getSnapshot()).toBeNull();
+    });
+
     it('resolves explicit history while retaining matching live snapshots', () => {
         const liveConversation = conversation('conversation-live.json')
         const persistedLiveConversation = { ...liveConversation, path: 'moved-conversation-live.json', title: 'Persisted live' }

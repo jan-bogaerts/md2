@@ -14,18 +14,31 @@ const INITIAL_SNAPSHOT: ActionHistorySnapshot = { entries: [], error: null }
 
 /** Owns run-history loading for history-rendering leaves. */
 export class ActionHistoryStore {
-    private readonly action: ActionDefinition
-    private readonly context: ActionContext
+    private action: ActionDefinition
+    private context: ActionContext
     private readonly listeners = new Set<Listener>()
     private request = 0
     private snapshot = INITIAL_SNAPSHOT
-    private readonly historicalEntries: ActionRunHistoryEntry[] | null
+    private historicalEntries: ActionRunHistoryEntry[] | null
 
     constructor(action: ActionDefinition, context: ActionContext, historicalEntries: ActionRunHistoryEntry[] | null = null) {
         this.action = action
         this.context = context
         this.historicalEntries = historicalEntries
         if (historicalEntries) this.snapshot = { entries: historicalEntries, error: null }
+    }
+
+    /** Refresh history inputs without replacing the popup's stores or selection. */
+    configure(action: ActionDefinition, context: ActionContext, historicalEntries: ActionRunHistoryEntry[] | null) {
+        const historyChanged = this.historicalEntries !== historicalEntries;
+        this.action = action;
+        this.context = context;
+        this.historicalEntries = historicalEntries;
+        if (!historyChanged) return;
+
+        this.request += 1;
+        if (historicalEntries) this.publish({ entries: historicalEntries, error: null });
+        else void this.load();
     }
 
     readonly getSnapshot = () => this.snapshot

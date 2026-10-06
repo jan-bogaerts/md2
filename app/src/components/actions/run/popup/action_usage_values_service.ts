@@ -79,7 +79,7 @@ function optionalUsageValuesMatch(first: ActionUsageValues | null, second: Actio
 export class ActionUsageValuesService extends EventTarget {
     private readonly action: ActionDefinition
     private readonly bindingStore: ActionRunBindingStore
-    private readonly context: ActionContext
+    private context: ActionContext
     private readonly conversationStore: ActionConversationStore
     private readonly historyStore: ActionHistoryStore
     private runStores: ActionRunStore[] = []
@@ -97,6 +97,12 @@ export class ActionUsageValuesService extends EventTarget {
         this.scopeStore = input.scopeStore
         this.runStores = actionRunRegistry.getActionRunStores(this.action.id, this.context)
         this.recalculate()
+    }
+
+    /** Assignment changes retain subscriptions scoped to the same canonical context. */
+    setContext(context: ActionContext) {
+        this.context = context;
+        this.recalculate();
     }
 
     readonly getSnapshot = () => this.snapshot

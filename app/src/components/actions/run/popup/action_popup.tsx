@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react'
-import { contextWithCurrentWorktree, displayActionsForContext, projectContextWithWorktree, type ActionContext } from '../../../../data/action_context'
+import { displayActionsForContext, type ActionContext } from '../../../../data/action_context'
 import { dataService } from '../../../../services/data/data_service'
 import { actionRunRegistry } from '../../../../services/actions/action_run_registry'
 import { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'
@@ -9,7 +9,7 @@ import { CUSTOM_PROMPT_ACTION_ID } from '../../../../data/action_types'
 import { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'
 import { useActions } from '../../../hooks/use_actions'
 import { useProjectState } from '../../../hooks/use_project_state'
-import { useProjectActionWorktree, useProjectActionWorktreeBranch, useWorktrees } from '../../../hooks/use_worktrees';
+import { useActionAssignmentContext } from '../../../hooks/use_action_assignment_context';
 import { ActionPopupContent } from './action_popup_content'
 import { resolveInitialActionId, type PersistedActionStates } from './action_popup_initial_action'
 import { historicalActionHistory, historicalCardActions } from './historical_card_actions'
@@ -91,15 +91,7 @@ export function ActionPopup(props: ActionPopupProps) {
     const { anchorElement, context, initialActionId, initialConversationPath, initialRunId, onClose, open } = props
     const { actions: loadedActions } = useActions()
     const { project, snapshot } = useProjectState()
-    const projectActionWorktree = useProjectActionWorktree()
-    const projectActionWorktreeBranch = useProjectActionWorktreeBranch();
-    const worktrees = useWorktrees();
-    const effectiveContext = useMemo(
-        () => contextWithCurrentWorktree(
-            projectContextWithWorktree(context, projectActionWorktree, projectActionWorktreeBranch), worktrees,
-        ),
-        [context, projectActionWorktree, projectActionWorktreeBranch, worktrees],
-    )
+    const effectiveContext = useActionAssignmentContext(context);
     const applicableActions = useMemo(() => displayActionsForContext(loadedActions, effectiveContext), [effectiveContext, loadedActions])
     const historicalCard = context.kind === 'file' && context.cardInternalId
         ? snapshot?.backgroundCards.find(({ header }) => header.internalId === context.cardInternalId) ?? null

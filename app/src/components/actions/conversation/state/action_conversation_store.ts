@@ -84,7 +84,7 @@ function latestWaitingConversation(conversations: AgentConversation[], actionId:
 export class ActionConversationStore {
     readonly actionId: string
     readonly bindingStore: ActionRunBindingStore
-    readonly context: ActionContext
+    context: ActionContext
     private initialSelectionConfigured = false
     private initialSelectionPath: string | null = null
     private loadRequest = 0
@@ -95,6 +95,11 @@ export class ActionConversationStore {
         this.actionId = actionId
         this.bindingStore = bindingStore
         this.context = context
+    }
+
+    /** Update execution inputs while retaining conversation selection. */
+    setContext(context: ActionContext) {
+        this.context = context;
     }
 
     readonly getSnapshot = () => this.snapshot
