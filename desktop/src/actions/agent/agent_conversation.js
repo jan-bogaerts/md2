@@ -8,6 +8,7 @@ const {
 } = require('./agent_conversation_phases');
 const {
     AGENT_CONVERSATION_USAGE_SCHEMA_VERSION,
+    adjustAgentConversationTimer,
     boundedAgentResult,
 } = require('../../../../shared/agent_conversations.mjs');
 
@@ -107,11 +108,12 @@ function transitionConversationStatus(conversation, status, transitionedAt, phas
             ? addTimerBreakdown(conversation.timer, foldPhases(phases, runningStartedAtMs, transitionedAtMs))
             : conversation.timer;
         resetPhasePeriod(phases);
-        conversation.timer = {
+        const settledTimer = {
             ...timer,
             elapsedMs: conversation.timer.elapsedMs + transitionedAtMs - runningStartedAtMs,
             runningStartedAt: null,
         };
+        conversation.timer = adjustAgentConversationTimer(settledTimer);
     }
     conversation.status = status;
 }

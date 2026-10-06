@@ -2,7 +2,7 @@ const { createEventEntry, createMessageEntry, transitionConversationStatus } = r
 const { emitRunEvent, hasPendingInteraction } = require('./agent_run_state');
 const { lastMessageEntry, nextRunSequence } = require('./agent_run_transcript');
 const { requireString } = require('./agent_run_validation');
-const { secretAnswerValues } = require('./agent_secret_redaction');
+const { redactSecrets, secretAnswerValues } = require('./agent_secret_redaction');
 
 /** Serializes writes to the agent's stdin so a message and an answer can never interleave on the wire. */
 function queueInteractionWrite(run, operation) {
@@ -18,7 +18,7 @@ async function sendStreamingMessage(service, run, content, submissionId) {
     try {
         await run.streamingAdapter.sendMessage(message);
     } catch (error) {
-        service.failStreamingRun(run, error);
+        console.error('[agent:interaction]', run.id, redactSecrets(String(error), run.secretValues));
         throw error;
     }
     const timestamp = new Date().toISOString();
@@ -74,7 +74,7 @@ function answerQuestion(service, run, requestId, answers) {
                 run.restoredQuestions = false;
             } else await run.streamingAdapter.answerQuestion(requestId, answers);
         } catch (error) {
-            service.failStreamingRun(run, error);
+            console.error('[agent:interaction]', run.id, redactSecrets(String(error), run.secretValues));
             throw error;
         }
         const timestamp = new Date().toISOString();

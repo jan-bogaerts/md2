@@ -210,13 +210,14 @@ async function handleTurnCompleted(service, run, event, timestamp) {
             usage: run.conversation.usage,
         });
     }
-    if (event.error) {
+    if (event.error && event.missingSession) {
         service.failStreamingRun(run, new Error(event.error));
         return;
     }
+    if (event.error) service.recordOutput(run.id, 'stderr', event.error);
     const synchronizedMessage = lastMessageEntry(run.conversation);
-    if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
-    if (!event.missingSession && event.usage) {
+    if (!event.error && synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
+    if (!event.error && !event.missingSession && event.usage) {
         run.liveTurnUsage = event.usage;
         run.conversation.usage = accumulateUsage(run.conversation.usage, run.liveTurnUsage);
         run.liveTurnUsage = null;

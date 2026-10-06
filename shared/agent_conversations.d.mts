@@ -1,5 +1,7 @@
-import type { AgentConversation } from '../app/src/data/data_types.ts'
+import type { AgentConversation, AgentConversationTimer } from '../app/src/data/data_types.ts'
 
+/** Correct a settled total that is smaller than its measured duration breakdown. */
+export function adjustAgentConversationTimer(timer: AgentConversationTimer): AgentConversationTimer;
 /** Parse one canonical conversation record while discarding malformed optional entries. */
 export function parseAgentConversation(content: string, referencePath: string): AgentConversation
 /** Parse one canonical conversation value while discarding malformed optional entries. */

@@ -215,7 +215,7 @@ class AgentRunnerService {
                 if (compactOnly) await run.streamingAdapter.startSession();
                 else await run.streamingAdapter.start(initialPrompt);
             } catch (error) {
-                this.failStreamingRun(run, error);
+                console.error('[agent:start-session]', run.id, redactSecrets(String(error), run.secretValues));
             }
         } else {
             if (typeof request.contextInput === 'string' && request.contextInput.length > 0) child.stdin.write(request.contextInput);
@@ -291,7 +291,9 @@ class AgentRunnerService {
             try {
                 await run.streamingAdapter.compact();
             } catch (error) {
-                this.failStreamingRun(run, error);
+                run.turnActive = false;
+                this.settleCompact(run, error.message);
+                console.error('[agent:compact]', run.id, redactSecrets(String(error), run.secretValues));
                 throw error;
             }
         });
@@ -583,11 +585,18 @@ class AgentRunnerService {
             this.handleMalformedOutput(runId, line);
             return;
         }
-        run.protocolHandling = run.protocolHandling
-            .then(() => run.streamingAdapter.handleMessage(message))
-            .catch((error) => {
-                this.failStreamingRun(run, error);
-            });
+        run.protocolHandling = this.processStreamingMessage(run.id, message);
+    }
+
+    /** Keep later provider messages flowing after an internal handler failure. */
+    async processStreamingMessage(runId, message) {
+        const run = this.requireRun(runId);
+        await run.protocolHandling;
+        try {
+            await run.streamingAdapter.handleMessage(message);
+        } catch (error) {
+            console.error('[agent:streaming-message]', run.id, redactSecrets(String(error), run.secretValues));
+        }
     }
 
     recordOutput(runId, channel, content) {
@@ -703,7 +712,7 @@ class AgentRunnerService {
             ));
             return;
         }
-        this.failStreamingRun(run, new Error(`Malformed ${run.agent} JSONL event`));
+        console.error('[agent:malformed-output]', run.id, `Malformed ${run.agent} JSONL event`);
     }
 
     handleError(runId, error) {

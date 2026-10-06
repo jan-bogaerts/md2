@@ -9,7 +9,7 @@ import type {
     AgentConversationMessageEntry,
 } from '../../../data/data_types'
 import type { ActionQueuedPrompt } from '../../../data/action_run_types'
-import type { ActionConversationChange, ActionRun, ActionRunRegistry } from '../../../services/actions/action_run_registry'
+import { actionRunRegistry, type ActionConversationChange, type ActionRun, type ActionRunRegistry } from '../../../services/actions/action_run_registry'
 import type { PopupRunStatus } from '../run/popup/action_popup_defaults'
 import { setActionBridgeOverride, type ElectronActionBridge } from '../../../data/electron_action_bridge'
 import { dataService } from '../../../services/data/data_service'
@@ -345,6 +345,7 @@ describe('ActionConversationChat', () => {
     afterEach(() => {
         cleanup()
         window.localStorage.removeItem(THEME_MODE_STORAGE_KEY)
+        actionRunRegistry.stop();
         setActionBridgeOverride(null)
         vi.restoreAllMocks()
         vi.unstubAllGlobals()
@@ -809,7 +810,7 @@ describe('ActionConversationChat', () => {
             snapshot: { activeCards: [], backgroundCards: [], repositoryFiles: [], workingFolder: 'design' },
         })
         const openInEditor = vi.fn(async () => undefined)
-        setActionBridgeOverride({ openInEditor } as unknown as ElectronActionBridge)
+        setActionBridgeOverride({ onActionRun: vi.fn(() => vi.fn()), openInEditor } as unknown as ElectronActionBridge)
         const path = '/C:/repo/src/services/analysis/engine/event_engine.js:33'
         renderChat(conversation('links.json', [message('message-1', `[event_engine.js:33](${path})`)]))
 
@@ -833,6 +834,7 @@ describe('ActionConversationChat', () => {
         })
         const reportError = vi.spyOn(dialogService, 'error')
         setActionBridgeOverride({
+            onActionRun: vi.fn(() => vi.fn()),
             openInEditor: vi.fn(async () => {
                 throw new Error('Local file link target does not exist: C:/repo/design/missing.md')
             }),
@@ -855,10 +857,12 @@ describe('ActionConversationChat', () => {
         renderChat(conversation('first.json', [message('message-1', path)]))
 
         const viewport = screen.getByLabelText('Conversation chat')
-        const messageBox = screen.getByText(path).parentElement?.parentElement
+        const messageBox = screen.getByText(path).closest('.conversation-message');
+        const messageContent = screen.getByText(path).parentElement?.parentElement;
 
         expect(viewport).toHaveStyle({ overflowX: 'hidden', overflowY: 'auto' })
-        expect(messageBox).toHaveStyle({ flexShrink: '0', minWidth: '0', overflowWrap: 'anywhere' })
+        expect(messageBox).toHaveStyle({ flexShrink: '0', minWidth: '0' });
+        expect(messageContent).toHaveStyle({ overflowWrap: 'anywhere' });
         expect(messageBox).not.toHaveStyle({ overflowX: 'auto' })
     })
 
@@ -1540,7 +1544,11 @@ describe('ActionConversationChat', () => {
     it('renders queued prompts after delivered messages in FIFO order with edit and delete controls', async () => {
         const editActionQueuedPrompt = vi.fn(async (_runId, _promptId, _revision, content) => ({content, dispatchState: 'queued' as const, id: 'prompt-1', revision: 1}))
         const deleteActionQueuedPrompt = vi.fn(async () => ({ deleted: true as const }))
-        setActionBridgeOverride({ editActionQueuedPrompt, deleteActionQueuedPrompt } as unknown as ElectronActionBridge)
+        setActionBridgeOverride({
+            onActionRun: vi.fn(() => vi.fn()),
+            editActionQueuedPrompt,
+            deleteActionQueuedPrompt,
+        } as unknown as ElectronActionBridge);
         const value = conversation('first.json', [message('message-1', 'Delivered')])
         render(
             <AppThemeProvider>
@@ -1577,7 +1585,11 @@ describe('ActionConversationChat', () => {
         const deleteActionQueuedPrompt = vi.fn(async () => {
             throw failure
         })
-        setActionBridgeOverride({ editActionQueuedPrompt, deleteActionQueuedPrompt } as unknown as ElectronActionBridge)
+        setActionBridgeOverride({
+            onActionRun: vi.fn(() => vi.fn()),
+            editActionQueuedPrompt,
+            deleteActionQueuedPrompt,
+        } as unknown as ElectronActionBridge);
         const warning = vi.spyOn(dialogService, 'warning')
         const reportError = vi.spyOn(dialogService, 'error')
         render(

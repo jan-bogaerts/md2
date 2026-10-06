@@ -202,7 +202,7 @@ describe('ActionConversationChatlogTracker', () => {
         const running = conversation('conversation-1', entries)
         const waiting = { ...running, status: 'waitingForInput' as const }
         const historical = conversation('conversation-2', entries, 'completed')
-        const { registry, tracker } = setup(run('run-1', running))
+        const { conversationStore, registry, tracker } = setup(run('run-1', running))
         tracker.load()
         const groups = tracker.getEvolvingGroups()
         const statuses: Array<AgentConversation['status'] | null> = []
@@ -490,7 +490,7 @@ describe('ActionConversationChatlogTracker', () => {
             path: 'moved-conversation.json',
             status: 'running' as const,
         }
-        const { registry, tracker } = setup(run('run-1', live))
+        const { conversationStore, registry, tracker } = setup(run('run-1', live))
         conversationStore.select(persisted)
         tracker.load()
 
@@ -501,7 +501,7 @@ describe('ActionConversationChatlogTracker', () => {
     it('resets expansion and render state when selection changes conversation identity', () => {
         const live = conversation('conversation-1', [message('user-1', 'user')])
         const historical = conversation('conversation-2', [message('history-user', 'user')], 'completed')
-        const { registry, tracker } = setup(run('run-1', live))
+        const { conversationStore, registry, tracker } = setup(run('run-1', live))
         tracker.load()
         tracker.toggleExpansion('user-1')
 

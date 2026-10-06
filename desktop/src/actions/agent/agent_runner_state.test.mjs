@@ -60,6 +60,55 @@ function emittedStatuses(onEvent, type) {
 }
 
 describe('AgentRunnerService published run status', () => {
+    it('logs internal handler failures and continues processing later provider messages', async () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+            const { service, run, onEvent } = streamingRunService();
+            service.terminateProcessTree = vi.fn();
+            run.streamingAdapter = {
+                handleMessage: vi.fn(async (message) => {
+                    await service.handleStreamingEvent(run.id, message);
+                }),
+            };
+            service.persistConversationCheckpoint.mockRejectedValueOnce(new Error('Internal persistence bug'));
+            service.handleStreamingLine(run.id, JSON.stringify({ type: 'question', requestId: 7, questions: [] }));
+            service.handleStreamingLine(run.id, '{invalid json');
+            service.handleStreamingLine(run.id, JSON.stringify(toolEvent('tool-after-error')));
+            await run.protocolHandling;
+
+            expect(consoleError).toHaveBeenCalledTimes(2);
+            expect(service.terminateProcessTree).not.toHaveBeenCalled();
+            expect(run.streamingFailure).toBeNull();
+            expect(run.conversation.status).toBe('waitingForInput');
+            expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'agentEvent' }));
+            expect(onEvent.mock.calls.some(([event]) => event.type === 'error')).toBe(false);
+        } finally {
+            consoleError.mockRestore();
+        }
+    });
+
+    it('keeps the session available after a failed provider turn', async () => {
+        const { service, run } = streamingRunService();
+        service.terminateProcessTree = vi.fn();
+
+        await service.handleStreamingEvent(run.id, { type: 'turnCompleted', error: 'Turn failed' });
+
+        expect(run.conversation.status).toBe('waitingForInput');
+        expect(run.streamingFailure).toBeNull();
+        expect(service.terminateProcessTree).not.toHaveBeenCalled();
+    });
+
+    it('terminates a session whose process I/O has failed', () => {
+        const { service, run } = streamingRunService();
+        service.terminateProcessTree = vi.fn();
+        run.child = { stdin: { end: vi.fn() } };
+
+        service.handleError(run.id, new Error('Broken pipe'));
+
+        expect(run.conversation.status).toBe('failed');
+        expect(service.terminateProcessTree).toHaveBeenCalledWith(run.child);
+    });
+
     it('cancels historical tools after a host restart but preserves tools owned by a live run', () => {
         const { service } = streamingRunService();
         const conversation = { id: 'conversation-1', entries: [{ kind: 'event', type: 'commandExecution', status: 'running', content: 'output' }] };
@@ -1786,7 +1835,8 @@ describe('AgentRunnerService state handling', () => {
 
         await expect(service.sendMessage('run-1', 'ghost')).rejects.toThrow(writeError);
         expect(run.conversation.entries.filter(({ kind }) => kind === 'message')).toHaveLength(1);
-        expect(run.conversation.status).toBe('failed');
+        expect(run.conversation.status).toBe('waitingForInput');
+        expect(service.terminateProcessTree).not.toHaveBeenCalled();
     });
 
     it('routes Codex account updates to runtime state and originating project metrics', async () => {

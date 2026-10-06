@@ -140,11 +140,11 @@ async function runWithPrompt(
         }
         if (submissionId && result.status === 'failed') {
             const failureMessage = result.logs.find((log) => log.status === 'failed')?.message ?? 'Action run failed'
-            actionRunRegistry.failSubmission(submissionId, failureMessage)
+            actionRunRegistry.failSubmission(submissionId, failureMessage);
         }
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Action run failed'
-        if (submissionId && !started) actionRunRegistry.failSubmission(submissionId, message)
+        if (submissionId && !started) actionRunRegistry.failSubmission(submissionId, message);
         resultStore.setResult({
             changedPaths: [],
             logs: [{
@@ -182,7 +182,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
         ) {
             const conversationId = run.conversation?.id ?? conversationStore.getSnapshot().selectedConversation?.id
             if (!conversationId) throw new Error('Restart requires a conversation ID')
-            const submissionId = actionRunRegistry.beginSubmission(action.id, context, prompt, null, conversationId)
+            const submissionId = actionRunRegistry.beginSubmission(action.id, context, prompt, null, conversationId);
             const diagramPath = promptDraft.getDiagramPath()
             promptDraft.clearForSend()
             await runWithPrompt(input, prompt, run.runId, submissionId, diagramPath, conversationId)
@@ -193,9 +193,9 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
             if (!run.activeActionId) throw new Error('Action run has no active agent')
             if (prompt.trim().length === 0) throw new Error('Queued agent prompt is empty')
 
-            submissionId = actionRunRegistry.beginSubmission(action.id, context, prompt, run.runId, run.conversation?.id ?? null)
+            submissionId = actionRunRegistry.beginSubmission(action.id, context, prompt, run.runId, run.conversation?.id ?? null);
             promptDraft.clearForSend()
-            await actionRunRegistry.enqueueSubmission(submissionId)
+            await actionRunRegistry.enqueueSubmission(submissionId);
         } catch (error) {
             if (!submissionId) dialogService.error(error, { fallbackMessage: 'Could not send agent message' })
         }
@@ -207,7 +207,7 @@ export async function runPopupAction(input: ActionPopupOperationInput) {
         : null
     const submissionId = action.type === 'agent' && prompt.trim().length > 0 && conversationId
         ? actionRunRegistry.beginSubmission(action.id, context, prompt, null, conversationId)
-        : null
+        : null;
     const diagramPath = promptDraft.getDiagramPath()
     if (submissionId) promptDraft.clearForSend()
     await runWithPrompt(input, prompt, null, submissionId, diagramPath, conversationId)

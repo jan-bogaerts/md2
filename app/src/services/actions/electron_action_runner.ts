@@ -22,8 +22,8 @@ export async function runElectronAction(
     onStarted?: (runId: string) => void,
     interactive = true,
 ): Promise<ActionRunResult> {
-    projectAccessService.requireWritable()
     try {
+        projectAccessService.requireWritable();
         const requiresReservation = shouldReserveConversation(action, context, input)
         const bridge = getElectronActionBridge()
         const conversationReservation: AgentConversationReservation | undefined = requiresReservation
@@ -48,8 +48,8 @@ export async function restartElectronAction(
     input: ActionRunInput,
     onStarted?: (runId: string) => void,
 ): Promise<ActionRunResult> {
-    projectAccessService.requireWritable()
     try {
+        projectAccessService.requireWritable();
         if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges();
         return await actionRunRegistry.restartRun(previousRunId, action, context, input, onStarted);
     } catch (error) {

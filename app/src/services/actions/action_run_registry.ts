@@ -501,7 +501,6 @@ export class ActionRunRegistry extends EventTarget {
         const submissionScopes = [...this.submissionOwners.values()];
         this.submissionOwners.clear();
         this.submissions.clear();
-        for (const { actionId, context } of submissionScopes) this.dispatchEvent(new Event(submissionsEventType(actionId, context)));
         actionVersionRequestService.clear()
         this.unsubscribeBridge?.()
         this.subscribedBridge = null
@@ -516,6 +515,8 @@ export class ActionRunRegistry extends EventTarget {
         publishListeners(this.actionContextListeners)
         publishListeners(this.contextActiveListeners)
         for (const runId of runIds) this.dispatchEvent(new Event(runEventType(runId)))
+        const submissionEventTypes = new Set(submissionScopes.map(({ actionId, context }) => submissionsEventType(actionId, context)));
+        for (const eventType of submissionEventTypes) this.dispatchEvent(new Event(eventType));
     }
 
     /** Captures submitted text independently of the popup that initiated sending. */
@@ -566,8 +567,10 @@ export class ActionRunRegistry extends EventTarget {
         const owner = this.submissionOwners.get(id);
         if (!owner) return;
         const submissions = this.getSubmissions(owner.actionId, owner.context);
+        const current = submissions.find((submission) => submission.id === id);
+        if (!current || current.state === 'failed') return;
         this.publishSubmissions(owner.actionId, owner.context, submissions.map((submission) => (
-            submission.id === id && submission.state !== 'failed' ? { ...submission, error, state: 'failed' } : submission
+            submission.id === id ? { ...submission, error, state: 'failed' } : submission
         )));
     }
 
@@ -616,7 +619,7 @@ export class ActionRunRegistry extends EventTarget {
         if (event.type === 'update' && event.update.kind === 'agentStarted') {
             const { conversation, continued } = event.update;
             let matched = false;
-            for (const [id, owner] of this.submissionOwners) {
+            for (const [id, owner] of [...this.submissionOwners]) {
                 if (owner.actionId !== event.actionId || contextKey(owner.context) !== contextKey(event.context)) continue;
                 if (owner.runId !== event.runId && !(owner.runId === null && owner.conversationId === conversation.id)) continue;
                 this.submissionOwners.set(id, { ...owner, conversationId: conversation.id, runId: event.runId });
@@ -626,7 +629,7 @@ export class ActionRunRegistry extends EventTarget {
             if (matched) this.dispatchEvent(new Event(submissionsEventType(event.actionId, event.context)));
         }
         if (event.type === 'run' && TERMINAL_STATUSES.has(event.status as ActionRunTerminalStatus)) {
-            for (const [id, owner] of this.submissionOwners) {
+            for (const [id, owner] of [...this.submissionOwners]) {
                 if (owner.runId === event.runId) this.failSubmission(id, 'Run ended before the prompt was sent');
             }
         }
@@ -639,6 +642,8 @@ export class ActionRunRegistry extends EventTarget {
         const owner = this.submissionOwners.get(id);
         if (!owner || owner.actionId !== event.actionId || contextKey(owner.context) !== contextKey(event.context)) return;
         if (owner.runId !== null && owner.runId !== event.runId) return;
+        const submission = this.getSubmissions(owner.actionId, owner.context).find((current) => current.id === id);
+        if (!submission || submission.state === 'failed') return;
         if (update.kind === 'agentPromptQueued') {
             this.submissionOwners.set(id, { ...owner, runId: event.runId });
             this.acceptSubmission(id, update.entry);
@@ -938,6 +943,9 @@ export class ActionRunRegistry extends EventTarget {
             this.publishActiveIndexes(contextKey(current.context), contextKey(next.context))
         }
 
+        for (const [id, owner] of [...this.submissionOwners]) {
+            if (owner.runId === result.runId) this.failSubmission(id, result.failure ?? 'Run ended before the prompt was sent');
+        }
         const waiters = this.waiters.get(result.runId)
         this.waiters.delete(result.runId)
         const actionResult = {

@@ -46,6 +46,12 @@ function appRegion(element: HTMLElement) {
     return (element.style as unknown as Record<string, string>).WebkitAppRegion
 }
 
+// Import the two used icons directly instead of loading the package's entire icon catalogue in Node.
+vi.mock('@mui/icons-material', async () => {
+    const [redo, undo] = await Promise.all([import('@mui/icons-material/Redo'), import('@mui/icons-material/Undo')]);
+    return { Redo: redo.default, Undo: undo.default };
+});
+
 vi.mock('../../agent/action_agent_prompt', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../agent/action_agent_prompt')>()
 
@@ -2169,7 +2175,9 @@ describe('ActionPopup', () => {
         expect(screen.getAllByText('Send this')).toHaveLength(1)
     })
 
-    it('shows a new-run submission before start returns and replaces it on the user message', async () => {
+    it.each(['keep', 'replace context', 'replace action', 'reopen'])('preserves a new-run submission through %s before startup returns', async (operation) => {
+        const reportError = vi.spyOn(dialogService, 'error');
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([]);
         actionRunRegistry.stop()
         const projectContext: ActionContext = { kind: 'project' }
         const startResponse = deferredValue<string>()
@@ -2188,13 +2196,31 @@ describe('ActionPopup', () => {
         mockCodexAvailable()
         actionRunRegistry.start()
         actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Stream', streaming: true }))])
-        renderPopup(projectContext)
+        const onClose = vi.fn();
+        const popup = render(
+            <AppThemeProvider><ActionPopup anchorElement={document.body} context={projectContext} onClose={onClose} /></AppThemeProvider>,
+        );
         const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox')
         await waitFor(() => expect(prompt).not.toHaveAttribute('readonly'))
         fireEvent.change(prompt, { target: { value: 'Start now' } })
         fireEvent.click(screen.getByRole('button', { name: 'Send' }))
         expect(await screen.findByLabelText('Pending prompt')).toHaveTextContent('In transmission')
         expect(screen.getByLabelText('Pending prompt')).toHaveTextContent('Start now')
+        if (operation === 'replace context') {
+            popup.rerender(
+                <AppThemeProvider>
+                    <ActionPopup anchorElement={document.body} context={{ ...projectContext }} onClose={onClose} />
+                </AppThemeProvider>,
+            );
+        }
+        if (operation === 'replace action') {
+            act(() => actionService.loadFromFiles([file(agentDefinition('stream', { label: 'Refreshed stream', streaming: true }))]));
+        }
+        if (operation === 'reopen') {
+            popup.unmount();
+            renderPopup({ ...projectContext });
+        }
+        expect(await screen.findByLabelText('Pending prompt')).toHaveTextContent('Start now');
         const submissionId = startAction.mock.calls[0]?.[0].runInput.submissionId
         if (!submissionId) throw new Error('Missing submission ID')
 
@@ -2206,7 +2232,7 @@ describe('ActionPopup', () => {
             agent: 'codex', content: 'Start now', id: submissionId, kind: 'message' as const,
             role: 'user' as const, timestamp: 'now',
         }
-        const liveConversation = agentConversation({actionId: 'stream', cardInternalId: null, cardPath: null})
+        const liveConversation = agentConversation({actionId: 'stream', cardInternalId: null, cardPath: null, id: startAction.mock.calls[0]?.[0].runInput.conversationId});
         act(() => {
             runListener?.({ ...eventBase, status: 'running', type: 'run' })
             runListener?.({
@@ -2221,6 +2247,7 @@ describe('ActionPopup', () => {
         await act(async () => startResponse.resolve('run-1'))
         expect(screen.queryByLabelText('Pending prompt')).not.toBeInTheDocument()
         expect(screen.getAllByText('Start now')).toHaveLength(1)
+        expect(reportError).not.toHaveBeenCalled();
     })
 
     it('shows a rejected transmission in the chatlog without overwriting newer input', async () => {

@@ -214,7 +214,10 @@ describe('runPopupAction waiting follow-up', () => {
         draft.edit('Submitted text')
         const send = runPopupAction(operation)
         const runInput = runAction.mock.calls[0]?.[2]
-        expect(runInput).toMatchObject({ conversationId: expect.stringMatching(/^agent-/u), submissionId: expect.stringMatching(/^submission-/u) })
+        expect(runInput).toMatchObject({
+            conversationId: expect.stringMatching(/^agent-/u),
+            submissionId: expect.stringMatching(/^submission-/u),
+        });
         expect(actionRunRegistry.getSubmissions(action.id, context)).toMatchObject([
             { content: 'Submitted text', id: runInput.submissionId },
         ]);

@@ -70,7 +70,7 @@ Keep analysis and documentation **short, precise, and to the point**. Avoid verb
 * Prefer array helpers like `find`, `some`, `map`, and `filter` for simple single-purpose collection queries or transforms. Use `for...of` loops when control flow is more complex, needs early continue guards, or spans multiple steps.
 * Destructure objects from loop variables (const { category, observation } \= meta).
 * Use nullish coalescing (??) instead of || when zero is a valid value.
-* Missing required fields, variables, constructor state, config values, or domain payload data must fail fast with a clear error instead of silently falling back to defaults.
+* Fail with a clear error only when missing fields, variables, constructor state, config values, or domain payload data are critical to the operation. Otherwise, log the error and continue safely. Never silently drop errors.
 * Do not add backward compatibility fallbacks or legacy shape support unless explicitly requested.
 * `||`, `??`, optional chaining, default parameters, and `try/catch` are allowed when they express intentional control flow; do not use them to hide missing required data.
 * Build objects in a single line when possible (boxes.push({ box, obs, category, timestamp })).
@@ -189,7 +189,7 @@ Mock external boundaries. Tests must stay fast and in-process.
 ### Test / Code Conflicts
 
 * When a test fails after your changes, assume your changes caused it and may also have broken related app behavior. Fix the code first.
-* Fix pre-existing failures.
+* Fix pre-existing failures encountered during the task. This is explicitly part of the instructions and task scope.
 * Treat tests as signals, not automatic source of truth.
 * If an existing test conflicts with current implementation, naming, comments, docs, or the user request, do **not** immediately change code to satisfy the test.
   * First determine whether the test may be stale or whether the code may be wrong.

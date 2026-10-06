@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
     AGENT_RESULT_MAX_LENGTH,
     appendBoundedAgentResult,
@@ -123,8 +123,24 @@ describe('parseAgentConversationLog', () => {
         expect(measured.timer).toEqual({ breakdown: { reasoningMs: 200, toolMs: 300 }, elapsedMs: 1_000, runningStartedAt: null })
     })
 
+    it('corrects an inconsistent settled timer and logs the bug', () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+            const source = {
+                completedAt: null, entries: [], id: 'agent-1', startedAt: '2026-01-01T00:00:00.000Z', status: 'completed',
+                timer: { breakdown: { reasoningMs: 700, toolMs: 400 }, elapsedMs: 1_000, runningStartedAt: null },
+            };
+            const conversation = parseAgentConversationValue(source, 'design/logs/one.json');
+
+            expect(conversation.timer?.elapsedMs).toBe(1_100);
+            expect(consoleError).toHaveBeenCalledOnce();
+            expect(source.timer.elapsedMs).toBe(1_000);
+        } finally {
+            consoleError.mockRestore();
+        }
+    });
+
     it.each([
-        ['a breakdown summing above the total', { breakdown: { reasoningMs: 700, toolMs: 400 }, elapsedMs: 1_000, runningStartedAt: null }],
         ['a negative component', { breakdown: { reasoningMs: -1, toolMs: 0 }, elapsedMs: 1_000, runningStartedAt: null }],
         ['a non-finite component', { breakdown: { reasoningMs: 0, toolMs: Number.POSITIVE_INFINITY }, elapsedMs: 1_000, runningStartedAt: null }],
         ['a missing component', { breakdown: { toolMs: 10 }, elapsedMs: 1_000, runningStartedAt: null }],

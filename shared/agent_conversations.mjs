@@ -260,7 +260,7 @@ function normalizeContextWindowUsage(value) {
  * The sum is bounded by `elapsedMs` only once the timer has settled: a checkpoint written mid-run
  * already counts the open running period in its breakdown while `elapsedMs` still excludes it.
  */
-function normalizeTimerBreakdown(value, elapsedMs, settled) {
+function normalizeTimerBreakdown(value) {
     if (value === undefined || value === null) return null;
     if (typeof value !== 'object' || Array.isArray(value)) {
         throw new Error('Malformed agent conversation: invalid timer.breakdown');
@@ -271,11 +271,19 @@ function normalizeTimerBreakdown(value, elapsedMs, settled) {
             throw new Error(`Malformed agent conversation: invalid timer.breakdown.${member}`);
         }
     }
-    if (settled && reasoningMs + toolMs > elapsedMs) {
-        throw new Error('Malformed agent conversation: timer.breakdown exceeds timer.elapsedMs');
-    }
 
     return { reasoningMs, toolMs };
+}
+
+/** Correct an inconsistent settled total without interrupting the agent lifecycle. */
+export function adjustAgentConversationTimer(timer) {
+    if (!timer.breakdown || timer.runningStartedAt !== null) return timer;
+    const { reasoningMs, toolMs } = timer.breakdown;
+    const measuredMs = reasoningMs + toolMs;
+    if (measuredMs <= timer.elapsedMs) return timer;
+    console.error('Agent conversation timer breakdown exceeds total; adjusting elapsedMs', { elapsedMs: timer.elapsedMs, measuredMs });
+
+    return { ...timer, elapsedMs: measuredMs };
 }
 
 function normalizeTimer(value) {
@@ -291,9 +299,10 @@ function normalizeTimer(value) {
         throw new Error('Malformed agent conversation: invalid timer.runningStartedAt');
     }
 
-    const normalizedBreakdown = normalizeTimerBreakdown(breakdown, elapsedMs, runningStartedAt === null);
+    const normalizedBreakdown = normalizeTimerBreakdown(breakdown);
+    const timer = { ...(normalizedBreakdown ? { breakdown: normalizedBreakdown } : {}), elapsedMs, runningStartedAt };
 
-    return { ...(normalizedBreakdown ? { breakdown: normalizedBreakdown } : {}), elapsedMs, runningStartedAt };
+    return adjustAgentConversationTimer(timer);
 }
 
 function normalizeArray(value, normalize) {

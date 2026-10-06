@@ -380,7 +380,7 @@ class CodexStreamingAdapter {
     async handleResponse(message) {
         const purpose = this.pendingRequests.get(message.id);
         if (!purpose) {
-            if (message.error) await this.onEvent({ content: message.error.message ?? 'Codex request failed', type: 'fatal' });
+            if (message.error) await this.onEvent({ content: message.error.message ?? 'Codex request failed', type: 'error' });
             return;
         }
         this.pendingRequests.delete(message.id);
@@ -401,7 +401,7 @@ class CodexStreamingAdapter {
                 await this.onEvent({ content, missingSession, type: 'sessionFailed' });
                 return;
             }
-            await this.onEvent({ content, type: 'fatal' });
+            await this.onEvent({ content, type: purpose === 'turn/start' || purpose === 'turn/steer' ? 'error' : 'fatal' });
             return;
         }
         if (purpose === 'initialize') {
@@ -595,7 +595,7 @@ class CodexStreamingAdapter {
             }));
             // A child thread's failure is reported inside its group; failing the run would kill the process tree.
             if (isChild) return;
-            await this.onEvent({ content, type: 'fatal' });
+            await this.onEvent({ content, type: 'error' });
             return;
         }
         if (method === 'turn/completed') {
