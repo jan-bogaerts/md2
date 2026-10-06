@@ -14360,6 +14360,24 @@
       "rootActionLabel": "build",
       "startedAt": "2026-10-06T14:50:37.148Z",
       "status": "completed"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-10-06T15:02:21.730Z",
+      "conversationIds": [],
+      "details": {
+        "command": "npm run build:windows",
+        "output": "",
+        "type": "command"
+      },
+      "runId": "action-28c88977-ad35-4f75-9927-275c2fd21df2",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "edcbc3cf-20de-415c-97fe-b36ca9953fdc",
+      "rootActionLabel": "build",
+      "startedAt": "2026-10-06T15:00:38.605Z",
+      "status": "completed"
     }
   ],
   "version": 5
