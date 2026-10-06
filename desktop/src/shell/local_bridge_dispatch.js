@@ -237,10 +237,14 @@ function createLocalBridgeDispatch(dependencies) {
         loadActionFiles: (project, actionsFolder) => localGitService.loadActionFiles(project, actionsFolder),
         loadActionSchedules: (project, actionsFolder) => localGitService.loadActionSchedules(project, actionsFolder),
         loadAgentConversation: async (reference) => {
-            return localGitService.loadAgentConversation(currentLocalProject, reference);
+            const conversation = await localGitService.loadAgentConversation(currentLocalProject, reference);
+
+            return agentRunnerService.resolveHistoricalConversation(conversation);
         },
         loadActivityConversations: async (activityPath) => {
-            return localGitService.loadActivityConversations(currentLocalProject, activityPath);
+            const conversations = await localGitService.loadActivityConversations(currentLocalProject, activityPath);
+
+            return conversations.map((conversation) => agentRunnerService.resolveHistoricalConversation(conversation));
         },
         loadAgentAvailability: () => {
             const { agentProfiles } = readDesktopConfig(desktopConfigStore);

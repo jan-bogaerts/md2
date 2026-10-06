@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const path = require('node:path');
 const crossSpawn = require('cross-spawn');
+const { cancelUnfinishedTools } = require('./cancel_unfinished_tools');
 
 const {
     accumulateUsage,
@@ -231,6 +232,13 @@ class AgentRunnerService {
         if (!compactOnly && conversationBeforePrompt) emitRunEvent(run, { type: 'userMessage', userMessage });
 
         return { conversation: initialConversation, reference, runId: id };
+    }
+
+    /** Historical tools can only be running while this host owns their conversation process. */
+    resolveHistoricalConversation(conversation) {
+        if (this.runningConversationIds.has(conversation.id)) return conversation;
+
+        return cancelUnfinishedTools(conversation);
     }
 
     stop(runId) {
@@ -788,6 +796,7 @@ class AgentRunnerService {
                 ? 'waitingForInput'
                 : run.cancelled ? 'cancelled' : succeeded ? 'completed' : 'failed';
             transitionConversationStatus(run.conversation, status, completedAt, run.phases);
+            run.conversation = cancelUnfinishedTools(run.conversation);
             logAgentEvent('[agent:complete]', {
                 completedAt,
                 durationMs: Date.parse(completedAt) - Date.parse(run.startedAt),

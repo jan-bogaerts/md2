@@ -60,6 +60,27 @@ function emittedStatuses(onEvent, type) {
 }
 
 describe('AgentRunnerService published run status', () => {
+    it('cancels historical tools after a host restart but preserves tools owned by a live run', () => {
+        const { service } = streamingRunService();
+        const conversation = { id: 'conversation-1', entries: [{ kind: 'event', type: 'commandExecution', status: 'running', content: 'output' }] };
+
+        expect(service.resolveHistoricalConversation(conversation).entries[0].status).toBe('cancelled');
+        service.runningConversationIds.add(conversation.id);
+        expect(service.resolveHistoricalConversation(conversation)).toBe(conversation);
+    });
+
+    it('persists cancelled unfinished tools when a stopped process closes', async () => {
+        const { run, service, onEvent } = streamingRunService();
+        run.cancelled = true;
+        run.child = { pid: 10 };
+        run.conversation.entries = [{ kind: 'event', type: 'commandExecution', status: 'inProgress', content: 'output' }];
+
+        await service.handleClose(run.id, 1);
+
+        expect(service.persistConversation.mock.calls[0][0].conversation.entries[0]).toMatchObject({ content: 'output', status: 'cancelled' });
+        expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'closed', conversation: expect.objectContaining({ entries: [expect.objectContaining({ status: 'cancelled' })] }) }));
+    });
+
     it.each([true, false])('saves the Claude baseline together with accounted usage (streaming: %s)', async (streaming) => {
         const { run, service } = streamingRunService();
         service.claudeUsagePoller = { requestPoll: vi.fn() };

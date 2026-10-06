@@ -44,6 +44,7 @@ function createDispatch(options = {}) {
         subscribeRunEvents: vi.fn(() => vi.fn()),
     };
     const agentRunnerService = {
+        resolveHistoricalConversation: vi.fn((conversation) => conversation),
         requestProjectUsageRefresh: vi.fn(),
         run: vi.fn(async () => ({ runId: 'run-1' })),
         start: vi.fn(async () => ({ runId: 'run-2' })),
@@ -1114,6 +1115,20 @@ describe('createLocalBridgeDispatch', () => {
 
         await expect(dispatch.dataBridge.loadActivityConversations(path)).resolves.toEqual([]);
         expect(localGitService.loadActivityConversations).toHaveBeenCalledWith(null, path);
+    });
+
+    it('resolves tool liveness for both single and activity history loads', async () => {
+        const { dispatch, localGitService, agentRunnerService } = createDispatch();
+        const stored = { id: 'conversation-1', entries: [{ status: 'running' }] };
+        const resolved = { ...stored, entries: [{ status: 'cancelled' }] };
+        localGitService.loadAgentConversation.mockResolvedValue(stored);
+        localGitService.loadActivityConversations.mockResolvedValue([stored]);
+        agentRunnerService.resolveHistoricalConversation.mockReturnValue(resolved);
+
+        await expect(dispatch.dataBridge.loadAgentConversation('activity.json#conversation=conversation-1')).resolves.toEqual(resolved);
+        await expect(dispatch.dataBridge.loadActivityConversations('activity.json')).resolves.toEqual([resolved]);
+        expect(agentRunnerService.resolveHistoricalConversation).toHaveBeenCalledTimes(2);
+        expect(agentRunnerService.resolveHistoricalConversation).toHaveBeenCalledWith(stored);
     });
 
     it('forwards project asset reads through the data bridge', async () => {
