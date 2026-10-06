@@ -3854,19 +3854,19 @@
           "agent": "codex",
           "conversationId": "01a11068-eabe-79a2-87b3-bbfcdfaaf0dc",
           "createdAt": "2026-10-06T08:52:21.599Z",
-          "lastUsedAt": "2026-10-06T08:52:21.599Z",
-          "synchronizedThroughMessageId": "agent-turn-1ca268e2-c1b0-45b3-b600-ea912adbf9cd-turn-1-assistant-3"
+          "lastUsedAt": "2026-10-06T08:59:36.947Z",
+          "synchronizedThroughMessageId": "agent-turn-1ca268e2-c1b0-45b3-b600-ea912adbf9cd-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-10-06T08:51:13.232Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 5534,
           "toolMs": 1125
         },
-        "elapsedMs": 68367,
-        "runningStartedAt": "2026-10-06T08:59:23.250Z"
+        "elapsedMs": 82064,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
