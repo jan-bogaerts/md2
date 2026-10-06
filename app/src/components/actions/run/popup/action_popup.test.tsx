@@ -370,6 +370,65 @@ describe('ActionPopup', () => {
         expect(screen.getByRole('dialog', { name: 'Run actions' })).toBeInTheDocument()
     })
 
+    it('places the command splitter between input and independently scrolling history', async () => {
+        window.md2Actions = {
+            loadActionRunHistory: vi.fn(async () => [{
+                actionId: 'first', completedAt: '2026-01-01T00:00:00.000Z', output: 'Earlier output',
+                status: 'completed', type: 'command',
+            }]),
+            onActionRun: vi.fn(() => vi.fn()),
+        } as unknown as typeof window.md2Actions;
+        renderPopup();
+        const input = screen.getByLabelText('Prompt');
+        const splitter = screen.getByRole('separator', { name: 'Resize command input' });
+        const history = screen.getByLabelText('Command run history');
+        expect(await within(history).findByText('Run history')).toBeInTheDocument();
+        expect(input.compareDocumentPosition(splitter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(splitter.nextElementSibling).toBe(history);
+        expect(within(input).queryByRole('separator')).not.toBeInTheDocument();
+        expect(screen.queryByRole('separator', { name: 'Resize prompt' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled();
+    });
+
+    it('resizes command input by pointer and keyboard without changing agent settings, then restores on reopen', async () => {
+        window.localStorage.setItem('md2.actionPromptHeight', '250');
+        window.localStorage.setItem('md2.actionQuestionsBlockHeight', '280');
+        renderPopup();
+        const splitter = screen.getByRole('separator', { name: 'Resize command input' });
+        const initial = Number(splitter.getAttribute('aria-valuenow'));
+        fireEvent.pointerDown(splitter, { clientY: 100, pointerId: 1 });
+        fireEvent.pointerMove(splitter, { clientY: 150, pointerId: 1 });
+        fireEvent.pointerUp(splitter, { clientY: 150, pointerId: 1 });
+        const dragged = Number(splitter.getAttribute('aria-valuenow'));
+        expect(dragged).toBe(initial + 50);
+        const user = userEvent.setup();
+        splitter.focus();
+        await user.keyboard('{ArrowUp}');
+        const resized = Number(splitter.getAttribute('aria-valuenow'));
+        expect(resized).toBeLessThan(dragged);
+        expect(window.localStorage.getItem('md2.commandActionInputHeight')).toBe(String(resized));
+        expect(window.localStorage.getItem('md2.actionPromptHeight')).toBe('250');
+        expect(window.localStorage.getItem('md2.actionQuestionsBlockHeight')).toBe('280');
+        expect(splitter).toHaveAttribute('aria-orientation', 'horizontal');
+        expect(resized).toBeGreaterThanOrEqual(Number(splitter.getAttribute('aria-valuemin')));
+        cleanup();
+        renderPopup();
+        expect(screen.getByRole('separator', { name: 'Resize command input' })).toHaveAttribute('aria-valuenow', String(resized));
+    });
+
+    it('keeps command controls usable when empty input collapses and history has no entries', async () => {
+        renderPopup();
+        const input = within(screen.getByLabelText('Prompt')).getByRole('textbox');
+        fireEvent.change(input, { target: { value: '' } });
+        const splitter = screen.getByRole('separator', { name: 'Resize command input' });
+        expect(splitter).toHaveAttribute('aria-disabled', 'true');
+        expect(screen.getByRole('button', { name: 'Run' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Schedule' })).toBeInTheDocument();
+        fireEvent.change(input, { target: { value: 'echo restored' } });
+        expect(splitter).not.toHaveAttribute('aria-disabled');
+        expect(input).toHaveValue('echo restored');
+    });
+
     it('prefills one idle command editor and preserves edited text through reopen', () => {
         const prepareActionPrompt = vi.fn(async () => ({ prompt: 'Agent default' }))
         window.md2Actions = {
@@ -3344,7 +3403,26 @@ describe('ActionPopup', () => {
         expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
         const promptSurface = screen.getByLabelText('Prompt')
         expect(within(promptSurface).getByTestId('action-popup-bottom-row')).toHaveAttribute('data-embedded', 'true')
-        expect(screen.getAllByTestId('action-popup-bottom-row')).toHaveLength(1)
+        expect(screen.getAllByTestId('action-popup-bottom-row')).toHaveLength(1);
+        const splitter = screen.getByRole('separator', { name: 'Resize prompt' });
+        const layout = screen.getByTestId('action-layout-regions');
+        expect(layout.children[0]).toHaveAttribute('data-layout-adjacent');
+        expect(layout.children[1]).toBe(splitter);
+        expect(splitter.nextElementSibling).toBe(screen.getByTestId('action-prompt-block'));
+        expect(screen.getAllByLabelText('Prompt')).toHaveLength(1);
+        expect(screen.queryByRole('separator', { name: 'Resize command input' })).not.toBeInTheDocument();
+        act(() => runListener?.({
+            actionId: 'root-command', actionType: 'command', context, runId: 'run-1', phase: 'main',
+            rootActionId: 'root-command', status: 'running', type: 'action',
+        }));
+        expect(screen.queryByLabelText('Prompt')).not.toBeInTheDocument();
+        expect(screen.queryByRole('separator', { name: 'Resize prompt' })).not.toBeInTheDocument();
+        act(() => runListener?.({
+            actionId: 'root-command', context, runId: 'run-1', phase: 'main', rootActionId: 'root-command',
+            status: 'completed', type: 'run',
+        }));
+        expect(screen.getByRole('separator', { name: 'Resize command input' })).toBeInTheDocument();
+        expect(screen.getAllByLabelText('Prompt')).toHaveLength(1);
     })
 
     it('blocks a needsWorkTree action without assignment and reports the reason', async () => {

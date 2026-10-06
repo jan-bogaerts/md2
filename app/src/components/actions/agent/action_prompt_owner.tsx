@@ -8,6 +8,7 @@ import { dialogService } from '../../../services/dialog_service'
 import { remoteConnectionService } from '../../../services/data/remote_connection_service'
 import { useBoundRunId, useRunSelector } from '../../hooks/use_action_runs'
 import { ActionAgentPrompt } from './action_agent_prompt'
+import type { ActionInputLayoutStore } from '../run/popup/action_input_layout_store';
 import type { RestoredAgentQuestions } from './action_agent_question_owner'
 import type { ActionConversationStore } from '../conversation/state/action_conversation_store'
 import { pendingConversationQuestions } from '../conversation/state/action_conversation_chat_selectors'
@@ -36,6 +37,7 @@ interface ActionPromptOwnerProps {
     historyStore: ActionHistoryStore
     inputStore: ActionRunInputStore
     questionsEnabled: boolean
+    layoutStore: ActionInputLayoutStore;
     resultStore: ActionRunResultStore
     runValidationError: string | null
     scheduleStore: ActionScheduleStore
@@ -168,6 +170,7 @@ export function ActionPromptOwner(props: ActionPromptOwnerProps) {
                     settingsStore={settingsStore}
                 />
             )}
+            layoutStore={props.layoutStore}
             convertMessage={inputSnapshot.convertMessage}
             monospace={action.type === 'command'}
             onRunShortcut={handleRunShortcut}

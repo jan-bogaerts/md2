@@ -10,6 +10,7 @@ import { ActionRunBindingStore } from '../state/action_run_binding_store'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionUsageScopeStore } from './action_usage_scope_store'
+import { ActionInputLayoutStore } from './action_input_layout_store';
 import { ActionUsageValuesService } from './action_usage_values_service'
 import type { ActionPopupRuntime } from './action_popup_types'
 import type { ActionRunHistoryEntry } from '../../../../data/electron_action_bridge'
@@ -47,6 +48,8 @@ export function createActionPopupBindings(
 
     return {
         bindingStore,
+        commandLayoutStore: new ActionInputLayoutStore('command'),
+        agentLayoutStore: new ActionInputLayoutStore('agent'),
         conversationSearchService: new ActionConversationSearchService(),
         conversationStore,
         historyStore,

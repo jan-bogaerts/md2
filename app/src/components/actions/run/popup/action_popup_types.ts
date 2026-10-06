@@ -10,6 +10,7 @@ import type { ActionRunBindingStore } from '../state/action_run_binding_store'
 import type { ActionRunInputStore } from '../state/action_run_input_store'
 import type { ActionRunResultStore } from '../state/action_run_result_store'
 import type { ActionUsageValuesService } from './action_usage_values_service'
+import type { ActionInputLayoutStore } from './action_input_layout_store';
 
 export interface ActionPopupContentProps {
     action: ActionDefinition
@@ -38,6 +39,8 @@ export interface ActionPopupContentProps {
 }
 
 export interface ActionPopupRuntime {
+    commandLayoutStore: ActionInputLayoutStore;
+    agentLayoutStore: ActionInputLayoutStore;
     bindingStore: ActionRunBindingStore
     conversationSearchService: ActionConversationSearchService
     conversationStore: ActionConversationStore
