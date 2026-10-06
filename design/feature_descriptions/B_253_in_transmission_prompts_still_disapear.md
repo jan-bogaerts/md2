@@ -18,6 +18,7 @@ changedFiles:
   - app/src/components/actions/conversation/transcript/action_queued_prompt.tsx
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.submissions.node.test.ts
   - app/src/services/actions/action_run_registry.ts
   - desktop/src/actions/agent/agent_runner_service.js
   - desktop/src/actions/agent/agent_runner_state.test.mjs

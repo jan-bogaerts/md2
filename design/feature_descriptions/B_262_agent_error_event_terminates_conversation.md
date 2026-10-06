@@ -3,12 +3,13 @@ author:
 id: B_262
 internalId: 97de33fa-4c53-4b0e-a70b-d4266403c8c9
 title: agent error event terminates conversation
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__97de33fa-4c53-4b0e-a70b-d4266403c8c9.json
 policy:
+after: 977e97f1-1590-48d6-ae9e-6a74808b24d2
 ---
 
 we got an 'unknown agent event': `Malformed agent conversation: timer.breakdown exceeds timer.elapsedMs`
