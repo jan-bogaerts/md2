@@ -3,7 +3,7 @@ author:
 id: J_59
 internalId: 977e97f1-1590-48d6-ae9e-6a74808b24d2
 title: improve layout action details on action editor
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,9 @@ agents:
 policy:
 branch: j_59_improve_layout_action_details_on_action_editor
 worktree: 1
+changedFiles:
+  - app/src/components/actions/editor/action_definition_fields.grouped.test.tsx
+  - app/src/components/actions/editor/action_definition_fields.tsx
 ---
 
 When in list view, we have the action editor. The first group is labeled 'action details'.
