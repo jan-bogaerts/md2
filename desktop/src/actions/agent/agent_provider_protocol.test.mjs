@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -243,7 +244,7 @@ describe('agent provider protocol', () => {
         const content = [
             { id: 'write-1', input: { file_path: 'design\\card.md' }, name: 'Write', type: 'tool_use' },
             { id: 'edit-1', input: { file_path: 'design/card.md' }, name: 'Edit', type: 'tool_use' },
-            { id: 'edit-2', input: { file_path: 'C:\\outside\\secret.md' }, name: 'MultiEdit', type: 'tool_use' },
+            { id: 'edit-2', input: { file_path: resolve(ROOT_PATH, '..', 'outside', 'secret.md') }, name: 'MultiEdit', type: 'tool_use' },
             { id: 'notebook-1', input: { notebook_path: 'notes/review.ipynb' }, name: 'NotebookEdit', type: 'tool_use' },
             { id: 'read-1', input: { file_path: 'ignored.md' }, name: 'Read', type: 'tool_use' },
         ];

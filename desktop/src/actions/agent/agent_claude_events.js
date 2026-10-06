@@ -207,10 +207,38 @@ function accumulatedClaudeUsage(messageUsages) {
     return sumAgentTokenUsage([...messageUsages.values()]);
 }
 
-/** Prefer Claude's complete turn result, falling back to deduplicated per-request message usage. */
+/** Normalize one model's disjoint input/cache buckets; output already includes thinking. */
+function normalizeClaudeModelUsage(usage) {
+    if (!usage || typeof usage !== 'object' || Array.isArray(usage)) throw new Error('Invalid Claude model usage');
+    const providerUsage = {
+        cache_creation_input_tokens: usage.cacheCreationInputTokens,
+        cache_read_input_tokens: usage.cacheReadInputTokens,
+        input_tokens: usage.inputTokens,
+        output_tokens: usage.outputTokens,
+    };
+    validatePresentClaudeUsageFields(providerUsage);
+
+    return normalizeClaudeUsage(providerUsage);
+}
+
+/** Read whole-tree cumulative model counters when present; otherwise retain per-turn usage. */
 function claudeUsage(event, fallbackUsage = null) {
     if (event.type !== 'result') return null;
     validatePresentClaudeUsageFields(event.usage);
+    // Only modelUsage includes subagents. Its outputTokens already includes thinking.
+    // https://code.claude.com/docs/en/agent-sdk/cost-tracking#track-costs-in-streaming-input-mode
+    if (event.modelUsage !== undefined) {
+        if (!event.modelUsage || typeof event.modelUsage !== 'object' || Array.isArray(event.modelUsage)) {
+            throw new Error('Invalid Claude model usage');
+        }
+        const modelUsages = Object.values(event.modelUsage).map(normalizeClaudeModelUsage);
+        const wholeTreeUsage = {
+            ...sumAgentTokenUsage(modelUsages),
+            ...(event.total_cost_usd !== undefined ? { costUsd: event.total_cost_usd } : {}),
+        };
+
+        return validateAgentTokenUsage(wholeTreeUsage);
+    }
     if (hasCompleteClaudeUsage(event.usage)) {
         return normalizeClaudeUsage(event.usage, event.total_cost_usd, event.usage.total_tokens);
     }

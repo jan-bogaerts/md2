@@ -4,9 +4,9 @@ const {
     accumulatedClaudeUsage,
     claudeAssistantText,
     claudeTranscriptEvents,
-    claudeUsage,
     recordClaudeAssistantUsage,
 } = require('./agent_claude_events');
+const { ClaudeUsageTracker } = require('./claude_usage_tracker');
 const { codexTranscriptEvents } = require('./agent_codex_events');
 const { diagnosticEvent, normalizeCodexEvent } = require('./agent_codex_event');
 const { JsonLineBuffer } = require('./agent_event_utils');
@@ -101,6 +101,8 @@ function providerErrorText(agent, event) {
 
 function providerConversationId(agent, event) {
     if (agent === 'codex' && event.type === 'thread.started') return event.thread_id ?? event.thread?.thread_id ?? null;
+    if (agent === 'claude' && event.parent_tool_use_id) return null;
+    if (agent === 'claude' && event.type === 'conversation_reset') return event.new_conversation_id;
     if (agent === 'claude' && typeof event.session_id === 'string') return event.session_id;
 
     return null;
@@ -122,7 +124,7 @@ function isMissingSession(agent, event, turnStarted) {
 }
 
 class AgentProviderProtocolParser {
-    constructor(agent, onEvent, onMalformed, rootPath) {
+    constructor(agent, onEvent, onMalformed, rootPath, claudeUsageTracker) {
         this.agent = agent;
         this.lines = new JsonLineBuffer(agent, (line) => this.parseLine(line));
         this.onEvent = onEvent;
@@ -131,6 +133,7 @@ class AgentProviderProtocolParser {
         this.turnStarted = false;
         this.claudeFileResultDecoder = agent === 'claude' ? new ClaudeFileResultDecoder(rootPath) : null;
         this.claudeMessageUsages = new Map();
+        this.claudeUsageTracker = agent === 'claude' ? claudeUsageTracker ?? new ClaudeUsageTracker() : null;
     }
 
     push(chunk) {
@@ -145,7 +148,7 @@ class AgentProviderProtocolParser {
         if (this.agent === 'codex') return codexUsage(event);
         const isSubAgentResult = typeof event.parent_tool_use_id === 'string' && event.parent_tool_use_id.length > 0;
         if (event.type !== 'result' || isSubAgentResult) return null;
-        const usage = claudeUsage(event, accumulatedClaudeUsage(this.claudeMessageUsages));
+        const usage = this.claudeUsageTracker.read(event, accumulatedClaudeUsage(this.claudeMessageUsages));
         this.claudeMessageUsages.clear();
 
         return usage;
@@ -164,6 +167,9 @@ class AgentProviderProtocolParser {
             return;
         }
 
+        if (this.claudeUsageTracker?.isDuplicateResult(event)) return;
+        this.claudeUsageTracker?.observe(event);
+        if (event.type === 'conversation_reset' && !event.parent_tool_use_id) this.claudeMessageUsages.clear();
         const missingSession = isMissingSession(this.agent, event, this.turnStarted);
         this.turnStarted = this.turnStarted || isTurnEvent(this.agent, event);
         if (this.agent === 'claude') recordClaudeAssistantUsage(this.claudeMessageUsages, event);
@@ -196,10 +202,10 @@ class AgentProviderProtocolParser {
     }
 }
 
-function createAgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath) {
+function createAgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath, claudeUsageTracker = null) {
     if (agent !== 'codex' && agent !== 'claude') return null;
 
-    return new AgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath);
+    return new AgentProviderProtocolParser(agent, onEvent, onMalformed, rootPath, claudeUsageTracker);
 }
 
 module.exports = { createAgentProviderProtocolParser, isMissingSession };

@@ -214,6 +214,8 @@ async function handleTurnCompleted(service, run, event, timestamp) {
         service.failStreamingRun(run, new Error(event.error));
         return;
     }
+    const synchronizedMessage = lastMessageEntry(run.conversation);
+    if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
     if (!event.missingSession && event.usage) {
         run.liveTurnUsage = event.usage;
         run.conversation.usage = accumulateUsage(run.conversation.usage, run.liveTurnUsage);
@@ -230,8 +232,6 @@ async function handleTurnCompleted(service, run, event, timestamp) {
         service.beginFinishShutdown(run);
         return;
     }
-    const synchronizedMessage = lastMessageEntry(run.conversation);
-    if (synchronizedMessage) updateProviderSession(run, synchronizedMessage.id, timestamp);
     transitionConversationStatus(run.conversation, 'waitingForInput', timestamp, run.phases);
     run.conversation.completedAt = null;
     await service.persistCheckpoint(run);

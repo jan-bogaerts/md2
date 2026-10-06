@@ -866,8 +866,9 @@ function createAgentStreamingAdapter(
     providerConversationId = null,
     onRuntimeEvent = async () => undefined,
     executionSettings = {},
+    claudeUsageTracker = null,
 ) {
-    if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId);
+    if (agent === 'claude') return new ClaudeStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, claudeUsageTracker);
     if (agent === 'codex') {
         return new CodexStreamingAdapter(writeLine, onEvent, rootPath, providerConversationId, onRuntimeEvent, executionSettings);
     }
