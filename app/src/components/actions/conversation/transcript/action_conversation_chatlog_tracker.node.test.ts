@@ -152,6 +152,44 @@ function setup(initialRun: ActionRun) {
 }
 
 describe('ActionConversationChatlogTracker', () => {
+    it('keeps one current-turn message object through queue and sent acknowledgements', () => {
+        const value = conversation('conversation-1', []);
+        const { conversationStore, registry, tracker } = setup(run('run-1', value));
+        tracker.load();
+        const submission: PendingActionSubmission = { content: 'Send this', id: 'submission-1', prompt: null, state: 'transmitting' };
+        conversationStore.setSubmissions([submission], value.id, 'run-1');
+        const initialGroup = tracker.getEvolvingGroups()[0];
+        const prompt = tracker.getPrompt(submission.id);
+        expect(initialGroup.kind).toBe('entry');
+        expect(prompt?.getSnapshot().state).toBe('transmitting');
+        const queuedPrompt = { content: submission.content, dispatchState: 'queued' as const, id: submission.id, revision: 0 };
+        registry.setRun({ ...run('run-1', value), queuedPrompts: [queuedPrompt] });
+        conversationStore.setSubmissions([{ ...submission, prompt: queuedPrompt, state: 'queued' }], value.id, 'run-1');
+        expect(tracker.getEvolvingGroups()).toEqual([initialGroup]);
+        expect(prompt?.getSnapshot().state).toBe('queued');
+        const dispatchingPrompt = { ...queuedPrompt, dispatchState: 'dispatching' as const };
+        registry.setRun({ ...run('run-1', value), queuedPrompts: [dispatchingPrompt] });
+        expect(tracker.getEvolvingGroups()[0]).toBe(initialGroup);
+        expect(prompt?.getSnapshot().state).toBe('sending');
+        const sendingNotification = vi.fn();
+        const unsubscribeSending = prompt?.subscribe(sendingNotification);
+        registry.setRun({ ...run('run-1', value), conversationChange: null, queuedPrompts: [dispatchingPrompt] });
+        expect(sendingNotification).not.toHaveBeenCalled();
+        unsubscribeSending?.();
+        const sentMessage = message(submission.id, 'user', submission.content);
+        registry.setRun(run('run-1', { ...value, entries: [sentMessage] }));
+        conversationStore.setSubmissions([], value.id, 'run-1');
+        expect(tracker.getEvolvingGroups()[0]).toBe(initialGroup);
+        expect(prompt?.entry).not.toBe(sentMessage);
+        expect(prompt?.entry).toEqual(sentMessage);
+        expect(prompt?.getSnapshot().state).toBe('sent');
+        const notification = vi.fn();
+        prompt?.subscribe(notification);
+        registry.setRun({ ...run('run-1', { ...value, entries: [sentMessage] }), conversationChange: null });
+        expect(notification).not.toHaveBeenCalled();
+        tracker.unload();
+    });
+
     it('publishes displayed conversation status without replacing unchanged groups', () => {
         const entries = [message('user-1', 'user')]
         const running = conversation('conversation-1', entries)
@@ -181,15 +219,15 @@ describe('ActionConversationChatlogTracker', () => {
         conversationStore.setSubmissions([
             { content: 'Start now', id: 'submission-1', prompt: null, state: 'transmitting' },
         ], null, null)
-        expect(tracker.getSubmissions().map(({ content }) => content)).toEqual(['Start now'])
+        expect(tracker.getEvolvingGroups().map(({ key }) => key)).toEqual(['submission-1']);
 
         bindingStore.setRunId('run-1')
         conversationStore.setSubmissions([
             { content: 'Continue', id: 'submission-2', prompt: null, state: 'transmitting' },
         ], live.id, 'run-1')
-        expect(tracker.getSubmissions().map(({ content }) => content)).toEqual(['Continue'])
+        expect(tracker.getEvolvingGroups().map(({ key }) => key)).toEqual(['submission-2']);
         conversationStore.select(historical)
-        expect(tracker.getSubmissions()).toEqual([])
+        expect(tracker.getEvolvingGroups()).toEqual([]);
     })
     it('registers every source listener on load and removes them on unload', () => {
         const value = conversation('conversation-1', [message('user-1', 'user')])

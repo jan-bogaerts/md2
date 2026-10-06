@@ -32,9 +32,9 @@ We need to improve the layout of the components:
 ## Implementation details
 
 - Only `action_definition_fields.tsx` changes; only "Action details" group markup. No handler, draft, validation, service, or data changes.
-- Replace current row + stacked fields with three rows. Each row: `Stack direction={{ md: 'row', xs: 'column' }} spacing={1}`, same as current row, fields `fullWidth` so they share row width equally:
-  1. Label, Description.
-  2. Type, Output kind, Icon.
+- Replace current row + stacked fields with three rows:
+  1. Label, Description. CSS grid `gridTemplateColumns: { md: '1fr 2fr', xs: '1fr' }`, `columnGap: 1`: Label 1/3 width, Description 2/3. Label then lines up with Type in row 2.
+  2. Type, Output kind, Icon. `Stack direction={{ md: 'row', xs: 'column' }} spacing={1}`, same as current row; fields `fullWidth`, so each gets 1/3 width.
   3. Ask user for, Version question (optional).
 - Row 3: Version question stays conditional (only when Ask user for is `version`). To keep Ask user for from jumping between full and half width, row 3 uses fixed two equal columns (CSS grid `gridTemplateColumns: { md: 'repeat(2, 1fr)', xs: '1fr' }`, `columnGap: 1`); Ask user for keeps first column when question hidden.
 - Below `md` breakpoint all fields stack in one column in order Label, Description, Type, Output kind, Icon, Ask user for, Version question.
@@ -43,7 +43,7 @@ We need to improve the layout of the components:
 
 ## Acceptance criteria
 
-- In list view action editor, "Action details" group shows on `md`+ width: row 1 Label and Description; row 2 Type, Output kind, Icon; row 3 Ask user for and, when Ask user for is Version, Version question (optional).
+- In list view action editor, "Action details" group shows on `md`+ width: row 1 Label (1/3 width) and Description (2/3 width); row 2 Type, Output kind, Icon; row 3 Ask user for and, when Ask user for is Version, Version question (optional).
 - Ask user for keeps same width whether Version question is shown or hidden.
 - Below `md` width all fields stack vertically in same order.
 - Validation errors still show under correct field; inputs in same row stay top-aligned.

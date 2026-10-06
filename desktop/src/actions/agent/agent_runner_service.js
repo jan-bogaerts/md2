@@ -123,7 +123,6 @@ class AgentRunnerService {
             throw new Error('Compact-only startup requires an existing streaming provider session');
         }
         const prompt = compactOnly ? null : requireString(request?.prompt, 'prompt');
-        console.log('[agent prompt]', prompt);
         const agent = requireString(request?.agent ?? 'generic', 'agent');
         const streaming = request.streaming === true;
         requireProjectFolder(request?.projectFolder);
@@ -262,7 +261,6 @@ class AgentRunnerService {
     }
 
     sendMessage(runId, content, submissionId) {
-        console.log('[agent prompt]', content);
         return agentInteractions.sendMessage(this, this.requireStreamingRun(runId), content, submissionId);
     }
 

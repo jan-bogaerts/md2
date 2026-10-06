@@ -64,6 +64,18 @@ describe('ActionConversationStore', () => {
         vi.restoreAllMocks()
     })
 
+    it('keeps a new prompt visible when its run is selected before the start response', () => {
+        const { store } = createConversationStore();
+        const id = store.beginSubmission('Start now', null, 'conversation-new');
+        expect(store.getVisibleSubmissions(null, null).map(({ id }) => id)).toEqual([id]);
+        expect(store.getVisibleSubmissions(null, 'run-new').map(({ id }) => id)).toEqual([id]);
+        expect(store.getVisibleSubmissions('other-conversation', 'run-new')).toEqual([]);
+        store.bindSubmission(id, 'run-new');
+        expect(store.getVisibleSubmissions(null, 'run-new').map(({ id }) => id)).toEqual([id]);
+        expect(store.getVisibleSubmissions('conversation-new', 'run-new').map(({ id }) => id)).toEqual([id]);
+        store.dispose();
+    });
+
     it('reconciles identical rapid submissions by their local IDs', () => {
         let runEvent: ((event: ActionRunEvent) => void) | null = null
         vi.spyOn(actionRunRegistry, 'subscribeContextEvents').mockImplementation((_context, listener) => {

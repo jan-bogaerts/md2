@@ -264,7 +264,7 @@ export class ActionConversationStore {
     getVisibleSubmissions(conversationId: string | null, runId: string | null) {
         return this.submissions.filter((submission) => {
             const owner = this.submissionOwners.get(submission.id)
-            return !!owner && (conversationId ? owner.conversationId === conversationId : owner.runId === runId)
+            return !!owner && (conversationId ? owner.conversationId === conversationId : owner.runId === runId || owner.runId === null)
         })
     }
 

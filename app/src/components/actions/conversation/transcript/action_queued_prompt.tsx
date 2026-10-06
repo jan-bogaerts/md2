@@ -1,7 +1,7 @@
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlined from '@mui/icons-material/EditOutlined'
 import { Box, Button, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material'
-import { useState } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import type { ActionQueuedPrompt } from '../../../../data/action_run_types'
 import {
     deleteActionQueuedPrompt,
@@ -25,6 +25,7 @@ export function ActionQueuedPromptRow({ entry, runId }: ActionQueuedPromptProps)
         setEditValue(entry.content)
         setEditing(true)
     }
+    const handleEditValueChange = (event: ChangeEvent<HTMLInputElement>) => setEditValue(event.target.value);
     const handleCancelEdit = () => {
         setEditValue(entry.content)
         setEditing(false)
@@ -55,10 +56,9 @@ export function ActionQueuedPromptRow({ entry, runId }: ActionQueuedPromptProps)
 
     return (
         <Box
-            aria-label="Queued prompt"
             sx={{
-                alignSelf: 'flex-end', bgcolor: 'background.paper', border: 1, borderColor: 'divider',
-                borderRadius: 1, flexShrink: 0, maxWidth: '88%', minWidth: 0, overflowWrap: 'anywhere',
+                bgcolor: 'background.paper', border: 1, borderColor: 'divider',
+                borderRadius: 1, flexShrink: 0, minWidth: 0, overflowWrap: 'anywhere',
                 px: 1.25, py: 1,
             }}
         >
@@ -87,7 +87,7 @@ export function ActionQueuedPromptRow({ entry, runId }: ActionQueuedPromptProps)
                         autoFocus
                         disabled={saving}
                         multiline
-                        onChange={(event) => setEditValue(event.target.value)}
+                        onChange={handleEditValueChange}
                         size="small"
                         slotProps={{ htmlInput: { 'aria-label': 'Queued prompt content' } }}
                         value={editValue}
