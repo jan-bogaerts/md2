@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "97de33fa-4c53-4b0e-a70b-d4266403c8c9",
+      "cardPath": "design/feature_descriptions/B_262_agent_error_event_terminates_conversation.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_262_agent_error_event_terminates_conversation.md. analyse, report your findings, be short and to the point",
+          "id": "submission-b4479603-f629-42b5-bbbe-42bb5d702dcb",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-06T12:08:46.845Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-c39212ba-a380-42b6-9244-250f91100364",
+      "providerSessions": [],
+      "startedAt": "2026-10-06T12:08:46.845Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-06T12:08:46.845Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "97de33fa-4c53-4b0e-a70b-d4266403c8c9",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
