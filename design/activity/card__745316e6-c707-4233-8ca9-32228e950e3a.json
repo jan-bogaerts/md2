@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "745316e6-c707-4233-8ca9-32228e950e3a",
+      "cardPath": "design/feature_descriptions/B_263_stop_conversation_broken.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_263_stop_conversation_broken.md.find the bug, report, no changes yet. short and to the point",
+          "id": "submission-1069f7e0-5f6d-48e3-8fb9-171c0d816daf",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-06T13:10:49.286Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-46eb38a1-8278-4485-8f49-451903eb1dd2",
+      "providerSessions": [],
+      "startedAt": "2026-10-06T13:10:49.286Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-06T13:10:49.286Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "745316e6-c707-4233-8ca9-32228e950e3a",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
