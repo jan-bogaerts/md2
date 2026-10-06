@@ -2124,6 +2124,41 @@
       "startedAt": "2026-10-04T17:18:07.386Z",
       "status": "completed",
       "rootConversationId": "agent-9468aa2d-cbef-4b07-b349-448417e88ef3"
+    },
+    {
+      "commits": [
+        {
+          "commit": "c1a13e9b088eb591a1667f0202c5f669d9c8f89d",
+          "committedAt": "2026-10-06T13:54:08+02:00",
+          "deletions": 1998,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/actions/agent/action_agent_prompt.tsx",
+            "app/src/components/actions/agent/action_agent_question.grouped.test.tsx",
+            "app/src/components/actions/agent/action_prompt_owner.tsx",
+            "app/src/components/actions/run/popup/action_agent_interaction.tsx",
+            "app/src/components/actions/run/popup/action_input_layout_store.test.ts",
+            "app/src/components/actions/run/popup/action_input_layout_store.ts",
+            "app/src/components/actions/run/popup/action_input_splitter.tsx",
+            "app/src/components/actions/run/popup/action_layout_surface.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_runtime.ts",
+            "app/src/components/actions/run/popup/action_popup_types.ts",
+            "app/src/components/actions/run/popup/agent_action.tsx",
+            "app/src/components/actions/run/popup/command_action.tsx"
+          ],
+          "filesChanged": 14,
+          "insertions": 2439,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-06T13:54:08+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "df7f7a94-ee33-44a3-b499-2b230d484fef",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
