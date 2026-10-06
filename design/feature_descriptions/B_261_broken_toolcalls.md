@@ -10,6 +10,13 @@ agents:
   - design/activity/card__53a49b65-2678-4970-a708-27195fc179bc.json
 policy:
 after: 45e13c03-d74d-4082-9065-aa387f6553f5
+changedFiles:
+  - desktop/src/actions/agent/agent_runner_service.js
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
+  - desktop/src/actions/agent/cancel_unfinished_tools.js
+  - desktop/src/actions/agent/cancel_unfinished_tools.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
 ---
 since recently, I see tool calls that remain in the 'running' state while there is 'output' available.
 
