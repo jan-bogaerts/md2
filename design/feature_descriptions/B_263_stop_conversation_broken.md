@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__745316e6-c707-4233-8ca9-32228e950e3a.json
 policy:
-branch: b_263_stop_conversation_broken
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/state/action_history_store.node.test.ts
   - app/src/components/hooks/use_action_assignment_context.test.tsx
