@@ -70,6 +70,15 @@
       "reasoningTokens": 790256,
       "totalTokens": 783259737,
       "costUsd": 138.29830530000004
+    },
+    "0.8.0": {
+      "cachedInputTokens": 185784465,
+      "inputTokens": 6044891,
+      "legacyTotalTokens": 0,
+      "outputTokens": 723696,
+      "reasoningTokens": 194147,
+      "totalTokens": 192747199,
+      "costUsd": 30.3264288
     }
   },
   "schemaVersion": 1
