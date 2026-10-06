@@ -10,8 +10,6 @@ agents:
   - design/activity/card__df7f7a94-ee33-44a3-b499-2b230d484fef.json
 policy:
 after: bde0d7b3-85f0-46c0-8027-5d56939c04ee
-branch: b_210_incorrect_layout_action_popup_for_commands
-worktree: 2
 changedFiles:
   - app/src/components/actions/run/popup/action_input_layout_store.test.ts
   - app/src/components/actions/run/popup/action_input_layout_store.ts
