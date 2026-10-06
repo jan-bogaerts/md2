@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__977e97f1-1590-48d6-ae9e-6a74808b24d2.json
 policy:
-branch: j_59_improve_layout_action_details_on_action_editor
-worktree: 1
 changedFiles:
   - app/src/components/actions/editor/action_definition_fields.grouped.test.tsx
   - app/src/components/actions/editor/action_definition_fields.tsx
