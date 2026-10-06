@@ -5,7 +5,7 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "97de33fa-4c53-4b0e-a70b-d4266403c8c9",
       "cardPath": "design/feature_descriptions/B_262_agent_error_event_terminates_conversation.md",
-      "completedAt": null,
+      "completedAt": "2026-10-06T13:53:45.449Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 94277
@@ -1048,7 +1048,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 77,
-          "timestamp": "2026-10-06T13:08:02.388Z"
+          "timestamp": "2026-10-06T13:53:45.449Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1058,12 +1058,12 @@
           "agent": "codex",
           "conversationId": "01a1111d-ca60-70b1-b901-5a9a331015d9",
           "createdAt": "2026-10-06T12:09:53.107Z",
-          "lastUsedAt": "2026-10-06T13:08:02.388Z",
+          "lastUsedAt": "2026-10-06T13:53:45.449Z",
           "synchronizedThroughMessageId": "agent-turn-71890449-f95a-4d75-aa7e-fd89cee8e5c1-turn-3-assistant-4"
         }
       ],
       "startedAt": "2026-10-06T12:08:46.845Z",
-      "status": "waitingForInput",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 50447,
@@ -1081,7 +1081,7 @@
         "totalTokens": 1648068
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
