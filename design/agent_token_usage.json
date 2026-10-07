@@ -1,11 +1,11 @@
 {
   "projectUsage": {
-    "cachedInputTokens": 2255703971,
-    "inputTokens": 57239789,
+    "cachedInputTokens": 2256491299,
+    "inputTokens": 57258416,
     "legacyTotalTokens": 102187118,
-    "outputTokens": 8179556,
-    "reasoningTokens": 2614028,
-    "totalTokens": 2425924462,
+    "outputTokens": 8182570,
+    "reasoningTokens": 2615002,
+    "totalTokens": 2426734405,
     "costUsd": 524.81913805
   },
   "releases": {
