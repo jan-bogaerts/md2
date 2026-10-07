@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__0c0b067b-4eb0-4e90-b31c-ef53afcdbad0.json
 policy:
+branch: f_414_sequence_improvements
+worktree: 1
 ---
 
 * adding a sequence is similar as cards, actions, diagrams: add the button there, not on the run tab
