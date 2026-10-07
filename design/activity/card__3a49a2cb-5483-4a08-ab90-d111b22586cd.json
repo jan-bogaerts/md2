@@ -3922,6 +3922,14 @@
           "role": "assistant",
           "sequence": 97,
           "timestamp": "2026-10-07T11:39:39.174Z"
+        },
+        {
+          "content": "this is wrong, remove",
+          "id": "submission-d2071e75-f251-4267-ad51-30a5bb8bbf1a",
+          "kind": "message",
+          "role": "user",
+          "sequence": 98,
+          "timestamp": "2026-10-07T11:39:49.803Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3936,14 +3944,14 @@
         }
       ],
       "startedAt": "2026-10-07T11:31:14.826Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 224,
           "toolMs": 50068
         },
         "elapsedMs": 303403,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-07T11:39:49.803Z"
       },
       "title": "+",
       "usage": {
