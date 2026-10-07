@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "3a49a2cb-5483-4a08-ab90-d111b22586cd",
+      "cardPath": "design/feature_descriptions/F_411_action_input_does_mysterious_things.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/F_411_action_input_does_mysterious_things.md, analyze the performance trace, locate the background task doing things with the chatlog, report your findings, be short and to the point, go deep and be thorough.&#x20;",
+          "id": "submission-7683b35c-6cc0-4165-8477-831133dff2bf",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-07T08:57:02.321Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-158ef203-2966-45a3-8beb-2b4a02bdef97",
+      "providerSessions": [],
+      "startedAt": "2026-10-07T08:57:02.321Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-07T08:57:02.321Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "3a49a2cb-5483-4a08-ab90-d111b22586cd",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
