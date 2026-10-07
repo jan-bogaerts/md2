@@ -1654,14 +1654,14 @@
         }
       ],
       "startedAt": "2026-10-07T14:22:00.293Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 64,
           "toolMs": 705
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-07T14:22:00.293Z"
+        "elapsedMs": 83540,
+        "runningStartedAt": null
       },
       "title": "implement",
       "usage": {
