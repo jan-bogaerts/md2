@@ -3,7 +3,7 @@ author:
 id: F_414
 internalId: 0c0b067b-4eb0-4e90-b31c-ef53afcdbad0
 title: sequence improvements
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,19 @@ agents:
 policy:
 branch: f_414_sequence_improvements
 worktree: 1
+changedFiles:
+  - app/src/components/actions/run/sequence/card_sequence_collision.test.ts
+  - app/src/components/actions/run/sequence/card_sequence_collision.ts
+  - app/src/components/actions/run/sequence/card_sequence_eligibility.ts
+  - desktop/src/actions/activity/system_activity_record.js
+  - desktop/src/actions/activity/system_activity_record.test.mjs
+  - desktop/src/actions/schedule/sequence_schedule_contract.test.mjs
+  - desktop/src/actions/schedule/sequence_worktree_execution.js
+  - desktop/src/actions/schedule/sequence_worktree_execution.test.mjs
+  - desktop/src/git/checkout_ownership_service.js
+  - desktop/src/git/checkout_ownership_service.test.mjs
+  - shared/sequence_branch_progress.d.mts
+  - shared/sequence_branch_progress.mjs
 ---
 
 * adding a sequence is similar as cards, actions, diagrams: add the button there, not on the run tab
