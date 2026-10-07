@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__e5a9c51e-b832-48b9-9e71-e83cc4468433.json
 policy:
 ---
 we recently introduced source mode for the markdown editors. this appears to be giving unwanted side effects.
