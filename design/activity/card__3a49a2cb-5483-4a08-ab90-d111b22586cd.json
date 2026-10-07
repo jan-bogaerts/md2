@@ -3936,14 +3936,14 @@
         }
       ],
       "startedAt": "2026-10-07T11:31:14.826Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 224,
           "toolMs": 50068
         },
-        "elapsedMs": 289449,
-        "runningStartedAt": "2026-10-07T11:39:25.220Z"
+        "elapsedMs": 303403,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
