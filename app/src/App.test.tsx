@@ -10,12 +10,6 @@ import { configService } from './services/config/config_service'
 import { dataService } from './services/data/data_service'
 import { createDeferred } from './services/test_support/data_service_test_support'
 
-vi.mock('@mui/icons-material', async () => {
-    const [redo, undo] = await Promise.all([import('@mui/icons-material/Redo'), import('@mui/icons-material/Undo')]);
-
-    return { Redo: redo.default, Undo: undo.default };
-});
-
 vi.mock('./auth/use_github_auth', () => ({
     useGithubAuth: () => ({
         accessToken: null,

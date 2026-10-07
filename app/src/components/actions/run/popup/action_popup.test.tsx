@@ -46,12 +46,6 @@ function appRegion(element: HTMLElement) {
     return (element.style as unknown as Record<string, string>).WebkitAppRegion
 }
 
-// Import the two used icons directly instead of loading the package's entire icon catalogue in Node.
-vi.mock('@mui/icons-material', async () => {
-    const [redo, undo] = await Promise.all([import('@mui/icons-material/Redo'), import('@mui/icons-material/Undo')]);
-    return { Redo: redo.default, Undo: undo.default };
-});
-
 vi.mock('../../agent/action_agent_prompt', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../agent/action_agent_prompt')>()
 
