@@ -2,9 +2,13 @@
 id: B_265
 internalId: 2a81b19c-14fc-49d9-98c1-f7101fcd8e14
 title: UI tests hit the Windows open-file limit while loading icons
-status: ready for implementation
+status: ready
 agents:
   - design/activity/card__2a81b19c-14fc-49d9-98c1-f7101fcd8e14.json
+changedFiles:
+  - app/src/App.test.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/editor/source/markdown_source_undo_redo.tsx
 ---
 
 ## Problem
