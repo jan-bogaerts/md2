@@ -601,14 +601,14 @@
         }
       ],
       "startedAt": "2026-10-07T08:57:02.321Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 17882,
           "toolMs": 80109
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-07T08:57:02.321Z"
+        "elapsedMs": 241669,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
