@@ -1,4 +1,3 @@
-import { createAgentModelCatalogStub } from '../../test/agent_model_catalog_stub.mjs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -78,7 +77,6 @@ function createRunner(actionFiles = [actionFile('main')], overrides = {}) {
         runWithCardLock: vi.fn(async (_primaryProject, _context, operation) => operation()),
     };
     const runner = new ActionRunnerService({
-        agentModelCatalogService: createAgentModelCatalogStub(),
         actionWorktreeRunService,
         agentConfigProvider: () => ({ agentProfiles: [], agentSelection }),
         agentRunnerService,
@@ -634,12 +632,12 @@ describe('ActionRunnerService', () => {
         expect(commandRunner).not.toHaveBeenCalled();
     });
 
-    it('rejects a root agent start when runtime selection fails before its first save', async () => {
+    it('rejects a root agent start when its selected agent is unknown before its first save', async () => {
         const files = [actionFile('main', {agent: 'codex', command: undefined, model: 'gpt-5.5', prompt: 'Run {{card-file}}', type: 'agent'})];
         const { agentRunnerService, runner } = createRunner(files);
 
-        await expect(runner.start({actionId: 'main', context, runInput: { model: 'retired-model' }}))
-            .rejects.toThrow('not advertised');
+        await expect(runner.start({actionId: 'main', context, runInput: { agent: 'unknown-agent' }}))
+            .rejects.toThrow('Unknown agent profile');
         expect(agentRunnerService.start).not.toHaveBeenCalled();
     });
 

@@ -202,6 +202,20 @@ describe('preload desktop agent bridge', () => {
         expect(exposed.md2Updates.ipcRenderer).toBeUndefined();
     });
 
+    it.each(['md2Data', 'md2Actions'])('subscribes shared model lists through %s', (surface) => {
+        const { electron, exposed } = createPreloadHarness();
+        const callback = vi.fn();
+        const unsubscribe = exposed[surface].onAgentModelCatalogChanged(callback);
+        const listener = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === 'md2-local-bridge:event')[1];
+        const request = electron.ipcRenderer.send.mock.calls.find(([channel]) => channel === 'md2-local-bridge:subscribe')[1];
+        const catalog = { agent: 'codex', models: [] };
+        listener({}, { eventId: request.subscriptionId, payload: catalog });
+        expect(request.method).toBe('onAgentModelCatalogChanged');
+        expect(callback).toHaveBeenCalledWith(catalog);
+        unsubscribe();
+        expect(electron.ipcRenderer.send).toHaveBeenCalledWith('md2-local-bridge:unsubscribe', request.subscriptionId);
+    });
+
     it('subscribes and unsubscribes worktree state through validated IPC channels', () => {
         const { electron, exposed } = createPreloadHarness();
         const callback = vi.fn();

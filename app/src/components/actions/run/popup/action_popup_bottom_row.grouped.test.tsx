@@ -13,6 +13,7 @@ import { AppThemeProvider } from '../../../../theme/theme_provider'
 import { ActionConversationStore } from '../../conversation/state/action_conversation_store'
 import { ActionHistoryStore } from '../state/action_history_store'
 import { ActionPopupBottomRow } from './action_popup_bottom_row'
+import { ActionRunDisabledMessage } from './action_run_disabled_message'
 import { ActionRunInputStore } from '../state/action_run_input_store'
 import { ActionRunResultStore } from '../state/action_run_result_store'
 import { ActionScheduleStore } from '../schedule/action_schedule_store'
@@ -111,7 +112,7 @@ function renderBottomRow(
         </AppThemeProvider>,
     )
 
-    return { conversationStore: activeConversationStore, unrelatedRender }
+    return { conversationStore: activeConversationStore, settingsStore, unrelatedRender }
 }
 
 describe('ActionPopupBottomRow', () => {
@@ -138,6 +139,28 @@ describe('ActionPopupBottomRow', () => {
         window.matchMedia = originalMatchMedia
         vi.restoreAllMocks()
     })
+
+    it.each(['initial load', 'manual refresh'] as const)('keeps Send ready without a refresh message during %s', (phase) => {
+        const snapshot = {
+            catalog: phase === 'manual refresh' ? snapshotCatalogFixture('codex').catalog : null,
+            error: null, loading: true,
+        };
+        vi.mocked(agentCapabilitiesService.getCatalogSnapshot).mockReturnValue(snapshot);
+        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan');
+        const { settingsStore } = renderBottomRow();
+        render(<AppThemeProvider><ActionRunDisabledMessage action={action} settingsStore={settingsStore} /></AppThemeProvider>);
+
+        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+        expect(screen.queryByText('Refreshing model capabilities')).not.toBeInTheDocument();
+    });
+
+    it.each([null, 'Discovery failed'])('keeps Send enabled for an unadvertised model with catalog error %s', (error) => {
+        vi.mocked(agentCapabilitiesService.getCatalogSnapshot).mockReturnValue({catalog: { agent: 'codex', models: [] }, error, loading: false});
+        const selectedAction = { ...action, agent: 'codex', model: 'unlisted-model', thinkingLevel: 'high', speedMode: 'fast' } as ActionDefinition;
+        actionPromptDraftService.getDraft(action.id, context, null, { prepare: false }).edit('Plan');
+        renderBottomRow(selectedAction);
+        expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled();
+    });
 
     it('uses an outer size container and keeps usage out of the overflow-safe control row', () => {
         renderBottomRow()

@@ -304,15 +304,14 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 slotProps={{ list: { 'aria-label': 'Model choices', onKeyDown: handleNestedMenuKeyDown } }}
                 transformOrigin={{ horizontal: 'left', vertical: 'top' }}
             >
-                {settings.modelOptions.map(({ available, description, displayName, id }) => (
+                {settings.modelOptions.map(({ description, displayName, id }) => (
                     <MenuItem
                         data-model={id}
-                        disabled={!available || settings.modelCatalog.loading || settings.modelCatalog.stale}
                         key={id}
                         onClick={handleModelChange}
                         selected={id === settings.model}
                     >
-                        <ListItemText primary={available ? displayName : `${displayName} — unavailable`} secondary={description} />
+                        <ListItemText primary={displayName} secondary={description} />
                     </MenuItem>
                 ))}
             </Menu>
@@ -350,21 +349,12 @@ export function ActionAgentSelectors(props: ActionAgentSelectorsProps) {
                 slotProps={{ list: { 'aria-label': 'Speed choices', onKeyDown: handleNestedMenuKeyDown } }}
                 transformOrigin={{ horizontal: 'left', vertical: 'top' }}
             >
-                {SPEED_MODE_OPTIONS.filter(({ value }) => value !== 'fast' || settings.fastAvailable || settings.speedMode === 'fast')
-                    .map(({ label, value }) => (
-                        <MenuItem
-                            data-speed-mode={value}
-                            disabled={value !== 'default' && (!settings.speedSupported || (value === 'fast' && !settings.fastAvailable))}
-                            key={value}
-                            onClick={handleSpeedModeChange}
-                            selected={value === (settings.speedMode ?? 'default')}
-                        >
-                            <ListItemText primary={value === 'fast' && !settings.fastAvailable ? `${label} — unavailable` : label}
-                                secondary={value === 'fast'
-                                    ? settings.fastAvailable ? 'Higher provider usage' : 'Refresh models or choose another speed.'
-                                    : undefined} />
-                        </MenuItem>
-                    ))}
+                {SPEED_MODE_OPTIONS.map(({ label, value }) => (
+                    <MenuItem data-speed-mode={value} key={value} onClick={handleSpeedModeChange}
+                        selected={value === (settings.speedMode ?? 'default')}>
+                        <ListItemText primary={label} secondary={value === 'fast' ? 'Higher provider usage' : undefined} />
+                    </MenuItem>
+                ))}
             </Menu>
             <Menu
                 anchorEl={securityMenuAnchor}

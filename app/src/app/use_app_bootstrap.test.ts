@@ -17,6 +17,7 @@ function createDependencies(overrides: Partial<ApplicationStartupDependencies> =
     return {
         getGithubAccessToken: vi.fn(() => null),
         initializeAgentCapabilities: vi.fn(async () => {}),
+        refreshStartupModelCatalogs: vi.fn(async () => {}),
         initializeServices: vi.fn(),
         restoreGithubSession: vi.fn(async () => {}),
         restoreLastProject: vi.fn(async () => null),
@@ -38,6 +39,8 @@ describe('useAppBootstrap', () => {
         expect(dependencies.initializeServices).toHaveBeenCalledOnce()
         expect(dependencies.restoreGithubSession).toHaveBeenCalledOnce()
         expect(dependencies.initializeAgentCapabilities).toHaveBeenCalledOnce()
+        expect(dependencies.refreshStartupModelCatalogs).toHaveBeenCalledOnce()
+        expect(dependencies.restoreLastProject).toHaveBeenCalledBefore(vi.mocked(dependencies.refreshStartupModelCatalogs))
         expect(dependencies.restoreLastProject).toHaveBeenCalledOnce()
     })
 

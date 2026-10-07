@@ -1,4 +1,5 @@
-const { buildResumeAgentCommand, resolveAgentCommand } = require('../agent/agent_profiles.mjs');
+const { resolveAgentExecution } = require('../agent/agent_execution');
+const { buildResumeAgentCommand, buildAgentStreamingCommand, resolveAgentConfiguration } = require('../agent/agent_profiles.mjs');
 const { normalizeConversationContext } = require('../agent/agent_transcript');
 const { appendCurrentCardReferences } = require('./action_card_references');
 const { resolveAgentPrompt, resolvePopupPrompt } = require('./action_text');
@@ -28,7 +29,6 @@ function executionCommand(resolvedAgent, providerSession, streaming) {
 class ActionAgentExecutor {
     constructor(dependencies) {
         this.agentConfigProvider = dependencies.agentConfigProvider;
-        this.agentModelCatalogService = dependencies.agentModelCatalogService;
         this.agentRunnerService = dependencies.agentRunnerService;
         this.localGitService = dependencies.localGitService;
     }
@@ -40,14 +40,13 @@ class ActionAgentExecutor {
         const thinkingLevel = input.runInput.thinkingLevel ?? input.action.thinkingLevel;
         const speedMode = input.runInput.speedMode ?? input.action.speedMode;
         const streaming = input.action.streaming;
-        if (!this.agentModelCatalogService) throw new Error('Agent model catalog service is not available');
-        const resolvedAgent = await this.agentModelCatalogService.resolveExecution(config, {
+        const resolvedAgent = resolveAgentExecution(config, {
             ...(input.runInput.agent ? { agent: input.runInput.agent } : (input.action.agent ? { agent: input.action.agent } : {})),
             ...(input.runInput.model ? { model: input.runInput.model } : (input.action.model ? { model: input.action.model } : {})),
             ...(permissionMode ? { permissionMode } : {}),
             ...(thinkingLevel ? { thinkingLevel } : {}),
             ...(speedMode !== undefined && speedMode !== null ? { speedMode } : {}),
-        }, streaming, input.project.rootPath);
+        }, streaming);
         const sourceConversation = input.runInput.continueFrom
             ? await this.localGitService.loadAgentConversation(
                 input.primaryProject,
@@ -167,11 +166,14 @@ class ActionAgentExecutor {
             || conversation.actionId !== input.action.id) throw new Error('Compact conversation identity or ownership changed');
         const providerSession = conversation.providerSessions.find(({ agent }) => agent === input.runInput.agent);
         if (!providerSession?.conversationId) throw new Error('Missing provider session for compact');
-        const resolvedAgent = resolveAgentCommand(this.agentConfigProvider(), { agent: providerSession.agent }, true);
+        const resolvedAgent = resolveAgentConfiguration(this.agentConfigProvider(), { agent: providerSession.agent });
+        const command = buildAgentStreamingCommand(
+            resolvedAgent.profile, resolvedAgent.model, resolvedAgent.thinkingLevel, resolvedAgent.permissionMode,
+        );
         const request = {
             actionId: input.action.id, actionRunId: input.runId, activityOrigin: input.activityOrigin,
             activityProject: input.primaryProject, agent: resolvedAgent.agent,
-            command: executionCommand(resolvedAgent, providerSession, true), compactOnly: true, conversation,
+            command: executionCommand({ ...resolvedAgent, command }, providerSession, true), compactOnly: true, conversation,
             projectFolder: input.projectFolder, providerConversationId: providerSession.conversationId,
             reference: input.runInput.continueFrom, releasesFolder: input.releasesFolder, streaming: true, title: conversation.title,
         };

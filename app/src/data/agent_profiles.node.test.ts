@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { buildResumeAgentCommand, migrateAgentProfiles, validateAgentProfiles, validateAgentSelection } from './agent_profiles'
 
 describe('agent profile validation', () => {
-    it('defers builtin model membership to runtime discovery while custom profiles retain their configured list', () => {
+    it('accepts unlisted models for builtin and custom agents', () => {
         expect(() => validateAgentSelection([], { agent: 'codex', model: 'new-provider-model', thinkingLevel: 'medium' }, 'test'))
             .not.toThrow();
         expect(() => validateAgentSelection([], { agent: 'claude', model: 'new-claude-alias', thinkingLevel: 'none' }, 'test'))
             .not.toThrow();
         const custom = { command: ['custom'], models: ['known-model'], defaultThinkingLevel: 'none' as const, name: 'custom' };
         expect(() => validateAgentSelection([custom], { agent: 'custom', model: 'unknown-model', thinkingLevel: 'none' }, 'test'))
-            .toThrow('Unknown model');
+            .not.toThrow();
     })
 
     it('accepts resume command templates and drops legacy session patterns', () => {
@@ -26,12 +26,11 @@ describe('agent profile validation', () => {
         expect(buildResumeAgentCommand(profile, 'session-1')).toEqual(['agent', 'resume', 'session-1'])
     })
 
-    it('rejects missing, empty, duplicate, and malformed model lists', () => {
-        expect(() => validateAgentProfiles([{ command: ['agent'], defaultThinkingLevel: 'none', name: 'missing' }])).toThrow('models')
-        expect(() => validateAgentProfiles([{ command: ['agent'], defaultThinkingLevel: 'none', models: [], name: 'empty' }])).toThrow('models')
-        expect(() => validateAgentProfiles([{ command: ['agent'], defaultThinkingLevel: 'none', models: ['same', 'same'], name: 'duplicate' }])).toThrow('Duplicate')
-        expect(() => validateAgentProfiles([{ command: ['agent'], defaultThinkingLevel: 'none', models: [' model-a'], name: 'malformed' }])).toThrow('models')
-    })
+    it('allows profiles without configured model suggestions or with an unlisted default', () => {
+        const profile = { command: ['agent'], defaultThinkingLevel: 'none', name: 'custom', defaultModel: 'new-model' };
+        expect(validateAgentProfiles([profile])).toEqual([{ ...profile, models: [] }]);
+        expect(validateAgentProfiles([{ ...profile, models: ['old-model'] }])[0].defaultModel).toBe('new-model');
+    });
 
     it('requires a valid default thinking level', () => {
         expect(() => validateAgentProfiles([{ command: ['agent'], models: ['model-a'], name: 'missing' }])).toThrow('defaultThinkingLevel')

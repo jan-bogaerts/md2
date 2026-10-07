@@ -244,17 +244,32 @@ function backendCardWatcher(localGitService) {
 }
 
 describe('createLocalBridgeDispatch', () => {
-    it('discovers catalogs for a draft client in the requested checkout across both bridge surfaces', async () => {
+    it('reads a global catalog across both bridge surfaces', async () => {
         const { dispatch, agentModelCatalogService } = createDispatch();
         const profile = { name: 'codex', command: ['/draft/client'], models: ['gpt-6.1-sol'] };
-        const project = { branch: 'topic', id: '/worktree', rootPath: '/worktree' };
-        const request = { agent: 'codex', profile, project, refresh: true };
+        const request = { agent: 'codex', profile, refresh: true };
 
         await dispatch.dataBridge.loadAgentModelCatalog(request);
         await dispatch.actionBridge.loadAgentModelCatalog(request);
 
-        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(1, profile, '/worktree', true);
-        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(2, profile, '/worktree', true);
+        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(1, profile, true);
+        expect(agentModelCatalogService.load).toHaveBeenNthCalledWith(2, profile, true);
+    });
+
+    it('shares refreshed model lists between subscribed bridge surfaces', () => {
+        const { dispatch, agentModelCatalogService } = createDispatch();
+        const local = vi.fn();
+        const remote = vi.fn();
+        const unsubscribe = dispatch.dataBridge.onAgentModelCatalogChanged(local);
+        dispatch.actionBridge.onAgentModelCatalogChanged(remote);
+        const catalog = { agent: 'codex', models: [{ id: 'shared-model', displayName: 'Shared', hidden: false }] };
+        agentModelCatalogService.publish(catalog);
+        expect(local).toHaveBeenCalledWith(catalog);
+        expect(remote).toHaveBeenCalledWith(catalog);
+        unsubscribe();
+        agentModelCatalogService.publish(catalog);
+        expect(local).toHaveBeenCalledOnce();
+        expect(remote).toHaveBeenCalledTimes(2);
     });
 
     it('rejects mismatched catalog profiles and malformed refresh requests before discovery', async () => {
@@ -1011,12 +1026,15 @@ describe('createLocalBridgeDispatch', () => {
         expect(actionRunnerService.start).toHaveBeenCalledWith(request, { interactive: false });
     });
 
-    it('owns search-agent command and prompt construction in Electron', async () => {
-        const { agentRunnerService, dispatch } = createDispatch();
+    it('owns search-agent command and prompt construction without reading models', async () => {
+        const { agentModelCatalogService, agentRunnerService, dispatch } = createDispatch();
+        agentModelCatalogService.load.mockRejectedValue(new Error('Model catalog unavailable'));
         const project = { branch: 'main', id: 'local', rootPath: 'C:/repo' };
         await dispatch.dataBridge.loadProject(project, 'design');
 
         await dispatch.actionBridge.runSearchRegexpAgent('find beta cards', vi.fn());
+
+        expect(agentModelCatalogService.load).not.toHaveBeenCalled();
 
         expect(agentRunnerService.run).toHaveBeenCalledWith(project, expect.objectContaining({
             activityOrigin: { kind: 'project' },

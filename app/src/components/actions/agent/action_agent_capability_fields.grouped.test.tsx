@@ -85,7 +85,7 @@ describe('ActionAgentCapabilityFields', () => {
 
         expect(screen.getByLabelText('Model')).toHaveTextContent('stored-model')
         expect(screen.getByLabelText('Thinking level')).toHaveTextContent('high')
-        expect(screen.getByText('Loading models…')).toBeInTheDocument()
+        expect(screen.getByLabelText('Model')).not.toHaveAttribute('aria-disabled', 'true')
 
         const switchedDefinition = { ...definition, agent: 'claude', model: 'removed-model', thinkingLevel: 'max' }
         rendered.rerender(
@@ -98,23 +98,25 @@ describe('ActionAgentCapabilityFields', () => {
         expect(screen.getByLabelText('Thinking level')).toHaveTextContent('max')
     })
 
-    it('shows empty capability results as field errors', async () => {
+    it('keeps model, reasoning and Fast selections usable when discovery fails', async () => {
+        const service = new AgentCapabilitiesService(provider({ getModelCatalog: vi.fn(async () => { throw new Error('Discovery failed'); }) }));
+        renderFields(service, { ...definition, speedMode: 'fast' });
+        await waitFor(() => expect(screen.getByText('Discovery failed')).toBeInTheDocument());
+        expect(screen.getByLabelText('Model')).toHaveTextContent('stored-model');
+        expect(screen.getByLabelText('Model')).not.toHaveAttribute('aria-disabled', 'true');
+        expect(screen.getByLabelText('Thinking level')).toHaveTextContent('high');
+        fireEvent.mouseDown(screen.getByLabelText('Speed'));
+        expect(within(screen.getByRole('listbox')).getByRole('option', { name: 'Fast' })).not.toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('allows an empty model picker without invalidating saved settings', async () => {
         const capabilities = provider({ getModelCatalog: vi.fn(async (profile) => agentCatalogFixture(profile, [])) });
         const service = new AgentCapabilitiesService(capabilities);
-        renderFields(service, { ...definition, model: undefined, thinkingLevel: undefined })
-
-        await waitFor(() => expect(screen.getByText('Model catalog is empty in agent model catalog')).toBeInTheDocument())
-        expect(screen.getByLabelText('Model')).toHaveAttribute('aria-invalid', 'true')
-        expect(screen.getByLabelText('Model')).toHaveAttribute('aria-disabled', 'true')
-    })
-
-    it('marks removed model and thinking-level selections unavailable', async () => {
-        const service = new AgentCapabilitiesService(provider())
-        renderFields(service, { ...definition, thinkingLevel: 'extreme' })
-
-        await waitFor(() => expect(screen.getByLabelText('Model')).toHaveTextContent('stored-model — unavailable'))
-        expect(screen.getByLabelText('Thinking level')).toHaveTextContent('extreme — unavailable')
-    })
+        renderFields(service);
+        await waitFor(() => expect(service.getCatalogSnapshot('codex').catalog?.models).toEqual([]));
+        expect(screen.getByLabelText('Model')).toHaveTextContent('stored-model');
+        expect(screen.getByLabelText('Model')).not.toHaveAttribute('aria-invalid', 'true');
+    });
 
     it('restores profile defaults when agent changes without remembered settings', async () => {
         const service = new AgentCapabilitiesService(provider())

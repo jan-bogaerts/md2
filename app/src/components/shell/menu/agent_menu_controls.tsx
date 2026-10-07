@@ -4,7 +4,6 @@ import type { SelectChangeEvent } from '@mui/material'
 import { useEffect } from 'react'
 import {
     findAgentProfile,
-    defaultModelForProfile,
     mergeAgentProfiles,
     PERMISSION_MODE_OPTIONS,
     supportsPermissionMode,
@@ -30,10 +29,7 @@ import { writeDesktopConfigToBridge } from '../../../services/config/config_pers
 import { dialogService } from '../../../services/dialog_service'
 import { useConfigValue, useHasDesktopConfig } from '../../hooks/use_config_value'
 import { useAgentModelCatalog } from '../../hooks/use_agent_model_catalog';
-import { useProjectReference } from '../../hooks/use_project_reference';
-import { findCatalogModel, modelFastTier, modelThinkingLevels } from '../../../data/agent_model_catalog';
 import { agentModelOptions } from '../../../data/agent_model_options';
-import { agentCatalogSelectionError } from '../../../data/agent_catalog_selection';
 import { NO_DRAG_REGION } from '../drag_region'
 import { MenuSelect } from './menu_select'
 import { Section } from './section'
@@ -65,20 +61,11 @@ export function AgentMenuControls() {
     const selectedPermissionMode = agentSelection.permissionMode
     const desktopAvailable = useHasDesktopConfig()
     const selectedModel = activeAgentSettings?.model ?? ''
-    const project = useProjectReference();
-    const modelCatalog = useAgentModelCatalog(selectedProfile, project);
+    const modelCatalog = useAgentModelCatalog(selectedProfile);
     const selectedModels = agentModelOptions(modelCatalog.catalog, selectedModel);
-    const effectiveModel = selectedModel || (selectedProfile ? defaultModelForProfile(selectedProfile) : '');
-    const advertisedModel = modelCatalog.catalog ? findCatalogModel(modelCatalog.catalog, effectiveModel) : null;
-    const availableThinkingLevels = modelThinkingLevels(selectedAgent, advertisedModel);
     const selectedSpeedMode = activeAgentSettings?.speedMode ?? 'default';
-    const fastAvailable = !!modelCatalog.catalog && !modelCatalog.stale && !modelCatalog.error
-        && !!modelFastTier(modelCatalog.catalog, advertisedModel);
-    const speedSupported = selectedAgent === 'codex' && modelCatalog.catalog?.provider === 'openai';
     const selectionError = activeAgentSettings
         ? desktopSelectionError(agentSelection, agentProfiles)
-            ?? modelCatalog.error
-            ?? agentCatalogSelectionError(modelCatalog.catalog, { agent: selectedAgent, ...activeAgentSettings, model: effectiveModel })
         : null;
 
     useEffect(() => {
@@ -127,7 +114,7 @@ export function AgentMenuControls() {
                 {agentProfiles.map((profile) => <MenuItem key={profile.name} value={profile.name}>{profile.name}</MenuItem>)}
             </MenuSelect>
             <MenuSelect
-                disabled={!desktopAvailable || modelCatalog.loading}
+                disabled={!desktopAvailable}
                 errorMessage={selectionError}
                 label="Default model"
                 minWidth={150}
@@ -135,15 +122,15 @@ export function AgentMenuControls() {
                 value={selectedModel}
             >
                 {!selectedModel ? <MenuItem value="">Profile default</MenuItem> : null}
-                {selectedModels.map(({ available, displayName, id }) => (
-                    <MenuItem disabled={!available || modelCatalog.stale} key={id} value={id}>
-                        {available ? displayName : `${displayName} — unavailable`}
+                {selectedModels.map(({ displayName, id }) => (
+                    <MenuItem key={id} value={id}>
+                        {displayName}
                     </MenuItem>
                 ))}
             </MenuSelect>
             <Tooltip title={modelCatalog.error ?? (modelCatalog.loading ? 'Loading models' : 'Refresh models')}>
                 <span style={NO_DRAG_REGION}>
-                    <IconButton aria-label="Refresh models" disabled={!desktopAvailable || modelCatalog.loading}
+                    <IconButton aria-label="Refresh models" disabled={!desktopAvailable}
                         onClick={modelCatalog.refresh} size="small"><Refresh fontSize="small" /></IconButton>
                 </span>
             </Tooltip>
@@ -156,8 +143,7 @@ export function AgentMenuControls() {
                 value={selectedThinkingLevel}
             >
                 {THINKING_LEVELS.map((level) => {
-                    const available = availableThinkingLevels.includes(level)
-                        && !!selectedProfile && supportsThinkingLevel(selectedProfile, level);
+                    const available = !!selectedProfile && supportsThinkingLevel(selectedProfile, level);
 
                     return <MenuItem disabled={!available} key={level} value={level}>{level === selectedThinkingLevel && !available ? `${level} — unavailable` : level}</MenuItem>
                 })}
@@ -165,11 +151,9 @@ export function AgentMenuControls() {
             {selectedAgent === 'codex' ? (
                 <MenuSelect disabled={!desktopAvailable} errorMessage={selectionError} label="Default speed"
                     minWidth={140} onChange={handleSpeedModeChange} value={selectedSpeedMode}>
-                    {SPEED_MODE_OPTIONS.filter(({ value }) => value !== 'fast' || fastAvailable || selectedSpeedMode === 'fast')
-                        .map(({ label, value }) => (
-                            <MenuItem disabled={value !== 'default' && (!speedSupported || (value === 'fast' && !fastAvailable))}
-                                key={value} value={value}>{label}</MenuItem>
-                        ))}
+                    {SPEED_MODE_OPTIONS.map(({ label, value }) => (
+                        <MenuItem key={value} value={value}>{label}</MenuItem>
+                    ))}
                 </MenuSelect>
             ) : null}
             {selectedProfile && supportsPermissionMode(selectedProfile) ? (

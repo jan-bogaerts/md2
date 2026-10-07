@@ -32,7 +32,7 @@ export const {
     validateThinkingLevel,
 } = agentProfiles;
 
-export function resolveAgentCommand(config, selection = {}, streaming = false) {
+export function resolveAgentConfiguration(config, selection = {}) {
     const profiles = config.agentProfiles ?? [];
     if (!config.agentSelection) throw new Error('Missing desktop agent selection');
     const configuredSelection = resolveAgentSelectionState(config.agentSelection, profiles);
@@ -56,14 +56,8 @@ export function resolveAgentCommand(config, selection = {}, streaming = false) {
         ...(speedMode !== undefined ? { speedMode } : {}),
     }, 'desktop config');
 
-    const searchEnabled = config.codexSearchEnabled ?? true;
-
-    const command = streaming
-        ? buildAgentStreamingCommand(profile, model, thinkingLevel, permissionMode)
-        : buildAgentExecutionCommand(profile, model, thinkingLevel, searchEnabled, permissionMode);
-
     return {
-        agent, command, model, ...(permissionMode !== undefined ? { permissionMode } : {}), profile, thinkingLevel,
+        agent, model, ...(permissionMode !== undefined ? { permissionMode } : {}), profile, thinkingLevel,
         ...(speedMode !== undefined ? { speedMode } : {}),
     };
 }

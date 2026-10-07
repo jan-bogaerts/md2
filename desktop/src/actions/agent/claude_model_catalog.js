@@ -1,8 +1,5 @@
 function claudeModel(model) {
     if (!model || typeof model !== 'object') throw new Error('Claude returned a malformed model catalog');
-    const reasoningEfforts = model.supportedEffortLevels === undefined
-        ? model.supportsEffort === false ? [] : null
-        : model.supportedEffortLevels;
 
     return {
         id: model.value,
@@ -10,8 +7,6 @@ function claudeModel(model) {
         ...(typeof model.description === 'string' ? { description: model.description } : {}),
         ...(model.resolvedModel !== undefined ? { resolvedModel: model.resolvedModel } : {}),
         hidden: false,
-        reasoningEfforts,
-        serviceTiers: [],
     };
 }
 
@@ -20,7 +15,7 @@ async function readClaudeModelCatalog(probe) {
     const response = await probe.request('initialize', { hooks: null });
     if (!Array.isArray(response.models)) throw new Error('Claude does not expose a model catalog; check its installed version');
 
-    return { models: response.models.map(claudeModel), provider: 'claude' };
+    return { models: response.models.map(claudeModel) };
 }
 
 const CLAUDE_CATALOG_ARGUMENTS = [

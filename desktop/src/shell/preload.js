@@ -282,12 +282,14 @@ if (!isAllowedOrigin()) {
     const dataBridge = {
         ...createBridge(DATA_METHODS),
         onMergeConflictSessionChanged: (callback) => subscribeBridge('onMergeConflictSessionChanged', [], callback),
+        onAgentModelCatalogChanged: (callback) => subscribeBridge('onAgentModelCatalogChanged', [], callback),
         onWorktreesChanged: (callback) => subscribeBridge('onWorktreesChanged', [], callback),
         watchProject: (project, callback) => subscribeBridge('watchProject', [project], callback),
     };
     const actionBridge = {
         ...createBridge(ACTION_METHODS),
         onActionConversationViewed: (callback) => subscribeBridge('onActionConversationViewed', [], callback),
+        onAgentModelCatalogChanged: (callback) => subscribeBridge('onAgentModelCatalogChanged', [], callback),
         onActionRun: (callback) => subscribeBridge('onActionRun', [], callback),
     };
     const codexRuntimeBridge = {

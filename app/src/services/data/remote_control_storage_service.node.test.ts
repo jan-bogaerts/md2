@@ -68,6 +68,10 @@ interface PersistentSubscriptionCase {
 
 const persistentSubscriptionCases: PersistentSubscriptionCase[] = [
     {
+        method: 'onAgentModelCatalogChanged', name: 'agent-model-catalog',
+        subscribe: (service) => service.onAgentModelCatalogChanged(() => undefined),
+    },
+    {
         method: 'onMergeConflictSessionChanged',
         name: 'merge-conflict',
         subscribe: (service) => service.onMergeConflictSessionChanged(() => undefined),
@@ -560,6 +564,31 @@ describe('RemoteControlStorageService', () => {
         socket.receive({ id: request.id, result: null })
 
         await expect(pull).resolves.toBeUndefined()
+    })
+
+    it('delivers initial and later pushed shared model lists and unsubscribes', async () => {
+        installWebSocket()
+        const service = createService()
+        const callback = vi.fn()
+        const unsubscribe = service.onAgentModelCatalogChanged(callback)
+        const socket = lastSocket()
+        const catalog = { agent: 'codex', models: [{ id: 'shared-model', displayName: 'Shared model', hidden: false }] }
+
+        socket.open()
+        await flushPromises()
+        const request = JSON.parse(socket.sent[0]) as { id: string, method: string }
+        expect(request.method).toBe('onAgentModelCatalogChanged')
+        socket.receive({ event: 'agentModelCatalog', payload: { requestId: request.id, catalog, subscriptionId: 'catalog-1' } })
+        socket.receive({ id: request.id, result: { subscriptionId: 'catalog-1' } })
+        await flushPromises()
+        socket.receive({ event: 'agentModelCatalog', payload: { requestId: request.id, catalog, subscriptionId: 'catalog-1' } })
+
+        expect(callback).toHaveBeenCalledTimes(2)
+        expect(callback).toHaveBeenLastCalledWith(catalog)
+        unsubscribe()
+        await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
+        const unsubscribeRequest = JSON.parse(socket.sent[1]) as { method: string, params: unknown[] }
+        expect(unsubscribeRequest).toEqual(expect.objectContaining({ method: 'unsubscribe', params: ['catalog-1'] }))
     })
 
     it('delivers initial and later pushed worktree state and unsubscribes', async () => {

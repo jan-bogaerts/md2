@@ -10,6 +10,12 @@ import { configService } from './services/config/config_service'
 import { dataService } from './services/data/data_service'
 import { createDeferred } from './services/test_support/data_service_test_support'
 
+vi.mock('@mui/icons-material', async () => {
+    const [redo, undo] = await Promise.all([import('@mui/icons-material/Redo'), import('@mui/icons-material/Undo')]);
+
+    return { Redo: redo.default, Undo: undo.default };
+});
+
 vi.mock('./auth/use_github_auth', () => ({
     useGithubAuth: () => ({
         accessToken: null,
@@ -27,6 +33,7 @@ function createStartupService(overrides: Partial<ApplicationStartupDependencies>
     const dependencies: ApplicationStartupDependencies = {
         getGithubAccessToken: vi.fn(() => null),
         initializeAgentCapabilities: vi.fn(async () => {}),
+        refreshStartupModelCatalogs: vi.fn(async () => {}),
         initializeServices: vi.fn(),
         restoreGithubSession: vi.fn(async () => {}),
         restoreLastProject: vi.fn(async () => null),

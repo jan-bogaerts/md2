@@ -2,8 +2,9 @@ import { createRequire } from 'node:module';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
+const fs = require('node:fs/promises');
 const { AgentModelCatalogService } = require('./agent_model_catalog_service');
-const { BUILTIN_AGENT_PROFILES, buildResumeAgentCommand } = require('./agent_profiles.mjs');
+const { BUILTIN_AGENT_PROFILES } = require('./agent_profiles.mjs');
 
 function codexModel(model = 'gpt-6.1-sol') {
     return {
@@ -21,8 +22,6 @@ function serviceFixture(overrides = {}) {
     const probes = [];
     const request = vi.fn(async (method) => {
         if (method === 'model/list') return { data: [codexModel()], nextCursor: null };
-        if (method === 'config/read') return { config: { model_provider: 'openai' } };
-        if (method === 'configRequirements/read') return { requirements: null };
         return {};
     });
     const createProbe = vi.fn(() => {
@@ -32,56 +31,56 @@ function serviceFixture(overrides = {}) {
     });
     const service = new AgentModelCatalogService({
         createProbe, executableResolver: { find: vi.fn(async () => '/clients/codex') },
-        fingerprint: vi.fn(async () => 'client-fingerprint'), settingsFingerprint: vi.fn(async () => 'settings-fingerprint'),
-        environment: {}, ...overrides,
+        environment: {}, workingDirectory: '/global', ...overrides,
     });
 
     return { service, createProbe, probes, request };
 }
 
-function config(speedMode) {
-    return {
-        agentProfiles: [codexProfile()],
-        agentSelection: {
-            activeAgent: 'codex', permissionMode: 'ask-for-approval',
-            settingsByAgent: { codex: { model: 'gpt-6.1-sol', thinkingLevel: 'max', speedMode } },
-        },
-    };
-}
-
 describe('host model catalogs', () => {
     it('discovers a new execution ID independently of the old profile list', async () => {
         const { service, probes } = serviceFixture();
-        const catalog = await service.load(codexProfile(), '/project');
+        const catalog = await service.load(codexProfile(), true);
 
         expect(catalog.models[0].id).toBe('gpt-6.1-sol');
-        expect(catalog.models[0].serviceTiers[0].id).toBe('priority');
         expect(probes[0].request.mock.calls.map(([method]) => method))
-            .toEqual(['initialize', 'model/list', 'config/read', 'configRequirements/read']);
+            .toEqual(['initialize', 'model/list']);
         expect(probes[0].close).toHaveBeenCalledOnce();
     });
 
-    it('deduplicates concurrent reads and refreshes only the requested context', async () => {
-        const { service, createProbe } = serviceFixture();
-        await Promise.all([service.load(codexProfile(), '/project'), service.load(codexProfile(), '/project')]);
+    it('shares one list per agent and deduplicates concurrent refreshes', async () => {
+        const { service, createProbe, probes } = serviceFixture();
+        const [first, duplicate] = await Promise.all([service.load(codexProfile(), true), service.load(codexProfile(), true)]);
+        expect(duplicate).toBe(first);
         expect(createProbe).toHaveBeenCalledOnce();
-        await service.load(codexProfile(), '/worktree');
-        await service.load(codexProfile(), '/project');
-        expect(createProbe).toHaveBeenCalledTimes(2);
-        await service.load(codexProfile(), '/project', true);
-        expect(createProbe).toHaveBeenCalledTimes(3);
+        const differentProfile = { ...codexProfile(), command: ['/another/codex'] };
+        expect(await service.load(differentProfile)).toBe(first);
+        expect(probes[0].start).toHaveBeenCalledWith('/clients/codex', expect.any(Array), { cwd: '/global', env: expect.any(Object) });
     });
 
-    it('invalidates cached catalogs after expiry and changed executable settings', async () => {
-        let observedAt = 0;
-        let fingerprint = 'before';
-        const { service, createProbe } = serviceFixture({ now: () => observedAt, fingerprint: async () => fingerprint });
-        await service.load(codexProfile(), '/project');
-        observedAt = 24 * 60 * 60 * 1000;
-        await service.load(codexProfile(), '/project');
-        fingerprint = 'after';
-        await service.load(codexProfile(), '/project');
-        expect(createProbe).toHaveBeenCalledTimes(3);
+    it('announces refreshed lists to all subscribers and retains the list if refresh fails', async () => {
+        const { service, request } = serviceFixture();
+        const listener = vi.fn();
+        service.addEventListener('catalog', listener);
+        const catalog = await service.load(codexProfile(), true);
+        expect(listener.mock.calls[0][0].detail).toBe(catalog);
+        request.mockRejectedValueOnce(new Error('Discovery failed'));
+        await expect(service.load(codexProfile(), true)).rejects.toThrow('Discovery failed');
+        expect(await service.load(codexProfile())).toBe(catalog);
+    });
+
+    it('reads discovered models without checking file metadata', async () => {
+        const readFileMetadata = vi.spyOn(fs, 'stat').mockRejectedValue(new Error('File metadata is unavailable'));
+        const { service, createProbe } = serviceFixture();
+        try {
+            const catalog = await service.load(codexProfile(), true);
+            expect(await service.load(codexProfile())).toBe(catalog);
+
+            expect(readFileMetadata).not.toHaveBeenCalled();
+            expect(createProbe).toHaveBeenCalledOnce();
+        } finally {
+            readFileMetadata.mockRestore();
+        }
     });
 
     it('reads every page and rejects repeated cursors while cleaning up', async () => {
@@ -92,15 +91,14 @@ describe('host model catalogs', () => {
             }
             return {};
         });
-        await expect(service.load(codexProfile(), '/project')).rejects.toThrow('repeated');
+        await expect(service.load(codexProfile(), true)).rejects.toThrow('repeated');
         expect(probes[0].close).toHaveBeenCalledOnce();
     });
 
     it('keeps configured custom profiles independent of provider processes', async () => {
         const { service, createProbe } = serviceFixture();
         const profile = { name: 'custom', command: ['custom'], models: ['manual-id'], defaultThinkingLevel: 'none' };
-        const catalog = await service.load(profile, '/project');
-        expect(catalog.source).toBe('configured');
+        const catalog = await service.load(profile);
         expect(catalog.models[0].id).toBe('manual-id');
         expect(createProbe).not.toHaveBeenCalled();
     });
@@ -112,55 +110,8 @@ describe('host model catalogs', () => {
             account: { email: 'private@example.com' },
         });
         const profile = BUILTIN_AGENT_PROFILES.find(({ name }) => name === 'claude');
-        const catalog = await service.load(profile, '/project');
-        expect(catalog.models[0]).toMatchObject({ id: 'opus', resolvedModel: 'claude-new-opus', serviceTiers: [] });
+        const catalog = await service.load(profile, true);
+        expect(catalog.models[0]).toMatchObject({ id: 'opus', resolvedModel: 'claude-new-opus' });
         expect(catalog).not.toHaveProperty('account');
-    });
-});
-
-describe('catalog-validated execution', () => {
-    it('applies verified Fast tiers and retains them during one-shot resume', async () => {
-        const { service } = serviceFixture();
-        const resolved = await service.resolveExecution(config('fast'), {}, false, '/project');
-        expect(resolved.command).toContain('service_tier="priority"');
-        expect(resolved.command).toContain('features.fast_mode=true');
-        expect(resolved.executionSettings).toEqual({ model: 'gpt-6.1-sol', effort: 'xhigh', serviceTier: 'priority' });
-        const resumed = buildResumeAgentCommand(resolved.profile, 'saved-session', resolved.command);
-        expect(resumed).toContain('service_tier="priority"');
-        expect(resumed.slice(-4)).toEqual(['exec', 'resume', '--json', 'saved-session']);
-    });
-
-    it('explicitly clears Fast for Standard and leaves provider default unoverridden', async () => {
-        const { service } = serviceFixture();
-        const standard = await service.resolveExecution(config('standard'), {}, true, '/project');
-        expect(standard.executionSettings.serviceTier).toBe('default');
-        expect(standard.command).toContain('service_tier="default"');
-        const inherited = await service.resolveExecution(config('default'), {}, true, '/project');
-        expect(inherited.executionSettings).not.toHaveProperty('serviceTier');
-        expect(inherited.command.some((value) => value.startsWith('service_tier='))).toBe(false);
-    });
-
-    it('blocks unadvertised models, unsupported effort, and non-OpenAI Fast before execution', async () => {
-        const { service, request } = serviceFixture();
-        await expect(service.resolveExecution(config('default'), { model: 'unadvertised' }, true, '/project')).rejects.toThrow('not advertised');
-        await expect(service.resolveExecution(config('default'), { thinkingLevel: 'high' }, true, '/project')).rejects.toThrow('reasoning level');
-        request.mockImplementation(async (method) => {
-            if (method === 'model/list') return { data: [codexModel()], nextCursor: null };
-            if (method === 'configRequirements/read') return { requirements: null };
-            return method === 'config/read' ? { config: { model_provider: 'other-provider' } } : {};
-        });
-        await service.load(codexProfile(), '/project', true);
-        await expect(service.resolveExecution(config('fast'), {}, true, '/project')).rejects.toThrow('only by the OpenAI');
-    });
-
-    it('blocks Fast when managed feature requirements disable it', async () => {
-        const { service, request } = serviceFixture();
-        request.mockImplementation(async (method) => {
-            if (method === 'model/list') return { data: [codexModel()], nextCursor: null };
-            if (method === 'config/read') return { config: { model_provider: 'openai' } };
-            if (method === 'configRequirements/read') return { requirements: { featureRequirements: { fast_mode: false } } };
-            return {};
-        });
-        await expect(service.resolveExecution(config('fast'), {}, true, '/project')).rejects.toThrow('Fast mode is not advertised');
     });
 });

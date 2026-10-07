@@ -196,6 +196,7 @@ export interface ElectronActionBridge {
     loadCardActivity?(request: CardActivityRequest): Promise<CardActivityFile>
     loadAgentAvailability?(): Promise<Record<string, AgentAvailability>>
     loadAgentModelCatalog?(request: AgentModelCatalogRequest): Promise<AgentModelCatalog>;
+    onAgentModelCatalogChanged?(callback: (catalog: AgentModelCatalog) => void): () => void;
     onActionConversationViewed?(callback: (event: ActionConversationViewedEvent) => void): () => void
     onActionRun(callback: (event: ActionRunEvent) => void): () => void
     openInEditor(request: OpenInEditorRequest): Promise<void>

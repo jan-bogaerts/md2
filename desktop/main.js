@@ -70,6 +70,7 @@ const { ProjectStatsWorkerService } = require('./src/stats/project_stats_worker_
 const QUIT_WATCHDOG_TIMEOUT_MS = 10000;
 const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);
 const SUBSCRIPTION_METHODS = new Set([
+    'onAgentModelCatalogChanged',
     'onActionConversationViewed',
     'onActionRun',
     'onClaudeRateLimits',
@@ -106,7 +107,6 @@ const actionWorktreeRunService = new ActionWorktreeRunService({
     worktreeService,
 });
 const actionRunnerService = new ActionRunnerService({
-    agentModelCatalogService,
     actionWorktreeRunService,
     agentConfigProvider: () => readDesktopConfig(store),
     agentRunnerService,

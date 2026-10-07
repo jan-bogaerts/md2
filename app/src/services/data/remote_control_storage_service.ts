@@ -143,6 +143,12 @@ interface ClaudeRateLimitsPayload {
     subscriptionId: string
 }
 
+interface CatalogChangedPayload {
+    requestId: string
+    catalog: AgentModelCatalog
+    subscriptionId: string
+}
+
 interface WorktreesChangedPayload {
     requestId: string
     state: WorktreeState
@@ -236,6 +242,10 @@ export class RemoteControlStorageService implements
     private socket: WebSocket | null
     private readonly watchSubscriptions: Set<ProjectWatchSubscription>
     private watchCallbacks: Map<string, ProjectWatchSubscription>
+    private readonly catalogEvents = new EventTarget()
+    private catalogListenerCount = 0
+    private catalogRequestId: string | null = null
+    private catalogServerSubscriptionId: string | null = null
     private readonly worktreeEvents: EventTarget
     private worktreeListenerCount: number
     private worktreeRequestId: string | null
@@ -569,6 +579,30 @@ export class RemoteControlStorageService implements
 
             this.watchCallbacks.delete(serverSubscriptionId)
             this.unsubscribeBestEffort(serverSubscriptionId)
+        }
+    }
+
+    onAgentModelCatalogChanged(callback: (catalog: AgentModelCatalog) => void): () => void {
+        const listener: EventListener = (event) => callback((event as CustomEvent<AgentModelCatalog>).detail)
+        let active = true
+        this.catalogEvents.addEventListener('agentModelCatalog', listener)
+        this.catalogListenerCount += 1
+        void this.subscribeCatalogChanged().catch((error) => console.error('Model list subscription failed', error))
+
+        return () => {
+            if (!active) return
+
+            active = false
+            this.catalogEvents.removeEventListener('agentModelCatalog', listener)
+            this.catalogListenerCount -= 1
+            if (this.catalogListenerCount > 0) return
+
+            const subscriptionId = this.catalogServerSubscriptionId
+            this.catalogRequestId = null
+            this.catalogServerSubscriptionId = null
+            if (!subscriptionId) return
+
+            this.unsubscribeBestEffort(subscriptionId)
         }
     }
 
@@ -953,6 +987,7 @@ export class RemoteControlStorageService implements
                 void this.restoreMergeConflictSubscriptions()
                 void this.restoreProjectWatchSubscriptions()
                 void this.restoreWorktreeSubscription()
+                void this.subscribeCatalogChanged().catch((error) => console.error('Model list subscription failed', error))
             }
             const handleError = () => {
                 if (this.socket === socket) {
@@ -1002,6 +1037,10 @@ export class RemoteControlStorageService implements
     }
 
     private handleEvent(message: RemoteControlEvent) {
+        if (message.event === 'agentModelCatalog') {
+            this.handleCatalogChangedEvent(message.payload as CatalogChangedPayload)
+            return
+        }
         if (message.event === 'actionRun') {
             this.handleActionRunEvent(message.payload as ActionRunPayload)
             return
@@ -1226,6 +1265,29 @@ export class RemoteControlStorageService implements
         }
     }
 
+    private async subscribeCatalogChanged() {
+        if (this.catalogListenerCount === 0 || this.catalogRequestId || this.catalogServerSubscriptionId) return
+
+        const id = this.createRequestId()
+        this.catalogRequestId = id
+        try {
+            const result = await this.sendRequest<{ subscriptionId: string }>({
+                id,
+                method: 'onAgentModelCatalogChanged',
+                params: [],
+            })
+            if (this.catalogRequestId !== id || this.catalogListenerCount === 0) {
+                this.unsubscribeBestEffort(result.subscriptionId)
+                return
+            }
+
+            this.catalogRequestId = null
+            this.catalogServerSubscriptionId = result.subscriptionId
+        } finally {
+            if (this.catalogRequestId === id) this.catalogRequestId = null
+        }
+    }
+
     private async subscribeWorktreesChanged() {
         if (this.worktreeListenerCount === 0 || this.worktreeRequestId || this.worktreeServerSubscriptionId) return
 
@@ -1258,6 +1320,14 @@ export class RemoteControlStorageService implements
         }
 
         subscription?.onChange(payload.event)
+    }
+
+    private handleCatalogChangedEvent(payload: CatalogChangedPayload) {
+        const matchesRequest = payload.requestId === this.catalogRequestId
+        const matchesSubscription = payload.subscriptionId === this.catalogServerSubscriptionId
+        if (!matchesRequest && !matchesSubscription) return
+
+        this.catalogEvents.dispatchEvent(new CustomEvent('agentModelCatalog', { detail: payload.catalog }))
     }
 
     private handleWorktreesChangedEvent(payload: WorktreesChangedPayload) {
@@ -1323,6 +1393,8 @@ export class RemoteControlStorageService implements
         }
         this.worktreeRequestId = null
         this.worktreeServerSubscriptionId = null
+        this.catalogRequestId = null
+        this.catalogServerSubscriptionId = null
         this.connectPromise = null
         this.socket = null
     }
