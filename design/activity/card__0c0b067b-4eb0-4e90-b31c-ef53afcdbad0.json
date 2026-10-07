@@ -990,6 +990,14 @@
           "role": "assistant",
           "sequence": 70,
           "timestamp": "2026-10-07T13:51:52.764Z"
+        },
+        {
+          "content": "1. yes\n2. use same approach as for regular actions\n3. optional\n4. same as we do at the moment\n5. after failure, cancel, leave everything as-is\n\nthe sequence should use the exact same pattern as regular actions",
+          "id": "submission-f7e7fb29-b328-41c0-a629-a0472ba50e39",
+          "kind": "message",
+          "role": "user",
+          "sequence": 71,
+          "timestamp": "2026-10-07T14:10:37.120Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1004,14 +1012,14 @@
         }
       ],
       "startedAt": "2026-10-07T13:48:41.872Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 17383,
           "toolMs": 3702
         },
         "elapsedMs": 190892,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-07T14:10:37.120Z"
       },
       "title": "+",
       "usage": {
