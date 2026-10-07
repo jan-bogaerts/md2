@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "e5a9c51e-b832-48b9-9e71-e83cc4468433",
       "cardPath": "design/feature_descriptions/F_412_illegal_forced_switch_to_source_mode.md",
-      "completedAt": null,
+      "completedAt": "2026-10-07T11:36:20.252Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 87061
@@ -1214,7 +1214,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 88,
-          "timestamp": "2026-10-07T11:36:19.770Z"
+          "timestamp": "2026-10-07T11:36:20.252Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1224,19 +1224,19 @@
           "agent": "codex",
           "conversationId": "01a115d2-1e0d-7720-9355-3d8ff09df042",
           "createdAt": "2026-10-07T10:07:03.530Z",
-          "lastUsedAt": "2026-10-07T11:36:19.770Z",
+          "lastUsedAt": "2026-10-07T11:36:20.252Z",
           "synchronizedThroughMessageId": "agent-turn-723b3e9d-b133-4965-ae35-1fbf6e1dd5d1-turn-3-assistant-3"
         }
       ],
       "startedAt": "2026-10-07T10:04:13.455Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 19338,
           "toolMs": 5692
         },
-        "elapsedMs": 179872,
-        "runningStartedAt": "2026-10-07T11:33:47.991Z"
+        "elapsedMs": 332133,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
