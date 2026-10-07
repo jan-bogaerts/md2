@@ -5,10 +5,10 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "3a49a2cb-5483-4a08-ab90-d111b22586cd",
       "cardPath": "design/feature_descriptions/F_411_action_input_does_mysterious_things.md",
-      "completedAt": null,
+      "completedAt": "2026-10-07T10:03:16.941Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 200975
+        "usedTokens": 205702
       },
       "entries": [
         {
@@ -1575,6 +1575,91 @@
           "role": "user",
           "sequence": 121,
           "timestamp": "2026-10-07T10:02:15.752Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-event-122",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c71ed982cb9f6b0016ac618b8e52087d2a666c619235d5619",
+          "sequence": 122,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-07T10:02:32.395Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-event-123",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c71ed982cb9f6b0016ac618bf110c87d2ba3a8c5683090304",
+          "sequence": 123,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-07T10:02:38.609Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Understood: only the manual “Refresh models” action should launch discovery. Initial views and execution will read cached or configured values without starting discovery processes.\n\nI checked the shared call sites: popup controls, configuration, the agent menu, and the action editor should all use that behavior. Backend execution will keep its existing capability checks for now, but it will no longer discover models automatically.\n\n\n",
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-turn-7-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 124,
+          "timestamp": "2026-10-07T10:02:40.978Z"
+        },
+        {
+          "content": "update: C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\actions\\shared\\use_action_run_settings.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\hooks\\use_agent_model_catalog.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\services\\agents\\agent_capabilities_service.ts\nupdate: C:\\Users\\janbo\\Documents\\dev\\md2\\desktop\\src\\actions\\agent\\agent_model_catalog_service.js",
+          "deletions": 27,
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-event-125",
+          "insertions": 10,
+          "kind": "event",
+          "label": "File changes",
+          "providerItemId": "exec-004910bb-8a39-48b1-8a45-5cc1777226e0",
+          "sequence": 125,
+          "status": "completed",
+          "timestamp": "2026-10-07T10:02:57.218Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-event-126",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c71ed982cb9f6b0016ac618da70fc87d2a43ed265f35ae0c9",
+          "sequence": 126,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-07T10:03:05.941Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Got it: refresh once at startup, then only through “Refresh models.” I’ll adjust the initial loading path to follow that rule, with no recurring expiry or refresh.\n\n\n",
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-turn-7-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 127,
+          "timestamp": "2026-10-07T10:03:16.941Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content app/src/components/hooks/use_agent_capabilities.ts; rg -n 'agentCapabilitiesService.initialize|agentExecutableAvailability|agentModelCatalogService|activateProject|whenReady' desktop/main.js app/src -g '\"'!*.test.*'\"'; Get-Content app/src/data/project_storage_activation.ts -TotalCount 65; Get-Content desktop/main.js | Select-Object -Skip 280 -First 125; Get-Content app/src/services/agents/agent_capabilities_service.ts | Select-Object -Skip 98 -First 38; Get-Content app/src/services/data/remote_connection_service.ts -TotalCount 70\"",
+          "content": "import { useEffect, useSyncExternalStore } from 'react'\r\nimport {\r\n    agentCapabilitiesService,\r\n    type AgentCapabilitiesService,\r\n} from '../../services/agents/agent_capabilities_service'\r\n\r\nexport function useAgentCapabilities(service: AgentCapabilitiesService = agentCapabilitiesService) {\r\n    useEffect(() => { void service.initialize(); }, [service]);\r\n    return useSyncExternalStore(\r\n        (onStoreChange) => {\r\n            service.addEventListener('changed', onStoreChange)\r\n\r\n            return () => service.removeEventListener('changed', onStoreChange)\r\n        },\r\n        () => service.getSnapshot(),\r\n        () => service.getSnapshot(),\r\n    )\r\n}\r\ndesktop/main.js:87:const agentModelCatalogService = new AgentModelCatalogService({ executableResolver: agentExecutableResolver });\ndesktop/main.js:109:    agentModelCatalogService,\ndesktop/main.js:149:    agentModelCatalogService,\ndesktop/main.js:153:    agentExecutableAvailability: (profiles) => loadAgentExecutableAvailability(profiles, { resolver: agentExecutableResolver }),\ndesktop/main.js:391:        await agentModelCatalogService.stop();\ndesktop/main.js:402:app.whenReady().then(async () => {\napp/src\\services\\application_startup_service.ts:64:    initializeAgentCapabilities: () => agentCapabilitiesService.initialize(),\napp/src\\services\\project\\project_session_service.ts:225:        await activateProjectSession(storage, storageType, project)\napp/src\\services\\project\\project_session_service.ts:236:async function activateProjectSession(storage: StorageService, storageType: StorageType, project: ProjectReference) {\napp/src\\services\\project\\project_session_service.ts:499:            await activateProjectSession(storage, resolution.storageType, project)\nimport { agentCapabilitiesService } from '../services/agents/agent_capabilities_service'\r\nimport { codexRateLimitService } from '../services/agents/codex_rate_limit_service'\r\nimport { claudeRateLimitService } from '../services/agents/claude_rate_limit_service'\r\nimport { remoteConnectionService } from '../services/data/remote_connection_service'\r\nimport { RemoteControlStorageService } from '../services/data/remote_control_storage_service'\r\nimport { setDesktopConfigTransportOverride } from '../services/config/desktop_config_transport'\r\nimport type { StorageService } from './data_types'\r\nimport { setActionBridgeOverride } from './electron_action_bridge'\r\nimport { setCodexRuntimeBridgeOverride } from './electron_codex_runtime_bridge'\r\nimport { setClaudeRuntimeBridgeOverride } from './electron_claude_runtime_bridge'\r\nimport type { StorageType } from './project_session'\r\n\r\n/** Load host config, then wire action runs and await availability for the storage becoming active. */\r\nexport async function activateStorageService(storageType: StorageType, storage: StorageService) {\r\n    if (storageType !== 'remote') {\r\n        remoteConnectionService.disconnect()\r\n        setActionBridgeOverride(null)\r\n        setClaudeRuntimeBridgeOverride(null)\r\n        setCodexRuntimeBridgeOverride(null)\r\n        setDesktopConfigTransportOverride(null)\r\n        claudeRateLimitService.start()\r\n        codexRateLimitService.start()\r\n        // Availability may have been read before this bridge existed; re-read against it.\r\n        await agentCapabilitiesService.reload()\r\n\r\n        return storage\r\n    }\r\n\r\n    if (!(storage instanceof RemoteControlStorageService)) throw new Error('Remote storage must provide the action bridge')\r\n\r\n    return remoteConnectionService.connectExisting(storage)\r\n}\r\n    ipcMain.handle(REMARKABLE_TEST_CONNECTION_CHANNEL, (_event, settings) => remarkableService.testConnection(settings));\r\n    ipcMain.handle(REMARKABLE_LIST_IMAGE_FILES_CHANNEL, (_event, settings) => remarkableService.listImageFiles(settings));\r\n    ipcMain.handle(REMARKABLE_IMPORT_FILES_CHANNEL, (_event, request) => remarkableService.importFiles(request));\r\n}\r\n\r\nfunction registerSentryBridge() {\r\n    ipcMain.handle(SENTRY_REQUEST_CHANNEL, (_event, request) => sendSentryRequest(request));\r\n}\r\n\r\nfunction registerRemoteControlBridge() {\r\n    remoteC\n[5840 characters omitted]\n      const key = agentCatalogKey(profile, project);\r\n        const connection = this.getConnectionIdentity();\r\n        const previous = this.catalogs.get(key);\r\n        if (previous && previous.connection === connection && previous.pending) return previous.pending;\r\n        if (previous && previous.connection === connection && previous.snapshot.catalog && !previous.snapshot.stale && !refresh) {\r\n            return Promise.resolve();\r\n        }\r\n        if (!previous && this.catalogs.size >= MAX_CATALOG_CONTEXTS) this.evictOldestCatalog();\r\n        const catalog = previous && previous.connection === connection ? previous.snapshot.catalog : null;\r\n        const context: CatalogContext = {\r\n            connection,\r\n            pending: null,\r\n            snapshot: { catalog, error: null, loading: true, stale: !!catalog },\r\nimport type { RemoteControlConnectionSettings } from '../../data/remote_control_connection'\r\nimport { configureRemoteControlConnection, readRemoteControlConnection } from '../../data/remote_control_connection'\r\nimport { setActionBridgeOverride } from '../../data/electron_action_bridge'\r\nimport { setClaudeRuntimeBridgeOverride } from '../../data/electron_claude_runtime_bridge'\r\nimport { setCodexRuntimeBridgeOverride } from '../../data/electron_codex_runtime_bridge'\r\nimport { agentCapabilitiesService } from '../agents/agent_capabilities_service'\r\nimport { actionRunRegistry } from '../actions/action_run_registry'\r\nimport { claudeRateLimitService } from '../agents/claude_rate_limit_service'\r\nimport { codexRateLimitService } from '../agents/codex_rate_limit_service'\r\nimport { readDesktopConfigFromBridge } from '../config/config_persistence'\r\nimport { configService } from '../config/config_service'\r\nimport { setDesktopConfigTransportOverride } from '../config/desktop_config_transport'\r\nimport { register } from '../service_injector'\r\nimport {\r\n    isRemoteControlConnectionError,\r\n    RemoteControlConnectionError,\r\n    RemoteControlStorageService,\r\n} from './remote_control_storage_service'\r\n\r\nexport type RemoteConnectionStatus = 'connecting' | 'disconnected' | 'ready' | 'reconnecting'\r\n\r\nexport interface RemoteConnectionSnapshot {\r\n    endpoint: string | null\r\n    errorMessage: string | null\r\n    status: RemoteConnectionStatus\r\n}\r\n\r\nexport interface RemoteConnectionServiceDependencies {\r\n    activate(storage: RemoteControlStorageService, reconnecting: boolean): Promise<void>\r\n    clearActivation(): void\r\n    createStorage(): RemoteControlStorageService\r\n}\r\n\r\nconst INITIAL_RECONNECT_DELAY_MS = 1_000\r\nconst MAX_RECONNECT_DELAY_MS = 30_000\r\nconst INITIAL_SNAPSHOT: RemoteConnectionSnapshot = { endpoint: null, errorMessage: null, status: 'disconnected' }\r\n\r\nasync function activateRemoteStorage(storage: RemoteControlStorageService, reconnecting: boolean) {\r\n    try {\r\n        const desktopConfig = await storage.loadDesktopConfig()\r\n        configService.replaceDesktopConfig(desktopConfig)\r\n        setActionBridgeOverride(storage)\r\n        setClaudeRuntimeBridgeOverride(storage)\r\n        setCodexRuntimeBridgeOverride(storage)\r\n        setDesktopConfigTransportOverride(storage)\r\n        claudeRateLimitService.start()\r\n        codexRateLimitService.start()\r\n        actionRunRegistry.start()\r\n        if (reconnecting) await actionRunRegistry.recoverConnection()\r\n        await agentCapabilitiesService.reload()\r\n    } catch (error) {\r\n        if (isRemoteControlConnectionError(error)) throw error\r\n        const message = error instanceof Error ? error.message : 'Unknown remote desktop config error'\r\n        throw new Error(`Remote desktop config load failed: ${message}`, { cause: error })\r\n    }\r\n}\r\n\r\nfunction clearRemoteActivation() {\r\n    setActionBridgeOverride(null)\r\n    setClaudeRuntimeBridgeOverride(null)\r\n    setCodexRuntimeBridgeOverride(null)\r\n    setDesktopConfigTransportOverride(null)\r\n    if (!configService.isInitialized()) return\r\n\r\n    const desktopConfig = readDesktopConfigFromBridge()\r\n    if (desktopConfig) {\r\n        configService.replaceDesktopConfig(desktopConfig)\r\n\r\n        return\r\n    }\r\n",
+          "durationMs": 139,
+          "exitCode": 0,
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-event-128",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content app/src/components/hooks/use_agent_capabilities.ts; rg -n 'agentCapabilitiesService.initialize|agentExecutableAvailability|agentModelCatalogService|activateProject|whenReady' desktop/main.js app/src -g '\"'!*.test.*'\"'; Get-Content app/src/data/project_storage_activation.ts -TotalCount 65; Get-Content desktop/main.js | Select-Object -Skip 280 -First 125; Get-Content app/src/services/agents/agent_capabilities_service.ts | Select-Object -Skip 98 -First 38; Get-Content app/src/services/data/remote_connection_service.ts -TotalCount 70\"",
+          "providerItemId": "exec-543112b4-b029-467a-a395-a496f09846b6",
+          "sequence": 128,
+          "status": "completed",
+          "timestamp": "2026-10-07T10:03:11.543Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
         }
       ],
       "hasExplicitTitle": true,
@@ -1589,14 +1674,14 @@
         }
       ],
       "startedAt": "2026-10-07T08:57:02.321Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
-          "reasoningMs": 61601,
-          "toolMs": 164307
+          "reasoningMs": 61621,
+          "toolMs": 168260
         },
-        "elapsedMs": 699979,
-        "runningStartedAt": "2026-10-07T10:01:16.996Z"
+        "elapsedMs": 819616,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
@@ -1607,7 +1692,7 @@
         "totalTokens": 4619157
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
