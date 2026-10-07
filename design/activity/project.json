@@ -1222,6 +1222,32 @@
   "origin": {
     "kind": "project"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [],
+      "completedAt": "2026-10-07T12:12:20.640Z",
+      "conversationIds": [
+        "agent-3b61c76c-f3c9-4237-a24d-9aa2924a9394"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-6.1-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-6.1-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-a65a16f9-2c2d-4bc1-831c-c86aad4cf58f",
+      "origin": {
+        "kind": "project"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "rootConversationId": "agent-3b61c76c-f3c9-4237-a24d-9aa2924a9394",
+      "startedAt": "2026-10-07T12:08:36.321Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
