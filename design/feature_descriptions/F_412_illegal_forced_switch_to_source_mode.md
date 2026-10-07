@@ -40,4 +40,6 @@ Uncaught Error Error: No fields to update
     at _run (c:\Users\janbo\Documents\
 ```
 
-the text contained&#x20;
+the text started with: `& # x 60 ; & # x60 ; & #x60 ;` ( i put spaces between the letters so we can paste it in the editor without loosing it.
+
+this is broken and bad experience. the editor should not switch, we should not show the error, should be able to paste the text,
