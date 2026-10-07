@@ -3853,6 +3853,14 @@
           "role": "assistant",
           "sequence": 91,
           "timestamp": "2026-10-07T11:39:10.510Z"
+        },
+        {
+          "content": "> The affected callers are the two desktop bridge endpoints, action execution, and terminal-agent execution. They will all use the simpler cache behavior. The file-check helpers are only used by the model catalog service, so I’ll remove them, their imports, and their test setup.\n\nexplain. what have these 2 got to do at all with model list refreshing",
+          "id": "submission-43cb38b4-dc3a-453f-a160-d3c559c951d9",
+          "kind": "message",
+          "role": "user",
+          "sequence": 92,
+          "timestamp": "2026-10-07T11:39:25.220Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3867,14 +3875,14 @@
         }
       ],
       "startedAt": "2026-10-07T11:31:14.826Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 212,
           "toolMs": 49902
         },
         "elapsedMs": 289449,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-07T11:39:25.220Z"
       },
       "title": "+",
       "usage": {
