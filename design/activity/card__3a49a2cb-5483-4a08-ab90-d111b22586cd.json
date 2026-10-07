@@ -2611,7 +2611,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 119266
+        "usedTokens": 125901
       },
       "entries": [
         {
@@ -4635,13 +4635,15 @@
         {
           "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
           "content": "\n> desktop@0.8.0 lint\n> eslint .\n\n",
+          "durationMs": 3207,
+          "exitCode": 0,
           "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-150",
           "kind": "event",
           "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'npm run lint'",
           "providerItemId": "exec-57250d0d-b97b-4489-9d97-d4c904fb8ee8",
           "sequence": 150,
-          "status": "inProgress",
-          "timestamp": "2026-10-07T11:43:12.678Z",
+          "status": "completed",
+          "timestamp": "2026-10-07T11:43:15.648Z",
           "type": "commandExecution",
           "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2\\desktop"
         },
@@ -4652,6 +4654,183 @@
           "role": "user",
           "sequence": 151,
           "timestamp": "2026-10-07T11:43:13.560Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short'",
+          "content": "warning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n M app/src/App.test.tsx\n M app/src/app/use_app_bootstrap.test.ts\n M app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx\n M app/src/components/actions/shared/use_action_run_settings.ts\n M app/src/components/hooks/use_agent_model_catalog.ts\n M app/src/services/agents/agent_capabilities_service.service.test.ts\n M app/src/services/agents/agent_capabilities_service.ts\n M app/src/services/application_startup_service.ts\n M design/activity/card__e5a9c51e-b832-48b9-9e71-e83cc4468433.json\n M design/feature_descriptions/F_412_illegal_forced_switch_to_source_mode.md\n M design/usage_metrics.csv\n M desktop/main.js\n M desktop/src/actions/action/action_agent_executor.js\n M desktop/src/actions/action/action_agent_executor.test.mjs\n M desktop/src/actions/action/action_runner_service.js\n M desktop/src/actions/action/action_runner_service.test.mjs\n M desktop/src/actions/action/action_scheduler_service.test.mjs\n M desktop/src/actions/agent/agent_model_catalog_service.js\n M desktop/src/actions/agent/agent_model_catalog_service.test.mjs\n M desktop/src/shell/local_bridge_dispatch.js\n M desktop/src/shell/local_bridge_dispatch.test.mjs\n M desktop/src/test/agent_model_catalog_stub.mjs\n?? .claude/\n?? app/src/components/hooks/use_agent_model_catalog.test.tsx\n?? desktop/src/actions/agent/agent_execution.js\n?? desktop/src/actions/agent/agent_execution.test.mjs\n",
+          "durationMs": 81,
+          "exitCode": 0,
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-152",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short'",
+          "providerItemId": "exec-ae33f1f4-6283-4636-b0ea-aeaa4a3794b5",
+          "sequence": 152,
+          "status": "completed",
+          "timestamp": "2026-10-07T11:43:16.400Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-153",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_071fb07280996d96016ac6305807dc81919474494d873c52e3",
+          "sequence": 153,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-07T11:43:19.256Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "That name came from a backend function called `runSearchRegexpAgent`. I’ll check whether anything in the interface calls it.\n\n",
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-turn-7-assistant-6",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 154,
+          "timestamp": "2026-10-07T11:43:20.102Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n 'runSearchRegexpAgent|SEARCH_AGENT_PROMPT_PREFIX|Search RegExp' app desktop shared -g '\"'!package-lock.json'\"' -g '\"'!node_modules/**'\"'\"",
+          "content": "desktop\\main.js:71:const EVENT_METHODS = new Set(['runSearchRegexpAgent', 'startAgentConversation']);\ndesktop\\src\\integrations\\remote_control_service.test.mjs:34:                if (method === 'runSearchRegexpAgent') return 'agent-1';\ndesktop\\src\\integrations\\remote_control_service.test.mjs:58:        await service.invoke(client, 'runSearchRegexpAgent', ['find cards'], 'agent-request');\ndesktop\\src\\integrations\\remote_control_service.test.mjs:69:        callbacks.get('runSearchRegexpAgent')(agentEvent);\ndesktop\\src\\integrations\\remote_control_service.js:14:const AGENT_EVENT_METHODS = new Set(['runSearchRegexpAgent']);\ndesktop\\src\\shell\\local_bridge_dispatch.js:9:const SEARCH_AGENT_PROMPT_PREFIX = 'Return only a single JavaScript-compatible regular expression pattern (no explanation, no surrounding text or markdown) that matches the following search request:\\n\\n';\ndesktop\\src\\shell\\local_bridge_dispatch.js:638:        runSearchRegexpAgent: async (input, callback) => {\ndesktop\\src\\shell\\local_bridge_dispatch.js:657:                prompt: `${SEARCH_AGENT_PROMPT_PREFIX}${input}`,\ndesktop\\src\\shell\\local_bridge_dispatch.js:660:                title: 'Search RegExp',\ndesktop\\src\\shell\\preload.js:117:    'runSearchRegexpAgent',\ndesktop\\src\\shell\\preload.js:125:const EVENT_METHODS = new Set(['runSearchRegexpAgent']);\ndesktop\\src\\shell\\local_bridge_dispatch.test.mjs:1020:        await dispatch.actionBridge.runSearchRegexpAgent('find beta cards', vi.fn());\napp\\src\\services\\search\\search_regexp_agent.ts:15:    agentConversationService.observeRunEvent(event, 'Search RegExp')\napp\\src\\services\\search\\search_regexp_agent.ts:52:        const result = await bridge.runSearchRegexpAgent(naturalQuery, runEventObserver)\napp\\src\\services\\search\\search_regexp_agent.node.test.ts:17:        title: 'Search RegExp',\napp\\src\\services\\search\\search_regexp_agent.node.test.ts:22:function makeBridge(runSearchRegexpAgent: ElectronActionBridge['runSearchRegexpAgent']): ElectronActionBridge {\napp\\src\\services\\search\\search_regexp_agent.node.test.ts:31:        runSearchRegexpAgent,\napp\\src\\services\\search\\search_regexp_agent.node.test.ts:84:        const runSearchRegexpAgent = vi.fn(async (_input: string, callback?: (event: AgentRunEvent) => void) => {\napp\\src\\services\\search\\search_regexp_agent.node.test.ts:90:        const agent = createSearchRegexpAgent({ bridgeProvider: () => makeBridge(runSearchRegexpAgent), runEventObserver })\napp\\src\\services\\search\\search_regexp_agent.node.test.ts:93:        expect(runSearchRegexpAgent).toHaveBeenCalledWith('find the beta card', runEventObserver)\napp\\src\\components\\shell\\running_agents_indicator.test.tsx:128:        agentConversationService.observeRunEvent(startedEvent('a'), 'Search RegExp')\napp\\src\\components\\shell\\running_agents_indicator.test.tsx:139:        expect(screen.getByText('Search RegExp')).toBeInTheDocument()\napp\\src\\components\\shell\\running_agents_indicator.test.tsx:141:        expect(screen.queryByRole('button', { name: 'Search RegExp' })).not.toBeInTheDocument()\napp\\src\\services\\project\\project_session_service.service.test.ts:49:        runSearchRegexpAgent: vi.fn(async () => ''),\napp\\src\\services\\data\\remote_control_storage_service.ts:841:    async runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string> {\napp\\src\\services\\data\\remote_control_storage_service.ts:842:        return this.requestWithAgentEvents<string>('runSearchRegexpAgent', [input], callback)\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1217:        const agentRun = service.runSearchRegexpAgent('find cards', agentCallback)\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1239:        socket.receive({ event: 'agentRun', payload: { event: agentEvent, requestId: requestByMethod.get('runSearchRegexpAgent')?.id } })\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1257:        const agentRequest = requestByMethod.get('runSearchRegexpAgent')\napp\\src\\services\\data\\remote_control_storage_service.node.test.ts:1258:        if (!agentRequest) throw new Error('Missing runSearchRegexpAgent request')\napp\\src\\components\\shell\\main_window.test.tsx:59:        runSearchRegexpAgent: vi.fn(async () => stdout),\napp\\src\\data\\project_session.service.test.ts:16:        runSearchRegexpAgent: vi.fn(async () => ''),\napp\\src\\data\\electron_action_bridge.ts:209:    runSearchRegexpAgent(input: string, callback?: (event: AgentRunEvent) => void): Promise<string>\napp\\src\\data\\electron_action_bridge.node.test.ts:13:        runSearchRegexpAgent: vi.fn(async () => ''),\napp\\src\\services\\actions\\electron_action_runner.node.test.ts:55:        runSearchRegexpAgent: vi.fn(),\n",
+          "durationMs": 170,
+          "exitCode": 0,
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-155",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n 'runSearchRegexpAgent|SEARCH_AGENT_PROMPT_PREFIX|Search RegExp' app desktop shared -g '\"'!package-lock.json'\"' -g '\"'!node_modules/**'\"'\"",
+          "providerItemId": "exec-6f38a343-fc37-4879-9d1f-20aed07bde61",
+          "sequence": 155,
+          "status": "completed",
+          "timestamp": "2026-10-07T11:43:22.741Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/services/search/search_regexp_agent.ts'",
+          "content": "import { type ElectronActionBridge, getElectronActionBridge } from '../../data/electron_action_bridge'\r\nimport type { AgentRunEvent } from '../../data/data_types'\r\nimport { agentConversationService } from '../agents/agent_conversation_service'\r\nimport type { SearchRegexpAgent } from './search_types'\r\n\r\nconst CODE_FENCE_PATTERN = /^```[^\\n]*\\n([\\s\\S]*?)\\n?```$/u\r\nconst REGEX_LITERAL_PATTERN = /^\\/(.+)\\/[a-z]*$/u\r\n\r\nexport interface SearchRegexpAgentDependencies {\r\n    bridgeProvider?: () => ElectronActionBridge | null\r\n    runEventObserver?: (event: AgentRunEvent) => void\r\n}\r\n\r\nfunction defaultRunEventObserver(event: AgentRunEvent) {\r\n    agentConversationService.observeRunEvent(event, 'Search RegExp')\r\n}\r\n\r\nexport function extractRegexpExpression(rawOutput: string): string {\r\n    let expression = rawOutput.trim()\r\n\r\n    const fenceMatch = CODE_FENCE_PATTERN.exec(expression)\r\n    if (fenceMatch) expression = fenceMatch[1].trim()\r\n\r\n    const literalMatch = REGEX_LITERAL_PATTERN.exec(expression)\r\n    if (literalMatch) expression = literalMatch[1]\r\n\r\n    expression = expression.trim()\r\n    if (expression.length === 0) throw new Error('Agent returned an empty regular expression')\r\n\r\n    try {\r\n        new RegExp(expression)\r\n    } catch (error) {\r\n        const message = error instanceof Error ? error.message : 'Invalid regular expression'\r\n        throw new Error(`Agent returned an invalid regular expression: ${message}`)\r\n    }\r\n\r\n    return expression\r\n}\r\n\r\nexport function isSearchRegexpAgentAvailable(bridgeProvider: () => ElectronActionBridge | null = getElectronActionBridge): boolean {\r\n    return bridgeProvider() !== null\r\n}\r\n\r\nexport function createSearchRegexpAgent(dependencies: SearchRegexpAgentDependencies = {}): SearchRegexpAgent {\r\n    const bridgeProvider = dependencies.bridgeProvider ?? getElectronActionBridge\r\n    const runEventObserver = dependencies.runEventObserver ?? defaultRunEventObserver\r\n\r\n    return async (naturalQuery: string) => {\r\n        const bridge = bridgeProvider()\r\n        if (!bridge) throw new Error('RegExp agent is not available')\r\n\r\n        const result = await bridge.runSearchRegexpAgent(naturalQuery, runEventObserver)\r\n\r\n        return extractRegexpExpression(result)\r\n    }\r\n}\r\n",
+          "durationMs": 44,
+          "exitCode": 0,
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-156",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/services/search/search_regexp_agent.ts'",
+          "providerItemId": "exec-3a82e871-6f5e-4209-9492-cc784a816958",
+          "sequence": 156,
+          "status": "completed",
+          "timestamp": "2026-10-07T11:43:27.762Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n 'createSearchRegexpAgent|searchRegexpAgent|search_regexp_agent|naturalQuery|natural.*search' app/src -g '\"'!*.test.*'\"'\"",
+          "content": "app/src\\services\\search\\search_types.ts:48:export type SearchRegexpAgent = (naturalQuery: string) => Promise<string>\napp/src\\services\\search\\search_regexp_agent.ts:44:export function createSearchRegexpAgent(dependencies: SearchRegexpAgentDependencies = {}): SearchRegexpAgent {\napp/src\\services\\search\\search_regexp_agent.ts:48:    return async (naturalQuery: string) => {\napp/src\\services\\search\\search_regexp_agent.ts:52:        const result = await bridge.runSearchRegexpAgent(naturalQuery, runEventObserver)\napp/src\\components\\shell\\main_window.tsx:8:import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'\napp/src\\components\\shell\\main_window.tsx:36:        () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,\n",
+          "durationMs": 66,
+          "exitCode": 0,
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-157",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n 'createSearchRegexpAgent|searchRegexpAgent|search_regexp_agent|naturalQuery|natural.*search' app/src -g '\"'!*.test.*'\"'\"",
+          "providerItemId": "exec-32582ba1-2a39-479c-833d-f191e990e0b2",
+          "sequence": 157,
+          "status": "completed",
+          "timestamp": "2026-10-07T11:43:28.750Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/shell/main_window.tsx | Select-Object -First 100'",
+          "content": "import { Box, useMediaQuery, useTheme } from '@mui/material'\r\nimport { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'\r\nimport { navigateTo, useAppLocation } from '../../app/app_navigation'\r\nimport type { UseGithubAuthResult } from '../../auth/use_github_auth'\r\nimport { ConfigPage } from '../config/config_page'\r\nimport { useProjectReference } from '../hooks/use_project_reference'\r\nimport { ProjectWorkspace } from '../project_workspace'\r\nimport { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'\r\nimport { GLOBAL_SEARCH_SHORTCUT_BINDING } from '../../services/search/search_open_service'\r\nimport { keyboardShortcutService } from '../../services/shortcuts/keyboard_shortcut_service'\r\nimport { AppMenu } from './menu/app_menu'\r\nimport { StatusBar } from './status_bar'\r\nimport type { ProjectOpenResolution } from '../../services/project/project_session_service'\r\nimport { useProjectLoading } from '../hooks/use_project_loading'\r\nimport { useProjectOpenPhase } from '../hooks/use_project_open_phase'\r\nimport { ProjectLoadingIndicator } from './project_loading_indicator'\r\n\r\ninterface MainWindowProps {\r\n    auth: UseGithubAuthResult\r\n    initialProjectOpenResolution: ProjectOpenResolution | null\r\n    toolbarAction: ReactNode\r\n}\r\n\r\n/** Main window: owns the global layout and switches between desktop and mobile presentations. */\r\nexport function MainWindow(props: MainWindowProps) {\r\n    const { auth, initialProjectOpenResolution, toolbarAction } = props\r\n    const location = useAppLocation()\r\n    const theme = useTheme()\r\n    const isMobile = useMediaQuery(theme.breakpoints.down('md'))\r\n    const [isMenuOpen, setIsMenuOpen] = useState(false)\r\n    const project = useProjectReference()\r\n    const isProjectLoading = useProjectLoading()\r\n    const projectOpenPhase = useProjectOpenPhase()\r\n    const isConfigOpen = location.pathname === '/config'\r\n    const regexpAgent = useMemo(\r\n        () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,\r\n        [],\r\n    )\r\n\r\n    useEffect(() => keyboardShortcutService.register(GLOBAL_SEARCH_SHORTCUT_BINDING), [])\r\n\r\n    const handleOpenMenu = useCallback(() => {\r\n        setIsMenuOpen(true)\r\n    }, [])\r\n\r\n    const handleCloseMenu = useCallback(() => {\r\n        setIsMenuOpen(false)\r\n    }, [])\r\n\r\n    const handleOpenConfig = useCallback(() => {\r\n        navigateTo('/config')\r\n    }, [])\r\n\r\n    return (\r\n        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>\r\n            <AppMenu\r\n                accessToken={auth.accessToken}\r\n                auth={auth}\r\n                extraActions={toolbarAction}\r\n                initialProjectOpenResolution={initialProjectOpenResolution}\r\n                isGithubAuthenticated={auth.isAuthenticated}\r\n                isMobile={isMobile}\r\n                onOpenConfig={handleOpenConfig}\r\n                onOpenMobileMenu={handleOpenMenu}\r\n                regexpAgent={regexpAgent}\r\n            />\r\n            {isProjectLoading || projectOpenPhase === 'loading' ? <ProjectLoadingIndicator /> : (\r\n                <ProjectWorkspace\r\n                    auth={auth}\r\n                    isMenuOpen={isMenuOpen}\r\n                    key={project ? `${project.id}:${project.branch}` : 'no-project'}\r\n                    onLeftPanelInteraction={handleCloseMenu}\r\n                />\r\n            )}\r\n            {!isMobile ? <StatusBar /> : null}\r\n            {isConfigOpen ? <ConfigPage hash={location.hash} /> : null}\r\n        </Box>\r\n    )\r\n}\r\n",
+          "durationMs": 68,
+          "exitCode": 0,
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-158",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/shell/main_window.tsx | Select-Object -First 100'",
+          "providerItemId": "exec-88a51ad1-b7bc-4317-8d53-ae82f7adbad7",
+          "sequence": 158,
+          "status": "completed",
+          "timestamp": "2026-10-07T11:43:34.116Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n 'regexpAgent|RegExpAgent|SearchRegexpAgent|agentAvailable|natural' app/src/services/search app/src/components/search* app/src/components/shell -g '\"'!*.test.*'\"'\"",
+          "content": "rg: app/src/components/search*: The filename, directory name, or volume label syntax is incorrect. (os error 123)\napp/src/services/search\\search_types.ts:47:/** Builds a search expression from a natural-language request, typically via an agent. */\napp/src/services/search\\search_types.ts:48:export type SearchRegexpAgent = (naturalQuery: string) => Promise<string>\napp/src/services/search\\search_regexp_agent.ts:4:import type { SearchRegexpAgent } from './search_types'\napp/src/services/search\\search_regexp_agent.ts:9:export interface SearchRegexpAgentDependencies {\napp/src/services/search\\search_regexp_agent.ts:40:export function isSearchRegexpAgentAvailable(bridgeProvider: () => ElectronActionBridge | null = getElectronActionBridge): boolean {\napp/src/services/search\\search_regexp_agent.ts:44:export function createSearchRegexpAgent(dependencies: SearchRegexpAgentDependencies = {}): SearchRegexpAgent {\napp/src/services/search\\search_regexp_agent.ts:48:    return async (naturalQuery: string) => {\napp/src/services/search\\search_regexp_agent.ts:52:        const result = await bridge.runSearchRegexpAgent(naturalQuery, runEventObserver)\napp/src/services/search\\search_project.ts:4:    ActionSearchMatch, BackgroundGroup, SearchMatch, SearchOptions, SearchRegexpAgent, SearchResults,\napp/src/services/search\\search_project.ts:231:export const defaultSearchRegexpAgent: SearchRegexpAgent = async () => {\napp/src/components/shell\\main_window.tsx:8:import { createSearchRegexpAgent, isSearchRegexpAgentAvailable } from '../../services/search/search_regexp_agent'\napp/src/components/shell\\main_window.tsx:35:    const regexpAgent = useMemo(\napp/src/components/shell\\main_window.tsx:36:        () => isSearchRegexpAgentAvailable() ? createSearchRegexpAgent() : undefined,\napp/src/components/shell\\main_window.tsx:65:                regexpAgent={regexpAgent}\napp/src/components/shell\\menu\\app_menu.tsx:66:import type { SearchRegexpAgent } from '../../../services/search/search_types'\napp/src/components/shell\\menu\\app_menu.tsx:81:    regexpAgent?: SearchRegexpAgent\napp/src/components/shell\\menu\\app_menu.tsx:113:        regexpAgent,\napp/src/components/shell\\menu\\app_menu.tsx:536:                regexpAgent={regexpAgent}\napp/src/components/shell\\menu\\main_toolbar.tsx:4:import type { SearchRegexpAgent } from '../../../services/search/search_types';\napp/src/components/shell\\menu\\main_toolbar.tsx:30:    regexpAgent?: SearchRegexpAgent;\napp/src/components/shell\\menu\\main_toolbar.tsx:37:        onCreateAction, onCreateCard, onCreateDiagram, onOpenMenu, onTabChange, regexpAgent,\napp/src/components/shell\\menu\\main_toolbar.tsx:131:                        <SearchControl isMobile={isCompact} presentation={layout.searchPresentation} regexpAgent={regexpAgent} />\napp/src/components/shell\\search\\search_control.tsx:7:import type { SearchRegexpAgent } from '../../../services/search/search_types';\napp/src/components/shell\\search\\search_control.tsx:19:    regexpAgent?: SearchRegexpAgent;\napp/src/components/shell\\search\\search_control.tsx:24:    const { isMobile = false, presentation = 'full', regexpAgent } = props;\napp/src/components/shell\\search\\search_control.tsx:67:                    regexpAgent={regexpAgent}\napp/src/components/shell\\search\\search_control.tsx:80:                    <SearchPanel initialQuery={query} onClose={closeSearch} onQueryChange={updateQuery} regexpAgent={regexpAgent} />\napp/src/components/shell\\search\\search_panel.tsx:15:import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'\napp/src/components/shell\\search\\search_panel.tsx:17:import type { SearchMatch, SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'\napp/src/components/shell\\search\\search_panel.tsx:48:    regexpAgent?: SearchRegexpAgent\napp/src/components/shell\\search\\search_panel.tsx:53:    const { initialQuery, onClose, onQueryChange, placeholder = 'Search cards…', regexpAgent = defaultSearchRegexpAgent } = props;\napp/src/components/shell\\search\\search_panel.tsx:147:            const expression = await regexpAgent(query)\n",
+          "durationMs": 52,
+          "exitCode": 1,
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-159",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n 'regexpAgent|RegExpAgent|SearchRegexpAgent|agentAvailable|natural' app/src/services/search app/src/components/search* app/src/components/shell -g '\"'!*.test.*'\"'\"",
+          "providerItemId": "exec-79dcb235-563d-470c-b35b-c71f6876d864",
+          "sequence": 159,
+          "status": "failed",
+          "timestamp": "2026-10-07T11:43:34.935Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-160",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_071fb07280996d96016ac6306cf8a88191ac6875636c6414ba",
+          "sequence": 160,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-07T11:43:40.269Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/shell/search/search_panel.tsx | Select-Object -Skip 120 -First 58'",
+          "content": "    const handleToggleRegexp = () => {\r\n        const nextMode: SearchMode = mode === 'regexp' ? 'text' : 'regexp'\r\n        setMode(nextMode)\r\n        setIsDismissed(false)\r\n        applySearch(query, nextMode, includeBackgroundBody, includeActions)\r\n    }\r\n\r\n    const handleToggleBackgroundBody = () => {\r\n        const nextIncludeBackgroundBody = !includeBackgroundBody\r\n        setIncludeBackgroundBody(nextIncludeBackgroundBody)\r\n        setIsDismissed(false)\r\n        applySearch(query, mode, nextIncludeBackgroundBody, includeActions)\r\n    }\r\n\r\n    const handleToggleActions = () => {\r\n        const nextIncludeActions = !includeActions\r\n        setIncludeActions(nextIncludeActions)\r\n        setIsDismissed(false)\r\n        applySearch(query, mode, includeBackgroundBody, nextIncludeActions)\r\n    }\r\n\r\n    const handleAskAgent = async () => {\r\n        if (!hasQuery) return\r\n\r\n        setIsAgentBusy(true)\r\n        try {\r\n            const expression = await regexpAgent(query)\r\n            setMode('regexp')\r\n            setQuery(expression)\r\n            onQueryChange(expression)\r\n            setIsDismissed(false)\r\n            applySearch(expression, 'regexp', includeBackgroundBody, includeActions)\r\n        } catch (error) {\r\n            // Agent failures must not change the current query.\r\n            dialogService.error(error, { fallbackMessage: 'Agent request failed' })\r\n        } finally {\r\n            setIsAgentBusy(false)\r\n        }\r\n    }\r\n\r\n    const handleSelect = (match: SearchMatch) => {\r\n        try {\r\n            if (!snapshot) throw new Error(`Search result no longer exists: ${match.path}`)\r\n\r\n            const activeCard = snapshot.activeCards.find(({ path }) => path === match.path)\r\n            const resolvedCard = activeCard ?? snapshot.backgroundCards.find(({ path }) => path === match.path)\r\n            if (!resolvedCard) throw new Error(`Search result no longer exists: ${match.path}`)\r\n\r\n            if (viewMode !== 'cards') {\r\n                workspaceNavigationService.open(resolvedCard.path)\r\n                setIsDismissed(true)\r\n                onClose()\r\n                return\r\n            }\r\n\r\n            if (activeCard) {\r\n                workspaceNavigationService.revealCard(activeCard.path)\r\n                setIsDismissed(true)\r\n",
+          "durationMs": 65,
+          "exitCode": 0,
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-161",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/shell/search/search_panel.tsx | Select-Object -Skip 120 -First 58'",
+          "providerItemId": "exec-9a26915f-36cb-40cd-9195-8ce868199bf5",
+          "sequence": 161,
+          "status": "completed",
+          "timestamp": "2026-10-07T11:43:43.118Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n 'agent|Agent|RegExp|AI|natural' app/src/components/shell/search/search_panel.tsx\"",
+          "content": "15:import { InvalidSearchPatternError, defaultSearchRegexpAgent, searchActions, searchProject } from '../../../services/search/search_project'\n17:import type { SearchMatch, SearchMode, SearchRegexpAgent, SearchResults as SearchResultsData } from '../../../services/search/search_types'\n47:    /** Builds a RegExp from the current query; defaults to the not-yet-available agent. */\n48:    regexpAgent?: SearchRegexpAgent\n51:/** Top-shell search: plain/RegExp text search over the loaded project with grouped, navigable results. */\n53:    const { initialQuery, onClose, onQueryChange, placeholder = 'Search cards…', regexpAgent = defaultSearchRegexpAgent } = props;\n64:    const [isAgentBusy, setIsAgentBusy] = useState(false)\n142:    const handleAskAgent = async () => {\n145:        setIsAgentBusy(true)\n147:            const expression = await regexpAgent(query)\n154:            // Agent failures must not change the current query.\n155:            dialogService.error(error, { fallbackMessage: 'Agent request failed' })\n157:            setIsAgentBusy(false)\n285:                            <Tooltip title=\"RegExp mode\">\n287:                                    aria-label=\"RegExp mode\"\n318:                            <Tooltip title=\"Ask agent to build a RegExp\">\n321:                                        aria-label=\"Ask agent to build a RegExp\"\n322:                                        disabled={isAgentBusy || !hasQuery}\n323:                                        onClick={handleAskAgent}\n",
+          "durationMs": 7,
+          "exitCode": 0,
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-162",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n 'agent|Agent|RegExp|AI|natural' app/src/components/shell/search/search_panel.tsx\"",
+          "providerItemId": "exec-42791eaa-4356-43b6-9fb1-e3ccee55b282",
+          "sequence": 162,
+          "status": "completed",
+          "timestamp": "2026-10-07T11:43:43.765Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-event-163",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_071fb07280996d96016ac630757c18819198967846ece95bc0",
+          "sequence": 163,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-07T11:43:48.783Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I used the internal function name as if it were a separate agent. That was misleading.\n\nIt’s the search panel’s existing **“Ask agent to build a RegExp”** button. It calls your configured Codex or Claude agent. The handler is in [search_panel.tsx](C:/Users/janbo/Documents/dev/md2/app/src/components/shell/search/search_panel.tsx:142).\n\nThe requested removal is complete: agent launches no longer read or validate against model lists. All 218 targeted tests and desktop lint passed.\n\n",
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-turn-7-assistant-7",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 164,
+          "timestamp": "2026-10-07T11:43:51.448Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -4661,27 +4840,27 @@
           "agent": "codex",
           "conversationId": "01a11621-c9eb-73b1-8e90-1c1b2b06d3b0",
           "createdAt": "2026-10-07T11:34:31.563Z",
-          "lastUsedAt": "2026-10-07T11:39:39.174Z",
-          "synchronizedThroughMessageId": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-turn-6-assistant-2"
+          "lastUsedAt": "2026-10-07T11:43:51.448Z",
+          "synchronizedThroughMessageId": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-turn-7-assistant-7"
         }
       ],
       "startedAt": "2026-10-07T11:31:14.826Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 386,
-          "toolMs": 60257
+          "reasoningMs": 521,
+          "toolMs": 64360
         },
         "elapsedMs": 303403,
         "runningStartedAt": "2026-10-07T11:39:49.803Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 1488128,
-        "inputTokens": 85183,
-        "outputTokens": 5614,
-        "reasoningTokens": 1127,
-        "totalTokens": 1580052
+        "cachedInputTokens": 3486336,
+        "inputTokens": 119233,
+        "outputTokens": 10630,
+        "reasoningTokens": 2397,
+        "totalTokens": 3618596
       },
       "usageSchemaVersion": 1,
       "viewed": true
