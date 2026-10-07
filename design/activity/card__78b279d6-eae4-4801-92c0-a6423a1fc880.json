@@ -2653,6 +2653,35 @@
       "startedAt": "2026-10-07T12:29:57.401Z",
       "status": "completed",
       "rootConversationId": "agent-564f21fe-b6b6-4ca2-9668-727a155c37f5"
+    },
+    {
+      "commits": [
+        {
+          "commit": "ea6125f71c50a5dc1121a85510bb8f0b0db3f792",
+          "committedAt": "2026-10-07T15:01:26+02:00",
+          "deletions": 471,
+          "filePaths": [
+            "app/src/components/actions/agent/action_agent_prompt.test.tsx",
+            "app/src/components/actions/agent/action_agent_prompt.tsx",
+            "app/src/components/actions/run/popup/action_popup.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx",
+            "app/src/components/actions/run/popup/action_popup_bottom_row.tsx",
+            "app/src/components/actions/run/popup/action_popup_run_controls.tsx",
+            "app/src/services/actions/action_prompt_draft_service.node.test.ts",
+            "app/src/services/actions/action_prompt_draft_service.ts"
+          ],
+          "filesChanged": 8,
+          "insertions": 707,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-07T15:01:26+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "78b279d6-eae4-4801-92c0-a6423a1fc880",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
