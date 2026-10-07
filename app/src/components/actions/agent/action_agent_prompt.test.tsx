@@ -16,6 +16,8 @@ type ActionAgentPromptProps = ComponentProps<typeof ActionAgentPromptImplementat
 type TestPromptProps = Omit<ActionAgentPromptProps, 'bindingStore' | 'questionsEnabled' | 'layoutStore'>
     & Partial<Pick<ActionAgentPromptProps, 'bindingStore' | 'questionsEnabled' | 'layoutStore'>>
 
+const editorRender = vi.hoisted(() => vi.fn());
+
 const questionFreeBindingStore = new ActionRunBindingStore(null)
 
 function ActionAgentPrompt(props: TestPromptProps) {
@@ -60,6 +62,7 @@ vi.mock('../../editor/markdown_editor', async () => {
             placeholders?: readonly { name: string }[]
             readOnly?: boolean
         }, ref) {
+            editorRender();
             const valueRef = useRef(props.draft.getSnapshot())
             const [value, setValue] = useState(props.draft.getSnapshot())
             useEffect(() => props.draft.subscribeEditor(() => {
@@ -157,6 +160,21 @@ describe('ActionAgentPrompt', () => {
         expect(screen.queryByRole('separator')).not.toBeInTheDocument();
         expect(window.localStorage.getItem('md2.actionPromptHeight')).toBeNull();
         expect(window.localStorage.getItem('md2.commandActionInputHeight')).toBeNull();
+    });
+
+    it.each([false, true])('keeps editor stable across nonempty draft edits with pending questions %s', (pendingQuestions) => {
+        const draft = new ActionPromptDraft('Plan', false);
+        const questions: RestoredAgentQuestions | null = pendingQuestions ? restoredAgentQuestions([{header: 'Choose', id: 'question-1', options: [{ label: 'Yes', description: 'Continue' }], question: 'Continue?'}]) : null;
+        render(
+            <ActionAgentPrompt convertMessage={null} promptDraft={draft} questionsEnabled restoredQuestions={questions} />,
+        );
+        editorRender.mockClear();
+        act(() => draft.edit('Plan more'));
+        act(() => draft.edit('Plan more text'));
+        expect(editorRender).not.toHaveBeenCalled();
+        expect(draft.getSnapshot()).toBe('Plan more text');
+        act(() => draft.replace('External prompt'));
+        expect(screen.getByRole('textbox', { name: 'Markdown prompt' })).toHaveValue('External prompt');
     });
 
     it('stays read-only during prompt preparation and becomes editable when ready', async () => {

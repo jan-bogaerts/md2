@@ -37,7 +37,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     } = props
     const promptEditorRef = useRef<MarkdownEditorHandle>(null)
     const layout = useSyncExternalStore(layoutStore.subscribe, layoutStore.getSnapshot, layoutStore.getSnapshot);
-    const prompt = useSyncExternalStore(promptDraft.subscribe, promptDraft.getSnapshot, promptDraft.getSnapshot)
+    const promptEmpty = useSyncExternalStore(promptDraft.subscribe, promptDraft.getEmptySnapshot, promptDraft.getEmptySnapshot);
     const editorSnapshot = useSyncExternalStore(
         promptDraft.subscribeEditor,
         promptDraft.getEditorSnapshot,
@@ -46,7 +46,6 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     const boundRunId = useBoundRunId(bindingStore)
     const question = useRunSelector(boundRunId, (run) => run?.question ?? null)
 
-    const promptEmpty = prompt.trim().length === 0
     const hasQuestions = questionsEnabled && !!(question || restoredQuestions)
     const questionIdentity = questionsEnabled
         ? question?.requestId ?? restoredQuestions?.questions ?? null
@@ -65,7 +64,7 @@ export function ActionAgentPrompt(props: ActionAgentPromptProps) {
     const handleQuestionsSurface = useCallback((surface: HTMLElement | null) => {
         layoutStore.attachQuestions(surface);
     }, [layoutStore]);
-    const handleLiveChange = (value: string) => layoutStore.activatePrompt(value);
+    const handleLiveChange = layoutStore.activatePrompt;
     const handleQuestionsActivate = () => layoutStore.activateQuestions();
 
     const handlePromptKeyDownCapture = (event: KeyboardEvent<HTMLDivElement>) => {

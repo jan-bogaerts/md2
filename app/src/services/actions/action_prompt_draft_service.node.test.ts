@@ -73,6 +73,23 @@ describe('ActionPromptDraftService', () => {
         expect(editorListener).not.toHaveBeenCalled()
     })
 
+    it('derives emptiness from current canonical text across edits, replacements, and preparation', async () => {
+        const service = new ActionPromptDraftService();
+        const draft = service.getDraft('review', context, null, { prepare: true });
+        expect(draft.getEmptySnapshot()).toBe(true);
+        await draft.prepare(async () => ({ prompt: 'Prepared' }));
+        expect(draft.getEmptySnapshot()).toBe(false);
+        draft.edit('New text');
+        expect(draft.getEmptySnapshot()).toBe(false);
+        expect(draft.getSnapshot()).toBe('New text');
+        draft.edit(' \n\t');
+        expect(draft.getEmptySnapshot()).toBe(true);
+        draft.replace('External');
+        expect(draft.getEmptySnapshot()).toBe(false);
+        draft.clearForSend();
+        expect(draft.getEmptySnapshot()).toBe(true);
+    });
+
     it('replaces and clears mounted editor content exactly once per operation', () => {
         const service = new ActionPromptDraftService()
         const draft = service.getDraft('review', context, null, { prepare: false })

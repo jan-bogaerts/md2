@@ -57,6 +57,9 @@ export class ActionPromptDraft {
 
     readonly getSnapshot = () => this.markdownDraft.getSnapshot()
 
+    /** Stable rendering projection derived from the canonical prompt text. */
+    readonly getEmptySnapshot = () => this.getSnapshot().trim().length === 0;
+
     readonly getEditorSnapshot = () => this.editorSnapshot
 
     readonly requestInsertion = (markdown: string) => this.markdownDraft.requestInsertion(markdown)
