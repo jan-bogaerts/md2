@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__3a49a2cb-5483-4a08-ab90-d111b22586cd.json
 policy:
+after: 45e13c03-d74d-4082-9065-aa387f6553f5
 ---
 
 I was just typing something into the input of the action-popup for a new conversation. Yet for a very short period something appeared in the chatlog and then disappeared again.
