@@ -3,6 +3,8 @@ id: B_265
 internalId: 2a81b19c-14fc-49d9-98c1-f7101fcd8e14
 title: UI tests hit the Windows open-file limit while loading icons
 status: ready for implementation
+agents:
+  - design/activity/card__2a81b19c-14fc-49d9-98c1-f7101fcd8e14.json
 ---
 
 ## Problem
