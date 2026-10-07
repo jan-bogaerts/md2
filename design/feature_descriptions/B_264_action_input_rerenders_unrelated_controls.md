@@ -4,6 +4,8 @@ internalId: 78b279d6-eae4-4801-92c0-a6423a1fc880
 title: Action input rerenders unrelated controls while typing
 status: ready for implementation
 after: 2a81b19c-14fc-49d9-98c1-f7101fcd8e14
+branch: b_264_action_input_rerenders_unrelated_controls_while_typing
+worktree: 1
 ---
 
 ## Problem and evidence
