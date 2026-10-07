@@ -1426,6 +1426,14 @@
           "role": "assistant",
           "sequence": 108,
           "timestamp": "2026-10-07T09:58:55.699Z"
+        },
+        {
+          "content": "* remove everything related to the timer refresh\n* why is the backend caching anything here, why does the backend know about the models at all? this seems wrong, it gets the name of the model it should use, that is it",
+          "id": "submission-c3a6a4cc-349d-40af-9fb9-d9bb75665bda",
+          "kind": "message",
+          "role": "user",
+          "sequence": 109,
+          "timestamp": "2026-10-07T10:01:16.996Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1440,14 +1448,14 @@
         }
       ],
       "startedAt": "2026-10-07T08:57:02.321Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 61329,
           "toolMs": 162990
         },
         "elapsedMs": 699979,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-07T10:01:16.996Z"
       },
       "title": "+",
       "usage": {
