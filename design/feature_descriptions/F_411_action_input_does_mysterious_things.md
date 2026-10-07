@@ -10,6 +10,17 @@ agents:
   - design/activity/card__3a49a2cb-5483-4a08-ab90-d111b22586cd.json
 policy:
 after: 45e13c03-d74d-4082-9065-aa387f6553f5
+changedFiles:
+  - app/src/App.test.tsx
+  - app/src/app/use_app_bootstrap.test.ts
+  - app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx
+  - app/src/components/actions/run/popup/catalog_refresh_verification.test.tsx
+  - app/src/components/hooks/use_agent_model_catalog.test.tsx
+  - app/src/services/agents/agent_capabilities_service.service.test.ts
+  - app/src/services/agents/agent_capabilities_service.ts
+  - app/src/services/application_startup_service.ts
+  - desktop/src/actions/agent/agent_model_catalog_service.js
+  - desktop/src/actions/agent/agent_model_catalog_service.test.mjs
 ---
 
 I was just typing something into the input of the action-popup for a new conversation. Yet for a very short period something appeared in the chatlog and then disappeared again.
