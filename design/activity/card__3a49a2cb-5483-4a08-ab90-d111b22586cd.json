@@ -1185,6 +1185,14 @@
           "role": "assistant",
           "sequence": 89,
           "timestamp": "2026-10-07T09:45:25.466Z"
+        },
+        {
+          "content": "> The cached model catalog expires five minutes after loading.\n\nthis is very strange behavior. why are we doing this. and is this done every 5 minutes?\n\n> The catalog hook automatically refreshes it\n\nthis is wrong. the hook should only refresh something if an actual update of the model list happened\n\n> While stale or loading, the popup displays that message and blocks running.\n\nthis is again wrong, the popup should not be handling anything related to the models list. it should not display a text or block anything\n\nso, it means that the model catalog refresh has been implemented incorrectly.\n\nfurthermore, I don't understand why any of this is being done at all. The list of models is manually updated, so there should be no timing AT ALL\n\ndescribe where this cached model catalog is used, why this is so complex why it is refreshed every 5 minutes, makes no sense at all",
+          "id": "submission-22ecd376-b5bf-4bb5-9b74-1bc809b1013e",
+          "kind": "message",
+          "role": "user",
+          "sequence": 90,
+          "timestamp": "2026-10-07T09:52:06.896Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1199,14 +1207,14 @@
         }
       ],
       "startedAt": "2026-10-07T08:57:02.321Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 54559,
           "toolMs": 161791
         },
         "elapsedMs": 612330,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-07T09:52:06.896Z"
       },
       "title": "+",
       "usage": {
