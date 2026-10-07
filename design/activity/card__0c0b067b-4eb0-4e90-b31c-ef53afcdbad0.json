@@ -1314,14 +1314,14 @@
         }
       ],
       "startedAt": "2026-10-07T13:48:41.872Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 47833,
           "toolMs": 4872
         },
-        "elapsedMs": 190892,
-        "runningStartedAt": "2026-10-07T14:10:37.120Z"
+        "elapsedMs": 346147,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
