@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "d013f56f-5326-4d88-b1c8-333ed3cbe3c7",
       "cardPath": "design/feature_descriptions/F_413_column_widths_in_read_only_md_in_chatlog.md",
-      "completedAt": null,
+      "completedAt": "2026-10-07T13:02:43.606Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 56026
@@ -351,7 +351,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 26,
-          "timestamp": "2026-10-07T13:02:42.911Z"
+          "timestamp": "2026-10-07T13:02:43.606Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -361,7 +361,7 @@
           "agent": "claude",
           "conversationId": "57733800-e9a7-4a9d-8ee6-6376efe1016d",
           "createdAt": "2026-10-07T13:02:42.911Z",
-          "lastUsedAt": "2026-10-07T13:02:42.911Z",
+          "lastUsedAt": "2026-10-07T13:02:43.606Z",
           "synchronizedThroughMessageId": "agent-turn-58dc487c-daec-4013-bfc1-2ff61f6e61d7-turn-1-assistant-2",
           "usageBaseline": {
             "costUsd": 0.5388032,
@@ -377,14 +377,14 @@
         }
       ],
       "startedAt": "2026-10-07T13:01:42.779Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 15339,
           "toolMs": 25201
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-07T13:01:42.779Z"
+        "elapsedMs": 60827,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
