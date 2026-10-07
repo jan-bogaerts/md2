@@ -728,14 +728,14 @@
         }
       ],
       "startedAt": "2026-10-07T10:04:13.455Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 19050,
           "toolMs": 2468
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-07T10:04:13.455Z"
+        "elapsedMs": 170075,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
