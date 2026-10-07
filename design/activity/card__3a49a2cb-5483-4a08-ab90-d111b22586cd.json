@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 188274
+        "usedTokens": 188483
       },
       "entries": [
         {
@@ -1434,6 +1434,51 @@
           "role": "user",
           "sequence": 109,
           "timestamp": "2026-10-07T10:01:16.996Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll remove the automatic expiry and refresh cycle while preserving initial loading and the manual “Refresh models” action. I’ll also trace why execution consults the backend catalog and explain that separately; I won’t change that behavior without your instruction.\n\n\n",
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-turn-7-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 110,
+          "timestamp": "2026-10-07T10:01:21.870Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short; rg --files -g AGENTS.md; Get-Content app/src/services/agents/agent_capabilities_service.service.test.ts; Get-Content desktop/src/actions/agent/agent_model_catalog_service.test.mjs; Get-Content desktop/src/actions/action/action_agent_executor.js -TotalCount 105; Get-Content shared/agent_model_catalog.mjs'",
+          "content": "warning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\nwarning: unable to access 'C:\\Users\\janbo/.config/git/ignore': Permission denied\n M design/usage_metrics.csv\n?? .claude/\n?? design/feature_descriptions/B_264_action_input_rerenders_unrelated_controls.md\nimport { afterEach, describe, expect, it, vi } from 'vitest';\r\nimport type { AgentModelCatalog } from '../../data/agent_model_catalog';\r\nimport { mergeAgentProfiles, type AgentProfile } from '../../data/agent_profiles';\r\nimport type { ProjectReference } from '../../data/data_types';\r\nimport { setActionBridgeOverride, type ElectronActionBridge } from '../../data/electron_action_bridge';\r\nimport { agentCatalogFixture } from '../../test/agent_catalog_fixture';\r\nimport { AgentCapabilitiesService, agentCatalogKey, type AgentCapabilitiesProvider } from './agent_capabilities_service';\r\n\r\nconst profiles = mergeAgentProfiles([]);\r\nconst codex = profiles.find(({ name }) => name === 'codex')!;\r\nconst claude = profiles.find(({ name }) => name === 'claude')!;\r\nconst project: ProjectReference = { branch: 'main', id: 'repo', rootPath: '/repo' };\r\n\r\nfunction deferredValue<T>() {\r\n    let resolveValue: (value: T) => void = () => undefined;\r\n    const promise = new Promise<T>((resolve) => { resolveValue = resolve; });\r\n\r\n    return { promise, resolve: resolveValue };\r\n}\r\n\r\nfunction provider(overrides: Partial<AgentCapabilitiesProvider> = {}): AgentCapabilitiesProvider {\r\n    return {\r\n        getAgentAvailability: vi.fn(async () => ({ codex: { available: true, error: null } })),\r\n        getConnectionIdentity: () => 'host-1',\r\n        getModelCatalog: vi.fn(async (profile) => agentCatalogFixture(profile, [profile.name === 'codex' ? 'gpt-6.1-sol' : 'sonnet'])),\r\n        ...overrides,\r\n    };\r\n}\r\n\r\ndescribe('AgentCapabilitiesService', () => {\r\n    afterEach(() => {\r\n        vi.useRealTimers();\r\n        setActionBridgeOverride(null);\r\n        delete window.md2Data;\r\n    });\r\n\r\n    it('allows retry after a provider rejects discovery synchronously', async () => {\r\n        const capabilities = provider({ getModelCatalog: vi.fn(() => { throw new Error('Client unavailable'); }) });\r\n        const service = new AgentCapabilitiesService(capabilities);\r\n        const key = agentCatalogKey(codex, project);\r\n        await service.loadCatalog(codex, project);\r\n        expect(service.getCatalogSnapshot(key).error).toBe('Client unavailable');\r\n        vi.mocked(capabilities.getModelCatalog).mockResolvedValue(agentCatalogFixture(codex, ['gpt-6.1-sol']));\r\n\r\n        await service.loadCatalog(codex, project, true);\r\n\r\n        expect(service.getCatalogSnapshot(key).catalog?.models[0].id).toBe('gpt-6.1-sol');\r\n        expect(service.getCatalogSnapshot(key).error).toBeNull();\r\n    });\r\n\r\n    it('keeps catalogs scoped while deduplicating requests for the same context', async () => {\r\n        const pending = deferredValue<AgentModelCatalog>();\r\n        const capabilities = provider({\r\n            getModelCatalog: vi.fn(async (profile) => profile.name === 'codex'\r\n                ? await pending.promise : agentCatalogFixture(profile, ['sonnet'])),\r\n        });\r\n        const service = new AgentCapabilitiesService(capabilities);\r\n        const changed = vi.fn();\r\n        service.addEventListener('changed', changed);\r\n        const first = service.loadCatalog(codex, project);\r\n        const duplicate = service.loadCatalog(codex, project);\r\n        await service.loadCatalog(claude, project);\r\n        pending.resolve(agentCatalogFixture(codex, ['gpt-6.1-sol']));\r\n        await first;\r\n        await duplicate;\r\n\r\n        expect(capabilities.getModelCatalog).toHaveBeenCalledTimes(2);\r\n        expect(service.getCatalogSnapshot(agentCatalogKey(codex, project)).catalog?.models[0].id).toBe('gpt-6.1-sol');\r\n        expect(service.getCatalogSnapshot(agentCatalogKey(claude, project)).catalog?.models[0].id).toBe('sonnet');\r\n        expect(changed).not.toHaveBeenCalled();\r\n    });\r\n\r\n    it('refreshes expired catalogs, uses draft commands, and separates working directories', async () =\n[21248 characters omitted]\n new Error(`Invalid catalog source in ${source}`);\r\n    if (!Number.isFinite(value.fetchedAt)) throw new Error(`Invalid catalog timestamp in ${source}`);\r\n    if (!Array.isArray(value.models) || value.models.length === 0) throw new Error(`Model catalog is empty in ${source}`);\r\n    const identifiers = new Set();\r\n    for (const model of value.models) {\r\n        if (!model || typeof model !== 'object' || Array.isArray(model)) throw new Error(`Invalid model in ${source}`);\r\n        const identifier = requiredText(model.id, 'model ID', source);\r\n        requiredText(model.displayName, 'model display name', source);\r\n        if (identifiers.has(identifier)) throw new Error(`Duplicate model ID ${identifier} in ${source}`);\r\n        identifiers.add(identifier);\r\n        if (typeof model.hidden !== 'boolean') throw new Error(`Invalid model visibility in ${source}`);\r\n        if (model.resolvedModel !== undefined) requiredText(model.resolvedModel, 'resolved model', source);\r\n        if (model.reasoningEfforts !== null && (!Array.isArray(model.reasoningEfforts)\r\n            || model.reasoningEfforts.some((effort) => typeof effort !== 'string' || effort.length === 0))) {\r\n            throw new Error(`Invalid model reasoning efforts in ${source}`);\r\n        }\r\n        if (!Array.isArray(model.serviceTiers)) throw new Error(`Invalid model service tiers in ${source}`);\r\n        const tiers = new Set();\r\n        for (const tier of model.serviceTiers) {\r\n            requiredText(tier.id, 'service tier ID', source);\r\n            requiredText(tier.name, 'service tier name', source);\r\n            if (tiers.has(tier.id)) throw new Error(`Duplicate service tier ${tier.id} in ${source}`);\r\n            tiers.add(tier.id);\r\n        }\r\n    }\r\n\r\n    return value;\r\n}\r\n\r\n/** Resolve a wire ID or an advertised Claude alias without modifying the stored selection. */\r\nexport function findCatalogModel(catalog, model) {\r\n    return catalog.models.find(({ id }) => id === model)\r\n        ?? catalog.models.find(({ resolvedModel }) => resolvedModel === model)\r\n        ?? null;\r\n}\r\n\r\nexport function modelThinkingLevels(agent, model) {\r\n    if (!model) return ['none'];\r\n    if (model.reasoningEfforts === null) return [...THINKING_LEVELS];\r\n\r\n    return THINKING_LEVELS.filter((level) => level === 'none'\r\n        || model.reasoningEfforts.includes(agent === 'codex' && level === 'max' ? CODEX_MAX_THINKING_LEVEL : level));\r\n}\r\n\r\n/** OpenAI advertises the Fast transport tier as priority; never infer support from a model name. */\r\nexport function modelFastTier(catalog, model) {\r\n    if (catalog.agent !== 'codex' || catalog.provider !== 'openai' || !model) return null;\r\n\r\n    return model.serviceTiers.find(({ id }) => id === 'priority' || id === 'fast') ?? null;\r\n}\r\n\r\n/** Validate requested settings before launching a provider or starting another inference turn. */\r\nexport function validateCatalogSelection(catalog, selection, source = 'agent execution') {\r\n    const model = findCatalogModel(catalog, selection.model);\r\n    if (!model) {\r\n        throw new Error(`Model ${selection.model} is not advertised by ${catalog.agent} in ${source}. Refresh models or check the configured client.`);\r\n    }\r\n    if (selection.thinkingLevel !== undefined && !modelThinkingLevels(catalog.agent, model).includes(selection.thinkingLevel)) {\r\n        throw new Error(`Model ${selection.model} does not support reasoning level ${selection.thinkingLevel}`);\r\n    }\r\n    const speedMode = selection.speedMode === undefined ? 'default' : validateSpeedMode(selection.speedMode, source);\r\n    if (speedMode !== 'default' && (catalog.agent !== 'codex' || catalog.provider !== 'openai')) {\r\n        throw new Error('Explicit speed settings are supported only by the OpenAI Codex provider');\r\n    }\r\n    const fastTier = modelFastTier(catalog, model);\r\n    if (speedMode === 'fast' && !fastTier) throw new Error(`Fast mode is not advertised for ${selection.model}`);\r\n\r\n    return { model, serviceTier: speedMode === 'fast' ? fastTier.id : speedMode === 'standard' ? 'default' : undefined };\r\n}\r\n",
+          "durationMs": 150,
+          "exitCode": 0,
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-event-111",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'git status --short; rg --files -g AGENTS.md; Get-Content app/src/services/agents/agent_capabilities_service.service.test.ts; Get-Content desktop/src/actions/agent/agent_model_catalog_service.test.mjs; Get-Content desktop/src/actions/action/action_agent_executor.js -TotalCount 105; Get-Content shared/agent_model_catalog.mjs'",
+          "providerItemId": "exec-caa3e0fd-ffa7-4be3-9c22-99c07c20910e",
+          "sequence": 111,
+          "status": "completed",
+          "timestamp": "2026-10-07T10:01:25.076Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-event-112",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c71ed982cb9f6b0016ac6187d3ae487d2b78f6e869e4955dc",
+          "sequence": 112,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-07T10:01:32.739Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "make certain to remove the text in the action popup as well",
+          "id": "submission-d7831007-eef4-4292-af4e-3cf9d1caf9dc",
+          "kind": "message",
+          "role": "user",
+          "sequence": 113,
+          "timestamp": "2026-10-07T10:01:36.520Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1451,8 +1496,8 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 61329,
-          "toolMs": 162990
+          "reasoningMs": 61349,
+          "toolMs": 163163
         },
         "elapsedMs": 699979,
         "runningStartedAt": "2026-10-07T10:01:16.996Z"
