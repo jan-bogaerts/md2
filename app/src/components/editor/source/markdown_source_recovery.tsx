@@ -5,11 +5,11 @@ import { dialogService } from '../../../services/dialog_service';
 import { markdownSourceCompact$ } from './markdown_source_cell';
 import { MarkdownSourceModeControls } from './markdown_source_mode_controls';
 
-/** Preserves unsupported documents in Source and reports conversion errors after rendering. */
+/** Reports genuine conversion errors and exposes explicit Source recovery, including compact editors. */
 export function MarkdownSourceRecovery() {
     const [error, compact, mode] = useCellValues(markdownProcessingError$, markdownSourceCompact$, viewMode$);
     useEffect(() => {
-        if (error) dialogService.error(new Error(error.error), { fallbackMessage: 'Rich text is unavailable; edit this document in Source' });
+        if (error) dialogService.error(new Error(error.error), { fallbackMessage: 'Rich text conversion failed; complete source is preserved' });
     }, [error]);
 
     return (

@@ -9,7 +9,7 @@ import '@mdxeditor/editor/style.css'
 import type { LexicalEditor } from 'lexical'
 import {
     forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef,
-    type DragEvent, type FocusEvent, type ReactNode,
+    type ClipboardEvent, type DragEvent, type FocusEvent, type ReactNode,
 } from 'react'
 import type { ActionPlaceholder } from '../../data/action_placeholders'
 import { useProjectState } from '../hooks/use_project_state'
@@ -189,7 +189,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
     const flush = useCallback(() => {
         const activeDraft = activeDraftRef.current
-        if (activeDraft) {
+        if (activeDraft && !sourceControllerRef.current?.conversionFailed && !sourceControllerRef.current?.transitioning) {
             const editorMarkdown = readEditorContent()
             const unchangedRichText = !plainText && !sourceControllerRef.current?.sourceActive
                 && editorMarkdown === serializedRichMarkdownRef.current;
@@ -330,6 +330,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
                 return;
             }
             if (sourceControllerRef.current?.transitioning) return;
+            if (sourceControllerRef.current?.conversionFailed && !sourceControllerRef.current.sourceActive) return;
             if (!sourceControllerRef.current?.sourceActive) {
                 if (serializedMarkdown === serializedRichMarkdownRef.current) return;
                 serializedRichMarkdownRef.current = serializedMarkdown;
@@ -365,6 +366,23 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const handlePlainTextEditorReady = useCallback((plainTextEditor: LexicalEditor) => {
         plainTextEditorRef.current = plainTextEditor
     }, [])
+    const pasteImage = useCallback(async (image: File) => {
+        try {
+            await imagePasteHandler?.(image, insertMarkdown);
+        } catch (error) {
+            dialogService.error(error, { fallbackMessage: 'Clipboard image could not be pasted' });
+        }
+    }, [imagePasteHandler, insertMarkdown]);
+
+    // MDXEditor's image plugin consumes image-only paste before composer clipboard handlers can run.
+    const handlePasteCapture = useCallback((event: ClipboardEvent<HTMLDivElement>) => {
+        if (!imagePasteHandler || readOnly || sourceControllerRef.current?.sourceActive) return;
+        const image = [...event.clipboardData.items].find(({ kind, type }) => kind === 'file' && type.startsWith('image/'))?.getAsFile();
+        if (!image) return;
+        event.preventDefault();
+        event.stopPropagation();
+        void pasteImage(image);
+    }, [imagePasteHandler, pasteImage, readOnly]);
     const plainTextConfig = useMemo(
         () => ({ initialText: initialDocumentSnapshot.markdown, onEditorReady: handlePlainTextEditorReady }),
         [handlePlainTextEditorReady, initialDocumentSnapshot.markdown],
@@ -470,6 +488,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
             onBlur={handleBlur}
             onDragOverCapture={handleDragOverCapture}
             onDropCapture={handleDropCapture}
+            onPasteCapture={handlePasteCapture}
             sx={editorSx}
         >
             <MDXEditor

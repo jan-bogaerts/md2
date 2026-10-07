@@ -1,4 +1,4 @@
-import { addTopAreaChild$, diffSourcePlugin, realmPlugin, markdownProcessingError$ } from '@mdxeditor/editor';
+import { addTopAreaChild$, diffSourcePlugin, realmPlugin } from '@mdxeditor/editor';
 import { markdownSourceCompact$, markdownSourceController$ } from './markdown_source_cell';
 import { MarkdownSourceController, type MarkdownSourceConfig } from './markdown_source_controller';
 import { MarkdownSourceRecovery } from './markdown_source_recovery';
@@ -13,9 +13,6 @@ export const markdownSourcePlugin = realmPlugin<MarkdownSourceConfig>({
             [markdownSourceController$]: controller,
             [markdownSourceCompact$]: config.compact,
             [addTopAreaChild$]: MarkdownSourceRecovery,
-        });
-        realm.sub(markdownProcessingError$, (error) => {
-            if (error) queueMicrotask(() => controller.recover(error.source));
         });
         config.onReady(controller);
     },
