@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 184517
+        "usedTokens": 188274
       },
       "entries": [
         {
@@ -1393,6 +1393,39 @@
           "role": "user",
           "sequence": 105,
           "timestamp": "2026-10-07T09:58:35.465Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll check the discovery-process cleanup and every refresh trigger to answer those three points precisely.\n\n\n",
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-turn-6-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 106,
+          "timestamp": "2026-10-07T09:58:39.586Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/actions/agent/agent_catalog_process.js; Get-Content desktop/src/actions/agent/agent_model_catalog_service.js | Select-Object -Skip 64 -First 78; Get-Content app/src/components/hooks/use_agent_model_catalog.ts'",
+          "content": "const crossSpawn = require('cross-spawn');\r\nconst { StringDecoder } = require('node:string_decoder');\r\nconst { terminateProcessTree } = require('../process_tree');\r\nconst { redactSecrets } = require('./agent_secret_redaction');\r\n\r\nconst CATALOG_TIMEOUT_MS = 20_000;\r\nconst CATALOG_MAX_OUTPUT_BYTES = 2 * 1024 * 1024;\r\nconst CATALOG_MAX_REQUESTS = 24;\r\n\r\n/** Own one bounded, no-inference JSONL discovery process and its pending protocol requests. */\r\nclass AgentCatalogProcess {\r\n    constructor(agent, dependencies = {}) {\r\n        this.agent = agent;\r\n        this.spawn = dependencies.spawn ?? crossSpawn;\r\n        this.terminateProcessTree = dependencies.terminateProcessTree ?? terminateProcessTree;\r\n        this.timeoutMs = dependencies.timeoutMs ?? CATALOG_TIMEOUT_MS;\r\n        this.maximumOutputBytes = dependencies.maximumOutputBytes ?? CATALOG_MAX_OUTPUT_BYTES;\r\n        this.child = null;\r\n        this.closed = false;\r\n        this.failure = null;\r\n        this.buffer = '';\r\n        this.decoder = new StringDecoder('utf8');\r\n        this.secretValues = new Set();\r\n        this.outputBytes = 0;\r\n        this.requestSequence = 0;\r\n        this.pending = new Map();\r\n        this.timer = null;\r\n        this.handleOutput = this.handleOutput.bind(this);\r\n        this.handleStderr = this.handleStderr.bind(this);\r\n        this.handleError = this.handleError.bind(this);\r\n        this.handleExit = this.handleExit.bind(this);\r\n        this.handleTimeout = this.handleTimeout.bind(this);\r\n    }\r\n\r\n    start(executable, argumentsList, options) {\r\n        this.secretValues = new Set(Object.entries(options.env)\r\n            .filter(([name, value]) => /token|secret|password|api.?key/iu.test(name) && typeof value === 'string' && value.length > 0)\r\n            .map(([, value]) => value));\r\n        this.child = this.spawn(executable, argumentsList, {\r\n            ...options,\r\n            detached: process.platform !== 'win32',\r\n            stdio: ['pipe', 'pipe', 'pipe'],\r\n            windowsHide: true,\r\n        });\r\n        this.child.stdout.on('data', this.handleOutput);\r\n        this.child.stderr.on('data', this.handleStderr);\r\n        this.child.stdin.on('error', this.handleError);\r\n        this.child.on('error', this.handleError);\r\n        this.child.on('exit', this.handleExit);\r\n        this.timer = setTimeout(this.handleTimeout, this.timeoutMs);\r\n    }\r\n\r\n    async request(method, params) {\r\n        if (this.failure) throw this.failure;\r\n        if (this.closed || !this.child) throw new Error('Agent catalog process is closed');\r\n        if (this.requestSequence >= CATALOG_MAX_REQUESTS) throw new Error('Agent catalog request limit exceeded');\r\n        this.requestSequence += 1;\r\n        const identifier = this.requestSequence;\r\n        const completion = Promise.withResolvers();\r\n        this.pending.set(identifier, completion);\r\n        const message = this.agent === 'codex'\r\n            ? { id: identifier, method, params }\r\n            : { type: 'control_request', request_id: String(identifier), request: { subtype: method, ...params } };\r\n        try {\r\n            this.write(message);\r\n        } catch (error) {\r\n            this.pending.delete(identifier);\r\n            throw error;\r\n        }\r\n\r\n        return await completion.promise;\r\n    }\r\n\r\n    write(message) {\r\n        if (!this.child || this.closed) throw new Error('Agent catalog process is closed');\r\n        this.child.stdin.write(`${JSON.stringify(message)}\\n`);\r\n    }\r\n\r\n    countOutput(chunk) {\r\n        this.outputBytes += Buffer.byteLength(chunk);\r\n        if (this.outputBytes > this.maximumOutputBytes) {\r\n            this.fail(new Error('Agent model discovery exceeded its output limit'));\r\n            return false;\r\n        }\r\n\r\n        return true;\r\n    }\r\n\r\n    handleStderr(chunk) {\r\n        this.countOutput(chunk);\r\n    }\r\n\r\n    handleOutput(chunk) {\r\n        if (this.closed || this.failure || !this.countOutput(chunk)) return;\r\n        this.buffer += this.decoder.write(chunk);\r\n        const lines = this.buffer.split(/\\r?\\n/u);\r\n        this.buffer = lin\n[4872 characters omitted]\nset(key, request);\r\n        try {\r\n            return await request;\r\n        } finally {\r\n            this.pending.delete(key);\r\n        }\r\n    }\r\n\r\n    async discover(profile, executable, argumentsList, cwd, environment, key) {\r\n        const probe = this.createProbe(profile.name);\r\n        this.activeProbes.add(probe);\r\n        try {\r\n            const catalogArguments = profile.name === 'codex' ? ['app-server', '--stdio'] : CLAUDE_CATALOG_ARGUMENTS;\r\n            probe.start(executable, [...argumentsList, ...catalogArguments], { cwd, env: environment });\r\n            const result = profile.name === 'codex'\r\n                ? await readCodexModelCatalog(probe, cwd)\r\n                : await readClaudeModelCatalog(probe);\r\n            const catalog = validateAgentModelCatalog({agent: profile.name, provider: result.provider, source: 'runtime', fetchedAt: this.now(), executable, models: result.models});\r\n            if (this.cache.size >= MAX_CATALOG_CONTEXTS) this.cache.delete(this.cache.keys().next().value);\r\n            this.cache.set(key, catalog);\r\n\r\n            return catalog;\r\n        } finally {\r\n            try {\r\n                await probe.close();\r\n            } finally {\r\n                this.activeProbes.delete(probe);\r\n            }\r\n        }\r\n    }\r\n\r\n    async resolveExecution(config, selection, streaming, cwd) {\r\n        const resolved = resolveAgentCommand(config, selection, streaming);\r\n        const catalog = await this.load(resolved.profile, cwd);\r\n        const { serviceTier } = validateCatalogSelection(catalog, resolved);\r\n        const speedSettings = { speedMode: resolved.speedMode, serviceTier };\r\n        const command = streaming\r\n            ? buildAgentStreamingCommand(\r\n                resolved.profile, resolved.model, resolved.thinkingLevel, resolved.permissionMode, speedSettings,\r\n            )\r\n            : buildAgentExecutionCommand(\r\n                resolved.profile, resolved.model, resolved.thinkingLevel,\r\n                config.codexSearchEnabled ?? true, resolved.permissionMode, speedSettings,\r\n            );\r\n        const reasoningEffort = resolved.agent === 'codex' && resolved.thinkingLevel === 'max'\r\n            ? CODEX_MAX_THINKING_LEVEL : resolved.thinkingLevel;\r\n        const executionSettings = {\r\n            model: resolved.model,\r\n            ...(resolved.thinkingLevel !== 'none' ? { effort: reasoningEffort } : {}),\r\n            ...(serviceTier !== undefined ? { serviceTier } : {}),\r\n        };\r\nimport { useCallback, useEffect, useSyncExternalStore } from 'react';\r\nimport type { AgentProfile } from '../../data/agent_profiles';\r\nimport type { ProjectReference } from '../../data/data_types';\r\nimport {\r\n    agentCapabilitiesService,\r\n    agentCatalogKey,\r\n    type AgentCapabilitiesService,\r\n} from '../../services/agents/agent_capabilities_service';\r\n\r\n/** Subscribe to one host/profile/worktree catalog; discovery never runs during rendering. */\r\nexport function useAgentModelCatalog(\r\n    profile: AgentProfile | null,\r\n    project: ProjectReference | null,\r\n    service: AgentCapabilitiesService = agentCapabilitiesService,\r\n) {\r\n    const key = profile ? agentCatalogKey(profile, project) : '';\r\n    const connection = service.getConnectionIdentity();\r\n    const snapshot = useSyncExternalStore(\r\n        (onStoreChange) => {\r\n            service.addEventListener(`catalog:${key}`, onStoreChange);\r\n\r\n            return () => service.removeEventListener(`catalog:${key}`, onStoreChange);\r\n        },\r\n        () => service.getCatalogSnapshot(key),\r\n        () => service.getCatalogSnapshot(key),\r\n    );\r\n    useEffect(() => {\r\n        if (profile && !snapshot.loading && !snapshot.error && (!snapshot.catalog || snapshot.stale)) {\r\n            void service.loadCatalog(profile, project, snapshot.stale);\r\n        }\r\n    }, [connection, key, profile, project, service, snapshot]);\r\n    const refresh = useCallback(async () => {\r\n        if (profile) await service.loadCatalog(profile, project, true);\r\n    }, [profile, project, service]);\r\n\r\n    return { ...snapshot, refresh };\r\n}\r\n",
+          "durationMs": 159,
+          "exitCode": 0,
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-event-107",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content desktop/src/actions/agent/agent_catalog_process.js; Get-Content desktop/src/actions/agent/agent_model_catalog_service.js | Select-Object -Skip 64 -First 78; Get-Content app/src/components/hooks/use_agent_model_catalog.ts'",
+          "providerItemId": "exec-8bdcdcfd-67cc-4fae-a34c-1ff03c2edd44",
+          "sequence": 107,
+          "status": "completed",
+          "timestamp": "2026-10-07T09:58:42.813Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "1. **They are one-shot discovery processes.** They start, retrieve the catalog, then the service terminates their process tree in a `finally` block—on success or failure. They are not retained between refreshes. A separate **20-second timeout** bounds discovery; that timeout serves a valid cleanup purpose. See [process lifecycle](/C:/Users/janbo/Documents/dev/md2/desktop/src/actions/agent/agent_model_catalog_service.js:100).\n\n2. **Both manual and automatic triggers start them:**\n   - Clicking **Refresh models** forces discovery.\n   - Mounting a catalog consumer automatically loads it when missing.\n   - Five-minute expiry triggers automatic discovery while a consumer remains mounted.\n   - Starting an action or agent-assisted search can trigger discovery if the backend cache is expired or its inputs changed.\n\n   Custom agents using configured model lists do not start discovery processes.\n\n3. **There is no justification for the five-minute refresh timer under your manual-refresh requirement.** The implementation assumes catalogs should automatically stay “fresh”; it does not detect an actual model-list update. Every successful automatic refresh restarts that countdown.\n\n   There are two expiry mechanisms to address: the **renderer timer** and the **backend’s five-minute cache-age check**. Removing only the renderer timer would still allow execution to trigger discovery after cache expiry.\n\nThe manual-refresh button is therefore currently an additional trigger, not the exclusive trigger. That is the implementation mismatch.\n\n",
+          "id": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-turn-6-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 108,
+          "timestamp": "2026-10-07T09:58:55.699Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1402,8 +1435,8 @@
           "agent": "codex",
           "conversationId": "01a11594-9a0a-77c1-89ef-df1df7321800",
           "createdAt": "2026-10-07T09:01:03.990Z",
-          "lastUsedAt": "2026-10-07T09:53:14.311Z",
-          "synchronizedThroughMessageId": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-turn-5-assistant-2"
+          "lastUsedAt": "2026-10-07T09:58:55.699Z",
+          "synchronizedThroughMessageId": "agent-turn-5a3be7b2-0edb-4d62-940e-eac827e5bf72-turn-6-assistant-2"
         }
       ],
       "startedAt": "2026-10-07T08:57:02.321Z",
@@ -1411,18 +1444,18 @@
       "timer": {
         "breakdown": {
           "reasoningMs": 61329,
-          "toolMs": 162818
+          "toolMs": 162990
         },
         "elapsedMs": 679745,
         "runningStartedAt": "2026-10-07T09:58:35.465Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 4054272,
-        "inputTokens": 176549,
-        "outputTokens": 13878,
+        "cachedInputTokens": 4422144,
+        "inputTokens": 181243,
+        "outputTokens": 14279,
         "reasoningTokens": 1491,
-        "totalTokens": 4246190
+        "totalTokens": 4619157
       },
       "usageSchemaVersion": 1,
       "viewed": true
