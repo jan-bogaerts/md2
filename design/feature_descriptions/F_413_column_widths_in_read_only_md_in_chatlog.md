@@ -3,7 +3,7 @@ author:
 id: F_413
 internalId: d013f56f-5326-4d88-b1c8-333ed3cbe3c7
 title: column widths in read-only md in chatlog
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,11 @@ agents:
 policy:
 branch: f_413_column_widths_in_read_only_md_in_chatlog
 worktree: 1
+changedFiles:
+  - app/src/components/actions/conversation/messages/action_conversation_message.test.tsx
+  - app/src/components/actions/conversation/messages/action_conversation_message.tsx
+  - app/src/components/actions/conversation/messages/action_conversation_table.test.tsx
+  - app/src/components/actions/conversation/messages/action_conversation_table.tsx
 ---
 
 We show the chatlog in the action-popup's. these chatlogs show read-only markdown, formatted.
