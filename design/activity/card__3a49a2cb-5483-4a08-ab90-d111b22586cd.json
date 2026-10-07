@@ -1385,6 +1385,14 @@
           "role": "assistant",
           "sequence": 104,
           "timestamp": "2026-10-07T09:53:14.311Z"
+        },
+        {
+          "content": "* the processes that are stared to discover the models, do they remain open or is it a one-shot get values?\n* are these model-discovery processes triggered through the manual 'refresh models' button or are they started automatically with a timer\n* why do we have a timer at all when the refresh needs to be done manually",
+          "id": "submission-fbda9b65-a5a0-475b-97b0-c5ac2b1f96a5",
+          "kind": "message",
+          "role": "user",
+          "sequence": 105,
+          "timestamp": "2026-10-07T09:58:35.465Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1399,14 +1407,14 @@
         }
       ],
       "startedAt": "2026-10-07T08:57:02.321Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 61329,
           "toolMs": 162818
         },
         "elapsedMs": 679745,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-07T09:58:35.465Z"
       },
       "title": "+",
       "usage": {
