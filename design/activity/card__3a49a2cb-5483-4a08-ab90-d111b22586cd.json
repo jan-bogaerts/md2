@@ -2611,7 +2611,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 75280
+        "usedTokens": 77988
       },
       "entries": [
         {
@@ -3513,6 +3513,15 @@
           "role": "user",
           "sequence": 64,
           "timestamp": "2026-10-07T11:35:06.887Z"
+        },
+        {
+          "agent": "codex",
+          "content": "“Fingerprint” is the code’s name for checking whether the agent program or its configuration files have changed. I should have explained that plainly.\n\nThe two problems are:\n\n1. If those files change, the backend stops using the model list it discovered earlier. The interface still shows that list, so you can select a model and then have Send fail.\n2. If a manual refresh fails, the backend has already deleted its previous model list. The interface keeps showing it, which can cause the same failure.\n\nBoth problems come from the interface and backend using different model lists.\n\n",
+          "id": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 65,
+          "timestamp": "2026-10-07T11:35:12.181Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3522,8 +3531,8 @@
           "agent": "codex",
           "conversationId": "01a11621-c9eb-73b1-8e90-1c1b2b06d3b0",
           "createdAt": "2026-10-07T11:34:31.563Z",
-          "lastUsedAt": "2026-10-07T11:34:31.563Z",
-          "synchronizedThroughMessageId": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-turn-1-assistant-4"
+          "lastUsedAt": "2026-10-07T11:35:12.181Z",
+          "synchronizedThroughMessageId": "agent-turn-a76a5183-83c5-4768-9617-74b54da77c8e-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-10-07T11:31:14.826Z",
@@ -3538,11 +3547,11 @@
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 562688,
-        "inputTokens": 63103,
-        "outputTokens": 3575,
+        "cachedInputTokens": 637312,
+        "inputTokens": 66349,
+        "outputTokens": 3693,
         "reasoningTokens": 729,
-        "totalTokens": 630095
+        "totalTokens": 708083
       },
       "usageSchemaVersion": 1,
       "viewed": true
