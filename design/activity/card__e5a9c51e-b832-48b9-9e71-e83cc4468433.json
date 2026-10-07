@@ -3458,6 +3458,36 @@
       "startedAt": "2026-10-07T11:56:08.458Z",
       "status": "completed",
       "rootConversationId": "agent-8a2eb1da-83e4-4a23-8c8d-d3f03583b859"
+    },
+    {
+      "commits": [
+        {
+          "commit": "4237576717e7303f115af0aa18fe18768023e135",
+          "committedAt": "2026-10-07T14:27:25+02:00",
+          "deletions": 83,
+          "filePaths": [
+            "app/src/components/editor/markdown_editor.grouped.test.tsx",
+            "app/src/components/editor/markdown_editor.tsx",
+            "app/src/components/editor/markdown_editor_reliability.real.test.tsx",
+            "app/src/components/editor/markdown_stack_trace_fixture.ts",
+            "app/src/components/editor/plain_markdown_realm_plugin.ts",
+            "app/src/components/editor/source/markdown_source_controller.ts",
+            "app/src/components/editor/source/markdown_source_realm_plugin.ts",
+            "app/src/components/editor/source/markdown_source_recovery.tsx",
+            "app/src/components/editor/source/mdxeditor_import_cells.d.ts"
+          ],
+          "filesChanged": 9,
+          "insertions": 418,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-07T14:27:25+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "e5a9c51e-b832-48b9-9e71-e83cc4468433",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
