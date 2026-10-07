@@ -3,7 +3,7 @@ author:
 id: F_412
 internalId: e5a9c51e-b832-48b9-9e71-e83cc4468433
 title: illegal forced switch to source mode
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,17 @@ policy:
 after: 78b279d6-eae4-4801-92c0-a6423a1fc880
 branch: f_412_illegal_forced_switch_to_source_mode
 worktree: 1
+changedFiles:
+  - .f_412_limit_fs.cjs
+  - app/src/components/editor/markdown_editor.grouped.test.tsx
+  - app/src/components/editor/markdown_editor.tsx
+  - app/src/components/editor/markdown_editor_reliability.real.test.tsx
+  - app/src/components/editor/paste/markdown_paste_plugin.tsx
+  - app/src/components/editor/plain_markdown_realm_plugin.ts
+  - app/src/components/editor/source/markdown_source_controller.ts
+  - app/src/components/editor/source/markdown_source_realm_plugin.ts
+  - app/src/components/editor/source/markdown_source_recovery.tsx
+  - app/src/components/editor/source/mdxeditor_import_cells.d.ts
 ---
 we recently introduced source mode for the markdown editors. this appears to be giving unwanted side effects.
 
