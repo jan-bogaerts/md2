@@ -4881,6 +4881,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "3a49a2cb-5483-4a08-ab90-d111b22586cd",
+      "cardPath": "design/feature_descriptions/F_411_action_input_does_mysterious_things.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/F_411_action_input_does_mysterious_things.md. we tried to clean up all the code that was badly implemented. it appeared different parts of the code began validating model lists, reasoning levels, and speed settings against caches, files, fingerprinting stuff. in short, complete over engineering.\n\ncheck the code base, report any code related to model lists, agents that is still left over, dead code,..",
+          "id": "submission-ba35fd4b-a657-4273-aa24-bac2034789c3",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-07T11:47:35.178Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-b019a4d1-5099-4dcc-8acf-a7c19ae1b53e",
+      "providerSessions": [],
+      "startedAt": "2026-10-07T11:47:35.178Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-07T11:47:35.178Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
