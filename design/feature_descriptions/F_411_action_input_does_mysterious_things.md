@@ -3,14 +3,21 @@ author:
 id: F_411
 internalId: 3a49a2cb-5483-4a08-ab90-d111b22586cd
 title: action input does mysterious things
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__3a49a2cb-5483-4a08-ab90-d111b22586cd.json
 policy:
-after: 45e13c03-d74d-4082-9065-aa387f6553f5
+after: 7df9f053-e015-45b7-ba7a-9f4f0945ef60
 changedFiles:
+  - .agent_catalog_cleanup.py
+  - .agent_catalog_followup.py
+  - .agent_catalog_tests.py
+  - .agent_cleanup.py
+  - .agent_cleanup_final_checks.py
+  - .agent_cleanup_fixes.py
+  - .agent_notification_checks.py
   - app/src/App.test.tsx
   - app/src/app/use_app_bootstrap.test.ts
   - app/src/components/actions/run/popup/action_popup_bottom_row.grouped.test.tsx
