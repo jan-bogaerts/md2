@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__d013f56f-5326-4d88-b1c8-333ed3cbe3c7.json
 policy:
+branch: f_413_column_widths_in_read_only_md_in_chatlog
+worktree: 1
 ---
 
 We show the chatlog in the action-popup's. these chatlogs show read-only markdown, formatted.
