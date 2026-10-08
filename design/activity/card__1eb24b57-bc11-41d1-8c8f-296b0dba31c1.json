@@ -739,14 +739,14 @@
         }
       ],
       "startedAt": "2026-10-08T11:33:42.191Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 216,
           "toolMs": 14513
         },
-        "elapsedMs": 287249,
-        "runningStartedAt": "2026-10-08T11:58:47.593Z"
+        "elapsedMs": 329468,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
