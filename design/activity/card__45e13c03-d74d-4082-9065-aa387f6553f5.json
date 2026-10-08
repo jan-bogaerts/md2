@@ -454,24 +454,32 @@
           "sequence": 32,
           "timestamp": "2026-10-08T08:16:40.674Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Dismiss search (Recommended)\nclaude-question-1: Yes, all editors (Recommended)",
+          "id": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-answer-32",
+          "kind": "message",
+          "role": "user",
+          "sequence": 33,
+          "timestamp": "2026-10-08T12:02:59.032Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-d9daeed3-2e0a-444a-b371-190424cab10f",
       "providerSessions": [],
       "startedAt": "2026-10-08T08:16:03.381Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 6107,
           "toolMs": 20599
         },
         "elapsedMs": 37293,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-08T12:02:59.032Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
