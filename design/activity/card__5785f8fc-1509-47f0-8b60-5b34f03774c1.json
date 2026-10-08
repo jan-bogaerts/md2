@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "5785f8fc-1509-47f0-8b60-5b34f03774c1",
       "cardPath": "design/feature_descriptions/B_266_after_queued_message_chatlog_stops_responding.md",
-      "completedAt": null,
+      "completedAt": "2026-10-08T08:22:08.967Z",
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_266_after_queued_message_chatlog_stops_responding.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except files listed under 'agents' in the header. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -20,10 +20,14 @@
       "id": "agent-a65dc341-e3ed-4a95-8a97-23d56b6d9c3a",
       "providerSessions": [],
       "startedAt": "2026-10-08T08:22:05.432Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-08T08:22:05.432Z"
+        "breakdown": {
+          "reasoningMs": 0,
+          "toolMs": 0
+        },
+        "elapsedMs": 3275,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usageSchemaVersion": 1,
