@@ -780,13 +780,50 @@
         "costUsd": 1.4400118
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "a0d1eee2-1989-41e0-800d-9667640d35b2",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "02fa9f895c198b24201029a1a71381231e794bb8",
+          "committedAt": "2026-10-08T13:47:46+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_267_integrate_into_project_gives_commit_error.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 64
+        }
+      ],
+      "completedAt": "2026-10-08T11:47:47.071Z",
+      "conversationIds": [
+        "agent-407c5df3-e0c0-4ad3-962c-eeffd514290c"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-35e2a18e-81ff-430a-8d7b-8c4d72808f84",
+      "origin": {
+        "cardInternalId": "a0d1eee2-1989-41e0-800d-9667640d35b2",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-407c5df3-e0c0-4ad3-962c-eeffd514290c",
+      "startedAt": "2026-10-08T11:44:50.943Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
