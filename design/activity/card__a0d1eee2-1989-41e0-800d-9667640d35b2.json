@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "a0d1eee2-1989-41e0-800d-9667640d35b2",
       "cardPath": "design/feature_descriptions/B_267_integrate_into_project_gives_commit_error.md",
-      "completedAt": null,
+      "completedAt": "2026-10-08T11:47:45.943Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 108930
@@ -735,7 +735,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 57,
-          "timestamp": "2026-10-08T11:47:45.098Z"
+          "timestamp": "2026-10-08T11:47:45.943Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -745,7 +745,7 @@
           "agent": "claude",
           "conversationId": "6c9e5da8-9e77-4d9e-8217-5483c9ac011f",
           "createdAt": "2026-10-08T11:47:45.098Z",
-          "lastUsedAt": "2026-10-08T11:47:45.098Z",
+          "lastUsedAt": "2026-10-08T11:47:45.943Z",
           "synchronizedThroughMessageId": "agent-turn-9afdf17c-7401-4e14-9727-9f07c7d1636e-turn-1-assistant-6",
           "usageBaseline": {
             "costUsd": 1.4400118,
@@ -761,14 +761,14 @@
         }
       ],
       "startedAt": "2026-10-08T11:44:52.024Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 46857,
           "toolMs": 88823
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-08T11:44:52.024Z"
+        "elapsedMs": 173919,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
