@@ -2051,6 +2051,31 @@
       "startedAt": "2026-10-08T10:53:25.591Z",
       "status": "completed",
       "rootConversationId": "agent-106ddfd3-b571-4311-8e4d-e7a1f4368b68"
+    },
+    {
+      "commits": [
+        {
+          "commit": "2cc2a439d06756c778e8c6bfaa19f05a27987d5c",
+          "committedAt": "2026-10-08T13:12:03+02:00",
+          "deletions": 55,
+          "filePaths": [
+            "app/src/services/actions/action_run_registry.node.test.ts",
+            "app/src/services/actions/action_run_registry.ts",
+            "desktop/src/actions/agent/agent_run_interactions.js",
+            "desktop/src/actions/agent/agent_runner_state.test.mjs"
+          ],
+          "filesChanged": 4,
+          "insertions": 176,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-08T13:12:03+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "5785f8fc-1509-47f0-8b60-5b34f03774c1",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
