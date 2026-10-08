@@ -213,6 +213,30 @@ describe('SearchControl', () => {
         expect(screen.getByRole('button', { name: 'Ask agent to build a RegExp' })).toBeInTheDocument()
     })
 
+    it('closes the editable search from its close button and keeps the query in the launcher', async () => {
+        const user = userEvent.setup()
+        render(<SearchControl />)
+        await user.click(screen.getByRole('textbox', { name: 'Search project' }))
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta')
+
+        await user.click(screen.getByRole('button', { name: 'Close search' }))
+
+        expect(screen.queryByRole('dialog', { name: 'Search dropdown' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Close search' })).not.toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveAttribute('readonly')
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Beta')
+    })
+
+    it('closes the mobile search popover from its close button', async () => {
+        const user = userEvent.setup()
+        render(<SearchControl isMobile />)
+        await user.click(screen.getByRole('button', { name: 'Search' }))
+
+        await user.click(screen.getByRole('button', { name: 'Close search' }))
+
+        await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Search project' })).not.toBeInTheDocument())
+    })
+
     it('can be resized by dragging its lower-right corner handle and persists the chosen size', () => {
         render(<SearchControl />)
 

@@ -2,6 +2,7 @@ import { Box, IconButton, InputAdornment, TextField, ToggleButton, Tooltip, Typo
 import type { ChangeEvent, FocusEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import AutoFix from 'mdi-material-ui/AutoFix'
+import Close from 'mdi-material-ui/Close'
 import FileSearchOutline from 'mdi-material-ui/FileSearchOutline'
 import LightningBolt from 'mdi-material-ui/LightningBolt'
 import Magnify from 'mdi-material-ui/Magnify'
@@ -239,13 +240,18 @@ export function SearchPanel(props: SearchPanelProps) {
                         htmlInput: { 'aria-label': 'Search project' },
                         input: {
                             endAdornment: (
-                                <InputAdornment position="end">
+                                <InputAdornment position="end" sx={{ gap: 0.5 }}>
                                     <Box
                                         component="span"
                                         sx={SEARCH_SHORTCUT_STYLES}
                                     >
                                         {shortcutLabel}
                                     </Box>
+                                    <Tooltip title="Close search">
+                                        <IconButton aria-label="Close search" edge="end" onClick={onClose} size="small">
+                                            <Close fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
                                 </InputAdornment>
                             ),
                             startAdornment: (

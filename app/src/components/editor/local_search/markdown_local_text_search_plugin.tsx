@@ -1,5 +1,6 @@
 import ArrowDownwardOutlined from '@mui/icons-material/ArrowDownwardOutlined'
 import ArrowUpwardOutlined from '@mui/icons-material/ArrowUpwardOutlined'
+import Close from 'mdi-material-ui/Close'
 import SearchOutlined from '@mui/icons-material/SearchOutlined'
 import { Box, IconButton, InputAdornment, Paper, Popper, TextField, ToggleButton, Tooltip, Typography } from '@mui/material'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -216,6 +217,11 @@ export function MarkdownLocalTextSearchPlugin() {
                         >
                             Aa
                         </ToggleButton>
+                    </Tooltip>
+                    <Tooltip title="Close search">
+                        <IconButton aria-label="Close search" onClick={closeSearch} size="small">
+                            <Close fontSize="small" />
+                        </IconButton>
                     </Tooltip>
                 </Box>
             </Paper>

@@ -343,6 +343,15 @@ describe('MarkdownEditor local text search', () => {
         expect(editor).toHaveValue('locked text')
     })
 
+    it('closes from the popup close button', () => {
+        renderSearchEditor('Find this')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Find text' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Close search' }))
+
+        expect(screen.queryByRole('textbox', { name: 'Find text' })).not.toBeInTheDocument()
+    })
+
     it('stays open without blocking background focus, input, or scrolling and closes from outside Escape', async () => {
         const onChange = vi.fn()
         render(
