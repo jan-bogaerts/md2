@@ -1379,11 +1379,11 @@
         "agent-90c67c22-2be5-4a6e-a65d-4f7860739d5d"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-1cd9039e-7125-4898-9f5c-98844f6a4f42",
       "origin": {
@@ -1392,9 +1392,36 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-90c67c22-2be5-4a6e-a65d-4f7860739d5d",
       "startedAt": "2026-10-08T12:05:07.912Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-90c67c22-2be5-4a6e-a65d-4f7860739d5d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "f377f3fa9fe77c33a931549c00ab2834078c134c",
+          "committedAt": "2026-10-08T16:58:46+02:00",
+          "deletions": 1,
+          "filePaths": [
+            "app/src/components/actions/conversation/search/action_conversation_search_controls.test.tsx",
+            "app/src/components/actions/conversation/search/action_conversation_search_row.tsx",
+            "app/src/components/editor/local_search/markdown_local_text_search_plugin.tsx",
+            "app/src/components/editor/markdown_editor_local_text_search.test.tsx",
+            "app/src/components/shell/search/search_control.test.tsx",
+            "app/src/components/shell/search/search_panel.tsx"
+          ],
+          "filesChanged": 6,
+          "insertions": 68,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-08T16:58:46+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "45e13c03-d74d-4082-9065-aa387f6553f5",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
