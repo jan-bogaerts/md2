@@ -3,7 +3,7 @@ author:
 id: B_266
 internalId: 5785f8fc-1509-47f0-8b60-5b34f03774c1
 title: after queued message chatlog stops responding
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,11 @@ agents:
 policy:
 branch: b_266_after_queued_message_chatlog_stops_responding
 worktree: 3
+changedFiles:
+  - app/src/services/actions/action_run_registry.node.test.ts
+  - app/src/services/actions/action_run_registry.ts
+  - desktop/src/actions/agent/agent_run_interactions.js
+  - desktop/src/actions/agent/agent_runner_state.test.mjs
 ---
 
 Something strange going on with the chatlog of the active conversation on the action-popup.
