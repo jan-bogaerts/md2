@@ -21,6 +21,10 @@
       "cardInternalId": "04b4a3a2-45cc-425c-bc43-6c46a294447c",
       "cardPath": "design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 55122
+      },
       "entries": [
         {
           "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except files listed under 'agents' in the header. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
@@ -29,18 +33,385 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-08T08:14:39.268Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-2",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSGVkGBGFPioySXhQyL:thinking:0",
+          "sequence": 2,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:14:45.151Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\design\\\\feature_descriptions\\\\F_416_use_icons_on_markdown_editor_toolbar.md\"}",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-3",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\t---\n2\tauthor: \n3\tid: F_416\n4\tinternalId: 04b4a3a2-45cc-425c-bc43-6c46a294447c\n5\ttitle: use icons on markdown editor toolbar\n6\tstatus: design\n7\towner: \n8\taffects:\n9\tagents:\n10\t  - design/activity/card__04b4a3a2-45cc-425c-bc43-6c46a294447c.json\n11\tpolicy:\n12\t---\n13\t\n14\twe currently have 2 text buttons (rich-text and source) on the markdown editor toolbar. we should replace them with icon buttons, no text, but with tooltip",
+          "providerItemId": "toolu_01TTvxrFKDLns8XWDSDXDzi2",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:14:45.486Z",
+          "type": "tool.Read"
+        },
+        {
+          "agent": "claude",
+          "content": "No referenced files besides agents. Find toolbar code.",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 4,
+          "timestamp": "2026-10-08T08:14:46.569Z"
+        },
+        {
+          "content": "{\"pattern\":\"[Rr]ich.?[Tt]ext\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"glob\":\"*.{jsx,tsx,js,ts}\",\"output_mode\":\"files_with_matches\"}",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-5",
+          "kind": "event",
+          "label": "Grep",
+          "output": "Found 6 files\napp\\src\\components\\editor\\source\\markdown_source_recovery.tsx\napp\\src\\components\\editor\\source\\markdown_source_controller.ts\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx\napp\\src\\components\\editor\\markdown_editor.tsx\napp\\src\\test\\mdx_editor_stub.tsx\napp\\src\\components\\editor\\source\\markdown_source_mode_controls.tsx",
+          "providerItemId": "toolu_0179YqLqi2sgt2tG8KhhJMue",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:14:47.939Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\editor\\\\source\\\\markdown_source_mode_controls.tsx\"}",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-6",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { useCellValues, viewMode$ } from '@mdxeditor/editor';\n2\timport { ToggleButton, ToggleButtonGroup } from '@mui/material';\n3\timport { useCallback, type MouseEvent } from 'react';\n4\timport { markdownSourceController$ } from './markdown_source_cell';\n5\t\n6\t/** Two-state view selector; the historical diff view remains a separate read-only surface. */\n7\texport function MarkdownSourceModeControls() {\n8\t    const [mode, controller] = useCellValues(viewMode$, markdownSourceController$);\n9\t    const handleModeChange = useCallback((_event: MouseEvent<HTMLElement>, next: 'rich-text' | 'source' | null) => {\n10\t        if (next && next !== mode) controller?.setMode(next);\n11\t    }, [controller, mode]);\n12\t\n13\t    return (\n14\t        <ToggleButtonGroup aria-label=\"Markdown view\" exclusive onChange={handleModeChange} size=\"small\" value={mode}>\n15\t            <ToggleButton value=\"rich-text\">Rich text</ToggleButton>\n16\t            <ToggleButton value=\"source\">Source</ToggleButton>\n17\t        </ToggleButtonGroup>\n18\t    );\n19\t}\n20\t",
+          "providerItemId": "toolu_01DQ3gsWULJYY8kMJ2NqDU15",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:14:49.501Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"pattern\":\"MarkdownSourceModeControls|Rich text|'Source'|\\\"Source\\\"\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-7",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\services\\diagrams\\diagram_edge_drawing_service.test.ts:23:            { height: 80, id: 'source', label: 'Source', role: 'focal', width: 120, x: 0, y: 0 },\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.test.ts:35:            { height: 80, id: 'source', label: 'Source', role: 'focal', width: 120, x: 0, y: 0 },\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.test.ts:50:            { height: 72, id: 'source', kind: 'participant', label: 'Source', role: 'focal', width: 120, x: 0, y: 40 },\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.test.ts:87:            { height: 80, id: 'source', kind: 'entity', label: 'Source', role: 'focal', width: 120, x: 0, y: 0 },\napp\\src\\services\\diagrams\\diagram_edge_drawing_service.test.ts:99:            { height: 128, id: 'source', kind: 'root', label: 'Source', role: 'focal', width: 128, x: 0, y: 0 },\napp\\src\\services\\diagrams\\diagram_removal_plan.test.ts:7:        { id: 'source', label: 'Source', role: 'focal' },\napp\\src\\services\\diagrams\\diagram_paste.test.ts:15:    nodes: [{ id: 'source', label: 'Source', role: 'focal', x: 4, y: 4 }],\napp\\src\\components\\editor\\markdown_editor.tsx:45:import { MarkdownSourceModeControls } from './source/markdown_source_mode_controls';\napp\\src\\components\\editor\\markdown_editor.tsx:435:            {!plainText && !hideToolbar && viewMode !== 'diff' ? <MarkdownSourceModeControls /> : null}\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:57:async function selectMode(name: 'Source' | 'Rich text') {\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:209:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:211:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:222:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:224:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:230:    it('saves Source edits verbatim and renders them after returning to Rich text', async () => {\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:232:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:235:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:246:        expect(screen.getByRole('button', { name: 'Source' })).toHaveAttribute('aria-pressed', 'true');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:250:    it('inserts HTML once without leaving Rich text or losing the existing document', async () => {\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:262:        expect(screen.getByRole('button', { name: 'Rich text' })).toHaveAttribute('aria-pressed', 'true');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:289:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:290:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:309:        expect(screen.getByRole('button', { name: 'Rich text' })).toHaveAttribute('aria-pressed', 'true');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:351:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:353:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:401:        expect(screen.getByRole('button', { name: 'Rich text' })).toHaveAttribute('aria-pressed', 'true');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:402:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:412:        expect(screen.getByRole('button', { name: 'Rich text' })).toHaveAttribute('aria-pressed', 'true');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:415:            { fallbackMessage: 'Rich text c\n[775 characters omitted]\ne');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:467:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:470:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:478:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:484:        expect(screen.getByRole('button', { name: 'Source' })).toHaveAttribute('aria-pressed', 'true');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:486:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:496:        expect(screen.getByRole('button', { name: 'Rich text' })).toHaveAttribute('aria-pressed', 'true');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:499:    it('pastes an image through the attachment boundary without leaving Rich text', async () => {\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:512:        expect(screen.getByRole('button', { name: 'Rich text' })).toHaveAttribute('aria-pressed', 'true');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:515:    it('drops an attachment through the shared workflow without leaving Rich text', async () => {\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:525:        expect(screen.getByRole('button', { name: 'Rich text' })).toHaveAttribute('aria-pressed', 'true');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:530:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:544:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:545:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:553:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:555:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:564:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:573:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:578:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:591:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:596:        await selectMode('Rich text');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:606:    it.each(['<!-- preserve this comment -->\\n\\nText', '<div>preserve this HTML</div>'])('opens HTML cleanly in compact Rich text: %s', (markdown) => {\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:617:    it('opens HTML in read-only compact Rich text without changing source', () => {\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:627:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:637:        await selectMode('Source');\napp\\src\\components\\editor\\markdown_editor_reliability.real.test.tsx:649:        await selectMode('Source');\napp\\src\\components\\editor\\source\\markdown_source_recovery.tsx:6:import { MarkdownSourceModeControls } from './markdown_source_mode_controls';\napp\\src\\components\\editor\\source\\markdown_source_recovery.tsx:12:        if (error) dialogService.error(new Error(error.error), { fallbackMessage: 'Rich text conversion failed; complete source is preserved' });\napp\\src\\components\\editor\\source\\markdown_source_recovery.tsx:17:            {compact && (error || mode === 'source') ? <Box sx={{ p: 1 }}><MarkdownSourceModeControls /></Box> : null}\napp\\src\\components\\editor\\source\\markdown_source_mode_controls.tsx:7:export function MarkdownSourceModeControls() {\napp\\src\\components\\editor\\source\\markdown_source_mode_controls.tsx:15:            <ToggleButton value=\"rich-text\">Rich text</ToggleButton>",
+          "providerItemId": "toolu_01GxK7nxtLv6kMxG24DeniKp",
+          "sequence": 7,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:14:50.460Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-8",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSHD3T4xpV6qAndCCef:thinking:0",
+          "sequence": 8,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:14:52.336Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\editor\\\\markdown_editor.tsx\",\"offset\":1,\"limit\":80}",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-9",
+          "kind": "event",
+          "label": "Read",
+          "output": "1\timport { Box } from '@mui/material'\n2\timport {\n3\t    MDXEditor, codeBlockPlugin, codeMirrorPlugin, diffSourcePlugin,\n4\t    headingsPlugin, imagePlugin, linkDialogPlugin, linkPlugin, listsPlugin, markdownShortcutPlugin, quotePlugin,\n5\t    tablePlugin, thematicBreakPlugin, toolbarPlugin,\n6\t    type MDXEditorMethods, type ViewMode,\n7\t} from '@mdxeditor/editor'\n8\timport '@mdxeditor/editor/style.css'\n9\timport type { LexicalEditor } from 'lexical'\n10\timport {\n11\t    forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef,\n12\t    type ClipboardEvent, type DragEvent, type FocusEvent, type ReactNode,\n13\t} from 'react'\n14\timport type { ActionPlaceholder } from '../../data/action_placeholders'\n15\timport { useProjectState } from '../hooks/use_project_state'\n16\timport { dialogService } from '../../services/dialog_service'\n17\timport { useAppTheme } from '../../theme/use_app_theme'\n18\timport { HorizontalScrollArea } from '../horizontal_scroll_area'\n19\timport { markdownDocumentHistoryPlugin } from './history/markdown_document_history_realm_plugin'\n20\timport type { MarkdownDocumentHistoryStore } from './history/markdown_document_history_store'\n21\timport { MarkdownFormatToolbarControls } from './toolbar/markdown_format_toolbar_controls'\n22\timport type { MarkdownToolbarContext } from './toolbar/markdown_toolbar_context'\n23\timport { markdownFileSearchPlugin } from './file_search/markdown_file_search_realm_plugin'\n24\timport { markdownLocalTextSearchPlugin } from './local_search/markdown_local_text_search_realm_plugin'\n25\timport { plainMarkdownPlugin } from './plain_markdown_realm_plugin'\n26\timport { markdownPlaceholderPlugin } from './placeholders/markdown_placeholder_realm_plugin'\n27\timport { markdownPlainTextPlugin } from './plain_text/markdown_plain_text_realm_plugin'\n28\timport { readPlainText, writePlainText } from './plain_text/markdown_plain_text'\n29\timport { registerMarkdownEditorStage } from '../../services/project/markdown_editor_staging'\n30\timport { markdownPastePlugin } from './paste/markdown_paste_realm_plugin'\n31\timport type { MarkdownImagePasteHandler } from './paste/markdown_paste_cell'\n32\timport type {\n33\t    ActiveMarkdownDocumentChangedDetail,\n34\t    MarkdownBindingKind,\n35\t    MarkdownDataSource,\n36\t    MarkdownDocumentTarget,\n37\t} from './data_sources/markdown_data_source'\n38\timport { MarkdownAttachmentControl } from './attachments/markdown_attachment_control'\n39\timport type { AttachmentMarkdownInserter } from '../../services/attachments/attachment_workflow'\n40\timport type { MarkdownDraftBinding } from '../../services/markdown/markdown_draft'\n41\timport { useMarkdownDraft } from './data_sources/use_markdown_draft'\n42\timport { markdownBreakPlugin } from './markdown_break_realm_plugin';\n43\timport { markdownReferencePlugin } from './references/markdown_reference_realm_plugin';\n44\timport { markdownSourcePlugin } from './source/markdown_source_realm_plugin';\n45\timport { MarkdownSourceModeControls } from './source/markdown_source_mode_controls';\n46\timport type { MarkdownSourceController } from './source/markdown_source_controller';\n47\t\n48\tconst DEFAULT_CODE_LANGUAGE = ''\n49\tconst CODE_BLOCK_LANGUAGES = { '': 'Plain text', js: 'JavaScript', ts: 'TypeScript', tsx: 'TSX', bash: 'Shell' }\n50\tconst EMPTY_PLACEHOLDERS: readonly ActionPlaceholder[] = []\n51\tconst EMPTY_REPOSITORY_FILES: readonly string[] = []\n52\t\n53\texport interface MarkdownEditorHandle {\n54\t    flush(): boolean\n55\t    getMarkdown(): string\n56\t    setMarkdown(markdown: string): void\n57\t}\n58\t\n59\tinterface MarkdownEditorPresentationProps {\n60\t    attachmentHandler?: (files: File[], insertMarkdown: AttachmentMarkdownInserter) => Promise<void>\n61\t    diffMarkdown?: string\n62\t    flushOnBlur?: boolean\n63\t    /** Omit format toolbar entirely. */\n64\t    hideToolbar?: boolean\n65\t    /** Hide built-in attachment control while retaining attachment drops. */\n66\t    hideAttachmentControl?: boolean\n67\t    imagePasteHandler?: MarkdownImagePasteHandler\n68\t    /** Maps a stored image `src` to a displayable source; the Markdown keeps the stored value. */\n69\t    imagePreviewHandler?: (src: string) => Promise<string>\n70\t    /** Set false when containing surface owns Ctrl+F behavior. */\n71\t    localTextSearch?: boolean\n72\t    monospace?: boolean\n73\t    overlayContainer?: HTMLElement | null\n74\t    /** Exchange literal text instead of Markdown source, for fields that are not Markdown. */\n75\t    plainText?: boolean\n76\t    placeholders?: readonly ActionPlaceholder[]\n77\t    readOnly?: boolean\n78\t    toolbarContents?: (toolbarContext: MarkdownToolbarContext) => ReactNode\n79\t    viewMode?: ViewMode\n80\t}",
+          "providerItemId": "toolu_01HjfMfrpeUorEo9BepkrpDx",
+          "sequence": 9,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:14:53.099Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\editor\\\\markdown_editor.tsx\",\"offset\":400,\"limit\":60}",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-10",
+          "kind": "event",
+          "label": "Read",
+          "output": "400\t        getTarget,\n401\t        historyStore,\n402\t        imagePasteHandler,\n403\t        initialViewMode: viewMode === 'source' ? 'source' as const : 'rich-text' as const,\n404\t        onReady: handleSourceReady,\n405\t        onRichTextBaseline: handleRichTextBaseline,\n406\t    }), [getMarkdown, getTarget, handleRichTextBaseline, handleSourceReady, hideToolbar, historyStore, imagePasteHandler, viewMode]);\n407\t\n408\t    const getSelectionMarkdown = useCallback(() => editorRef.current?.getSelectionMarkdown() ?? '', [])\n409\t\n410\t    useMarkdownDraft(draft, insertMarkdown, replaceDraftMarkdown, flush, bindDraft)\n411\t\n412\t    const attachFiles = useCallback((files: File[]) => {\n413\t        if (!attachmentHandler || readOnly || files.length === 0) return\n414\t        void attachmentHandler(files, insertMarkdown).catch((error: unknown) => {\n415\t            dialogService.error(error, { fallbackMessage: 'Files could not be attached' })\n416\t        })\n417\t    }, [attachmentHandler, insertMarkdown, readOnly])\n418\t\n419\t    const handleDragOverCapture = (event: DragEvent<HTMLDivElement>) => {\n420\t        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return\n421\t        event.preventDefault()\n422\t        event.stopPropagation()\n423\t    }\n424\t\n425\t    const handleDropCapture = (event: DragEvent<HTMLDivElement>) => {\n426\t        if (!attachmentHandler || readOnly || !event.dataTransfer.types.includes('Files')) return\n427\t        event.preventDefault()\n428\t        event.stopPropagation()\n429\t        attachFiles([...event.dataTransfer.files])\n430\t    }\n431\t\n432\t    const onAttachFiles = attachmentHandler && !hideAttachmentControl ? attachFiles : undefined\n433\t    const toolbarContents = useCallback(() => (\n434\t        <HorizontalScrollArea>\n435\t            {!plainText && !hideToolbar && viewMode !== 'diff' ? <MarkdownSourceModeControls /> : null}\n436\t            {!hideToolbar ? (\n437\t                customToolbarContents?.({ onAttachFiles })\n438\t                ?? (\n439\t                    <MarkdownFormatToolbarControls\n440\t                        onAttachFiles={onAttachFiles}\n441\t                        overlayContainer={overlayContainer}\n442\t                        placeholders={placeholders}\n443\t                        readOnly={readOnly}\n444\t                    />\n445\t                )\n446\t            ) : null}\n447\t            {hideToolbar && onAttachFiles ? <MarkdownAttachmentControl disabled={readOnly} onFiles={onAttachFiles} /> : null}\n448\t        </HorizontalScrollArea>\n449\t    ), [customToolbarContents, hideToolbar, onAttachFiles, overlayContainer, placeholders, plainText, readOnly, viewMode])\n450\t    const editorSx = {\n451\t        ...markdownContentSx,\n452\t        ...(monospace ? {'& .mdxeditor-content, & .mdxeditor-content *': { fontFamily: 'monospace !important' }} : {}),\n453\t        '& .mdxeditor-toolbar': { bgcolor: 'background.paper', overflow: 'hidden', position: 'sticky', top: 0, zIndex: 1 },\n454\t        '& .mdxeditor-source-editor .cm-editor, & .mdxeditor-source-editor .cm-gutters': {bgcolor: 'background.paper', color: 'text.primary'},\n455\t        '& .mdxeditor-source-editor .cm-cursor, & .mdxeditor-source-editor .cm-dropCursor': {borderLeftColor: 'text.primary'},\n456\t        '& .mdxeditor-source-editor .cm-selectionBackground': {bgcolor: 'action.selected'},\n457\t    }\n458\t    const historyPlugin = historyPluginConfig ? markdownDocumentHistoryPlugin(historyPluginConfig) : null\n459\t    const plugins = [",
+          "providerItemId": "toolu_01WrZCvg7z7oQhJsE1vxK8bm",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:14:53.903Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\\\\components\\\\editor\\\\markdown_editor_reliability.real.test.tsx\",\"offset\":50,\"limit\":20}",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-11",
+          "kind": "event",
+          "label": "Read",
+          "output": "50\t}\n51\t\n52\tfunction replaceSource(markdown: string) {\n53\t    const editor = sourceEditor();\n54\t    act(() => editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: markdown }, userEvent: 'input' }));\n55\t}\n56\t\n57\tasync function selectMode(name: 'Source' | 'Rich text') {\n58\t    await userEvent.click(screen.getByRole('button', { name }));\n59\t}\n60\t\n61\tfunction pasteRich(markdown: string, mimeType = 'text/plain') {\n62\t    const event = new Event('paste', { cancelable: true });\n63\t    Object.defineProperty(event, 'clipboardData', {value: { items: [{ kind: 'string', type: mimeType }], getData: (type: string) => type === mimeType ? markdown : '' }});\n64\t    act(() => richEditor().dispatchCommand(PASTE_COMMAND, event as ClipboardEvent));\n65\t    return event;\n66\t}\n67\t\n68\tfunction richText() {\n69\t    return richEditor().getEditorState().read(() => $getRoot().getTextContent());",
+          "providerItemId": "toolu_013tUUL2CsS1ZLf6Gjw7Qj1z",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:14:54.694Z",
+          "type": "tool.Read"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nCheck format toolbar for icon+tooltip pattern and STYLE_GUIDE.",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 12,
+          "timestamp": "2026-10-08T08:14:56.175Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/editor/toolbar; ls; grep -rn \"Tooltip\\|@mui/icons-material\\|aria-label\" . | head -40; grep -n -i \"icon\\|tooltip\" /c/Users/janbo/Documents/dev/md2/design/STYLE_GUIDE.md | head -30",
+          "content": "markdown_emoji_picker_content.tsx\nmarkdown_emoji_toolbar_control.grouped.test.tsx\nmarkdown_emoji_toolbar_control.tsx\nmarkdown_format_toolbar_controls.grouped.test.tsx\nmarkdown_format_toolbar_controls.tsx\nmarkdown_list_indent_toolbar_controls.grouped.test.tsx\nmarkdown_list_indent_toolbar_controls.tsx\nmarkdown_toolbar_context.ts\n./markdown_emoji_picker_content.tsx:59:                                    aria-label={emoji.name}\n./markdown_emoji_toolbar_control.tsx:1:import MoodOutlined from '@mui/icons-material/MoodOutlined'\n./markdown_emoji_toolbar_control.tsx:2:import { IconButton, Popover, Tooltip } from '@mui/material'\n./markdown_emoji_toolbar_control.tsx:27:            <Tooltip title=\"Insert emoji\">\n./markdown_emoji_toolbar_control.tsx:33:                        aria-label=\"Insert emoji\"\n./markdown_emoji_toolbar_control.tsx:41:            </Tooltip>\n./markdown_emoji_toolbar_control.tsx:49:                slotProps={{ paper: { 'aria-label': 'Emoji picker', role: 'dialog' } }}\n./markdown_list_indent_toolbar_controls.tsx:1:import FormatIndentDecreaseOutlined from '@mui/icons-material/FormatIndentDecreaseOutlined'\n./markdown_list_indent_toolbar_controls.tsx:2:import FormatIndentIncreaseOutlined from '@mui/icons-material/FormatIndentIncreaseOutlined'\n./markdown_list_indent_toolbar_controls.tsx:3:import { IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material'\n./markdown_list_indent_toolbar_controls.tsx:27:            <Tooltip title=\"Increase indent\">\n./markdown_list_indent_toolbar_controls.tsx:30:                        aria-label=\"Increase indent\"\n./markdown_list_indent_toolbar_controls.tsx:38:            </Tooltip>\n./markdown_list_indent_toolbar_controls.tsx:39:            <Tooltip title=\"Decrease indent\">\n./markdown_list_indent_toolbar_controls.tsx:42:                        aria-label=\"Decrease indent\"\n./markdown_list_indent_toolbar_controls.tsx:50:            </Tooltip>\n40:| Meta, captions, resting icons | `custom.text3` |\n43:| The one CTA, selection, focus, links, icon-hover | `primary.main` |\n46:| Text/icon on a primary fill | `primary.contrastText` |\n70:- **Fixed heights (px):** menu row 44, ribbon 52, status bar 32, section header 40, tab row 40, standard button / control 34, dense icon button 26–28, input 42.\n72:- **Radius family (px):** buttons/icon-buttons 8 (small 6–7), inputs 9, cards 10, columns/panels 12, dialogs/popups 14, chips/pills 99, color swatches 3. `borderRadius: 1` covers the 8 case; use explicit `'9px'` etc. for the others.\n102:- **Ghost icon button** (`IconButton`): transparent → hover `bgcolor: track` (or `background.paper` on a colored panel) + `color: primary.main`. Override MUI's default circular hover tint via `sx`.\n109:- Every icon-only control gets a `Tooltip` (theme sets `arrow: true`) **and** an `aria-label`.\n115:- **Buttons:** `Button variant=\"contained\"` = the single CTA per surface; `variant=\"outlined\"` = secondary; `variant=\"text\"` = tertiary. Icon-only → `IconButton` in a `Tooltip`. Don't use `Link` or text `Button` where an action button belongs (that reproduces the old text-link look).\n116:- **Icons:** `@mui/icons-material` **Outlined** variants; `fontSize: 18` in 34px buttons, `16` in dense, `13–15` inline. Don't hand-draw SVG.\n121:- **Select:** `size=\"small\"`, optional dot+name via `renderValue`; 42px / radius-9 frame. When a select has a tooltip, keep the tooltip available while the select is closed and explicitly hide it for the entire time the select menu is open so it cannot cover the first option.\n125:- **Empty state:** dashed target — `1.5px dashed custom.borderStrong`, radius 10, centered icon + `custom.text4` label. No \"click to add\" placeholder blocks.\n134:4. Hover **and** focus states on every interactive element (§7); icon buttons have tooltip + `aria-label`.",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-13",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components/editor/toolbar; ls; grep -rn \"Tooltip\\|@mui/icons-material\\|aria-label\" . | head -40; grep -n -i \"icon\\|tooltip\" /c/Users/janbo/Documents/dev/md2/design/STYLE_GUIDE.md | head -30",
+          "providerItemId": "toolu_01WGGC8GDQbAPKG8Gn1Dh3Cb",
+          "sequence": 13,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:14:59.117Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-14",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSHqk4tQjdK4ZzfhsrL:thinking:0",
+          "sequence": 14,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:15:03.445Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src; sed -n 20,52p components/editor/toolbar/markdown_list_indent_toolbar_controls.tsx; grep -rln \"ToggleButton\" . | head; ls /c/Users/janbo/Documents/dev/md2/app/node_modules/@mui/icons-material/ | grep -E \"^(Code|Article|Notes|TextFields|DataObject|Description|Subject|Visibility|EditNote)Outlined.js$\"",
+          "content": "        activeEditor?.focus()\n    }\n\n    if (!isSmallScreen) return null\n\n    return (\n        <>\n            <Tooltip title=\"Increase indent\">\n                <span>\n                    <IconButton\n                        aria-label=\"Increase indent\"\n                        disabled={!activeEditor}\n                        onClick={handleIncreaseIndent}\n                        size=\"small\"\n                    >\n                        <FormatIndentIncreaseOutlined fontSize=\"small\" />\n                    </IconButton>\n                </span>\n            </Tooltip>\n            <Tooltip title=\"Decrease indent\">\n                <span>\n                    <IconButton\n                        aria-label=\"Decrease indent\"\n                        disabled={!activeEditor}\n                        onClick={handleDecreaseIndent}\n                        size=\"small\"\n                    >\n                        <FormatIndentDecreaseOutlined fontSize=\"small\" />\n                    </IconButton>\n                </span>\n            </Tooltip>\n        </>\n    )\n./components/actions/conversation/search/action_conversation_search_row.tsx\n./components/actions/run/popup/action_selector.tsx\n./components/actions/run/popup/action_selector_button.tsx\n./components/actions/run/popup/action_selector_styles.ts\n./components/actions/run/sequence/card_sequence_action_selector.tsx\n./components/diagram_view/comparison/diagram_comparison_menu_control.tsx\n./components/editor/local_search/markdown_local_text_search_plugin.tsx\n./components/editor/source/markdown_source_mode_controls.tsx\n./components/shell/menu/app_menu.tsx\n./components/shell/menu/main_toolbar.tsx\nArticleOutlined.js\nCodeOutlined.js\nDataObjectOutlined.js\nDescriptionOutlined.js\nEditNoteOutlined.js\nNotesOutlined.js\nSubjectOutlined.js\nTextFieldsOutlined.js\nVisibilityOutlined.js",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-15",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src; sed -n 20,52p components/editor/toolbar/markdown_list_indent_toolbar_controls.tsx; grep -rln \"ToggleButton\" . | head; ls /c/Users/janbo/Documents/dev/md2/app/node_modules/@mui/icons-material/ | grep -E \"^(Code|Article|Notes|TextFields|DataObject|Description|Subject|Visibility|EditNote)Outlined.js$\"",
+          "providerItemId": "toolu_0164Wq66PRb79z2RcjNyTjSg",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:15:17.672Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nCheck existing ToggleButton+Tooltip pattern (local search plugin) and mdx stub.",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 16,
+          "timestamp": "2026-10-08T08:15:20.602Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src; grep -n -B2 -A8 \"<ToggleButton\" components/editor/local_search/markdown_local_text_search_plugin.tsx | head -40; grep -n -i \"rich\\|source\" test/mdx_editor_stub.tsx | head; grep -rln \"MarkdownSourceModeControls\\|markdown_source_mode_controls\" --include=*.test.tsx .",
+          "content": "208-                    </Tooltip>\n209-                    <Tooltip title=\"Match case\">\n210:                        <ToggleButton\n211-                            aria-label=\"Match case\"\n212-                            onClick={handleCaseToggle}\n213-                            selected={draftCaseSensitive}\n214-                            size=\"small\"\n215-                            value=\"case-sensitive\"\n216-                        >\n217-                            Aa\n218-                        </ToggleButton>\n47:    onError?: (payload: { error: string; source: string }) => void\n84:export const viewMode$ = Cell('rich-text');\n372:            onError?.({ error: 'Invalid Markdown', source: renderedMarkdown })",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-17",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src; grep -n -B2 -A8 \"<ToggleButton\" components/editor/local_search/markdown_local_text_search_plugin.tsx | head -40; grep -n -i \"rich\\|source\" test/mdx_editor_stub.tsx | head; grep -rln \"MarkdownSourceModeControls\\|markdown_source_mode_controls\" --include=*.test.tsx .",
+          "providerItemId": "toolu_01VFLE9P7eUxGeCUJSk9Ehsg",
+          "sequence": 17,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:15:22.407Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-18",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSKZKAG8iHW9R92CPc9:thinking:0",
+          "sequence": 18,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:15:25.438Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; grep -l \"status: ready for implementation\" *.md | tail -2 | xargs -I{} sh -c 'echo ==== {}; cat {}' | head -90",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-19",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; grep -l \"status: ready for implementation\" *.md | tail -2 | xargs -I{} sh -c 'echo ==== {}; cat {}' | head -90",
+          "providerItemId": "toolu_014LMXmTuPR4CVA5eeVSt4Cq",
+          "sequence": 19,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:15:28.554Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; grep -l \"^## Acceptance\" *.md | tail -1 | xargs cat | head -70",
+          "content": "---\nauthor: \nid: F_413\ninternalId: d013f56f-5326-4d88-b1c8-333ed3cbe3c7\ntitle: column widths in read-only md in chatlog\nstatus: ready\nowner: \naffects:\nagents:\n  - design/activity/card__d013f56f-5326-4d88-b1c8-333ed3cbe3c7.json\npolicy:\nchangedFiles:\n  - app/src/components/actions/conversation/messages/action_conversation_message.test.tsx\n  - app/src/components/actions/conversation/messages/action_conversation_message.tsx\n  - app/src/components/actions/conversation/messages/action_conversation_table.test.tsx\n  - app/src/components/actions/conversation/messages/action_conversation_table.tsx\n---\n\nWe show the chatlog in the action-popup's. these chatlogs show read-only markdown, formatted.\n\nFor tables however, we seem to use strange column widths. the last column is always super wide the first ones, very narrow. why is this, how can we improve?\n\n## Current state\n\n* `ActionConversationMessage` (`app/src/components/actions/conversation/messages/action_conversation_message.tsx`) renders message content with `ReactMarkdown` + `remarkGfm` inside a bubble `Box`. Only `a` and `pre` have custom components (`MARKDOWN_COMPONENTS`); GFM tables render as plain `<table>`.\n* Bubble `Box` sets `overflowWrap: 'anywhere'` so long tokens (paths, URLs) wrap. All descendants inherit it, including `<td>`/`<th>`.\n* Table styling comes only from `buildMarkdownContentSx` (`app/src/components/editor/markdown_style_sx.ts`): typography + spacing. No width, layout, or overflow rules.\n* Bubble width: `maxWidth: '88%'`, shrink-to-fit (`alignSelf` flex-start/flex-end).\n\n### Cause\n\n* Browser auto table layout gives each column at least its *min-content width* (narrowest width a cell can take without overflow) and splits remaining space by each column's *max-content width* (width of cell text on one line).\n* `overflow-wrap: anywhere` allows a break between any two characters and, unlike `break-word`, counts those breaks for min-content. So every cell's min-content width drops to about one character.\n* When table text is wider than the bubble, short columns (ids, status, names) shrink to near one character and wrap mid-word. Long-text column (usually last, e.g. description) takes most of the space.\n\n## Implementation details\n\n1. New component `ActionConversationTable` in own file `app/src/components/actions/conversation/messages/action_conversation_table.tsx`, same pattern as `ActionConversationCodeBlock`:\n   * Renders `Box` wrapper with `maxWidth: '100%'`, `minWidth: 0`, `overflowX: 'auto'`, then `<table>` with received `children`.\n   * Wrapper scrolls wide tables horizontally inside the bubble; chat viewport stays `overflowX: 'hidden'`.\n2. Register in `MARKDOWN_COMPONENTS`: `{ a: ActionConversationLink, pre: ActionConversationCodeBlock, table: ActionConversationTable }`.\n3. In wrapper `sx`, set `'& th, & td': { overflowWrap: 'break-word' }`. Result: cell min-content = longest word, so short columns keep whole words; single tokens wider than table still break instead of overflowing.\n4. Bubble `overflowWrap: 'anywhere'` unchanged: still needed for paragraphs and long paths outside tables.\n5. No change to `buildMarkdownContentSx`: it is shared with MDXEditor and markdown style preview, which do not inherit `overflow-wrap: anywhere`.\n\n### Edge cases\n\n* Table narrower than bubble: no scrollbar, layout identical to max-content.\n* Very long unbroken token in cell (path, URL): word-level min-content makes table wider than bubble → horizontal scroll inside wrapper, not mid-word wrap of other columns.\n* Streaming/queued content (`delivery.content`): same renderer, no special handling.\n\n### Tests\n\n* Add `action_conversation_table.test.tsx`: renders GFM table through message markdown; assert table role present, wrapper has `overflowX: 'auto'`, cells have `overflowWrap: 'break-word'`.\n* Existing test `keeps vertical scrolling on the chat viewport and wraps long message tokens` (`action_conversation_chat.grouped.test.tsx`) must still pass unchanged.\n\n## Acceptance criteria\n\n* Table in chatlog message: short columns show whole words, no mid-word wrapping when bubble has room for longest word per column.\n* Long-text columns wrap at word boundaries.\n* Table wider than bubble scrolls horizontally inside message; chat viewport never scrolls horizontally.\n* Non-table message text (long paths, URLs) still wraps as before.\n* Card editor and markdown style preview table rendering unchanged.\n* Table stays accessible as `table` role with header and cells.",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-20",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; grep -l \"^## Acceptance\" *.md | tail -1 | xargs cat | head -70",
+          "providerItemId": "toolu_018xANAPrMUbietLeCHY8B6Q",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:15:32.345Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-21",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSLHiaT6nKWx8Zoiw5S:thinking:0",
+          "sequence": 21,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:15:35.750Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app; grep -E '\"@mui/(material|icons-material)\"' package.json; grep -rn \"ToggleButtonGroupContext\" node_modules/@mui/material/ToggleButton/ToggleButton.js | head -2",
+          "content": "    \"@mui/icons-material\": \"^9.2.0\",\n    \"@mui/material\": \"^9.2.0\",\n23:var _ToggleButtonGroupContext = _interopRequireDefault(require(\"../ToggleButtonGroup/ToggleButtonGroupContext\"));\n134:  } = React.useContext(_ToggleButtonGroupContext.default);",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-22",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app; grep -E '\"@mui/(material|icons-material)\"' package.json; grep -rn \"ToggleButtonGroupContext\" node_modules/@mui/material/ToggleButton/ToggleButton.js | head -2",
+          "providerItemId": "toolu_01RYvaH9i3DPdWkeAmNDPKnQ",
+          "sequence": 22,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:15:37.027Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-23",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSLdk5xGdbrj4E8s2rv:thinking:0",
+          "sequence": 23,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:15:39.425Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; sed -i 's/^status: design$/status: ready for implementation/' F_416_use_icons_on_markdown_editor_toolbar.md; cat >> F_416_use_icons_on_markdown_editor_toolbar.md <<'EOF'\n\n## Current state\n\n* `MarkdownSourceModeControls` (`app/src/components/editor/source/markdown_source_mode_controls.tsx`) renders MUI `ToggleButtonGroup` (`aria-label=\"Markdown view\"`, exclusive, small) with two text `ToggleButton`s: `rich-text` → \"Rich text\", `source` → \"Source\". No icons, no tooltips.\n* Rendered in two places, both get the change automatically:\n  * editor toolbar: `MarkdownEditor` (`app/src/components/editor/markdown_editor.tsx`), first item in toolbar when not plain text, toolbar not hidden, view mode not `diff`.\n  * compact recovery bar: `MarkdownSourceRecovery` (`app/src/components/editor/source/markdown_source_recovery.tsx`), shown in compact editors on conversion error or source mode.\n* Sibling toolbar icon controls (`markdown_list_indent_toolbar_controls.tsx`, `markdown_emoji_toolbar_control.tsx`) use pattern: `Tooltip` title + matching `aria-label` + Outlined icon with `fontSize=\"small\"`. Existing `ToggleButton` + `Tooltip` pattern: `markdown_local_text_search_plugin.tsx` (\"Match case\").\n* `STYLE_GUIDE.md`: icon-only control needs `Tooltip` and `aria-label`; icons from `@mui/icons-material` Outlined variants.\n* MUI 9: `ToggleButton` reads group state through React context, so wrapping a `ToggleButton` in `Tooltip` keeps selection and `onChange` working.\n* `markdown_editor_reliability.real.test.tsx` finds the buttons by accessible name (`getByRole('button', { name: 'Source' | 'Rich text' })`) and checks `aria-pressed`.\n\n## Implementation details\n\n1. In `markdown_source_mode_controls.tsx`, replace button text with icons:\n   * `rich-text`: `ArticleOutlined` icon, `aria-label=\"Rich text\"`, wrapped in `Tooltip title=\"Rich text\"`.\n   * `source`: `CodeOutlined` icon, `aria-label=\"Source\"`, wrapped in `Tooltip title=\"Source\"`.\n   * Icons `fontSize=\"small\"`, same as sibling toolbar icon buttons.\n2. Keep `ToggleButtonGroup`, its `aria-label`, `exclusive`, `size=\"small\"`, `value`, and `handleModeChange` unchanged. Mode switch behavior unchanged.\n3. Accessible names stay \"Rich text\" / \"Source\" (via `aria-label`), so existing reliability tests keep working without edits.\n4. No changes to `markdown_editor.tsx`, `markdown_source_recovery.tsx`, or controller.\n\n### Edge cases\n\n* Tooltip on selected or disabled button: buttons are never disabled here; no `span` wrapper needed.\n* Compact recovery bar: same component, shows icons + tooltips too.\n* `diff` view and plain-text editors: control not rendered, unchanged.\n\n### Tests\n\n* Add `markdown_source_mode_controls.test.tsx` (next to component): renders with `@mdxeditor/editor` stub; assert buttons named \"Rich text\" and \"Source\" have no visible text, show tooltip text on hover, and clicking \"Source\" calls controller `setMode('source')`.\n* Existing `markdown_editor_reliability.real.test.tsx` must pass unchanged.\n\n## Acceptance criteria\n\n* Markdown editor toolbar shows two icon-only toggle buttons for rich text and source; no button text.\n* Hover or keyboard focus on each button shows tooltip \"Rich text\" / \"Source\".\n* Screen readers announce buttons as \"Rich text\" / \"Source\"; selected button has `aria-pressed=\"true\"`.\n* Clicking a button switches view mode as before; active mode stays visibly selected.\n* Compact recovery bar shows same icon buttons.\n* Diff view and plain-text editors unchanged.\nEOF\nhead -8 F_416_use_icons_on_markdown_editor_toolbar.md",
+          "content": "---\nauthor: \nid: F_416\ninternalId: 04b4a3a2-45cc-425c-bc43-6c46a294447c\ntitle: use icons on markdown editor toolbar\nstatus: ready for implementation\nowner: \naffects:",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-24",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/design/feature_descriptions; sed -i 's/^status: design$/status: ready for implementation/' F_416_use_icons_on_markdown_editor_toolbar.md; cat >> F_416_use_icons_on_markdown_editor_toolbar.md <<'EOF'\n\n## Current state\n\n* `MarkdownSourceModeControls` (`app/src/components/editor/source/markdown_source_mode_controls.tsx`) renders MUI `ToggleButtonGroup` (`aria-label=\"Markdown view\"`, exclusive, small) with two text `ToggleButton`s: `rich-text` → \"Rich text\", `source` → \"Source\". No icons, no tooltips.\n* Rendered in two places, both get the change automatically:\n  * editor toolbar: `MarkdownEditor` (`app/src/components/editor/markdown_editor.tsx`), first item in toolbar when not plain text, toolbar not hidden, view mode not `diff`.\n  * compact recovery bar: `MarkdownSourceRecovery` (`app/src/components/editor/source/markdown_source_recovery.tsx`), shown in compact editors on conversion error or source mode.\n* Sibling toolbar icon controls (`markdown_list_indent_toolbar_controls.tsx`, `markdown_emoji_toolbar_control.tsx`) use pattern: `Tooltip` title + matching `aria-label` + Outlined icon with `fontSize=\"small\"`. Existing `ToggleButton` + `Tooltip` pattern: `markdown_local_text_search_plugin.tsx` (\"Match case\").\n* `STYLE_GUIDE.md`: icon-only control needs `Tooltip` and `aria-label`; icons from `@mui/icons-material` Outlined variants.\n* MUI 9: `ToggleButton` reads group state through React context, so wrapping a `ToggleButton` in `Tooltip` keeps selection and `onChange` working.\n* `markdown_editor_reliability.real.test.tsx` finds the buttons by accessible name (`getByRole('button', { name: 'Source' | 'Rich text' })`) and checks `aria-pressed`.\n\n## Implementation details\n\n1. In `markdown_source_mode_controls.tsx`, replace button text with icons:\n   * `rich-text`: `ArticleOutlined` icon, `aria-label=\"Rich text\"`, wrapped in `Tooltip title=\"Rich text\"`.\n   * `source`: `CodeOutlined` icon, `aria-label=\"Source\"`, wrapped in `Tooltip title=\"Source\"`.\n   * Icons `fontSize=\"small\"`, same as sibling toolbar icon buttons.\n2. Keep `ToggleButtonGroup`, its `aria-label`, `exclusive`, `size=\"small\"`, `value`, and `handleModeChange` unchanged. Mode switch behavior unchanged.\n3. Accessible names stay \"Rich text\" / \"Source\" (via `aria-label`), so existing reliability tests keep working without edits.\n4. No changes to `markdown_editor.tsx`, `markdown_source_recovery.tsx`, or controller.\n\n### Edge cases\n\n* Tooltip on selected or disabled button: buttons are never disabled here; no `span` wrapper needed.\n* Compact recovery bar: same component, shows icons + tooltips too.\n* `diff` view and plain-text editors: control not rendered, unchanged.\n\n### Tests\n\n* Add `markdown_source_mode_controls.test.tsx` (next to component): renders with `@mdxeditor/editor` stub; assert buttons named \"Rich text\" and \"Source\" have no visible text, show tooltip text on hover, and clicking \"Source\" calls controller `setMode('source')`.\n* Existing `markdown_editor_reliability.real.test.tsx` must pass unchanged.\n\n## Acceptance criteria\n\n* Markdown editor toolbar shows two icon-only toggle buttons for rich text and source; no button text.\n* Hover or keyboard focus on each button shows tooltip \"Rich text\" / \"Source\".\n* Screen readers announce buttons as \"Rich text\" / \"Source\"; selected button has `aria-pressed=\"true\"`.\n* Clicking a button switches view mode as before; active mode stays visibly selected.\n* Compact recovery bar shows same icon buttons.\n* Diff view and plain-text editors unchanged.\nEOF\nhead -8 F_416_use_icons_on_markdown_editor_toolbar.md",
+          "providerItemId": "toolu_019aPmX97UWcTGnv8iLkV1xW",
+          "sequence": 24,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:15:54.301Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-25",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSMua8JxchxCwEok6oy:thinking:0",
+          "sequence": 25,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:15:57.324Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2; file design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md; git diff --stat",
+          "content": "design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md: Unicode text, UTF-8 text, with very long lines (310)\n ...card__0c0b067b-4eb0-4e90-b31c-ef53afcdbad0.json | 10 ++---\n .../F_416_use_icons_on_markdown_editor_toolbar.md  | 44 +++++++++++++++++++++-\n design/usage_metrics.csv                           | 31 +++++++++++++++\n 3 files changed, 78 insertions(+), 7 deletions(-)",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-26",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2; file design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md; git diff --stat",
+          "providerItemId": "toolu_01SZ8qwvZqVQMEGvEo2KgVbm",
+          "sequence": 26,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:16:00.141Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-event-27",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSNLYnwJXDBQj3TJ5VR:thinking:0",
+          "sequence": 27,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:16:05.823Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI updated `design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md`: it now has `Current state`, `Implementation details` and `Acceptance criteria`, and `status` is `ready for implementation`. Nothing staged or committed. The header listed no referenced files except the agents activity file, so I had nothing else to read first.\n\n**Main points in the doc:**\n- **Where the buttons live:** in `MarkdownSourceModeControls`. The editor toolbar uses this component, and so does the compact recovery bar (the small bar compact editors show on a conversion error or in source mode). Changing one component covers both.\n- **The change:** text buttons become icon-only buttons, each with a tooltip and an `aria-label`. This follows the existing toolbar icon buttons and `STYLE_GUIDE.md`.\n- **Why tooltips are safe here:** in MUI 9 a toggle button reads its selected state from the group through React context. So wrapping each button in a `Tooltip` doesn't break selection or switching modes.\n- **Existing tests:** `markdown_editor_reliability.real.test.tsx` finds the buttons by their accessible names. Those names stay \"Rich text\" and \"Source\", so it passes without edits.\n- **New test:** `markdown_source_mode_controls.test.tsx` is planned.\n\n**Decisions I made — please confirm or change:**\n- **Icons:** `ArticleOutlined` for rich text and `CodeOutlined` for source.\n- **Tooltip and accessible-name text:** kept as \"Rich text\" and \"Source\".",
+          "id": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-turn-1-assistant-4",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 28,
+          "timestamp": "2026-10-08T08:16:05.867Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-3fef3581-2638-4a2c-a18e-57e564fe015e",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "10f01628-222a-465e-a53c-51bdcec30ee6",
+          "createdAt": "2026-10-08T08:16:05.867Z",
+          "lastUsedAt": "2026-10-08T08:16:05.867Z",
+          "synchronizedThroughMessageId": "agent-turn-88a717b2-7604-4c01-8b1e-ee076c3d5e83-turn-1-assistant-4",
+          "usageBaseline": {
+            "costUsd": 0.5393416,
+            "resultId": "0126699c-ac55-41fb-a845-b5c401f4874c",
+            "tokens": {
+              "cachedInputTokens": 608349,
+              "inputTokens": 26,
+              "outputTokens": 5200,
+              "reasoningTokens": 0,
+              "totalTokens": 613575
+            }
+          }
+        }
+      ],
       "startedAt": "2026-10-08T08:14:39.268Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 11215,
+          "toolMs": 49541
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-08T08:14:39.268Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 608349,
+        "inputTokens": 26,
+        "outputTokens": 5200,
+        "reasoningTokens": 0,
+        "totalTokens": 613575,
+        "costUsd": 0.5393416
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
