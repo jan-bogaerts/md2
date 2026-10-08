@@ -10,8 +10,6 @@ agents:
   - design/activity/card__45e13c03-d74d-4082-9065-aa387f6553f5.json
 policy:
 after: a0d1eee2-1989-41e0-800d-9667640d35b2
-branch: f_408_add_close_icon_to_search_boxes
-worktree: 2
 changedFiles:
   - app/src/components/actions/conversation/search/action_conversation_search_controls.test.tsx
   - app/src/components/actions/conversation/search/action_conversation_search_row.tsx
