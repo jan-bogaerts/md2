@@ -97,6 +97,15 @@ async function runToCompletion(runner, request = { actionId: 'main', context, ru
 }
 
 describe('ActionRunnerService', () => {
+    it('rejects sequence checkout ownership supplied by an ordinary action request', async () => {
+        const { runner } = createRunner();
+        const request = { actionId: 'main', context: { ...context, sequenceId: 'sequence', sequenceCheckoutPath: 'C:/checkout' } };
+        await expect(runner.start(request)).rejects.toThrow('requires its scheduler owner');
+        await expect(runner.start(request, { sequenceId: 'other' })).rejects.toThrow('requires its scheduler owner');
+        const runId = await runner.start(request, { sequenceId: 'sequence' });
+        await expect(runner.wait(runId)).resolves.toMatchObject({ status: 'completed' });
+    });
+
     it('keeps version placeholder in prepared editable prompt until execution', async () => {
         const files = [actionFile('main', { command: undefined, prompt: 'Ship {{version}}', type: 'agent', userInput: { type: 'version' } })];
         const { runner } = createRunner(files);

@@ -1,5 +1,8 @@
 const { execFile } = require('node:child_process');
 const path = require('node:path');
+const crypto = require('node:crypto');
+const { currentGitOperationContext } = require('./git_operation_context');
+const { checkoutOwnershipService } = require('./checkout_ownership_service');
 const { promisify } = require('node:util');
 
 const execFileAsync = promisify(execFile);
@@ -40,8 +43,14 @@ async function withGitIndexMutations(rootPaths, operation) {
     return mutation;
 }
 
-function withGitIndexMutation(rootPath, operation) {
-    return withGitIndexMutations([rootPath], operation);
+async function withGitIndexMutation(rootPath, operation) {
+    const ownerId = currentGitOperationContext().checkoutOwnerId ?? crypto.randomUUID();
+    const release = checkoutOwnershipService.acquire(rootPath, ownerId, false);
+    try {
+        return await withGitIndexMutations([rootPath], operation);
+    } finally {
+        release();
+    }
 }
 
 module.exports = { resolveGitIndexPath, withGitIndexMutation, withGitIndexMutations };

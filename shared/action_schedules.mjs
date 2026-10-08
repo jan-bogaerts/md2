@@ -1,3 +1,5 @@
+import { parseSequenceBranchProgress } from './sequence_branch_progress.mjs';
+
 export const ACTION_SCHEDULES_FILE = '.md2-schedules.json';
 
 const SCHEDULE_STATUSES = new Set(['cancelled', 'completed', 'failed', 'pending', 'running']);
@@ -134,7 +136,11 @@ function parseSequenceSchedule(schedule, base) {
         throw new Error('Invalid schedule file: currentIndex must identify a sequence card');
     }
 
+    if (schedule.branchProgress !== undefined && schedule.worktreeBranch === undefined) throw new Error('Sequence branch progress requires a worktree assignment');
+
     return {
+        ...(schedule.worktreeBranch === undefined ? {} : { worktreeBranch: requireString(schedule.worktreeBranch, 'worktreeBranch') }),
+        ...(schedule.branchProgress === undefined ? {} : { branchProgress: parseSequenceBranchProgress(schedule.branchProgress) }),
         actionCompleted: requireBoolean(schedule.actionCompleted, 'actionCompleted'),
         actionId: requireString(schedule.actionId, 'actionId'),
         cardInternalIds,

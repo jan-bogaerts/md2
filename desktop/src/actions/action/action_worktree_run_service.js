@@ -1,5 +1,6 @@
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { checkoutOwnershipService } = require('../../git/checkout_ownership_service');
 const { ActionCancellationError } = require('./action_cancellation_error');
 
 function requireActionContext(context) {
@@ -44,9 +45,16 @@ class ActionWorktreeRunService {
     async runWithCardLock(primaryProject, contextValue, operation, options = {}) {
         const context = requireActionContext(contextValue);
         const cardKey = ActionWorktreeRunService.cardKey(primaryProject, context);
-        if (cardKey === null) return operation();
+        const resolution = context.worktreeBranch ? await this.worktreeService.resolveBranch(primaryProject, context.worktreeBranch) : null;
+        const rootPath = resolution?.record.path ?? primaryProject.rootPath;
+        const release = checkoutOwnershipService.acquire(rootPath, context.sequenceId ?? crypto.randomUUID(), false);
+        try {
+            if (cardKey === null) return await operation();
 
-        return this.withRunClaim(cardKey, options, operation);
+            return await this.withRunClaim(cardKey, options, operation);
+        } finally {
+            release();
+        }
     }
 
     async resolve(primaryProject, action, context) {
@@ -66,6 +74,7 @@ class ActionWorktreeRunService {
         }
         const hasWorktreeAssignment = context.worktree !== undefined || !!context.worktreeError;
         if (!hasWorktreeAssignment && !action.needsWorkTree) {
+            checkoutOwnershipService.assertAvailable(primaryProject.rootPath, context.sequenceId);
             return { runProject: primaryProject, runWorktree: null };
         }
         if (context.worktreeError) throw new Error(context.worktreeError);
@@ -81,6 +90,8 @@ class ActionWorktreeRunService {
 
         const resolution = await this.worktreeService.resolveBranch(primaryProject, context.worktreeBranch);
         const { record } = resolution;
+        checkoutOwnershipService.assertAvailable(record.path, context.sequenceId);
+        if (context.sequenceCheckoutPath && path.resolve(record.path) !== path.resolve(context.sequenceCheckoutPath)) throw new Error('Sequence checkout binding changed');
 
         return {
             runProject: { ...primaryProject, branch: record.branch, id: record.path, rootPath: record.path },

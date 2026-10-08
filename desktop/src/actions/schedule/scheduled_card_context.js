@@ -51,6 +51,12 @@ function resolveScheduledCardContext(files, cardTypes, cardInternalId, worktrees
         context.worktreeError = fields.worktreeError.trim();
     }
 
+    if (fields.worktree !== undefined && (typeof fields.worktree !== 'string' || fields.worktree.length === 0)) {
+        context.worktreeError = `Invalid worktree assignment for scheduled card: ${cardInternalId}`;
+    }
+    if (fields.worktreeError !== undefined && fields.worktreeError !== '' && typeof fields.worktreeError !== 'string') {
+        context.worktreeError = `Invalid worktree assignment error for scheduled card: ${cardInternalId}`;
+    }
     const assignment = actionWorktreeContext(worktrees, context.worktree, context.worktreeBranch, context.worktreeError);
 
     return { ...context, ...assignment };

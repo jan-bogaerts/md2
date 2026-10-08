@@ -62,7 +62,7 @@ import { StatsMenuTab } from '../../stats_view/stats_menu_tab'
 import { ActiveSchedulesDialog } from '../../actions/run/schedule/active_schedules_dialog'
 import { DIAGRAM_EDITOR_ROOT_ATTRIBUTE } from '../../diagram_view/editing/use_diagram_delete_key'
 import { hasActiveScheduleBackend, hasSequenceScheduleBackend } from '../../../data/electron_action_bridge'
-import { cardSequenceDraftService } from '../../actions/run/sequence/card_sequence_draft_service'
+import { cardPopupService } from '../../../services/card_popup_service';
 import type { SearchRegexpAgent } from '../../../services/search/search_types'
 import { AgentMenuControls } from './agent_menu_controls'
 
@@ -195,8 +195,8 @@ export function AppMenu(props: AppMenuProps) {
         openDialog('schedules')
     }
 
-    const handleOpenCardSequence = () => {
-        cardSequenceDraftService.open()
+    const handleOpenCardSequence = (event: ReactMouseEvent<HTMLElement>) => {
+        cardPopupService.openSequence(event.currentTarget);
     }
 
     const handleCommit = useCallback(async () => {
@@ -406,6 +406,13 @@ export function AppMenu(props: AppMenuProps) {
                                 New card
                             </Button>
                             <Button disabled={!project || readOnly} onClick={handleCreateAction} size="small" variant="outlined">New action</Button>
+                            <Button
+                                disabled={readOnly || !actions.isProjectOpen || !hasSequenceScheduleBackend()}
+                                onClick={handleOpenCardSequence}
+                                size="small"
+                                startIcon={<PlaylistAddOutlined fontSize="small" />}
+                                variant="outlined"
+                            >Add sequence</Button>
                             <Box sx={{ flex: 1 }} />
                             <Section label="Account">
                                 <GithubAuthToolbarButton auth={auth} />
@@ -420,13 +427,7 @@ export function AppMenu(props: AppMenuProps) {
                     <Divider flexItem orientation="vertical" sx={{ my: 1.5 }} />
                     <Section label="Actions">
                         <ActionEntryPoints context={PROJECT_CONTEXT} variant="icons" visibility="explicit-context" />
-                        <MenuIconButton
-                            disabled={readOnly || !actions.isProjectOpen || !hasSequenceScheduleBackend()}
-                            label="Add sequence"
-                            onClick={handleOpenCardSequence}
-                        >
-                            <PlaylistAddOutlined fontSize="small" />
-                        </MenuIconButton>
+
                         <MenuIconButton
                             disabled={!actions.isProjectOpen || !hasActiveScheduleBackend()}
                             label="View active schedules"

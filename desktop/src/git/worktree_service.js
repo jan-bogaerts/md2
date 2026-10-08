@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const { checkoutOwnershipService } = require('./checkout_ownership_service');
 const path = require('node:path');
 
 const { withGitIndexMutations } = require('./git_index_coordinator');
@@ -9,6 +10,7 @@ const REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);
 const REFRESH_INTERVAL_MS = 5000;
 const INTEGRATION_COMMIT_MESSAGE = 'Integrate into project';
 const PRIMARY_CHECKPOINT_MESSAGE = 'Save project changes before worktree synchronization';
+const WORKTREE_MUTATION_COMMANDS = new Set(['add', 'commit', 'switch', 'checkout', 'reset', 'rebase', 'merge', 'pull', 'push']);
 
 function pathKey(folderPath) {
     const normalized = path.normalize(folderPath);
@@ -111,9 +113,18 @@ class WorktreeService {
         this.refreshIntervalMs = dependencies.refreshIntervalMs ?? REFRESH_INTERVAL_MS;
         this.refreshPromise = null;
         this.refreshTimer = null;
-        this.runGit = dependencies.runGit;
+        this.executeGit = dependencies.runGit;
         this.setTimeout = dependencies.setTimeout ?? setTimeout;
         this.state = { error: null, primaryStatus: null, project: null, records: [] };
+    }
+
+    runGit(rootPath, argumentsValue) {
+        const [command, option, target] = argumentsValue;
+        if (WORKTREE_MUTATION_COMMANDS.has(command)) checkoutOwnershipService.assertAvailable(rootPath);
+        if (command === 'branch' && ['-d', '-D'].includes(option)) checkoutOwnershipService.assertBranchAvailable(target);
+        if (command === 'worktree' && option === 'remove') checkoutOwnershipService.assertAvailable(argumentsValue.at(-1));
+
+        return this.executeGit(rootPath, argumentsValue);
     }
 
     async startProject(project) {
@@ -182,6 +193,7 @@ class WorktreeService {
         if (resolution.error) throw new Error(resolution.error);
         await this.requireRepositoryMatch(activeProject, resolution.record);
         const record = await this.revalidateRecord(resolution.record, activeProject.branch);
+        checkoutOwnershipService.assertAvailable(record.path);
         if (record.branch !== branchName) throw new Error(`Assigned worktree branch changed to ${record.branch}, expected ${branchName}: ${record.path}`);
 
         return { index: resolution.index, record };
@@ -235,6 +247,7 @@ class WorktreeService {
             if (!REMOVAL_MODES.has(mode)) throw new Error(`Unknown worktree removal mode: ${String(mode)}`);
             const resolvedFolder = path.resolve(folderPath);
             if (pathKey(resolvedFolder) === pathKey(activeProject.rootPath)) throw new Error('Primary worktree cannot be removed');
+            checkoutOwnershipService.assertAvailable(resolvedFolder);
             if (!this.records.some((worktree) => pathKey(worktree.path) === pathKey(resolvedFolder))) throw new Error('Folder is not a linked worktree');
 
             await this.removeWorktreeCheckout(activeProject, resolvedFolder, mode);
@@ -315,6 +328,7 @@ class WorktreeService {
             const { record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
             const record = await this.requireClean(cachedRecord, activeProject.branch);
             await this.runGit(activeProject.rootPath, ['check-ref-format', '--branch', branchName]);
+            checkoutOwnershipService.assertAvailable(record.path);
             if (record.branch !== branchName) {
                 const branchExists = await this.branchExists(activeProject.rootPath, branchName);
                 const switchArguments = branchExists ? ['switch', branchName] : ['switch', '-c', branchName, activeProject.branch];
@@ -760,6 +774,7 @@ class WorktreeService {
         if (branchName.startsWith(PARKING_BRANCH_PREFIX)) throw new Error(`Parking branch cannot be deleted: ${branchName}`);
 
         const worktrees = parseWorktreeList(await this.runGit(project.rootPath, ['worktree', 'list', '--porcelain']));
+        checkoutOwnershipService.assertBranchAvailable(branchName);
         const checkedOut = worktrees.find((worktree) => worktree.branch === branchName);
         if (checkedOut) throw new Error(`Branch is checked out by a worktree: ${branchName} (${checkedOut.path})`);
 
@@ -777,6 +792,7 @@ class WorktreeService {
     }
 
     async revalidateRecord(record, projectBranch) {
+        checkoutOwnershipService.assertAvailable(record.path);
         const branch = (await this.runGit(record.path, ['branch', '--show-current'])).trim();
         if (branch.length === 0) throw new Error(`Linked worktree has detached HEAD: ${record.path}`);
         if (branch !== record.branch) throw new Error(`Assigned worktree branch changed to ${branch}, expected ${record.branch}: ${record.path}`);

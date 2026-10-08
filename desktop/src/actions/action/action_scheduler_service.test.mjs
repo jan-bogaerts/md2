@@ -1058,3 +1058,32 @@ describe('ActionSchedulerService', () => {
         expect(localGitService.schedules()).toEqual([{ ...schedule, status: 'completed' }]);
     });
 });
+
+describe('sequence registration validation', () => {
+    it.each(['2', 'invalid', '', '\n  - 2'])('rejects an existing card assignment %s before persistence', async (worktree) => {
+        const localGitService = createLocalGitService([]);
+        localGitService.loadProject.mockResolvedValue({
+            files: [{
+                content: `---\nid: F_022\ninternalId: card-022\nstatus: ready\ntitle: Card\nworktree: ${worktree}\n---\n`,
+                path: 'cards/card.md',
+            }],
+        });
+        const scheduler = createScheduler(localGitService);
+        await startProject(scheduler, localGitService);
+        await expect(scheduler.registerSequenceSchedule({actionId: 'implement', cardInternalIds: ['card-022'], readyState: 'ready', trigger: { type: 'now' }})).rejects.toThrow('already has a worktree assignment');
+        expect(localGitService.schedules()).toEqual([]);
+    });
+
+    it('persists optional checkout assignment for a future sequence', async () => {
+        const localGitService = createLocalGitService([]);
+        const worktreeService = { getRecords: vi.fn(() => []), resolveBranch: vi.fn(async () => ({ record: { path: 'C:/selected' } })) };
+        const scheduler = createScheduler(localGitService, { worktreeService });
+        await startProject(scheduler, localGitService);
+        await scheduler.registerSequenceSchedule({
+            actionId: 'implement', cardInternalIds: ['card-022'], readyState: 'ready',
+            trigger: { timestamp: '2026-07-06T11:00:00Z', type: 'at' }, worktreeBranch: 'selected',
+        });
+        expect(localGitService.schedules()[0]).toMatchObject({ status: 'pending', worktreeBranch: 'selected' });
+        expect(worktreeService.resolveBranch).toHaveBeenCalledWith(project, 'selected');
+    });
+});

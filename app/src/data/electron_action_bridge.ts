@@ -65,6 +65,7 @@ export interface ActionScheduleRegistrationRequest {
 }
 
 export interface SequenceScheduleRegistrationRequest {
+    worktreeBranch?: string;
     actionId: string
     cardInternalIds: string[]
     readyState: string

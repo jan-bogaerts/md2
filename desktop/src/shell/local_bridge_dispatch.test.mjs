@@ -480,6 +480,8 @@ describe('createLocalBridgeDispatch', () => {
         expect(localGitService.loadProjectRoot).toHaveBeenCalledOnce();
         expect(actionSchedulerService.startProject).toHaveBeenCalledOnce();
         expect(worktreeService.startProject).toHaveBeenCalledOnce();
+        const worktreeStartupOrder = worktreeService.startProject.mock.invocationCallOrder[0];
+        expect(worktreeStartupOrder).toBeLessThan(actionSchedulerService.startProject.mock.invocationCallOrder[0]);
     });
 
     it('retries service startup after a failed activation of the same project', async () => {

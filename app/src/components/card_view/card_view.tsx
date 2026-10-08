@@ -1,5 +1,5 @@
 import { Box } from '@mui/material'
-import { DndContext, DragOverlay, PointerSensor, closestCorners, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildCardColumns } from '../../data/card_ordering'
@@ -15,6 +15,7 @@ import { CardDragOverlay } from './card_drag_overlay'
 import { cardDragDropService } from './card_drag_drop_service'
 import { resolveCardDragEvent } from './card_drag'
 import { useCardViewColumns } from './use_card_view_columns'
+import { cardSequenceCollision } from '../actions/run/sequence/card_sequence_collision';
 import { CardSequenceDialog } from '../actions/run/sequence/card_sequence_dialog'
 import { cardSequenceDraftService } from '../actions/run/sequence/card_sequence_draft_service'
 import {
@@ -24,6 +25,7 @@ import {
 } from '../actions/run/sequence/card_sequence_dnd'
 
 const DRAG_ACTIVATION_DISTANCE = 2
+const DRAG_OVERLAY_Z_INDEX = 2000;
 interface CardViewProps {
     cardTypes: CardTypeConfig[]
     states: StateConfig[]
@@ -228,7 +230,7 @@ export function CardView(props: CardViewProps) {
             sx={{ bgcolor: 'background.default', display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}
         >
             <DndContext
-                collisionDetection={closestCorners}
+                collisionDetection={cardSequenceCollision}
                 onDragCancel={clearActiveCard}
                 onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
@@ -262,7 +264,7 @@ export function CardView(props: CardViewProps) {
                         />
                     ))}
                 </Box>
-                <DragOverlay>
+                <DragOverlay zIndex={DRAG_OVERLAY_Z_INDEX}>
                     <CardDragOverlay cardTypes={cardTypes} />
                 </DragOverlay>
                 <CardSequenceDialog />

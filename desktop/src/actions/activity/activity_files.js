@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { appendSystemActivityRecord } = require('./system_activity_record');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -217,10 +218,7 @@ async function appendAndCommitActionActivity(project, projectFolder, origin, rec
 }
 
 async function appendAndCommitSystemActivity(project, projectFolder, origin, record, message) {
-    return updateAndCommitActivity(project, projectFolder, origin, (activity) => ({
-        ...activity,
-        records: [...activity.records, record],
-    }), message);
+    return updateAndCommitActivity(project, projectFolder, origin, (activity) => appendSystemActivityRecord(activity, record), message);
 }
 
 function upsertConversation(activity, conversation) {
