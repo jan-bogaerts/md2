@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__0c0b067b-4eb0-4e90-b31c-ef53afcdbad0.json
 policy:
-branch: f_414_sequence_improvements
-worktree: 1
 changedFiles:
   - app/src/components/actions/run/sequence/card_sequence_collision.test.ts
   - app/src/components/actions/run/sequence/card_sequence_collision.ts
