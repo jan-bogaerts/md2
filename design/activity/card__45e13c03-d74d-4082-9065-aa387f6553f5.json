@@ -610,13 +610,50 @@
         "costUsd": 1.1366906
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "45e13c03-d74d-4082-9065-aa387f6553f5",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "998284e23b8cbd3e6cb276b2ac2225ab4ff13497",
+          "committedAt": "2026-10-08T14:03:33+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_408_add_close_icon_to_search_boxes.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 58
+        }
+      ],
+      "completedAt": "2026-10-08T12:03:33.561Z",
+      "conversationIds": [
+        "agent-d9daeed3-2e0a-444a-b371-190424cab10f"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-d0839c6a-ab33-4c28-9219-a1ac1125cfcd",
+      "origin": {
+        "cardInternalId": "45e13c03-d74d-4082-9065-aa387f6553f5",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-d9daeed3-2e0a-444a-b371-190424cab10f",
+      "startedAt": "2026-10-08T08:16:02.130Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
