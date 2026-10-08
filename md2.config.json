@@ -34,6 +34,10 @@
     {
       "contextKind": "project",
       "conversationId": "agent-cd87fe45-9170-44e6-9982-a860a79eb78e"
+    },
+    {
+      "contextKind": "project",
+      "conversationId": "agent-574c9b12-c5e8-43f1-8488-8cf70ce7c261"
     }
   ],
   "projectFolder": "design",
