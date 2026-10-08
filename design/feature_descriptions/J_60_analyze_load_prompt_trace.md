@@ -3,12 +3,13 @@ author:
 id: J_60
 internalId: 1eb24b57-bc11-41d1-8c8f-296b0dba31c1
 title: analyze load prompt trace
-status: design
+status: ready for implementation
 owner: 
 affects:
 agents:
   - design/activity/card__1eb24b57-bc11-41d1-8c8f-296b0dba31c1.json
 policy:
+after: 45e13c03-d74d-4082-9065-aa387f6553f5
 ---
 
 This trace records a switch between actions in an already-open action popup: [Trace-load prompt.json](file:///C:/Users/janbo/Documents/dev/Trace-load%20prompt.json).
