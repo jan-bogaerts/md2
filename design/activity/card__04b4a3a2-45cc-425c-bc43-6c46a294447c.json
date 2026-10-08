@@ -434,6 +434,10 @@
       "cardInternalId": "04b4a3a2-45cc-425c-bc43-6c46a294447c",
       "cardPath": "design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md",
       "completedAt": null,
+      "contextWindowUsage": {
+        "capacityTokens": 1000000,
+        "usedTokens": 43995
+      },
       "entries": [
         {
           "content": "Read and implement the feature/job described in:  `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md`\n\nYou do not need to look at the git status. This is not your concern.  The worktree is what it is, you only need to touch what is required for the above mentioned job/feature description.\n\nUse the Block Workflow:\n\n1. Propose a Change Plan with blocks (no edits yet).\n2. create a task for each block\n3. Wait for approval.\n4. include tests.\n5. After implementation is done, update the field `status` in the markdown feature description file to \\`ready\\`. Be carefully, you are working in `C:\\Users\\janbo\\Documents\\dev\\md2`, the file to update is at `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md`\n\nYou may read any files referenced by relative paths in the spec and any file you think is related to the spec.\nRespect the Test Plan and Acceptance Criteria.&#x20;\n\nYou should only run the related tests, do not run the entire test suite, that will be done manually later on.\n\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill",
@@ -442,18 +446,184 @@
           "role": "user",
           "sequence": 1,
           "timestamp": "2026-10-08T08:23:19.727Z"
+        },
+        {
+          "command": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md\"",
+          "content": "---\nauthor: \nid: F_416\ninternalId: 04b4a3a2-45cc-425c-bc43-6c46a294447c\ntitle: use icons on markdown editor toolbar\nstatus: ready for implementation\nowner: \naffects:\nagents:\n  - design/activity/card__04b4a3a2-45cc-425c-bc43-6c46a294447c.json\npolicy:\nbranch: f_416_use_icons_on_markdown_editor_toolbar\nworktree: 2\n---\n\nwe currently have 2 text buttons (rich-text and source) on the markdown editor toolbar. we should replace them with icon buttons, no text, but with tooltip\n## Current state\n\n* `MarkdownSourceModeControls` (`app/src/components/editor/source/markdown_source_mode_controls.tsx`) renders MUI `ToggleButtonGroup` (`aria-label=\"Markdown view\"`, exclusive, small) with two text `ToggleButton`s: `rich-text` → \"Rich text\", `source` → \"Source\". No icons, no tooltips.\n* Rendered in two places, both get the change automatically:\n  * editor toolbar: `MarkdownEditor` (`app/src/components/editor/markdown_editor.tsx`), first item in toolbar when not plain text, toolbar not hidden, view mode not `diff`.\n  * compact recovery bar: `MarkdownSourceRecovery` (`app/src/components/editor/source/markdown_source_recovery.tsx`), shown in compact editors on conversion error or source mode.\n* Sibling toolbar icon controls (`markdown_list_indent_toolbar_controls.tsx`, `markdown_emoji_toolbar_control.tsx`) use pattern: `Tooltip` title + matching `aria-label` + Outlined icon with `fontSize=\"small\"`. Existing `ToggleButton` + `Tooltip` pattern: `markdown_local_text_search_plugin.tsx` (\"Match case\").\n* `STYLE_GUIDE.md`: icon-only control needs `Tooltip` and `aria-label`; icons from `@mui/icons-material` Outlined variants.\n* MUI 9: `ToggleButton` reads group state through React context, so wrapping a `ToggleButton` in `Tooltip` keeps selection and `onChange` working.\n* `markdown_editor_reliability.real.test.tsx` finds the buttons by accessible name (`getByRole('button', { name: 'Source' | 'Rich text' })`) and checks `aria-pressed`.\n\n## Implementation details\n\n1. In `markdown_source_mode_controls.tsx`, replace button text with icons:\n   * `rich-text`: `ArticleOutlined` icon, `aria-label=\"Rich text\"`, wrapped in `Tooltip title=\"Rich text\"`.\n   * `source`: `CodeOutlined` icon, `aria-label=\"Source\"`, wrapped in `Tooltip title=\"Source\"`.\n   * Icons `fontSize=\"small\"`, same as sibling toolbar icon buttons.\n2. Keep `ToggleButtonGroup`, its `aria-label`, `exclusive`, `size=\"small\"`, `value`, and `handleModeChange` unchanged. Mode switch behavior unchanged.\n3. Accessible names stay \"Rich text\" / \"Source\" (via `aria-label`), so existing reliability tests keep working without edits.\n4. No changes to `markdown_editor.tsx`, `markdown_source_recovery.tsx`, or controller.\n\n### Edge cases\n\n* Tooltip on selected or disabled button: buttons are never disabled here; no `span` wrapper needed.\n* Compact recovery bar: same component, shows icons + tooltips too.\n* `diff` view and plain-text editors: control not rendered, unchanged.\n\n### Tests\n\n* Add `markdown_source_mode_controls.test.tsx` (next to component): renders with `@mdxeditor/editor` stub; assert buttons named \"Rich text\" and \"Source\" have no visible text, show tooltip text on hover, and clicking \"Source\" calls controller `setMode('source')`.\n* Existing `markdown_editor_reliability.real.test.tsx` must pass unchanged.\n\n## Acceptance criteria\n\n* Markdown editor toolbar shows two icon-only toggle buttons for rich text and source; no button text.\n* Hover or keyboard focus on each button shows tooltip \"Rich text\" / \"Source\".\n* Screen readers announce buttons as \"Rich text\" / \"Source\"; selected button has `aria-pressed=\"true\"`.\n* Clicking a button switches view mode as before; active mode stays visibly selected.\n* Compact recovery bar shows same icon buttons.\n* Diff view and plain-text editors unchanged.",
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-event-2",
+          "kind": "event",
+          "label": "cat \"C:/Users/janbo/Documents/dev/md2/design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md\"",
+          "providerItemId": "toolu_01MvhhJ27nGtDNYPtdVqvEwm",
+          "sequence": 2,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:23:28.429Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd C:/Users/janbo/Documents/dev/md2_workers/dev2/app/src/components/editor; cat source/markdown_source_mode_controls.tsx; ls source; grep -n \"Tooltip\\|ToggleButton\\|import\" markdown_local_text_search_plugin.tsx 2>/dev/null | head -30; ls *.test.tsx | head -30",
+          "content": "import { useCellValues, viewMode$ } from '@mdxeditor/editor';\nimport { ToggleButton, ToggleButtonGroup } from '@mui/material';\nimport { useCallback, type MouseEvent } from 'react';\nimport { markdownSourceController$ } from './markdown_source_cell';\n\n/** Two-state view selector; the historical diff view remains a separate read-only surface. */\nexport function MarkdownSourceModeControls() {\n    const [mode, controller] = useCellValues(viewMode$, markdownSourceController$);\n    const handleModeChange = useCallback((_event: MouseEvent<HTMLElement>, next: 'rich-text' | 'source' | null) => {\n        if (next && next !== mode) controller?.setMode(next);\n    }, [controller, mode]);\n\n    return (\n        <ToggleButtonGroup aria-label=\"Markdown view\" exclusive onChange={handleModeChange} size=\"small\" value={mode}>\n            <ToggleButton value=\"rich-text\">Rich text</ToggleButton>\n            <ToggleButton value=\"source\">Source</ToggleButton>\n        </ToggleButtonGroup>\n    );\n}\nmarkdown_source_cell.ts\nmarkdown_source_controller.ts\nmarkdown_source_editor_bridge.ts\nmarkdown_source_mode_controls.tsx\nmarkdown_source_realm_plugin.ts\nmarkdown_source_recovery.tsx\nmarkdown_source_undo_redo.tsx\nmdxeditor_import_cells.d.ts\neditor_no_mock.test.tsx\nmarkdown_editor.grouped.test.tsx\nmarkdown_editor_file_search.test.tsx\nmarkdown_editor_local_text_search.test.tsx\nmarkdown_editor_plain_text.real.test.tsx\nmarkdown_editor_reliability.real.test.tsx",
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-event-3",
+          "kind": "event",
+          "label": "cd C:/Users/janbo/Documents/dev/md2_workers/dev2/app/src/components/editor; cat source/markdown_source_mode_controls.tsx; ls source; grep -n \"Tooltip\\|ToggleButton\\|import\" markdown_local_text_search_plugin.tsx 2>/dev/null | head -30; ls *.test.tsx | head -30",
+          "providerItemId": "toolu_011s4H5ugaMwYSZdREz6puSj",
+          "sequence": 3,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:23:32.191Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-event-4",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSwfP3WS4m3MsuKFYT2:thinking:0",
+          "sequence": 4,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:23:33.860Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd C:/Users/janbo/Documents/dev/md2_workers/dev2/app/src; grep -rln \"vi.mock('@mdxeditor/editor'\" . | head; grep -rn \"Tooltip\\|Icon\" components/editor/plugins/markdown_list_indent_toolbar_controls.tsx 2>/dev/null | head; find . -name \"markdown_list_indent_toolbar_controls*\"",
+          "content": "./components/card_view/card_body_editor.grouped.test.tsx\n./test/setup.ts\n./components/editor/toolbar/markdown_list_indent_toolbar_controls.grouped.test.tsx\n./components/editor/toolbar/markdown_list_indent_toolbar_controls.tsx",
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-event-5",
+          "kind": "event",
+          "label": "cd C:/Users/janbo/Documents/dev/md2_workers/dev2/app/src; grep -rln \"vi.mock('@mdxeditor/editor'\" . | head; grep -rn \"Tooltip\\|Icon\" components/editor/plugins/markdown_list_indent_toolbar_controls.tsx 2>/dev/null | head; find . -name \"markdown_list_indent_toolbar_controls*\"",
+          "providerItemId": "toolu_01NF7x79mMTX1SiQqQAtsaiz",
+          "sequence": 5,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:23:36.010Z",
+          "type": "commandExecution"
+        },
+        {
+          "command": "cd C:/Users/janbo/Documents/dev/md2_workers/dev2/app/src; cat components/editor/toolbar/markdown_list_indent_toolbar_controls.grouped.test.tsx | head -80; grep -n \"Tooltip\\|Icon\\|import\" components/editor/toolbar/markdown_list_indent_toolbar_controls.tsx; grep -n \"mdxeditor\" -A15 test/setup.ts | head -40",
+          "content": "import { cleanup, fireEvent, render, screen } from '@testing-library/react'\nimport * as mdxEditor from '@mdxeditor/editor'\nimport { INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical'\nimport { afterEach, describe, expect, it, vi } from 'vitest'\nimport { AppThemeProvider } from '../../../theme/theme_provider'\nimport { MarkdownListIndentToolbarControls } from './markdown_list_indent_toolbar_controls'\n\nconst originalMatchMedia = window.matchMedia\n\nfunction setSmallScreen(isSmallScreen: boolean) {\n    window.matchMedia = ((query: string) => ({\n        addEventListener: () => {},\n        addListener: () => {},\n        dispatchEvent: () => false,\n        matches: isSmallScreen,\n        media: query,\n        onchange: null,\n        removeEventListener: () => {},\n        removeListener: () => {},\n    })) as unknown as typeof window.matchMedia\n}\n\nfunction renderControls() {\n    return render(\n        <AppThemeProvider>\n            <MarkdownListIndentToolbarControls />\n        </AppThemeProvider>,\n    )\n}\n\ndescribe('MarkdownListIndentToolbarControls', () => {\n    afterEach(() => {\n        cleanup()\n        vi.restoreAllMocks()\n        window.matchMedia = originalMatchMedia\n    })\n\n    it('shows accessible controls and tooltips on small screens', async () => {\n        setSmallScreen(true)\n        vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue({ dispatchCommand: vi.fn(), focus: vi.fn() } as never)\n        renderControls()\n\n        const increaseButton = screen.getByRole('button', { name: 'Increase indent' })\n        expect(screen.getByRole('button', { name: 'Decrease indent' })).toBeInTheDocument()\n\n        fireEvent.mouseOver(increaseButton)\n\n        expect(await screen.findByRole('tooltip')).toHaveTextContent('Increase indent')\n    })\n\n    it('hides both controls above the small-screen breakpoint', () => {\n        setSmallScreen(false)\n        vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue({ dispatchCommand: vi.fn(), focus: vi.fn() } as never)\n        renderControls()\n\n        expect(screen.queryByRole('button', { name: 'Increase indent' })).not.toBeInTheDocument()\n        expect(screen.queryByRole('button', { name: 'Decrease indent' })).not.toBeInTheDocument()\n    })\n\n    it('disables both controls without an active editor', () => {\n        setSmallScreen(true)\n        vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue(null)\n        renderControls()\n\n        expect(screen.getByRole('button', { name: 'Increase indent' })).toBeDisabled()\n        expect(screen.getByRole('button', { name: 'Decrease indent' })).toBeDisabled()\n    })\n\n    it.each([\n        ['Increase indent', INDENT_CONTENT_COMMAND],\n        ['Decrease indent', OUTDENT_CONTENT_COMMAND],\n    ])('dispatches %s once and then returns focus', (accessibleName, command) => {\n        setSmallScreen(true)\n        const activeEditor = { dispatchCommand: vi.fn(), focus: vi.fn() }\n        vi.spyOn(mdxEditor, 'useCellValue').mockReturnValue(activeEditor as never)\n        renderControls()\n\n        fireEvent.click(screen.getByRole('button', { name: accessibleName }))\n\n        expect(activeEditor.dispatchCommand).toHaveBeenCalledExactlyOnceWith(command, undefined)\n1:import FormatIndentDecreaseOutlined from '@mui/icons-material/FormatIndentDecreaseOutlined'\n2:import FormatIndentIncreaseOutlined from '@mui/icons-material/FormatIndentIncreaseOutlined'\n3:import { IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material'\n4:import { activeEditor$, useCellValue } from '@mdxeditor/editor'\n5:import { INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND } from 'lexical'\n27:            <Tooltip title=\"Increase indent\">\n29:                    <IconButton\n36:                    </IconButton>\n38:            </Tooltip>\n39:            <Tooltip title=\"Decrease indent\">\n41:                    <IconButton\n48:                    </IconButton>\n50:            </Tooltip>\n27:vi.mock('@mdxeditor/editor', async () => {\n28:    const actual = await vi.importActual<typeof import('@mdxeditor/editor')>('@mdxeditor/editor');\n29-    const stub = await import('./mdx_editor_stub');\n30-    return { ...actual, ...stub };\n31-});\n32-// Source conversion and CodeMirror commands are exercised by the real-editor project.\n33-vi.mock('../components/editor/source/markdown_source_realm_plugin', () => ({ markdownSourcePlugin: () => ({}) }));\n34:vi.mock('@mdxeditor/editor/style.css', () => ({}))\n35-vi.mock('@lexical/react/LexicalComposerContext', async () => {\n36-    const { useLexicalComposerContextStub } = await import('./lexical_composer_context_stub')\n37-\n38-    return { useLexicalComposerContext: useLexicalComposerContextStub }\n39-})\n40-\n41-if (!window.matchMedia) {\n42-    window.matchMedia = (query: string) => ({\n43-        addEventListener: () => {},\n44-        addListener: () => {},\n45-        dispatchEvent: () => false,\n46-        matches: false,\n47-        media: query,\n48-        onchange: null,\n49-        removeEventListener: () => {},",
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-event-6",
+          "kind": "event",
+          "label": "cd C:/Users/janbo/Documents/dev/md2_workers/dev2/app/src; cat components/editor/toolbar/markdown_list_indent_toolbar_controls.grouped.test.tsx | head -80; grep -n \"Tooltip\\|Icon\\|import\" components/editor/toolbar/markdown_list_indent_toolbar_controls.tsx; grep -n \"mdxeditor\" -A15 test/setup.ts | head -40",
+          "providerItemId": "toolu_01S75r5A9idF2aqUi9HPTyLs",
+          "sequence": 6,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:23:39.345Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-event-7",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSxBz3oViBsx6BtSBLJ:thinking:0",
+          "sequence": 7,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:23:41.273Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd C:/Users/janbo/Documents/dev/md2_workers/dev2/app; grep -n \"useCellValues\\|export\" src/test/mdx_editor_stub.ts* | head -20; grep -n \"include\\|grouped\\|real\" vitest.config.* | head -20",
+          "content": "1:/* eslint-disable react-refresh/only-export-components -- test-only module, fast refresh does not apply */\n78:export const Cell = <T,>(initialValue: T): StubCell<T> => ({ initialValue })\n79:export const activeEditor$ = Cell(null)\n80:export const addComposerChild$ = Cell<ComponentType | null>(null)\n81:export const addImportVisitor$ = Cell(null)\n82:export const addExportVisitor$ = Cell(null);\n83:export const addLexicalNode$ = Cell(null);\n84:export const viewMode$ = Cell('rich-text');\n85:export const markdown$ = Cell('')\n86:export const rootEditor$ = Cell(null)\n87:export const setMarkdown$ = Cell(null)\n128:export const useCellValue = <T,>(cell: StubCell<T>) => {\n133:export const useCellValues = (...cells: StubCell<unknown>[]) => {\n137:export const realmPlugin = <T,>(definition: StubRealmPluginDefinition<T>) => {\n218:export const MDXEditor = forwardRef<StubEditorHandle, StubEditorProps>(\n410:export const headingsPlugin = noopPlugin\n411:export const listsPlugin = noopPlugin\n412:export const quotePlugin = noopPlugin\n413:export const thematicBreakPlugin = noopPlugin\n414:export const markdownShortcutPlugin = noopPlugin\ngrep: vitest.config.*: No such file or directory",
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-event-8",
+          "kind": "event",
+          "label": "cd C:/Users/janbo/Documents/dev/md2_workers/dev2/app; grep -n \"useCellValues\\|export\" src/test/mdx_editor_stub.ts* | head -20; grep -n \"include\\|grouped\\|real\" vitest.config.* | head -20",
+          "providerItemId": "toolu_019Aud85J7hAQwd36VuVTGnd",
+          "sequence": 8,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:23:42.526Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "Checking test config, then plan.",
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 9,
+          "timestamp": "2026-10-08T08:23:43.699Z"
+        },
+        {
+          "command": "cd C:/Users/janbo/Documents/dev/md2_workers/dev2/app; ls vite*.* vitest* 2>/dev/null; grep -n \"include\\|grouped\\|real\\|name:\" vite.config.* | head -20",
+          "content": "vite.config.test.ts\nvite.config.ts\nvite.config.ts:99:        name: 'md2-dependency-source-map-noise-filter',\nvite.config.ts:131:                    include: ['vite.config.test.ts', 'src/**/*.node.test.ts'],\nvite.config.ts:134:                    name: 'unit',\nvite.config.ts:144:                    include: ['src/**/*.service.test.ts'],\nvite.config.ts:147:                    name: 'service',\nvite.config.ts:156:                    exclude: ['src/**/*.grouped.test.tsx', 'src/**/*.node.test.ts', 'src/**/*.real.test.tsx', 'src/**/*.service.test.ts'],\nvite.config.ts:158:                    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],\nvite.config.ts:161:                    name: 'ui',\nvite.config.ts:171:                    include: ['src/**/*.real.test.tsx'],\nvite.config.ts:174:                    name: 'real-editor',\nvite.config.ts:176:                    setupFiles: './src/test/real_editor_setup.ts',",
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-event-10",
+          "kind": "event",
+          "label": "cd C:/Users/janbo/Documents/dev/md2_workers/dev2/app; ls vite*.* vitest* 2>/dev/null; grep -n \"include\\|grouped\\|real\\|name:\" vite.config.* | head -20",
+          "providerItemId": "toolu_017ZkT57H7sp6xi2ECAszniV",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:23:45.052Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-event-11",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpSxcJ2pTPmHiJnBNREp:thinking:0",
+          "sequence": 11,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:23:52.209Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\n## Change Plan (F_416)\n\n**Block 1 — Icon toggle buttons** in `app/src/components/editor/source/markdown_source_mode_controls.tsx`\n- Import `ArticleOutlined` and `CodeOutlined` from `@mui/icons-material`, and `Tooltip` from `@mui/material`.\n- `rich-text` button: wrap it in `<Tooltip title=\"Rich text\">`, set `aria-label=\"Rich text\"`, and render `<ArticleOutlined fontSize=\"small\" />` with no text.\n- `source` button: wrap it in `<Tooltip title=\"Source\">`, set `aria-label=\"Source\"`, and render `<CodeOutlined fontSize=\"small\" />` with no text.\n- The `ToggleButtonGroup` props and `handleModeChange` stay the same. No changes to `markdown_editor.tsx`, `markdown_source_recovery.tsx` or the controller.\n\n**Block 2 — Tests**\n- New file `app/src/components/editor/source/markdown_source_mode_controls.test.tsx`. It runs in the `ui` test project, which already stubs `@mdxeditor/editor` globally in `test/setup.ts`.\n  - The test replaces `useCellValues` with a spy that returns `['rich-text', { setMode: vi.fn() }]`.\n  - It checks that the buttons named \"Rich text\" and \"Source\" have no visible text, and that \"Rich text\" has `aria-pressed=\"true\"`.\n  - It checks that hovering each button shows a tooltip with the matching text.\n  - It checks that clicking \"Source\" calls `setMode('source')` exactly once.\n- I'll run the new test file and `markdown_editor_reliability.real.test.tsx`, which should pass without edits, plus lint on the changed files.\n\n**Block 3 — Status**\n- After implementation, set `status: ready` in `C:\\Users\\janbo\\Documents\\dev\\md2\\design/feature_descriptions/F_416_use_icons_on_markdown_editor_toolbar.md`.\n\n**Tasks:** I don't have a task tool in this session, so the three blocks above are the task list.\n\nApprove?",
+          "id": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 12,
+          "timestamp": "2026-10-08T08:23:52.311Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-872bbd49-3a99-4b89-888d-1a226bb2fdb0",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "5ea4ebc2-63db-40d5-a5c9-acf487e2d858",
+          "createdAt": "2026-10-08T08:23:52.311Z",
+          "lastUsedAt": "2026-10-08T08:23:52.311Z",
+          "synchronizedThroughMessageId": "agent-turn-95399d40-5ecc-4ddf-964e-abc0d2b46c53-turn-1-assistant-2",
+          "usageBaseline": {
+            "costUsd": 0.31163820000000003,
+            "resultId": "92e560b1-9142-42c6-930a-d488cc981b24",
+            "tokens": {
+              "cachedInputTokens": 283616,
+              "inputTokens": 14,
+              "outputTokens": 2055,
+              "reasoningTokens": 0,
+              "totalTokens": 285685
+            }
+          }
+        }
+      ],
       "startedAt": "2026-10-08T08:23:19.727Z",
       "status": "running",
       "timer": {
+        "breakdown": {
+          "reasoningMs": 6655,
+          "toolMs": 13520
+        },
         "elapsedMs": 0,
         "runningStartedAt": "2026-10-08T08:23:19.727Z"
       },
       "title": "implement",
+      "usage": {
+        "cachedInputTokens": 283616,
+        "inputTokens": 14,
+        "outputTokens": 2055,
+        "reasoningTokens": 0,
+        "totalTokens": 285685,
+        "costUsd": 0.31163820000000003
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
