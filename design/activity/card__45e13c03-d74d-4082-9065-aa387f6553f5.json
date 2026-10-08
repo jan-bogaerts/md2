@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 69211
+        "usedTokens": 74538
       },
       "entries": [
         {
@@ -405,10 +405,11 @@
           "id": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-event-31",
           "kind": "event",
           "label": "AskUserQuestion",
+          "output": "The user answered: \"What should the close icon do?\"=\"Dismiss search (Recommended)\", \"'Search on card popup' = editor-local Find text popup (Ctrl+F in MarkdownEditor). It is shared by every MarkdownEditor (card popup, text view, etc.), so all get the close icon. OK?\"=\"Yes, all editors (Recommended)\". Read the answers carefully — they may request clarification, changes, or that you not proceed — and follow what they actually say.",
           "providerItemId": "toolu_01ATcJ23U5PiCEvZ2cC3siRC",
           "sequence": 31,
-          "status": "inProgress",
-          "timestamp": "2026-10-08T08:16:40.670Z",
+          "status": "completed",
+          "timestamp": "2026-10-08T12:02:59.073Z",
           "type": "tool.AskUserQuestion"
         },
         {
@@ -462,22 +463,152 @@
           "role": "user",
           "sequence": 33,
           "timestamp": "2026-10-08T12:02:59.032Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-event-34",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpjgKXzrPufZc4fV4ZST:thinking:0",
+          "sequence": 34,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T12:03:04.341Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2/app/src/components && sed -n '1,40p' actions/conversation/search/action_conversation_search_controls.test.tsx; grep -n \"it(\\|Escape\" editor/markdown_editor_local_text_search.test.tsx | head -30; sed -n '170,195p' actions/run/popup/action_popup_frame.tsx",
+          "content": "import { act, fireEvent, render, screen, within } from '@testing-library/react'\nimport userEvent from '@testing-library/user-event'\nimport { beforeEach, describe, expect, it, vi } from 'vitest'\nimport { AppThemeProvider } from '../../../../theme/theme_provider'\nimport { ActionConversationSearchButton } from './action_conversation_search_button'\nimport { ActionConversationSearchRow } from './action_conversation_search_row'\nimport { ActionConversationSearchService } from './action_conversation_search_service'\n\nfunction SearchHarness({ service }: { service: ActionConversationSearchService }) {\n    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {\n        service.handlePopupKeyDown(event)\n    }\n\n    return (\n        <AppThemeProvider>\n            <div data-testid=\"popup\" onKeyDown={handleKeyDown}>\n                <ActionConversationSearchButton service={service} />\n                <ActionConversationSearchRow service={service} />\n            </div>\n        </AppThemeProvider>\n    )\n}\n\nfunction mountTranscript(service: ActionConversationSearchService) {\n    const viewport = document.createElement('div')\n    viewport.setAttribute('aria-label', 'Conversation chat')\n    viewport.innerHTML = '<p>Alpha <strong>beta</strong> alpha</p>'\n    document.body.append(viewport)\n    service.registerTranscript(viewport, 'conversation-1')\n\n    return viewport\n}\n\ndescribe('conversation search controls', () => {\n    beforeEach(() => {\n        document.body.replaceChildren()\n        window.getSelection()?.removeAllRanges()\n        Element.prototype.scrollIntoView = vi.fn()\n    })\n\n95:    it('opens from the shared toolbar search button', () => {\n103:    it('anchors below the visible formatting toolbar', () => {\n117:    it('opens with Ctrl+F without a toolbar and prevents browser find', () => {\n129:    it('anchors above the editor root when the toolbar is hidden', () => {\n140:    it('keeps typed search text as a focused draft until Enter submits it', async () => {\n162:    it('submits search from the accessible popup button', async () => {\n178:    it('does not search on match-case changes and submits the selected case mode', async () => {\n200:    it('leaves editor selection unchanged when an empty term is submitted', () => {\n214:    it('uses submitted term and case mode for F3 despite later draft changes', async () => {\n237:    it('navigates both directions with accessible arrow buttons and wraps', async () => {\n259:    it('shows zero results without moving selection and singular count for one match', async () => {\n278:    it('leaves editor selection unchanged when F3 has no valid submission', () => {\n292:    it('leaves selection and editor state unchanged for a missing term', async () => {\n308:    it('does not edit, persist, or add document history while selecting matches', async () => {\n334:    it('works in a read-only hidden-toolbar editor and closes with Escape', () => {\n340:        fireEvent.keyDown(searchField, { key: 'Escape' })\n346:    it('stays open without blocking background focus, input, or scrolling and closes from outside Escape', async () => {\n374:        fireEvent.keyDown(backgroundInput, { key: 'Escape' })\n378:    it('renders popup inside the supplied overlay container', () => {\n389:    it('can opt out and leave Ctrl+F unhandled', () => {\n                                    </IconButton>\n                                </Tooltip>\n                            ) : null}\n                            <IconButton aria-label=\"Close\" onClick={onClose} size=\"small\" sx={{ flexShrink: 0, height: 30, width: 30 }}>\n                                <Close sx={{ fontSize: 18 }} />\n                            </IconButton>\n                        </Box>\n                        <ActionSelector\n                            actions={actions}\n                            context={assignmentContext}\n                            onSelect={onSelectAction}\n                            selectedAction={action}\n                        />\n                        <ActionConversationSearchRow service={conversationSearchService} />\n                    </Box>\n                    {children}\n                </Box>\n            </MarkdownTypeaheadLayerProvider>\n        </ResizablePopper>\n    )\n}",
+          "id": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-event-35",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2/app/src/components && sed -n '1,40p' actions/conversation/search/action_conversation_search_controls.test.tsx; grep -n \"it(\\|Escape\" editor/markdown_editor_local_text_search.test.tsx | head -30; sed -n '170,195p' actions/run/popup/action_popup_frame.tsx",
+          "providerItemId": "toolu_015n5VeHCnP3y5fosj2xziAr",
+          "sequence": 35,
+          "status": "completed",
+          "timestamp": "2026-10-08T12:03:06.119Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-event-36",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011Cfpjgp3FFhDNiJtDYrFGz:thinking:0",
+          "sequence": 36,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T12:03:07.497Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nWriting feature doc.",
+          "id": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 37,
+          "timestamp": "2026-10-08T12:03:07.497Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_408_add_close_icon_to_search_boxes.md",
+          "deletions": 1,
+          "id": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-event-38",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_408_add_close_icon_to_search_boxes.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_017MJVkhKNBSqMYoKVBbMk75",
+          "sequence": 38,
+          "status": "completed",
+          "timestamp": "2026-10-08T12:03:08.489Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_408_add_close_icon_to_search_boxes.md",
+          "deletions": 1,
+          "id": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-event-39",
+          "insertions": 57,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_408_add_close_icon_to_search_boxes.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01Adkq7SXeC7r1yG8q7mjfrK",
+          "sequence": 39,
+          "status": "completed",
+          "timestamp": "2026-10-08T12:03:24.662Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-event-40",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpjiBoDRCFZegCenXY99:thinking:0",
+          "sequence": 40,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T12:03:31.615Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nI updated `design/feature_descriptions/F_408_add_close_icon_to_search_boxes.md` with the three sections you asked for and set `status: ready for implementation`. Nothing is staged or committed.\n\n**Your two answers, as applied:**\n- **What the icon does:** it hides the search box, the same as pressing `Esc` does today. It doesn't clear the text.\n- **Card popup search:** this is the \"Find text\" popup in the markdown editor (Ctrl+F). Every editor shares it, so all editors get the close icon, not just the card popup.\n\n**Design in short:**\n- **Same button everywhere:** an icon-only button with the outlined close icon and a tooltip. Its name is \"Close search\" because the action popup already has a button called \"Close\".\n- **Global search:** the button goes at the right end of the search field, after the shortcut label. Clicking it calls the existing `onClose`. That works whether the search is shown inline or in a popover. After closing, the query stays visible in the collapsed search field.\n- **Action popup chat-log search:** the button is the last control in the search row and calls the existing `service.closeSearch()`. No service changes.\n- **Editor \"Find text\" popup:** the button is the last control and calls the existing `closeSearch`. The popup is a fixed 420px wide, so the implementer should check the extra button still fits.\n- **No changes to:** state, events or services. Closing keeps the typed text and doesn't move focus anywhere, the same as `Esc`.\n- **Tests:** one regression test per search box, added to the existing test files for global search (`search_control.test.tsx`), chat-log search (`action_conversation_search_controls.test.tsx`) and editor search (`markdown_editor_local_text_search.test.tsx`).\n\nThe global search inline mode currently has no `Esc` close at all. I recorded that under current state but didn't add it, since it isn't part of the request.",
+          "id": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 41,
+          "timestamp": "2026-10-08T12:03:31.662Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-d9daeed3-2e0a-444a-b371-190424cab10f",
-      "providerSessions": [],
+      "providerSessions": [
+        {
+          "agent": "claude",
+          "conversationId": "0632998a-89b1-4ccb-9a81-8b5c22452b1d",
+          "createdAt": "2026-10-08T12:03:31.662Z",
+          "lastUsedAt": "2026-10-08T12:03:31.662Z",
+          "synchronizedThroughMessageId": "agent-turn-8e0a79a7-4564-4807-9f0e-517951b91243-turn-1-assistant-3",
+          "usageBaseline": {
+            "costUsd": 1.1366906,
+            "resultId": "f8d227a0-5e32-4eab-848f-b99a524198ab",
+            "tokens": {
+              "cachedInputTokens": 686482,
+              "inputTokens": 24,
+              "outputTokens": 6843,
+              "reasoningTokens": 0,
+              "totalTokens": 693349
+            }
+          }
+        }
+      ],
       "startedAt": "2026-10-08T08:16:03.381Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 6107,
-          "toolMs": 20599
+          "reasoningMs": 15938,
+          "toolMs": 39582
         },
         "elapsedMs": 37293,
         "runningStartedAt": "2026-10-08T12:02:59.032Z"
       },
       "title": "complete",
+      "usage": {
+        "cachedInputTokens": 686482,
+        "inputTokens": 24,
+        "outputTokens": 6843,
+        "reasoningTokens": 0,
+        "totalTokens": 693349,
+        "costUsd": 1.1366906
+      },
       "usageSchemaVersion": 1,
       "viewed": true
     }
