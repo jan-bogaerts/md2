@@ -55,7 +55,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 99719
+        "usedTokens": 102896
       },
       "entries": [
         {
@@ -855,6 +855,80 @@
           "role": "assistant",
           "sequence": 62,
           "timestamp": "2026-10-08T08:37:19.111Z"
+        },
+        {
+          "content": "1. the error should be logged, but it should not brake anything.\n2. the fact that nothing catches it, means code must be braking, which is no good\n\nso yes, catch it",
+          "id": "submission-f03fc572-5b6b-401d-bcbf-a95024ef71c6",
+          "kind": "message",
+          "role": "user",
+          "sequence": 63,
+          "timestamp": "2026-10-08T09:33:59.247Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-64",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpYKJB34uohMUE497Vg7:thinking:0",
+          "sequence": 64,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T09:34:12.760Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md",
+          "deletions": 1,
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-65",
+          "insertions": 8,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01DX8FLDswtEe229z9NQ4Hh5",
+          "sequence": 65,
+          "status": "completed",
+          "timestamp": "2026-10-08T09:34:17.997Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md",
+          "deletions": 0,
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-66",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01S5LWXvG4ZgTBGQGXZxhdUN",
+          "sequence": 66,
+          "status": "completed",
+          "timestamp": "2026-10-08T09:34:20.293Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md",
+          "deletions": 0,
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-67",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01DoBCEqJ5bDHvcKrYGvuf79",
+          "sequence": 67,
+          "status": "completed",
+          "timestamp": "2026-10-08T09:34:22.023Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "I added a renderer guard to the doc: a bad entry index is now logged and skipped, and nothing else breaks.\n\n**What it does** (in `handleEvent` in `action_run_registry.ts`):\n- The `updateAgentEventAtIndex` call (for `agentEvent`) and the `updateAgentOutputAtIndex` call (for `agentOutput`) each get a `try/catch`.\n- On an error, it calls `console.error` with the run id, the entry index and the error. It keeps the previous `conversation` and `conversationChange`.\n- The rest of the event still applies: status, timer and logs. The run store still updates and later events are still handled.\n- The recovery replay loops in `recoverActiveRuns` no longer stop part-way when one of these errors happens.\n\n**Limitation (written in the doc):** a skipped entry stays missing from the renderer's copy until the next full `replace` (`agentStarted` / `agentClosed`). The desktop reorder fixes the known cause, so the guard is only a safety net.\n\nI also added a test where `agentEvent` / `agentOutput` arrive with an out-of-range index. It checks there's no throw, that `console.error` is called, that the conversation is unchanged and the status is updated, and that the next valid event still applies. There's also a matching acceptance criterion.\n\nStatus stays `ready for implementation`. Nothing staged.",
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 68,
+          "timestamp": "2026-10-08T09:34:27.354Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -864,17 +938,17 @@
           "agent": "claude",
           "conversationId": "7fb442a9-ce76-4d72-a14b-a7ef97825b3a",
           "createdAt": "2026-10-08T08:24:39.010Z",
-          "lastUsedAt": "2026-10-08T08:37:19.111Z",
-          "synchronizedThroughMessageId": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-turn-1-assistant-1",
+          "lastUsedAt": "2026-10-08T09:34:27.354Z",
+          "synchronizedThroughMessageId": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-turn-2-assistant-1",
           "usageBaseline": {
-            "costUsd": 1.3736639999999998,
-            "resultId": "9241a118-44f9-42c2-a19b-00f78a56d1b3",
+            "costUsd": 1.4886445999999998,
+            "resultId": "05a95504-5810-4d13-8111-d1a5b1debf11",
             "tokens": {
-              "cachedInputTokens": 2208369,
-              "inputTokens": 56,
-              "outputTokens": 14168,
+              "cachedInputTokens": 2411789,
+              "inputTokens": 60,
+              "outputTokens": 16643,
               "reasoningTokens": 0,
-              "totalTokens": 2222593
+              "totalTokens": 2428492
             }
           }
         }
@@ -883,20 +957,20 @@
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 39653,
-          "toolMs": 60945
+          "reasoningMs": 48063,
+          "toolMs": 70207
         },
-        "elapsedMs": 137580,
-        "runningStartedAt": "2026-10-08T08:36:36.835Z"
+        "elapsedMs": 179856,
+        "runningStartedAt": "2026-10-08T09:33:59.247Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 2208369,
-        "inputTokens": 56,
-        "outputTokens": 14168,
+        "cachedInputTokens": 2411789,
+        "inputTokens": 60,
+        "outputTokens": 16643,
         "reasoningTokens": 0,
-        "totalTokens": 2222593,
-        "costUsd": 1.3736639999999998
+        "totalTokens": 2428492,
+        "costUsd": 1.4886445999999998
       },
       "usageSchemaVersion": 1,
       "viewed": true
