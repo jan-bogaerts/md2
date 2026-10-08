@@ -516,6 +516,14 @@
           "role": "assistant",
           "sequence": 37,
           "timestamp": "2026-10-08T11:37:43.141Z"
+        },
+        {
+          "content": "* `expensive popup initialization` the popup was already open. why is it being initialized? all that occurred was a switch between actions.&#x20;\n* only actions need to be flushed to render the prompt. the full flush is needed when the action is executed.",
+          "id": "submission-49c87758-f96e-44f5-9df2-2985b7e4a419",
+          "kind": "message",
+          "role": "user",
+          "sequence": 38,
+          "timestamp": "2026-10-08T11:44:32.557Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -530,14 +538,14 @@
         }
       ],
       "startedAt": "2026-10-08T11:33:42.191Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 197,
           "toolMs": 13884
         },
         "elapsedMs": 240950,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-08T11:44:32.557Z"
       },
       "title": "+",
       "usage": {
