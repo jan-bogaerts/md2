@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 83672
+        "usedTokens": 88147
       },
       "entries": [
         {
@@ -524,6 +524,54 @@
           "role": "user",
           "sequence": 38,
           "timestamp": "2026-10-08T11:44:32.557Z"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll check the action-switch path to explain which parts are recreated inside the open popup, and reassess the flush against your distinction between preparation and execution.\n\n",
+          "id": "agent-turn-ad6ab179-8ab6-419e-9523-0445d7122c3a-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 39,
+          "timestamp": "2026-10-08T11:44:36.660Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/run/popup/action_popup_content.tsx; Get-Content app/src/components/actions/run/popup/action_popup.tsx'",
+          "content": "import { actionContextIdentity } from '../../../../data/action_context';\r\nimport { ActionPopupSession } from './action_popup_session';\r\nimport type { ActionPopupContentProps } from './action_popup_types';\r\n\r\nexport { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_frame';\r\n\r\n/** Keep popup stores alive across assignment changes for the same action and canonical context. */\r\nexport function ActionPopupContent(props: ActionPopupContentProps) {\r\n    const identity = `${props.action.id}\\u0000${actionContextIdentity(props.assignmentContext)}`;\r\n\r\n    return <ActionPopupSession key={identity} {...props} />;\r\n}\r\nimport { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react'\r\nimport { displayActionsForContext, type ActionContext } from '../../../../data/action_context'\r\nimport { dataService } from '../../../../services/data/data_service'\r\nimport { actionRunRegistry } from '../../../../services/actions/action_run_registry'\r\nimport { actionPromptDraftService } from '../../../../services/actions/action_prompt_draft_service'\r\nimport { cardAgentState } from '../../../../services/agents/card_agent_state'\r\nimport { historicalCardActivityService } from '../../../../services/actions/historical_card_activity_service'\r\nimport { CUSTOM_PROMPT_ACTION_ID } from '../../../../data/action_types'\r\nimport { isReleasedCardActionContext, RELEASED_CARD_RUN_MESSAGE } from '../../../../../../shared/released_card_actions.mjs'\r\nimport { useActions } from '../../../hooks/use_actions'\r\nimport { useProjectState } from '../../../hooks/use_project_state'\r\nimport { useActionAssignmentContext } from '../../../hooks/use_action_assignment_context';\r\nimport { ActionPopupContent } from './action_popup_content'\r\nimport { resolveInitialActionId, type PersistedActionStates } from './action_popup_initial_action'\r\nimport { historicalActionHistory, historicalCardActions } from './historical_card_actions'\r\n\r\nexport { CARD_RUN_POPUP_SIZE_STORAGE_KEY, PROJECT_AGENT_POPUP_SIZE_STORAGE_KEY } from './action_popup_content'\r\n\r\n/**\r\n * Badge id plus the title shown in its tooltip. The title comes from the live snapshot so it\r\n * follows a card renamed while the popup stays open, and falls back to the title captured in the\r\n * context when the card is not in the snapshot.\r\n */\r\nfunction resolvePopupTarget(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\r\n    if (context.kind === 'project') return { id: 'Project', title: null }\r\n    if (context.kind !== 'card') return { id: null, title: null }\r\n\r\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\r\n    const card = cards.find(({ header }) => header.internalId === context.cardInternalId)\r\n\r\n    return { id: card?.header.id ?? null, title: card?.header.title ?? context.title ?? null }\r\n}\r\n\r\nfunction resolveCardInternalId(context: ActionContext, snapshot: ReturnType<typeof useProjectState>['snapshot']) {\r\n    const cards = [...(snapshot?.activeCards ?? []), ...(snapshot?.backgroundCards ?? [])]\r\n    const card = context.cardInternalId\r\n        ? cards.find(({ header }) => header.internalId === context.cardInternalId)\r\n        : cards.find(({ path }) => path === context.file)\r\n\r\n    return card?.header.internalId ?? context.cardInternalId ?? null\r\n}\r\n\r\nfunction resolveColumnDefaultActionId(context: ActionContext) {\r\n    if (context.kind !== 'card' || !context.state) return undefined\r\n\r\n    return dataService.getConfig()?.states.find(({ state }) => state === context.state)?.defaultActionId\r\n}\r\n\r\nfunction persistedActionStates(\r\n    actions: ReturnType<typeof displayActionsForContext>,\r\n    context: ActionContext,\r\n    snapshot: ReturnType<typeof useProjectState>['snapshot'],\r\n) {\r\n    if (context.kind === 'project') {\r\n        const conversations = dataService.agents.getProjectAgentConversationsSnapshot()\r\n\r\n        return Object.fromEntries(actions.map(({ id }) => [\r\n            id,\r\n            cardAgentState(conversations.filter((conversation) => conversation.actionId === \n[2165 characters omitted]\nivityKey\r\n        ? historicalCardActivityService.getSnapshot(activityKey)\r\n        : null, [activityKey])\r\n    const activities = useSyncExternalStore(subscribeActivity, getActivitySnapshot, getActivitySnapshot)\r\n    useEffect(() => {\r\n        if (!historicalCard?.header.internalId || !activityKey) return\r\n        const cardInternalId = historicalCard.header.internalId\r\n        const controller = new AbortController()\r\n        void historicalCardActivityService.load(activityKey, cardInternalId, controller.signal)\r\n\r\n        return () => controller.abort()\r\n    }, [activityKey, historicalCard?.header.internalId])\r\n    const actions = useMemo(() => activities\r\n        ? historicalCardActions(applicableActions, loadedActions, activities)\r\n        : applicableActions, [activities, applicableActions, loadedActions])\r\n    const [selectedActionId, setSelectedActionId] = useState<string | null>(() => resolveInitialActionId(\r\n        actions,\r\n        initialActionId,\r\n        actionRunRegistry.getContextActiveSnapshot(effectiveContext),\r\n        persistedActionStates(actions, effectiveContext, snapshot),\r\n        resolveColumnDefaultActionId(effectiveContext),\r\n    ))\r\n    const [fullHeight, setFullHeight] = useState(false)\r\n    const titleId = useId()\r\n    // A run that edits its own card changes the context (state, title, worktree), so the\r\n    // selected action can drop out of the filtered list mid-run. Keep it selectable instead\r\n    // of closing the popup or silently switching to another action.\r\n    const retainedAction = selectedActionId ? loadedActions.find(({ id }) => id === selectedActionId) ?? null : null\r\n    const selectedAction = actions.find(({ id }) => id === selectedActionId) ?? retainedAction ?? actions[0] ?? null\r\n    const selectableActions = selectedAction && !actions.some(({ id }) => id === selectedAction.id)\r\n        ? [...actions, selectedAction]\r\n        : actions\r\n    const { id: target, title: targetTitle } = resolvePopupTarget(context, snapshot)\r\n    const releasesFolder = dataService.getConfig()?.releasesFolder\r\n    const historicalSelectionReadOnly = historicalCard && selectedAction\r\n        && selectedAction.id !== CUSTOM_PROMPT_ACTION_ID\r\n        && !applicableActions.some(({ id }) => id === selectedAction.id)\r\n    const readOnlyMessage = releasesFolder && isReleasedCardActionContext(effectiveContext, releasesFolder)\r\n        ? RELEASED_CARD_RUN_MESSAGE\r\n        : historicalSelectionReadOnly\r\n            ? 'Historical action cannot be run in this card context.'\r\n            : null\r\n    const historicalEntries = useMemo(() => activities && selectedAction && project\r\n        ? historicalActionHistory(activities, selectedAction.id, project.rootPath ?? project.id)\r\n        : null, [activities, selectedAction, project])\r\n\r\n    const handleSelectAction = (actionId: string) => {\r\n        setSelectedActionId(actionId)\r\n    }\r\n\r\n    const handleClose = () => {\r\n        actionPromptDraftService.deleteEmptyDrafts()\r\n        onClose()\r\n    }\r\n\r\n    const handleToggleFullHeight = () => setFullHeight((current) => !current)\r\n\r\n    if (!selectedAction) return null\r\n\r\n    return (\r\n        <ActionPopupContent\r\n            {...props}\r\n            action={selectedAction}\r\n            actions={selectableActions}\r\n            assignmentContext={effectiveContext}\r\n            baseContext={context}\r\n            fullHeight={fullHeight}\r\n            historicalEntries={historicalEntries}\r\n            initialConversationPath={selectedAction.id === initialActionId ? initialConversationPath : undefined}\r\n            initialRunId={selectedAction.id === initialActionId ? initialRunId : undefined}\r\n            onClose={handleClose}\r\n            onSelectAction={handleSelectAction}\r\n            onToggleFullHeight={handleToggleFullHeight}\r\n            open={open ?? !!anchorElement}\r\n            primaryPath={project?.rootPath ?? project?.id ?? null}\r\n            readOnlyMessage={readOnlyMessage}\r\n            target={target}\r\n            targetTitle={targetTitle}\r\n            titleId={titleId}\r\n        />\r\n    )\r\n}\r\n",
+          "durationMs": 15,
+          "exitCode": 0,
+          "id": "agent-turn-ad6ab179-8ab6-419e-9523-0445d7122c3a-event-40",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content app/src/components/actions/run/popup/action_popup_content.tsx; Get-Content app/src/components/actions/run/popup/action_popup.tsx'",
+          "providerItemId": "exec-755b55ca-9cc2-4981-9874-5473c50d29e0",
+          "sequence": 40,
+          "status": "completed",
+          "timestamp": "2026-10-08T11:44:41.150Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content app/src/components/actions/run/popup/action_popup_operations.ts | Select-Object -Skip 155 -First 85; rg -n 'flushPendingChanges|flushDrafts' app/src/services/actions/electron_action_runner.ts app/src/components/actions/run/popup/action_popup_operations.ts app/src/services/actions/action_service.ts app/src/services/actions/action_definition_draft_store.ts\"",
+          "content": "                status: 'failed',\r\n                stderr: message,\r\n                stdout: '',\r\n            }],\r\n            status: 'failed',\r\n        })\r\n        if (!submissionId || started) dialogService.error(error, { fallbackMessage: 'Action run failed' })\r\n    }\r\n}\r\n\r\nexport async function runPopupAction(input: ActionPopupOperationInput) {\r\n    const { action, bindingStore, context, conversationStore, settingsStore } = input\r\n    const run = currentActionRun(bindingStore)\r\n    if (activeRunHasHistoricalDisplay(run, conversationStore)) return\r\n\r\n    const sessionActive = run?.status === 'queued' || run?.status === 'running' || run?.status === 'waitingForInput'\r\n    const agentActive = sessionActive && run?.activeActionType === 'agent'\r\n    const promptDraft = currentActionPromptDraft(action, context, bindingStore, conversationStore, false, agentActive ? '' : undefined)\r\n    const prompt = promptDraft.getSnapshot()\r\n\r\n    if (agentActive && run) {\r\n        if (\r\n            run.status === 'waitingForInput'\r\n            && !run.question\r\n            && run.approvals.length === 0\r\n            && settingsStore.getSnapshot().settingsChangedWhileWaiting\r\n        ) {\r\n            const conversationId = run.conversation?.id ?? conversationStore.getSnapshot().selectedConversation?.id\r\n            if (!conversationId) throw new Error('Restart requires a conversation ID')\r\n            const submissionId = actionRunRegistry.beginSubmission(action.id, context, prompt, null, conversationId);\r\n            const diagramPath = promptDraft.getDiagramPath()\r\n            promptDraft.clearForSend()\r\n            await runWithPrompt(input, prompt, run.runId, submissionId, diagramPath, conversationId)\r\n            return\r\n        }\r\n        let submissionId: string | null = null\r\n        try {\r\n            if (!run.activeActionId) throw new Error('Action run has no active agent')\r\n            if (prompt.trim().length === 0) throw new Error('Queued agent prompt is empty')\r\n\r\n            submissionId = actionRunRegistry.beginSubmission(action.id, context, prompt, run.runId, run.conversation?.id ?? null);\r\n            promptDraft.clearForSend()\r\n            await actionRunRegistry.enqueueSubmission(submissionId);\r\n        } catch (error) {\r\n            if (!submissionId) dialogService.error(error, { fallbackMessage: 'Could not send agent message' })\r\n        }\r\n        return\r\n    }\r\n\r\n    const conversationId = action.type === 'agent'\r\n        ? conversationStore.getSnapshot().selectedConversation?.id ?? run?.conversation?.id ?? `agent-${generateUuid()}`\r\n        : null\r\n    const submissionId = action.type === 'agent' && prompt.trim().length > 0 && conversationId\r\n        ? actionRunRegistry.beginSubmission(action.id, context, prompt, null, conversationId)\r\n        : null;\r\n    const diagramPath = promptDraft.getDiagramPath()\r\n    if (submissionId) promptDraft.clearForSend()\r\n    await runWithPrompt(input, prompt, null, submissionId, diagramPath, conversationId)\r\n}\r\n\r\n/**\r\n * Keys each answer by the question text rather than by md2's synthetic question id, because the resumed\r\n * agent has never seen those ids and only recognises the question it wrote itself.\r\n */\r\nexport function composeRestoredQuestionAnswers(\r\n    questions: AgentQuestion[],\r\n    answers: Record<string, string[]>,\r\n) {\r\n    return questions\r\n        .filter(({ id }) => answers[id]?.length)\r\n        .map(({ id, question }) => `${question}: ${answers[id].join(', ')}`)\r\n        .join('\\n')\r\n}\r\n\r\n/**\r\n * Answers a question restored from a stored conversation: the streaming request id died with the agent\r\n * process, so the answers are resumed as an ordinary prompt on top of the stored conversation instead.\r\n */\r\nexport async function answerRestoredConversationQuestions(\r\n    input: ActionPopupOperationInput,\r\n    questions: AgentQuestion[],\r\n    answers: Record<string, string[]>,\r\n) {\r\n    const content = composeRestoredQuestionAnswers(questions, answers)\r\n    if (content.trim().length === 0) throw new Error('Missing agent question answers')\r\nrg: app/src/services/actions/action_definition_draft_store.ts: The system cannot find the file specified. (os error 2)\napp/src/services/actions/electron_action_runner.ts:35:        if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges()\napp/src/services/actions/electron_action_runner.ts:53:        if (projectPersistenceService.getSnapshot().hasPendingSave) await projectPersistenceService.flushPendingChanges();\n",
+          "durationMs": 182,
+          "exitCode": 1,
+          "id": "agent-turn-ad6ab179-8ab6-419e-9523-0445d7122c3a-event-41",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content app/src/components/actions/run/popup/action_popup_operations.ts | Select-Object -Skip 155 -First 85; rg -n 'flushPendingChanges|flushDrafts' app/src/services/actions/electron_action_runner.ts app/src/components/actions/run/popup/action_popup_operations.ts app/src/services/actions/action_service.ts app/src/services/actions/action_definition_draft_store.ts\"",
+          "providerItemId": "exec-2360f66b-db92-4270-b797-15484be8c49d",
+          "sequence": 41,
+          "status": "failed",
+          "timestamp": "2026-10-08T11:44:41.378Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "You’re right—I misidentified the click as opening the popup.\n\n**Switching actions remounts the popup’s entire session subtree.** [ActionPopupContent](C:/Users/janbo/Documents/dev/md2/app/src/components/actions/run/popup/action_popup_content.tsx:9) sets the session’s React key to `action.id + context identity`. Changing the action changes that key, so React destroys the previous session and mounts a new one.\n\nThat subtree includes the popup frame, selectors, conversation UI, controls, and Markdown editor. Its session also creates new stores and starts conversation/history loading. This explains the initialization activity despite the popup already being open: **the remount boundary includes much more than the action-specific prompt.**\n\nYour flush distinction is also correct. [defaultPreparePrompt](C:/Users/janbo/Documents/dev/md2/app/src/components/actions/run/popup/action_popup_defaults.ts:101) currently calls the full project flush. For prompt preparation, it should flush pending action definitions only. The full flush belongs at execution, where [electron_action_runner](C:/Users/janbo/Documents/dev/md2/app/src/services/actions/electron_action_runner.ts:35) already performs it when pending saves exist.\n\nThe corrected findings are:\n\n- **~386 ms blocking work:** action switching destroys and reconstructs the session UI, with development instrumentation amplifying the cost.\n- **~920 ms preparation interval:** includes an unnecessarily broad persistence flush plus backend preparation. The trace cannot separate their individual durations.\n\nNo code changed.\n\n",
+          "id": "agent-turn-ad6ab179-8ab6-419e-9523-0445d7122c3a-turn-2-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 42,
+          "timestamp": "2026-10-08T11:44:52.584Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -533,8 +581,8 @@
           "agent": "codex",
           "conversationId": "01a11b4a-64ae-73e2-b225-f3872a0d15d2",
           "createdAt": "2026-10-08T11:37:43.141Z",
-          "lastUsedAt": "2026-10-08T11:37:43.141Z",
-          "synchronizedThroughMessageId": "agent-turn-ad6ab179-8ab6-419e-9523-0445d7122c3a-turn-1-assistant-4"
+          "lastUsedAt": "2026-10-08T11:44:52.584Z",
+          "synchronizedThroughMessageId": "agent-turn-ad6ab179-8ab6-419e-9523-0445d7122c3a-turn-2-assistant-2"
         }
       ],
       "startedAt": "2026-10-08T11:33:42.191Z",
@@ -542,18 +590,18 @@
       "timer": {
         "breakdown": {
           "reasoningMs": 197,
-          "toolMs": 13884
+          "toolMs": 14104
         },
         "elapsedMs": 240950,
         "runningStartedAt": "2026-10-08T11:44:32.557Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 551040,
-        "inputTokens": 76175,
-        "outputTokens": 5804,
+        "cachedInputTokens": 648192,
+        "inputTokens": 150798,
+        "outputTokens": 6312,
         "reasoningTokens": 436,
-        "totalTokens": 633455
+        "totalTokens": 805738
       },
       "usageSchemaVersion": 1,
       "viewed": true
