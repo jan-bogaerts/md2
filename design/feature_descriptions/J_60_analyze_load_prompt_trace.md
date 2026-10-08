@@ -3,7 +3,7 @@ author:
 id: J_60
 internalId: 1eb24b57-bc11-41d1-8c8f-296b0dba31c1
 title: analyze load prompt trace
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,27 @@ policy:
 after: 45e13c03-d74d-4082-9065-aa387f6553f5
 branch: j_60_analyze_load_prompt_trace
 worktree: 1
+changedFiles:
+  - app/.j60-profile/config.mts
+  - app/.j60-profile/index.html
+  - app/.j60-profile/measure.js
+  - app/.j60-profile/profile.tsx
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/actions/run/popup/action_popup_content.tsx
+  - app/src/components/actions/run/popup/action_popup_defaults.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_defaults.ts
+  - app/src/components/actions/run/popup/action_popup_session.tsx
+  - app/src/components/actions/run/popup/action_popup_session_service.node.test.ts
+  - app/src/components/actions/run/popup/action_popup_session_service.ts
+  - app/src/components/editor/data_sources/reset_markdown_draft_command.ts
+  - app/src/components/editor/data_sources/use_markdown_draft.test.tsx
+  - app/src/components/editor/data_sources/use_markdown_draft.ts
+  - app/src/components/editor/file_search/markdown_file_search_typeahead_plugin.tsx
+  - app/src/components/editor/local_search/markdown_local_text_search_plugin.tsx
+  - app/src/components/editor/markdown_editor.tsx
+  - app/src/components/editor/markdown_editor_reliability.real.test.tsx
+  - app/src/components/editor/placeholders/markdown_placeholder_typeahead_plugin.tsx
+  - app/src/components/editor/source/markdown_source_controller.ts
 ---
 
 This trace records a switch between actions in an already-open action popup: [Trace-load prompt.json](file:///C:/Users/janbo/Documents/dev/Trace-load%20prompt.json).
