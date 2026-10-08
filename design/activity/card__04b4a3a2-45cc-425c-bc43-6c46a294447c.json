@@ -757,6 +757,29 @@
       "startedAt": "2026-10-08T08:23:18.012Z",
       "status": "completed",
       "rootConversationId": "agent-872bbd49-3a99-4b89-888d-1a226bb2fdb0"
+    },
+    {
+      "commits": [
+        {
+          "commit": "cc6d8d3c623ad46db58a7b02925f0eb9227c3ebf",
+          "committedAt": "2026-10-08T12:54:06+02:00",
+          "deletions": 3,
+          "filePaths": [
+            "app/src/components/editor/source/markdown_source_mode_controls.test.tsx",
+            "app/src/components/editor/source/markdown_source_mode_controls.tsx"
+          ],
+          "filesChanged": 2,
+          "insertions": 64,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-08T12:54:06+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "04b4a3a2-45cc-425c-bc43-6c46a294447c",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
