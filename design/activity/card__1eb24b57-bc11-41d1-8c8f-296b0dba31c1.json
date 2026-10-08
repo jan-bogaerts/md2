@@ -572,6 +572,14 @@
           "role": "assistant",
           "sequence": 42,
           "timestamp": "2026-10-08T11:44:52.584Z"
+        },
+        {
+          "content": "so, how can we improve the load time for switching between actions",
+          "id": "submission-5a0e53f4-9284-4c5b-82e7-a057c21c2949",
+          "kind": "message",
+          "role": "user",
+          "sequence": 43,
+          "timestamp": "2026-10-08T11:56:02.737Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -586,14 +594,14 @@
         }
       ],
       "startedAt": "2026-10-08T11:33:42.191Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 197,
           "toolMs": 14104
         },
         "elapsedMs": 260977,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-08T11:56:02.737Z"
       },
       "title": "+",
       "usage": {
