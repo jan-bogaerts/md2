@@ -9,6 +9,8 @@ affects:
 agents:
   - design/activity/card__5785f8fc-1509-47f0-8b60-5b34f03774c1.json
 policy:
+branch: b_266_after_queued_message_chatlog_stops_responding
+worktree: 3
 ---
 
 Something strange going on with the chatlog of the active conversation on the action-popup.
