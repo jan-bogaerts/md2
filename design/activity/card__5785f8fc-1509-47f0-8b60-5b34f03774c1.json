@@ -52,7 +52,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "5785f8fc-1509-47f0-8b60-5b34f03774c1",
       "cardPath": "design/feature_descriptions/B_266_after_queued_message_chatlog_stops_responding.md",
-      "completedAt": null,
+      "completedAt": "2026-10-08T08:24:39.584Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 93301
@@ -669,7 +669,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 48,
-          "timestamp": "2026-10-08T08:24:39.010Z"
+          "timestamp": "2026-10-08T08:24:39.584Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -679,7 +679,7 @@
           "agent": "claude",
           "conversationId": "7fb442a9-ce76-4d72-a14b-a7ef97825b3a",
           "createdAt": "2026-10-08T08:24:39.010Z",
-          "lastUsedAt": "2026-10-08T08:24:39.010Z",
+          "lastUsedAt": "2026-10-08T08:24:39.584Z",
           "synchronizedThroughMessageId": "agent-turn-be9f1f9c-db21-473e-a351-6819fba38fbd-turn-1-assistant-4",
           "usageBaseline": {
             "costUsd": 1.1491959999999999,
@@ -695,14 +695,14 @@
         }
       ],
       "startedAt": "2026-10-08T08:22:22.004Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 33626,
           "toolMs": 44492
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-08T08:22:22.004Z"
+        "elapsedMs": 137580,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
