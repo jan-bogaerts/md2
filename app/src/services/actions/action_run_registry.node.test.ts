@@ -528,49 +528,84 @@ describe('ActionRunRegistry', () => {
         service.stop()
     })
 
-    it('rejects malformed indexed transcript updates clearly', () => {
-        const { bridge, emit } = bridgeWithEvents()
-        setActionBridgeOverride(bridge)
-        const service = new ActionRunRegistry()
-        service.start()
+    it.each(['agentEvent', 'agentOutput'] as const)('logs malformed %s updates and keeps processing', (kind) => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        const { bridge, emit } = bridgeWithEvents();
+        setActionBridgeOverride(bridge);
+        const service = new ActionRunRegistry();
+        service.start();
         const assistant = {
             content: 'draft', id: 'assistant-1', kind: 'message' as const, role: 'assistant' as const,
             sequence: 1, timestamp: 'now',
-        }
-        emit({
-            actionId: 'review', context, runId: 'run-1', phase: 'main', rootActionId: 'review', status: 'running', type: 'update',
-            update: { conversation: agentConversation([assistant]), kind: 'agentStarted' },
-        })
+        };
+        const providerEvent = {
+            content: '', id: 'event-1', kind: 'event' as const, providerItemId: 'tool-1',
+            status: 'completed', timestamp: 'now', type: 'commandExecution',
+        };
         const base = {
             actionId: 'review', context, runId: 'run-1', phase: 'main' as const, rootActionId: 'review',
             status: 'running' as const, type: 'update' as const,
+        };
+        try {
+            emit({ ...base, update: { conversation: agentConversation([assistant]), kind: 'agentStarted' } });
+            const previous = getRun(service);
+            for (const entryIndex of [undefined, 4, 0]) {
+                const update = kind === 'agentEvent'
+                    ? { entryIndex, event: providerEvent, kind }
+                    : { content: 'x', entryIndex, kind, messageId: 'wrong', sequence: 1 };
+                const invalidEvent = { ...base, status: 'waitingForInput', update } as unknown as ActionRunEvent;
+                expect(() => emit(invalidEvent)).not.toThrow();
+                expect(getRun(service).conversation).toBe(previous.conversation);
+                expect(getRun(service).conversationChange).toBe(previous.conversationChange);
+                expect(getRun(service).status).toBe('waitingForInput');
+                expect(consoleError).toHaveBeenLastCalledWith(`[action:${kind}]`, 'run-1', entryIndex, expect.any(Error));
+            }
+            expect(consoleError).toHaveBeenCalledTimes(3);
+            if (kind === 'agentOutput') expect(getRun(service).logs.at(-1)?.stdout).toBe('xxx');
+            emit({
+                ...base,
+                update: { content: ' complete', entryIndex: 0, kind: 'agentOutput', messageId: assistant.id, sequence: 1 },
+            });
+            expect(getRun(service).conversation?.entries[0]).toMatchObject({ content: 'draft complete' });
+            expect(getRun(service).status).toBe('running');
+        } finally {
+            service.stop();
+            consoleError.mockRestore();
         }
+    });
 
-        expect(() => emit({
-            ...base,
-            update: { content: 'x', kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
-        } as unknown as ActionRunEvent)).toThrow('Invalid conversation entry index: undefined')
-        expect(() => emit({
-            ...base,
-            update: { content: 'x', entryIndex: 4, kind: 'agentOutput', messageId: 'assistant-1', sequence: 1 },
-        })).toThrow('Conversation entry index out of range: 4')
-        expect(() => emit({
-            ...base,
-            update: { content: 'x', entryIndex: 0, kind: 'agentOutput', messageId: 'wrong', sequence: 1 },
-        })).toThrow('Assistant message identity mismatch at conversation entry index 0')
-        expect(() => emit({
+    it('appends a dispatched queued prompt before its provider event and live output', () => {
+        const { bridge, emit } = bridgeWithEvents();
+        setActionBridgeOverride(bridge);
+        const service = new ActionRunRegistry();
+        service.start();
+        const base = {
+            actionId: 'review', context, runId: 'run-1', phase: 'main' as const, rootActionId: 'review',
+            status: 'running' as const, type: 'update' as const,
+        };
+        const userMessage = { content: 'Next', id: 'queued-1', kind: 'message' as const, role: 'user' as const, timestamp: 'now' };
+        const providerEvent = {
+            content: 'working', id: 'event-1', kind: 'event' as const, providerItemId: 'tool-1',
+            status: 'completed', timestamp: 'now', type: 'commandExecution',
+        };
+        emit({ ...base, update: { conversation: agentConversation([]), kind: 'agentStarted' } });
+        emit({
             ...base,
             update: {
-                entryIndex: 0,
-                event: {
-                    content: '', id: 'event-1', kind: 'event', providerItemId: 'tool-1',
-                    status: 'completed', timestamp: 'now', type: 'commandExecution',
-                },
-                kind: 'agentEvent',
+                entry: { content: 'Next', dispatchState: 'queued', id: 'queued-1', revision: 1 },
+                kind: 'agentPromptQueued',
             },
-        })).toThrow('Provider event identity mismatch at conversation entry index 0')
-        service.stop()
-    })
+        });
+        emit({ ...base, update: { kind: 'agentPromptDispatched', promptId: 'queued-1', revision: 1 } });
+        emit({ ...base, update: { kind: 'agentUserMessage', userMessage } });
+        emit({ ...base, update: { entryIndex: 1, event: providerEvent, kind: 'agentEvent' } });
+        emit({ ...base, update: { content: 'Done', entryIndex: 2, kind: 'agentOutput', messageId: 'assistant-1', sequence: 3 } });
+        expect(getRun(service).queuedPrompts).toEqual([]);
+        expect(getRun(service).conversation?.entries).toEqual([
+            userMessage, providerEvent, expect.objectContaining({ content: 'Done', id: 'assistant-1' }),
+        ]);
+        service.stop();
+    });
 
     it('applies terminal conversation metadata from the canonical close snapshot', () => {
         const { bridge, emit } = bridgeWithEvents()
@@ -1040,6 +1075,40 @@ describe('ActionRunRegistry', () => {
         release()
         service.stop()
     })
+
+    it('continues recovery replay after an invalid transcript index', async () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        const base = {
+            actionId: 'review', context, runId: 'run-1', phase: 'main' as const, rootActionId: 'review',
+            status: 'running' as const, type: 'update' as const,
+        };
+        const activeRunEvents: ActionRunEvent[] = [
+            { ...base, sequence: 1, update: { conversation: agentConversation([]), kind: 'agentStarted' } },
+            {
+                ...base, sequence: 2,
+                update: { content: 'Skipped', entryIndex: 4, kind: 'agentOutput', messageId: 'bad', sequence: 1 },
+            },
+            {
+                ...base, sequence: 3,
+                update: { content: 'Live', entryIndex: 0, kind: 'agentOutput', messageId: 'assistant-1', sequence: 2 },
+            },
+        ];
+        const { bridge } = bridgeWithEvents({loadActionRunRecoverySnapshot: vi.fn(async () => ({ activeRunEvents, terminalResults: [] }))});
+        setActionBridgeOverride(bridge);
+        const service = new ActionRunRegistry();
+        const recoveryFailed = vi.fn();
+        service.addEventListener('recoveryFailed', recoveryFailed);
+        try {
+            service.start();
+            await vi.waitFor(() => expect(service.getRunStore('run-1')?.getSnapshot().conversation?.entries)
+                .toEqual([expect.objectContaining({ content: 'Live', id: 'assistant-1' })]));
+            expect(consoleError).toHaveBeenCalledWith('[action:agentOutput]', 'run-1', 4, expect.any(Error));
+            expect(recoveryFailed).not.toHaveBeenCalled();
+        } finally {
+            service.stop();
+            consoleError.mockRestore();
+        }
+    });
 
     it('fails and releases local interaction when authoritative recovery has no run state', async () => {
         const first = bridgeWithEvents()

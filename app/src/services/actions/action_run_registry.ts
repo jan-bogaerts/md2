@@ -1076,20 +1076,24 @@ export class ActionRunRegistry extends EventTarget {
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentEvent' && next.conversation) {
-            next = {
-                ...next,
-                conversation: {
-                    ...next.conversation,
-                    entries: updateAgentEventAtIndex(
-                        next.conversation.entries,
-                        event.update.entryIndex,
-                        event.update.event,
-                    ),
-                    // Only the timer is merged here: the chat log tooltip needs the fresh breakdown,
-                    // nothing else about the conversation is republished for one entry.
-                    ...(event.timer ? { timer: event.timer } : {}),
-                },
-                conversationChange: { entryIndex: event.update.entryIndex, kind: 'entry' },
+            try {
+                next = {
+                    ...next,
+                    conversation: {
+                        ...next.conversation,
+                        entries: updateAgentEventAtIndex(
+                            next.conversation.entries,
+                            event.update.entryIndex,
+                            event.update.event,
+                        ),
+                        // Only the timer is merged here: the chat log tooltip needs the fresh breakdown,
+                        // nothing else about the conversation is republished for one entry.
+                        ...(event.timer ? { timer: event.timer } : {}),
+                    },
+                    conversationChange: { entryIndex: event.update.entryIndex, kind: 'entry' },
+                };
+            } catch (error) {
+                console.error('[action:agentEvent]', event.runId, event.update.entryIndex, error);
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentUsage' && next.conversation) {
@@ -1207,13 +1211,20 @@ export class ActionRunRegistry extends EventTarget {
             }
         }
         if (event.type === 'update' && event.update.kind === 'agentOutput') {
-            const conversation = next.conversation
-                ? updateAgentOutputAtIndex(next.conversation, event.update)
-                : next.conversation
+            try {
+                const conversation = next.conversation
+                    ? updateAgentOutputAtIndex(next.conversation, event.update)
+                    : next.conversation;
+                next = {
+                    ...next,
+                    conversation,
+                    conversationChange: { entryIndex: event.update.entryIndex, kind: 'entry' },
+                };
+            } catch (error) {
+                console.error('[action:agentOutput]', event.runId, event.update.entryIndex, error);
+            }
             next = {
                 ...next,
-                conversation,
-                conversationChange: { entryIndex: event.update.entryIndex, kind: 'entry' },
                 logs: updateOutputLogs(next.logs, event, event.update),
             }
         }
