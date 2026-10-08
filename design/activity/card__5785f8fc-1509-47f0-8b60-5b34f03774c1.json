@@ -52,10 +52,10 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "5785f8fc-1509-47f0-8b60-5b34f03774c1",
       "cardPath": "design/feature_descriptions/B_266_after_queued_message_chatlog_stops_responding.md",
-      "completedAt": "2026-10-08T08:24:39.584Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 93301
+        "usedTokens": 99719
       },
       "entries": [
         {
@@ -670,6 +670,191 @@
           "role": "assistant",
           "sequence": 48,
           "timestamp": "2026-10-08T08:24:39.584Z"
+        },
+        {
+          "content": "1. include\n2. not enough info.&#x20;\n   1. which update?\n   2. escapes? escapes to where?",
+          "id": "submission-e660c910-437a-4a05-9e29-32cf41b56a5c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 49,
+          "timestamp": "2026-10-08T08:36:36.835Z"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-50",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpTwdt83ExfHQJ5XM4Ln:thinking:0",
+          "sequence": 50,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:36:43.089Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"function subscribeBridge\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\desktop\\\\src\\\\shell\\\\preload.js\",\"output_mode\":\"content\",\"-A\":25}",
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-51",
+          "kind": "event",
+          "label": "Grep",
+          "output": "169:function subscribeBridge(method, params, callback) {\n170-    const subscriptionId = createEventId(method);\n171-    const listener = (_event, message) => {\n172-        if (message.eventId === subscriptionId) callback(message.payload);\n173-    };\n174-\n175-    ipcRenderer.on(LOCAL_BRIDGE_EVENT_CHANNEL, listener);\n176-    ipcRenderer.send(LOCAL_BRIDGE_SUBSCRIBE_CHANNEL, { method, params, subscriptionId });\n177-\n178-    return () => {\n179-        ipcRenderer.removeListener(LOCAL_BRIDGE_EVENT_CHANNEL, listener);\n180-        ipcRenderer.send(LOCAL_BRIDGE_UNSUBSCRIBE_CHANNEL, subscriptionId);\n181-    };\n182-}\n183-\n184-function createBridge(methods) {\n185-    return Object.fromEntries(methods.map((method) => [\n186-        method,\n187-        (...params) => {\n188-            const callback = EVENT_METHODS.has(method) && typeof params[params.length - 1] === 'function'\n189-                ? params.pop()\n190-                : null;\n191-\n192-            return invokeBridge(method, params, callback);\n193-        },\n194-    ]));",
+          "providerItemId": "toolu_016J5rC4nuniuzyW1t1d6JyP",
+          "sequence": 51,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:36:44.234Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-52",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpTx3wUaqW35h73hihoo:thinking:0",
+          "sequence": 52,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:36:47.428Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "{\"pattern\":\"addEventListener\\\\('(error|unhandledrejection)'|window\\\\.onerror\",\"path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2\\\\app\\\\src\",\"output_mode\":\"content\"}",
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-53",
+          "kind": "event",
+          "label": "Grep",
+          "output": "app\\src\\components\\diagram_view\\diagram_view.test.tsx:320:            snapshotEvents.addEventListener('error', listener)\napp\\src\\services\\data\\remote_control_storage_service.ts:971:        socket.addEventListener('error', () => this.handleError(socket))\napp\\src\\services\\data\\remote_control_storage_service.ts:1002:            socket.addEventListener('error', handleError, { once: true })",
+          "providerItemId": "toolu_01K7NqYo1EU6Nv8k1mWNbj31",
+          "sequence": 53,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:36:48.084Z",
+          "type": "tool.Grep"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-54",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpTxLKi6iozL7vpBoVz6:thinking:0",
+          "sequence": 54,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:36:51.632Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md",
+          "deletions": 1,
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-55",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01VfHCpfu7LXgVtdHB4aWg2i",
+          "sequence": 55,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:36:54.842Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md",
+          "deletions": 1,
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-56",
+          "insertions": 7,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_011YotsTFunKUs1hgFDv1Nqn",
+          "sequence": 56,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:36:58.690Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md",
+          "deletions": 0,
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-57",
+          "insertions": 2,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01VhytPNYfNsTCxwNc2dB2Kp",
+          "sequence": 57,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:37:01.694Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md",
+          "deletions": 0,
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-58",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01K9xC7y9CgPya3v7rnHh8nC",
+          "sequence": 58,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:37:03.344Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md",
+          "deletions": 1,
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-59",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_01GVm8HA5u8Fo5TN4o9ffktN",
+          "sequence": 59,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:37:04.699Z",
+          "type": "fileChange"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-60",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfpTya1WTRngyAGJLacou:thinking:0",
+          "sequence": 60,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-08T08:37:07.877Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md",
+          "deletions": 1,
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-event-61",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\B_266_after_queued_message_chatlog_stops_responding.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_018VftX5kycCNuE75pDBJegA",
+          "sequence": 61,
+          "status": "completed",
+          "timestamp": "2026-10-08T08:37:09.463Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "**1. Included.** I updated the doc so `answerQuestion` and `dismissQuestions` are part of the fix:\n- **Current state:** both have the same race. Each adds its entry (the answer user message, or a `questionsDismissed` event), waits for the checkpoint to save, and only then emits `questionAnswered` / `questionDismissed`.\n- **Implementation details:** emit before the checkpoint save in both. `dismissQuestions` keeps its existing error wrap and still throws after the emits.\n- **Tests:** added order regressions for both, plus a `dismissQuestions` test where the checkpoint save fails.\n- **Acceptance criteria:** answering or dismissing a question shows the new entry and all following agent output live.\n\n**2. My question was vague; here it is with the details.**\n\n- **Which update:** any agent event that arrives while the renderer's copy of the conversation is shorter than the desktop's. In practice that's `agentEvent` (`updateAgentEventAtIndex`) and `agentOutput` (`updateAgentOutputAtIndex`) in `action_run_registry.ts`. Both call `requireEntryIndex`, which throws `Conversation entry index out of range`. Later events can also hit the identity-mismatch throws in those same functions.\n- **Escapes to where:** nothing catches it. The error goes up from `ActionRunRegistry.handleEvent` through `handleIncomingEvent` to the `listener` in `subscribeBridge` (`desktop/src/shell/preload.js`), and from there into Electron's `ipcRenderer` event emitter. It ends up only as an \"Uncaught Error\" in the renderer DevTools console. The app has no global `error` or `unhandledrejection` handler. The user sees no dialog.\n- **Side effect:** `handleEvent` records the event's sequence number before it throws. So the event counts as handled, but the run store never gets it.\n\n**Revised question:** should `handleEvent` catch these errors and report them through `dialogService`? That could go in this bug or in a separate card. With the desktop fix the indexes stay in sync, so this would only protect against future mismatches.\n\nI wrote this detail into step 5 of Current state in the doc.",
+          "id": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 62,
+          "timestamp": "2026-10-08T08:37:19.111Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -679,42 +864,42 @@
           "agent": "claude",
           "conversationId": "7fb442a9-ce76-4d72-a14b-a7ef97825b3a",
           "createdAt": "2026-10-08T08:24:39.010Z",
-          "lastUsedAt": "2026-10-08T08:24:39.584Z",
-          "synchronizedThroughMessageId": "agent-turn-be9f1f9c-db21-473e-a351-6819fba38fbd-turn-1-assistant-4",
+          "lastUsedAt": "2026-10-08T08:37:19.111Z",
+          "synchronizedThroughMessageId": "agent-turn-444ed0f6-5f80-4ab4-8776-fc4c949411cb-turn-1-assistant-1",
           "usageBaseline": {
-            "costUsd": 1.1491959999999999,
-            "resultId": "4ac32b89-db23-4034-b5bb-78705bf54f70",
+            "costUsd": 1.3736639999999998,
+            "resultId": "9241a118-44f9-42c2-a19b-00f78a56d1b3",
             "tokens": {
-              "cachedInputTokens": 1722131,
-              "inputTokens": 46,
-              "outputTokens": 10312,
+              "cachedInputTokens": 2208369,
+              "inputTokens": 56,
+              "outputTokens": 14168,
               "reasoningTokens": 0,
-              "totalTokens": 1732489
+              "totalTokens": 2222593
             }
           }
         }
       ],
       "startedAt": "2026-10-08T08:22:22.004Z",
-      "status": "completed",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 33626,
-          "toolMs": 44492
+          "reasoningMs": 39653,
+          "toolMs": 60945
         },
         "elapsedMs": 137580,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-08T08:36:36.835Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 1722131,
-        "inputTokens": 46,
-        "outputTokens": 10312,
+        "cachedInputTokens": 2208369,
+        "inputTokens": 56,
+        "outputTokens": 14168,
         "reasoningTokens": 0,
-        "totalTokens": 1732489,
-        "costUsd": 1.1491959999999999
+        "totalTokens": 2222593,
+        "costUsd": 1.3736639999999998
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -767,11 +952,11 @@
         "agent-22782816-1019-499e-b9c4-abbdae489daa"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-39184fa3-4ff7-4d4c-8051-0f72304dd2f8",
       "origin": {
@@ -780,9 +965,9 @@
       },
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
-      "rootConversationId": "agent-22782816-1019-499e-b9c4-abbdae489daa",
       "startedAt": "2026-10-08T08:22:20.753Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-22782816-1019-499e-b9c4-abbdae489daa"
     }
   ],
   "version": 5
