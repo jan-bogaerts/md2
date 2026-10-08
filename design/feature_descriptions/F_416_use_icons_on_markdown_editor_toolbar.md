@@ -3,7 +3,7 @@ author:
 id: F_416
 internalId: 04b4a3a2-45cc-425c-bc43-6c46a294447c
 title: use icons on markdown editor toolbar
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
