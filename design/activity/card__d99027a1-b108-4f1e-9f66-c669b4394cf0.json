@@ -8,7 +8,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 125763
+        "usedTokens": 127600
       },
       "entries": [
         {
@@ -922,6 +922,75 @@
           "role": "assistant",
           "sequence": 71,
           "timestamp": "2026-10-09T09:31:58.917Z"
+        },
+        {
+          "content": "ok, update card",
+          "id": "submission-6160c3c6-2e9f-4ba3-bf97-a167fbb89975",
+          "kind": "message",
+          "role": "user",
+          "sequence": 72,
+          "timestamp": "2026-10-09T09:32:13.469Z"
+        },
+        {
+          "agent": "codex",
+          "content": "Update B_268 with agreed parser fix; distinguish verified defect from unconfirmed cause on reported card.\n\n\n",
+          "id": "agent-turn-0c66aab5-4095-43b9-81b8-fbe8680a2ec2-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 73,
+          "timestamp": "2026-10-09T09:32:16.980Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_268_error_trying_to_start_action.md'",
+          "content": "---\r\nauthor: \r\nid: B_268\r\ninternalId: d99027a1-b108-4f1e-9f66-c669b4394cf0\r\ntitle: error trying to start action\r\nstatus: ready for implementation\r\nowner: \r\naffects:\r\nagents:\r\n  - design/activity/card__d99027a1-b108-4f1e-9f66-c669b4394cf0.json\r\npolicy:\r\n---\r\n\r\ntried to start an action on a card, got this error:\r\n\r\n> 1 failed action\r\n\r\n* (main): Card has no frontmatter: design/feature descriptions/F\\_288\\_clear\\_dashboard\\_values.md\r\n\r\n\r\n\r\nit makes little sense. the card was simply available in the UI. We did remove a flush when selecting an agent, but the flush should happen when starting the action, most likely this got removed as well. check it\r\n\r\n## Current state\r\n\r\n- Reproduction clarified: `+` (custom prompt) starts a new agent conversation on a saved card. Failure repeats after saving.\r\n- `runElectronAction()` in `app/src/services/actions/electron_action_runner.ts` already awaits `projectPersistenceService.flushPendingChanges()` when saves are pending, before starting the action. Flush means transferring editor buffers into service state, persisting queued changes, and awaiting storage writes. Selecting an action only flushes action-definition drafts through `action_popup_defaults.ts`.\r\n- Conversation reservation in `desktop/src/actions/action/action_runner_service.js` allocates conversation identity; it does not read or write the card. During startup, `agent_conversation_persistence.js` writes initial activity, then `card_activity_reference.js` appends its path to the card's `agents` field before the agent process starts.\r\n- Verified defect: `splitFrontmatter()` chooses CRLF if any CRLF occurs anywhere in the document. An LF header with a CRLF body therefore throws `Card has no frontmatter`, although renderer parsing through `shared/markdown_header_fields.mjs` accepts that header. LF means `\\n`; CRLF means `\\r\\n`. Frontmatter means the opening metadata block enclosed by `---` lines.\r\n- In-process reproduction: `---\\ninternalId: card-1\\n---\\n\\nBody\\r\\n` yields `hasHeader: true` in renderer and the reported error in desktop. Original `design/feature descriptions/F_288_clear_dashboard_values.md` is absent from this workspace, so its exact bytes remain unverified. Missing startup flush is not established.\r\n\r\n## Implementation details\r\n\r\n- Change `desktop/src/actions/activity/card_activity_reference.js` only: recognize opening and closing delimiters independently of body line endings, accepting LF and CRLF as renderer already does. Parse header lines independently of their line endings; mixed header endings must not corrupt identity lookup.\r\n- Preserve original body, delimiters, unrelated header lines, field order, and their existing line endings. Use the opening delimiter's line ending for newly inserted `agents` lines. Keep duplicate references unchanged and retain missing-header, malformed-header, missing-file, and identity-mismatch errors. Do not invent metadata or weaken identity checks to make startup succeed.\r\n- Call-site impact: `appendReferenceToContent()` is called by `appendCardActivityReference()`; that function is called by `persistInitialCardConversation()`. New custom and named card-agent conversations receive the same parser correction. Existing conversations and project conversations use a different checkpoint path and retain current behavior. No mode flags or new service needed.\r\n- Preserve existing flush-before-start behavior and reservation ordering. Card ownership remains `Card.header.internalId` / `cardInternalId`; conversation identity remains `AgentConversation.id`. Paths locate persisted files.\r\n- Add regression cases to `card_activity_reference.test.mjs`; mock filesystem and Git boundaries. Run that file and `agent_conversation_persistence.test.mjs` in `desktop/`, plus desktop lint. Verify the reported saved-card custom prompt manually; if it still fails, inspect that file before attributing another cause.\r\n\r\n## Acceptance criteria\r\n\r\n- A saved card with LF frontmatter and CRLF body starts a new `+` custom-prompt conversation without `Card has no frontmatter`. Named card-agent actions use the same corrected linking behavior.\r\n- LF-only, CRLF-only, and mixed-header documents link activity successfully when frontmatter and `internalId` are valid.\r\n- Linking adds exactly one activity reference. Existing references, unknown fields, body bytes, and pre-existing line endings remain intact; repeated linking is unchanged.\r\n- Missing or malformed frontmatter, missing card files, and mismatched identities still fail clearly. Linking failure does not commit the startup files or launch the agent process.\r\n- Pending saves still finish before action start; save failure blocks startup. Merely selecting an action does not flush card changes.\r\n- Focused regression tests and desktop lint pass. Manual custom-prompt reproduction on the reported card succeeds after saving and on repeat.\r\n",
+          "durationMs": 23,
+          "exitCode": 0,
+          "id": "agent-turn-0c66aab5-4095-43b9-81b8-fbe8680a2ec2-event-74",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'Get-Content design/feature_descriptions/B_268_error_trying_to_start_action.md'",
+          "providerItemId": "exec-f216f767-3c89-4ad0-867d-5a8cc7bf3167",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-10-09T09:32:19.018Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-0c66aab5-4095-43b9-81b8-fbe8680a2ec2-event-75",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0c0ec4200a87376c016ac8b4a75afc81919f01613b6b72e964",
+          "sequence": 75,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-09T09:32:23.468Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"@'\nfrom pathlib import Path\n\npath = Path('design/feature_descriptions/B_268_error_trying_to_start_action.md')\nwith path.open('r', encoding='utf-8', newline='') as feature_file:\n    original = feature_file.read()\nline_ending = '\\\\r\\\\n' if '\\\\r\\\\n' in original else '\\\\n'\nupdated = original.replace(\n    '## Implementation details' + line_ending + line_ending,\n    '## Implementation details' + line_ending + line_ending\n    + '- Agreed fix: correct desktop frontmatter recognition and activity-reference insertion; keep startup flush unchanged. Before claiming this resolves the reported failure, inspect the saved failing card and reproduce its custom-prompt startup with those exact bytes.' + line_ending,\n    1,\n)\nupdated = updated.replace(\n    '- Change \"'`desktop/src/actions/activity/card_activity_reference.js` only:'\"',\n    '- Production change belongs in \"'`desktop/src/actions/activity/card_activity_reference.js`:'\"',\n    1,\n)\nupdated = updated.replace(\n    '- Add regression cases to \"'`card_activity_reference.test.mjs`; mock filesystem and Git boundaries.'\"',\n    '- Add a regression case to \"'`card_activity_reference.test.mjs` for LF frontmatter with a CRLF body: renderer recognizes the header, desktop appends activity successfully, and unrelated bytes remain unchanged. Cover mixed header endings too; mock filesystem and Git boundaries.'\"',\n    1,\n)\nassert updated \"'!= original\nassert '\"'status: ready for implementation' in updated\nassert updated.count('## Implementation details') == 1\nwith path.open('w', encoding='utf-8', newline='') as feature_file:\n    feature_file.write(updated)\nprint('Updated agreed fix, reported-card verification, and regression coverage. Status unchanged: ready for implementation.')\n'@ | python -\"",
+          "content": "Updated agreed fix, reported-card verification, and regression coverage. Status unchanged: ready for implementation.\r\n",
+          "durationMs": 50,
+          "exitCode": 0,
+          "id": "agent-turn-0c66aab5-4095-43b9-81b8-fbe8680a2ec2-event-76",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"@'\nfrom pathlib import Path\n\npath = Path('design/feature_descriptions/B_268_error_trying_to_start_action.md')\nwith path.open('r', encoding='utf-8', newline='') as feature_file:\n    original = feature_file.read()\nline_ending = '\\\\r\\\\n' if '\\\\r\\\\n' in original else '\\\\n'\nupdated = original.replace(\n    '## Implementation details' + line_ending + line_ending,\n    '## Implementation details' + line_ending + line_ending\n    + '- Agreed fix: correct desktop frontmatter recognition and activity-reference insertion; keep startup flush unchanged. Before claiming this resolves the reported failure, inspect the saved failing card and reproduce its custom-prompt startup with those exact bytes.' + line_ending,\n    1,\n)\nupdated = updated.replace(\n    '- Change \"'`desktop/src/actions/activity/card_activity_reference.js` only:'\"',\n    '- Production change belongs in \"'`desktop/src/actions/activity/card_activity_reference.js`:'\"',\n    1,\n)\nupdated = updated.replace(\n    '- Add regression cases to \"'`card_activity_reference.test.mjs`; mock filesystem and Git boundaries.'\"',\n    '- Add a regression case to \"'`card_activity_reference.test.mjs` for LF frontmatter with a CRLF body: renderer recognizes the header, desktop appends activity successfully, and unrelated bytes remain unchanged. Cover mixed header endings too; mock filesystem and Git boundaries.'\"',\n    1,\n)\nassert updated \"'!= original\nassert '\"'status: ready for implementation' in updated\nassert updated.count('## Implementation details') == 1\nwith path.open('w', encoding='utf-8', newline='') as feature_file:\n    feature_file.write(updated)\nprint('Updated agreed fix, reported-card verification, and regression coverage. Status unchanged: ready for implementation.')\n'@ | python -\"",
+          "providerItemId": "exec-5564b7dd-687b-4479-b5d3-d7ba0c7af344",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-10-09T09:32:37.006Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "agent": "codex",
+          "content": "Updated [B_268](design/feature_descriptions/B_268_error_trying_to_start_action.md) with agreed parser fix, regression coverage, and verification against failing card. Status remains `ready for implementation`. Nothing staged or committed.\n\n",
+          "id": "agent-turn-0c66aab5-4095-43b9-81b8-fbe8680a2ec2-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 77,
+          "timestamp": "2026-10-09T09:32:40.469Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -931,27 +1000,27 @@
           "agent": "codex",
           "conversationId": "01a11ff3-4f37-7441-a16e-896891fe7248",
           "createdAt": "2026-10-09T09:20:55.583Z",
-          "lastUsedAt": "2026-10-09T09:31:58.917Z",
-          "synchronizedThroughMessageId": "agent-turn-0c66aab5-4095-43b9-81b8-fbe8680a2ec2-turn-2-assistant-1"
+          "lastUsedAt": "2026-10-09T09:32:40.469Z",
+          "synchronizedThroughMessageId": "agent-turn-0c66aab5-4095-43b9-81b8-fbe8680a2ec2-turn-3-assistant-2"
         }
       ],
       "startedAt": "2026-10-09T09:16:41.255Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 375,
-          "toolMs": 3050
+          "reasoningMs": 384,
+          "toolMs": 3146
         },
-        "elapsedMs": 307541,
-        "runningStartedAt": "2026-10-09T09:31:51.755Z"
+        "elapsedMs": 314703,
+        "runningStartedAt": "2026-10-09T09:32:13.469Z"
       },
       "title": "complete",
       "usage": {
-        "cachedInputTokens": 2387328,
-        "inputTokens": 117282,
-        "outputTokens": 4816,
-        "reasoningTokens": 956,
-        "totalTokens": 2510382
+        "cachedInputTokens": 2765184,
+        "inputTokens": 119744,
+        "outputTokens": 5368,
+        "reasoningTokens": 1000,
+        "totalTokens": 2891296
       },
       "usageSchemaVersion": 1,
       "viewed": true
