@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "cardInternalId": "d99027a1-b108-4f1e-9f66-c669b4394cf0",
+      "cardPath": "design/feature_descriptions/B_268_error_trying_to_start_action.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "Add `Current state`, `implementation details`, `acceptance criteria` for `design/feature_descriptions/B_268_error_trying_to_start_action.md`.&#x20;\nupdate the field `status` in the markdown feature description file to `ready for implementation`.\n\nRead all referenced files before you begin except files listed under 'agents' in the header. it is possible that the file is not yet written. &#x20;\nAsk any question if something is ambiguous or not yet clear.\nBe brief, but never compress away the subject, timing, or causal chain. Define ambiguous technical phrases. use $caveman skill.\n\nDo not stage or commit changes. You have no need for get at this time.",
+          "id": "submission-9cf66fa2-6678-498a-a400-fb61ea99df18",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-09T09:16:41.255Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-948fd40c-0b03-4955-a916-f2229f4ad9b2",
+      "providerSessions": [],
+      "startedAt": "2026-10-09T09:16:41.255Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-09T09:16:41.255Z"
+      },
+      "title": "complete",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "d99027a1-b108-4f1e-9f66-c669b4394cf0",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
