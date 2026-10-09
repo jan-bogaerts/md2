@@ -5,7 +5,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "d99027a1-b108-4f1e-9f66-c669b4394cf0",
       "cardPath": "design/feature_descriptions/B_268_error_trying_to_start_action.md",
-      "completedAt": null,
+      "completedAt": "2026-10-09T09:32:40.743Z",
       "contextWindowUsage": {
         "capacityTokens": 258400,
         "usedTokens": 127600
@@ -990,7 +990,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 77,
-          "timestamp": "2026-10-09T09:32:40.469Z"
+          "timestamp": "2026-10-09T09:32:40.743Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1005,14 +1005,14 @@
         }
       ],
       "startedAt": "2026-10-09T09:16:41.255Z",
-      "status": "running",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
           "reasoningMs": 384,
           "toolMs": 3146
         },
-        "elapsedMs": 314703,
-        "runningStartedAt": "2026-10-09T09:32:13.469Z"
+        "elapsedMs": 341751,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
