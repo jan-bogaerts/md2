@@ -25,6 +25,7 @@ function initWorktreeService(storage: StorageService) {
         flushPendingChanges: vi.fn(async () => undefined),
         projectFolderProvider: () => 'design',
         projectProvider: () => project,
+        queueIntegratedActivity: vi.fn(async () => undefined),
         snapshotProvider: () => null,
         storageProvider: () => storage,
         unassignCardWorktree: vi.fn(),

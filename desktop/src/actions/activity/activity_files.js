@@ -221,6 +221,10 @@ async function appendAndCommitSystemActivity(project, projectFolder, origin, rec
     return updateAndCommitActivity(project, projectFolder, origin, (activity) => appendSystemActivityRecord(activity, record), message);
 }
 
+async function appendSystemActivity(project, projectFolder, origin, record) {
+    return updateActivity(project, projectFolder, origin, (activity) => appendSystemActivityRecord(activity, record));
+}
+
 function upsertConversation(activity, conversation) {
     if (typeof conversation.viewed !== 'boolean') throw new Error('Missing agent conversation viewed');
     const canonicalConversation = parseAgentConversationValue(conversation, conversation.path ?? '');
@@ -527,6 +531,7 @@ module.exports = {
     activityConversationReference,
     appendAndCommitActionActivity,
     appendAndCommitSystemActivity,
+    appendSystemActivity,
     appendActionActivity,
     closeWaitingActivityConversation,
     dismissWaitingActivityConversationQuestions,

@@ -310,16 +310,16 @@ function createLocalBridgeDispatch(dependencies) {
             const integration = await worktreeService.integrate(request.project, request.worktreeBranch, metadata);
             if (integration.status === 'conflict') return integration;
 
-            await finalizeIntegration(request.project, request.worktreeBranch, integration, metadata, false);
+            const activityPath = await finalizeIntegration(request.project, request.worktreeBranch, integration, metadata, false);
 
-            return { status: 'completed' };
+            return { ...(activityPath ? { activityPath } : {}), status: 'completed' };
         },
         abortMergeConflict: (request) => worktreeService.abortConflict(request),
         continueMergeConflict: async (request) => {
             const outcome = await worktreeService.continueConflict(request);
             if (outcome.status === 'conflict') return outcome;
             const session = outcome.session;
-            await finalizeIntegration(
+            const activityPath = await finalizeIntegration(
                 { branch: session.projectBranch, id: session.projectId, rootPath: session.projectRoot },
                 session.worktreeBranch,
                 outcome,
@@ -330,6 +330,7 @@ function createLocalBridgeDispatch(dependencies) {
             worktreeService.completeConflict(request);
 
             return {
+                ...(activityPath ? { activityPath } : {}),
                 ...(session.metadata.cardInternalId ? { cardInternalId: session.metadata.cardInternalId } : {}),
                 ...(session.metadata.deleteBranch ? { branchDeleted: true } : {}),
                 status: 'completed',
@@ -419,53 +420,55 @@ function createLocalBridgeDispatch(dependencies) {
         const tracking = progress.cardInternalId && typeof progress.projectFolder === 'string'
             ? { cardInternalId: progress.cardInternalId, projectFolder: progress.projectFolder }
             : null;
-        if (tracking && !progress.activityTracked) {
-            try {
-                const commitMetadata = await localGitService.resolveCommitMetadata(project.rootPath, integration.commit);
-                const origin = { cardInternalId: tracking.cardInternalId, kind: 'card' };
-                const commit = { ...commitMetadata, branch: integration.branch };
-                const record = {
-                    commits: [commit],
-                    completedAt: commitMetadata.committedAt,
-                    label: INTEGRATION_ACTIVITY_LABEL,
-                    origin,
-                    type: 'system',
-                };
-                await localGitService.appendAndCommitSystemActivity(
-                    project,
-                    tracking.projectFolder,
-                    origin,
-                    record,
-                    `Record ${INTEGRATION_ACTIVITY_LABEL} activity`,
-                );
-                if (activeConflict) progress = mergeConflictService.updateMetadata(conflictRequest, { activityTracked: true });
-            } catch (error) {
-                throw new Error(`Worktree integrated, but card history tracking failed: ${errorMessage(error)}`, { cause: error });
-            }
-        }
         if (tracking && !progress.worktreeSynchronized) {
             try {
                 if (activeConflict) await worktreeService.synchronizeConflict(project);
                 else await worktreeService.synchronize(project, worktreeBranch);
                 if (activeConflict) progress = mergeConflictService.updateMetadata(conflictRequest, { worktreeSynchronized: true });
             } catch (error) {
-                throw new Error(`Worktree integrated and card history tracked, but linked worktree synchronization failed: ${errorMessage(error)}`, { cause: error });
+                throw new Error(`Worktree integrated, but linked worktree synchronization failed: ${errorMessage(error)}`, { cause: error });
             }
         }
-        if (!progress.deleteBranch) return;
-        try {
-            if (activeConflict) {
-                if (!progress.worktreeParked) {
-                    await worktreeService.parkConflict(project);
-                    progress = mergeConflictService.updateMetadata(conflictRequest, { worktreeParked: true });
+        if (progress.deleteBranch) {
+            try {
+                if (activeConflict) {
+                    if (!progress.worktreeParked) {
+                        await worktreeService.parkConflict(project);
+                        progress = mergeConflictService.updateMetadata(conflictRequest, { worktreeParked: true });
+                    }
+                    if (!progress.branchDeleted) {
+                        await worktreeService.deleteBranchConflict(project, progress.branchName);
+                        progress = mergeConflictService.updateMetadata(conflictRequest, { branchDeleted: true });
+                    }
+                } else {
+                    await worktreeService.park(project, worktreeBranch);
+                    await worktreeService.deleteBranch(project, progress.branchName);
                 }
-                await worktreeService.deleteBranchConflict(project, progress.branchName);
-            } else {
-                await worktreeService.park(project, worktreeBranch);
-                await worktreeService.deleteBranch(project, progress.branchName);
+            } catch (error) {
+                throw new Error(`Worktree integrated, but branch cleanup failed: ${errorMessage(error)}`, { cause: error });
             }
+        }
+        if (!tracking) return null;
+        const origin = { cardInternalId: tracking.cardInternalId, kind: 'card' };
+        if (progress.activityTracked) {
+            return localGitService.resolveActivityPath(project.rootPath, tracking.projectFolder, origin).relativePath;
+        }
+        try {
+            const commitMetadata = await localGitService.resolveCommitMetadata(project.rootPath, integration.commit);
+            const commit = { ...commitMetadata, branch: integration.branch };
+            const record = {
+                commits: [commit],
+                completedAt: commitMetadata.committedAt,
+                label: INTEGRATION_ACTIVITY_LABEL,
+                origin,
+                type: 'system',
+            };
+            const result = await localGitService.appendSystemActivity(project, tracking.projectFolder, origin, record);
+            if (activeConflict) mergeConflictService.updateMetadata(conflictRequest, { activityTracked: true });
+
+            return result.relativePath;
         } catch (error) {
-            throw new Error(`Worktree integrated, but branch cleanup failed: ${errorMessage(error)}`, { cause: error });
+            throw new Error(`Worktree integrated, but card history tracking failed: ${errorMessage(error)}`, { cause: error });
         }
     }
 

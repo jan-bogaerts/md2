@@ -10,6 +10,7 @@ export interface MergeConflictSnapshot {
 
 interface MergeConflictServiceDependencies {
     completeBranchCleanup(cardInternalId: string): void
+    queueIntegratedActivity(path: string): Promise<void>
     reloadPaths(paths: string[]): Promise<void>
     reportError(error: unknown): void
     storage: StorageService
@@ -152,6 +153,7 @@ export class MergeConflictService extends EventTarget {
                 this.publish({ busy: true, session: outcome.session })
                 return
             }
+            if (outcome.activityPath) await dependencies.queueIntegratedActivity(outcome.activityPath)
             if (outcome.branchDeleted && outcome.cardInternalId) dependencies.completeBranchCleanup(outcome.cardInternalId)
             await dependencies.reloadPaths(affectedPaths)
             this.affectedPaths.clear()

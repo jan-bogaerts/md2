@@ -216,6 +216,7 @@ export class DataService extends EventTarget {
             flushPendingChanges: flushAggregatePendingChanges,
             projectFolderProvider: () => this.requireDependencies().config.projectFolder,
             projectProvider: () => this.projectState.project,
+            queueIntegratedActivity: (path) => this.queueIntegratedActivity(path),
             snapshotProvider: () => this.projectState.snapshot,
             storageProvider: () => this.storage,
             unassignCardWorktree: (path) => this.cards.updateCardWorktree(path, null),
@@ -339,6 +340,16 @@ export class DataService extends EventTarget {
         if (!currentProject) throw new Error('Cannot save a file before a project is open')
 
         commitBatcher.schedule(currentProject.branch, [{ ...file, kind: 'file' as const, saveReference }], message)
+    }
+
+    /** Registers desktop-written integration history with the normal project commit batch. */
+    async queueIntegratedActivity(path: string) {
+        const { storage } = this.requireDependencies()
+        const project = this.projectState.project
+        if (!project) throw new Error('Cannot queue integration activity before a project is open')
+        if (!storage.loadTextFile) throw new Error('Integration activity loading requires a storage bridge')
+        const file = await storage.loadTextFile(project, path)
+        this.scheduleFileCommit(file, `Record integration activity in ${path}`)
     }
 
     /** Queues diagram content under stable record identity, including a file move when its title changes. */
@@ -587,6 +598,7 @@ export class DataService extends EventTarget {
                 this.cards.clearCardBranch(card.path)
             },
             reloadPaths: (paths) => this.projectLoading.reloadConflictPaths(paths),
+            queueIntegratedActivity: (path) => this.queueIntegratedActivity(path),
             reportError: (error) => dialogService.error(error, { fallbackMessage: 'Could not verify merge conflict state' }),
             storage: this.storage,
         })

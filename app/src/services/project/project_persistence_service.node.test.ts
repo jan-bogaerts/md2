@@ -192,6 +192,37 @@ describe('ProjectPersistenceService', () => {
         )
     })
 
+    it('commits changes queued while an earlier commit pass is active', async () => {
+        const { dataService, service } = initService()
+        dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        dataService.cards.flushPendingCommits.mockImplementationOnce(async () => {
+            dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        })
+
+        await service.flushPendingChanges()
+
+        expect(dataService.cards.flushPendingCommits).toHaveBeenCalledTimes(2)
+        expect(service.getSnapshot().hasPendingSave).toBe(false)
+    })
+
+    it('stages action drafts created while a commit pass is active', async () => {
+        const { actionService, dataService, service } = initService()
+        dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        dataService.cards.flushPendingCommits.mockImplementationOnce(async () => {
+            actionService.pendingDrafts = true
+            dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: false }
+        })
+        actionService.draftStore.flushDrafts.mockImplementationOnce(async () => {
+            actionService.pendingDrafts = false
+            dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        })
+
+        await service.flushPendingChanges()
+
+        expect(actionService.draftStore.flushDrafts).toHaveBeenCalledOnce()
+        expect(dataService.cards.flushPendingCommits).toHaveBeenCalledTimes(2)
+    })
+
     it('drains storage writes before reporting success', async () => {
         const { dataService, service } = initService()
         dataService.snapshot = { ...dataService.snapshot, isSaving: true }

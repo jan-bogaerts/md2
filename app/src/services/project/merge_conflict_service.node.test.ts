@@ -17,9 +17,10 @@ function session(paths = ['src/one.ts', 'src/two.ts']): MergeConflictSession {
 
 function createHarness(initialSession: MergeConflictSession | null = session(), storageOverrides: Record<string, unknown> = {}) {
     let changeCallback: (value: MergeConflictSession | null) => void = () => undefined
+    const activityPath = ''
     const storage = {
         abortMergeConflict: vi.fn(async () => undefined),
-        continueMergeConflict: vi.fn(async () => ({ branchDeleted: true, cardInternalId: 'card-1', status: 'completed' as const })),
+        continueMergeConflict: vi.fn(async () => ({ activityPath, branchDeleted: true, cardInternalId: 'card-1', status: 'completed' as const })),
         getMergeConflictSession: vi.fn(async () => initialSession),
         launchMergeConflictResolver: vi.fn(async () => undefined),
         markMergeConflictResolved: vi.fn(async () => session(['src/two.ts'])),
@@ -33,12 +34,13 @@ function createHarness(initialSession: MergeConflictSession | null = session(), 
         ...storageOverrides,
     }
     const completeBranchCleanup = vi.fn()
+    const queueIntegratedActivity = vi.fn(async () => undefined)
     const reloadPaths = vi.fn(async () => undefined)
     const reportError = vi.fn()
     const service = new MergeConflictService()
-    service.init({ completeBranchCleanup, reloadPaths, reportError, storage: storage as never })
+    service.init({ completeBranchCleanup, queueIntegratedActivity, reloadPaths, reportError, storage: storage as never })
 
-    return { changeCallback, completeBranchCleanup, reloadPaths, reportError, service, storage }
+    return { changeCallback, completeBranchCleanup, queueIntegratedActivity, reloadPaths, reportError, service, storage }
 }
 
 describe('MergeConflictService', () => {
@@ -171,15 +173,19 @@ describe('MergeConflictService', () => {
     })
 
     it('continues only with no unmerged paths and reloads every path seen in session', async () => {
-        const { completeBranchCleanup, reloadPaths, service, storage } = createHarness()
+        const { completeBranchCleanup, queueIntegratedActivity, reloadPaths, service, storage } = createHarness()
         await expect(service.continue()).rejects.toThrow('Resolve every conflicted file')
         await service.markResolved('src/one.ts')
         storage.markMergeConflictResolved.mockResolvedValueOnce(session([]))
         await service.markResolved('src/two.ts')
+        const activityPath = 'design/activity/card__card-1.json'
+        storage.continueMergeConflict.mockResolvedValueOnce({ activityPath, branchDeleted: true, cardInternalId: 'card-1', status: 'completed' })
 
         await service.continue()
 
         expect(storage.continueMergeConflict).toHaveBeenCalledWith({ sessionId: 'session-1' })
+        expect(queueIntegratedActivity).toHaveBeenCalledWith(activityPath)
+        expect(queueIntegratedActivity.mock.invocationCallOrder[0]).toBeLessThan(completeBranchCleanup.mock.invocationCallOrder[0])
         expect(completeBranchCleanup).toHaveBeenCalledWith('card-1')
         expect(reloadPaths).toHaveBeenCalledWith(['src/one.ts', 'src/two.ts'])
         expect(service.getSnapshot().session).toBeNull()

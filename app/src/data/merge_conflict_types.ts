@@ -14,7 +14,7 @@ export interface MergeConflictSession {
 }
 
 export type WorktreeOperationOutcome =
-    | { branchDeleted?: boolean, cardInternalId?: string, status: 'completed' }
+    | { activityPath?: string, branchDeleted?: boolean, cardInternalId?: string, status: 'completed' }
     | { session: MergeConflictSession, status: 'conflict' }
 
 export interface MergeConflictPathRequest {

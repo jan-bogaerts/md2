@@ -8,6 +8,7 @@ import { worktreeService } from '../services/project/worktree_service'
 import { AppThemeProvider } from '../theme/theme_provider'
 import { WorktreeSelector } from './worktree_selector'
 import { cardPopupService } from '../services/card_popup_service'
+import { Profiler } from 'react'
 
 const worktrees: WorktreeRecord[] = [
     {
@@ -75,6 +76,63 @@ describe('WorktreeSelector', () => {
         expect(assignment.worktree).toBe(2);
         expect(setCardWorktree).not.toHaveBeenCalled();
     });
+
+    it('renders only selector assigned to changed record', () => {
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue(worktrees)
+        const firstRender = vi.fn()
+        const secondRender = vi.fn()
+        render(<AppThemeProvider>
+            <Profiler id="first" onRender={firstRender}>
+                <WorktreeSelector assignment={{ branch: 'feature', worktree: 1 }} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} />
+            </Profiler>
+            <Profiler id="second" onRender={secondRender}>
+                <WorktreeSelector assignment={{ branch: 'missing', worktree: 2 }} assignmentTarget={{ cardInternalId: 'card-2', kind: 'card', path: 'design/F-2.md' }} primaryPath={null} />
+            </Profiler>
+        </AppThemeProvider>)
+        firstRender.mockClear()
+        secondRender.mockClear()
+        const changedRecord = { ...worktrees[0], status: { ...worktrees[0].status, dirty: true } }
+
+        act(() => {
+            records.mockReturnValue([changedRecord, worktrees[1]])
+            worktreeService.dispatchEvent(new CustomEvent('recordChanged', { detail: { branch: 'feature', record: changedRecord } }))
+        })
+
+        expect(firstRender).toHaveBeenCalled()
+        expect(secondRender).not.toHaveBeenCalled()
+    })
+
+    it('updates open assignment menu when record validity changes', () => {
+        const records = vi.spyOn(worktreeService, 'getRecords').mockReturnValue([worktrees[0]])
+        render(<AppThemeProvider>
+            <WorktreeSelector assignment={{ worktree: null }} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} />
+        </AppThemeProvider>)
+        fireEvent.click(screen.getByRole('button', { name: 'Primary worktree' }))
+        expect(screen.getByRole('menuitem', { name: /1 .* C:\\feature/u })).toBeInTheDocument()
+
+        act(() => {
+            records.mockReturnValue([{ ...worktrees[0], error: 'Folder missing', valid: false }])
+            worktreeService.dispatchEvent(new CustomEvent('recordChanged', { detail: { branch: 'feature' } }))
+        })
+
+        expect(screen.queryByRole('menuitem', { name: /1 .* C:\\feature/u })).not.toBeInTheDocument()
+    })
+
+    it('updates assigned selector when primary status becomes dirty', () => {
+        withRecords([worktrees[0]])
+        const primaryStatus = vi.spyOn(worktreeService, 'getPrimaryStatus').mockReturnValue(null)
+        render(<AppThemeProvider>
+            <WorktreeSelector assignment={{ branch: 'feature', worktree: 1 }} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} />
+        </AppThemeProvider>)
+        expect(screen.getByRole('button', { name: /project changes pending no/u })).toBeInTheDocument()
+
+        act(() => {
+            primaryStatus.mockReturnValue({ ...worktrees[0].status, dirty: true })
+            worktreeService.dispatchEvent(new Event('primaryStatusChanged'))
+        })
+
+        expect(screen.getByRole('button', { name: /project changes pending yes/u })).toBeInTheDocument()
+    })
 
     it('blocks lifecycle controls for a missing branch while offering explicit reselection', () => {
         withRecords([worktrees[0]]);

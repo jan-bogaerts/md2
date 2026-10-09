@@ -1,4 +1,4 @@
-import { useRef, useSyncExternalStore } from 'react'
+import { useCallback, useRef, useSyncExternalStore } from 'react'
 import type { WorktreeAssignment, WorktreeRecord } from '../../data/data_types';
 import { projectPersistenceService } from '../../services/project/project_persistence_service'
 import { worktreeService } from '../../services/project/worktree_service'
@@ -11,21 +11,11 @@ export interface WorktreeSelectorTarget {
 }
 
 export interface WorktreeSelectorState {
+    index: number | null
     preparing: boolean
     /** Whether the project holds changes the assigned worktree has not taken in yet. */
     projectDirty: boolean
     record: WorktreeRecord | null
-    records: WorktreeRecord[]
-}
-
-function subscribe(onStoreChange: () => void) {
-    worktreeService.addEventListener('changed', onStoreChange)
-    projectPersistenceService.addEventListener('changed', onStoreChange)
-
-    return () => {
-        worktreeService.removeEventListener('changed', onStoreChange)
-        projectPersistenceService.removeEventListener('changed', onStoreChange)
-    }
 }
 
 /**
@@ -37,9 +27,29 @@ function subscribe(onStoreChange: () => void) {
 export function useWorktreeSelectorState(target: WorktreeSelectorTarget): WorktreeSelectorState {
     const { assignment, cardPath } = target;
     const cache = useRef<WorktreeSelectorState | null>(null)
+    const subscribe = useCallback((onStoreChange: () => void) => {
+        const handleRecordChanged = (event: Event) => {
+            const { branch } = (event as CustomEvent<{ branch: string }>).detail
+            if (branch === assignment.branch) onStoreChange()
+        }
+        worktreeService.addEventListener('changed', onStoreChange)
+        if (assignment.worktree !== null && assignment.worktree !== undefined) {
+            worktreeService.addEventListener('recordChanged', handleRecordChanged)
+            worktreeService.addEventListener('recordsChanged', onStoreChange)
+            worktreeService.addEventListener('primaryStatusChanged', onStoreChange)
+            projectPersistenceService.addEventListener('changed', onStoreChange)
+        }
+
+        return () => {
+            worktreeService.removeEventListener('changed', onStoreChange)
+            worktreeService.removeEventListener('recordChanged', handleRecordChanged)
+            worktreeService.removeEventListener('recordsChanged', onStoreChange)
+            worktreeService.removeEventListener('primaryStatusChanged', onStoreChange)
+            projectPersistenceService.removeEventListener('changed', onStoreChange)
+        }
+    }, [assignment.branch, assignment.worktree])
     const getSnapshot = () => {
-        const records = worktreeService.getRecords()
-        const record = worktreeService.getAssignmentState(assignment).record;
+        const { index, record } = worktreeService.getAssignmentState(assignment);
         const preparing = cardPath === null
             ? worktreeService.isPreparingProjectWorktree()
             : worktreeService.isPreparingCard(cardPath)
@@ -48,12 +58,12 @@ export function useWorktreeSelectorState(target: WorktreeSelectorTarget): Worktr
             : false
         const current = cache.current
         if (current
+            && current.index === index
             && current.preparing === preparing
             && current.projectDirty === projectDirty
-            && current.record === record
-            && current.records === records) return current
+            && current.record === record) return current
 
-        const next = { preparing, projectDirty, record, records }
+        const next = { index, preparing, projectDirty, record }
         cache.current = next
 
         return next
