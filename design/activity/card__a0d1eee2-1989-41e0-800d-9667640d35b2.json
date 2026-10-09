@@ -3538,6 +3538,14 @@
           "role": "assistant",
           "sequence": 80,
           "timestamp": "2026-10-09T12:47:12.639Z"
+        },
+        {
+          "content": "> The repeated renders come from state broadcasts, not a render loop\n\nwhy do you mention this? no body talked about render loop, that was never the question.\n\n> Every mounted selector subscribes to those shared events\n\nthis is not a problem as long as the selectors filter and make certain they only cause a render if something they are concerned about changes. if it re-renders just because the event was triggered, that is not ok.\n\n> The selector’s snapshot also includes the entire worktree records array,\n\nI do not understand this. which worktree recofds array? what is in this array, where does it come from?\n\n> then records that commit’s hash in the activity file with a second commit. It may also make a primary-worktree checkpoint commit before merging; clearing the card’s branch and assignment queues another save afterward. A single final commit requires changing this flow: a commit cannot contain its own hash in the activity record, because adding the hash changes the commit\n\nwe need to optimize this flow. first of, we are committing the work tree, not all the rest. this is where the entire algorithm was incorrectly implemented. when the hash is on the card, mark it dirty, don't commit. same for all the rest",
+          "id": "submission-6e042fbd-cac1-4e9d-839f-a48d6b7d5a2c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 81,
+          "timestamp": "2026-10-09T13:01:34.971Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3552,14 +3560,14 @@
         }
       ],
       "startedAt": "2026-10-09T12:37:35.714Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 853,
           "toolMs": 22714
         },
         "elapsedMs": 212358,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-09T13:01:34.971Z"
       },
       "title": "+",
       "usage": {
