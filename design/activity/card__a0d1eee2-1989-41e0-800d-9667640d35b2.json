@@ -3618,6 +3618,14 @@
           "role": "assistant",
           "sequence": 87,
           "timestamp": "2026-10-09T13:01:58.379Z"
+        },
+        {
+          "content": "* records array should only exist in 1 place, selectors do not need their own copy\n* `WorktreeService replaces the shared array and emits changed`\\\n  this is wrong, the array should not be replaced, only a single record should be updated. the event should contain the updated record so observers can filter on it.\n* `The selector should watch its own resolved record;` correct\n\nupdate the card so we know what to fix and how",
+          "id": "submission-efac8f46-e6cc-441e-a288-b4a203f39747",
+          "kind": "message",
+          "role": "user",
+          "sequence": 88,
+          "timestamp": "2026-10-09T13:07:40.787Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3632,14 +3640,14 @@
         }
       ],
       "startedAt": "2026-10-09T12:37:35.714Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 880,
           "toolMs": 22828
         },
         "elapsedMs": 235766,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-09T13:07:40.787Z"
       },
       "title": "+",
       "usage": {
