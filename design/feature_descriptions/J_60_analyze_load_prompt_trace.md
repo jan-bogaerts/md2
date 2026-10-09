@@ -9,7 +9,7 @@ affects:
 agents:
   - design/activity/card__1eb24b57-bc11-41d1-8c8f-296b0dba31c1.json
 policy:
-after: 45e13c03-d74d-4082-9065-aa387f6553f5
+after: a0d1eee2-1989-41e0-800d-9667640d35b2
 changedFiles:
   - app/.j60-profile/config.mts
   - app/.j60-profile/index.html

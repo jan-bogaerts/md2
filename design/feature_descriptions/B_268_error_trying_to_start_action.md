@@ -9,6 +9,7 @@ affects:
 agents:
   - design/activity/card__d99027a1-b108-4f1e-9f66-c669b4394cf0.json
 policy:
+after: 1eb24b57-bc11-41d1-8c8f-296b0dba31c1
 ---
 
 tried to start an action on a card, got this error:

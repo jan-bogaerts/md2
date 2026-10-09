@@ -14,6 +14,7 @@ changedFiles:
   - app/src/services/actions/action_run_registry.ts
   - desktop/src/actions/agent/agent_run_interactions.js
   - desktop/src/actions/agent/agent_runner_state.test.mjs
+after: e5a9c51e-b832-48b9-9e71-e83cc4468433
 ---
 
 Something strange going on with the chatlog of the active conversation on the action-popup.

@@ -22,6 +22,7 @@ changedFiles:
   - desktop/src/git/checkout_ownership_service.test.mjs
   - shared/sequence_branch_progress.d.mts
   - shared/sequence_branch_progress.mjs
+after: d013f56f-5326-4d88-b1c8-333ed3cbe3c7
 ---
 
 * adding a sequence is similar as cards, actions, diagrams: add the button there, not on the run tab

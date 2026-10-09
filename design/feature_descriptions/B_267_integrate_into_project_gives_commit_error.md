@@ -32,6 +32,7 @@ changedFiles:
   - desktop/src/git/worktree_service.test.mjs
   - desktop/src/shell/local_bridge_dispatch.js
   - desktop/src/shell/local_bridge_dispatch.test.mjs
+after: 5785f8fc-1509-47f0-8b60-5b34f03774c1
 ---
 every time lately when we merge a worktree back into the main repository (`integrate into project` command), we get this error: `Pending changes remain after flush: file commit batch`
 
