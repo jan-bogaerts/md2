@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__d99027a1-b108-4f1e-9f66-c669b4394cf0.json
 policy:
-branch: b_268_error_trying_to_start_action
-worktree: 1
 ---
 
 tried to start an action on a card, got this error:
