@@ -19,6 +19,7 @@ class TestActionService extends EventTarget {
 class TestDataService extends EventTarget {
     private readonly saveReferences: OpenDocumentSaveReference[] = []
     snapshot: DataPersistenceSnapshot = { hasPendingFileCommit: false, hasPendingPush: false, isSaving: false }
+    pendingFileCommits: string[] = []
     readonly cards = {
         flushPendingCommits: vi.fn(async () => {
             this.saveReferences.splice(0).forEach(({ acknowledge }) => acknowledge())
@@ -36,6 +37,7 @@ class TestDataService extends EventTarget {
         this.snapshot = { ...this.snapshot, hasPendingFileCommit: true }
     })
     getPersistenceSnapshot() { return this.snapshot }
+    describePendingFileCommits() { return this.pendingFileCommits }
     publishPersistenceChange() { this.dispatchEvent(new Event('persistenceChanged')) }
 }
 
@@ -175,6 +177,18 @@ describe('ProjectPersistenceService', () => {
 
         await expect(service.flushPendingChanges()).rejects.toThrow(
             'Pending changes remain after flush: card document design/card.md',
+        )
+    })
+
+    it('names the queued changes that remain in the commit batch after a flush', async () => {
+        const { dataService, service } = initService()
+        dataService.snapshot = { ...dataService.snapshot, hasPendingFileCommit: true }
+        dataService.cards.flushPendingCommits.mockImplementation(async () => {
+            dataService.pendingFileCommits = ['card design/card.md (Update design/card.md)']
+        })
+
+        await expect(service.flushPendingChanges()).rejects.toThrow(
+            'Pending changes remain after flush: file commit batch: card design/card.md (Update design/card.md)',
         )
     })
 

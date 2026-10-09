@@ -114,7 +114,7 @@ export class ProjectPersistenceService extends EventTarget {
             .map(({ kind, path }) => `${kind} document ${path}`)
         const blockers = [...dirtyDocuments]
         if (actionService.draftStore.hasPendingDrafts()) blockers.push('action drafts')
-        if (hasPendingFileCommit) blockers.push('file commit batch')
+        if (hasPendingFileCommit) blockers.push(`file commit batch: ${dataService.describePendingFileCommits().join(', ')}`)
         if (isSaving) blockers.push('storage writes')
 
         return blockers

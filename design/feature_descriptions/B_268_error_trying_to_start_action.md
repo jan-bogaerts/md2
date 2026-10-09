@@ -3,7 +3,7 @@ author:
 id: B_268
 internalId: d99027a1-b108-4f1e-9f66-c669b4394cf0
 title: error trying to start action
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:

@@ -368,6 +368,10 @@ export class DataService extends EventTarget {
         return commitBatcher.hasPendingFile(path)
     }
 
+    describePendingFileCommits() {
+        return this.commitBatcher?.describePendingChanges() ?? []
+    }
+
     getRemarkableMetadataContent(): string | null {
         const config = this.getConfig()
         if (!config) return null
