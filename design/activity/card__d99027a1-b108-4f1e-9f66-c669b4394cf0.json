@@ -1861,6 +1861,29 @@
       "startedAt": "2026-10-09T09:32:57.444Z",
       "status": "completed",
       "rootConversationId": "agent-0471b213-8a80-499a-bed3-3235d9313283"
+    },
+    {
+      "commits": [
+        {
+          "commit": "7bb7911e6a3a92f8c49e997cc9938fa00c1445d5",
+          "committedAt": "2026-10-09T16:06:16+02:00",
+          "deletions": 18,
+          "filePaths": [
+            "desktop/src/actions/activity/card_activity_reference.js",
+            "desktop/src/actions/activity/card_activity_reference.test.mjs"
+          ],
+          "filesChanged": 2,
+          "insertions": 89,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-09T16:06:16+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "d99027a1-b108-4f1e-9f66-c669b4394cf0",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
