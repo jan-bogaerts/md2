@@ -16,7 +16,7 @@ why is this occuring? how to fix?
 
 I created a performance trace while the application was integrating the work-tree into the project. it seems there are a couple of chunks of big activity, with in between most likely waiting on git? note: this run did not give the error, but left the project 'dirty', some file was changed and was not yet saved.
 
-trace:&#x20;
+trace: [Trace-merge worktree.json](<Trace-merge worktree.json>)
 
 ## Current state
 
