@@ -2465,6 +2465,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "a0d1eee2-1989-41e0-800d-9667640d35b2",
+      "cardPath": "design/feature_descriptions/B_267_integrate_into_project_gives_commit_error.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature\\_descriptions/B\\_267\\_integrate\\_into\\_project\\_gives\\_commit\\_error.md. I've added a performance trace. weird things appear to be happening.\n\nthe trace was taken after opening the project and starting the integration, nothing else was done.\n\nmost likely, a git commit number is being saved in the card, some activity file is being updated and saved incorrectly.\n\nanalyze the problem, report findings. be short and to the point",
+          "id": "submission-e613f605-4fea-42df-a357-ea9616159f7b",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-09T12:37:35.714Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-a6d1a619-bae2-42f4-9549-f2f86a66c7aa",
+      "providerSessions": [],
+      "startedAt": "2026-10-09T12:37:35.714Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-09T12:37:35.714Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
