@@ -3,7 +3,7 @@ author:
 id: B_267
 internalId: a0d1eee2-1989-41e0-800d-9667640d35b2
 title: integrate into project gives commit error
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,29 @@ agents:
 policy:
 branch: b_267_integrate_into_project_gives_commit_error
 worktree: 2
+changedFiles:
+  - app/src/components/actions/run/popup/action_popup.test.tsx
+  - app/src/components/card_view/card_body_popover.tsx
+  - app/src/components/config/config_page.test.tsx
+  - app/src/components/config/worktree_config_list.grouped.test.tsx
+  - app/src/components/hooks/use_worktree_selector_state.ts
+  - app/src/components/hooks/use_worktrees.ts
+  - app/src/components/worktree_selector.test.tsx
+  - app/src/components/worktree_selector.tsx
+  - app/src/data/merge_conflict_types.ts
+  - app/src/services/data/data_service.service.test.ts
+  - app/src/services/data/data_service.ts
+  - app/src/services/project/merge_conflict_service.node.test.ts
+  - app/src/services/project/merge_conflict_service.ts
+  - app/src/services/project/project_persistence_service.node.test.ts
+  - app/src/services/project/project_persistence_service.ts
+  - app/src/services/project/worktree_service.node.test.ts
+  - app/src/services/project/worktree_service.ts
+  - desktop/src/actions/activity/activity_files.js
+  - desktop/src/git/worktree_service.js
+  - desktop/src/git/worktree_service.test.mjs
+  - desktop/src/shell/local_bridge_dispatch.js
+  - desktop/src/shell/local_bridge_dispatch.test.mjs
 ---
 every time lately when we merge a worktree back into the main repository (`integrate into project` command), we get this error: `Pending changes remain after flush: file commit batch`
 
