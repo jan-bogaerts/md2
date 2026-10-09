@@ -1677,7 +1677,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 132,
-          "timestamp": "2026-10-09T09:46:58.844Z"
+          "timestamp": "2026-10-09T11:59:23.765Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -1703,14 +1703,14 @@
         }
       ],
       "startedAt": "2026-10-08T11:44:52.024Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 149923,
           "toolMs": 187340
         },
-        "elapsedMs": 312425,
-        "runningStartedAt": "2026-10-09T09:45:12.232Z"
+        "elapsedMs": 419037,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
