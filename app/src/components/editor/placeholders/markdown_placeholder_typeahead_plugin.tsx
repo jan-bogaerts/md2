@@ -4,9 +4,11 @@ import {
     type TriggerFn,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin'
 import { useCellValue } from '@mdxeditor/editor'
-import type { TextNode } from 'lexical'
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { COMMAND_PRIORITY_HIGH, type TextNode } from 'lexical';
 import { createPortal } from 'react-dom'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { RESET_MARKDOWN_DRAFT_COMMAND } from '../data_sources/reset_markdown_draft_command';
 import type { ActionPlaceholder } from '../../../data/action_placeholders'
 import { formatActionPlaceholder } from '../../../data/action_placeholders'
 import { markdownPlaceholderConfig$ } from './markdown_placeholder_config_cell'
@@ -20,6 +22,7 @@ function placeholderMatchesQuery(placeholder: ActionPlaceholder, query: string) 
 
 /** Shows supported placeholders at the caret after the user types `{{`. */
 export function MarkdownPlaceholderTypeaheadPlugin() {
+    const [editor] = useLexicalComposerContext();
     const { overlayContainer, placeholders } = useCellValue(markdownPlaceholderConfig$)
     const [query, setQuery] = useState('')
     const options = useMemo(
@@ -39,6 +42,13 @@ export function MarkdownPlaceholderTypeaheadPlugin() {
     const handleQueryChange = useCallback((nextQuery: string | null) => {
         setQuery(nextQuery ?? '')
     }, [])
+
+    const handleDraftReset = useCallback(() => {
+        setQuery('');
+        return false;
+    }, []);
+    useEffect(() => editor.registerCommand(RESET_MARKDOWN_DRAFT_COMMAND, handleDraftReset, COMMAND_PRIORITY_HIGH),
+        [editor, handleDraftReset]);
 
     const handleSelectOption = useCallback((
         option: MarkdownPlaceholderOption,

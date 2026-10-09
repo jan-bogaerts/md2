@@ -1173,6 +1173,97 @@ describe('ActionPopup', () => {
         expect(within(screen.getByRole('group', { name: 'Actions' })).getByRole('button', { name: 'Second action' })).toHaveAttribute('aria-pressed', 'true')
     })
 
+    it('keeps frame and editor mounted while preserving rapid agent drafts and command transitions', async () => {
+        const user = userEvent.setup();
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([]);
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async ({ actionId }: { actionId: string }) => ({ prompt: `${actionId} prompt` })),
+        } as unknown as typeof window.md2Actions;
+        mockCodexAvailable();
+        actionService.loadFromFiles([
+            file(agentDefinition('first-agent', { label: 'First agent' })),
+            file(agentDefinition('second-agent', { label: 'Second agent' })),
+            file(commandDefinition('command', { label: 'Command' })),
+        ]);
+        renderPopup();
+        const frame = screen.getByRole('dialog', { name: 'Run actions' });
+        const header = screen.getByTestId('action-popup-fixed-header');
+        const actions = screen.getByRole('group', { name: 'Actions' });
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox');
+        await waitFor(() => expect(prompt).toHaveValue('first-agent prompt'));
+        await userEvent.click(screen.getByRole('button', { name: 'Expand upward' }));
+        const expandedStyle = frame.getAttribute('style');
+        await userEvent.clear(prompt);
+        await user.paste('First edited draft');
+        await userEvent.click(within(actions).getByRole('button', { name: 'Second agent' }));
+        await waitFor(() => expect(prompt).toHaveValue('second-agent prompt'));
+        await userEvent.clear(prompt);
+        await user.paste('Second edited draft');
+        await userEvent.click(within(actions).getByRole('button', { name: 'First agent' }));
+        expect(prompt).toHaveValue('First edited draft');
+        await userEvent.click(within(actions).getByRole('button', { name: 'Second agent' }));
+        expect(prompt).toHaveValue('Second edited draft');
+        expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toBe(prompt);
+        expect(screen.getByRole('dialog', { name: 'Run actions' })).toBe(frame);
+        expect(screen.getByTestId('action-popup-fixed-header')).toBe(header);
+        expect(screen.getByRole('group', { name: 'Actions' })).toBe(actions);
+        expect(frame.getAttribute('style')).toBe(expandedStyle);
+        expect(screen.getByRole('button', { name: 'Collapse downward' })).toBeInTheDocument();
+        await userEvent.click(within(actions).getByRole('button', { name: 'Command' }));
+        const commandPrompt = within(screen.getByLabelText('Prompt')).getByRole('textbox');
+        expect(commandPrompt).not.toBe(prompt);
+        expect(commandPrompt).toHaveValue('run');
+        expect(screen.queryByRole('combobox', { name: 'Conversation history' })).not.toBeInTheDocument();
+        expect(screen.getByRole('dialog', { name: 'Run actions' })).toBe(frame);
+        await userEvent.click(within(actions).getByRole('button', { name: 'First agent' }));
+        expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveValue('First edited draft');
+    });
+
+    it('reports action-definition flush failure and keeps the prompt read-only', async () => {
+        const failure = new Error('Action definition save failed');
+        const report = vi.spyOn(dialogService, 'error').mockReturnValue({critical: false, id: 1, message: failure.message, severity: 'error', title: 'Preparation failed'});
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([]);
+        vi.spyOn(actionService.draftStore, 'hasPendingDrafts').mockReturnValue(true);
+        vi.spyOn(actionService.draftStore, 'flushDrafts').mockRejectedValue(failure);
+        actionService.loadFromFiles([file(agentDefinition('flush-failure', { label: 'Review' }))]);
+        renderPopup();
+        await waitFor(() => expect(report).toHaveBeenCalledWith(failure, { fallbackMessage: 'Could not prepare action prompt' }));
+        expect(within(screen.getByLabelText('Prompt')).getByRole('textbox')).toHaveAttribute('readonly');
+        expect(window.md2Actions?.prepareActionPrompt).not.toHaveBeenCalled();
+    });
+
+    it('keeps late preparation in its owning draft during A-to-B-to-A switches', async () => {
+        const user = userEvent.setup();
+        vi.spyOn(dataService, 'listAgentConversations').mockResolvedValue([]);
+        let resolveFirst: ((prepared: { prompt: string }) => void) | null = null;
+        const firstPreparation = new Promise<{ prompt: string }>((resolve) => { resolveFirst = resolve; });
+        window.md2Actions = {
+            onActionRun: vi.fn(() => vi.fn()),
+            prepareActionPrompt: vi.fn(async ({ actionId }: { actionId: string }) => actionId === 'first-agent'
+                ? await firstPreparation : { prompt: 'Second prepared prompt' }),
+        } as unknown as typeof window.md2Actions;
+        mockCodexAvailable();
+        actionService.loadFromFiles([
+            file(agentDefinition('first-agent', { label: 'First agent' })),
+            file(agentDefinition('second-agent', { label: 'Second agent' })),
+        ]);
+        renderPopup();
+        const prompt = within(screen.getByLabelText('Prompt')).getByRole('textbox');
+        await waitFor(() => expect(window.md2Actions?.prepareActionPrompt).toHaveBeenCalledWith({actionId: 'first-agent', context}));
+        expect(prompt).toHaveAttribute('readonly');
+        await userEvent.click(screen.getByRole('button', { name: 'Second agent' }));
+        await waitFor(() => expect(prompt).toHaveValue('Second prepared prompt'));
+        await userEvent.clear(prompt);
+        await user.paste('Second local edit');
+        await act(async () => { resolveFirst?.({ prompt: 'Late first prompt' }); });
+        expect(prompt).toHaveValue('Second local edit');
+        await userEvent.click(screen.getByRole('button', { name: 'First agent' }));
+        expect(prompt).toHaveValue('Late first prompt');
+        expect(prompt).not.toHaveAttribute('readonly');
+        expect(window.md2Actions?.prepareActionPrompt).toHaveBeenCalledTimes(2);
+    });
+
     it('prefills every new agent draft while switching actions', async () => {
         window.md2Actions = {
             onActionRun: vi.fn(() => vi.fn()),
@@ -3958,6 +4049,11 @@ describe('ActionPopup', () => {
         })
 
         it('still drags the popup when the pointer press starts on the id badge', () => {
+            window.md2Actions = {
+                loadActionRunHistory: vi.fn(async () => []),
+                loadCardActivity: vi.fn(async () => createActivityFile({ cardInternalId: 'card-1', kind: 'card' })),
+                onActionRun: vi.fn(() => vi.fn()),
+            } as unknown as typeof window.md2Actions;
             mockSnapshotCards([snapshotCard('F-010', 'card-1', 'Improve the popup')])
 
             renderDraggablePopup({ ...context, cardInternalId: 'card-1' })
@@ -3971,6 +4067,16 @@ describe('ActionPopup', () => {
             expect(dialog.style.left).toBe('40px')
             expect(dialog.style.top).toBe('30px')
             fireEvent.pointerUp(window)
+            fireEvent.click(screen.getByRole('button', { name: 'Second action' }));
+            expect(screen.getByRole('dialog')).toBe(dialog);
+            expect(dialog.style.left).toBe('40px');
+            expect(dialog.style.top).toBe('30px');
+            vi.spyOn(dialog, 'getBoundingClientRect').mockReturnValue(new DOMRect(40, 30, 400, 450));
+            fireEvent.pointerDown(badge('F-010'), { clientX: 140, clientY: 130 });
+            fireEvent.pointerMove(window, { clientX: 160, clientY: 150 });
+            expect(dialog.style.left).toBe('60px');
+            expect(dialog.style.top).toBe('50px');
+            fireEvent.pointerUp(window);
         })
 
         it('shows no tooltip for the Project badge', async () => {

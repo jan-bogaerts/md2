@@ -6,7 +6,7 @@ import {
     type MDXEditorMethods, type ViewMode,
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
-import type { LexicalEditor } from 'lexical'
+import { $setSelection, CLEAR_HISTORY_COMMAND, type LexicalEditor } from 'lexical';
 import {
     forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef,
     type ClipboardEvent, type DragEvent, type FocusEvent, type ReactNode,
@@ -258,6 +258,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
 
     const bindDraft = useCallback((nextDraft: MarkdownDraftBinding | undefined) => {
         activeDraftRef.current = nextDraft
+        if (!nextDraft) return;
+        sourceControllerRef.current?.resetDraftState();
+        const plainTextEditor = plainTextEditorRef.current;
+        if (plainTextEditor) {
+            plainTextEditor.update(() => $setSelection(null), { discrete: true });
+            plainTextEditor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
+        }
     }, [])
 
     const historyPluginConfig = useMemo(() => historyStore && binding && dataSource

@@ -22,6 +22,7 @@ import {
 } from './markdown_local_text_search'
 import { OPEN_MARKDOWN_LOCAL_TEXT_SEARCH_COMMAND } from './markdown_local_text_search_command'
 import { markdownLocalTextSearchConfig$ } from './markdown_local_text_search_config_cell'
+import { RESET_MARKDOWN_DRAFT_COMMAND } from '../data_sources/reset_markdown_draft_command';
 
 function isOpenSearchShortcut(event: KeyboardEvent) {
     return event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'f'
@@ -51,6 +52,19 @@ export function MarkdownLocalTextSearchPlugin() {
     const closeSearch = useCallback(() => {
         setOpen(false)
     }, [])
+
+    const handleDraftReset = useCallback(() => {
+        setOpen(false);
+        setActiveTerm(null);
+        setActiveCaseSensitive(false);
+        setDraftTerm('');
+        setDraftCaseSensitive(false);
+        setResultCount(null);
+        setSearchOrigin(0);
+        return false;
+    }, []);
+    useEffect(() => editor.registerCommand(RESET_MARKDOWN_DRAFT_COMMAND, handleDraftReset, COMMAND_PRIORITY_HIGH),
+        [editor, handleDraftReset]);
 
     const openSearch = useCallback(() => {
         const selectedText = getMarkdownSearchSeed(editor)

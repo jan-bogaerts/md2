@@ -7,7 +7,7 @@ import {
     markdown$, markdownProcessingError$, markdownSourceEditorValue$, muteChange$, rootEditor$, setMarkdown$, viewMode$,
 } from '@mdxeditor/editor';
 import type { Realm } from '@mdxeditor/gurx';
-import { $getRoot, CLEAR_HISTORY_COMMAND, createEditor } from 'lexical';
+import { $getRoot, $setSelection, CLEAR_HISTORY_COMMAND, createEditor } from 'lexical';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { dialogService } from '../../../services/dialog_service';
 import type { MarkdownDocumentTarget } from '../data_sources/markdown_data_source';
@@ -15,6 +15,7 @@ import type { MarkdownDocumentHistoryStore } from '../history/markdown_document_
 import type { MarkdownImagePasteHandler } from '../paste/markdown_paste_cell';
 import { markdownSourceCanRedo$, markdownSourceCanUndo$ } from './markdown_source_cell';
 import { MarkdownSourceEditorBridge } from './markdown_source_editor_bridge';
+import { RESET_MARKDOWN_DRAFT_COMMAND } from '../data_sources/reset_markdown_draft_command';
 
 export interface MarkdownSourceConfig {
     compact: boolean;
@@ -32,6 +33,7 @@ export class MarkdownSourceController {
     private sourceEditor: EditorView | null = null;
     private transitionToken = 0;
     private shiftedPaste = false;
+    private draftResetPending = false;
     private readonly realm: Realm;
     config: MarkdownSourceConfig;
     transitioning = false;
@@ -129,6 +131,22 @@ export class MarkdownSourceController {
         this.finishTransition(false, valid ? markdown : undefined);
     }
 
+    /** Clears selection, undo history, and transient controls after a draft replacement completes. */
+    resetDraftState() {
+        this.draftResetPending = true;
+        if (this.transitioning) return;
+        this.completeDraftReset();
+    }
+
+    private completeDraftReset() {
+        const editor = this.realm.getValue(rootEditor$);
+        if (!editor) return;
+        this.draftResetPending = false;
+        editor.update(() => $setSelection(null), { discrete: true });
+        editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
+        editor.dispatchCommand(RESET_MARKDOWN_DRAFT_COMMAND, undefined);
+    }
+
     private validateConversion(source: string) {
         try {
             this.validateRichInsertion(source);
@@ -160,6 +178,7 @@ export class MarkdownSourceController {
         }
         this.realm.pub(muteChange$, false);
         this.transitioning = false;
+        if (this.draftResetPending) this.completeDraftReset();
     }
 
     private handlePaste = (event: ClipboardEvent, editor: EditorView) => {

@@ -21,7 +21,6 @@ import { actionService } from '../../../../services/actions/action_service'
 import { dataService } from '../../../../services/data/data_service'
 import { remoteConnectionService } from '../../../../services/data/remote_connection_service'
 import { RemoteControlConnectionError } from '../../../../services/data/remote_control_storage_service'
-import { projectPersistenceService } from '../../../../services/project/project_persistence_service'
 import { projectAccessService } from '../../../../services/project/project_access_service'
 import { activeScheduleService } from '../../../../services/actions/active_schedule_service'
 import { cancelElectronAction, restartElectronAction, runElectronAction } from '../../../../services/actions/electron_action_runner'
@@ -108,7 +107,7 @@ export async function defaultPreparePrompt(action: ActionDefinition, context: Ac
         }
         throw new Error('Preparing action prompts requires the Electron desktop app')
     }
-    await projectPersistenceService.flushPendingChanges()
+    if (actionService.draftStore.hasPendingDrafts()) await actionService.draftStore.flushDrafts();
     const result = await bridge.prepareActionPrompt({ actionId: action.id, context })
 
     return result

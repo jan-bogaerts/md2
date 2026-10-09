@@ -262,6 +262,56 @@ describe('Markdown reliability with installed MDXEditor', () => {
         expect(screen.getByRole('button', { name: 'Rich text' })).toHaveAttribute('aria-pressed', 'true');
     });
 
+    it('keeps the editor mounted and separates drafts, undo, and search while rebinding', async () => {
+        const firstDraft = new MarkdownDraft('First draft');
+        const secondDraft = new MarkdownDraft('Second draft');
+        const view = render(<AppThemeProvider><MarkdownEditor draft={firstDraft} /></AppThemeProvider>);
+        const surface = document.querySelector('.mdxeditor-content');
+        appendRichParagraph('First local edit');
+        await userEvent.click(screen.getByRole('button', { name: 'Find text' }));
+        await userEvent.type(screen.getByRole('textbox', { name: 'Find text' }), 'First');
+
+        view.rerender(<AppThemeProvider><MarkdownEditor draft={secondDraft} /></AppThemeProvider>);
+
+        await waitFor(() => expect(richText()).toBe('Second draft'));
+        expect(document.querySelector('.mdxeditor-content')).toBe(surface);
+        expect(firstDraft.getSnapshot()).toContain('First local edit');
+        expect(screen.queryByRole('textbox', { name: 'Find text' })).not.toBeInTheDocument();
+        act(() => richEditor().dispatchCommand(UNDO_COMMAND, undefined));
+        expect(richText()).toBe('Second draft');
+        appendRichParagraph('Second local edit');
+        view.rerender(<AppThemeProvider><MarkdownEditor draft={firstDraft} /></AppThemeProvider>);
+        await waitFor(() => expect(richText()).toContain('First local edit'));
+        expect(richText()).not.toContain('Second local edit');
+        expect(secondDraft.getSnapshot()).toContain('Second local edit');
+        const displayed = richText();
+        act(() => richEditor().dispatchCommand(UNDO_COMMAND, undefined));
+        expect(richText()).toBe(displayed);
+        act(() => secondDraft.replace('Late second update'));
+        expect(richText()).toBe(displayed);
+        view.unmount();
+        const afterUnmount = firstDraft.getSnapshot();
+        firstDraft.requestFlush();
+        expect(firstDraft.getSnapshot()).toBe(afterUnmount);
+    });
+
+    it('flushes outgoing Source content and clears Source undo when changing drafts', async () => {
+        const firstDraft = new MarkdownDraft('First draft');
+        const secondDraft = new MarkdownDraft('Second draft');
+        const view = render(<AppThemeProvider><MarkdownEditor draft={firstDraft} /></AppThemeProvider>);
+        await selectMode('Source');
+        replaceSource('First source edit');
+        view.rerender(<AppThemeProvider><MarkdownEditor draft={secondDraft} /></AppThemeProvider>);
+        await waitFor(() => expect(sourceEditor().state.doc.toString()).toBe('Second draft'));
+        expect(firstDraft.getSnapshot()).toBe('First source edit');
+        expect(screen.getByRole('button', { name: 'Undo Source edit' })).toBeDisabled();
+        replaceSource('Second source edit');
+        view.rerender(<AppThemeProvider><MarkdownEditor draft={firstDraft} /></AppThemeProvider>);
+        await waitFor(() => expect(sourceEditor().state.doc.toString()).toBe('First source edit'));
+        expect(secondDraft.getSnapshot()).toBe('Second source edit');
+        expect(screen.getByRole('button', { name: 'Undo Source edit' })).toBeDisabled();
+    });
+
     it('inserts HTML once into its owning compact draft', async () => {
         const draft = new MarkdownDraft('Existing draft');
         render(<AppThemeProvider><MarkdownEditor draft={draft} hideToolbar /></AppThemeProvider>);
