@@ -2473,7 +2473,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 86047
+        "usedTokens": 97212
       },
       "entries": [
         {
@@ -3367,6 +3367,177 @@
           "role": "user",
           "sequence": 67,
           "timestamp": "2026-10-09T12:46:25.995Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-68",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ae7fd44b0b9e391016ac8e22780748191ac043d211d72f810",
+          "sequence": 68,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-09T12:46:31.105Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "I’ll trace what publishes the worktree state updates and what each selector subscribes to, then explain the render bursts and the commits made during integration.\n\n",
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-turn-3-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 69,
+          "timestamp": "2026-10-09T12:46:31.645Z"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/services/project/worktree_service.ts' | Select-Object -First 225; Get-Content 'app/src/components/worktree_selector.tsx' | Select-Object -First 105; Get-Content 'desktop/src/git/worktree_service.js' | Select-Object -Skip 825 -First 65\"",
+          "content": "import { slugifyTitle } from '../../data/card_naming'\r\nimport type { CardSeparator } from '../../data/card_identifiers'\r\nimport { getElectronActionBridge, type WorktreeDiffResult } from '../../data/electron_action_bridge'\r\nimport type {\r\n    Card,\r\n    ProjectReference,\r\n    ProjectSnapshot,\r\n    StorageService,\r\n    WorktreeAssignment,\r\n    WorktreeRecord,\r\n    WorktreeRemovalMode,\r\n    WorktreeState,\r\n    WorktreeStatus,\r\n} from '../../data/data_types'\r\nimport { register } from '../service_injector'\r\nimport { PrimaryWorktreeSelectionError } from './worktree_errors'\r\nimport { resolveWorktreeAssignment } from '../../../../shared/worktree_assignment.mjs';\r\n\r\ninterface WorktreeServiceDependencies {\r\n    assignCardWorktree: (path: string, worktree: number, branch: string) => void\r\n    cardSeparatorProvider: () => CardSeparator\r\n    clearCardBranch: (path: string) => void\r\n    flushPendingChanges: () => Promise<void>\r\n    projectFolderProvider: () => string\r\n    projectProvider: () => ProjectReference | null\r\n    snapshotProvider: () => ProjectSnapshot | null\r\n    storageProvider: () => StorageService | null\r\n    unassignCardWorktree: (path: string) => void\r\n}\r\n\r\n/** A staged removal keeps the folder disposition chosen in the confirmation dialog until Save applies it. */\r\nexport interface WorktreeDraftRemoval {\r\n    mode: WorktreeRemovalMode\r\n    path: string\r\n}\r\n\r\nexport interface WorktreeDraft {\r\n    additions: string[]\r\n    applying: boolean\r\n    records: WorktreeRecord[]\r\n    removals: WorktreeDraftRemoval[]\r\n    selecting: boolean\r\n}\r\n\r\nfunction worktreePathKey(folderPath: string) {\r\n    return folderPath.replace(/\\\\/gu, '/').replace(/\\/+$/u, '').toLowerCase()\r\n}\r\n\r\n/** Same outgoing-status condition used by worktree integration and diff controls. */\r\nexport function isWorktreeIntegratable(record: WorktreeRecord | null | undefined) {\r\n    return !!record?.valid && (record.status.dirty || record.status.baseAhead > 0)\r\n}\r\n\r\nexport class WorktreeService extends EventTarget {\r\n    private assignCardWorktreeValue: ((path: string, worktree: number, branch: string) => void) | null = null\r\n    private cardSeparatorProvider: (() => CardSeparator) | null = null\r\n    private clearCardBranchValue: ((path: string) => void) | null = null\r\n    private error: string | null = null\r\n    private draft: WorktreeDraft | null = null\r\n    private flushPendingChanges: (() => Promise<void>) | null = null\r\n    private pendingAssignments = new Map<string, string>();\r\n    private preparingCardPaths = new Set<string>()\r\n    private preparingProjectWorktree = false\r\n    private projectActionWorktree: number | null = null\r\n    private projectActionWorktreeBranch: string | null = null;\r\n    private primaryStatus: WorktreeStatus | null = null\r\n    private projectFolderProvider: (() => string) | null = null\r\n    private projectProvider: (() => ProjectReference | null) | null = null\r\n    private records: WorktreeRecord[] = []\r\n    private snapshotProvider: (() => ProjectSnapshot | null) | null = null\r\n    private storageProvider: (() => StorageService | null) | null = null\r\n    private subscriptionCleanup: (() => void) | null = null\r\n    private unassignCardWorktreeValue: ((path: string) => void) | null = null\r\n\r\n    constructor() {\r\n        super()\r\n        register('worktreeService', this)\r\n    }\r\n\r\n    /** Assignment values derive from live model data; status changes do not announce this event. */\r\n    getAssignmentSnapshot() {\r\n        return JSON.stringify([\r\n            this.projectActionWorktree, this.projectActionWorktreeBranch,\r\n            this.getRecords().map(({ branch, valid, error }) => [branch, valid, error]),\r\n        ]);\r\n    }\r\n\r\n    getRecords() {\r\n        return this.records\r\n    }\r\n\r\n    /** Derive a checkout from the card's branch without rewriting its numeric hint. */\r\n    getAssignmentState(assignment: WorktreeAssignment) {\r\n        if (assignment.worktreeError) return { error: assignment.worktreeError, index: null, record: null };\r\n        if (assignment.worktree === null || assignment.worktree === undefined) return \n[9533 characters omitted]\ningChanges\r\n    const projectBranch = worktreeService.getProjectBranch()\r\n    const folder = state.folder ?? primaryPath ?? 'Primary'\r\n    const assignmentDescription = state.error\r\n        ? `Worktree assignment error: ${state.error}`\r\n        : state.value === 'P'\r\n            ? `Primary worktree${primaryPath ? `: ${primaryPath}` : ''}`\r\n            : `Worktree ${state.value}: ${folder}`\r\n    const baseName = projectBranch ?? 'the project branch'\r\n    const statusParts = assignedRecord\r\n        ? [\r\n            `dirty ${assignedRecord.status.dirty ? 'yes' : 'no'}`,\r\n            `project changes pending ${hasPendingProjectChanges ? 'yes' : 'no'}`,\r\n            `ahead of ${baseName} ${assignedRecord.status.baseAhead}`,\r\n            `behind ${baseName} ${assignedRecord.status.baseBehind}`,\r\n        ]\r\n        : []\r\n    const worktreeStatusDescription = statusParts.length > 0 ? statusParts.join('; ') : null\r\n    const descriptions = [assignmentDescription, worktreeStatusDescription].filter((value) => value !== null)\r\n    const tooltip = descriptions.join('. ')\r\n    const statusLabel = worktreeStatusDescription ? `; ${worktreeStatusDescription}` : ''\r\n    const label = labelPrefix\r\n        ? `${labelPrefix}: ${folder}${statusLabel}`\r\n        : `${assignmentDescription}${statusLabel}`\r\n\r\n    const handleOpen = (event: MouseEvent<HTMLElement>) => {\r\n        event.stopPropagation()\r\n        setAnchorElement(event.currentTarget)\r\n    }\r\n    const handleClose = () => setAnchorElement(null)\r\n    const assignWorktree = async (branch: string | null) => {\r\n        }\r\n    }\r\n\r\n    async performRefresh(project, generation) {\r\n        try {\r\n            const primaryStatus = await this.primaryRepositoryStatus(project);\r\n            const records = await this.readWorktreeRecords(project);\r\n            if (!this.project || this.projectGeneration !== generation) return;\r\n            this.primaryStatus = primaryStatus;\r\n            this.records = records;\r\n            this.publish(null);\r\n        } catch (error) {\r\n            if (!this.project || this.projectGeneration !== generation) return;\r\n            const message = error instanceof Error ? error.message : String(error);\r\n            if (this.state.error !== message) this.errorReporter(error);\r\n            this.publish(message);\r\n        }\r\n    }\r\n\r\n    async refreshAfterMutation() {\r\n        const project = this.project;\r\n        if (!project) throw new Error('No active worktree project');\r\n        const generation = this.projectGeneration;\r\n        this.stopTimer();\r\n        let primaryStatus;\r\n        let records;\r\n        try {\r\n            primaryStatus = await this.primaryRepositoryStatus(project);\r\n            records = await this.readWorktreeRecords(project);\r\n        } catch (error) {\r\n            if (!this.project || this.projectGeneration !== generation) return;\r\n            const message = error instanceof Error ? error.message : String(error);\r\n            if (this.state.error !== message) this.errorReporter(error);\r\n            this.publish(message);\r\n            this.scheduleRefresh();\r\n            throw error;\r\n        }\r\n        if (!this.project || this.projectGeneration !== generation) return;\r\n        this.primaryStatus = primaryStatus;\r\n        this.records = records;\r\n        this.publish(null);\r\n        this.scheduleRefresh();\r\n    }\r\n\r\n    scheduleRefresh() {\r\n        if (this.refreshTimer || !this.project) return;\r\n        this.refreshTimer = this.setTimeout(() => {\r\n            this.refreshTimer = null;\r\n            void this.refreshLocal();\r\n        }, this.refreshIntervalMs);\r\n    }\r\n\r\n    stopTimer() {\r\n        if (!this.refreshTimer) return;\r\n        this.clearTimeout(this.refreshTimer);\r\n        this.refreshTimer = null;\r\n    }\r\n\r\n    publish(error) {\r\n        const state = { error, primaryStatus: this.primaryStatus, project: this.project, records: this.records };\r\n        if (statesEqual(this.state, state)) return;\r\n        this.state = state;\r\n        for (const listener of this.listeners) this.notifyListener(listener, state);\r\n    }\r\n\r\n",
+          "durationMs": 41,
+          "exitCode": 0,
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-70",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/services/project/worktree_service.ts' | Select-Object -First 225; Get-Content 'app/src/components/worktree_selector.tsx' | Select-Object -First 105; Get-Content 'desktop/src/git/worktree_service.js' | Select-Object -Skip 825 -First 65\"",
+          "providerItemId": "exec-d428a656-240c-4c24-b7ac-fb2e25730f4c",
+          "sequence": 70,
+          "status": "completed",
+          "timestamp": "2026-10-09T12:46:33.518Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-71",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ae7fd44b0b9e391016ac8e22bba9c819182afea8fd809d485",
+          "sequence": 71,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-09T12:46:35.389Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"statesEqual|refreshIntervalMs|dispatchChanged\\\\(|finishCardOperation|handleState\\\\(\\\" desktop/src/git/worktree_service.js app/src/services/project/worktree_service.ts; Get-Content 'desktop/src/git/worktree_service.js' | Select-Object -First 90; Get-Content 'app/src/services/project/worktree_service.ts' | Select-Object -Skip 505 -First 35; Get-Content 'app/src/services/project/worktree_service.ts' | Select-Object -Skip 625 -First 25; Get-Content 'desktop/src/git/worktree_service.js' | Select-Object -Skip 895 -First 85\"",
+          "content": "app/src/services/project/worktree_service.ts:181:        this.subscriptionCleanup = dependencies.storageProvider()?.onWorktreesChanged?.((state) => this.handleState(state)) ?? null\napp/src/services/project/worktree_service.ts:191:        this.dispatchChanged()\napp/src/services/project/worktree_service.ts:199:        this.dispatchChanged()\napp/src/services/project/worktree_service.ts:206:        this.dispatchChanged()\napp/src/services/project/worktree_service.ts:216:        this.dispatchChanged()\napp/src/services/project/worktree_service.ts:238:                this.finishCardOperation(path)\napp/src/services/project/worktree_service.ts:270:            this.finishCardOperation(path)\napp/src/services/project/worktree_service.ts:295:            this.finishCardOperation(path)\napp/src/services/project/worktree_service.ts:327:            this.finishCardOperation(path)\napp/src/services/project/worktree_service.ts:342:            this.finishCardOperation(path)\napp/src/services/project/worktree_service.ts:403:            this.finishCardOperation(path)\napp/src/services/project/worktree_service.ts:510:        this.dispatchChanged()\napp/src/services/project/worktree_service.ts:520:    private handleState(state: WorktreeState) {\napp/src/services/project/worktree_service.ts:531:        this.dispatchChanged()\napp/src/services/project/worktree_service.ts:542:        this.dispatchChanged()\napp/src/services/project/worktree_service.ts:545:    private finishCardOperation(path: string) {\napp/src/services/project/worktree_service.ts:547:        this.dispatchChanged()\napp/src/services/project/worktree_service.ts:566:        this.dispatchChanged()\napp/src/services/project/worktree_service.ts:571:        this.dispatchChanged()\napp/src/services/project/worktree_service.ts:643:    private dispatchChanged() {\ndesktop/src/git/worktree_service.js:98:function statesEqual(first, second) {\ndesktop/src/git/worktree_service.js:113:        this.refreshIntervalMs = dependencies.refreshIntervalMs ?? REFRESH_INTERVAL_MS;\ndesktop/src/git/worktree_service.js:875:        }, this.refreshIntervalMs);\ndesktop/src/git/worktree_service.js:886:        if (statesEqual(this.state, state)) return;\nconst fs = require('node:fs');\r\nconst { checkoutOwnershipService } = require('./checkout_ownership_service');\r\nconst path = require('node:path');\r\n\r\nconst { withGitIndexMutations } = require('./git_index_coordinator');\r\nconst { resolveWorktreeAssignment } = require('../../../shared/worktree_assignment.mjs');\r\n\r\nconst PARKING_BRANCH_PREFIX = 'md2/parking/';\r\nconst REMOVAL_MODES = new Set(['files', 'folder', 'unregister']);\r\nconst REFRESH_INTERVAL_MS = 5000;\r\nconst INTEGRATION_COMMIT_MESSAGE = 'Integrate into project';\r\nconst PRIMARY_CHECKPOINT_MESSAGE = 'Save project changes before worktree synchronization';\r\nconst WORKTREE_MUTATION_COMMANDS = new Set(['add', 'commit', 'switch', 'checkout', 'reset', 'rebase', 'merge', 'pull', 'push']);\r\n\r\nfunction pathKey(folderPath) {\r\n    const normalized = path.normalize(folderPath);\r\n\r\n    return process.platform === 'win32' ? normalized.toLowerCase() : normalized;\r\n}\r\n\r\nfunction worktreeError(worktree) {\r\n    if (worktree.locked) return `Worktree is locked: ${worktree.locked}`;\r\n    if (worktree.prunable) return `Worktree is prunable: ${worktree.prunable}`;\r\n    if (worktree.detached || !worktree.branch) return 'Worktree has detached HEAD; a named branch is required';\r\n\r\n    return null;\r\n}\r\n\r\nasync function folderExists(folderPath) {\r\n    try {\r\n        return (await fs.promises.stat(folderPath)).isDirectory();\r\n    } catch {\r\n        return false;\r\n    }\r\n}\r\n\r\n/** A folder that already holds files, another repository worktree included, cannot become a linked worktree. */\r\nasync function requireEmptyWorktreeFolder(resolvedFolder) {\r\n    let entries;\r\n    try {\r\n        entries = await fs.promises.readdir(resolvedFolder);\r\n    } catch (error) {\r\n        if (error && typeof error === 'object' && (error.code === 'ENOENT' || error.code === 'ENOTDIR')) return;\r\n        throw error;\r\n    }\r\n    if (entries.length === 0) return;\r\n\r\n  \n[3816 characters omitted]\noject || typeof project.rootPath !== 'string' || pathKey(path.resolve(project.rootPath)) !== pathKey(this.project.rootPath)\r\n            || project.branch !== this.project.branch) throw new Error('Requested project is not the active worktree project');\r\n\r\n        return this.project;\r\n    }\r\n\r\n    async readWorktreeRecords(project) {\r\n        const primaryRoot = project.rootPath;\r\n        const worktrees = parseWorktreeList(await this.runGit(primaryRoot, ['worktree', 'list', '--porcelain']));\r\n        const linkedWorktrees = worktrees.filter((worktree) => pathKey(path.resolve(worktree.path)) !== pathKey(primaryRoot));\r\n\r\n        return Promise.all(linkedWorktrees.map((worktree) => this.readWorktreeRecord(project, worktree)));\r\n    }\r\n\r\n    /**\r\n     * A worktree Git already reports as locked, prunable or detached gets no Git command run inside it, and any\r\n     * per-record failure becomes an invalid record, so one broken worktree cannot discard the records of the others.\r\n     */\r\n    async readWorktreeRecord(project, worktree) {\r\n        const resolvedPath = path.resolve(worktree.path);\r\n        const error = worktreeError(worktree);\r\n        if (error !== null) return invalidRecord(worktree.branch, error, resolvedPath);\r\n\r\n        try {\r\n            const parkingBranch = await this.parkingBranch(resolvedPath);\r\n            const status = await this.status(resolvedPath, worktree.branch, requireProjectBranch(project));\r\n\r\n            return { branch: worktree.branch, error: null, parkingBranch, path: resolvedPath, status, valid: true };\r\n        } catch (failure) {\r\n            return invalidRecord(worktree.branch, failure instanceof Error ? failure.message : String(failure), resolvedPath);\r\n        }\r\n    }\r\n\r\n    primaryRepositoryStatus(project) {\r\n        const projectBranch = requireProjectBranch(project);\r\n\r\n        return this.status(project.rootPath, projectBranch, projectBranch);\r\n    }\r\n\r\n    async branchExists(rootPath, branchName) {\r\n        try {\r\n            await this.runGit(rootPath, ['show-ref', '--verify', '--quiet', `refs/heads/${branchName}`]);\r\n\r\n            return true;\r\n        } catch (error) {\r\n            if (error && typeof error === 'object' && error.code === 1) return false;\r\n            throw error;\r\n        }\r\n    }\r\n\r\n    async parkingBranch(folderPath) {\r\n        const gitDirectory = await this.runGit(folderPath, ['rev-parse', '--git-dir']);\r\n        const worktreeId = path.basename(path.normalize(gitDirectory)).toLowerCase().replace(/[^a-z0-9._-]+/gu, '-');\r\n        if (worktreeId.length === 0) throw new Error(`Cannot determine parking branch for worktree: ${folderPath}`);\r\n\r\n        return `${PARKING_BRANCH_PREFIX}${worktreeId}`;\r\n    }\r\n\r\n    async parkPath(project, folderPath) {\r\n        const projectBranch = requireProjectBranch(project);\r\n        const parkingBranch = await this.parkingBranch(folderPath);\r\n        await this.runGit(project.rootPath, ['check-ref-format', '--branch', parkingBranch]);\r\n        await this.runGit(folderPath, ['switch', '-C', parkingBranch, projectBranch]);\r\n    }\r\n\r\n    /**\r\n     * Distances are tracked twice: `baseAhead`/`baseBehind` against the project branch (fixed by rebasing) and\r\n     * `ahead`/`behind` against the configured upstream (fixed by pushing or pulling). A worktree branch that was\r\n     * never pushed still has to report how far it trails the project branch.\r\n     */\r\n    async status(folderPath, branch, projectBranch) {\r\n        const dirty = (await this.runGit(folderPath, ['status', '--porcelain'])).length > 0;\r\n        const base = parseRevisionCounts(await this.runGit(folderPath, ['rev-list', '--left-right', '--count', `HEAD...${projectBranch}`]));\r\n        const upstream = await this.upstream(folderPath, branch);\r\n        if (upstream.length === 0) {\r\n            return { ahead: 0, baseAhead: base.ahead, baseBehind: base.behind, behind: 0, dirty, hasUpstream: false };\r\n        }\r\n        const counts = parseRevisionCounts(await this.runGit(folderPath, ['rev-list', '--left-right', '--count', `HEAD...${upstream}`]));\r\n\r\n",
+          "durationMs": 85,
+          "exitCode": 0,
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-72",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"rg -n \\\"statesEqual|refreshIntervalMs|dispatchChanged\\\\(|finishCardOperation|handleState\\\\(\\\" desktop/src/git/worktree_service.js app/src/services/project/worktree_service.ts; Get-Content 'desktop/src/git/worktree_service.js' | Select-Object -First 90; Get-Content 'app/src/services/project/worktree_service.ts' | Select-Object -Skip 505 -First 35; Get-Content 'app/src/services/project/worktree_service.ts' | Select-Object -Skip 625 -First 25; Get-Content 'desktop/src/git/worktree_service.js' | Select-Object -Skip 895 -First 85\"",
+          "providerItemId": "exec-f5785740-2d54-4819-b2e0-dc2b8908b30c",
+          "sequence": 72,
+          "status": "completed",
+          "timestamp": "2026-10-09T12:46:37.941Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-73",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ae7fd44b0b9e391016ac8e2340efc81919dff2e7828dccc0c",
+          "sequence": 73,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-09T12:46:43.740Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/git/worktree_service.js' | Select-Object -Skip 92 -First 25; Get-Content 'app/src/services/project/worktree_service.ts' | Select-Object -Skip 535 -First 18; Get-Content 'desktop/src/git/worktree_service.js' | Select-Object -Skip 385 -First 70; rg -n 'WorktreeSelector' app/src/components | Select-Object -First 65\"",
+          "content": "    if (values.length !== 2 || values.some((value) => !Number.isInteger(value))) throw new Error(`Invalid Git revision counts: ${output}`);\r\n\r\n    return { ahead: values[0], behind: values[1] };\r\n}\r\n\r\nfunction statesEqual(first, second) {\r\n    return JSON.stringify(first) === JSON.stringify(second);\r\n}\r\n\r\nclass WorktreeService {\r\n    constructor(dependencies) {\r\n        this.clearTimeout = dependencies.clearTimeout ?? clearTimeout;\r\n        this.mergeConflictService = dependencies.mergeConflictService ?? null;\r\n        this.errorReporter = dependencies.errorReporter ?? (() => {});\r\n        this.listeners = new Set();\r\n        this.mutationQueue = Promise.resolve();\r\n        this.project = null;\r\n        this.projectGeneration = 0;\r\n        this.primaryStatus = null;\r\n        this.records = [];\r\n        this.refreshIntervalMs = dependencies.refreshIntervalMs ?? REFRESH_INTERVAL_MS;\r\n        this.refreshPromise = null;\r\n        this.refreshTimer = null;\r\n        this.executeGit = dependencies.runGit;\r\n        this.setTimeout = dependencies.setTimeout ?? setTimeout;\r\n    }\r\n\r\n    private startCardOperation(path: string) {\r\n        if (this.preparingCardPaths.has(path)) throw new Error(`Worktree operation is already in progress for ${path}`)\r\n\r\n        this.preparingCardPaths.add(path)\r\n        this.dispatchChanged()\r\n    }\r\n\r\n    private finishCardOperation(path: string) {\r\n        this.preparingCardPaths.delete(path)\r\n        this.dispatchChanged()\r\n    }\r\n\r\n    private requireCardOperation(path: string) {\r\n        const card = this.requireCard(path)\r\n        const snapshot = this.snapshotProvider?.()\r\n        if (!snapshot) throw new Error('Worktree project snapshot is not initialized')\r\n            const worktreeCheckpointCommit = await this.runGit(record.path, ['rev-parse', 'HEAD']);\r\n            try {\r\n                await this.runGit(record.path, ['rebase', activeProject.branch]);\r\n            } catch (error) {\r\n                const session = await this.createConflictSession({\r\n                    checkpointCommit: worktreeCheckpointCommit,\r\n                    operation: 'rebase',\r\n                    phase: 'rebase',\r\n                    project: activeProject,\r\n                    record,\r\n                    repositoryRoot: record.path,\r\n                    worktree: index,\r\n                    worktreeCheckpointCommit,\r\n                });\r\n                if (session) {\r\n                    await this.refreshAfterMutation();\r\n\r\n                    return { session, status: 'conflict' };\r\n                }\r\n                try {\r\n                    await this.runGit(record.path, ['rebase', '--abort']);\r\n                } catch {\r\n                    // The rebase never started; the original failure is the one worth reporting.\r\n                }\r\n                await this.refreshAfterMutation();\r\n                throw error;\r\n            }\r\n            await this.refreshAfterMutation();\r\n\r\n            return { status: 'completed' };\r\n        });\r\n    }\r\n\r\n    integrate(project, worktreeBranch, metadata = {}) {\r\n        return this.enqueueMutation(async () => {\r\n            const activeProject = this.requireActiveProject(project);\r\n            const { index, record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);\r\n            let record = await this.requireClean(cachedRecord, activeProject.branch);\r\n            if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);\r\n            await this.commitPrimaryChanges(activeProject);\r\n            const checkpointCommit = await this.runGit(activeProject.rootPath, ['rev-parse', 'HEAD']);\r\n            record = await this.requireClean(record, activeProject.branch);\r\n            const worktreeCheckpointCommit = await this.runGit(record.path, ['rev-parse', 'HEAD']);\r\n            if (record.status.baseBehind > 0) {\r\n                try {\r\n                    await this.runGit(record.path, ['rebase', activeProject.branch]);\r\n                } catch (error) {\n[858 characters omitted]\n never started; preserve the original failure.\r\n                    }\r\n                    await this.refreshAfterMutation();\r\n                    throw error;\r\napp/src/components\\card_view\\card_subscription_hooks.test.tsx:19:    WorktreeSelector: (props: unknown) => {\r\napp/src/components\\card_view\\card_worktree_indicator.tsx:1:import { WorktreeSelector } from '../worktree_selector'\r\napp/src/components\\card_view\\card_worktree_indicator.tsx:20:        <WorktreeSelector\r\napp/src/components\\overlay_lifecycle.test.tsx:9:import { WorktreeSelector } from './worktree_selector'\r\napp/src/components\\overlay_lifecycle.test.tsx:84:function renderWorktreeSelector() {\r\napp/src/components\\overlay_lifecycle.test.tsx:89:            <WorktreeSelector\r\napp/src/components\\overlay_lifecycle.test.tsx:133:        renderWorktreeSelector()\r\napp/src/components\\worktree_selector.tsx:12:import { useWorktreeSelectorState } from './hooks/use_worktree_selector_state'\r\napp/src/components\\worktree_selector.tsx:23:interface WorktreeSelectorProps {\r\napp/src/components\\worktree_selector.tsx:45:export function WorktreeSelector(props: WorktreeSelectorProps) {\r\napp/src/components\\worktree_selector.tsx:63:    } = useWorktreeSelectorState({ assignment, cardPath });\r\napp/src/components\\worktree_selector.test.tsx:9:import { WorktreeSelector } from './worktree_selector'\r\napp/src/components\\worktree_selector.test.tsx:44:            <WorktreeSelector\r\napp/src/components\\worktree_selector.test.tsx:53:describe('WorktreeSelector', () => {\r\napp/src/components\\worktree_selector.test.tsx:68:        render(<AppThemeProvider><WorktreeSelector assignment={assignment} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} /></AppThemeProvider>);\r\napp/src/components\\worktree_selector.test.tsx:82:        render(<AppThemeProvider><WorktreeSelector assignment={{ branch: 'removed', worktree: 1 }} assignmentTarget={{ cardInternalId: 'card-1', kind: 'card', path: 'design/F-1.md' }} primaryPath={null} /></AppThemeProvider>);\r\napp/src/components\\worktree_selector.test.tsx:94:                <WorktreeSelector\r\napp/src/components\\worktree_selector.test.tsx:114:                <WorktreeSelector\r\napp/src/components\\worktree_selector.test.tsx:135:                <WorktreeSelector\r\napp/src/components\\worktree_selector.test.tsx:155:                <WorktreeSelector\r\napp/src/components\\worktree_selector.test.tsx:330:                <WorktreeSelector\r\napp/src/components\\worktree_selector.test.tsx:424:                <WorktreeSelector\r\napp/src/components\\worktree_selector.test.tsx:448:                <WorktreeSelector\r\napp/src/components\\worktree_selector.test.tsx:471:                <WorktreeSelector\r\napp/src/components\\worktree_selector.test.tsx:494:                <WorktreeSelector\r\napp/src/components\\hooks\\use_worktree_selector_state.ts:6:export interface WorktreeSelectorTarget {\r\napp/src/components\\hooks\\use_worktree_selector_state.ts:13:export interface WorktreeSelectorState {\r\napp/src/components\\hooks\\use_worktree_selector_state.ts:37:export function useWorktreeSelectorState(target: WorktreeSelectorTarget): WorktreeSelectorState {\r\napp/src/components\\hooks\\use_worktree_selector_state.ts:39:    const cache = useRef<WorktreeSelectorState | null>(null)\r\napp/src/components\\actions\\run\\popup\\action_popup_frame.tsx:19:import { ActionWorktreeSelectorOwner } from './action_worktree_selector_owner'\r\napp/src/components\\actions\\run\\popup\\action_popup_frame.tsx:142:                                <ActionWorktreeSelectorOwner\r\napp/src/components\\actions\\run\\popup\\action_worktree_selector_owner.tsx:2:import { WorktreeSelector } from '../../../worktree_selector'\r\napp/src/components\\actions\\run\\popup\\action_worktree_selector_owner.tsx:6:interface ActionWorktreeSelectorOwnerProps {\r\napp/src/components\\actions\\run\\popup\\action_worktree_selector_owner.tsx:14:export function ActionWorktreeSelectorOwner(props: ActionWorktreeSelectorOwnerProps) {\r\napp/src/components\\actions\\run\\popup\\action_worktree_selector_owner.tsx:22:        <WorktreeSelector\r\n",
+          "durationMs": 45,
+          "exitCode": 0,
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-74",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'desktop/src/git/worktree_service.js' | Select-Object -Skip 92 -First 25; Get-Content 'app/src/services/project/worktree_service.ts' | Select-Object -Skip 535 -First 18; Get-Content 'desktop/src/git/worktree_service.js' | Select-Object -Skip 385 -First 70; rg -n 'WorktreeSelector' app/src/components | Select-Object -First 65\"",
+          "providerItemId": "exec-35343d6b-82ba-4348-8e37-3f3aec8ca933",
+          "sequence": 74,
+          "status": "completed",
+          "timestamp": "2026-10-09T12:46:45.784Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-75",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ae7fd44b0b9e391016ac8e23f2b308191a44963bdd59348d2",
+          "sequence": 75,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-09T12:46:54.795Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"@'\nconst fs=require('fs'),rl=require('readline').createInterface({input:fs.createReadStream('C:/Users/janbo/Documents/dev/Trace-merge worktree.json')});const counts=new Map();rl.on('line',line=>{if(\"'!line.startsWith('\"'  {\\\"args\\\"'))return;let e;try{e=JSON.parse(line.replace(/,\"'$/,'\"''))}catch{return}if(e.name\"'!=='\"'TimeStamp'||\"'!e.args?.data?.message)return;const message=e.args.data.message;if(!/WorktreeSelector|CardWorktree|FileTree|CardView|ProjectSyncStatus|ActionEntryPoints|ForwardRef'\"\\\\(ButtonBase\\\\)/.test(message))return;const sec=Math.floor((e.ts-65554225888)/1000000);const key=\"'`${sec} ${message}`;counts.set(key,(counts.get(key)||0)+1)});rl.on('\"'close',()=>console.log(JSON.stringify([...counts].sort((a,b)=>parseInt(a[0])-parseInt(b[0])))));\n'@ | node -\"",
+          "content": "[[\"0 ForwardRef(ButtonBase)\",2],[\"1 ForwardRef(ButtonBase)\",5],[\"1 WorktreeSelector\",1],[\"2 ForwardRef(ButtonBase)\",2],[\"4 ForwardRef(ButtonBase)\",203],[\"4 ActionEntryPoints\",5],[\"4 WorktreeSelector\",196],[\"4 ProjectSyncStatus\",1],[\"8 ForwardRef(ButtonBase)\",161],[\"8 ActionEntryPoints\",1],[\"8 WorktreeSelector\",189],[\"9 ForwardRef(ButtonBase)\",155],[\"9 ActionEntryPoints\",2],[\"9 WorktreeSelector\",184],[\"12 ForwardRef(ButtonBase)\",167],[\"12 ActionEntryPoints\",2],[\"12 WorktreeSelector\",190],[\"13 ForwardRef(ButtonBase)\",140],[\"14 ActionEntryPoints\",2],[\"14 WorktreeSelector\",190],[\"15 ForwardRef(ButtonBase)\",167],[\"15 ActionEntryPoints\",2],[\"15 WorktreeSelector\",187],[\"18 ForwardRef(ButtonBase)\",156],[\"18 WorktreeSelector\",185],[\"18 ActionEntryPoints\",2],[\"19 ForwardRef(ButtonBase)\",65],[\"19 ProjectSyncStatus\",3],[\"19 WorktreeSelector\",3],[\"19 ActionEntryPoints\",2],[\"19 CardViewContent\",2],[\"19 FileTreeView\",2],[\"19 CardView\",1]]\n",
+          "durationMs": 3170,
+          "exitCode": 0,
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-76",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"@'\nconst fs=require('fs'),rl=require('readline').createInterface({input:fs.createReadStream('C:/Users/janbo/Documents/dev/Trace-merge worktree.json')});const counts=new Map();rl.on('line',line=>{if(\"'!line.startsWith('\"'  {\\\"args\\\"'))return;let e;try{e=JSON.parse(line.replace(/,\"'$/,'\"''))}catch{return}if(e.name\"'!=='\"'TimeStamp'||\"'!e.args?.data?.message)return;const message=e.args.data.message;if(!/WorktreeSelector|CardWorktree|FileTree|CardView|ProjectSyncStatus|ActionEntryPoints|ForwardRef'\"\\\\(ButtonBase\\\\)/.test(message))return;const sec=Math.floor((e.ts-65554225888)/1000000);const key=\"'`${sec} ${message}`;counts.set(key,(counts.get(key)||0)+1)});rl.on('\"'close',()=>console.log(JSON.stringify([...counts].sort((a,b)=>parseInt(a[0])-parseInt(b[0])))));\n'@ | node -\"",
+          "providerItemId": "exec-3ef5eec8-a9c7-47a9-9ccc-e2d1a2b4f6c6",
+          "sequence": 76,
+          "status": "completed",
+          "timestamp": "2026-10-09T12:47:01.151Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-77",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ae7fd44b0b9e391016ac8e2480b14819180f8547f2dd71a1d",
+          "sequence": 77,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-09T12:47:03.609Z",
+          "type": "reasoning"
+        },
+        {
+          "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/components/card_view/card_worktree_indicator.tsx' -TotalCount 75; rg -n 'CardWorktreeIndicator' app/src/components | Select-Object -First 35; Get-Content 'app/src/components/hooks/use_worktree_selector_state.test.tsx' -TotalCount 160\"",
+          "content": "import { WorktreeSelector } from '../worktree_selector'\r\nimport { useCardWorktree } from './use_project_card'\r\nimport { dataService, type DataService } from '../../services/data/data_service'\r\n\r\ninterface CardWorktreeIndicatorProps {\r\n    cardId: string\r\n    cardInternalId: string\r\n    cardPath: string\r\n    primaryPath: string\r\n    service?: DataService\r\n}\r\n\r\nexport function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {\r\n    const { cardId, cardInternalId, cardPath, primaryPath, service = dataService } = props\r\n    const assignment = useCardWorktree(cardPath, service)\r\n\r\n    if (!assignment) return null\r\n\r\n    return (\r\n        <WorktreeSelector\r\n            assignment={{\r\n                branch: assignment.branch, worktree: assignment.worktree,\r\n                worktreeError: assignment.error, worktreeValue: assignment.value,\r\n            }}\r\n            assignmentTarget={{ cardInternalId, kind: 'card', path: cardPath }}\r\n            labelPrefix={cardId}\r\n            primaryPath={primaryPath}\r\n        />\r\n    )\r\n}\r\napp/src/components\\overlay_lifecycle.test.tsx:24:vi.mock('./card_view/card_worktree_indicator', () => ({ CardWorktreeIndicator: () => null }))\r\napp/src/components\\card_view\\card_worktree_indicator.tsx:5:interface CardWorktreeIndicatorProps {\r\napp/src/components\\card_view\\card_worktree_indicator.tsx:13:export function CardWorktreeIndicator(props: CardWorktreeIndicatorProps) {\r\napp/src/components\\card_view\\project_card_view.tsx:18:import { CardWorktreeIndicator } from './card_worktree_indicator'\r\napp/src/components\\card_view\\project_card_view.tsx:298:                        <CardWorktreeIndicator\r\napp/src/components\\card_view\\card_worktree_indicator.grouped.test.tsx:6:import { CardWorktreeIndicator } from './card_worktree_indicator'\r\napp/src/components\\card_view\\card_worktree_indicator.grouped.test.tsx:51:            <CardWorktreeIndicator cardId={Card.header.id} cardInternalId={Card.header.internalId!} cardPath={Card.path} primaryPath=\"C:\\\\primary\" service={service} />\r\napp/src/components\\card_view\\card_worktree_indicator.grouped.test.tsx:56:describe('CardWorktreeIndicator', () => {\r\napp/src/components\\card_view\\card_worktree_indicator.grouped.test.tsx:106:                <CardWorktreeIndicator\r\napp/src/components\\card_view\\card_subscription_hooks.test.tsx:14:import { CardWorktreeIndicator } from './card_worktree_indicator'\r\napp/src/components\\card_view\\card_subscription_hooks.test.tsx:198:        render(<CardWorktreeIndicator cardId=\"F-1\" cardInternalId=\"card-1\" cardPath={firstCard.path} primaryPath=\"project\" service={service} />)\r\nGet-Content : Cannot find path \r\n'C:\\Users\\janbo\\Documents\\dev\\md2\\app\\src\\components\\hooks\\use_worktree_selector_state.test.tsx' because it does not \r\nexist.\r\nAt line:2 char:164\r\n+ ...  -First 35; Get-Content 'app/src/components/hooks/use_worktree_select ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : ObjectNotFound: (C:\\Users\\janbo\\..._state.test.tsx:String) [Get-Content], ItemNotFoundEx \r\n   ception\r\n    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand\r\n \r\n",
+          "durationMs": 85,
+          "exitCode": 1,
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-78",
+          "kind": "event",
+          "label": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command \"Get-Content 'app/src/components/card_view/card_worktree_indicator.tsx' -TotalCount 75; rg -n 'CardWorktreeIndicator' app/src/components | Select-Object -First 35; Get-Content 'app/src/components/hooks/use_worktree_selector_state.test.tsx' -TotalCount 160\"",
+          "providerItemId": "exec-2e97c8be-9512-4abf-a360-77acd69d72d8",
+          "sequence": 78,
+          "status": "failed",
+          "timestamp": "2026-10-09T12:47:05.678Z",
+          "type": "commandExecution",
+          "workingDirectory": "C:\\Users\\janbo\\Documents\\dev\\md2"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-event-79",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0ae7fd44b0b9e391016ac8e24c546881918fe3ac7530fafa9f",
+          "sequence": 79,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-09T12:47:08.002Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "The repeated renders come from **state broadcasts**, not a render loop. The trace shows about seven bursts of roughly 185–196 `WorktreeSelector` renders. Integration starts and finishes card operations, refreshes worktree status during Git steps, and updates save state. Every mounted selector subscribes to those shared events. The selector’s snapshot also includes the **entire worktree records array**, so a change to one record can redraw selectors for unrelated cards. With about 190 selectors mounted, each broadcast becomes a large burst. That fan-out looks wrong. [Subscription and snapshot](/C:/Users/janbo/Documents/dev/md2/app/src/components/hooks/use_worktree_selector_state.ts:21)\n\nOn commits: the current flow makes a squash integration commit, then records **that commit’s hash** in the activity file with a second commit. It may also make a primary-worktree checkpoint commit before merging; clearing the card’s branch and assignment queues another save afterward. A single final commit requires changing this flow: a commit cannot contain its own hash in the activity record, because adding the hash changes the commit. [Integration history write](/C:/Users/janbo/Documents/dev/md2/desktop/src/shell/local_bridge_dispatch.js:414) · [Card cleanup](/C:/Users/janbo/Documents/dev/md2/app/src/services/project/worktree_service.ts:299)\n\nNo code changed.\n\n",
+          "id": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-turn-3-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 80,
+          "timestamp": "2026-10-09T12:47:12.639Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -3376,27 +3547,27 @@
           "agent": "codex",
           "conversationId": "01a120ab-3ee8-7100-8196-71c0912e84ef",
           "createdAt": "2026-10-09T12:38:32.029Z",
-          "lastUsedAt": "2026-10-09T12:44:29.073Z",
-          "synchronizedThroughMessageId": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-turn-2-assistant-3"
+          "lastUsedAt": "2026-10-09T12:47:12.639Z",
+          "synchronizedThroughMessageId": "agent-turn-dd041455-a72b-43b0-bbec-0622a5658c10-turn-3-assistant-2"
         }
       ],
       "startedAt": "2026-10-09T12:37:35.714Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 644,
-          "toolMs": 19077
+          "reasoningMs": 853,
+          "toolMs": 22714
         },
         "elapsedMs": 165714,
         "runningStartedAt": "2026-10-09T12:46:25.995Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 1474560,
-        "inputTokens": 84479,
-        "outputTokens": 5959,
-        "reasoningTokens": 1816,
-        "totalTokens": 1566814
+        "cachedInputTokens": 2021760,
+        "inputTokens": 93967,
+        "outputTokens": 7139,
+        "reasoningTokens": 2474,
+        "totalTokens": 2125340
       },
       "usageSchemaVersion": 1,
       "viewed": true
