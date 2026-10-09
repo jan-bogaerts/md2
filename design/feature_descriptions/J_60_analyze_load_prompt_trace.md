@@ -10,8 +10,6 @@ agents:
   - design/activity/card__1eb24b57-bc11-41d1-8c8f-296b0dba31c1.json
 policy:
 after: 45e13c03-d74d-4082-9065-aa387f6553f5
-branch: j_60_analyze_load_prompt_trace
-worktree: 1
 changedFiles:
   - app/.j60-profile/config.mts
   - app/.j60-profile/index.html
