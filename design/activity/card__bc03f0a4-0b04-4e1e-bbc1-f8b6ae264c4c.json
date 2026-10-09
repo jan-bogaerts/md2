@@ -591,13 +591,50 @@
         "costUsd": 0.8414538000000001
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "bc03f0a4-0b04-4e1e-bbc1-f8b6ae264c4c",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "42f52df2c1703f546112d8966e34d270c75868b1",
+          "committedAt": "2026-10-09T16:00:54+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/B_270_add_file_dialog_behind_card_popup.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 50
+        }
+      ],
+      "completedAt": "2026-10-09T14:00:55.153Z",
+      "conversationIds": [
+        "agent-22f18bfd-1919-4595-bf99-6a358b52c4ee"
+      ],
+      "details": {
+        "agent": "claude",
+        "model": "opus",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "type": "agent"
+      },
+      "runId": "action-ebc1aedb-b8da-47dd-a45e-fe4664d915db",
+      "origin": {
+        "cardInternalId": "bc03f0a4-0b04-4e1e-bbc1-f8b6ae264c4c",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-22f18bfd-1919-4595-bf99-6a358b52c4ee",
+      "startedAt": "2026-10-09T13:59:19.202Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
