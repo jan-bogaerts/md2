@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__a0d1eee2-1989-41e0-800d-9667640d35b2.json
 policy:
-branch: b_267_integrate_into_project_gives_commit_error
-worktree: 2
 changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx
   - app/src/components/card_view/card_body_popover.tsx
