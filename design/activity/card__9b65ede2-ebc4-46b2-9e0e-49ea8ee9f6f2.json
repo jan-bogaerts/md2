@@ -1,0 +1,39 @@
+{
+  "actionSettings": {},
+  "conversations": [
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "9b65ede2-ebc4-46b2-9e0e-49ea8ee9f6f2",
+      "cardPath": "design/feature_descriptions/F_418_analyze_create_card_trace.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/F_418_analyze_create_card_trace.md. report your finidings",
+          "id": "submission-9d0ebe09-baaf-4507-85c1-83780d80296f",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-10T09:10:29.652Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-35c44d48-145a-431e-982a-970969db4c62",
+      "providerSessions": [],
+      "startedAt": "2026-10-10T09:10:29.652Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-10T09:10:29.652Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
+    }
+  ],
+  "origin": {
+    "cardInternalId": "9b65ede2-ebc4-46b2-9e0e-49ea8ee9f6f2",
+    "kind": "card"
+  },
+  "records": [],
+  "version": 5
+}
