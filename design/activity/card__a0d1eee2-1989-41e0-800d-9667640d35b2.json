@@ -9194,14 +9194,14 @@
         }
       ],
       "startedAt": "2026-10-10T11:25:59.587Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 364,
           "toolMs": 50186
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-10T11:25:59.587Z"
+        "elapsedMs": 211890,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
