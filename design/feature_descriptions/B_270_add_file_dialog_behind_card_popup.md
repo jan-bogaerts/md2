@@ -15,6 +15,7 @@ changedFiles:
   - app/src/components/editor/attachments/attachment_choice_dialog.grouped.test.tsx
   - app/src/components/editor/attachments/attachment_choice_dialog.tsx
   - app/src/components/resizable_popper.tsx
+after: 04b4a3a2-45cc-425c-bc43-6c46a294447c
 ---
 
 when adding a file to a card in the card-popup, we no longer show the dialog properly, it is behind the card. this is not correct.

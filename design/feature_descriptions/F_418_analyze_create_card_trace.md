@@ -3,12 +3,16 @@ author:
 id: F_418
 internalId: 9b65ede2-ebc4-46b2-9e0e-49ea8ee9f6f2
 title: analyze create card trace
-status: design
+status: ready
 owner: 
 affects:
 agents:
   - design/activity/card__9b65ede2-ebc4-46b2-9e0e-49ea8ee9f6f2.json
 policy:
+after: bc03f0a4-0b04-4e1e-bbc1-f8b6ae264c4c
+changedFiles:
+  - app/src/services/data/card_operations.test.ts
+  - app/src/services/data/card_operations.ts
 ---
 
 When creating a new card, after clickin on 'add' it still takes a relatively long time before the popup closes. too long compared to what actually should happen.
