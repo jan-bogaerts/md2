@@ -8208,7 +8208,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 117385
+        "usedTokens": 119207
       },
       "entries": [
         {
@@ -9674,6 +9674,62 @@
           "role": "assistant",
           "sequence": 111,
           "timestamp": "2026-10-10T11:45:55.351Z"
+        },
+        {
+          "content": "* UsageMetricsService.appendRecords: can it see the service responsible for performing the 'integrate into project' function? UsageMetricsService checks if the write can occur and simply blocks until it can\n* `finalizeIntegration() calls appendSystemActivity(), which writes the card activity JSON after the Git integration commit but before integrateWorktree returns.` can we change this so it happens after the integration is done like the rest?",
+          "id": "submission-96052bfe-7c47-4881-8cc5-0bb1a74bcb37",
+          "kind": "message",
+          "role": "user",
+          "sequence": 112,
+          "timestamp": "2026-10-10T11:49:07.583Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d58be4bd-bb20-4ed0-afe5-bdbe891d0540-event-113",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bd82a9a8dfac516016aca263f1e748191a300228be67c57fe",
+          "sequence": 113,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-10T11:49:18.363Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d58be4bd-bb20-4ed0-afe5-bdbe891d0540-event-114",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bd82a9a8dfac516016aca2648755481918afad0505607463e",
+          "sequence": 114,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-10T11:49:27.706Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-d58be4bd-bb20-4ed0-afe5-bdbe891d0540-event-115",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0bd82a9a8dfac516016aca264ecdcc81919e53debd00c94b35",
+          "sequence": 115,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-10T11:49:34.058Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "Yes to both, with one important consequence.\n\n1. `UsageMetricsService` can depend on an integration-operation gate exposed by the worktree service—or preferably a small shared project-operation coordinator to avoid coupling metrics directly to worktree logic.\n\nBefore `appendRecords()` writes, it would await that gate:\n\n```text\nrecord usage\n→ wait while integration is active\n→ append usage_metrics.csv after integration finishes\n```\n\nThat is technically deferring the write rather than discarding it. Your latest description explicitly requests this blocking behavior, so I would follow that.\n\nHowever, merely writing afterward leaves `usage_metrics.csv` dirty, because it is not currently registered with normal renderer persistence. We must also arrange for it to be committed after the integration; otherwise the next integration can fail for the same reason. The clean solution is to register the completed metrics write with normal project persistence, not create an integration checkpoint or broad commit.\n\n2. `appendSystemActivity()` can be moved out of `finalizeIntegration()`.\n\nThe split would be:\n\n```text\nintegrateWorktree\n→ perform squash integration\n→ synchronize/park/delete the linked worktree\n→ return successful commit metadata\n\npost-integration processing\n→ append the integration activity record\n→ register activity with normal project persistence\n→ queue card worktree/branch cleanup\n```\n\nNormal and conflict-continuation integration need the same post-integration path. The activity operation must remain idempotent so retrying after an activity-write failure does not duplicate the integration record.\n\nThus, the revised plan is:\n\n- Revert my checkpoint change.\n- Add a shared integration gate.\n- Make metrics writes wait at the gate.\n- Release them only after the Git integration has returned.\n- Register resulting metrics changes with normal persistence.\n- Move integration activity creation into the same post-integration phase.\n- Keep the main-worktree cleanliness check.\n\n",
+          "id": "agent-turn-d58be4bd-bb20-4ed0-afe5-bdbe891d0540-turn-2-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 116,
+          "timestamp": "2026-10-10T11:49:40.695Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -9683,27 +9739,27 @@
           "agent": "codex",
           "conversationId": "01a12590-0d4f-7813-a3db-e27f2f17ab6d",
           "createdAt": "2026-10-10T11:29:31.477Z",
-          "lastUsedAt": "2026-10-10T11:45:55.351Z",
-          "synchronizedThroughMessageId": "agent-turn-d58be4bd-bb20-4ed0-afe5-bdbe891d0540-turn-1-assistant-2"
+          "lastUsedAt": "2026-10-10T11:49:40.695Z",
+          "synchronizedThroughMessageId": "agent-turn-d58be4bd-bb20-4ed0-afe5-bdbe891d0540-turn-2-assistant-1"
         }
       ],
       "startedAt": "2026-10-10T11:25:59.587Z",
       "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 2607,
+          "reasoningMs": 2635,
           "toolMs": 51321
         },
-        "elapsedMs": 253131,
-        "runningStartedAt": "2026-10-10T11:44:21.962Z"
+        "elapsedMs": 346520,
+        "runningStartedAt": "2026-10-10T11:49:07.583Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 2102272,
-        "inputTokens": 100026,
-        "outputTokens": 6496,
-        "reasoningTokens": 7024,
-        "totalTokens": 2215818
+        "cachedInputTokens": 2216576,
+        "inputTokens": 103198,
+        "outputTokens": 6879,
+        "reasoningTokens": 8372,
+        "totalTokens": 2335025
       },
       "usageSchemaVersion": 1,
       "viewed": true
