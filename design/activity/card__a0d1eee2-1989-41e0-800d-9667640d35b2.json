@@ -9254,14 +9254,14 @@
         }
       ],
       "startedAt": "2026-10-10T11:25:59.587Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 393,
           "toolMs": 50186
         },
-        "elapsedMs": 217659,
-        "runningStartedAt": "2026-10-10T11:40:02.321Z"
+        "elapsedMs": 230141,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
