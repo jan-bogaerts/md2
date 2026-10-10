@@ -48,6 +48,8 @@ I created a performance trace while the application was integrating the work-tre
 
 trace: [Trace-merge worktree.json](<../../../Trace-merge worktree.json>)
 
+trace of main:&#x20;
+
 ## Current state
 
 Terms:
