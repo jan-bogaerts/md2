@@ -39,6 +39,34 @@
       "title": "complete",
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "4e9bc413-979d-482d-ad59-48ff3b74b350",
+      "cardPath": "design/feature_descriptions/B_271_agent_file_change_failed.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_271_agent_file_change_failed.md. can you see what is causing this bug?",
+          "id": "submission-c5ad022b-8e94-4b66-a606-2fce9a2c3301",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-10T12:12:31.236Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-756c24d2-6da2-4527-96ba-45f21da73487",
+      "providerSessions": [],
+      "startedAt": "2026-10-10T12:12:31.236Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-10T12:12:31.236Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -63,6 +91,25 @@
       "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "rootActionLabel": "complete",
       "startedAt": "2026-10-10T12:10:02.453Z",
+      "status": "failed"
+    },
+    {
+      "commits": [],
+      "completedAt": "2026-10-10T12:12:31.240Z",
+      "conversationIds": [],
+      "details": {
+        "command": "",
+        "output": "Card has no frontmatter: design/feature_descriptions/B_271_agent_file_change_failed.md",
+        "type": "command"
+      },
+      "runId": "action-8644d536-7070-4184-8e00-06aca0aaede6",
+      "origin": {
+        "cardInternalId": "4e9bc413-979d-482d-ad59-48ff3b74b350",
+        "kind": "card"
+      },
+      "rootActionId": "md2.custom-prompt",
+      "rootActionLabel": "+",
+      "startedAt": "2026-10-10T12:12:31.235Z",
       "status": "failed"
     }
   ],
