@@ -442,7 +442,7 @@ describe('WorktreeService merge conflict lifecycle', () => {
 });
 
 describe('WorktreeService integration synchronization', () => {
-    it('refuses later primary changes without creating a checkpoint commit', async () => {
+    it('checkpoints later primary changes before integrating the linked worktree', async () => {
         const repository = await createRepository();
         const project = { branch: 'main', id: repository.primaryPath, rootPath: repository.primaryPath };
         const service = createService();
@@ -453,10 +453,15 @@ describe('WorktreeService integration synchronization', () => {
             await writeFile(join(repository.primaryPath, 'later.txt'), 'later\n');
             const previousCommit = await runGit(repository.primaryPath, ['rev-parse', 'HEAD']);
 
-            await expect(service.integrate(project, 'feature')).rejects.toThrow('Primary worktree changed after pending saves were flushed');
+            await expect(service.integrate(project, 'feature')).resolves.toMatchObject({ status: 'completed' });
 
-            expect(await runGit(repository.primaryPath, ['rev-parse', 'HEAD'])).toBe(previousCommit);
-            expect(await runGit(repository.primaryPath, ['status', '--porcelain'])).toContain('later.txt');
+            expect(await runGit(repository.primaryPath, ['rev-parse', 'HEAD~2'])).toBe(previousCommit);
+            expect(await runGit(repository.primaryPath, ['show', 'HEAD~1:later.txt'])).toBe('later');
+            expect(await runGit(repository.primaryPath, ['log', '-2', '--format=%s'])).toBe([
+                'Integrate into project',
+                'Save project changes before worktree synchronization',
+            ].join('\n'));
+            expect(await runGit(repository.primaryPath, ['status', '--porcelain'])).toBe('');
         } finally {
             service.stopProject();
             await rm(repository.folderPath, { force: true, recursive: true });

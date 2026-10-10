@@ -422,7 +422,7 @@ class WorktreeService {
             const { index, record: cachedRecord } = await this.resolveBranch(activeProject, worktreeBranch);
             let record = await this.requireClean(cachedRecord, activeProject.branch);
             if (record.branch === activeProject.branch) throw new Error(`Linked worktree is already on the project branch: ${activeProject.branch}`);
-            await this.requireCleanPrimaryForIntegration(activeProject);
+            await this.commitPrimaryChanges(activeProject);
             const checkpointCommit = await this.runGit(activeProject.rootPath, ['rev-parse', 'HEAD']);
             record = await this.requireClean(record, activeProject.branch);
             const worktreeCheckpointCommit = await this.runGit(record.path, ['rev-parse', 'HEAD']);
@@ -789,13 +789,6 @@ class WorktreeService {
 
         await this.runGit(project.rootPath, ['add', '-A']);
         await this.runGit(project.rootPath, ['commit', '-m', PRIMARY_CHECKPOINT_MESSAGE]);
-    }
-
-    async requireCleanPrimaryForIntegration(project) {
-        const branch = (await this.runGit(project.rootPath, ['branch', '--show-current'])).trim();
-        if (branch !== project.branch) throw new Error(`Primary worktree is on ${branch || 'a detached HEAD'}, expected ${project.branch}`);
-        const status = await this.primaryRepositoryStatus(project);
-        if (status.dirty) throw new Error('Primary worktree changed after pending saves were flushed; save changes and retry integration');
     }
 
     async revalidateRecord(record, projectBranch) {
