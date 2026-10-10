@@ -13,6 +13,16 @@
           "thinkingLevel": "medium"
         }
       }
+    },
+    "md2.custom-prompt": {
+      "activeAgent": "codex",
+      "permissionMode": "approve-for-me",
+      "settingsByAgent": {
+        "codex": {
+          "model": "gpt-5.6-sol",
+          "thinkingLevel": "medium"
+        }
+      }
     }
   },
   "conversations": [
@@ -8190,6 +8200,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "a0d1eee2-1989-41e0-800d-9667640d35b2",
+      "cardPath": "design/feature_descriptions/B_267_integrate_into_project_gives_commit_error.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_267_integrate_into_project_gives_commit_error.md, it was not correctly fixed. we now get this error:\n\n> Primary worktree changed after pending saves were flushed; save changes and retry integration\n\nand the 'integrate into project\\` dialog remains open, can't finish the operation. fix it",
+          "id": "submission-be1b49f6-dc22-45ac-af13-50a9be7f7a30",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-10T11:25:59.587Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-b1a0fa59-19a6-454a-b09c-7c96df97ba0a",
+      "providerSessions": [],
+      "startedAt": "2026-10-10T11:25:59.587Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-10T11:25:59.587Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -8338,6 +8376,7 @@
     {
       "commits": [
         {
+          "branch": "dev_main",
           "commit": "236565371b057419c32f31efc3d01d5bf26246bf",
           "committedAt": "2026-10-09T16:06:29+02:00",
           "deletions": 129,
@@ -8366,8 +8405,7 @@
             "desktop/src/shell/local_bridge_dispatch.test.mjs"
           ],
           "filesChanged": 22,
-          "insertions": 457,
-          "branch": "dev_main"
+          "insertions": 457
         }
       ],
       "completedAt": "2026-10-09T16:06:29+02:00",
