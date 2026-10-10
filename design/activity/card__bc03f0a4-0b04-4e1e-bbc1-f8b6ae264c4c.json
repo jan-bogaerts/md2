@@ -1267,6 +1267,30 @@
       "startedAt": "2026-10-10T09:02:21.569Z",
       "status": "completed",
       "rootConversationId": "agent-9f9dcf32-9298-40b6-85e7-522b80bdb10d"
+    },
+    {
+      "commits": [
+        {
+          "commit": "db979f8d95bd66348a79bfcf5f94e2fe0e0af780",
+          "committedAt": "2026-10-10T13:28:19+02:00",
+          "deletions": 3,
+          "filePaths": [
+            "app/src/components/editor/attachments/attachment_choice_dialog.grouped.test.tsx",
+            "app/src/components/editor/attachments/attachment_choice_dialog.tsx",
+            "app/src/components/resizable_popper.tsx"
+          ],
+          "filesChanged": 3,
+          "insertions": 55,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-10T13:28:19+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "bc03f0a4-0b04-4e1e-bbc1-f8b6ae264c4c",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5
