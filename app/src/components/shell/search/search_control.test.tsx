@@ -208,7 +208,7 @@ describe('SearchControl', () => {
 
         expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'RegExp mode' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Search background file bodies' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Search released and archived file bodies' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Search actions' })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Ask agent to build a RegExp' })).toBeInTheDocument()
     })
@@ -225,6 +225,39 @@ describe('SearchControl', () => {
         expect(screen.queryByRole('button', { name: 'Close search' })).not.toBeInTheDocument()
         expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveAttribute('readonly')
         expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('Beta')
+    })
+
+    it('clears the query and results without closing desktop search', async () => {
+        const user = userEvent.setup()
+        render(<SearchControl />)
+        await user.click(screen.getByRole('textbox', { name: 'Search project' }))
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta')
+
+        expect(screen.getByText('Beta feature')).toBeInTheDocument()
+        await user.click(screen.getByRole('button', { name: 'Clear search' }))
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('')
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
+        expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument()
+        expect(screen.queryByText('Beta feature')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Close search' })).toBeInTheDocument()
+
+        await user.click(screen.getByRole('button', { name: 'Close search' }))
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('')
+    })
+
+    it('clears the query without closing mobile search', async () => {
+        const user = userEvent.setup()
+        render(<SearchControl isMobile />)
+        await user.click(screen.getByRole('button', { name: 'Search' }))
+        await user.type(screen.getByRole('textbox', { name: 'Search project' }), 'Beta')
+
+        await user.click(screen.getByRole('button', { name: 'Clear search' }))
+
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveValue('')
+        expect(screen.getByRole('textbox', { name: 'Search project' })).toHaveFocus()
+        expect(screen.getByRole('dialog', { name: 'Search dropdown' })).toBeInTheDocument()
     })
 
     it('closes the mobile search popover from its close button', async () => {
@@ -321,7 +354,7 @@ describe('SearchControl', () => {
         typeQuery('Hidden secret')
         expect(screen.queryByRole('button', { name: /History note/ })).toBeNull()
 
-        fireEvent.click(screen.getByRole('button', { name: 'Search background file bodies' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Search released and archived file bodies' }))
 
         expect(screen.getByRole('button', { name: /History note/ })).toBeInTheDocument()
     })

@@ -3,6 +3,7 @@ import type { ChangeEvent, FocusEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import AutoFix from 'mdi-material-ui/AutoFix'
 import Close from 'mdi-material-ui/Close'
+import CloseCircleOutline from 'mdi-material-ui/CloseCircleOutline'
 import FileSearchOutline from 'mdi-material-ui/FileSearchOutline'
 import LightningBolt from 'mdi-material-ui/LightningBolt'
 import Magnify from 'mdi-material-ui/Magnify'
@@ -117,6 +118,14 @@ export function SearchPanel(props: SearchPanelProps) {
         onQueryChange(nextQuery)
         setIsDismissed(false)
         applySearch(nextQuery, mode, includeBackgroundBody, includeActions)
+    }
+
+    const handleClearSearch = () => {
+        setQuery('')
+        onQueryChange('')
+        setResults(EMPTY_RESULTS)
+        setIsDismissed(false)
+        controlElement?.querySelector<HTMLInputElement>('input')?.focus()
     }
 
     const handleToggleRegexp = () => {
@@ -241,17 +250,19 @@ export function SearchPanel(props: SearchPanelProps) {
                         input: {
                             endAdornment: (
                                 <InputAdornment position="end" sx={{ gap: 0.5 }}>
+                                    {query ? (
+                                        <Tooltip title="Clear search">
+                                            <IconButton aria-label="Clear search" onClick={handleClearSearch} size="small">
+                                                <CloseCircleOutline fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    ) : null}
                                     <Box
                                         component="span"
                                         sx={SEARCH_SHORTCUT_STYLES}
                                     >
                                         {shortcutLabel}
                                     </Box>
-                                    <Tooltip title="Close search">
-                                        <IconButton aria-label="Close search" edge="end" onClick={onClose} size="small">
-                                            <Close fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
                                 </InputAdornment>
                             ),
                             startAdornment: (
@@ -299,9 +310,9 @@ export function SearchPanel(props: SearchPanelProps) {
                                     <Regex fontSize="small" />
                                 </ToggleButton>
                             </Tooltip>
-                            <Tooltip title="Search background file bodies">
+                            <Tooltip title="Search released and archived file bodies">
                                 <ToggleButton
-                                    aria-label="Search background file bodies"
+                                    aria-label="Search released and archived file bodies"
                                     onChange={handleToggleBackgroundBody}
                                     selected={includeBackgroundBody}
                                     size="small"
@@ -332,6 +343,12 @@ export function SearchPanel(props: SearchPanelProps) {
                                         <AutoFix fontSize="small" />
                                     </IconButton>
                                 </span>
+                            </Tooltip>
+                            <Box sx={{ flex: 1 }} />
+                            <Tooltip title="Close search">
+                                <IconButton aria-label="Close search" onClick={onClose} size="small">
+                                    <Close fontSize="small" />
+                                </IconButton>
                             </Tooltip>
                         </Box>
                         {shouldShowResults ? (
