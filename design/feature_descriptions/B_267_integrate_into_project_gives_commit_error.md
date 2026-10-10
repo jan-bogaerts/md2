@@ -48,7 +48,7 @@ I created a performance trace while the application was integrating the work-tre
 
 trace: [Trace-merge worktree.json](<../../../Trace-merge worktree.json>)
 
-trace of main:&#x20;
+trace of main: [CPU-integrate into project.cpuprofile](file:///C:/Users/janbo/Documents/dev/CPU-integrate%20into%20project.cpuprofile)
 
 ## Current state
 
