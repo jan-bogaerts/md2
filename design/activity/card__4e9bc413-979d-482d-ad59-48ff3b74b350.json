@@ -663,14 +663,14 @@
         }
       ],
       "startedAt": "2026-10-10T13:40:46.689Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 19250,
           "toolMs": 1446
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-10T13:40:46.689Z"
+        "elapsedMs": 76170,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
