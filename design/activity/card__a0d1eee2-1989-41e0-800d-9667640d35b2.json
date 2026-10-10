@@ -12855,14 +12855,14 @@
         }
       ],
       "startedAt": "2026-10-10T12:40:38.747Z",
-      "status": "running",
+      "status": "waitingForInput",
       "timer": {
         "breakdown": {
           "reasoningMs": 91573,
           "toolMs": 89375
         },
-        "elapsedMs": 318442,
-        "runningStartedAt": "2026-10-10T13:12:03.724Z"
+        "elapsedMs": 676390,
+        "runningStartedAt": null
       },
       "title": "+",
       "usage": {
