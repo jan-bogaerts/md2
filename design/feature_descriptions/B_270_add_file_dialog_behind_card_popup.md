@@ -3,7 +3,7 @@ author:
 id: B_270
 internalId: bc03f0a4-0b04-4e1e-bbc1-f8b6ae264c4c
 title: add file dialog behind card popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,10 @@ agents:
 policy:
 branch: b_270_add_file_dialog_behind_card_popup
 worktree: 1
+changedFiles:
+  - app/src/components/editor/attachments/attachment_choice_dialog.grouped.test.tsx
+  - app/src/components/editor/attachments/attachment_choice_dialog.tsx
+  - app/src/components/resizable_popper.tsx
 ---
 
 when adding a file to a card in the card-popup, we no longer show the dialog properly, it is behind the card. this is not correct.
