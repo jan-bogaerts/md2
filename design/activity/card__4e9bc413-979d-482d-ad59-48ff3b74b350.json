@@ -67,6 +67,34 @@
       "title": "+",
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "4e9bc413-979d-482d-ad59-48ff3b74b350",
+      "cardPath": "design/feature_descriptions/B_271_agent_file_change_failed.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "read design/feature_descriptions/B_271_agent_file_change_failed.md. can you see why this happened?",
+          "id": "submission-9ed63864-e663-47c8-8f01-523552bbbc36",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-10T13:40:46.689Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-2c6afd57-871c-4dbf-a36b-1888696bf4c0",
+      "providerSessions": [],
+      "startedAt": "2026-10-10T13:40:46.689Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-10T13:40:46.689Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
