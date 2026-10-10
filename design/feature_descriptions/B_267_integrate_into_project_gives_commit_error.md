@@ -27,9 +27,15 @@ changedFiles:
   - app/src/services/project/project_persistence_service.ts
   - app/src/services/project/worktree_service.node.test.ts
   - app/src/services/project/worktree_service.ts
+  - design/architecture/data_saving_and_commits.md
+  - desktop/main.js
   - desktop/src/actions/activity/activity_files.js
+  - desktop/src/actions/agent/usage_metrics_service.js
+  - desktop/src/actions/agent/usage_metrics_service.test.mjs
   - desktop/src/git/worktree_service.js
   - desktop/src/git/worktree_service.test.mjs
+  - desktop/src/project/project_operation_coordinator.js
+  - desktop/src/project/project_operation_coordinator.test.mjs
   - desktop/src/shell/local_bridge_dispatch.js
   - desktop/src/shell/local_bridge_dispatch.test.mjs
 after: 5785f8fc-1509-47f0-8b60-5b34f03774c1
