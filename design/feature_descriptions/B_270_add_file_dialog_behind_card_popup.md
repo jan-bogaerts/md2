@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__bc03f0a4-0b04-4e1e-bbc1-f8b6ae264c4c.json
 policy:
-branch: b_270_add_file_dialog_behind_card_popup
-worktree: 1
 changedFiles:
   - app/src/components/editor/attachments/attachment_choice_dialog.grouped.test.tsx
   - app/src/components/editor/attachments/attachment_choice_dialog.tsx
