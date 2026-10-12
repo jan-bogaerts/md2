@@ -9,4 +9,10 @@ affects:
 agents:
 policy:
 ---
+we need to investigate:
 
+* how each agent stores it's user credentials
+* if we can copy the values and store them locally
+* if we are able to restore user credentials for an agent.
+
+we need to check for both codex cli and claude cli how they handle user account credentials.
