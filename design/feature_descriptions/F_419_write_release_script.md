@@ -7,6 +7,7 @@ status: design
 owner: 
 affects:
 agents:
+  - design/activity/card__c9eb5c09-0c01-490f-808c-143ff534322b.json
 policy:
 ---
 write a script that will:
