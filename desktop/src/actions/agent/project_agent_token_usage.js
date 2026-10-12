@@ -20,6 +20,7 @@ const {
 } = require('../activity/activity_files');
 const { commitTrackedPaths, ensureInsideRoot, pathExists, requireRootPath } = require('../../git/git_commands');
 const { captureError } = require('../../integrations/telemetry');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 
 const projectUsageWriteQueues = new Map();
 
@@ -157,7 +158,7 @@ async function persistConversationAndProjectUsage(run, dependencies = {}) {
         activityOrigin,
     );
 
-    return queueProjectUsageUpdate(summaryPath, () => queueActivityUpdate(activityPath, async () => {
+    return queueProjectUsageUpdate(summaryPath, () => queueActivityUpdate(rootPath, activityPath, async () => {
         const currentActivity = await loadActivityValue(activityPath, activityOrigin);
         const storedConversation = currentActivity.conversations.find(({ id }) => id === run.conversation.id) ?? null;
         const nextActivity = upsertConversation(currentActivity, run.conversation);
@@ -185,6 +186,7 @@ async function persistConversationAndProjectUsage(run, dependencies = {}) {
         }
         try {
             await writeActivityFile(summaryPath, nextSummary);
+            uncommittedProjectWrites.mark(rootPath, [summaryRelativePath]);
         } catch (error) {
             await commitPaths(rootPath, [activityRelativePath], `Update ${activityOrigin.kind} activity`);
             await reportTokenUsageFailure(error, dependencies);

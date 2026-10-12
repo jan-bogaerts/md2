@@ -453,7 +453,7 @@ describe('WorktreeService integration synchronization', () => {
             await writeFile(join(repository.primaryPath, 'later.txt'), 'later\n');
             const previousCommit = await runGit(repository.primaryPath, ['rev-parse', 'HEAD']);
 
-            await expect(service.integrate(project, 'feature')).rejects.toThrow('Primary worktree changed after pending saves were flushed');
+            await expect(service.integrate(project, 'feature')).rejects.toThrow('Primary worktree has uncommitted changes; commit or discard them and retry integration: later.txt');
 
             expect(await runGit(repository.primaryPath, ['rev-parse', 'HEAD'])).toBe(previousCommit);
             expect(await runGit(repository.primaryPath, ['status', '--porcelain'])).toContain('later.txt');

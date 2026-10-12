@@ -41,7 +41,7 @@ async function persistInitialCardConversation(run, dependencyOverrides = {}) {
     const appendReference = dependencyOverrides.appendCardActivityReference ?? appendCardActivityReference;
     const commitPaths = dependencyOverrides.commitTrackedPaths ?? commitTrackedPaths;
 
-    return queueActivityUpdate(absolutePath, async () => {
+    return queueActivityUpdate(rootPath, absolutePath, async () => {
         const activity = upsertConversation(
             await loadActivityValue(absolutePath, request.activityOrigin),
             run.conversation,

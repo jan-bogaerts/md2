@@ -6,7 +6,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const { GitProcess } = require('../git/git_process');
+const { checkoutOwnershipService } = require('../git/checkout_ownership_service');
+const { projectOperationCoordinator } = require('./project_operation_coordinator');
 const {
+    commit,
     commitNow,
     isWatchedProjectPath,
     listRepositoryFiles,
@@ -16,6 +19,13 @@ const {
     loadTextFile,
     resolveExistingProjectEntry,
 } = require('./project_files');
+
+function deferred() {
+    let resolve;
+    const promise = new Promise((complete) => { resolve = complete; });
+
+    return { promise, resolve };
+}
 
 describe('project-files', () => {
     it('watches Markdown, JSON, and text files case-insensitively', () => {
@@ -203,5 +213,32 @@ describe('project-files', () => {
             await expect(loadImageFile('images/photo.png')).rejects.toThrow('Image file path must be absolute');
             await expect(loadImageFile(join(tmpdir(), 'notes.txt'))).rejects.toThrow('Unsupported image file type: .txt');
         });
+    });
+
+    it('holds a commit requested during a project-lock operation until that operation resolves', async () => {
+        const calls = [];
+        const releaseHeld = deferred();
+        const acquire = vi.spyOn(checkoutOwnershipService, 'acquire').mockImplementation(() => {
+            calls.push('commit-index');
+            throw new Error('Index mutation reached');
+        });
+
+        try {
+            const held = projectOperationCoordinator.run('C:/held-repo', async () => {
+                calls.push('held-start');
+                await releaseHeld.promise;
+                calls.push('held-end');
+            });
+            const committing = commit({ files: [], message: 'Save' }, { branch: 'main', id: 'local', rootPath: 'C:/held-repo' });
+            await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+            expect(calls).toEqual(['held-start']);
+            releaseHeld.resolve();
+            await held;
+            await expect(committing).rejects.toThrow('Index mutation reached');
+            expect(calls).toEqual(['held-start', 'held-end', 'commit-index']);
+        } finally {
+            acquire.mockRestore();
+        }
     });
 });

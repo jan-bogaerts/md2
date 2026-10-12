@@ -15,6 +15,8 @@ const {
 } = require('../schedule/schedule_store');
 const { normalizePath } = require('../../../../shared/path_utils.mjs');
 const { loadActivityConversation, readActivityFile, resolveActivityPath } = require('../activity/activity_files');
+const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 
 const JSON_EXTENSION = '.json';
 
@@ -128,10 +130,15 @@ async function saveActionSchedules(project, actionsFolder, schedules) {
 
     const filePath = scheduleFilePath(rootPath, actionsFolder);
     const file = createActionScheduleFile(schedules);
-    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.promises.writeFile(filePath, `${JSON.stringify(file, null, 2)}\n`);
+    await projectOperationCoordinator.run(rootPath, () => writeActionScheduleFile(rootPath, filePath, file));
 
     return file.schedules;
+}
+
+async function writeActionScheduleFile(rootPath, filePath, file) {
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.promises.writeFile(filePath, `${JSON.stringify(file, null, 2)}\n`);
+    uncommittedProjectWrites.mark(rootPath, [filePath]);
 }
 
 async function cancelActionSchedule(project, actionsFolder, scheduleId) {

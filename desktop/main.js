@@ -21,6 +21,7 @@ const { CodexRuntimeService } = require('./src/actions/agent/codex_runtime_servi
 const { ClaudeRuntimeService } = require('./src/actions/agent/claude_runtime_service');
 const { UsageMetricsService } = require('./src/actions/agent/usage_metrics_service');
 const { projectOperationCoordinator } = require('./src/project/project_operation_coordinator');
+const { uncommittedProjectWrites } = require('./src/project/uncommitted_project_writes');
 const { updateCodexCli } = require('./src/actions/agent/codex_cli_update');
 const { AgentExecutableResolver, loadAgentExecutableAvailability } = require('./src/actions/agent/agent_executable_availability');
 const { ActionSchedulerService } = require('./src/actions/action/action_scheduler_service');
@@ -167,8 +168,8 @@ const localBridgeDispatch = createLocalBridgeDispatch({
     readDesktopConfig,
     saveDesktopConfig,
     showItemInFolder: (fullPath) => shell.showItemInFolder(fullPath),
+    uncommittedProjectWrites,
     updateCodexCli,
-    usageMetricsService,
     worktreeService,
 });
 const remoteControlService = new RemoteControlService(localBridgeDispatch);

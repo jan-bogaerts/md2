@@ -814,8 +814,14 @@ class WorktreeService {
     async requireCleanPrimaryForIntegration(project) {
         const branch = (await this.runGit(project.rootPath, ['branch', '--show-current'])).trim();
         if (branch !== project.branch) throw new Error(`Primary worktree is on ${branch || 'a detached HEAD'}, expected ${project.branch}`);
-        const status = await this.primaryRepositoryStatus(project);
-        if (status.dirty) throw new Error('Primary worktree changed after pending saves were flushed; save changes and retry integration');
+        const porcelain = await this.runGit(project.rootPath, ['status', '--porcelain']);
+        const dirtyPaths = porcelain.split(/\r?\n/u)
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .map((line) => line.replace(/^\S+\s+/u, ''));
+        if (dirtyPaths.length === 0) return;
+
+        throw new Error(`Primary worktree has uncommitted changes; commit or discard them and retry integration: ${dirtyPaths.join(', ')}`);
     }
 
     async revalidateRecord(record, projectBranch) {

@@ -88,7 +88,7 @@ Commands needing an immediate repository result bypass `CommitBatcher`: creating
 
 Callers flush first when ordering matters. Typing-driven updates must use the batcher.
 
-Desktop integration and usage-metrics writes share `ProjectOperationCoordinator`, which serializes project-wide operations by repository root.
+All writes into the primary worktree, renderer saves and desktop writes (activity, schedules, usage metrics, token usage) alike, share `ProjectOperationCoordinator`, which serializes project-wide operations by repository root. Renderer saves take it outside the Git index lock. Desktop writes that do not commit are tracked in `UncommittedProjectWrites`; worktree integration commits them once inside the lock, then rebases, squashes, cleans up the branch and writes the integration history before releasing it, so no primary-worktree file changes during integration.
 
 ## Storage backends
 

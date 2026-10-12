@@ -26,6 +26,8 @@ const {
     pathExists,
     requireRootPath,
 } = require('../../git/git_commands');
+const { projectOperationCoordinator } = require('../../project/project_operation_coordinator');
+const { uncommittedProjectWrites } = require('../../project/uncommitted_project_writes');
 
 const activityWriteQueues = new Map();
 const unwrittenActivityValues = new Map();
@@ -125,9 +127,17 @@ async function writeActivityFile(filePath, activity) {
     }
 }
 
-function queueActivityUpdate(filePath, update) {
+async function runMarkedUpdate(rootPath, filePath, update) {
+    const result = await update();
+    uncommittedProjectWrites.mark(rootPath, [filePath]);
+
+    return result;
+}
+
+/** Orders writes per activity file and marks the file as uncommitted after each successful update. */
+function queueActivityFileUpdate(rootPath, filePath, update) {
     const previousWrite = activityWriteQueues.get(filePath) ?? Promise.resolve();
-    const write = previousWrite.then(update);
+    const write = previousWrite.then(() => runMarkedUpdate(rootPath, filePath, update));
     const queueTail = write.catch(() => undefined);
     activityWriteQueues.set(filePath, queueTail);
     void queueTail.finally(() => {
@@ -137,17 +147,24 @@ function queueActivityUpdate(filePath, update) {
     return write;
 }
 
+/** Holds an activity write until no project-wide operation (such as integration) runs on the repository root. */
+function queueActivityUpdate(rootPath, filePath, update) {
+    return projectOperationCoordinator.run(rootPath, () => queueActivityFileUpdate(rootPath, filePath, update));
+}
+
+async function applyActivityUpdate(absolutePath, origin, update) {
+    const current = await loadActivityValue(absolutePath, origin);
+    const next = update(current);
+    await writeActivityFile(absolutePath, next);
+
+    return next;
+}
+
 async function updateActivity(project, projectFolder, origin, update) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
-    const activity = await queueActivityUpdate(absolutePath, async () => {
-        const current = await loadActivityValue(absolutePath, origin);
-        const next = update(current);
-        await writeActivityFile(absolutePath, next);
-
-        return next;
-    });
+    const activity = await queueActivityUpdate(rootPath, absolutePath, () => applyActivityUpdate(absolutePath, origin, update));
 
     return { activity, relativePath };
 }
@@ -156,7 +173,7 @@ async function ensureActivityFile(project, projectFolder, origin) {
     const rootPath = requireRootPath(project);
     await assertGitRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
-    await queueActivityUpdate(absolutePath, async () => {
+    await queueActivityUpdate(rootPath, absolutePath, async () => {
         if (await pathExists(absolutePath)) return;
 
         await writeActivityFile(absolutePath, createActivityFile(origin));
@@ -170,7 +187,7 @@ async function updateAndCommitActivity(project, projectFolder, origin, update, m
     await assertGitRoot(rootPath);
     const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
 
-    return queueActivityUpdate(absolutePath, async () => {
+    return queueActivityUpdate(rootPath, absolutePath, async () => {
         const current = await loadActivityValue(absolutePath, origin);
         const next = update(current);
         await writeActivityFile(absolutePath, next);
@@ -193,7 +210,7 @@ async function compactActivityFiles(project, activityPaths) {
         if (!origin) throw new Error(`Invalid activity path for compaction: ${activityPath}`);
         const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
 
-        return queueActivityUpdate(absolutePath, async () => {
+        return queueActivityUpdate(rootPath, absolutePath, async () => {
             const content = await readStoredActivityContent(absolutePath);
             const result = compactActivityFileContent(content, origin);
             if (result.status === 'valid' && result.changed) await writeActivityFile(absolutePath, result.activity);
@@ -221,8 +238,21 @@ async function appendAndCommitSystemActivity(project, projectFolder, origin, rec
     return updateAndCommitActivity(project, projectFolder, origin, (activity) => appendSystemActivityRecord(activity, record), message);
 }
 
-async function appendSystemActivity(project, projectFolder, origin, record) {
-    return updateActivity(project, projectFolder, origin, (activity) => appendSystemActivityRecord(activity, record));
+/**
+ * Appends a system record without waiting for the project lock. Only callers already running inside a
+ * project-lock operation (integration history) may use it, because the project lock is not reentrant.
+ */
+async function appendSystemActivityNow(project, projectFolder, origin, record) {
+    const rootPath = requireRootPath(project);
+    await assertGitRoot(rootPath);
+    const { absolutePath, relativePath } = resolveActivityPath(rootPath, projectFolder, origin);
+    const activity = await queueActivityFileUpdate(rootPath, absolutePath, () => applyActivityUpdate(
+        absolutePath,
+        origin,
+        (current) => appendSystemActivityRecord(current, record),
+    ));
+
+    return { activity, relativePath };
 }
 
 function upsertConversation(activity, conversation) {
@@ -263,7 +293,7 @@ async function updateActivityConversationViewed(project, reference, viewed) {
     const { activityPath, conversationId } = parseConversationActivityReference(reference);
     const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
 
-    return queueActivityUpdate(absolutePath, async () => {
+    return queueActivityUpdate(rootPath, absolutePath, async () => {
         const stored = await readStoredActivity(absolutePath);
         const activity = activityValue(stored);
         const conversation = findActivityConversation(activity, conversationId);
@@ -297,7 +327,7 @@ async function splitActivityConversation(project, reference, messageId) {
     const { activityPath, conversationId } = parseConversationActivityReference(reference);
     const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
 
-    return queueActivityUpdate(absolutePath, async () => {
+    return queueActivityUpdate(rootPath, absolutePath, async () => {
         const stored = await readStoredActivity(absolutePath);
         const activity = activityValue(stored);
         const sourceConversation = findActivityConversation(activity, conversationId);
@@ -385,7 +415,7 @@ async function closeWaitingActivityConversation(project, reference, status) {
     const { activityPath, conversationId } = parseConversationActivityReference(reference);
     const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
 
-    return queueActivityUpdate(absolutePath, async () => {
+    return queueActivityUpdate(rootPath, absolutePath, async () => {
         const stored = await readStoredActivity(absolutePath);
         const activity = activityValue(stored);
         const conversation = findActivityConversation(activity, conversationId);
@@ -421,7 +451,7 @@ async function dismissWaitingActivityConversationQuestions(project, reference) {
     const { activityPath, conversationId } = parseConversationActivityReference(reference);
     const absolutePath = ensureInsideRoot(rootPath, path.join(rootPath, activityPath));
 
-    return queueActivityUpdate(absolutePath, async () => {
+    return queueActivityUpdate(rootPath, absolutePath, async () => {
         const stored = await readStoredActivity(absolutePath);
         const activity = activityValue(stored);
         const conversation = findActivityConversation(activity, conversationId);
@@ -531,7 +561,7 @@ module.exports = {
     activityConversationReference,
     appendAndCommitActionActivity,
     appendAndCommitSystemActivity,
-    appendSystemActivity,
+    appendSystemActivityNow,
     appendActionActivity,
     closeWaitingActivityConversation,
     dismissWaitingActivityConversationQuestions,
