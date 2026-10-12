@@ -1453,6 +1453,33 @@
       "startedAt": "2026-10-12T09:49:15.468Z",
       "status": "completed",
       "rootConversationId": "agent-baea5768-d4eb-41be-97b1-9e8b0a465971"
+    },
+    {
+      "commits": [
+        {
+          "commit": "7ba4cc7087a0526306969f60ae1d769dd6270e65",
+          "committedAt": "2026-10-12T13:26:21+02:00",
+          "deletions": 44,
+          "filePaths": [
+            "app/src/components/card_view/card_body_editor.real.test.tsx",
+            "app/src/components/editor/placeholders/markdown_placeholder_menu.grouped.test.tsx",
+            "app/src/components/editor/placeholders/markdown_placeholder_menu.tsx",
+            "app/src/components/editor/placeholders/markdown_placeholder_typeahead_plugin.real.test.tsx",
+            "app/src/components/editor/placeholders/markdown_placeholder_typeahead_plugin.tsx",
+            "app/src/components/shell/project/new_card_markdown_editor.real.test.tsx"
+          ],
+          "filesChanged": 6,
+          "insertions": 126,
+          "branch": "dev_main"
+        }
+      ],
+      "completedAt": "2026-10-12T13:26:21+02:00",
+      "label": "Integrate into project",
+      "origin": {
+        "cardInternalId": "55646f70-22ca-4ed7-a4b6-d2e0276d1923",
+        "kind": "card"
+      },
+      "type": "system"
     }
   ],
   "version": 5

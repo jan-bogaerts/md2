@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__55646f70-22ca-4ed7-a4b6-d2e0276d1923.json
 policy:
-branch: b_271_placeholder_popup_on_card_popup
-worktree: 1
 changedFiles:
   - app/src/components/editor/placeholders/markdown_placeholder_typeahead_plugin.real.test.tsx
 ---
