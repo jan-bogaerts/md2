@@ -342,6 +342,14 @@
           "role": "assistant",
           "sequence": 26,
           "timestamp": "2026-10-12T12:41:47.674Z"
+        },
+        {
+          "content": "> CODEX_HOME/",
+          "id": "submission-327b0dc8-67c6-4fda-88da-7ba4979224cb",
+          "kind": "message",
+          "role": "user",
+          "sequence": 27,
+          "timestamp": "2026-10-12T13:22:03.575Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -356,14 +364,14 @@
         }
       ],
       "startedAt": "2026-10-12T12:40:32.880Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 5014,
           "toolMs": 11960
         },
         "elapsedMs": 74794,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-12T13:22:03.575Z"
       },
       "title": "+",
       "usage": {
