@@ -16,4 +16,4 @@ write a script that will:
 * use that tag to create a new release on github.&#x20;
   * use the version as the release title
   * for the release notes, use the release\_notes.md files saved in the latest release folder, a sub folder of  {{releases-folder}}. This folder will have as name, the current release number where the '.' are replaced with '\_'
-  * upload the latest build found in `{{repository-folder}}/releases`.&#x20;
+  * upload the latest build found in `{{repository-folder}}/release`.&#x20;
