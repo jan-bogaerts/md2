@@ -8,6 +8,7 @@ import { MarkdownPlaceholderOption } from './markdown_placeholder_option'
 import { MarkdownTypeaheadLayerProvider } from '../typeahead/markdown_typeahead_layer_provider'
 
 const STACK_POSITION = 3
+const CARET_RECT = new DOMRect(150, 200, 2, 18)
 
 function PopupLayerProbe() {
     const theme = useTheme()
@@ -33,6 +34,7 @@ describe('MarkdownPlaceholderMenu', () => {
                 <MarkdownTypeaheadLayerProvider stackPosition={STACK_POSITION}>
                     <PopupLayerProbe />
                     <MarkdownPlaceholderMenu
+                        anchorRect={CARET_RECT}
                         onHighlight={vi.fn()}
                         onSelect={onSelect}
                         options={[option]}
@@ -42,12 +44,11 @@ describe('MarkdownPlaceholderMenu', () => {
             </AppThemeProvider>,
         )
 
-        const menuSurface = screen.getByRole('listbox', { name: 'Available placeholders' }).closest('.MuiPaper-root')
-        if (!menuSurface) throw new Error('Missing placeholder menu surface')
+        const menuLayer = screen.getByRole('listbox', { name: 'Available placeholders' }).closest('.MuiPopper-root')
+        if (!menuLayer) throw new Error('Missing placeholder menu layer')
         const popupLayer = screen.getByTestId('owning-popup-layer')
 
-        expect(menuSurface).toHaveStyle({ position: 'relative' })
-        expect(Number.parseInt(getComputedStyle(menuSurface).zIndex, 10))
+        expect(Number.parseInt(getComputedStyle(menuLayer).zIndex, 10))
             .toBe(Number.parseInt(getComputedStyle(popupLayer).zIndex, 10) + 1)
 
         fireEvent.click(screen.getByRole('option', { name: /this-card/u }))
@@ -61,6 +62,7 @@ describe('MarkdownPlaceholderMenu', () => {
             <AppThemeProvider>
                 <MarkdownTypeaheadLayerProvider stackPosition={STACK_POSITION}>
                     <MarkdownPlaceholderMenu
+                        anchorRect={CARET_RECT}
                         onHighlight={vi.fn()}
                         onSelect={vi.fn()}
                         options={options}

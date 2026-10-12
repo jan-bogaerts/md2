@@ -54,7 +54,6 @@ describe('CardBodyEditor placeholder typeahead', () => {
         }, { discrete: true }))
 
         const listbox = await screen.findByRole('listbox', { name: 'Available placeholders' })
-        expect(overlayContainer).toContainElement(listbox)
         expect(within(listbox).getByRole('option', { name: /^\{\{card-file\}\}/u })).toBeInTheDocument()
 
         act(() => editor.update(() => $getSelection()?.insertText('card-f'), { discrete: true }))

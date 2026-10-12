@@ -1,12 +1,12 @@
 import {
     LexicalTypeaheadMenuPlugin,
     type MenuRenderFn,
+    type MenuResolution,
     type TriggerFn,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin'
 import { useCellValue } from '@mdxeditor/editor'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { COMMAND_PRIORITY_HIGH, type TextNode } from 'lexical';
-import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RESET_MARKDOWN_DRAFT_COMMAND } from '../data_sources/reset_markdown_draft_command';
 import type { ActionPlaceholder } from '../../../data/action_placeholders'
@@ -25,6 +25,7 @@ export function MarkdownPlaceholderTypeaheadPlugin() {
     const [editor] = useLexicalComposerContext();
     const { overlayContainer, placeholders } = useCellValue(markdownPlaceholderConfig$)
     const [query, setQuery] = useState('')
+    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
     const options = useMemo(
         () => placeholders
             .filter((placeholder) => placeholderMatchesQuery(placeholder, query))
@@ -43,7 +44,16 @@ export function MarkdownPlaceholderTypeaheadPlugin() {
         setQuery(nextQuery ?? '')
     }, [])
 
+    const handleOpen = useCallback((resolution: MenuResolution) => {
+        setAnchorRect(resolution.getRect())
+    }, [])
+
+    const handleClose = useCallback(() => {
+        setAnchorRect(null)
+    }, [])
+
     const handleDraftReset = useCallback(() => {
+        setAnchorRect(null);
         setQuery('');
         return false;
     }, []);
@@ -63,22 +73,24 @@ export function MarkdownPlaceholderTypeaheadPlugin() {
     }, [])
 
     const renderMenu = useCallback<MenuRenderFn<MarkdownPlaceholderOption>>((anchorElementRef, itemProps) => {
-        if (!anchorElementRef.current || itemProps.options.length === 0) return null
+        if (!anchorElementRef.current || !anchorRect || itemProps.options.length === 0) return null
 
-        return createPortal(
+        return (
             <MarkdownPlaceholderMenu
+                anchorRect={anchorRect}
                 onHighlight={itemProps.setHighlightedIndex}
                 onSelect={itemProps.selectOptionAndCleanUp}
                 options={itemProps.options}
                 selectedIndex={itemProps.selectedIndex}
-            />,
-            anchorElementRef.current,
+            />
         )
-    }, [])
+    }, [anchorRect])
 
     return (
         <LexicalTypeaheadMenuPlugin<MarkdownPlaceholderOption>
             menuRenderFn={renderMenu}
+            onClose={handleClose}
+            onOpen={handleOpen}
             onQueryChange={handleQueryChange}
             onSelectOption={handleSelectOption}
             options={options}
