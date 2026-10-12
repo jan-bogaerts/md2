@@ -23,7 +23,7 @@
       "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 124025
+        "usedTokens": 125558
       },
       "entries": [
         {
@@ -911,20 +911,28 @@
           "sequence": 67,
           "timestamp": "2026-10-12T11:11:39.131Z",
           "type": "agentQuestion"
+        },
+        {
+          "content": "claude-question-0: Track and commit (Recommended)",
+          "id": "agent-turn-92c82b27-a2fa-4793-8f6e-24b1172a6684-answer-67",
+          "kind": "message",
+          "role": "user",
+          "sequence": 68,
+          "timestamp": "2026-10-12T11:12:09.937Z"
         }
       ],
       "hasExplicitTitle": true,
       "id": "agent-02ad58ee-49ff-4ef9-9da2-30c44ed4be8e",
       "providerSessions": [],
       "startedAt": "2026-10-12T11:06:19.815Z",
-      "status": "waitingForInput",
+      "status": "running",
       "timer": {
         "breakdown": {
           "reasoningMs": 69048,
           "toolMs": 36277
         },
         "elapsedMs": 134781,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-12T11:12:09.937Z"
       },
       "title": "complete",
       "usageSchemaVersion": 1,
