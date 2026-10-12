@@ -3,7 +3,7 @@ author:
 id: B_271
 internalId: 55646f70-22ca-4ed7-a4b6-d2e0276d1923
 title: placeholder popup on card popup
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -11,6 +11,8 @@ agents:
 policy:
 branch: b_271_placeholder_popup_on_card_popup
 worktree: 1
+changedFiles:
+  - app/src/components/editor/placeholders/markdown_placeholder_typeahead_plugin.real.test.tsx
 ---
 check [F\_420\_missing\_placeholder\_popup.md](design/releases/0.8.3/F_420_missing_placeholder_popup.md). we added the placeholder popup again to the card popup, but implementation is not correct. see how the positioning is done when used on the [action\_popup.tsx](app/src/components/actions/run/popup/action_popup.tsx).&#x20;
 
