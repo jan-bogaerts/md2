@@ -2265,6 +2265,34 @@
       },
       "usageSchemaVersion": 1,
       "viewed": true
+    },
+    {
+      "actionId": "md2.custom-prompt",
+      "cardInternalId": "45e13c03-d74d-4082-9065-aa387f6553f5",
+      "cardPath": "design/feature_descriptions/F_408_add_close_icon_to_search_boxes.md",
+      "completedAt": null,
+      "entries": [
+        {
+          "content": "we fixed design/feature_descriptions/F_408_add_close_icon_to_search_boxes.md. but now we lost the search on the action popup. what happened?",
+          "id": "submission-66572292-774b-4d99-bea2-776c4c074c25",
+          "kind": "message",
+          "role": "user",
+          "sequence": 1,
+          "timestamp": "2026-10-12T11:35:52.378Z"
+        }
+      ],
+      "hasExplicitTitle": true,
+      "id": "agent-d25cde90-f383-4032-9372-2e1406501067",
+      "providerSessions": [],
+      "startedAt": "2026-10-12T11:35:52.378Z",
+      "status": "running",
+      "timer": {
+        "elapsedMs": 0,
+        "runningStartedAt": "2026-10-12T11:35:52.378Z"
+      },
+      "title": "+",
+      "usageSchemaVersion": 1,
+      "viewed": true
     }
   ],
   "origin": {
@@ -2366,13 +2394,13 @@
         "agent-62a55d8e-9fab-4062-a2ac-2b3b425e360f"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-6d66b149-794d-4943-9a5f-08542d12b27b",
       "origin": {
@@ -2381,9 +2409,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-62a55d8e-9fab-4062-a2ac-2b3b425e360f",
       "startedAt": "2026-10-09T14:15:49.040Z",
-      "status": "completed"
+      "status": "completed",
+      "rootConversationId": "agent-62a55d8e-9fab-4062-a2ac-2b3b425e360f"
     }
   ],
   "version": 5
