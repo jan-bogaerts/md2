@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__a0d1eee2-1989-41e0-800d-9667640d35b2.json
+  - design/releases/0.8.3/card__a0d1eee2-1989-41e0-800d-9667640d35b2.json
 policy:
 changedFiles:
   - app/src/components/actions/run/popup/action_popup.test.tsx

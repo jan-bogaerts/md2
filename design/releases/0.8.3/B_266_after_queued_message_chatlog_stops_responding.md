@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__5785f8fc-1509-47f0-8b60-5b34f03774c1.json
+  - design/releases/0.8.3/card__5785f8fc-1509-47f0-8b60-5b34f03774c1.json
 policy:
 changedFiles:
   - app/src/services/actions/action_run_registry.node.test.ts

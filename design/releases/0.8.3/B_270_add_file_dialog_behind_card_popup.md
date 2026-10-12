@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__bc03f0a4-0b04-4e1e-bbc1-f8b6ae264c4c.json
+  - design/releases/0.8.3/card__bc03f0a4-0b04-4e1e-bbc1-f8b6ae264c4c.json
 policy:
 changedFiles:
   - app/src/components/editor/attachments/attachment_choice_dialog.grouped.test.tsx

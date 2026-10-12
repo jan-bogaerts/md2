@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__7df9f053-e015-45b7-ba7a-9f4f0945ef60.json
+  - design/releases/0.8.3/card__7df9f053-e015-45b7-ba7a-9f4f0945ef60.json
 policy:
 changedFiles:
   - app/src/services/agents/agent_integration.test.ts

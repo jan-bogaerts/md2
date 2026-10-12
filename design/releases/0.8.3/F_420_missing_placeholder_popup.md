@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__bf523460-d2c4-4156-b278-3f971b7c2f30.json
+  - design/releases/0.8.3/card__bf523460-d2c4-4156-b278-3f971b7c2f30.json
 policy:
 changedFiles:
   - app/src/components/card_view/card_body_editor.real.test.tsx

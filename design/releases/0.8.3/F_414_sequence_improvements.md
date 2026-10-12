@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__0c0b067b-4eb0-4e90-b31c-ef53afcdbad0.json
+  - design/releases/0.8.3/card__0c0b067b-4eb0-4e90-b31c-ef53afcdbad0.json
 policy:
 changedFiles:
   - app/src/components/actions/run/sequence/card_sequence_collision.test.ts

@@ -7,7 +7,7 @@ status: ready
 owner: 
 affects:
 agents:
-  - design/activity/card__d013f56f-5326-4d88-b1c8-333ed3cbe3c7.json
+  - design/releases/0.8.3/card__d013f56f-5326-4d88-b1c8-333ed3cbe3c7.json
 policy:
 changedFiles:
   - app/src/components/actions/conversation/messages/action_conversation_message.test.tsx

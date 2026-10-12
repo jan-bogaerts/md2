@@ -4,7 +4,7 @@ internalId: 2a81b19c-14fc-49d9-98c1-f7101fcd8e14
 title: UI tests hit the Windows open-file limit while loading icons
 status: ready
 agents:
-  - design/activity/card__2a81b19c-14fc-49d9-98c1-f7101fcd8e14.json
+  - design/releases/0.8.3/card__2a81b19c-14fc-49d9-98c1-f7101fcd8e14.json
 changedFiles:
   - app/src/App.test.tsx
   - app/src/components/actions/run/popup/action_popup.test.tsx
