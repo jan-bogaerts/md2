@@ -10,5 +10,6 @@ agents:
 policy:
 after: dec709de-25d5-4694-a29b-0506253a4094
 ---
+only cards should have meta data, we should not try to add internalId to files that are not in the 'active cards' folder.
 
-only cards should have meta data, we should not try to add internalId to files that are not in the 'active cards' folder
+It seems that files like the release\_notes.md files in the 'release'
