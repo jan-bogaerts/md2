@@ -9,8 +9,6 @@ affects:
 agents:
   - design/activity/card__03ba1df1-2c57-4c20-b3f8-cfff40547b34.json
 policy:
-branch: b_272_integrate_worktree_still_failing
-worktree: 2
 after: 55646f70-22ca-4ed7-a4b6-d2e0276d1923
 changedFiles:
   - design/architecture/data_saving_and_commits.md
