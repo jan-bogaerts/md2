@@ -9,5 +9,8 @@ affects:
 agents:
 policy:
 ---
+still getting this error:
 
-Primary worktree changed after pending saves were flushed; save changes and retry integration
+> Primary worktree changed after pending saves were flushed; save changes and retry integration
+
+the sequence is still not ok. we looked at this before. please think long and hard about this one.
