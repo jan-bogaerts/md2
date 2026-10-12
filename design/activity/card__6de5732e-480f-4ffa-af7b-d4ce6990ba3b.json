@@ -535,10 +535,10 @@
       "actionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "cardInternalId": "6de5732e-480f-4ffa-af7b-d4ce6990ba3b",
       "cardPath": "design/feature_descriptions/F_421_sequence_popup_improvements.md",
-      "completedAt": null,
+      "completedAt": "2026-10-12T12:45:14.172Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
-        "usedTokens": 51613
+        "usedTokens": 57232
       },
       "entries": [
         {
@@ -635,6 +635,161 @@
           "role": "assistant",
           "sequence": 8,
           "timestamp": "2026-10-12T12:37:41.156Z"
+        },
+        {
+          "content": "go",
+          "id": "submission-295ca583-95e0-47de-850b-95066ad2788c",
+          "kind": "message",
+          "role": "user",
+          "sequence": 9,
+          "timestamp": "2026-10-12T12:37:54.641Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\sequence\\card_sequence_dialog.tsx",
+          "deletions": 1,
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-event-10",
+          "insertions": 7,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\sequence\\card_sequence_dialog.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_018NQCYHz7nVGoTXcUXsPihR",
+          "sequence": 10,
+          "status": "completed",
+          "timestamp": "2026-10-12T12:37:58.624Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; sed -n 120,400p src/components/actions/run/sequence/card_sequence_dialog.test.tsx | grep -n \"it(\\|^})\" ",
+          "content": "10:    it('submits canonical ids and closes only after registration succeeds', async () => {\n28:    it('keeps draft open and reports failed registration', async () => {\n50:    it('uses Schedule for non-now triggers and excludes sequence members as trigger cards', async () => {\n62:})",
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-event-11",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; sed -n 120,400p src/components/actions/run/sequence/card_sequence_dialog.test.tsx | grep -n \"it(\\|^})\" ",
+          "providerItemId": "toolu_01Y7Lp8Ga5yAJskgDts4eGju",
+          "sequence": 11,
+          "status": "completed",
+          "timestamp": "2026-10-12T12:38:00.205Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "{\"file_path\":\"C:\\\\Users\\\\janbo\\\\Documents\\\\dev\\\\md2_workers\\\\dev1\\\\app\\\\src\\\\components\\\\actions\\\\run\\\\sequence\\\\card_sequence_dialog.test.tsx\",\"offset\":168}",
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-event-12",
+          "kind": "event",
+          "label": "Read",
+          "output": "168\t\n169\t    it('uses Schedule for non-now triggers and excludes sequence members as trigger cards', async () => {\n170\t        const service = new CardSequenceDraftService()\n171\t        service.open()\n172\t        renderDialog(service)\n173\t        act(() => service.addCard('card-1'))\n174\t        fireEvent.click(screen.getByRole('radio', { name: 'When another card enters state' }))\n175\t\n176\t        expect(screen.getByRole('button', { name: 'Schedule' })).toBeDisabled()\n177\t        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Card' }))\n178\t        expect(screen.queryByRole('option', { name: /F-1/u })).not.toBeInTheDocument()\n179\t        expect(screen.getByRole('option', { name: /F-2/u })).toBeInTheDocument()\n180\t    })\n181\t})\n182\t",
+          "providerItemId": "toolu_01WTvEZQhwEKHAkXLUbKFzB9",
+          "sequence": 12,
+          "status": "completed",
+          "timestamp": "2026-10-12T12:38:01.673Z",
+          "type": "tool.Read"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-event-13",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfxMax5VK3RYLow7tc15H:thinking:0",
+          "sequence": 13,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T12:38:06.356Z",
+          "type": "reasoning"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\sequence\\card_sequence_dialog.test.tsx",
+          "deletions": 0,
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-event-14",
+          "insertions": 28,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2_workers\\dev1\\app\\src\\components\\actions\\run\\sequence\\card_sequence_dialog.test.tsx has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_015ikRadZebGu6tr7h8Ygeed",
+          "sequence": 14,
+          "status": "completed",
+          "timestamp": "2026-10-12T12:38:11.658Z",
+          "type": "fileChange"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; npm run test -- src/components/actions/run/sequence/card_sequence_dialog.test.tsx src/components/resizable_popper.test.tsx 2>&1 | tail -30",
+          "content": "> app@0.8.3 test\n> vitest run src/components/actions/run/sequence/card_sequence_dialog.test.tsx src/components/resizable_popper.test.tsx\n\n\n RUN  v4.1.9 C:/Users/janbo/Documents/dev/md2_workers/dev1/app\n\n\n Test Files  2 passed (2)\n      Tests  29 passed (29)\n   Start at  14:38:15\n   Duration  4.58s (transform 765ms, setup 251ms, import 3.04s, tests 1.97s, environment 1.88s)",
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-event-15",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; npm run test -- src/components/actions/run/sequence/card_sequence_dialog.test.tsx src/components/resizable_popper.test.tsx 2>&1 | tail -30",
+          "providerItemId": "toolu_01HchjzkwyFNyWFPn34GSijw",
+          "sequence": 15,
+          "status": "completed",
+          "timestamp": "2026-10-12T12:38:20.507Z",
+          "type": "commandExecution"
+        },
+        {
+          "content": "",
+          "details": [
+            ""
+          ],
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-event-16",
+          "kind": "event",
+          "label": "Thinking",
+          "providerItemId": "msg_011CfxMcLeazTEyivXwfF3et:thinking:0",
+          "sequence": 16,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T12:38:22.263Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "claude",
+          "content": "Both test files pass (29 of 29). Next: lint.",
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 17,
+          "timestamp": "2026-10-12T12:38:22.265Z"
+        },
+        {
+          "command": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; npx eslint src/components/actions/run/sequence/card_sequence_dialog.tsx src/components/actions/run/sequence/card_sequence_dialog.test.tsx 2>&1 | tail -20",
+          "content": "(Bash completed with no output)",
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-event-18",
+          "kind": "event",
+          "label": "cd /c/Users/janbo/Documents/dev/md2_workers/dev1/app; npx eslint src/components/actions/run/sequence/card_sequence_dialog.tsx src/components/actions/run/sequence/card_sequence_dialog.test.tsx 2>&1 | tail -20",
+          "providerItemId": "toolu_01HcE9d5yfqcqwxzWRfcGSpH",
+          "sequence": 18,
+          "status": "completed",
+          "timestamp": "2026-10-12T12:38:37.346Z",
+          "type": "commandExecution"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nLint is clean. Updating the status.",
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-turn-1-assistant-2",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 19,
+          "timestamp": "2026-10-12T12:38:38.247Z"
+        },
+        {
+          "content": "C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_421_sequence_popup_improvements.md",
+          "deletions": 1,
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-event-20",
+          "insertions": 1,
+          "kind": "event",
+          "label": "Edit",
+          "output": "The file C:\\Users\\janbo\\Documents\\dev\\md2\\design\\feature_descriptions\\F_421_sequence_popup_improvements.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+          "providerItemId": "toolu_011kGytnadffG1Xebq8QvEvv",
+          "sequence": 20,
+          "status": "completed",
+          "timestamp": "2026-10-12T12:38:40.981Z",
+          "type": "fileChange"
+        },
+        {
+          "agent": "claude",
+          "content": "\n\nOn desktop you can now drag the `Add card sequence` popup by its title. The two related test files pass (29 of 29) and lint is clean on both changed files.\n\n**Block 1** (`app/src/components/actions/run/sequence/card_sequence_dialog.tsx`): the title now carries `data-drag-handle=\"true\"` on desktop only, plus `cursor: move`. That attribute is the one `ResizablePopper` looks for before it starts a drag, so the popup's existing drag behavior now kicks in.\n\n**Block 2** (`card_sequence_dialog.test.tsx`), two new tests:\n- **Desktop:** pointer-down on the title, move, release. The test checks for the move cursor, `position: fixed`, and the new `left`/`top`. Before the fix it would fail, because nothing matched the drag-handle check and the popup never moved.\n- **Mobile:** checks that the title has no drag-handle ancestor. This is the extra test from the plan.\n\n**Block 3:** `status` in the feature description is now `ready`.\n\nI didn't test these acceptance criteria in the running app; the code paths for them are unchanged:\n- Dropping board cards into the list and reordering rows after a move.\n- The popup keeping its size and staying inside the viewport. The new test stubs the popup's position, so it doesn't check the viewport clamp.\n- Resize handles and the other controls still working.",
+          "id": "agent-turn-0af21b8b-26ea-4e91-b721-3c211236a6d8-turn-1-assistant-3",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 21,
+          "timestamp": "2026-10-12T12:45:14.172Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -660,13 +815,13 @@
         }
       ],
       "startedAt": "2026-10-12T12:34:58.730Z",
-      "status": "waitingForInput",
+      "status": "cancelled",
       "timer": {
         "breakdown": {
-          "reasoningMs": 6912,
-          "toolMs": 6603
+          "reasoningMs": 11155,
+          "toolMs": 42696
         },
-        "elapsedMs": 19403,
+        "elapsedMs": 458779,
         "runningStartedAt": null
       },
       "title": "implement",
@@ -679,7 +834,7 @@
         "costUsd": 0.34535639999999995
       },
       "usageSchemaVersion": 1,
-      "viewed": false
+      "viewed": true
     }
   ],
   "origin": {
@@ -754,11 +909,11 @@
         "agent-d3871f69-07a4-47c2-a81d-cf0d4a341a1b"
       ],
       "details": {
+        "type": "agent",
         "agent": "claude",
         "model": "opus",
         "permissionMode": "approve-for-me",
-        "thinkingLevel": "medium",
-        "type": "agent"
+        "thinkingLevel": "medium"
       },
       "runId": "action-56d60814-e2ab-4a6d-8d2d-157eabecec5a",
       "origin": {
@@ -767,9 +922,9 @@
       },
       "rootActionId": "47dafdc7-0be7-4d56-bb5a-07c813906416",
       "rootActionLabel": "implement",
-      "rootConversationId": "agent-d3871f69-07a4-47c2-a81d-cf0d4a341a1b",
       "startedAt": "2026-10-12T12:34:57.892Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-d3871f69-07a4-47c2-a81d-cf0d4a341a1b"
     }
   ],
   "version": 5
