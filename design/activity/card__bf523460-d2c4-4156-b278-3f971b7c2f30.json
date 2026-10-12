@@ -819,13 +819,52 @@
         "totalTokens": 979334
       },
       "usageSchemaVersion": 1,
-      "viewed": true
+      "viewed": false
     }
   ],
   "origin": {
     "cardInternalId": "bf523460-d2c4-4156-b278-3f971b7c2f30",
     "kind": "card"
   },
-  "records": [],
+  "records": [
+    {
+      "commits": [
+        {
+          "branch": "dev_main",
+          "commit": "e8a998b6bf8c27b9750a2fbeebf34fa2f1253697",
+          "committedAt": "2026-10-12T10:24:13+02:00",
+          "deletions": 2,
+          "filePaths": [
+            "design/feature_descriptions/F_420_missing_placeholder_popup.md"
+          ],
+          "filesChanged": 1,
+          "insertions": 18
+        }
+      ],
+      "completedAt": "2026-10-12T08:24:13.749Z",
+      "conversationIds": [
+        "agent-56a4a516-9ab5-4cc9-973b-025b7568b14d"
+      ],
+      "details": {
+        "agent": "codex",
+        "model": "gpt-6-sol",
+        "permissionMode": "approve-for-me",
+        "thinkingLevel": "medium",
+        "acknowledgedModel": "gpt-6-sol",
+        "acknowledgedServiceTier": "default",
+        "type": "agent"
+      },
+      "runId": "action-4e5cd31c-d9c2-4d33-88d5-f0891b980ece",
+      "origin": {
+        "cardInternalId": "bf523460-d2c4-4156-b278-3f971b7c2f30",
+        "kind": "card"
+      },
+      "rootActionId": "5b88355d-f964-459a-bc67-6618650866ba",
+      "rootActionLabel": "complete",
+      "rootConversationId": "agent-56a4a516-9ab5-4cc9-973b-025b7568b14d",
+      "startedAt": "2026-10-12T08:20:37.901Z",
+      "status": "completed"
+    }
+  ],
   "version": 5
 }
