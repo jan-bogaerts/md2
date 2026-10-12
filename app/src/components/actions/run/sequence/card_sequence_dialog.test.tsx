@@ -178,4 +178,32 @@ describe('CardSequenceDialog', () => {
         expect(screen.queryByRole('option', { name: /F-1/u })).not.toBeInTheDocument()
         expect(screen.getByRole('option', { name: /F-2/u })).toBeInTheDocument()
     })
+
+    it('moves the popup when dragging its title on desktop', () => {
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+        const dialog = screen.getByRole('dialog', { name: 'Add card sequence' });
+        const title = screen.getByRole('heading', { name: 'Add card sequence' });
+        dialog.getBoundingClientRect = vi.fn(() => new DOMRect(20, 10, 400, 300));
+
+        expect(title).toHaveStyle({ cursor: 'move' });
+        fireEvent.pointerDown(title, { clientX: 50, clientY: 30, pointerId: 1 });
+        fireEvent.pointerMove(window, { clientX: 100, clientY: 70, pointerId: 1 });
+        fireEvent.pointerUp(window, { pointerId: 1 });
+
+        expect(dialog).toHaveStyle({ left: '70px', position: 'fixed', top: '50px' });
+    });
+
+    it('does not make the title a drag handle on mobile', () => {
+        vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({
+            matches: query.includes('max-width'), media: query, onchange: null,
+            addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+        }));
+        const service = new CardSequenceDraftService();
+        service.open();
+        renderDialog(service);
+
+        expect(screen.getByRole('heading', { name: 'Add card sequence' }).closest('[data-drag-handle="true"]')).toBeNull();
+    });
 })

@@ -171,7 +171,13 @@ export function CardSequenceDialog({ service = cardSequenceDraftService }: CardS
             stackPosition={stackPosition}
         >
             <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
-                <DialogTitle data-popper-drag-handle id="card-sequence-title">Add card sequence</DialogTitle>
+                <DialogTitle
+                    data-drag-handle={!isMobile ? 'true' : undefined}
+                    id="card-sequence-title"
+                    sx={{ cursor: !isMobile ? 'move' : undefined }}
+                >
+                    Add card sequence
+                </DialogTitle>
                 <Box sx={{ px: 3, pb: 2 }}>
                     <CardSequenceActionSelector
                         actions={availableActions}
