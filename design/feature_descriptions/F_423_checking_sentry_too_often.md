@@ -3,7 +3,7 @@ author:
 id: F_423
 internalId: e552b2e5-34ae-4093-8270-daebd4467dbc
 title: checking sentry too often
-status: ready for implementation
+status: ready
 owner: 
 affects:
 agents:
@@ -12,6 +12,9 @@ policy:
 after: c9eb5c09-0c01-490f-808c-143ff534322b
 branch: f_423_checking_sentry_too_often
 worktree: 1
+changedFiles:
+  - app/src/services/sentry/sentry_import_service.node.test.ts
+  - app/src/services/sentry/sentry_import_service.ts
 ---
 
 we got this error from sentry when trying to manually retrieve the errors:
