@@ -1,6 +1,7 @@
 import { Box } from '@mui/material'
 import { memo, useCallback } from 'react'
 import type { CardTypeConfig } from '../../data/data_types'
+import { ACTION_PROMPT_PLACEHOLDERS } from '../../data/action_placeholders'
 import { MarkdownEditor } from '../editor/markdown_editor'
 import type { CardMarkdownDataSource } from '../editor/data_sources/card_markdown_data_source'
 import type { MarkdownDocumentHistoryStore } from '../editor/history/markdown_document_history_store'
@@ -108,6 +109,7 @@ export const CardBodyEditor = memo(function CardBodyEditor(props: CardBodyEditor
                 imagePasteHandler={handleImagePaste}
                 imagePreviewHandler={handleImagePreview}
                 overlayContainer={overlayContainer}
+                placeholders={ACTION_PROMPT_PLACEHOLDERS}
                 readOnly={readOnly}
                 toolbarContents={ToolbarContents}
             />

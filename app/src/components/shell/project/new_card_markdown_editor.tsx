@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { ACTION_PROMPT_PLACEHOLDERS } from '../../../data/action_placeholders'
 import { MarkdownEditor } from '../../editor/markdown_editor'
 import { projectSessionService } from '../../../services/project/project_session_service'
 import { attachFilesToNewCardMarkdown } from '../../../services/attachments/new_card_attachment_workflow'
@@ -38,6 +39,7 @@ export const NewCardMarkdownEditor = memo(function NewCardMarkdownEditor(props: 
             imagePasteHandler={handleImagePaste}
             imagePreviewHandler={handleImagePreview}
             overlayContainer={overlayContainer}
+            placeholders={ACTION_PROMPT_PLACEHOLDERS}
         />
     )
 })
