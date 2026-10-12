@@ -20,7 +20,7 @@
       "actionId": "5b88355d-f964-459a-bc67-6618650866ba",
       "cardInternalId": "e552b2e5-34ae-4093-8270-daebd4467dbc",
       "cardPath": "design/feature_descriptions/F_423_checking_sentry_too_often.md",
-      "completedAt": null,
+      "completedAt": "2026-10-12T14:44:59.281Z",
       "contextWindowUsage": {
         "capacityTokens": 1000000,
         "usedTokens": 76767
@@ -282,7 +282,7 @@
           "kind": "message",
           "role": "assistant",
           "sequence": 21,
-          "timestamp": "2026-10-12T14:44:58.628Z"
+          "timestamp": "2026-10-12T14:44:59.281Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -292,7 +292,7 @@
           "agent": "claude",
           "conversationId": "a07ef714-befd-459e-b9ac-4031278720c8",
           "createdAt": "2026-10-12T14:44:58.628Z",
-          "lastUsedAt": "2026-10-12T14:44:58.628Z",
+          "lastUsedAt": "2026-10-12T14:44:59.281Z",
           "synchronizedThroughMessageId": "agent-turn-a200ed4f-e082-40cb-b7b2-27a3e938a5c5-turn-1-assistant-2",
           "usageBaseline": {
             "costUsd": 0.697887,
@@ -308,14 +308,14 @@
         }
       ],
       "startedAt": "2026-10-12T14:44:04.152Z",
-      "status": "running",
+      "status": "completed",
       "timer": {
         "breakdown": {
           "reasoningMs": 16874,
           "toolMs": 22646
         },
-        "elapsedMs": 0,
-        "runningStartedAt": "2026-10-12T14:44:04.152Z"
+        "elapsedMs": 55129,
+        "runningStartedAt": null
       },
       "title": "complete",
       "usage": {
