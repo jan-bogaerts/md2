@@ -11,6 +11,7 @@ ex: instruction is to split up feature descriptions, nothing is mentioned about 
   * feature\_descriptions: currently active design work
   * architecture: set of md files containing architectural decisions
   * releases: historical design work, grouped per release, each folder has a `release_notes.md`
+  * actions: json files defining prompts, responses and agent configuration
 
 ## domain identity
 
