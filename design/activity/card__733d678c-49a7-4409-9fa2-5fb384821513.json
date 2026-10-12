@@ -5,10 +5,10 @@
       "actionId": "md2.custom-prompt",
       "cardInternalId": "733d678c-49a7-4409-9fa2-5fb384821513",
       "cardPath": "design/feature_descriptions/F_422_check_if_possible_to_switch_agent_accounts.md",
-      "completedAt": "2026-10-12T13:22:05.851Z",
+      "completedAt": null,
       "contextWindowUsage": {
         "capacityTokens": 258400,
-        "usedTokens": 76308
+        "usedTokens": 78087
       },
       "entries": [
         {
@@ -350,6 +350,36 @@
           "role": "user",
           "sequence": 27,
           "timestamp": "2026-10-12T13:22:03.575Z"
+        },
+        {
+          "content": "> CODEX\\_HOME/\n\nwhat is this folder in windows",
+          "id": "submission-0db810cf-38fd-442a-99ec-b22e2064b1bb",
+          "kind": "message",
+          "role": "user",
+          "sequence": 28,
+          "timestamp": "2026-10-12T13:22:17.638Z"
+        },
+        {
+          "content": "",
+          "details": [],
+          "id": "agent-turn-5b43f3ed-4a8d-4f5e-9f2a-a68a59126a9c-event-29",
+          "kind": "event",
+          "label": "Reasoning",
+          "providerItemId": "rs_0a60fc539efebe7e016accdf102d0087d2b22018d03109a83f",
+          "sequence": 29,
+          "status": "completed",
+          "summary": [],
+          "timestamp": "2026-10-12T13:22:24.330Z",
+          "type": "reasoning"
+        },
+        {
+          "agent": "codex",
+          "content": "`CODEX_HOME` is an environment variable pointing to Codex’s data folder. On Windows, its default is `C:\\Users\\<your-name>\\.codex`—on your machine, `C:\\Users\\janbo\\.codex`.\n\nSo `CODEX_HOME/auth.json` means `C:\\Users\\janbo\\.codex\\auth.json` **unless** `CODEX_HOME` has been set to another folder. Codex may use the Windows credential store instead of that file.\n\n",
+          "id": "agent-turn-5b43f3ed-4a8d-4f5e-9f2a-a68a59126a9c-turn-1-assistant-1",
+          "kind": "message",
+          "role": "assistant",
+          "sequence": 30,
+          "timestamp": "2026-10-12T13:22:27.314Z"
         }
       ],
       "hasExplicitTitle": true,
@@ -359,27 +389,27 @@
           "agent": "codex",
           "conversationId": "01a13021-06ff-7f00-9c19-9e92832e95e9",
           "createdAt": "2026-10-12T12:41:47.674Z",
-          "lastUsedAt": "2026-10-12T12:41:47.674Z",
-          "synchronizedThroughMessageId": "agent-turn-536a66ac-75c6-4cb9-a623-90acefda7123-turn-1-assistant-3"
+          "lastUsedAt": "2026-10-12T13:22:27.314Z",
+          "synchronizedThroughMessageId": "agent-turn-5b43f3ed-4a8d-4f5e-9f2a-a68a59126a9c-turn-1-assistant-1"
         }
       ],
       "startedAt": "2026-10-12T12:40:32.880Z",
-      "status": "cancelled",
+      "status": "running",
       "timer": {
         "breakdown": {
-          "reasoningMs": 5014,
+          "reasoningMs": 6391,
           "toolMs": 11960
         },
         "elapsedMs": 76848,
-        "runningStartedAt": null
+        "runningStartedAt": "2026-10-12T13:22:17.638Z"
       },
       "title": "+",
       "usage": {
-        "cachedInputTokens": 419072,
-        "inputTokens": 71632,
-        "outputTokens": 1671,
-        "reasoningTokens": 199,
-        "totalTokens": 492574
+        "cachedInputTokens": 495232,
+        "inputTokens": 73394,
+        "outputTokens": 1779,
+        "reasoningTokens": 256,
+        "totalTokens": 570661
       },
       "usageSchemaVersion": 1,
       "viewed": true
@@ -397,13 +427,13 @@
         "agent-6bf2bd79-0a8a-4eb4-9ee5-f47287822712"
       ],
       "details": {
+        "type": "agent",
         "agent": "codex",
         "model": "gpt-6-sol",
         "permissionMode": "approve-for-me",
         "thinkingLevel": "medium",
         "acknowledgedModel": "gpt-6-sol",
-        "acknowledgedServiceTier": "default",
-        "type": "agent"
+        "acknowledgedServiceTier": "default"
       },
       "runId": "action-ca8b3057-f3db-462c-a57c-e19058115518",
       "origin": {
@@ -412,9 +442,9 @@
       },
       "rootActionId": "md2.custom-prompt",
       "rootActionLabel": "+",
-      "rootConversationId": "agent-6bf2bd79-0a8a-4eb4-9ee5-f47287822712",
       "startedAt": "2026-10-12T12:40:32.879Z",
-      "status": "cancelled"
+      "status": "cancelled",
+      "rootConversationId": "agent-6bf2bd79-0a8a-4eb4-9ee5-f47287822712"
     }
   ],
   "version": 5
