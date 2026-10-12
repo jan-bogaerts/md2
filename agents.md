@@ -9,7 +9,7 @@ ex: instruction is to split up feature descriptions, nothing is mentioned about 
 * desktop: electron desktop-host / backend app
 * design: all design related documentation in md and json format
   * feature\_descriptions: currently active design work
-  * architecture:&#x20;
+  * architecture: set of md files containing architectural decisions
   * releases: historical design work, grouped per release, each folder has a `release_notes.md`
 
 ## domain identity
