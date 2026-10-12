@@ -9,5 +9,6 @@ affects:
 agents:
 policy:
 ---
+when creating new cards and when editing cards with the card-popup, the {{ does not trigger the insert-placeholder popup.
 
-when creating new cards, the {{ does not trigger the insert-placeholder popup
+this used to work and has been lost. we need to restore the feature
